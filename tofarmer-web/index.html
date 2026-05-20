@@ -1,265 +1,314 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>ToFarmer Ecosystem</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ToFarmer</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+  <!-- FONT -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 
-<style>
-:root{
-  --bg:#0d0d0f;
-  --card:rgba(20,20,25,0.7);
-  --cyan:#00f2ff;
-  --magenta:#ff00ff;
-  --text:#e0e0e0;
-}
+  <!-- ALGOSDK -->
+  <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
 
-*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif;}
+  <style>
+    * {
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Inter,sans-serif;
+    }
 
-body{
-  background:var(--bg);
-  color:var(--text);
-}
+    /* 🌿 LIGHT FOREST TECH BASE */
+    body {
+      background: #f4f7f5; /* seperti Instagram putih soft */
+      color: #1c2b22;
+      overflow-x:hidden;
+    }
 
-.container{
-  max-width:1100px;
-  margin:auto;
-  padding:16px;
-}
+    .container {
+      max-width:1100px;
+      margin:auto;
+      padding:1rem;
+    }
 
-/* HEADER */
-header{
-  text-align:center;
-  padding:20px 0;
-}
+    header {
+      text-align:center;
+      padding:2rem 1rem;
+    }
 
-header h1{
-  color:var(--cyan);
-  font-size:1.6rem;
-}
+    .brand {
+      display:inline-flex;
+      align-items:center;
+      gap:12px;
+      text-decoration:none;
+      color:#2f6f4e;
+      font-weight:600;
+    }
 
-/* LAYOUT */
-.grid{
-  display:grid;
-  grid-template-columns:300px 1fr;
-  gap:16px;
-}
+    .logo {
+      width:70px;
+      height:70px;
+      border-radius:50%;
+      animation:pulse 4s infinite;
+      background: white;
+      border:2px solid rgba(47,111,78,0.2);
+    }
 
-/* CARD */
-.card{
-  background:var(--card);
-  border:1px solid rgba(255,255,255,0.05);
-  border-radius:14px;
-  padding:14px;
-  backdrop-filter: blur(10px);
-}
+    @keyframes pulse {
+      0%{filter:drop-shadow(0 0 6px rgba(47,111,78,0.25));}
+      50%{filter:drop-shadow(0 0 18px rgba(47,111,78,0.35));}
+      100%{filter:drop-shadow(0 0 6px rgba(47,111,78,0.25));}
+    }
 
-/* PROFILE */
-.avatar{
-  width:70px;height:70px;
-  border-radius:50%;
-  margin:auto;
-  display:block;
-  border:2px solid var(--magenta);
-}
+    /* NAV (clean instagram feel) */
+    nav {
+      display:flex;
+      justify-content:center;
+      gap:15px;
+      margin-bottom:20px;
+    }
 
-/* XP BAR */
-.bar{
-  height:6px;
-  background:#111;
-  border-radius:10px;
-  overflow:hidden;
-  margin-top:6px;
-}
+    nav a {
+      padding:10px 18px;
+      border:1px solid rgba(47,111,78,0.15);
+      border-radius:12px;
+      color:#2f6f4e;
+      text-decoration:none;
+      font-size:12px;
+      background:#ffffff;
+      transition:0.2s;
+    }
 
-.bar > div{
-  height:100%;
-  background:linear-gradient(90deg,var(--cyan),var(--magenta));
-  width:0%;
-  transition:.4s;
-}
+    nav a:hover {
+      background:#e9f4ee;
+      transform: translateY(-1px);
+    }
 
-/* FEED */
-.post{
-  margin-bottom:12px;
-  padding:12px;
-  border-left:3px solid var(--magenta);
-  background:rgba(255,255,255,0.02);
-  border-radius:10px;
-}
+    /* LAYOUT */
+    .layout {
+      display:flex;
+      gap:20px;
+    }
 
-.small{
-  font-size:0.7rem;
-  color:#888;
-}
+    .left { width:320px; }
+    .right { flex:1; }
 
-button{
-  cursor:pointer;
-  border:none;
-  padding:8px 12px;
-  border-radius:8px;
-  font-weight:600;
-}
+    /* CARD (instagram white card style) */
+    .card {
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,0.06);
+      border-radius:16px;
+      padding:15px;
+      margin-bottom:15px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+    }
 
-/* INPUT */
-textarea{
-  width:100%;
-  min-height:70px;
-  background:#111;
-  border:1px solid #333;
-  color:#fff;
-  padding:10px;
-  border-radius:10px;
-  resize:none;
-}
+    /* ECONOMY BAR */
+    .eco {
+      display:flex;
+      justify-content:space-between;
+      padding:15px;
+      background:#ffffff;
+      border-radius:16px;
+      margin-bottom:15px;
+      border:1px solid rgba(212,175,55,0.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
 
-/* MOBILE */
-@media(max-width:850px){
-  .grid{grid-template-columns:1fr;}
-}
-</style>
+    .eco span {
+      color:#6f7f76;
+      font-size:11px;
+    }
+
+    .eco b {
+      color:#c9a227; /* emas lebih soft */
+      font-size:18px;
+    }
+
+    /* AVATAR STACK */
+    .avatars {
+      display:flex;
+      overflow-x:auto;
+      gap:10px;
+      padding:10px;
+    }
+
+    .avatars img {
+      width:34px;
+      height:34px;
+      border-radius:50%;
+      border:2px solid #fff;
+      box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    /* FEED */
+    .feed {
+      max-height:600px;
+      overflow-y:auto;
+    }
+
+    .post {
+      background:#ffffff;
+      padding:12px;
+      border-left:3px solid #4caf7a;
+      margin-bottom:10px;
+      border-radius:14px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    .user {
+      color:#2f6f4e;
+      font-size:12px;
+      margin-bottom:5px;
+      font-weight:600;
+    }
+
+    .text {
+      font-size:13px;
+      color:#2c3a33;
+    }
+
+    /* INPUT (instagram-like clean box) */
+    textarea {
+      width:100%;
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,0.08);
+      color:#1c2b22;
+      padding:12px;
+      border-radius:12px;
+      resize:none;
+      outline:none;
+    }
+
+    textarea:focus {
+      border-color:#4caf7a;
+      box-shadow:0 0 0 3px rgba(76,175,122,0.15);
+    }
+
+    /* BUTTON (soft green gold blend) */
+    button {
+      margin-top:10px;
+      width:100%;
+      padding:10px;
+      background:linear-gradient(90deg,#4caf7a,#c9a227);
+      border:none;
+      border-radius:12px;
+      font-weight:bold;
+      cursor:pointer;
+      color:white;
+      transition:0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      opacity:0.95;
+    }
+
+    /* MOBILE */
+    @media(max-width:850px){
+      .layout{flex-direction:column;}
+      .left{width:100%;}
+    }
+  </style>
 </head>
 
 <body>
+
 <div class="container">
 
-<header>
-  <h1>🌱 ToFarmer Ecosystem</h1>
-</header>
+  <!-- HEADER -->
+  <header>
+    <a class="brand" href="#">
+      <img class="logo" src="https://www.tofarmer.xyz/images/logo-tofarmer.png" />
+      <h2>ToFarmer</h2>
+    </a>
+  </header>
 
-<div class="grid">
+  <!-- NAV -->
+  <nav>
+    <a href="#">Titik Kumpul</a>
+    <a href="#">Fitur & Ilmu</a>
+  </nav>
 
-<!-- SIDEBAR -->
-<div class="card">
-
-  <img id="avatar" class="avatar" src="" />
-
-  <h3 id="username" style="text-align:center;margin-top:10px;">Guest</h3>
-  <p id="badge" style="text-align:center;color:#888;font-size:0.8rem;">-</p>
-
-  <div style="margin-top:10px;font-size:0.75rem;">
-    XP
-    <div class="bar"><div id="xpbar"></div></div>
-    <small id="xptext">0</small>
+  <!-- ECONOMY -->
+  <div class="eco">
+    <div>
+      <span>Total Aset Ekosistem</span><br>
+      <b id="totalAsset">0 TOF</b>
+    </div>
+    <div>
+      <span>Growers</span><br>
+      <b id="growerCount">0</b>
+    </div>
   </div>
 
-  <div style="margin-top:10px;font-size:0.75rem;">
-    Level: <b id="level">1</b>
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- LEFT -->
+   <div class="left">
+
+  <div class="card" id="userBox">
+    <div>@guest</div>
+    <div>XP: 0</div>
+    <div>TOF: 0</div>
+    <div>RANK: -</div>
   </div>
 
-  <div style="margin-top:10px;font-size:0.75rem;">
-    TOF Wallet: <span id="wallet">-</span>
+  <div class="card">
+    <div class="avatars" id="avatarStack"></div>
+  </div>
+
+  <div class="card">
+    <h4 style="color:#2f6f4e;font-size:12px;">WALLET</h4>
+    <button onclick="connectWallet()">CONNECT ALGORAND</button>
+  </div>
+
+  <div class="card">
+    <h4 style="color:#c9a227;font-size:12px;">FASE PROGRESS</h4>
+    <div style="height:6px;background:#eee;border-radius:5px;overflow:hidden;">
+      <div id="faseBar" style="width:20%;height:100%;background:linear-gradient(90deg,#4caf7a,#c9a227);"></div>
+    </div>
+    <p style="font-size:11px;margin-top:5px;color:#6f7f76;">Phase Alpha</p>
   </div>
 
 </div>
 
-<!-- MAIN -->
-<div>
+    <!-- RIGHT -->
+    <div class="right">
 
-  <!-- POST -->
-  <div class="card" style="margin-bottom:12px;">
-    <textarea id="postbox" placeholder="Tulis progres kamu..."></textarea>
-    <button onclick="sendPost()" style="margin-top:8px;background:var(--cyan);color:#000;">
-      Kirim
-    </button>
+      <div class="card">
+        <textarea id="postBox" placeholder="Tulis progres ToFarmer..."></textarea>
+        <button onclick="sendPost()">KIRIM</button>
+      </div>
+
+      <div class="feed" id="feed">
+        <div class="post">
+          <div class="user">@system</div>
+          <div class="text">ToFarmer engine initialized...</div>
+        </div>
+      </div>
+
+    </div>
+
   </div>
 
-  <!-- FEED -->
-  <div id="feed"></div>
-
-</div>
-
-</div>
 </div>
 
 <script>
-const API = "https://your-api-url"; // ganti ke worker kamu
-
-let currentUser = null;
-
-/* =====================
-   RENDER PROFILE
-===================== */
-function renderProfile(user){
-  currentUser = user;
-
-  document.getElementById("username").innerText = user.username;
-  document.getElementById("avatar").src = user.img || "";
-  document.getElementById("wallet").innerText = user.wallet || "-";
-
-  const xp = user.xp || 0;
-  const level = user.level || 1;
-
-  document.getElementById("level").innerText = level;
-  document.getElementById("xptext").innerText = xp;
-
-  const percent = (xp % 1000) / 10;
-  document.getElementById("xpbar").style.width = percent + "%";
-
-  document.getElementById("badge").innerText = user.badge || "GROWER";
-}
-
-/* =====================
-   LOAD FEED
-===================== */
-async function loadFeed(){
-  const res = await fetch(API + "/feed");
-  const data = await res.json();
-
-  const feed = document.getElementById("feed");
-  feed.innerHTML = "";
-
-  data.forEach(p=>{
-    const div = document.createElement("div");
-    div.className = "post";
-
-    div.innerHTML = `
-      <b>@${p.username}</b>
-      <div class="small">${p.created_at || ""}</div>
-      <p>${p.title || p.description || ""}</p>
-    `;
-
-    feed.appendChild(div);
-  });
-}
-
-/* =====================
-   POST
-===================== */
-async function sendPost(){
-  const text = document.getElementById("postbox").value;
-
-  if(!text) return;
-
-  await fetch(API + "/post",{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      text,
-      user: currentUser?.username
-    })
-  });
-
-  document.getElementById("postbox").value = "";
-  loadFeed();
-}
-
-/* =====================
-   INIT
-===================== */
-(async()=>{
-  // ambil profile dummy / session
-  const res = await fetch(API + "/profiles");
-  const users = await res.json();
-
-  if(users.length){
-    renderProfile(users[0]);
+  function connectWallet(){
+    alert("Wallet connect (nanti masuk wallet.js)");
   }
+</script>
+<script src="supabase.js"></script>
+<script src="app.js"></script>
 
-  loadFeed();
-})();
+<script>
+  window.addEventListener("DOMContentLoaded", () => {
+    loadFeed()
+  })
 </script>
 
 </body>
