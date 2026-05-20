@@ -1,19 +1,266 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>ToFarmer Feed</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ToFarmer Ecosystem</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet"/>
+
+<style>
+:root{
+  --bg:#0d0d0f;
+  --card:rgba(20,20,25,0.7);
+  --cyan:#00f2ff;
+  --magenta:#ff00ff;
+  --text:#e0e0e0;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:Inter,sans-serif;}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+}
+
+.container{
+  max-width:1100px;
+  margin:auto;
+  padding:16px;
+}
+
+/* HEADER */
+header{
+  text-align:center;
+  padding:20px 0;
+}
+
+header h1{
+  color:var(--cyan);
+  font-size:1.6rem;
+}
+
+/* LAYOUT */
+.grid{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  gap:16px;
+}
+
+/* CARD */
+.card{
+  background:var(--card);
+  border:1px solid rgba(255,255,255,0.05);
+  border-radius:14px;
+  padding:14px;
+  backdrop-filter: blur(10px);
+}
+
+/* PROFILE */
+.avatar{
+  width:70px;height:70px;
+  border-radius:50%;
+  margin:auto;
+  display:block;
+  border:2px solid var(--magenta);
+}
+
+/* XP BAR */
+.bar{
+  height:6px;
+  background:#111;
+  border-radius:10px;
+  overflow:hidden;
+  margin-top:6px;
+}
+
+.bar > div{
+  height:100%;
+  background:linear-gradient(90deg,var(--cyan),var(--magenta));
+  width:0%;
+  transition:.4s;
+}
+
+/* FEED */
+.post{
+  margin-bottom:12px;
+  padding:12px;
+  border-left:3px solid var(--magenta);
+  background:rgba(255,255,255,0.02);
+  border-radius:10px;
+}
+
+.small{
+  font-size:0.7rem;
+  color:#888;
+}
+
+button{
+  cursor:pointer;
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  font-weight:600;
+}
+
+/* INPUT */
+textarea{
+  width:100%;
+  min-height:70px;
+  background:#111;
+  border:1px solid #333;
+  color:#fff;
+  padding:10px;
+  border-radius:10px;
+  resize:none;
+}
+
+/* MOBILE */
+@media(max-width:850px){
+  .grid{grid-template-columns:1fr;}
+}
+</style>
 </head>
+
 <body>
+<div class="container">
 
-  <header>
-    <h1>🌱 ToFarmer Feed</h1>
-  </header>
+<header>
+  <h1>🌱 ToFarmer Ecosystem</h1>
+</header>
 
-  <div id="feed">Loading...</div>
+<div class="grid">
 
-  <script src="app.js"></script>
+<!-- SIDEBAR -->
+<div class="card">
+
+  <img id="avatar" class="avatar" src="" />
+
+  <h3 id="username" style="text-align:center;margin-top:10px;">Guest</h3>
+  <p id="badge" style="text-align:center;color:#888;font-size:0.8rem;">-</p>
+
+  <div style="margin-top:10px;font-size:0.75rem;">
+    XP
+    <div class="bar"><div id="xpbar"></div></div>
+    <small id="xptext">0</small>
+  </div>
+
+  <div style="margin-top:10px;font-size:0.75rem;">
+    Level: <b id="level">1</b>
+  </div>
+
+  <div style="margin-top:10px;font-size:0.75rem;">
+    TOF Wallet: <span id="wallet">-</span>
+  </div>
+
+</div>
+
+<!-- MAIN -->
+<div>
+
+  <!-- POST -->
+  <div class="card" style="margin-bottom:12px;">
+    <textarea id="postbox" placeholder="Tulis progres kamu..."></textarea>
+    <button onclick="sendPost()" style="margin-top:8px;background:var(--cyan);color:#000;">
+      Kirim
+    </button>
+  </div>
+
+  <!-- FEED -->
+  <div id="feed"></div>
+
+</div>
+
+</div>
+</div>
+
+<script>
+const API = "https://your-api-url"; // ganti ke worker kamu
+
+let currentUser = null;
+
+/* =====================
+   RENDER PROFILE
+===================== */
+function renderProfile(user){
+  currentUser = user;
+
+  document.getElementById("username").innerText = user.username;
+  document.getElementById("avatar").src = user.img || "";
+  document.getElementById("wallet").innerText = user.wallet || "-";
+
+  const xp = user.xp || 0;
+  const level = user.level || 1;
+
+  document.getElementById("level").innerText = level;
+  document.getElementById("xptext").innerText = xp;
+
+  const percent = (xp % 1000) / 10;
+  document.getElementById("xpbar").style.width = percent + "%";
+
+  document.getElementById("badge").innerText = user.badge || "GROWER";
+}
+
+/* =====================
+   LOAD FEED
+===================== */
+async function loadFeed(){
+  const res = await fetch(API + "/feed");
+  const data = await res.json();
+
+  const feed = document.getElementById("feed");
+  feed.innerHTML = "";
+
+  data.forEach(p=>{
+    const div = document.createElement("div");
+    div.className = "post";
+
+    div.innerHTML = `
+      <b>@${p.username}</b>
+      <div class="small">${p.created_at || ""}</div>
+      <p>${p.title || p.description || ""}</p>
+    `;
+
+    feed.appendChild(div);
+  });
+}
+
+/* =====================
+   POST
+===================== */
+async function sendPost(){
+  const text = document.getElementById("postbox").value;
+
+  if(!text) return;
+
+  await fetch(API + "/post",{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      text,
+      user: currentUser?.username
+    })
+  });
+
+  document.getElementById("postbox").value = "";
+  loadFeed();
+}
+
+/* =====================
+   INIT
+===================== */
+(async()=>{
+  // ambil profile dummy / session
+  const res = await fetch(API + "/profiles");
+  const users = await res.json();
+
+  if(users.length){
+    renderProfile(users[0]);
+  }
+
+  loadFeed();
+})();
+</script>
+
 </body>
 </html>
