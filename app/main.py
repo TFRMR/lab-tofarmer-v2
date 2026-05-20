@@ -1,6 +1,8 @@
 import os
 import time
 import datetime
+import hashlib
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -20,7 +22,7 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-app = FastAPI(title="ToFarmer Engine V4 FULL")
+app = FastAPI(title="ToFarmer Social Engine V5")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,241 +33,269 @@ app.add_middleware(
 )
 
 # =========================
-# GLOBAL STATE
+# GLOBAL STATE (fallback anti spam)
 # =========================
 GLOBAL_STATE = {
-    "last_reward_time": {},
+    "last_action": {}
 }
 
 # =========================
 # MODELS
 # =========================
-class Wallet(BaseModel):
-    wallet: str
+class User(BaseModel):
+    id: str
     username: str | None = None
 
-class ActivityRequest(BaseModel):
-    wallet: str
-    pilar: int
-    activity_type: str
-    weight: float = 1
+class Contribution(BaseModel):
+    user_id: str
+    pilar_aksi: int
+    judul_aksi: str
+    deskripsi_proses: str
+    media_url: str | None = None
 
-class RewardRequest(BaseModel):
-    wallet: str
-    amount: float = 10
-    reason: str = "MANUAL"
+class Like(BaseModel):
+    user_id: str
+    contribution_id: int
+
+class Comment(BaseModel):
+    user_id: str
+    contribution_id: int
+    message: str
+
+class AdminValidate(BaseModel):
+    contribution_id: int
+    status: str  # VALID / REJECTED
 
 # =========================
 # ROOT
 # =========================
 @app.get("/")
 def root():
-    return {"status": "OK", "system": "ToFarmer FULL ENGINE"}
+    return {"status": "OK", "system": "ToFarmer Social Engine V5"}
 
 # =========================
-# WALLET LOGIN
+# PROFILE GET
 # =========================
-@app.post("/auth/wallet")
-def wallet_login(data: Wallet):
-
-    username = data.username or f"user_{data.wallet[:6]}"
-
-    user = supabase.table("profiles").select("*").eq("id", data.wallet).execute()
-
-    if not user.data:
-        supabase.table("profiles").insert({
-            "id": data.wallet,
-            "username": username,
-            "saldo_tof": 0,
-            "xp": 0,
-            "power": 0,
-            "level": 1,
-            "rank": "GROWER"
-        }).execute()
-
-        return {"status": "created"}
-
-    return {"status": "exists"}
-
-# =========================
-# ANTI SPAM SYSTEM (DATABASE PERSISTENT)
-# =========================
-def anti_spam(wallet: str, seconds: int = 10):
-    try:
-        # Ambil 1 log aktivitas terbaru dari database untuk wallet ini
-        last_log = supabase.table("activity_log")\
-            .select("created_at")\
-            .eq("user_id", wallet)\
-            .order("created_at", descending=True)\
-            .limit(1)\
-            .execute()
-        
-        if last_log.data:
-            # Ambil string waktu dan bersihkan format ISO dari Supabase
-            created_at_str = last_log.data[0]["created_at"].replace("Z", "+00:00")
-            last_time = datetime.datetime.fromisoformat(created_at_str).timestamp()
-            now = time.time()
-            
-            if now - last_time < seconds:
-                return False
-                
-        return True
-    except Exception:
-        # Fallback ke memory state jika database request mengalami kendala sementara
-        now = time.time()
-        last = GLOBAL_STATE["last_reward_time"].get(wallet, 0)
-        if now - last < seconds:
-            return False
-        GLOBAL_STATE["last_reward_time"][wallet] = now
-        return True
-
-# =========================
-# LEVEL ENGINE
-# =========================
-def calculate_level(xp: int):
-    if xp < 3000:
-        return 1 + int(xp / 100)
-    elif xp < 9000:
-        return 31 + int((xp - 3000) / 200)
-    elif xp < 33000:
-        return 61 + int((xp - 9000) / 500)
-    else:
-        return min(99, 91 + int((xp - 33000) / 1000))
-
-def calculate_rank(xp: int):
-    if xp < 3000:
-        return "GROWER"
-    elif xp < 9000:
-        return "PRO"
-    elif xp < 33000:
-        return "SPECIALIST"
-    return "ELITE"
-
-# =========================
-# TIME ENGINE (LOG ONLY)
-# =========================
-@app.post("/engine/time/log")
-def time_log(data: ActivityRequest):
-
-    if not supabase.table("profiles").select("*").eq("id", data.wallet).execute().data:
-        return {"error": "wallet not found"}
-
-    supabase.table("activity_log").insert({
-        "user_id": data.wallet,
-        "pilar": data.pilar,
-        "activity_type": data.activity_type,
-        "weight": data.weight
-    }).execute()
-
-    return {"status": "logged"}
-
-# =========================
-# REWARD ENGINE (MANUAL)
-# =========================
-@app.post("/engine/reward")
-def reward(data: RewardRequest):
-
-    if not anti_spam(data.wallet):
-        return {"error": "spam"}
-
-    user = supabase.table("profiles").select("*").eq("id", data.wallet).execute()
-    if not user.data:
+@app.get("/profile/{user_id}")
+def get_profile(user_id: str):
+    res = supabase.table("profil").select("*").eq("id", user_id).execute()
+    if not res.data:
         return {"error": "not found"}
+    return res.data[0]
 
-    profile = user.data[0]
+# =========================
+# SIMPLE ANTI SPAM
+# =========================
+def anti_spam(user_id: str, seconds: int = 3):
+    now = time.time()
+    last = GLOBAL_STATE["last_action"].get(user_id, 0)
 
-    new_balance = profile["saldo_tof"] + data.amount
+    if now - last < seconds:
+        return False
 
-    supabase.table("profiles").update({
-        "saldo_tof": new_balance
-    }).eq("id", data.wallet).execute()
+    GLOBAL_STATE["last_action"][user_id] = now
+    return True
 
-    supabase.table("financial_ledger").insert({
-        "user_id": data.wallet,
-        "jumlah_tof": data.amount,
-        "tipe_transaksi": data.reason,
-        "total_pool_snapshot": new_balance
+# =========================
+# CREATE CONTRIBUTION (POST)
+# =========================
+@app.post("/contribution/create")
+def create_contribution(data: Contribution):
+
+    if not anti_spam(data.user_id, 2):
+        return {"error": "too fast"}
+
+    # insert POST (langsung tampil di feed)
+    res = supabase.table("contributions").insert({
+        "user_id": data.user_id,
+        "pilar_aksi": data.pilar_aksi,
+        "judul_aksi": data.judul_aksi,
+        "deskripsi_proses": data.deskripsi_proses,
+        "media_url": data.media_url,
+        "status_validasi": "PENDING"
     }).execute()
 
     return {
-        "wallet": data.wallet,
-        "reward": data.amount,
-        "balance": new_balance
+        "status": "posted",
+        "visible": True,
+        "data": res.data
     }
 
 # =========================
-# MAIN ENGINE (ONE FLOW SYSTEM)
+# FEED (PUBLIC - SEMUA POST MASUK)
 # =========================
-@app.post("/engine/activity")
-def engine_activity(data: ActivityRequest):
+@app.get("/feed")
+def feed(limit: int = 50):
 
-    if not anti_spam(data.wallet, 5):
-        return {"error": "cooldown"}
+    res = supabase.table("contributions") \
+        .select("*") \
+        .order("created_at", desc=True) \
+        .limit(limit) \
+        .execute()
 
-    user = supabase.table("profiles").select("*").eq("id", data.wallet).execute()
-    if not user.data:
-        return {"error": "wallet not found"}
+    return {"feed": res.data}
 
-    profile = user.data[0]
+# =========================
+# LIKE SYSTEM
+# =========================
+@app.post("/like")
+def like(data: Like):
 
-    # ================= reward =================
-    reward_amount = 2 + (data.pilar * 0.5) + data.weight
+    supabase.table("likes").insert({
+        "user_id": data.user_id,
+        "post_id": data.contribution_id
+    }).execute()
 
-    # ================= xp =================
-    xp_gain = 5 + (data.pilar * 2)
+    # update counter sederhana
+    post = supabase.table("contributions").select("likes_count").eq("id", data.contribution_id).execute()
 
-    new_xp = profile["xp"] + xp_gain
-    new_level = calculate_level(new_xp)
-    new_rank = calculate_rank(new_xp)
+    if post.data:
+        count = post.data[0].get("likes_count", 0) + 1
 
-    new_balance = profile["saldo_tof"] + reward_amount
+        supabase.table("contributions").update({
+            "likes_count": count
+        }).eq("id", data.contribution_id).execute()
 
-    # ================= update profile =================
-    supabase.table("profiles").update({
+    return {"status": "liked"}
+
+# =========================
+# COMMENT SYSTEM
+# =========================
+@app.post("/comment")
+def comment(data: Comment):
+
+    supabase.table("comments").insert({
+        "user_id": data.user_id,
+        "post_id": data.contribution_id,
+        "comment": data.message
+    }).execute()
+
+    return {"status": "commented"}
+
+# =========================
+# ADMIN VALIDATION
+# =========================
+@app.post("/admin/validate")
+def validate(data: AdminValidate):
+
+    if data.status not in ["VALID", "REJECTED"]:
+        return {"error": "invalid status"}
+
+    supabase.table("contributions").update({
+        "status_validasi": data.status
+    }).eq("id", data.contribution_id).execute()
+
+    return {"status": "updated"}
+
+# =========================
+# XP + REWARD ENGINE
+# =========================
+def give_reward(user_id: str, amount: float, xp: int, reason: str):
+
+    profile = supabase.table("profil").select("*").eq("id", user_id).execute()
+    if not profile.data:
+        return
+
+    p = profile.data[0]
+
+    new_balance = p["saldo_tof"] + amount
+    new_xp = p["xp"] + xp
+
+    # level sederhana
+    level = 1 + new_xp // 100
+    rank = "GROWER" if new_xp < 3000 else "PRO" if new_xp < 9000 else "ELITE"
+
+    supabase.table("profil").update({
         "saldo_tof": new_balance,
         "xp": new_xp,
-        "level": new_level,
-        "rank": new_rank
-    }).eq("id", data.wallet).execute()
+        "level": level,
+        "rank": rank
+    }).eq("id", user_id).execute()
 
-    # ================= ledger =================
     supabase.table("financial_ledger").insert({
-        "user_id": data.wallet,
-        "jumlah_tof": reward_amount,
-        "tipe_transaksi": "AUTO_ACTIVITY",
+        "user_id": user_id,
+        "jumlah_tof": amount,
+        "tipe_transaksi": reason,
         "total_pool_snapshot": new_balance
     }).execute()
 
-    # ================= activity log =================
-    supabase.table("activity_log").insert({
-        "user_id": data.wallet,
-        "pilar": data.pilar,
-        "activity_type": data.activity_type,
-        "weight": data.weight,
-        "reward_received": reward_amount,
-        "xp_received": xp_gain
+# =========================
+# AUTO PROCESS CONTRIBUTION REWARD
+# =========================
+@app.post("/engine/process/{contribution_id}")
+def process(contribution_id: int):
+
+    post = supabase.table("contributions").select("*").eq("id", contribution_id).execute()
+
+    if not post.data:
+        return {"error": "not found"}
+
+    p = post.data[0]
+
+    status = p.get("status_validasi", "PENDING")
+
+    # reward logic
+    if status == "VALID":
+        reward = 10 + (p["pilar_aksi"] * 2)
+        xp = 20
+        reason = "VALID_CONTRIBUTION"
+
+    elif status == "PENDING":
+        reward = 2
+        xp = 5
+        reason = "PENDING_CONTRIBUTION"
+
+    else:
+        reward = 0
+        xp = 0
+        reason = "REJECTED_CONTRIBUTION"
+
+    if reward > 0:
+        give_reward(p["user_id"], reward, xp, reason)
+
+    # blockchain proof tipis (hash saja)
+    proof = hashlib.sha256(
+        f"{p['user_id']}{p['judul_aksi']}{time.time()}".encode()
+    ).hexdigest()
+
+    supabase.table("blockchain_proofs").insert({
+        "user_id": p["user_id"],
+        "event_type": "CONTRIBUTION",
+        "proof_hash": proof,
+        "tx_hash": None
     }).execute()
 
     return {
-        "wallet": data.wallet,
-        "reward": reward_amount,
-        "xp": new_xp,
-        "level": new_level,
-        "rank": new_rank,
-        "balance": new_balance
+        "status": "processed",
+        "reward": reward,
+        "xp": xp
     }
 
 # =========================
-# LIVE PRICE ENGINE
+# LEADERBOARD
 # =========================
-@app.get("/engine/price")
+@app.get("/leaderboard")
+def leaderboard():
+
+    res = supabase.table("profil") \
+        .select("*") \
+        .order("xp", desc=True) \
+        .limit(20) \
+        .execute()
+
+    return {"leaderboard": res.data}
+
+# =========================
+# PRICE ENGINE SIMPLE
+# =========================
+@app.get("/price")
 def price():
 
     ledger = supabase.table("financial_ledger").select("jumlah_tof").execute()
-    minted = sum([x["jumlah_tof"] for x in ledger.data]) if ledger.data else 0
+    profiles = supabase.table("profil").select("saldo_tof").execute()
 
-    users = supabase.table("profiles").select("saldo_tof").execute()
-    supply = sum([x["saldo_tof"] for x in users.data]) if users.data else 1
+    minted = sum([x["jumlah_tof"] for x in ledger.data]) if ledger.data else 0
+    supply = sum([x["saldo_tof"] for x in profiles.data]) if profiles.data else 1
 
     price = minted / (supply + 1)
 
