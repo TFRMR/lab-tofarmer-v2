@@ -6,285 +6,52 @@
     <title>ToFarmer: Menanam Pengetahuan, Menuai Kemandirian | ToFarmer</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
+         
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
+        body { background:#0d0d0f; color:#e0e0e0; line-height:1.8; overflow-x: hidden; }
+        .container { max-width:1000px; margin:auto; padding:1rem; }
 
-        body {
-            /* Efek kabut ladang pagi futuristik yang bergerak lambat */
-            background: linear-gradient(135deg, #ecf3ee 0%, #e1ebe4 40%, #e6eedc 100%);
-            background-size: 400% 400%;
-            animation: gradientMovement 15s ease infinite;
-            background-attachment: fixed;
-            color: #1b2620;
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
+         
+        header { text-align:center; padding:2rem 1rem; }
+        .header-brand { display: inline-flex; align-items: center; justify-content: center; gap: 15px; text-decoration: none; }
+        .header-logo { height: 50px; width: auto; filter: drop-shadow(0 0 5px rgba(0,242,255,0.5)); }
+        header h1 { font-size: 2.2rem; color: #00f2ff; text-shadow: 0 0 10px #00f2ff; letter-spacing: 1px; }
 
-        @keyframes gradientMovement {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+        nav { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 20px; margin-bottom: 2rem; }
+        nav a { 
+            text-decoration: none; color: #00f2ff; font-size: 0.85em; font-weight: 600; 
+            background: rgba(0, 242, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); 
+            padding: 10px 20px; border-radius: 8px; text-transform: uppercase;
         }
+        nav a:hover { background: rgba(0, 242, 255, 0.2); border-color: #00f2ff; box-shadow: 0 0 15px rgba(0, 242, 255, 0.4); color: #fff; }
 
-        /* CONTAINER */
-        .container {
-            max-width: 1000px;
-            margin: auto;
-            padding: 2rem 1rem;
+         
+        .content-area { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: #16161a; 
+            padding: 3rem; 
+            border-radius: 20px; 
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-
-        /* HEADER FUTURISTIK */
-        header {
-            text-align: center;
-            padding: 2rem 1rem 3rem;
-            position: relative;
-        }
-
-        .header-brand {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-            text-decoration: none;
-        }
-
-        .header-logo {
-            height: 70px;
-            width: 70px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(5px);
-            padding: 4px;
-            box-shadow: 0 0 20px rgba(45, 90, 67, 0.15), 0 0 0 2px rgba(181, 148, 43, 0.25);
-            transition: all 0.4s ease;
-        }
-
-        .header-brand:hover .header-logo {
-            transform: rotate(360deg) scale(1.05);
-            box-shadow: 0 0 25px rgba(181, 148, 43, 0.4), 0 0 0 3px rgba(45, 90, 67, 0.4);
-        }
-
-        header h1 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #133321;
-            letter-spacing: -1px;
-            background: linear-gradient(135deg, #133321 30%, #b5942b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        /* NAV DOCK */
-        nav {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 3rem;
-        }
-
-        nav a {
-            text-decoration: none;
-            color: #1e4631;
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(45, 90, 67, 0.15);
-            padding: 12px 24px;
-            border-radius: 30px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 15px rgba(30, 70, 49, 0.02);
-        }
-
-        nav a:hover {
-            background: rgba(30, 70, 49, 0.9);
-            color: #fff;
-            border-color: #1e4631;
-            box-shadow: 0 8px 20px rgba(30, 70, 49, 0.2);
-            transform: translateY(-2px);
-        }
-
-        /* BOX UTAMA (Cyber-Organic Neo Glass Card) */
-        .content-area {
-            background: rgba(255, 255, 255, 0.35);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            
-            /* Border luar tipis hijau alam, dikombinasikan dengan outline emas di dalamnya */
-            border: 1px solid rgba(45, 90, 67, 0.2);
-            outline: 1px solid rgba(181, 148, 43, 0.3);
-            outline-offset: -5px;
-            
-            padding: 3.5rem 3rem;
-            border-radius: 32px;
-            position: relative;
-            
-            /* Pendaran bayangan berlapis (Double Glow) */
-            box-shadow: 
-                inset 0 1px 2px rgba(255, 255, 255, 0.6),
-                0 20px 50px rgba(30, 70, 49, 0.06),
-                0 0 40px rgba(181, 148, 43, 0.03);
-        }
-
-        /* GRID FITUR */
-        .fitur-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 20px;
-            margin: 24px 0 40px;
-        }
-
-        /* CARD BUTTON FUTURISTIK (Holographic Organic Panel) */
-        .fitur-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            padding: 28px 20px;
-            border-radius: 22px;
-            position: relative;
-            overflow: hidden;
-            
-            /* Lapisan kaca jernih */
-            background: rgba(255, 255, 255, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            outline: 1px solid rgba(45, 90, 67, 0.08);
-            outline-offset: -1px;
-            
-            box-shadow: 0 4px 15px rgba(30, 70, 49, 0.01);
-            transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-        }
-
-        /* Efek Hover Quantum / Cyber-Organic */
-        .fitur-btn:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.85);
-            border-color: rgba(181, 148, 43, 0.4);
-            outline-color: rgba(45, 90, 67, 0.25);
-            
-            /* Efek pendaran cahaya dari bawah panel */
-            box-shadow: 
-                0 12px 24px rgba(30, 70, 49, 0.05),
-                0 4px 15px rgba(181, 148, 43, 0.15);
-        }
-
-        /* Indikator Cahaya Neon Kecil di Sudut Atas (Hanya Muncul saat Hover) */
-        .fitur-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #b5942b, transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .fitur-btn:hover::before {
-            opacity: 1;
-        }
-
-        /* ICON HOLOGRAF IK */
-        .fitur-icon {
-            font-size: 2.6rem;
-            margin-bottom: 16px;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            filter: drop-shadow(0 4px 8px rgba(30, 70, 49, 0.1));
-        }
+        .content-area h1 { color: #00f2ff; margin-bottom: 1rem; font-size: 2.5rem; line-height: 1.2; }
+        .meta-info { color: #666; font-size: 0.8rem; margin-bottom: 2rem; font-family: monospace; }
         
-        /* Gerakan icon melayang ke atas */
-        .fitur-btn:hover .fitur-icon {
-            transform: translateY(-6px) scale(1.1);
-        }
+         
+        .post-body { font-size: 1.1rem; color: #d1d1d1; }
+        .post-body h2, .post-body h3 { color: #ff00ff; margin: 2rem 0 1rem; text-shadow: 0 0 5px rgba(255, 0, 255, 0.2); }
+        .post-body p { margin-bottom: 1.5rem; }
+        .post-body img { max-width: 100%; border-radius: 10px; border: 1px solid #333; margin: 1rem 0; }
+        .post-body a { color: #00f2ff; text-decoration: none; border-bottom: 1px dashed #00f2ff; }
+        .post-body blockquote { border-left: 4px solid #00f2ff; padding-left: 20px; font-style: italic; color: #aaa; margin: 2rem 0; }
 
-        /* LABELS */
-        .fitur-label {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: #244431;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            transition: color 0.3s ease;
-        }
+         
+        .custom-footer-tofarmer { text-align: center; margin-top: 50px; padding: 20px; font-family: monospace; font-size: 12px; color: #8affff; opacity: 0.7; }
 
-        .fitur-btn:hover .fitur-label {
-            color: #133321;
-        }
-
-        /* LASER SECTION DIVIDER */
-        .section-divider {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin: 45px 0 20px;
-        }
-
-        .section-divider span {
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: #b5942b;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(181, 148, 43, 0.1);
-        }
-
-        .section-line {
-            height: 1px;
-            width: 100%;
-            /* Efek Laser Memudar */
-            background: linear-gradient(90deg, rgba(181, 148, 43, 0.5), rgba(45, 90, 67, 0.2) 50%, transparent);
-        }
-
-        /* FOOTER */
-        .custom-footer-tofarmer {
-            text-align: center;
-            margin-top: 50px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #657e70;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
-
-        /* RESPONSIVE OPTIMIZATION */
-        @media(max-width:768px){
-            .content-area {
-                padding: 2.5rem 1.5rem;
-                border-radius: 24px;
-                outline-offset: -3px;
-            }
-
-            header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .fitur-grid {
-                grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-                gap: 14px;
-            }
-            
-            .fitur-btn {
-                padding: 22px 14px;
-                border-radius: 16px;
-            }
-            
-            .fitur-icon {
-                font-size: 2.2rem;
-                margin-bottom: 12px;
-            }
-
-            .fitur-label {
-                font-size: 0.75rem;
-            }
+        @media screen and (max-width: 600px) {
+            .content-area { padding: 1.5rem; }
+            .content-area h1 { font-size: 1.8rem; }
         }
     </style>
 </head>
