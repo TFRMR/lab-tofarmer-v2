@@ -1,5 +1,9 @@
+
+
 let currentWallet = null
 let currentProfile = null
+
+
 
 // ===================== WALLET =====================
 async function connectWallet() {
@@ -14,7 +18,9 @@ async function connectWallet() {
   updateWalletUI()
   renderProfile()
 
-  alert("Wallet connected: " + wallet)
+  alert(
+  "🌿 Wallet tersambung!"
+)
 }
 
 function logoutWallet() {
@@ -28,29 +34,72 @@ function logoutWallet() {
   alert("Logged out")
 }
 
-// ===================== UI WALLET =====================
+
+
+// ===================== PROFILE SYNC =====================
 function updateWalletUI() {
-  const btn = document.querySelector("button[onclick='connectWallet()']")
+
+  const btn =
+    document.querySelector(
+      ".card button"
+    )
+
+  const editBtn =
+    document.getElementById(
+      "editAvatarBtn"
+    )
+
   if (!btn) return
 
+  // ================= LOGIN =================
   if (currentWallet) {
-    btn.innerText = "🔗 WALLET CONNECTED (LOGOUT)"
-    btn.style.background = "#4caf7a"
-    btn.onclick = logoutWallet
-  } else {
-    btn.innerText = "CONNECT ALGORAND"
-    btn.style.background = ""
-    btn.onclick = connectWallet
+
+    btn.innerText =
+      "🌿 LOGOUT DOMPET"
+
+    btn.style.background =
+      "#4caf7a"
+
+    btn.onclick =
+      logoutWallet
+
+    // tampilkan ikon pensil
+    if (editBtn) {
+      editBtn.style.visibility =
+  "visible"
+    }
+
+  }
+
+  // ================= GUEST =================
+  else {
+
+    btn.innerText =
+      "CONNECT DOMPET"
+
+    btn.style.background =
+      ""
+
+    btn.onclick =
+      connectWallet
+
+    // sembunyikan ikon pensil
+    if (editBtn) {
+      editBtn.style.visibility =
+  "hidden"
+    }
   }
 }
 
 // ===================== PROFILE SYNC =====================
 async function syncProfile(wallet) {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", wallet)
-    .maybeSingle()
+
+  const { data, error } =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", wallet)
+      .maybeSingle()
 
   if (error) {
     console.log(error)
@@ -59,32 +108,44 @@ async function syncProfile(wallet) {
 
   // kalau belum ada user
   if (!data) {
-    const { data: newUser, error: err2 } = await supabaseClient
-      .from("profiles")
-      .insert([
-        {
-          id: wallet,
-          username: "GROWER_" + wallet.slice(0, 6),
-          xp: 0,
-          saldo_tof: 0,
-          rank: "NOVICE",
-          level: 1
-        }
-      ])
-      .select()
-      .single()
+
+    const {
+      data: newUser,
+      error: err2
+    } =
+      await supabaseClient
+        .from("profiles")
+        .insert([
+          {
+            id: wallet,
+            username:
+              "GROWER_" +
+              wallet.slice(0, 6),
+
+            xp: 0,
+            saldo_tof: 0,
+            rank: "NOVICE",
+            level: 1,
+            avatar_url: ""
+          }
+        ])
+        .select()
+        .single()
 
     if (err2) {
       console.log(err2)
       return
     }
 
-    currentProfile = newUser
+    currentProfile =
+      newUser
+
   } else {
-    currentProfile = data
+
+    currentProfile =
+      data
   }
 }
-
 // ===================== POST =====================
 
 const PILAR_MAP = {
@@ -223,16 +284,225 @@ async function loadFeed() {
 
 // ===================== PROFILE RENDER =====================
 function renderProfile() {
-  const userBox = document.getElementById("userBox")
-  if (!userBox || !currentProfile) return
+  const userBox =
+    document.getElementById(
+      "profileInfo"
+    )
+
+
+  const avatar =
+    document.getElementById(
+      "profileAvatar"
+    )
+
+  if (!userBox) return
+
+  // guest mode
+  if (!currentProfile) {
+
+    if (avatar) {
+  avatar.style.display =
+    "none"
+}
+
+    userBox.innerHTML = `
+      <div style="
+        font-weight:700;
+        font-size:16px;
+        color:#2f6f4e;
+      ">
+        @guest
+      </div>
+
+      <div style="
+        margin-top:12px;
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+      ">
+
+        <div class="card"
+          style="padding:10px;margin:0;">
+          <div style="font-size:11px;color:#888;">
+            XP
+          </div>
+          <div style="font-weight:700;">
+            0
+          </div>
+        </div>
+
+        <div class="card"
+          style="padding:10px;margin:0;">
+          <div style="font-size:11px;color:#888;">
+            TOF
+          </div>
+          <div style="
+            font-weight:700;
+            color:#c9a227;
+          ">
+            0
+          </div>
+        </div>
+
+      </div>
+
+      <div style="
+        margin-top:10px;
+        background:#eef7f1;
+        border-radius:999px;
+        padding:8px 14px;
+        display:inline-block;
+        color:#2f6f4e;
+        font-size:12px;
+        font-weight:600;
+      ">
+        🌱 BELUM LOGIN
+      </div>
+    `
+
+    return
+  }
+
+
+
+
+  if (avatar) {
+
+  avatar.style.display =
+    "block"
+
+  avatar.src =
+    currentProfile.avatar_url ||
+    "https://www.tofarmer.xyz/images/logo-tofarmer.png"
+}
 
   userBox.innerHTML = `
-    <div>@${currentProfile.username}</div>
-    <div>XP: ${currentProfile.xp}</div>
-    <div>TOF: ${currentProfile.saldo_tof}</div>
-    <div>RANK: ${currentProfile.rank}</div>
+    <div style="
+      font-weight:700;
+      font-size:16px;
+      color:#2f6f4e;
+    ">
+      @${currentProfile.username}
+    </div>
+
+    <div style="
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    ">
+
+      <div class="card"
+        style="padding:10px;margin:0;">
+        <div style="
+          font-size:11px;
+          color:#888;
+        ">
+          XP
+        </div>
+        <div style="font-weight:700;">
+          ${currentProfile.xp || 0}
+        </div>
+      </div>
+
+      <div class="card"
+        style="padding:10px;margin:0;">
+        <div style="
+          font-size:11px;
+          color:#888;
+        ">
+          TOF
+        </div>
+        <div style="
+          font-weight:700;
+          color:#c9a227;
+        ">
+          ${currentProfile.saldo_tof || 0}
+        </div>
+      </div>
+
+    </div>
+
+    <div style="
+      margin-top:10px;
+      background:#eef7f1;
+      border-radius:999px;
+      padding:8px 14px;
+      display:inline-block;
+      color:#2f6f4e;
+      font-size:12px;
+      font-weight:600;
+    ">
+      🌱 ${currentProfile.rank || "NOVICE"}
+    </div>
   `
 }
+
+
+// ===================== AVATAR UPLOAD =====================
+
+document.addEventListener("change", async (e) => {
+  if (e.target.id !== "avatarInput") return
+
+  if (!currentWallet) {
+    alert("Connect wallet dulu 😄")
+    return
+  }
+
+  const file = e.target.files[0]
+
+  if (!file) return
+
+  const fileName =
+    currentWallet + "-" + Date.now()
+
+  // upload ke storage
+  const { data: uploadData, error: uploadError } =
+  await supabaseClient.storage
+    .from("avatars")
+    .upload(fileName, file)
+
+if (uploadError) {
+  console.log("UPLOAD ERROR:", uploadError)
+
+  alert(
+    "Upload gagal: " +
+    uploadError.message
+  )
+
+  return
+}
+
+  // ambil public url
+  const { data } =
+    supabaseClient.storage
+      .from("avatars")
+      .getPublicUrl(fileName)
+
+  const avatarUrl = data.publicUrl
+
+  // update profile
+  const { error: updateError } =
+    await supabaseClient
+      .from("profiles")
+      .update({
+        avatar_url: avatarUrl
+      })
+      .eq("id", currentWallet)
+
+  if (updateError) {
+    console.log(updateError)
+    alert("Gagal update profile")
+    return
+  }
+
+  currentProfile.avatar_url =
+    avatarUrl
+
+  renderProfile()
+
+  alert("Foto berhasil diganti 🌿")
+})
 
 // ===================== INIT =====================
 window.addEventListener("DOMContentLoaded", () => {
