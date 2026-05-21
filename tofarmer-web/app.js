@@ -791,8 +791,11 @@ async function loadAvatarStack() {
     img.title = user.username
 
     img.onclick = () => {
-      alert("Profile: @" + user.username)
-    }
+
+  window.location.href =
+    `profile.html?id=${user.id}`
+
+}
 
     container.appendChild(img)
   })

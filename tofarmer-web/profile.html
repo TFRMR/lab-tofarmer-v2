@@ -1,19 +1,211 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <title>Profile ToFarmer</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  />
+
+  <title>Profile | ToFarmer</title>
+
+  <!-- FONT -->
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link
+    rel="stylesheet"
+    href="style.css"
+  />
+
+  <!-- SUPABASE -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+
+    body{
+      background:#f4f7f5;
+      font-family:Inter,sans-serif;
+      color:#1c2b22;
+      margin:0;
+    }
+
+    .container{
+      max-width:760px;
+      margin:auto;
+      padding:20px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:18px;
+    }
+
+    .back-btn{
+      text-decoration:none;
+      color:#2f6f4e;
+      background:white;
+      border:
+        1px solid
+        rgba(47,111,78,.12);
+
+      border-radius:12px;
+      padding:10px 14px;
+
+      font-size:13px;
+      font-weight:600;
+
+      transition:.2s;
+    }
+
+    .back-btn:hover{
+      background:#eef7f1;
+    }
+
+    .page-title{
+      font-size:20px;
+      font-weight:700;
+      color:#2f6f4e;
+    }
+
+    .card{
+      background:#fff;
+
+      border:
+        1px solid
+        rgba(0,0,0,.05);
+
+      border-radius:22px;
+
+      padding:22px;
+
+      box-shadow:
+        0 10px 28px
+        rgba(0,0,0,.04);
+    }
+.btn-glow {
+  width: 50%;
+  margin-top: 14px;
+  padding: 14px;
+  border: none;
+  border-radius: 16px;
+
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+
+  cursor: pointer;
+
+  background: linear-gradient(
+    90deg,
+    #4caf7a,
+    #c9a227
+  );
+
+  box-shadow:
+    0 8px 18px rgba(76,175,122,.25),
+    0 6px 20px rgba(201,162,39,.18);
+
+  transition: all 0.25s ease;
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* shimmer light effect */
+.btn-glow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 60%;
+  height: 100%;
+  background: rgba(255,255,255,.25);
+  transform: skewX(-25deg);
+  transition: 0.5s;
+}
+
+.btn-glow:hover::before {
+  left: 140%;
+}
+
+.btn-glow:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 12px 28px rgba(76,175,122,.35),
+    0 10px 30px rgba(201,162,39,.25);
+}
+
+.btn-glow:active {
+  transform: scale(0.98);
+  box-shadow:
+    0 6px 14px rgba(76,175,122,.25);
+}
+  </style>
+
 </head>
+
 <body>
 
-  <header>
-    <h1>👤 Profile</h1>
-  </header>
+  <div class="container">
 
-  <div id="profile">Loading...</div>
+    <!-- TOP -->
+    <div class="topbar">
 
+      <a
+        href="index.html"
+        class="back-btn"
+      >
+        ← Kembali
+      </a>
+
+      <div class="page-title">
+        👤 Profile ToFarmer
+      </div>
+
+    </div>
+
+   <!-- PROFILE -->
+<div id="profile">
+
+  <div class="card"
+    style="
+      text-align:center;
+      color:#6f7f76;
+    "
+  >
+    🌿 Loading profile...
+  </div>
+
+</div>
+
+<!-- RUANG KARYA -->
+<div
+  id="profileWorkspace"
+  style="
+    margin-top:18px;
+  "
+></div>
+
+<!-- FEED USER -->
+<div
+  id="userPosts"
+  style="
+    margin-top:18px;
+  "
+></div>
+  </div>
+
+  <!-- SUPABASE CONFIG -->
+  <script src="supabase.js"></script>
+
+  <!-- PROFILE LOGIC -->
   <script src="profile.js"></script>
+
 </body>
 </html>
