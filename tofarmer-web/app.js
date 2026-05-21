@@ -1,4 +1,17 @@
+function getRank(xp) {
+  if (xp >= 33000) return "ELITE";
+  if (xp >= 9000) return "SPECIALIST";
+  if (xp >= 3000) return "PRO";
+  return "GROWER";
+}
 
+// Menghindari ReferenceError pada renderProfile
+function getTofLevel(xp) {
+  if (xp >= 33000) return 4;
+  if (xp >= 9000) return 3;
+  if (xp >= 3000) return 2;
+  return 1;
+}
 
 let currentWallet = null
 let currentProfile = null
@@ -124,7 +137,6 @@ async function syncProfile(wallet) {
 
             xp: 0,
             saldo_tof: 0,
-            rank: "NOVICE",
             level: 1,
             avatar_url: ""
           }
@@ -180,15 +192,28 @@ Ketik angka 1-5 ya bos 👇
       "5": "refleksi"
     }
 
-    resolve(map[input] || "community")
+    resolve(map[input] || null) // Biarkan null jika tidak valid agar bisa difallback ke hasil rekomendasi heuristic
   })
 }
 
+// Gabungan logika ganda classifyPilar agar tidak tumpang tindih
 async function classifyPilar(text) {
-  // sementara: pakai pilihan user dulu (lebih akurat 😄)
-  const result = await pilihPilarPopup(text)
+  // 🧠 Logika Heuristic / Rule Sederhana (Prediksi awal)
+  const t = text.toLowerCase()
+  let rekomendasiAwal = "community"
 
-  return result
+  if (t.includes("modal") || t.includes("profit") || t.includes("aset")) {
+    rekomendasiAwal = "finance"
+  } else if (t.includes("tanam") || t.includes("ladang") || t.includes("panen")) {
+    rekomendasiAwal = "ladang"
+  } else if (t.includes("blockchain") || t.includes("wallet") || t.includes("smart contract")) {
+    rekomendasiAwal = "inovasi" // disesuaikan dengan key PILAR_MAP
+  }
+
+  // 🌿 Konfirmasi/Pilihan utama lewat popup user (lebih akurat 😄)
+  const userChoice = await pilihPilarPopup(text)
+
+  return userChoice || rekomendasiAwal
 }
 
 
@@ -230,30 +255,54 @@ async function sendPost() {
   loadFeed()
 }
 
+// ===================== GLOBAL ECONOMY =====================
 
+async function loadEconomy() {
 
+  // total aset TOF dan ambil XP sekalian untuk kalkulasi statistik rankSummary
+  const {
+    data: profiles,
+    error
+  } =
+    await supabaseClient
+      .from("profiles")
+      .select("saldo_tof, xp")
 
-
-async function classifyPilar(text) {
-  // 🧠 placeholder AI (nanti bisa diganti OpenAI / HuggingFace)
-  
-  // sementara: rule sederhana (heuristic ringan)
-  const t = text.toLowerCase()
-
-  if (t.includes("modal") || t.includes("profit") || t.includes("aset")) {
-    return "finance"
+  if (error) {
+    console.log(error)
+    return
   }
 
-  if (t.includes("tanam") || t.includes("ladang") || t.includes("panen")) {
-    return "ladang"
+  const total =
+    profiles.reduce(
+      (sum, user) =>
+        sum +
+        (Number(user.saldo_tof) || 0),
+      0
+    )
+
+  // render UI
+  const totalAsset =
+    document.getElementById(
+      "totalAsset"
+    )
+
+  const growerEl =
+    document.getElementById(
+      "rankSummary"
+    )
+
+  if (totalAsset) {
+    totalAsset.innerText =
+      total.toLocaleString() +
+      " TOF"
   }
 
-  if (t.includes("blockchain") || t.includes("wallet") || t.includes("smart contract")) {
-    return "blockchain"
+  if (growerEl) {
+    // Memanfaatkan fungsi stats agar tampilan rankSummary menampilkan info lengkap emoji berkategori
+    const stats = getRankStats(profiles)
+    growerEl.innerHTML = `${profiles.length} ( 🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite} )`
   }
-
-  // default fallback
-  return "community"
 }
 
 
@@ -433,7 +482,7 @@ function renderProfile() {
       font-size:12px;
       font-weight:600;
     ">
-      🌱 ${currentProfile.rank || "NOVICE"}
+      🌱 ${getRank(currentProfile.xp || 0)} (Lv ${getTofLevel(currentProfile.xp || 0)})
     </div>
   `
 }
@@ -500,11 +549,11 @@ if (uploadError) {
     avatarUrl
 
   renderProfile()
+  loadEconomy()
 
   alert("Foto berhasil diganti 🌿")
 })
 
-// ===================== INIT =====================
 window.addEventListener("DOMContentLoaded", () => {
   const saved = localStorage.getItem("tof_wallet")
 
@@ -517,4 +566,73 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   loadFeed()
+  loadAvatarStack()
+  loadEconomy()
+  loadRankSummary()
 })
+
+async function loadAvatarStack() {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("id, avatar_url, username")
+    .limit(30)
+
+  const container = document.getElementById("avatarStack")
+  if (!container || error) return
+
+  container.innerHTML = ""
+
+  data.forEach(user => {
+    const img = document.createElement("img")
+
+    img.src =
+      user.avatar_url ||
+      "https://via.placeholder.com/100"
+
+    img.className = "avatar-item"
+
+    img.title = user.username
+
+    img.onclick = () => {
+      alert("Profile: @" + user.username)
+    }
+
+    container.appendChild(img)
+  })
+}
+
+// ===================== RANK UTILITIES & SUMMARY =====================
+
+function getRankStats(users) {
+  let grower = 0
+  let pro = 0
+  let specialist = 0
+  let elite = 0
+
+  users.forEach(u => {
+    const xp = u.xp || 0
+    const rank = getRank(xp)
+
+    if (rank === "ELITE") elite++
+    else if (rank === "SPECIALIST") specialist++
+    else if (rank === "PRO") pro++
+    else grower++
+  })
+
+  return { grower, pro, specialist, elite }
+}
+
+async function loadRankSummary() {
+  const { data } = await supabaseClient
+    .from("profiles")
+    .select("xp")
+
+  if (!data) return
+
+  const stats = getRankStats(data)
+
+  const growerCountEl = document.getElementById("growerCount")
+  if (growerCountEl) {
+    growerCountEl.innerHTML = `${data.length} (🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite})`
+  }
+}

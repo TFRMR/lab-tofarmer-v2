@@ -107,9 +107,17 @@
 
     /* ECONOMY BAR */
     .eco {
-      display:flex;
-      justify-content:space-between;
-      padding:15px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 15px;
+  background:#ffffff;
+  border-radius:16px;
+  margin-bottom:15px;
+  border:1px solid rgba(212,175,55,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
       background:#ffffff;
       border-radius:16px;
       margin-bottom:15px;
@@ -127,22 +135,57 @@
       font-size:18px;
     }
 
-    /* AVATAR STACK */
-    .avatars {
-      display:flex;
-      overflow-x:auto;
-      gap:10px;
-      padding:10px;
-    }
+/* ===================== AVATAR STACK ===================== */
+.eco-avatars {
+  display:flex;
+  justify-content:flex-end;
+  overflow:hidden;
+}
 
-    .avatars img {
-      width:34px;
-      height:34px;
-      border-radius:50%;
-      border:2px solid #fff;
-      box-shadow:0 2px 8px rgba(0,0,0,0.08);
-    }
+#avatarStack {
+  display:flex;
+  gap: -10px;
+  overflow-x:auto;
+  padding-right:10px;
+  scrollbar-width:none;
+}
 
+#avatarStack::-webkit-scrollbar {
+  display:none;
+}
+
+.avatar-item {
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:2px solid white;
+  object-fit:cover;
+  margin-left:-10px;
+  transition:0.25s;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+}
+
+.avatar-item:hover {
+  transform: translateY(-6px) scale(1.15);
+  z-index:10;
+}
+
+/* MOBILE RESPONSIVE */
+@media(max-width:850px){
+  .eco {
+    grid-template-columns: 1fr;
+    text-align:center;
+  }
+
+  .eco-avatars {
+    justify-content:center;
+  }
+
+  #avatarStack {
+    justify-content:center;
+  }
+}
     /* FEED */
     .feed {
       max-height:600px;
@@ -233,16 +276,26 @@
   </nav>
 
   <!-- ECONOMY -->
-  <div class="eco">
-    <div>
-      <span>Total Aset Ekosistem</span><br>
-      <b id="totalAsset">0 TOF</b>
-    </div>
-    <div>
-      <span>Growers</span><br>
-      <b id="growerCount">0</b>
-    </div>
+  <div class="eco eco-grid">
+
+  <!-- TOTAL ASSET -->
+  <div>
+    <span>Total Aset Ekosistem</span><br>
+    <b id="totalAsset">0 TOF</b>
   </div>
+
+  <!-- USERS -->
+  <div>
+    <span>Users</span><br>
+    <b id="rankSummary">0</b>
+  </div>
+
+  <!-- AVATAR STACK BARU -->
+  <div class="eco-avatars">
+    <div id="avatarStack"></div>
+  </div>
+
+</div>
 
   <!-- LAYOUT -->
   <div class="layout">
@@ -363,7 +416,7 @@
         font-size:12px;
         font-weight:600;
       ">
-        🌱 NOVICE GROWER
+        🌱 GROWER
       </div>
 
     </div>
