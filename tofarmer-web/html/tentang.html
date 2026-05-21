@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ToFarmer: Menanam Pengetahuan, Menuai Kemandirian | ToFarmer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        body {
+            /* Efek kabut ladang pagi futuristik yang bergerak lambat */
+            background: linear-gradient(135deg, #ecf3ee 0%, #e1ebe4 40%, #e6eedc 100%);
+            background-size: 400% 400%;
+            animation: gradientMovement 15s ease infinite;
+            background-attachment: fixed;
+            color: #1b2620;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        @keyframes gradientMovement {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* CONTAINER */
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            padding: 2rem 1rem;
+        }
+
+        /* HEADER FUTURISTIK */
+        header {
+            text-align: center;
+            padding: 2rem 1rem 3rem;
+            position: relative;
+        }
+
+        .header-brand {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            text-decoration: none;
+        }
+
+        .header-logo {
+            height: 70px;
+            width: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            padding: 4px;
+            box-shadow: 0 0 20px rgba(45, 90, 67, 0.15), 0 0 0 2px rgba(181, 148, 43, 0.25);
+            transition: all 0.4s ease;
+        }
+
+        .header-brand:hover .header-logo {
+            transform: rotate(360deg) scale(1.05);
+            box-shadow: 0 0 25px rgba(181, 148, 43, 0.4), 0 0 0 3px rgba(45, 90, 67, 0.4);
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #133321;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #133321 30%, #b5942b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* NAV DOCK */
+        nav {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 3rem;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #1e4631;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(45, 90, 67, 0.15);
+            padding: 12px 24px;
+            border-radius: 30px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(30, 70, 49, 0.02);
+        }
+
+        nav a:hover {
+            background: rgba(30, 70, 49, 0.9);
+            color: #fff;
+            border-color: #1e4631;
+            box-shadow: 0 8px 20px rgba(30, 70, 49, 0.2);
+            transform: translateY(-2px);
+        }
+
+        /* BOX UTAMA (Cyber-Organic Neo Glass Card) */
+        .content-area {
+            background: rgba(255, 255, 255, 0.35);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            
+            /* Border luar tipis hijau alam, dikombinasikan dengan outline emas di dalamnya */
+            border: 1px solid rgba(45, 90, 67, 0.2);
+            outline: 1px solid rgba(181, 148, 43, 0.3);
+            outline-offset: -5px;
+            
+            padding: 3.5rem 3rem;
+            border-radius: 32px;
+            position: relative;
+            
+            /* Pendaran bayangan berlapis (Double Glow) */
+            box-shadow: 
+                inset 0 1px 2px rgba(255, 255, 255, 0.6),
+                0 20px 50px rgba(30, 70, 49, 0.06),
+                0 0 40px rgba(181, 148, 43, 0.03);
+        }
+
+        /* GRID FITUR */
+        .fitur-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 20px;
+            margin: 24px 0 40px;
+        }
+
+        /* CARD BUTTON FUTURISTIK (Holographic Organic Panel) */
+        .fitur-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            padding: 28px 20px;
+            border-radius: 22px;
+            position: relative;
+            overflow: hidden;
+            
+            /* Lapisan kaca jernih */
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            outline: 1px solid rgba(45, 90, 67, 0.08);
+            outline-offset: -1px;
+            
+            box-shadow: 0 4px 15px rgba(30, 70, 49, 0.01);
+            transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* Efek Hover Quantum / Cyber-Organic */
+        .fitur-btn:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.85);
+            border-color: rgba(181, 148, 43, 0.4);
+            outline-color: rgba(45, 90, 67, 0.25);
+            
+            /* Efek pendaran cahaya dari bawah panel */
+            box-shadow: 
+                0 12px 24px rgba(30, 70, 49, 0.05),
+                0 4px 15px rgba(181, 148, 43, 0.15);
+        }
+
+        /* Indikator Cahaya Neon Kecil di Sudut Atas (Hanya Muncul saat Hover) */
+        .fitur-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #b5942b, transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .fitur-btn:hover::before {
+            opacity: 1;
+        }
+
+        /* ICON HOLOGRAF IK */
+        .fitur-icon {
+            font-size: 2.6rem;
+            margin-bottom: 16px;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 4px 8px rgba(30, 70, 49, 0.1));
+        }
+        
+        /* Gerakan icon melayang ke atas */
+        .fitur-btn:hover .fitur-icon {
+            transform: translateY(-6px) scale(1.1);
+        }
+
+        /* LABELS */
+        .fitur-label {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #244431;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+
+        .fitur-btn:hover .fitur-label {
+            color: #133321;
+        }
+
+        /* LASER SECTION DIVIDER */
+        .section-divider {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 45px 0 20px;
+        }
+
+        .section-divider span {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: #b5942b;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            white-space: nowrap;
+            text-shadow: 0 2px 4px rgba(181, 148, 43, 0.1);
+        }
+
+        .section-line {
+            height: 1px;
+            width: 100%;
+            /* Efek Laser Memudar */
+            background: linear-gradient(90deg, rgba(181, 148, 43, 0.5), rgba(45, 90, 67, 0.2) 50%, transparent);
+        }
+
+        /* FOOTER */
+        .custom-footer-tofarmer {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #657e70;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* RESPONSIVE OPTIMIZATION */
+        @media(max-width:768px){
+            .content-area {
+                padding: 2.5rem 1.5rem;
+                border-radius: 24px;
+                outline-offset: -3px;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .fitur-grid {
+                grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+                gap: 14px;
+            }
+            
+            .fitur-btn {
+                padding: 22px 14px;
+                border-radius: 16px;
+            }
+            
+            .fitur-icon {
+                font-size: 2.2rem;
+                margin-bottom: 12px;
+            }
+
+            .fitur-label {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="../" class="header-brand">
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzXfCj2gYXzyKmWfs871-jqeTvs6345OTXsndg-mLpIUzsDxvk2JByeMIv5G0XJOT1V3WoGBqUJAhBxuXFkO_IP6Hb98YPCS6KJNrIaG7IB8eeI9gBT5iH-8P2F7qOBY4UfJ6v9g18PnWwcjNAEzYpya-qgtEc5jwiM9IUeQ1i-XZC9RJTHYsbp2FfNYw/s389/logo.png" alt="Logo" class="header-logo">
+                <h1>ToFarmer</h1>
+            </a>
+        </header>
+
+        <nav>
+            <a href="../">🏠 Kembali ke Beranda</a>
+        </nav>
+
+        <article class="content-area">
+            <h1>ToFarmer: Menanam Pengetahuan, Menuai Kemandirian</h1>
+            <div class="meta-info">Diposting pada: 14 May 2026</div>
+            
+            <div class="post-body">
+                <p><strong>Gagasan tentang Ekosistem Agraris Berbasis Ilmu Baku dan Otonomi Kolektif</strong></p>
+<hr>
+<h3 id="latar-belakang-mengapa-kita-harus-memulai-ini">LATAR BELAKANG: MENGAPA KITA HARUS MEMULAI INI?</h3>
+<p>Selama ini, kita sering mendengar bahwa pertanian adalah tulang punggung . Namun kenyataannya, tulang punggung itu sedang rapuh. Menjadi petani di masa sekarang seolah menjadi pilihan terakhir, sebuah profesi yang identik dengan nasib yang tak pasti, tubuh yang kelelahan, dan dompet yang seringkali kosong di akhir bulan.</p>
+<p>Ada sebuah kesedihan yang tak tertulis setiap kali seorang petani senior meninggal dunia. Bersamanya, terkubur pula puluhan tahun ilmu, rahasia tanah, dan cara membaca alam yang tak sempat ia wariskan kepada anaknya. Mengapa? Karena anaknya lebih memilih pergi ke kota, mengejar kepastian gaji bulanan, dan meninggalkan cangkul yang dianggap tak punya masa depan. Ilmu pertanian kita seringkali menguap begitu saja karena dianggap hanya sebagai &ldquo;kerja otot&rdquo;, bukan &ldquo;kerja otak&rdquo;.</p>
+<p>Petani kita seringkali merasa kesepian. Mereka bertarung sendirian melawan tengkulak, perubahan iklim yang tak menentu, hingga harga pupuk yang mencekik. Mereka dipaksa mengejar panen besar dengan cara-cara instan yang justru merusak tanah mereka sendiri. Pertanian telah berubah dari napas kehidupan menjadi sekadar komoditas pasar yang dingin.</p>
+<p>ToFarmer lahir dari keresahan semacam ini. Kita menolak membiarkan ilmu petani hilang ditelan zaman. Kita tidak ingin lagi melihat petani merasa rendah diri di depan teknologi. Kita ingin membangun sebuah ruang di mana setiap tetes keringat di ladang dihargai sebagai sebuah data berharga, dan setiap kegagalan dicatat sebagai pelajaran mulia.</p>
+<p>Kita percaya bahwa pertanian adalah sebuah aktivitas intelektual yang suci. Melalui &ldquo;Ilmu Baku&rdquo;, Kita ingin memastikan bahwa pengetahuan dari satu jengkal tanah bisa dipelajari oleh generasi berikutnya tanpa ada yang hilang. Kita menggandeng teknologi bukan untuk menggantikan peran manusia, tapi untuk menjaga agar sejarah dan perjuangan petani punya tempat yang abadi dalam memori digital.</p>
+<p>ToFarmer bukan sekadar proyek tentang cara menanam, tapi tentang cara kita kembali menghargai tanah, menghormati proses, dan memastikan bahwa tidak ada lagi petani yang berjalan kesepian dalam kegelapan. Kita bertumbuh dari praktik, kita belajar dari bumi, dan kita membangun masa depan agraris dengan kejujuran hati.</p>
+<hr>
+<h3 id="i-pendahuluan">I. PENDAHULUAN</h3>
+<h4 id="11-mendefinisikan-ulang-pertanian">1.1 Mendefinisikan Ulang Pertanian</h4>
+<p>ToFarmer lahir bukan sebagai program bantuan sosial atau proyek produksi massal yang mengejar angka panen semata. ToFarmer adalah sebuah Ekosistem Pembelajaran Agraris berbasis praktik nyata. Di sini, kita mendefinisikan ulang pertanian: ia bukan sekadar kerja fisik yang melelahkan atau komoditas yang diperjualbelikan di pasar. Pertanian adalah sebuah aktivitas intelektual dan ekologis. Ini adalah ruang belajar kolektif di mana setiap jengkal tanah adalah laboratorium, dan setiap petani adalah peneliti. Kita tidak hanya menanam padi atau sayur, kita sedang &ldquo;menanam&rdquo; pengetahuan yang baku melalui pengulangan, pengalaman, dan refleksi yang mendalam .</p>
+<h4 id="12-visi-pertanian-sebagai-gaya-hidup-intelektual">1.2 Visi: Pertanian sebagai Gaya Hidup Intelektual</h4>
+<p>Mimpi besar (Visi) Kita adalah terbentuknya sebuah ekosistem agraris yang mandiri. Kita ingin pertanian menjadi sebuah gaya hidup—sebuah kesadaran penuh akan proses, bukan sekadar tren estetika sesaat. Dalam visi ini, petani tidak lagi dipandang sebelah mata, melainkan sebagai sosok intelektual yang menghasilkan ilmu baku demi kesejahteraan kemanusiaan .</p>
+<h4 id="13-misi-langkah-nyata-di-lapangan">1.3 Misi: Langkah Nyata di Lapangan</h4>
+<p>Untuk mewujudkan mimpi tersebut, ToFarmer bergerak melalui tiga langkah konkret :</p>
+<ol>
+<li><strong>Narasi Nyata:</strong> Kita menceritakan apa adanya yang terjadi di ladang fisik, dunia digital, dan sistem yang Kita bangun. Cerita Kita bukan rekayasa, melainkan hasil eksekusi nyata.</li>
+<li><strong>Membangun Ilmu Baku:</strong> Kita menyaring setiap praktik yang dilakukan berulang-ulang hingga menghasilkan standar ilmu yang berkualitas.</li>
+<li><strong>Kemandirian Ekosistem:</strong> Kita membangun sistem ekonomi, teknologi, dan cara regenerasi petani yang bisa bertahan lama (berkelanjutan) tanpa terus-menerus bergantung pada pihak luar.</li>
+</ol>
+<h4 id="14-batasan-pergerakan">1.4 Batasan Pergerakan</h4>
+<p>Perlu ditegaskan bahwa ToFarmer tidak mengejar hasil instan atau panen besar sebagai tujuan utama. Kita lebih menghargai kejujuran proses. Jika sebuah praktik gagal, kegagalan itu adalah bagian dari ilmu. Kita menolak klaim kosong dan narasi yang tidak didukung oleh pengalaman nyata di lapangan.</p>
+<hr>
+<h3 id="ii-pilar-penyangga-ekosistem">II. PILAR PENYANGGA EKOSISTEM</h3>
+<p>Agar visi besar ToFarmer tidak berhenti sebagai wacana, Kita membangun lima pilar fondasi yang saling mengunci. Struktur ini mengadopsi semangat desentralisasi layaknya gerakan Open Source (seperti Linux) dan sistem Blockchain, di mana kekuatan utama bukan pada otoritas tunggal, melainkan pada komunitas yang bergerak secara transparan, berbasis pembuktian nyata, dan mandiri secara ekonomi.</p>
+<h4 id="21-lima-aksi-satu-tubuh">2.1 Lima Aksi, Satu Tubuh</h4>
+<p>Kita membagi pergerakan ini menjadi lima kelompok &ldquo;Aksi&rdquo;. Pembagian ini bertujuan agar setiap individu dapat mengambil peran sesuai keahliannya tanpa kehilangan identitas sebagai bagian dari satu ekosistem yang utuh :</p>
+<ol>
+<li>
+<p><strong>Pilar 1: Komunitas &amp; Narasi Kreatif (Penjaga Nilai &amp; Gerakan)</strong>
+Pilar ini adalah ruh dari ToFarmer. Sebagaimana komunitas, kekuatan ada pada manusianya. Tugas utama pilar ini adalah membangun jaringan, menjaga keharmonisan antaranggota, dan menyebarkan nilai-nilai ToFarmer kepada dunia luar. Kreativitas di sini adalah alat (narasi) untuk mendokumentasikan setiap perjuangan dan praktik di tanah agar menjadi cerita yang menginspirasi, sehingga bertani kembali dipandang sebagai gaya hidup yang keren dan terhormat.</p>
+</li>
+<li>
+<p><strong>Pilar 2: Inovasi &amp; Rekayasa Teknologi (Solusi Fisik, Digital, &amp; Robotika)</strong>
+Pilar ini adalah tempat para pengulik (tinkerer) bekerja. Fokusnya luas, tidak terbatas pada kode komputer (software) saja. Ini mencakup rekayasa alat pertanian fisik yang sederhana namun efektif, mekanisasi tepat guna, robotika, hingga sistem digital berbasis AI. Teknologi di sini adalah alat bantu (tools) untuk memastikan kerja manusia di ladang menjadi lebih efisien, terukur, dan cerdas.</p>
+</li>
+<li>
+<p><strong>Pilar 3: Ladang Belajar (Laboratorium Praktik &amp; Bukti Nyata)</strong>
+Inilah tempat pembuktian atau Proof of Work. Segala inovasi teknologi dari Pilar 2 dan gagasan dari komunitas diuji langsung di atas tanah. Ladang ini berfungsi sebagai laboratorium hidup untuk melahirkan Ilmu Baku. Tanpa pilar ini, seluruh narasi dan teknologi tidak akan memiliki bobot karena tidak memiliki pijakan pada realitas lapangan.</p>
+</li>
+<li>
+<p><strong>Pilar 4: Finansial &amp; Investasi (Mesin Ekonomi Komunitas)</strong>
+Pilar ini adalah mesin penggerak kekayaan ekosistem. Kita bersikap realistis: kerja fisik saja seringkali hanya cukup untuk bertahan hidup (survive), sementara kekayaan besar biasanya berputar di wilayah finansial dan investasi yang selama ini hanya dikuasai para elit. ToFarmer mengambil strategi ini untuk kepentingan komunitas. Pilar ini bertugas mengelola modal, masuk ke instrumen investasi yang cerdas, dan mengedukasi mindset anggota tentang cara mengelola aset. Tujuannya agar ekosistem memiliki &ldquo;napas panjang&rdquo; dan mampu mendistribusikan kemakmuran bagi anggota di pilar-pilar lainnya.</p>
+</li>
+<li>
+<p><strong>Pilar 5: Refleksi Petapa (Penjaga Kompas &amp; Kemanusiaan)</strong>
+Inilah pusat kendali filosofis. Di tengah canggihnya robotika atau perputaran uang investasi, pilar ini bertugas memastikan kita tidak kehilangan sisi kemanusiaan. Pilar ini melakukan evaluasi berkala: apakah gerakan kita masih jujur? Apakah kita masih menghormati alam? Pilar ini menjaga agar ToFarmer tetap memiliki jiwa dan tidak berubah menjadi mesin industri yang dingin dan eksploitatif.</p>
+</li>
+</ol>
+<h4 id="22-sinergi-antar-pilar">2.2 Sinergi Antar Pilar</h4>
+<p>Hubungan antar pilar ini bersifat siklik (berputar) dan saling menghidupi:</p>
+<ul>
+<li>Ladang (Pilar 3) menyediakan data praktik dan bahan baku pengetahuan.</li>
+<li>Teknologi (Pilar 2) mengolah data tersebut dan menciptakan alat yang lebih baik.</li>
+<li>Komunitas (Pilar 1) menyebarkan ilmu tersebut dan menjaga solidaritas sosial.</li>
+<li>Finansial (Pilar 4) menyediakan bahan bakar modal agar semua aksi bisa berjalan tanpa kekurangan.</li>
+<li>Petapa (Pilar 5) memastikan arah pergerakan tetap lurus dan bermartabat.</li>
+</ul>
+<hr>
+<h3 id="iii-aturan-main-dari-obrolan-menjadi-gerakan">III. ATURAN MAIN: DARI OBROLAN MENJADI GERAKAN</h3>
+<h4 id="31-alur-masuk-saringan-organik">3.1 Alur Masuk: Saringan Organik</h4>
+<p>Kita percaya bahwa komitmen tidak bisa dipaksakan, ia harus tumbuh. Oleh karena itu, alur keterlibatan dalam ToFarmer dibagi menjadi tiga fase:</p>
+<ol>
+<li><strong>Fase Obrolan (Pintu Masuk):</strong> Segala sesuatu dimulai dari diskusi santai. Di sini tidak ada keputusan teknis atau beban kerja. Obrolan adalah cara Kita mengenalkan nilai-nilai dan gaya hidup ToFarmer. Ini adalah tahap &ldquo;perkenalan rasa&rdquo;. Jika di tahap ini tidak ada kecocokan visi, maka proses tidak perlu dilanjutkan.</li>
+<li><strong>Fase Aksi (Partisipasi Nyata):</strong> Setelah paham, individu mulai terlibat dalam aksi nyata di salah satu dari 5 Pilar (Aksi 1–5). Tahap ini adalah pembuktian niat melalui kontribusi ide, tenaga, atau dokumentasi. Di sini, individu mulai merasakan &ldquo;bau tanah&rdquo; atau &ldquo;rumitnya sistem&rdquo; secara langsung.</li>
+<li><strong>Fase Integrasi (Menjadi Bagian Sistem):</strong> Inilah tahap tertinggi di mana individu masuk ke dalam siklus operasional formal. Mereka mulai terlibat dalam sistem ekonomi (Pilar 4) dan teknologi (Pilar 2) secara penuh. Tahap ini mensyaratkan kepatuhan pada Etika dan penguasaan Ilmu Baku komunitas.</li>
+</ol>
+<h4 id="32-etika-dasar-kompas-pergerakan">3.2 Etika Dasar: Kompas Pergerakan</h4>
+<p>Untuk menjaga agar ekosistem ini tetap sehat dan jujur, Kita menetapkan pedoman nilai yang tidak bisa ditawar . Etika ini adalah benteng agar ToFarmer tidak terjebak dalam praktik manipulatif atau janji keuntungan instan yang kosong:</p>
+<ul>
+<li><strong>Kejujuran Proses:</strong> Ini adalah hukum tertinggi. Setiap narasi, dokumentasi, dan data finansial harus berasal dari pengalaman nyata. Kita lebih menghargai laporan kegagalan yang jujur daripada klaim keberhasilan yang direkayasa.</li>
+<li><strong>Aksi Tanpa Paksaan:</strong> Partisipasi di ToFarmer bersifat sukarela dan sadar. Kita percaya bahwa kreativitas dan inovasi (Pilar 1 &amp; 2) tidak akan muncul jika individu merasa tertekan atau terpaksa.</li>
+<li><strong>Proses di Atas Hasil:</strong> Nilai utama Kita terletak pada seberapa banyak pelajaran dan refleksi yang kita dapatkan, bukan sekadar seberapa besar panen atau keuntungan finansial dalam jangka pendek.</li>
+<li><strong>Menghormati Hubungan:</strong> Pertanian adalah relasi antara manusia dan alam. Setiap langkah ekonomi atau teknologi yang Kita ambil harus tetap menghargai martabat manusia dan keseimbangan ekologis.</li>
+</ul>
+<h4 id="33-alur-operasional-siklus-yang-tak-pernah-putus">3.3 Alur Operasional: Siklus yang Tak Pernah Putus</h4>
+<p>Secara operasional, ToFarmer bergerak dalam siklus yang sederhana namun disiplin . Alur ini memastikan bahwa setiap &ldquo;Obrolan&rdquo; bisa berujung pada &ldquo;Ilmu&rdquo; yang berguna:</p>
+<ol>
+<li><strong>Praktik &amp; Dokumentasi:</strong> Setiap aksi di ladang atau di depan komputer wajib dicatat (Konteks, Proses, Hasil, dan Refleksi).</li>
+<li><strong>Validasi Kolektif:</strong> Hasil dokumentasi diuji bersama melalui pengulangan untuk melihat pola hasilnya .</li>
+<li><strong>Penetapan Status Pengetahuan:</strong> Hasil praktik kemudian diklasifikasikan; apakah masih berupa &ldquo;Catatan Praktik&rdquo; atau sudah layak menjadi &ldquo;Ilmu Baku&rdquo; yang bisa dijadikan rujukan kerja bersama .</li>
+</ol>
+<hr>
+<h3 id="iv-keberlanjutan-ekosistem-kemandirian-dan-estafet-nilai">IV. KEBERLANJUTAN EKOSISTEM: KEMANDIRIAN DAN ESTAFET NILAI</h3>
+<p>Salah satu cita-cita utama ToFarmer adalah membangun sistem yang memiliki daya tahan panjang dan mampu berjalan secara selaras (self-sustaining). Kita merancang alur regenerasi yang tumbuh secara organik, di mana setiap individu di dalamnya bergerak karena adanya keselarasan antara tujuan pribadi dan kemajuan bersama.</p>
+<h4 id="41-sirkulasi-pertumbuhan-menjaga-nafas-ekosistem">4.1 Sirkulasi Pertumbuhan: Menjaga Nafas Ekosistem</h4>
+<p>Keberlanjutan ToFarmer dijaga oleh tiga sirkulasi yang saling mendukung, sehingga sistem tetap stabil tanpa harus bergantung pada instruksi terpusat:</p>
+<ol>
+<li><strong>Sirkulasi Manfaat (Kesejahteraan):</strong> Melalui pengelolaan di Pilar 4 (Finansial &amp; Investasi), ekosistem berusaha menciptakan nilai ekonomi yang nyata. Ketika sistem mampu memberikan rasa aman dan kesejahteraan bagi anggotanya, maka komitmen untuk menjaga ekosistem akan muncul secara alami dari dalam diri setiap individu.</li>
+<li><strong>Sirkulasi Pengetahuan (Ilmu Baku):</strong> Dengan adanya database &ldquo;Ilmu Baku&rdquo;, proses belajar menjadi jauh lebih efisien. Anggota baru tidak perlu meraba-raba dari awal, karena mereka mewarisi akumulasi pengalaman dari para pendahulu. Kemudahan akses pengetahuan inilah yang mempercepat tumbuhnya tenaga terampil baru.</li>
+<li><strong>Sirkulasi Peran (Estafet):</strong> Melalui narasi dan komunitas, setiap orang merasa memiliki peran yang berarti. Hal ini menciptakan rasa tanggung jawab kolektif untuk menjaga kelangsungan ekosistem.</li>
+</ol>
+<h4 id="42-regenerasi-alami-tumbuh-bersama-proses">4.2 Regenerasi Alami: Tumbuh Bersama Proses</h4>
+<p>Regenerasi di ToFarmer terjadi melalui mekanisme keterlibatan yang mengalir, bukan rekrutmen yang kaku:</p>
+<ul>
+<li><strong>Tahap Belajar:</strong> Generasi baru masuk sebagai pembelajar di Ladang (Pilar 3). Mereka menyerap ilmu sekaligus memberikan perspektif dan energi baru bagi komunitas.</li>
+<li><strong>Tahap Kontribusi:</strong> Seiring meningkatnya pemahaman, mereka mulai berkontribusi pada Inovasi (Pilar 2) atau penguatan komunitas. Di sini, sistem memberikan apresiasi yang sepadan dengan nilai yang mereka ciptakan.</li>
+<li><strong>Tahap Pendampingan:</strong> Anggota yang sudah berpengalaman secara alami bergeser menjadi pendamping atau pengelola aset strategis. Mereka memiliki kepentingan untuk memastikan generasi penerusnya berhasil, karena keberhasilan anggota baru akan memperkuat stabilitas seluruh ekosistem.</li>
+</ul>
+<h4 id="43-menjadi-mitra-pendamping-sistem-yang-ada">4.3 Menjadi Mitra Pendamping Sistem yang Ada</h4>
+<p>ToFarmer tidak hadir untuk berbenturan dengan sistem yang sudah mapan. Sebaliknya, Kita memposisikan diri sebagai Solusi Alternatif yang mandiri dan berdaulat. Kita membangun sebuah &ldquo;jaring pengaman&rdquo; komunitas yang kuat, sehingga jika terjadi guncangan pada sistem luar, ekosistem ToFarmer tetap memiliki daya tahan untuk menopang kehidupan anggotanya. Sistem tetap akan terus tumbuh selama nilai-nilai dan praktiknya terus dijalankan oleh komunitas.</p>
+<hr>
+<h3 id="v-epistemologi-ilmu-baku">V. EPISTEMOLOGI ILMU BAKU</h3>
+<h4 id="51-hakikat-ilmu-baku-kebenaran-yang-rendah-hati">5.1 Hakikat Ilmu Baku: Kebenaran yang Rendah Hati</h4>
+<p>Ilmu Baku bukanlah kebenaran mutlak yang tidak boleh diganggu gugat. Mengadopsi prinsip sains, Ilmu Baku adalah kesimpulan terbaik yang tersedia saat ini berdasarkan praktik nyata yang telah dilakukan berulang kali dengan hasil yang konsisten. Ilmu Baku memiliki sifat provisional (sementara). Ia diakui sebagai rujukan selama belum ditemukan metode lain yang lebih efektif, lebih efisien, atau lebih adaptif terhadap perubahan lingkungan. Kekuatan Ilmu Baku justru terletak pada kemampuannya untuk dikoreksi.</p>
+<h4 id="52-proses-validasi-dari-ladang-ke-database">5.2 Proses Validasi: Dari Ladang ke Database</h4>
+<p>Setiap tindakan di ToFarmer tidak serta-merta menjadi ilmu. Ada proses penyaringan yang disiplin melalui mekanisme Dokumentasi dan Validasi untuk memastikan data yang masuk adalah data yang jujur:</p>
+<ul>
+<li>Pencatatan Konteks: Kondisi lingkungan, waktu, dan alasan mengapa praktik dilakukan.</li>
+<li>Pencatatan Proses: Langkah-langkah detail yang dijalankan secara nyata.</li>
+<li>Pencatatan Hasil: Dampak yang terjadi, baik itu keberhasilan maupun kegagalan total.</li>
+<li>Refleksi: Pelajaran intelektual yang dipetik dari proses tersebut.</li>
+</ul>
+<p>Dalam sistem Kita, kegagalan yang terdokumentasi memiliki nilai ilmiah yang sama tingginya dengan keberhasilan, karena ia berfungsi sebagai pembatas agar komunitas tidak mengulangi jalan buntu yang sama.</p>
+<h4 id="53-tahapan-kematangan-dan-gugurnya-ilmu">5.3 Tahapan Kematangan dan Gugurnya Ilmu</h4>
+<ol>
+<li><strong>Catatan Praktik:</strong> Bahan baku mentah berupa pengalaman awal atau eksperimen pertama di lapangan.</li>
+<li><strong>Rujukan Operasional:</strong> Pengetahuan yang mulai menunjukkan pola stabil setelah diulang beberapa kali. Ini berfungsi sebagai panduan kerja sementara.</li>
+<li><strong>Ilmu Baku:</strong> Tingkatan tertinggi di mana praktik telah teruji konsisten dan terdokumentasi sempurna sebagai standar rujukan bersama.</li>
+<li><strong>Revisi (Evolusi Ilmu):</strong> Tahap di mana sebuah Ilmu Baku &ldquo;gugur&rdquo; atau diperbarui karena ditemukan &ldquo;rumus baru&rdquo; yang lebih akurat melalui Pilar 2 (Inovasi) dan Pilar 3 (Ladang).</li>
+<li><strong>Arsip Pembelajaran:</strong> Ilmu yang telah gugur atau direvisi disimpan sebagai catatan sejarah. Ini memastikan komunitas memiliki jejak rekam evolusi pemikiran dan tidak kehilangan akar pembelajarannya.</li>
+</ol>
+<h4 id="54-ilmu-sebagai-aset-digital-yang-hidup">5.4 Ilmu sebagai Aset Digital yang Hidup</h4>
+<p>Sistem ini memastikan bahwa pengetahuan tidak lagi bergantung pada ingatan individu yang bisa memudar atau hilang. Pengetahuan disimpan dalam sistem digital yang dikelola secara kolektif. Dengan Ilmu Baku, setiap anggota baru tidak perlu meraba-raba; mereka berdiri di atas pundak pengalaman para pendahulu, namun tetap memiliki ruang untuk merivisi ilmu tersebut jika mereka menemukan bukti baru yang lebih baik di ladang mereka.</p>
+<hr>
+<h3 id="vi-peran-ai-dan-manusia-keseimbangan-teknologi-dan-hati">VI. PERAN AI DAN MANUSIA: KESEIMBANGAN TEKNOLOGI DAN HATI</h3>
+<h4 id="61-ai-sebagai-pustakawan-dan-analis-data">6.1 AI sebagai Pustakawan dan Analis Data</h4>
+<p>AI dalam sistem ToFarmer (Pilar 2) memiliki tugas-tugas teknis yang spesifik untuk membantu efisiensi komunitas:</p>
+<ul>
+<li><strong>Pengolah Dokumentasi:</strong> AI bertugas merapikan catatan harian petani yang mungkin berantakan, mengubahnya menjadi format data yang terstruktur tanpa menghilangkan esensi ceritanya.</li>
+<li><strong>Deteksi Pola:</strong> AI mampu membandingkan ribuan catatan praktik dari berbagai ladang untuk menemukan pola: &ldquo;Mengapa metode A berhasil di tanah X tapi gagal di tanah Y?&rdquo;</li>
+<li><strong>Penjaga Konsistensi:</strong> AI mengingatkan komunitas jika ada data yang kontradiktif atau jika ada Ilmu Baku yang sudah terlalu lama tidak direvisi namun kondisi alam sudah berubah.</li>
+</ul>
+<h4 id="62-manusia-sebagai-validator-dan-pemegang-visi">6.2 Manusia sebagai Validator dan Pemegang Visi</h4>
+<p>Meskipun AI bisa menghitung pola dengan sangat cepat, AI tidak memiliki &ldquo;rasa&rdquo; dan &ldquo;konteks moral&rdquo;. Oleh karena itu, otoritas tertinggi di ToFarmer tetap berada di tangan manusia:</p>
+<ul>
+<li><strong>Validasi &ldquo;Rasa&rdquo; di Lapangan:</strong> Keputusan apakah sebuah hasil panen berkualitas atau apakah sebuah tanah sudah cukup sehat, tetap membutuhkan indra dan intuisi manusia yang terjun langsung (Pilar 3).</li>
+<li><strong>Penetapan Status Ilmu:</strong> AI hanya memberikan rekomendasi, namun komunitas manusia melalui diskusi lah yang berhak mengetok palu: &ldquo;Apakah catatan ini sudah layak naik status menjadi Ilmu Baku?&rdquo;</li>
+<li><strong>Kompas Etika (Refleksi Petapa):</strong> Hanya manusia yang bisa berefleksi melalui Pilar 5. AI tidak bisa memahami arti &ldquo;keadilan&rdquo;, &ldquo;martabat&rdquo;, atau &ldquo;ketulusan&rdquo;.</li>
+</ul>
+<h4 id="63-kolaborasi-membangun-otak-kolektif">6.3 Kolaborasi: Membangun &ldquo;Otak Kolektif&rdquo;</h4>
+<p>Sinergi ini menciptakan sebuah Otak Kolektif. AI menangani kecepatan dan memori penyimpanan yang tak terbatas, sementara manusia menyumbangkan kebijaksanaan, kreativitas, dan empati. Dengan kolaborasi ini, petani tidak lagi dipandang sebagai pekerja kasar, melainkan sebagai Manajer Data yang dibantu oleh asisten digital cerdas. Teknologi AI di ToFarmer adalah jembatan yang menghubungkan &ldquo;bahasa tanah&rdquo; yang intuitif dengan &ldquo;bahasa digital&rdquo; yang presisi.</p>
+<hr>
+<h3 id="vii-kesimpulan">VII. KESIMPULAN</h3>
+<h4 id="71-kesatuan-ekosistem-tofarmer">7.1 Kesatuan Ekosistem ToFarmer</h4>
+<p>ToFarmer hadir sebagai sebuah jawaban sederhana namun menyeluruh bagi tantangan pertanian saat ini. Melalui lima pilar yang kita bangun, setiap bagian saling mendukung untuk menciptakan sebuah sistem yang stabil. Ketika semua bagian ini berjalan bersama dengan dukungan Ilmu Baku dan bantuan teknologi AI, ToFarmer bukan lagi sekadar cara bercocok tanam, melainkan sebuah gaya hidup yang mandiri dan berkelanjutan.</p>
+<h4 id="72-nilai-nilai-utama-kita">7.2 Nilai-Nilai Utama Kita</h4>
+<p>Keunggulan dari ekosistem ini terletak pada tiga hal sederhana:</p>
+<ol>
+<li><strong>Ilmu yang Terjaga:</strong> Pengalaman bertani tidak lagi hilang ditelan waktu, melainkan tersimpan rapi dan terus diperbarui untuk dipelajari siapa pun.</li>
+<li><strong>Kesejahteraan Bersama:</strong> Kita tidak lagi berjuang sendirian untuk bertahan hidup, melainkan menggunakan strategi pengelolaan modal yang cerdas untuk kemajuan anggota.</li>
+<li><strong>Kejujuran dalam Proses:</strong> Kita lebih menghargai data nyata dan bukti di lapangan daripada sekadar janji-janji yang tidak terbukti.</li>
+</ol>
+<h4 id="73-harapan-masa-depan-estafet-pengetahuan">7.3 Harapan Masa Depan: Estafet Pengetahuan</h4>
+<p>Harapan besar Kita adalah agar tidak ada lagi orang yang merasa ragu atau kesepian saat memutuskan untuk kembali ke tanah. Kita ingin menciptakan masa depan di mana profesi petani dijalani dengan rasa aman, karena ada sistem yang mendukung secara modal dan panduan ilmu yang sudah teruji. ToFarmer adalah sebuah ajakan untuk membangun pertanian dengan cara yang lebih cerdas dan berdaya. Kita tidak hanya mewariskan lahan kepada generasi mendatang, tetapi kita mewariskan sebuah Sistem dan Ilmu yang akan membantu mereka hidup lebih baik.</p>
+<hr>
+<h3 id="viii-blueprint--strategi-ekonomi">VIII. BLUEPRINT &amp; STRATEGI EKONOMI</h3>
+<h4 id="81-strategi-nabung-receh--mesin-otomatis">8.1 Strategi &ldquo;Nabung Receh&rdquo; &amp; Mesin Otomatis</h4>
+<p>Di dunia digital saat ini, banyak komunitas atau proyek idealis yang tumbang di tengah jalan bukan karena kekurangan ide, melainkan karena kelelahan secara ekonomi. Kami memiliki misi besar, namun kami tahu bahwa untuk menjalankan misi itu tanpa hambatan, kami butuh fondasi ekonomi yang mandiri dan berdaulat.</p>
+<ol>
+<li>
+<p><strong>Filosofi &ldquo;Nabung Receh&rdquo;: Membangun Runway Keuangan</strong>
+Strategi utama kita adalah mengumpulkan aset sedikit demi sedikit melalui setiap aktivitas di ekosistem. Konsep &ldquo;Nabung Receh&rdquo; ini bertujuan menciptakan Uang Dingin—modal yang terkumpul tanpa beban utang atau tekanan kebutuhan pokok. Setiap interaksi kita di Titik Kumpul (Mading) dan aktivitas lainnya dikonversi menjadi unit TOF (1 TOF = Rp1). Ini adalah cara kita membangun &ldquo;napas&rdquo; yang panjang bagi ToFarmer.</p>
+</li>
+<li>
+<p><strong>Tahapan Target: Tangga Menuju Kemandirian</strong></p>
+<ul>
+<li>Fase 1 (100.000 TOF): <strong>LULUS!</strong> Langkah pertama pembuktian sistem.</li>
+<li>Fase 2 (500.000 TOF): <strong>TARGET SAAT INI.</strong> (Posisi aset sekarang: 180.000 TOF).</li>
+<li>Fase 3 &amp; Seterusnya: Target 1 Juta, 3 Juta, 10 Juta, 30 juta, 50 juta ,70 juta ,100 Juta TOF ,DST&hellip;.</li>
+</ul>
+</li>
+<li>
+<p><strong>Mesin Compounding: Saklar Otomatis di Angka 500k</strong>
+Angka 500.000 TOF bukan sekadar target biasa. Ini adalah Titik Aktivasi. Begitu aset kita menyentuh angka 500.000, kita akan mulai menjalankan metode Compounding (bunga berbunga). Skenarionya adalah mencapai hasil 5% - 10% per bulan dari total aset yang ada. Artinya, selain mendapatkan suntikan manual dari &ldquo;Nabung Receh&rdquo;, saldo kita akan bertambah secara otomatis dari hasil pengelolaan aset tersebut.</p>
+</li>
+<li>
+<p><strong>Tujuan Akhir: &ldquo;Gaji Otomatis&rdquo; &amp; Kebebasan Berkarya</strong>
+Kenapa kita melakukan ini semua? Tujuan akhirnya adalah agar ketika aset sudah mencapai nilai tertentu, hasil pengelolaan bulannya sudah cukup untuk menjalankan program-program ToFarmer yang paling idealis sekalipun tanpa perlu pusing memikirkan biaya bahkan mendapat pendapatan pasif.</p>
+</li>
+</ol>
+<hr>
+<h3 id="ix-protokol-tofarmer">IX. PROTOKOL TOFARMER</h3>
+<h4 id="91-aktivitas--perolehan-xp-proof-of-work">9.1 Aktivitas &amp; Perolehan XP (Proof of Work)</h4>
+<p>Dapatkan XP dengan berkontribusi pada keseimbangan 5 Pilar kita:</p>
+<ul>
+<li><strong>🌐 Aktif di Web &amp; Dashboard (+5 XP)</strong> — [Inovasi &amp; Digital]</li>
+<li><strong>💬 Sapa &amp; Diskusi Nilai (+2 XP)</strong> — [Komunitas]</li>
+<li><strong>💡 Gagasan &amp; Validasi Ilmu (+15 XP)</strong> — [Refleksi Petapa]</li>
+<li><strong>📸 Dokumentasi Praktik Ladang (+25 XP)</strong> — [Ladang Belajar]</li>
+<li><strong>🎥 Narasi Intelektual/Vlog (+50 XP)</strong> — [Kreatif &amp; Inovasi]</li>
+<li><strong>💰 Kontribusi Modal Aset (+30 XP)</strong> — [Finansial &amp; Investasi]
+<em>⚡ MEKANISME EVOLUSI: Setiap akumulasi 100 XP, kamu otomatis Naik 1 Level.</em></li>
+</ul>
+<h4 id="92-tangga-pangkat-level-intelektual">9.2 Tangga Pangkat (Level Intelektual)</h4>
+<ol>
+<li><strong>GROWER (Level 1-10):</strong> Tahap Belajar &amp; Adaptasi. Fokus menyerap nilai-nilai ToFarmer.</li>
+<li><strong>PRO (Level 11-30):</strong> Tahap Kontribusi &amp; Validasi. Kamu mulai menemukan pola (Rujukan Operasional).</li>
+<li><strong>SPECIALIST (Level 31-90):</strong> Tahap Ilmu Baku. Kamu adalah kontributor utama pengetahuan.</li>
+<li><strong>ELITE (Level 91-99):</strong> Tahap Mastermind/Petapa. Fokus pada penjagaan visi jangka panjang.</li>
+</ol>
+<h4 id="93-sistem-ekonomi-tof-otonomi-kolektif">9.3 Sistem Ekonomi TOF (Otonomi Kolektif)</h4>
+<p>TOF bukan sekadar uang, tapi Aset Hidup yang dikelola dengan mindset investor (Pilar 4) untuk membebaskan petani dari jeratan finansial instan.</p>
+<ul>
+<li><strong>Sistem Gaji Otomatis:</strong> Aktif saat saldo kolektif mencapai ambang batas stabilitas.</li>
+<li><strong>Skema Batas Penarikan (SBP):</strong> Menjaga agar arus kas ekosistem tetap sehat (Cash Flow Control).</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th style="text-align:left">Rentang Level</th>
+<th style="text-align:left">Hak Tarik</th>
+<th style="text-align:left">Mindset Ekonomi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left">Level 1 - 10</td>
+<td style="text-align:left">10%</td>
+<td style="text-align:left">Menguji komitmen dan belajar manajemen aset dasar.</td>
+</tr>
+<tr>
+<td style="text-align:left">Level 11 - 30</td>
+<td style="text-align:left">20% - 30%</td>
+<td style="text-align:left">Reward atas konsistensi menjaga stabilitas ekosistem.</td>
+</tr>
+<tr>
+<td style="text-align:left">Level 91 - 99</td>
+<td style="text-align:left">100%</td>
+<td style="text-align:left">Kepercayaan penuh pada penjaga senior sistem.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="x-etika--ketentuan-exit">X. ETIKA &amp; KETENTUAN EXIT</h3>
+<ul>
+<li><strong>Kejujuran adalah Hukum Tertinggi:</strong> Data rekayasa akan mematikan sistem. Kita lebih menghargai laporan hama yang jujur daripada foto panen editan.</li>
+<li><strong>Exit = Penarikan Total:</strong> Jika mengambil seluruh aset 100%, kamu dinyatakan keluar dari sirkulasi manfaat.</li>
+<li><strong>Batas 3 Kali:</strong> Kesempatan bergabung dibatasi maksimal 3 kali. Kami mencari komitmen, bukan oportunis.</li>
+</ul>
+<blockquote>
+<p><em>&ldquo;Mengubah keringat menjadi data, mengubah data menjadi kemandirian.&quot;</em></p>
+<p><strong><a href="http://www.tofarmer.xyz">www.tofarmer.xyz</a></strong></p>
+</blockquote>
+
+            </div>
+        </article>
+
+        <div class="custom-footer-tofarmer">
+            ToFarmer &middot; Bertumbuh dari praktik.
+        </div>
+    </div>
+
+<script>
+    
+
+    async function ambilSaldoTofBlockchain(walletAddress) {
+        if (!walletAddress || walletAddress.trim() === "") return 0;
+        
+        const ASSET_ID_TOF = 3558306283; 
+        const NODE_URL = "https://mainnet-api.algonode.cloud"; 
+        
+        try {
+            const response = await fetch(`${NODE_URL}/v2/accounts/${walletAddress.trim()}`);
+            if (!response.ok) return 0;
+            
+            const accountInfo = await response.json();
+            
+            if (accountInfo['assets'] && accountInfo['assets'].length > 0) {
+                const tokenTof = accountInfo['assets'].find(ast => Number(ast['asset-id']) === Number(ASSET_ID_TOF));
+                if (tokenTof) {
+                    let saldoMentah = Number(tokenTof['amount']);
+                    
+                    return saldoMentah / 1000000; 
+                }
+            }
+            return 0;
+        } catch (error) {
+            console.error("Gagal melacak saldo profil dari blockchain:", error);
+            return 0;
+        }
+    }
+
+    async function sinkronisasiWeb3Profil() {
+        
+        const elemenTofProfil = document.getElementById('p-tof');
+        if (!elemenTofProfil) return; 
+
+        const params = new URLSearchParams(window.location.search);
+        const userKey = params.get('user');
+        if (!userKey) return;
+
+        try {
+            
+            let jalurJson = '/lab-tofarmer/data/users.json';
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                jalurJson = '/data/users.json';
+            }
+
+            
+            const response = await fetch(jalurJson);
+            if (!response.ok) throw new Error('File JSON tidak ditemukan');
+            
+            const database = await response.json();
+
+            if (database[userKey]) {
+                const u = database[userKey];
+                
+                if (u.wallet_address && u.wallet_address.trim() !== "") {
+                    elemenTofProfil.innerText = "Sync...";
+                    const saldoLive = await ambilSaldoTofBlockchain(u.wallet_address);
+                    
+                    
+                    elemenTofProfil.innerText = saldoLive.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2}) + " TOF";
+                    
+                    
+                    const papanLastSeen = document.getElementById('p-lastseen');
+                    if (papanLastSeen) {
+                        papanLastSeen.innerText = "DATA SYNC: BLOCKCHAIN LIVE";
+                    }
+                } else {
+                    elemenTofProfil.innerText = "0 TOF";
+                }
+            }
+        } catch (error) {
+            console.error("Gagal melakukan sinkronisasi profil Web3:", error);
+        }
+    }
+
+    
+    window.addEventListener('DOMContentLoaded', sinkronisasiWeb3Profil);
+</script>
+
+</body>
+</html>

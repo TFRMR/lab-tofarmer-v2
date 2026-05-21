@@ -306,15 +306,126 @@ async function loadEconomy() {
       total.toLocaleString() +
       " TOF"
   }
-
+  // 🌿 UPDATE FASE
+updateFaseProgress(total)
   if (growerEl) {
     // Memanfaatkan fungsi stats agar tampilan rankSummary menampilkan info lengkap emoji berkategori
     const stats = getRankStats(profiles)
     growerEl.innerHTML = `${profiles.length} ( 🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite} )`
   }
 }
+function formatShort(num) {
 
+  if (num >= 1000000) {
+    return (
+      (num / 1000000)
+      .toFixed(1)
+      .replace(".0","")
+      + "M"
+    )
+  }
 
+  if (num >= 1000) {
+    return (
+      (num / 1000)
+      .toFixed(1)
+      .replace(".0","")
+      + "K"
+    )
+  }
+
+  return num.toString()
+}
+// =====================
+// FASE PROGRESS
+// =====================
+
+function updateFaseProgress(totalTof) {
+
+  const faseBar =
+    document.getElementById(
+      "faseBar"
+    )
+
+  const faseText =
+    document.getElementById(
+      "faseText"
+    )
+
+  if (!faseBar || !faseText)
+    return
+
+  const fases = [
+    {
+      name: "FASE 1",
+      target: 10000
+    },
+    {
+      name: "FASE 2",
+      target: 500000
+    },
+    {
+      name: "FASE 3",
+      target: 1000000
+    },
+    {
+      name: "FASE 4",
+      target: 3000000
+    },
+    {
+      name: "FASE 5",
+      target: 10000000
+    },
+    {
+      name: "FASE 6",
+      target: 30000000
+    },
+    {
+      name: "FASE 7",
+      target: 100000000
+    }
+  ]
+
+  let currentPhase =
+    fases[0]
+
+  let previousTarget = 0
+
+  for (let i = 0; i < fases.length; i++) {
+
+    if (
+      totalTof <=
+      fases[i].target
+    ) {
+      currentPhase =
+        fases[i]
+
+      break
+    }
+
+    previousTarget =
+      fases[i].target
+  }
+
+  const progress =
+    Math.min(
+      (
+        (totalTof -
+          previousTarget) /
+        (
+          currentPhase.target -
+          previousTarget
+        )
+      ) * 100,
+      100
+    )
+
+  faseBar.style.width =
+    progress + "%"
+
+  faseText.innerText =
+  `${currentPhase.name} • ${Math.floor(progress)}% • ${formatShort(totalTof)} / ${formatShort(currentPhase.target)} TOF`
+}
 // ===================== FEED =====================
 async function loadFeed() {
   const feed = document.getElementById("feed")
