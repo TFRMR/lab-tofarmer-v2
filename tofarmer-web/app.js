@@ -264,168 +264,217 @@ input.value = ""
 loadFeed()
 }
 
-// ===================== GLOBAL ECONOMY =====================
+// ===================== GLOBAL ECONOMY (SAFE LIVE) =====================
+// ===================== GLOBAL CONFIG =====================
+
+const TOF_ASSET_ID = 3558306283
+const ALGONODE_URL =
+  "https://mainnet-api.algonode.cloud"
+
+// ===================== WALLET BALANCE =====================
+
+async function getWalletTofBalance(wallet) {
+  try {
+    if (!wallet) return 0
+
+    const res = await fetch(
+      `${ALGONODE_URL}/v2/accounts/${wallet}`
+    )
+
+    if (!res.ok) return 0
+
+    const account = await res.json()
+
+    const asset = account.assets?.find(
+      a =>
+        Number(a["asset-id"]) === TOF_ASSET_ID
+    )
+
+    return asset
+      ? Number(asset.amount) / 1000000
+      : 0
+
+  } catch (err) {
+    console.log("Wallet fetch gagal:", wallet)
+    return 0
+  }
+}
+
+// ===================== ECONOMY =====================
 
 async function loadEconomy() {
 
-  // total aset TOF dan ambil XP sekalian untuk kalkulasi statistik rankSummary
-  const {
-    data: profiles,
-    error
-  } =
-    await supabaseClient
-      .from("profiles")
-      .select("saldo_tof, xp")
+  try {
 
-  if (error) {
-    console.log(error)
-    return
-  }
+    const { data: profiles, error } =
+      await supabaseClient
+        .from("profiles")
+        .select("id, xp")
 
-  const total =
-    profiles.reduce(
-      (sum, user) =>
-        sum +
-        (Number(user.saldo_tof) || 0),
-      0
-    )
+    if (error || !profiles) {
+      console.log(error)
+      return
+    }
 
-  // render UI
-  const totalAsset =
-    document.getElementById(
-      "totalAsset"
-    )
+    const totalAsset =
+      document.getElementById("totalAsset")
 
-  const growerEl =
-    document.getElementById(
-      "rankSummary"
-    )
+    if (totalAsset) {
+      totalAsset.innerText = "Sync..."
+    }
 
-  if (totalAsset) {
-    totalAsset.innerText =
-      total.toLocaleString() +
-      " TOF"
-  }
-  // 🌿 UPDATE FASE
-updateFaseProgress(total)
-  if (growerEl) {
-    // Memanfaatkan fungsi stats agar tampilan rankSummary menampilkan info lengkap emoji berkategori
-    const stats = getRankStats(profiles)
-    growerEl.innerHTML = `${profiles.length} ( 🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite} )`
+    // =====================
+    // HITUNG TOTAL LIVE
+    // =====================
+
+    let total = 0
+    const batchSize = 5
+
+    for (let i = 0; i < profiles.length; i += batchSize) {
+
+      const batch = profiles.slice(i, i + batchSize)
+
+      const balances = await Promise.all(
+        batch.map(user =>
+          getWalletTofBalance(user.id)
+        )
+      )
+
+      total += balances.reduce(
+        (sum, bal) => sum + bal,
+        0
+      )
+    }
+
+    const totalFixed = Number(total) || 0
+
+    console.log("TOTAL BLOCKCHAIN:", totalFixed)
+
+    if (totalAsset) {
+      totalAsset.innerText =
+        totalFixed.toLocaleString("id-ID", {
+          maximumFractionDigits: 2
+        }) + " TOF"
+    }
+
+    // =====================
+    // UPDATE FASE PROGRESS
+    // =====================
+
+    setTimeout(() => {
+      updateFaseProgress(totalFixed)
+    }, 100)
+
+    // =====================
+    // AVATAR STACK
+    // =====================
+
+    loadAvatarStack()
+
+    // =====================
+    // RANK SUMMARY (optional)
+    // =====================
+
+    const growerEl =
+      document.getElementById("rankSummary")
+
+    if (growerEl && typeof getRankStats === "function") {
+      const stats = getRankStats(profiles)
+
+      growerEl.innerHTML =
+        `${profiles.length}
+        ( 🌱${stats.grower}
+        | 🥉${stats.pro}
+        | 🥈${stats.specialist}
+        | 🥇${stats.elite} )`
+    }
+
+  } catch (err) {
+    console.log("ECONOMY ERROR:", err)
   }
 }
+
+// ===================== FORMAT NUMBER =====================
+
 function formatShort(num) {
 
   if (num >= 1000000) {
-    return (
-      (num / 1000000)
-      .toFixed(1)
-      .replace(".0","")
-      + "M"
-    )
+    return (num / 1000000).toFixed(1).replace(".0","") + "M"
   }
 
   if (num >= 1000) {
-    return (
-      (num / 1000)
-      .toFixed(1)
-      .replace(".0","")
-      + "K"
-    )
+    return (num / 1000).toFixed(1).replace(".0","") + "K"
   }
 
   return num.toString()
 }
-// =====================
-// FASE PROGRESS
-// =====================
+
+// ===================== FASE PROGRESS =====================
 
 function updateFaseProgress(totalTof) {
 
-  const faseBar =
-    document.getElementById(
-      "faseBar"
-    )
+  const faseBar = document.getElementById("faseBar")
+  const faseText = document.getElementById("faseText")
 
-  const faseText =
-    document.getElementById(
-      "faseText"
-    )
-
-  if (!faseBar || !faseText)
+  if (!faseBar || !faseText) {
+    console.log("❌ faseBar / faseText tidak ditemukan")
     return
+  }
+
+  totalTof = Number(totalTof) || 0
 
   const fases = [
-    {
-      name: "FASE 1",
-      target: 10000
-    },
-    {
-      name: "FASE 2",
-      target: 500000
-    },
-    {
-      name: "FASE 3",
-      target: 1000000
-    },
-    {
-      name: "FASE 4",
-      target: 3000000
-    },
-    {
-      name: "FASE 5",
-      target: 10000000
-    },
-    {
-      name: "FASE 6",
-      target: 30000000
-    },
-    {
-      name: "FASE 7",
-      target: 100000000
-    }
+    { name: "FASE 1", target: 10000 },
+    { name: "FASE 2", target: 500000 },
+    { name: "FASE 3", target: 1000000 },
+    { name: "FASE 4", target: 3000000 },
+    { name: "FASE 5", target: 10000000 },
+    { name: "FASE 6", target: 30000000 },
+    { name: "FASE 7", target: 100000000 }
   ]
 
-  let currentPhase =
-    fases[0]
-
+  let currentPhase = fases[0]
   let previousTarget = 0
 
   for (let i = 0; i < fases.length; i++) {
-
-    if (
-      totalTof <=
-      fases[i].target
-    ) {
-      currentPhase =
-        fases[i]
-
+    if (totalTof <= fases[i].target) {
+      currentPhase = fases[i]
       break
     }
-
-    previousTarget =
-      fases[i].target
+    previousTarget = fases[i].target
   }
 
-  const progress =
-    Math.min(
-      (
-        (totalTof -
-          previousTarget) /
-        (
-          currentPhase.target -
-          previousTarget
-        )
-      ) * 100,
-      100
-    )
+  const range = currentPhase.target - previousTarget
 
-  faseBar.style.width =
-    progress + "%"
+  let progress = range > 0
+    ? ((totalTof - previousTarget) / range) * 100
+    : 100
 
-  faseText.innerText =
-  `${currentPhase.name} • ${Math.floor(progress)}% • ${formatShort(totalTof)} / ${formatShort(currentPhase.target)} TOF`
+  progress = Math.max(0, Math.min(progress, 100))
+
+  faseBar.style.width = progress + "%"
+
+  const sisa = Math.max(0, currentPhase.target - totalTof)
+
+  faseText.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:#2f6f4e;">
+      🌿 ${currentPhase.name}
+    </div>
+
+    <div style="font-size:10px;color:#6f7f76;margin-top:2px;">
+      ${Math.floor(progress)}% progress
+    </div>
+
+    <div style="font-size:10px;color:#b5942b;margin-top:2px;">
+      ${formatShort(totalTof)} / ${formatShort(currentPhase.target)} TOF
+    </div>
+
+    <div style="font-size:10px;color:#999;margin-top:2px;">
+      Sisa ${formatShort(sisa)} TOF
+    </div>
+  `
 }
+
 // ===================== FEED =====================
 async function loadFeed() {
   const feed = document.getElementById("feed")
