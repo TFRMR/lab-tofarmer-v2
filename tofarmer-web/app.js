@@ -436,11 +436,12 @@ async function loadFeed() {
   // ===================== AMBIL POST =====================
   const { data: posts, error: postError } = await supabaseClient
     .from("contributions")
-    .select(`
-      *,
-      profiles:profiles(username, avatar_url)
-    `)
-    .order("created_at", { ascending: false })
+.select(`
+  *,
+  profiles:profiles(username, avatar_url)
+`)
+.eq("is_private", false)
+.order("created_at", { ascending: false })
 
   if (postError || !posts) {
     console.log("POST ERROR:", postError)
@@ -485,17 +486,27 @@ async function loadFeed() {
     const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
 
     const postComments = commentMap[item.id] || []
-
+const date = new Date(item.created_at).toLocaleString("id-ID", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit"
+});
     div.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;">
         <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
         <div style="font-weight:600;color:#2f6f4e;">@${username}</div>
       </div>
 
-      <div class="text" style="margin-top:6px;">
-        ${item.deskripsi_proses}
-      </div>
+     <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
+  			 ${date}
+</div>
 
+<div class="text">
+  ${item.deskripsi_proses}
+</div>
+    
       <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
         <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">
           ☕ ${item.sruput_count || 0} Sruput

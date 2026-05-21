@@ -1,421 +1,637 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Pusat Fitur &amp; Ilmu | ToFarmer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        body {
-            /* Efek kabut ladang pagi futuristik yang bergerak lambat */
-            background: linear-gradient(135deg, #ecf3ee 0%, #e1ebe4 40%, #e6eedc 100%);
-            background-size: 400% 400%;
-            animation: gradientMovement 15s ease infinite;
-            background-attachment: fixed;
-            color: #1b2620;
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
+<title>Ruang ToFarmer • Fitur & Ilmu</title>
 
-        @keyframes gradientMovement {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-        /* CONTAINER */
-        .container {
-            max-width: 1000px;
-            margin: auto;
-            padding: 2rem 1rem;
-        }
+<style>
 
-        /* HEADER FUTURISTIK */
-        header {
-            text-align: center;
-            padding: 2rem 1rem 3rem;
-            position: relative;
-        }
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
 
-        .header-brand {
-            display: inline-flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-            text-decoration: none;
-        }
+body{
+font-family:'Plus Jakarta Sans',sans-serif;
+background:
+radial-gradient(circle at top left,#edf6ef 0%,transparent 35%),
+radial-gradient(circle at bottom right,#f4efe0 0%,transparent 30%),
+linear-gradient(135deg,#edf4ef 0%,#e6efe7 45%,#edf1e6 100%);
+min-height:100vh;
+overflow-x:hidden;
+color:#183222;
+position:relative;
+}
 
-        .header-logo {
-            height: 70px;
-            width: 70px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(5px);
-            padding: 4px;
-            box-shadow: 0 0 20px rgba(45, 90, 67, 0.15), 0 0 0 2px rgba(181, 148, 43, 0.25);
-            transition: all 0.4s ease;
-        }
+/* kabut lembut */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background:
+linear-gradient(
+120deg,
+rgba(255,255,255,.18),
+rgba(255,255,255,0)
+);
+pointer-events:none;
+animation:fog 14s ease-in-out infinite;
+}
 
-        .header-brand:hover .header-logo {
-            transform: rotate(360deg) scale(1.05);
-            box-shadow: 0 0 25px rgba(181, 148, 43, 0.4), 0 0 0 3px rgba(45, 90, 67, 0.4);
-        }
+@keyframes fog{
+0%{transform:translateX(-3%)}
+50%{transform:translateX(3%)}
+100%{transform:translateX(-3%)}
+}
 
-        header h1 {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #133321;
-            letter-spacing: -1px;
-            background: linear-gradient(135deg, #133321 30%, #b5942b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+.container{
+width:100%;
+max-width:1150px;
+margin:auto;
+padding:22px;
+}
 
-        /* NAV DOCK */
-        nav {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 3rem;
-        }
+/* =========================
+HEADER
+========================= */
 
-        nav a {
-            text-decoration: none;
-            color: #1e4631;
-            font-size: 0.85rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(45, 90, 67, 0.15);
-            padding: 12px 24px;
-            border-radius: 30px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 4px 15px rgba(30, 70, 49, 0.02);
-        }
+.hero{
+position:relative;
+padding:40px 20px 70px;
+text-align:center;
+}
 
-        nav a:hover {
-            background: rgba(30, 70, 49, 0.9);
-            color: #fff;
-            border-color: #1e4631;
-            box-shadow: 0 8px 20px rgba(30, 70, 49, 0.2);
-            transform: translateY(-2px);
-        }
+.hero::after{
+content:"";
+position:absolute;
+left:50%;
+bottom:20px;
+transform:translateX(-50%);
+width:180px;
+height:1px;
+background:
+linear-gradient(
+90deg,
+transparent,
+rgba(181,148,43,.6),
+transparent
+);
+}
 
-        /* BOX UTAMA (Cyber-Organic Neo Glass Card) */
-        .content-area {
-            background: rgba(255, 255, 255, 0.35);
-            backdrop-filter: blur(25px);
-            -webkit-backdrop-filter: blur(25px);
-            
-            /* Border luar tipis hijau alam, dikombinasikan dengan outline emas di dalamnya */
-            border: 1px solid rgba(45, 90, 67, 0.2);
-            outline: 1px solid rgba(181, 148, 43, 0.3);
-            outline-offset: -5px;
-            
-            padding: 3.5rem 3rem;
-            border-radius: 32px;
-            position: relative;
-            
-            /* Pendaran bayangan berlapis (Double Glow) */
-            box-shadow: 
-                inset 0 1px 2px rgba(255, 255, 255, 0.6),
-                0 20px 50px rgba(30, 70, 49, 0.06),
-                0 0 40px rgba(181, 148, 43, 0.03);
-        }
+.logo-wrap{
+display:flex;
+justify-content:center;
+margin-bottom:18px;
+}
 
-        /* GRID FITUR */
-        .fitur-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 20px;
-            margin: 24px 0 40px;
-        }
+.logo{
+width:95px;
+height:95px;
+border-radius:50%;
+padding:5px;
+background:rgba(255,255,255,.65);
+backdrop-filter:blur(12px);
+box-shadow:
+0 10px 30px rgba(25,60,35,.08),
+0 0 0 1px rgba(255,255,255,.7);
+transition:.5s;
+}
 
-        /* CARD BUTTON FUTURISTIK (Holographic Organic Panel) */
-        .fitur-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            padding: 28px 20px;
-            border-radius: 22px;
-            position: relative;
-            overflow: hidden;
-            
-            /* Lapisan kaca jernih */
-            background: rgba(255, 255, 255, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            outline: 1px solid rgba(45, 90, 67, 0.08);
-            outline-offset: -1px;
-            
-            box-shadow: 0 4px 15px rgba(30, 70, 49, 0.01);
-            transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-        }
+.logo:hover{
+transform:rotate(8deg) scale(1.04);
+}
 
-        /* Efek Hover Quantum / Cyber-Organic */
-        .fitur-btn:hover {
-            transform: translateY(-5px);
-            background: rgba(255, 255, 255, 0.85);
-            border-color: rgba(181, 148, 43, 0.4);
-            outline-color: rgba(45, 90, 67, 0.25);
-            
-            /* Efek pendaran cahaya dari bawah panel */
-            box-shadow: 
-                0 12px 24px rgba(30, 70, 49, 0.05),
-                0 4px 15px rgba(181, 148, 43, 0.15);
-        }
+.hero h1{
+font-size:3rem;
+font-weight:800;
+letter-spacing:-2px;
+line-height:1.1;
+background:
+linear-gradient(
+135deg,
+#173722,
+#2c6545,
+#b5942b
+);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+}
 
-        /* Indikator Cahaya Neon Kecil di Sudut Atas (Hanya Muncul saat Hover) */
-        .fitur-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 40px;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, #b5942b, transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
+.hero p{
+margin-top:18px;
+font-size:.98rem;
+line-height:1.8;
+color:#587060;
+max-width:650px;
+margin-inline:auto;
+}
 
-        .fitur-btn:hover::before {
-            opacity: 1;
-        }
+/* =========================
+TOP BUTTON
+========================= */
 
-        /* ICON HOLOGRAF IK */
-        .fitur-icon {
-            font-size: 2.6rem;
-            margin-bottom: 16px;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            filter: drop-shadow(0 4px 8px rgba(30, 70, 49, 0.1));
-        }
-        
-        /* Gerakan icon melayang ke atas */
-        .fitur-btn:hover .fitur-icon {
-            transform: translateY(-6px) scale(1.1);
-        }
+.top-nav{
+display:flex;
+justify-content:center;
+margin-top:26px;
+}
 
-        /* LABELS */
-        .fitur-label {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: #244431;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            transition: color 0.3s ease;
-        }
+.top-btn{
+display:inline-flex;
+align-items:center;
+gap:10px;
+padding:14px 24px;
+border-radius:999px;
+text-decoration:none;
+font-size:.83rem;
+font-weight:700;
+letter-spacing:.5px;
+background:rgba(255,255,255,.65);
+backdrop-filter:blur(10px);
+color:#234431;
+border:1px solid rgba(255,255,255,.7);
+box-shadow:
+0 10px 25px rgba(20,40,30,.04);
+transition:.3s;
+}
 
-        .fitur-btn:hover .fitur-label {
-            color: #133321;
-        }
+.top-btn:hover{
+transform:translateY(-2px);
+background:#214632;
+color:white;
+}
 
-        /* LASER SECTION DIVIDER */
-        .section-divider {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin: 45px 0 20px;
-        }
+/* =========================
+MAIN CARD
+========================= */
 
-        .section-divider span {
-            font-size: 0.75rem;
-            font-weight: 800;
-            color: #b5942b;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            white-space: nowrap;
-            text-shadow: 0 2px 4px rgba(181, 148, 43, 0.1);
-        }
+.main-box{
+background:rgba(255,255,255,.52);
+backdrop-filter:blur(22px);
+border:1px solid rgba(255,255,255,.7);
+border-radius:34px;
+padding:34px;
+box-shadow:
+0 15px 50px rgba(20,50,30,.06);
+position:relative;
+overflow:hidden;
+}
 
-        .section-line {
-            height: 1px;
-            width: 100%;
-            /* Efek Laser Memudar */
-            background: linear-gradient(90deg, rgba(181, 148, 43, 0.5), rgba(45, 90, 67, 0.2) 50%, transparent);
-        }
+.main-box::before{
+content:"";
+position:absolute;
+top:-120px;
+right:-120px;
+width:240px;
+height:240px;
+background:
+radial-gradient(
+circle,
+rgba(181,148,43,.12),
+transparent 70%
+);
+}
 
-        /* FOOTER */
-        .custom-footer-tofarmer {
-            text-align: center;
-            margin-top: 50px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #657e70;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-        }
+/* =========================
+SECTION
+========================= */
 
-        /* RESPONSIVE OPTIMIZATION */
-        @media(max-width:768px){
-            .content-area {
-                padding: 2.5rem 1.5rem;
-                border-radius: 24px;
-                outline-offset: -3px;
-            }
+.section{
+margin-bottom:42px;
+}
 
-            header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .fitur-grid {
-                grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-                gap: 14px;
-            }
-            
-            .fitur-btn {
-                padding: 22px 14px;
-                border-radius: 16px;
-            }
-            
-            .fitur-icon {
-                font-size: 2.2rem;
-                margin-bottom: 12px;
-            }
+.section-title{
+display:flex;
+align-items:center;
+gap:14px;
+margin-bottom:18px;
+}
 
-            .fitur-label {
-                font-size: 0.75rem;
-            }
-        }
-    </style>
+.section-title span{
+font-size:.78rem;
+font-weight:800;
+letter-spacing:2px;
+text-transform:uppercase;
+color:#b5942b;
+white-space:nowrap;
+}
+
+.line{
+width:100%;
+height:1px;
+background:
+linear-gradient(
+90deg,
+rgba(181,148,43,.5),
+rgba(30,70,49,.08),
+transparent
+);
+}
+
+/* =========================
+GRID
+========================= */
+
+.grid{
+display:grid;
+grid-template-columns:
+repeat(auto-fit,minmax(170px,1fr));
+gap:18px;
+}
+
+/* =========================
+CARD BUTTON
+========================= */
+
+.card-btn{
+position:relative;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+text-decoration:none;
+padding:28px 18px;
+border-radius:24px;
+
+background:
+linear-gradient(
+180deg,
+rgba(255,255,255,.78),
+rgba(255,255,255,.42)
+);
+
+border:1px solid rgba(255,255,255,.7);
+
+box-shadow:
+0 8px 20px rgba(20,50,30,.04);
+
+transition:.35s;
+overflow:hidden;
+}
+
+.card-btn:hover{
+transform:translateY(-6px);
+box-shadow:
+0 18px 30px rgba(20,50,30,.08),
+0 0 25px rgba(181,148,43,.08);
+}
+
+.card-btn:active{
+transform:scale(.97);
+}
+
+.card-btn::before{
+content:"";
+position:absolute;
+top:0;
+left:50%;
+transform:translateX(-50%);
+width:60px;
+height:3px;
+background:
+linear-gradient(
+90deg,
+transparent,
+#b5942b,
+transparent
+);
+opacity:0;
+transition:.3s;
+}
+
+.card-btn:hover::before{
+opacity:1;
+}
+
+.icon{
+font-size:2.4rem;
+margin-bottom:16px;
+transition:.4s;
+filter:drop-shadow(0 6px 10px rgba(0,0,0,.06));
+}
+
+.card-btn:hover .icon{
+transform:
+translateY(-5px)
+scale(1.08);
+}
+
+.label{
+font-size:.8rem;
+font-weight:700;
+letter-spacing:1px;
+text-transform:uppercase;
+color:#264633;
+text-align:center;
+}
+
+.desc{
+margin-top:8px;
+font-size:.72rem;
+line-height:1.5;
+text-align:center;
+color:#68806f;
+}
+
+/* =========================
+COMING SOON
+========================= */
+
+.soon{
+opacity:.72;
+border-style:dashed;
+}
+
+/* =========================
+FOOTER
+========================= */
+
+.footer{
+padding:45px 20px 70px;
+text-align:center;
+}
+
+.footer-text{
+font-size:.76rem;
+color:#728476;
+line-height:1.8;
+letter-spacing:.5px;
+}
+
+/* =========================
+MOBILE
+========================= */
+
+@media(max-width:768px){
+
+.container{
+padding:14px;
+}
+
+.hero{
+padding:28px 10px 50px;
+}
+
+.hero h1{
+font-size:2.2rem;
+}
+
+.hero p{
+font-size:.88rem;
+line-height:1.7;
+}
+
+.main-box{
+padding:24px 18px;
+border-radius:26px;
+}
+
+.grid{
+grid-template-columns:
+repeat(2,1fr);
+gap:14px;
+}
+
+.card-btn{
+padding:22px 12px;
+border-radius:20px;
+}
+
+.icon{
+font-size:2rem;
+margin-bottom:12px;
+}
+
+.label{
+font-size:.72rem;
+}
+
+.desc{
+font-size:.66rem;
+}
+
+}
+
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <header>
-            <a href="../" class="header-brand">
-                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzXfCj2gYXzyKmWfs871-jqeTvs6345OTXsndg-mLpIUzsDxvk2JByeMIv5G0XJOT1V3WoGBqUJAhBxuXFkO_IP6Hb98YPCS6KJNrIaG7IB8eeI9gBT5iH-8P2F7qOBY4UfJ6v9g18PnWwcjNAEzYpya-qgtEc5jwiM9IUeQ1i-XZC9RJTHYsbp2FfNYw/s389/logo.png" alt="Logo" class="header-logo">
-                <h1>ToFarmer</h1>
-            </a>
-        </header>
 
-        <nav>
-            <a href="../">🏠 KEMBALI KE BERANDA</a>
-        </nav>
+<div class="container">
 
-        <article class="content-area">
-            <h1></h1>
-            <div class="meta-info"></div>
-            
-            <div class="post-body">
-                <div class="tof-card">
-                    <div style="text-align: center; margin-bottom: 35px;">
-                        <h2 style="color: #133321; letter-spacing: 2.5px; font-weight: 800; font-size: 1.5rem; background: linear-gradient(135deg, #133321, #b5942b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">PUSAT KENDALI</h2>
-                        <p style="color: #556c5e; font-size: 0.85rem; margin-top: 6px; font-weight: 500;">Instrumen digital pendukung ekosistem masa depan ToFarmer.</p>
-                    </div>
+<!-- HERO -->
 
-                    <div class="section-divider"><span>Navigasi Utama</span><div class="section-line"></div></div>
-                    <div class="fitur-grid">
-                        <a href='../' class="fitur-btn"><span class="fitur-icon">🏠</span><span class="fitur-label">Titik Kumpul</span></a>
-                        <a href='/html/tentang.html/' class="fitur-btn"><span class="fitur-icon">☕</span><span class="fitur-label">Tentang</span></a>
-                        <a href='../portofolio/' class="fitur-btn"><span class="fitur-icon">🚀</span><span class="fitur-label">Portofolio</span></a>
-                    </div>
+<section class="hero">
 
-                    <div class="section-divider"><span>Peralatan</span><div class="section-line"></div></div>
-                    <div class="fitur-grid">
-                        <a href='../alat/catatan-hidup/' class="fitur-btn"><span class="fitur-icon">🤖</span><span class="fitur-label">Catatan</span></a>
-                        <a href='../alat/kalkulator-compounding/' class="fitur-btn"><span class="fitur-icon">🧮</span><span class="fitur-label">Kalkulator</span></a>
-                        <a href='../riwayat-transaksi/' class="fitur-btn"><span class="fitur-icon">🏛️</span><span class="fitur-label">Transparansi</span></a>
-                    </div>
+<div class="logo-wrap">
+<img
+src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzXfCj2gYXzyKmWfs871-jqeTvs6345OTXsndg-mLpIUzsDxvk2JByeMIv5G0XJOT1V3WoGBqUJAhBxuXFkO_IP6Hb98YPCS6KJNrIaG7IB8eeI9gBT5iH-8P2F7qOBY4UfJ6v9g18PnWwcjNAEzYpya-qgtEc5jwiM9IUeQ1i-XZC9RJTHYsbp2FfNYw/s389/logo.png"
+class="logo"
+>
+</div>
 
-                    <div class="section-divider"><span>Gudang Ilmu</span><div class="section-line"></div></div>
-                    <div class="fitur-grid">
-                        <a href='../ilmu/panduan-ai/' class="fitur-btn"><span class="fitur-icon">🧠</span><span class="fitur-label">Cerdas AI</span></a>
-                        <a href='../ilmu/programming-cepat/' class="fitur-btn"><span class="fitur-icon">💻</span><span class="fitur-label">Coding</span></a>
-                        <a href='../ilmu/nanam-ubi/' class="fitur-btn"><span class="fitur-icon">🌱</span><span class="fitur-label">Tani Ubi</span></a>
-                    </div>
+<h1>Ruang ToFarmer</h1>
 
-                    <div style="text-align: center; margin-top: 50px; border-top: 1px solid rgba(45, 90, 67, 0.1); padding-top: 25px;">
-                        <a href='../' style="color: #657e70; text-decoration: none; font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; transition: all 0.2s;" onmouseover="this.style.color='#b5942b'; this.style.letterSpacing='1.5px'" onmouseout="this.style.color='#657e70'; this.style.letterSpacing='1px'">← KEMBALI KE BERANDA</a>
-                    </div>
-                </div>
-            </div>
-        </article>
+<p>
+Tempat bertumbuh bersama ide, eksperimen,
+teknologi, kopi, pertanian, dan masa depan.
+Membangun ekosistem petani masa depan
+dengan semangat kreatif dan keberanian belajar.
+</p>
 
-        <div class="custom-footer-tofarmer">
-            ToFarmer &middot; Bertumbuh dari praktik.
-        </div>
-    </div>
+<div class="top-nav">
+<a href="../" class="top-btn">
+🏠 Kembali ke Beranda
+</a>
+</div>
 
-<script>
-    async function ambilSaldoTofBlockchain(walletAddress) {
-        if (!walletAddress || walletAddress.trim() === "") return 0;
-        
-        const ASSET_ID_TOF = 3558306283; 
-        const NODE_URL = "https://mainnet-api.algonode.cloud"; 
-        
-        try {
-            const response = await fetch(`${NODE_URL}/v2/accounts/${walletAddress.trim()}`);
-            if (!response.ok) return 0;
-            
-            const accountInfo = await response.json();
-            
-            if (accountInfo['assets'] && accountInfo['assets'].length > 0) {
-                const tokenTof = accountInfo['assets'].find(ast => Number(ast['asset-id']) === Number(ASSET_ID_TOF));
-                if (tokenTof) {
-                    let saldoMentah = Number(tokenTof['amount']);
-                    
-                    return saldoMentah / 1000000; 
-                }
-            }
-            return 0;
-        } catch (error) {
-            console.error("Gagal melacak saldo profil dari blockchain:", error);
-            return 0;
-        }
-    }
+</section>
 
-    async function sinkronisasiWeb3Profil() {
-        const elemenTofProfil = document.getElementById('p-tof');
-        if (!elemenTofProfil) return; 
+<!-- MAIN -->
 
-        const params = new URLSearchParams(window.location.search);
-        const userKey = params.get('user');
-        if (!userKey) return;
+<div class="main-box">
 
-        try {
-            let jalurJson = '/lab-tofarmer/data/users.json';
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                jalurJson = '/data/users.json';
-            }
+<!-- JELAJAH -->
 
-            const response = await fetch(jalurJson);
-            if (!response.ok) throw new Error('File JSON tidak ditemukan');
-            
-            const database = await response.json();
+<section class="section">
 
-            if (database[userKey]) {
-                const u = database[userKey];
-                
-                if (u.wallet_address && u.wallet_address.trim() !== "") {
-                    elemenTofProfil.innerText = "Sync...";
-                    const saldoLive = await ambilSaldoTofBlockchain(u.wallet_address);
-                    
-                    elemenTofProfil.innerText = saldoLive.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2}) + " TOF";
-                    
-                    const papanLastSeen = document.getElementById('p-lastseen');
-                    if (papanLastSeen) {
-                        papanLastSeen.innerText = "DATA SYNC: BLOCKCHAIN LIVE";
-                    }
-                } else {
-                    elemenTofProfil.innerText = "0 TOF";
-                }
-            }
-        } catch (error) {
-            console.error("Gagal melakukan sinkronisasi profil Web3:", error);
-        }
-    }
+<div class="section-title">
+<span>🧭 Jelajah</span>
+<div class="line"></div>
+</div>
 
-    window.addEventListener('DOMContentLoaded', sinkronisasiWeb3Profil);
-</script>
+<div class="grid">
+
+<a href="../" class="card-btn">
+<div class="icon">🏠</div>
+<div class="label">Beranda</div>
+<div class="desc">
+Titik kumpul utama ToFarmer.
+</div>
+</a>
+
+<a href="/html/tentang.html/" class="card-btn">
+<div class="icon">☕</div>
+<div class="label">Tentang</div>
+<div class="desc">
+Cerita dan visi ToFarmer.
+</div>
+</a>
+
+<a href="../portofolio/" class="card-btn">
+<div class="icon">🚀</div>
+<div class="label">Portofolio</div>
+<div class="desc">
+Eksperimen & perjalanan proyek.
+</div>
+</a>
+
+</div>
+
+</section>
+
+<!-- TOOLS -->
+
+<section class="section">
+
+<div class="section-title">
+<span>🛠 Peralatan Grower</span>
+<div class="line"></div>
+</div>
+
+<div class="grid">
+
+<a href="../alat/catatan-hidup/" class="card-btn">
+<div class="icon">🤖</div>
+<div class="label">Catatan</div>
+<div class="desc">
+Menyimpan jejak proses bertumbuh.
+</div>
+</a>
+
+<a href="../alat/kalkulator-compounding/" class="card-btn">
+<div class="icon">🧮</div>
+<div class="label">Kalkulator</div>
+<div class="desc">
+Simulasi compounding & strategi.
+</div>
+</a>
+
+<a href="../riwayat-transaksi/" class="card-btn">
+<div class="icon">🏛️</div>
+<div class="label">Transparansi</div>
+<div class="desc">
+Melihat riwayat dan aliran data.
+</div>
+</a>
+
+</div>
+
+</section>
+
+<!-- ILMU -->
+
+<section class="section">
+
+<div class="section-title">
+<span>🧠 Gudang Ilmu</span>
+<div class="line"></div>
+</div>
+
+<div class="grid">
+
+<a href="../ilmu/panduan-ai/" class="card-btn">
+<div class="icon">🧠</div>
+<div class="label">AI</div>
+<div class="desc">
+Belajar kecerdasan buatan.
+</div>
+</a>
+
+<a href="../ilmu/programming-cepat/" class="card-btn">
+<div class="icon">💻</div>
+<div class="label">Coding</div>
+<div class="desc">
+Membangun dunia digital sendiri.
+</div>
+</a>
+
+<a href="../ilmu/nanam-ubi/" class="card-btn">
+<div class="icon">🌱</div>
+<div class="label">Pertanian</div>
+<div class="desc">
+Ilmu ladang & eksperimen tani.
+</div>
+</a>
+
+</div>
+
+</section>
+
+<!-- FUTURE -->
+
+<section class="section">
+
+<div class="section-title">
+<span>🚀 Masa Depan</span>
+<div class="line"></div>
+</div>
+
+<div class="grid">
+
+<div class="card-btn soon">
+<div class="icon">🛰️</div>
+<div class="label">AI Lokal</div>
+<div class="desc">
+Eksperimen AI mandiri ToFarmer.
+</div>
+</div>
+
+<div class="card-btn soon">
+<div class="icon">🌾</div>
+<div class="label">Simulasi Ladang</div>
+<div class="desc">
+Algoritma dan ekosistem pangan.
+</div>
+</div>
+
+<div class="card-btn soon">
+<div class="icon">🪙</div>
+<div class="label">Dashboard TOF</div>
+<div class="desc">
+Ekosistem token & transparansi.
+</div>
+</div>
+
+<div class="card-btn soon">
+<div class="icon">🏕️</div>
+<div class="label">Akademi</div>
+<div class="desc">
+Petani masa depan & komunitas.
+</div>
+</div>
+
+</div>
+
+</section>
+
+</div>
+
+<!-- FOOTER -->
+
+<footer class="footer">
+<div class="footer-text">
+ToFarmer • Bertumbuh dari praktik ☕🌱<br>
+Membangun masa depan dari ladang, kopi, dan keberanian belajar.
+</div>
+</footer>
+
+</div>
 
 </body>
 </html>
