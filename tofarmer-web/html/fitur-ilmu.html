@@ -419,7 +419,66 @@ font-size:.66rem;
 
 </style>
 </head>
+<script>
 
+// =====================
+// ACTIVE ROUTE DETECTOR
+// =====================
+
+function setActiveLinks() {
+  const links = document.querySelectorAll(".card-btn, .top-btn")
+
+  const currentPath = window.location.pathname
+
+  links.forEach(link => {
+    const href = link.getAttribute("href")
+
+    if (!href) return
+
+    if (currentPath.includes(href.replace("../", ""))) {
+      link.style.border = "1px solid #b5942b"
+      link.style.boxShadow = "0 0 18px rgba(181,148,43,.25)"
+    }
+  })
+}
+
+// =====================
+// SMOOTH NAVIGATION FEEL
+// =====================
+
+function enhanceNavigation() {
+  const links = document.querySelectorAll("a.card-btn, a.top-btn")
+
+  links.forEach(link => {
+    link.addEventListener("click", (e) => {
+
+      const href = link.getAttribute("href")
+
+      // ignore external / special links
+      if (!href || href.startsWith("http")) return
+
+      e.preventDefault()
+
+      // small transition feel
+      document.body.style.opacity = "0.92"
+
+      setTimeout(() => {
+        window.location.href = href
+      }, 120)
+    })
+  })
+}
+
+// =====================
+// INIT
+// =====================
+
+window.addEventListener("DOMContentLoaded", () => {
+  setActiveLinks()
+  enhanceNavigation()
+})
+
+</script>
 <body>
 
 <div class="container">
