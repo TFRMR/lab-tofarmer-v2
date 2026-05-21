@@ -1,17 +1,4 @@
-function getRank(xp) {
-  if (xp >= 33000) return "ELITE";
-  if (xp >= 9000) return "SPECIALIST";
-  if (xp >= 3000) return "PRO";
-  return "GROWER";
-}
 
-// Menghindari ReferenceError pada renderProfile
-function getTofLevel(xp) {
-  if (xp >= 33000) return 4;
-  if (xp >= 9000) return 3;
-  if (xp >= 3000) return 2;
-  return 1;
-}
 
 let currentWallet = null
 let currentProfile = null
@@ -173,18 +160,24 @@ function pilihPilarPopup(text) {
     const pilihan = `
 Pilih vibe tulisanmu 😎🌿
 
-1️⃣ Komunitas & Kreativitas (rame-rame, ngobrol, ide liar)
-2️⃣ Inovasi & Teknologi (AI, blockchain, masa depan)
-3️⃣ Ladang & Alam (tanah, kopi, panen, hujan romantis)
-4️⃣ Keuangan & Ekonomi (duit, TOF, strategi cuan)
-5️⃣ Refleksi & Kesadaran (renungan sambil ngopi ☕)
+1️⃣ Komunitas
+2️⃣ Inovasi
+3️⃣ Ladang
+4️⃣ Finance
+5️⃣ Refleksi
 
-Ketik angka 1-5 ya bos 👇
+Ketik 1-5 atau CANCEL 👇
     `
 
-    let input = prompt(pilihan)
+    const input = prompt(pilihan)
 
-    let map = {
+    // ✅ FIX 1: CANCEL atau kosong = STOP
+    if (!input) {
+      resolve(null)
+      return
+    }
+
+    const map = {
       "1": "community",
       "2": "inovasi",
       "3": "ladang",
@@ -192,30 +185,34 @@ Ketik angka 1-5 ya bos 👇
       "5": "refleksi"
     }
 
-    resolve(map[input] || null) // Biarkan null jika tidak valid agar bisa difallback ke hasil rekomendasi heuristic
+    resolve(map[input] || null)
   })
 }
 
-// Gabungan logika ganda classifyPilar agar tidak tumpang tindih
+// Gabungan logika ganda classifyPilar agar tidak tumpang tuntih
 async function classifyPilar(text) {
-  // 🧠 Logika Heuristic / Rule Sederhana (Prediksi awal)
   const t = text.toLowerCase()
+
   let rekomendasiAwal = "community"
 
   if (t.includes("modal") || t.includes("profit") || t.includes("aset")) {
     rekomendasiAwal = "finance"
   } else if (t.includes("tanam") || t.includes("ladang") || t.includes("panen")) {
     rekomendasiAwal = "ladang"
-  } else if (t.includes("blockchain") || t.includes("wallet") || t.includes("smart contract")) {
-    rekomendasiAwal = "inovasi" // disesuaikan dengan key PILAR_MAP
+  } else if (t.includes("blockchain") || t.includes("wallet")) {
+    rekomendasiAwal = "inovasi"
   }
 
-  // 🌿 Konfirmasi/Pilihan utama lewat popup user (lebih akurat 😄)
   const userChoice = await pilihPilarPopup(text)
+
+  // ❗ FIX PENTING:
+  // kalau user cancel → STOP TOTAL
+  if (userChoice === null) {
+    return null
+  }
 
   return userChoice || rekomendasiAwal
 }
-
 
 async function sendPost() {
   const input = document.getElementById("postBox")
@@ -233,26 +230,38 @@ async function sendPost() {
 
   const pilar = await classifyPilar(text)
 
-  const { error } = await supabaseClient
-    .from("contributions")
-    .insert([
-      {
-        user_id: currentWallet,
-        pilar_aksi: PILAR_MAP[pilar], // 🔥 INI WAJIB ANGKA
-        judul_aksi: "Feed Post",
-        deskripsi_proses: text,
-        status_validasi: "pending"
-      }
-    ])
+// 🚨 FIX FINAL: USER CANCEL = STOP TOTAL
+if (!pilar) {
+  alert("Post dibatalkan (tidak pilih pilar)")
+  return
+}
 
-  if (error) {
-    console.log(error)
-    alert("Gagal kirim: " + error.message)
-    return
-  }
+// 🚨 FIX FINAL: validasi mapping
+if (!PILAR_MAP[pilar]) {
+  alert("Pilar tidak valid, post dibatalkan")
+  return
+}
 
-  input.value = ""
-  loadFeed()
+const { error } = await supabaseClient
+  .from("contributions")
+  .insert([
+    {
+      user_id: currentWallet,
+      pilar_aksi: PILAR_MAP[pilar],
+      judul_aksi: "Feed Post",
+      deskripsi_proses: text,
+      status_validasi: "pending"
+    }
+  ])
+
+if (error) {
+  console.log(error)
+  alert("Gagal kirim: " + error.message)
+  return
+}
+
+input.value = ""
+loadFeed()
 }
 
 // ===================== GLOBAL ECONOMY =====================
@@ -308,29 +317,106 @@ async function loadEconomy() {
 
 // ===================== FEED =====================
 async function loadFeed() {
-  const { data, error } = await supabaseClient
-    .from("contributions")
-    .select("*")
-    .order("created_at", { ascending: false })
-
   const feed = document.getElementById("feed")
-  if (!feed || error) return
+  if (!feed) return
 
   feed.innerHTML = ""
 
-  data.forEach(item => {
+  // ===================== AMBIL POST =====================
+  const { data: posts, error: postError } = await supabaseClient
+    .from("contributions")
+    .select(`
+      *,
+      profiles:profiles(username, avatar_url)
+    `)
+    .order("created_at", { ascending: false })
+
+  if (postError || !posts) {
+    console.log("POST ERROR:", postError)
+    feed.innerHTML = "<div>Gagal load post</div>"
+    return
+  }
+
+  // ===================== AMBIL COMMENTS (SAFE MODE) =====================
+  let comments = []
+
+  try {
+    const postIds = posts.map(p => p.id)
+
+    const { data } = await supabaseClient
+      .from("comments")
+      .select("*")
+      .in("post_id", postIds)
+
+    comments = data || []
+  } catch (e) {
+    console.log("COMMENT ERROR:", e)
+    comments = []
+  }
+
+  // ===================== GROUP COMMENTS =====================
+  const commentMap = {}
+
+  comments.forEach(c => {
+    if (!commentMap[c.post_id]) {
+      commentMap[c.post_id] = []
+    }
+    commentMap[c.post_id].push(c)
+  })
+
+  // ===================== RENDER =====================
+  posts.forEach(item => {
+
     const div = document.createElement("div")
     div.className = "post"
 
+    const username = item.profiles?.username || "guest"
+    const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
+
+    const postComments = commentMap[item.id] || []
+
     div.innerHTML = `
-      <div class="user">@${item.user_id}</div>
-      <div class="text">${item.deskripsi_proses}</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
+        <div style="font-weight:600;color:#2f6f4e;">@${username}</div>
+      </div>
+
+      <div class="text" style="margin-top:6px;">
+        ${item.deskripsi_proses}
+      </div>
+
+      <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
+        <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">
+          ☕ ${item.sruput_count || 0} Sruput
+        </span>
+
+        <span onclick="reactPost('${item.id}','cangkul')" style="cursor:pointer;">
+          ⛏️ ${item.cangkul_count || 0} Cangkul
+        </span>
+      </div>
+
+      <div style="margin-top:10px;">
+        <input id="comment-${item.id}" placeholder="Tulis komentar..."
+          style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;" />
+
+        <button onclick="sendComment('${item.id}')"
+          style="margin-top:6px;padding:6px 10px;font-size:12px;">
+          Kirim
+        </button>
+      </div>
+
+      <div style="margin-top:10px;font-size:12px;">
+        ${postComments.slice(0, 3).map(c => `
+          <div style="padding:3px 0;color:#444;">
+            💬 ${c.comment}
+          </div>
+        `).join("")}
+      </div>
     `
 
     feed.appendChild(div)
   })
 }
-
 // ===================== PROFILE RENDER =====================
 function renderProfile() {
   const userBox =
@@ -601,38 +687,3 @@ async function loadAvatarStack() {
   })
 }
 
-// ===================== RANK UTILITIES & SUMMARY =====================
-
-function getRankStats(users) {
-  let grower = 0
-  let pro = 0
-  let specialist = 0
-  let elite = 0
-
-  users.forEach(u => {
-    const xp = u.xp || 0
-    const rank = getRank(xp)
-
-    if (rank === "ELITE") elite++
-    else if (rank === "SPECIALIST") specialist++
-    else if (rank === "PRO") pro++
-    else grower++
-  })
-
-  return { grower, pro, specialist, elite }
-}
-
-async function loadRankSummary() {
-  const { data } = await supabaseClient
-    .from("profiles")
-    .select("xp")
-
-  if (!data) return
-
-  const stats = getRankStats(data)
-
-  const growerCountEl = document.getElementById("growerCount")
-  if (growerCountEl) {
-    growerCountEl.innerHTML = `${data.length} (🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite})`
-  }
-}
