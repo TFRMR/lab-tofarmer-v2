@@ -381,21 +381,26 @@ function pilihPilarPopup(text) {
       background:rgba(16,25,20,.55);
       backdrop-filter:blur(10px);
       display:flex;
-      justify-content:center;
-      align-items:center;
+justify-content:center;
+align-items:flex-start;
+padding-top:40px;
+overflow-y:auto;
       z-index:99999;
       padding:20px;
     ">
 
     <div style="
-      width:100%;
-      max-width:430px;
-      background:linear-gradient(180deg,#fff,#f3f8f4);
-      border-radius:28px;
-      padding:26px;
-      box-shadow:0 20px 60px rgba(47,111,78,.18);
-      border:1px solid rgba(76,175,122,.12);
-    ">
+  width:100%;
+  max-width:430px;
+  max-height:85vh;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  background:linear-gradient(180deg,#fff,#f3f8f4);
+  border-radius:28px;
+  padding:26px;
+  box-shadow:0 20px 60px rgba(47,111,78,.18);
+  border:1px solid rgba(76,175,122,.12);
+">
 
       <div style="text-align:center;">
         <div style="font-size:50px;">☕🌿</div>
@@ -413,7 +418,7 @@ function pilihPilarPopup(text) {
 
   <button class="pilar-btn" data-p="community">
     🤝 Titik Kumpul
-    <small>Ngopi, ide, ngobrol, santai, dan rame-rame nanam gagasan,ngonten</small>
+    <small>Ngopi, ide, ngobrol, santai ,ngonten</small>
   </button>
 
   <button class="pilar-btn" data-p="inovasi">
@@ -423,12 +428,12 @@ function pilihPilarPopup(text) {
 
   <button class="pilar-btn" data-p="ladang">
     🌱 Cerita Tanah & Panen
-    <small>Dari pupuk, hujan, sampai drama ayam masuk kebun</small>
+    <small>Drama masuk kebun</small>
   </button>
 
   <button class="pilar-btn" data-p="finance">
     ☕ Duit...duit dan duit
-    <small>TOF, aset, strategi hidup biar ladang tetap jalan</small>
+    <small>TOF, aset, strategi biar ladang tetap jalan</small>
   </button>
 
   <button class="pilar-btn" data-p="refleksi">
@@ -554,18 +559,44 @@ async function sendPost() {
   }
 
   // ================= SIMPAN POST =================
-  const { error } = await supabaseClient
-    .from("contributions")
-    .insert([
-      {
-        user_id: currentWallet,
-        pilar_aksi: PILAR_MAP[pilar],
-        judul_aksi: "Feed Post",
-        deskripsi_proses: text,
-        image_url: imageUrl,
-        status_validasi: "pending"
-      }
-    ])
+ // cek apakah posting di diri sendiri (profil pribadi)
+const isSelfPost = true // sementara default true (karena feed utama = diri sendiri)
+
+const xpBonus = isSelfPost ? 20 : 5
+
+const { error } = await supabaseClient
+  .from("contributions")
+  .insert([
+    {
+      user_id: currentWallet,
+      pilar_aksi: PILAR_MAP[pilar],
+      judul_aksi: "Feed Post",
+      deskripsi_proses: text,
+      image_url: imageUrl,
+      status_validasi: "pending",
+
+      // 🔥 TAMBAHAN BARU
+      xp_reward: xpBonus,
+      is_self_post: isSelfPost
+    }
+  ])
+
+// ================= XP UPDATE =================
+if (currentProfile) {
+  const newXP = (currentProfile.xp || 0) + xpBonus
+
+  const { error: xpError } = await supabaseClient
+    .from("profiles")
+    .update({
+      xp: newXP
+    })
+    .eq("id", currentWallet)
+
+  if (!xpError) {
+    currentProfile.xp = newXP
+    renderProfile()
+  }
+}
 
   if (error) {
     console.log(error)
