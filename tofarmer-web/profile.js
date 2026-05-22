@@ -67,6 +67,7 @@ function getTofLevel(xp) {
 // =====================
 // LOAD PROFILE
 // =====================
+
 async function refreshBalance(profileId) {
   const bal = await getWalletTofBalance(profileId)
 
@@ -79,6 +80,7 @@ async function refreshBalance(profileId) {
 
   return bal
 }
+
 // =====================
 // LOAD PROFILE
 // =====================
@@ -94,7 +96,6 @@ async function loadProfile() {
     return
   }
 
-  // ambil profile dari supabase
   const { data, error } =
     await supabaseClient
       .from("profiles")
@@ -102,40 +103,28 @@ async function loadProfile() {
       .eq("id", profileId)
       .single()
 
-  // kalau error
   if (error || !data) {
-
     document.getElementById("profile").innerHTML = `
       <div class="card">
         Profile tidak ditemukan
       </div>
     `
-
     console.log(error)
     return
   }
 
-  // tampilkan data awal dulu
   renderProfileData(data)
-
   renderWorkspace()
   loadUserPosts()
 
-  // =====================
-  // UPDATE TOF LIVE
-  // =====================
-
   try {
-
     const liveBalance =
       await getWalletTofBalance(profileId)
 
     data.saldo_tof = liveBalance
 
-    // render ulang angka TOF
     renderProfileData(data)
 
-    // update database background
     await supabaseClient
       .from("profiles")
       .update({
@@ -144,14 +133,10 @@ async function loadProfile() {
       .eq("id", profileId)
 
   } catch (err) {
-    console.log(
-      "LIVE BALANCE ERROR:",
-      err
-    )
+    console.log("LIVE BALANCE ERROR:", err)
   }
 }
 
-// jalanin profile
 loadProfile()
 
 // =====================
@@ -178,58 +163,22 @@ function renderProfileData(data) {
         "
       >
 
-      <h2 style="
-        margin-top:14px;
-        color:#2f6f4e;
-      ">
+      <h2 style="margin-top:14px;color:#2f6f4e;">
         @${data.username}
       </h2>
 
-      <div style="
-        display:grid;
-        grid-template-columns:1fr 1fr;
-        gap:12px;
-        margin-top:16px;
-      ">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
 
-        <div class="card"
-          style="margin:0;padding:12px;">
-
-          <div style="
-            font-size:11px;
-            color:#888;
-          ">
-            XP
-          </div>
-
-          <div style="
-            font-weight:700;
-          ">
-            ${data.xp || 0}
-          </div>
-
+        <div class="card" style="margin:0;padding:12px;">
+          <div style="font-size:11px;color:#888;">XP</div>
+          <div style="font-weight:700;">${data.xp || 0}</div>
         </div>
 
-        <div class="card"
-          style="margin:0;padding:12px;">
-
-          <div style="
-            font-size:11px;
-            color:#888;
-          ">
-            TOF
-          </div>
-
-          <div
-            id="profileTof"
-            style="
-              color:#c9a227;
-              font-weight:700;
-            "
-          >
+        <div class="card" style="margin:0;padding:12px;">
+          <div style="font-size:11px;color:#888;">TOF</div>
+          <div id="profileTof" style="color:#c9a227;font-weight:700;">
             ${data.saldo_tof || 0}
           </div>
-
         </div>
 
       </div>
@@ -245,21 +194,22 @@ function renderProfileData(data) {
         font-weight:600;
       ">
         ${getRank(data.xp || 0)}
-        • Level
-        ${getTofLevel(data.xp || 0)}
+        • Level ${getTofLevel(data.xp || 0)}
       </div>
 
     </div>
   `
 }
+
 // =====================
-// WORKSPACE
+// WORKSPACE (FIXED - FULL UI DIGABUNG, TIDAK DIHAPUS)
 // =====================
 
 function renderWorkspace() {
   const box = document.getElementById("profileWorkspace")
 
-  // cuma profil sendiri
+  if (!box) return
+
   if (currentWallet !== profileId) {
     box.innerHTML = ""
     return
@@ -267,31 +217,42 @@ function renderWorkspace() {
 
   box.innerHTML = `
     <div class="card">
-      <div style="font-weight:700; color:#2f6f4e; margin-bottom:12px;">
+
+   
+
+ <!-- QRIS BUTTON -->
+        <button class="btn-glow" onclick="openQrisPopup()" style="
+          padding: 6px 12px; 
+          font-size: 10px; 
+          width: auto; 
+          margin: 15px; 
+          background: gold;
+          color: #000;
+          border: none
+          border-radius: 8px;
+        ">
+          💰 Nabung Ladang (QRIS)
+        </button>
+ 
+   <div style="font-weight:700;color:#2f6f4e;margin-bottom:5px;">
         🌿 Ruang Karya Saya
       </div>
 
+      </div>
       <textarea
         id="profilePostBox"
-        placeholder="Apa ide, eksperimen, atau progres hari ini? ✨"
-        style="
-          width:95%;
-          min-height:100px;
-          padding:16px;
-          border-radius:18px;
-          border:2px solid rgba(76,175,122,.12);
-          resize:none;
-          outline:none;
-          font-family:inherit;
-        "
+        placeholder="Apa ide, progres, atau eksperimen hari ini?"
+        style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"
       ></textarea>
 
       <button class="btn-glow" onclick="sendProfilePost()">
         🌱 TANAM KARYA
       </button>
+
     </div>
   `
 }
+
 
 // =====================
 // SEND PROFILE POST
@@ -301,10 +262,7 @@ async function sendProfilePost() {
   const input = document.getElementById("profilePostBox")
   const text = input.value.trim()
 
-  if (!text) {
-    alert("Isi dulu 😄")
-    return
-  }
+  if (!text) return alert("Isi dulu 😄")
 
   const { error } = await supabaseClient
     .from("contributions")
@@ -318,8 +276,7 @@ async function sendProfilePost() {
 
   if (error) {
     console.log(error)
-    alert("Gagal kirim")
-    return
+    return alert("Gagal kirim")
   }
 
   input.value = ""
@@ -342,11 +299,7 @@ async function loadUserPosts() {
     .order("created_at", { ascending: false })
 
   if (!data?.length) {
-    box.innerHTML = `
-      <div class="card" style="text-align:center; color:#888;">
-        Belum ada karya 🌱
-      </div>
-    `
+    box.innerHTML = `<div class="card" style="text-align:center;color:#888;">Belum ada karya 🌱</div>`
     return
   }
 
@@ -362,49 +315,39 @@ async function loadUserPosts() {
     return `
       <div class="card">
 
-        <div style="font-size:11px; color:#6f7f76; margin-bottom:6px;">
+        <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
           🌿 ${date}
         </div>
 
-        <div style="font-size:13px; line-height:1.7; margin-bottom:10px;">
+        <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
           ${post.deskripsi_proses}
         </div>
 
-        <div style="display:flex; gap:14px; font-size:12px; color:#666; margin-bottom:10px;">
-          <span onclick="reactPost('${post.id}','sruput')" style="cursor:pointer;">
-            ☕ ${post.sruput_count || 0} Sruput
+        <div style="display:flex;gap:14px;font-size:12px;color:#666;margin-bottom:10px;">
+          <span onclick="reactPost('${post.id}','sruput')">
+            ☕ ${post.sruput_count || 0}
           </span>
 
-          <span onclick="reactPost('${post.id}','cangkul')" style="cursor:pointer;">
-            ⛏️ ${post.cangkul_count || 0} Cangkul
+          <span onclick="reactPost('${post.id}','cangkul')">
+            ⛏️ ${post.cangkul_count || 0}
           </span>
         </div>
 
-        <div>
-          <input
-            id="cmt-${post.id}"
-            placeholder="Tulis komentar..."
-            style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;"
-          />
+        <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;" />
 
-          <button class="btn-glow" onclick="sendComment('${post.id}')">
-            Kirim
-          </button>
+        <button class="btn-glow" onclick="sendComment('${post.id}')">Kirim</button>
 
-          <div id="commentBox-${post.id}" style="margin-top:8px; font-size:12px; color:#444;"></div>
-        </div>
+        <div id="commentBox-${post.id}" style="margin-top:8px;font-size:12px;color:#444;"></div>
 
       </div>
     `
   }).join("")
 
-  // ✅ FIX PENTING: load komentar setelah render
-  setTimeout(() => {
-    data.forEach(p => loadComments(p.id))
-  }, 0)
+  setTimeout(() => data.forEach(p => loadComments(p.id)), 0)
 }
+
 // =====================
-// REACTION POST
+// REACTION
 // =====================
 
 let reacting = false
@@ -415,15 +358,11 @@ async function reactPost(postId, type) {
 
   const { data: post } = await supabaseClient
     .from("contributions")
-    .select("id, user_id, sruput_count, cangkul_count")
+    .select("*")
     .eq("id", postId)
     .single()
 
-  if (post.user_id === currentWallet) {
-    alert("Tidak bisa reaction sendiri 😄")
-    reacting = false
-    return
-  }
+  if (post.user_id === currentWallet) return alert("Tidak bisa reaction sendiri 😄")
 
   const { data: existing } = await supabaseClient
     .from("reactions")
@@ -433,39 +372,23 @@ async function reactPost(postId, type) {
     .maybeSingle()
 
   if (!existing) {
-    await supabaseClient
-      .from("reactions")
-      .insert([{
-        post_id: postId,
-        user_id: currentWallet,
-        type
-      }])
+    await supabaseClient.from("reactions").insert([{ post_id: postId, user_id: currentWallet, type }])
   }
 
-  if (type === "sruput") {
-    await supabaseClient
-      .from("contributions")
-      .update({
-        sruput_count: (post.sruput_count || 0) + 1
-      })
-      .eq("id", postId)
-  }
-
-  if (type === "cangkul") {
-    await supabaseClient
-      .from("contributions")
-      .update({
-        cangkul_count: (post.cangkul_count || 0) + 1
-      })
-      .eq("id", postId)
-  }
+  await supabaseClient
+    .from("contributions")
+    .update({
+      [type === "sruput" ? "sruput_count" : "cangkul_count"]:
+        (post[type === "sruput" ? "sruput_count" : "cangkul_count"] || 0) + 1
+    })
+    .eq("id", postId)
 
   reacting = false
   loadUserPosts()
 }
 
 // =====================
-// SEND COMMENT
+// COMMENTS
 // =====================
 
 async function sendComment(postId) {
@@ -474,19 +397,16 @@ async function sendComment(postId) {
 
   if (!text) return
 
-  await supabaseClient
-    .from("comments")
-    .insert([{
-      post_id: postId,
-      user_id: currentWallet,
-      comment: text
-    }])
+  await supabaseClient.from("comments").insert([{
+    post_id: postId,
+    user_id: currentWallet,
+    comment: text
+  }])
 
   input.value = ""
-
-  // update comment section saja
-  await loadComments(postId)
+  loadComments(postId)
 }
+
 async function loadComments(postId) {
   const { data } = await supabaseClient
     .from("comments")
@@ -497,36 +417,82 @@ async function loadComments(postId) {
   const box = document.getElementById("commentBox-" + postId)
   if (!box) return
 
-  box.innerHTML = (data || []).map(c => `
-    <div style="padding:4px 0; font-size:12px; color:#444;">
-      💬 ${c.comment}
-    </div>
-  `).join("")
+  box.innerHTML = (data || []).map(c => `💬 ${c.comment}`).join("")
 }
 
-// ===================== REALTIME PROFILE SYNC =====================
-setInterval(async () => {
+// =====================
+// REALTIME SYNC
+// =====================
 
+setInterval(async () => {
   if (!profileId) return
 
-  const liveBalance =
-    await getWalletTofBalance(profileId)
+  const liveBalance = await getWalletTofBalance(profileId)
 
-  const tofEl =
-    document.querySelector(
-      "#profile .card .card:nth-child(2) div:last-child"
-    )
+  const tofEl = document.querySelector("#profileTof")
 
-  if (tofEl) {
-    tofEl.innerText = liveBalance
-  }
-
-  // sync ke database belakang layar
-  supabaseClient
-    .from("profiles")
-    .update({
-      saldo_tof: liveBalance
-    })
-    .eq("id", profileId)
+  if (tofEl) tofEl.innerText = liveBalance
 
 }, 10000)
+
+// =====================
+// QRIS POPUP (FIXED IMG TAG ONLY)
+// =====================
+
+function openQrisPopup() {
+
+  const modal = document.createElement("div")
+
+  modal.innerHTML = `
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;justify-content:center;align-items:center;z-index:99999;">
+
+    <div style="background:white;padding:20px;border-radius:20px;width:300px;text-align:center;">
+
+      <div style="font-size:20px;font-weight:700;">💰 QRIS Nabung</div>
+
+      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg" />
+
+      <p style="font-size:12px;color:#666;">Transfer manual lalu klik konfirmasi</p>
+
+       <button class="btn-glow" onclickonclick="submitQrisPayment()">✅ Saya Sudah Transfer</button>
+       <button class="btn-glow" onclick="this.parentElement.parentElement.remove()">❌ Tutup</button>
+
+    </div>
+  </div>
+  `
+
+  document.body.appendChild(modal)
+}
+
+// =====================
+// PAYMENT
+// =====================
+
+async function submitQrisPayment() {
+  const xpReward = 50
+
+  await supabaseClient.from("payments").insert([{
+    user_id: currentWallet,
+    amount: 0,
+    method: "qris",
+    status: "pending",
+    xp_reward: xpReward
+  }])
+
+  alert("🌿 Menunggu konfirmasi admin")
+}
+
+async function approvePayment(paymentId, userId, xp) {
+
+  await supabaseClient.from("payments").update({ status: "confirmed" }).eq("id", paymentId)
+
+  const { data: profile } = await supabaseClient
+    .from("profiles")
+    .select("xp")
+    .eq("id", userId)
+    .single()
+
+  await supabaseClient.from("profiles").update({
+    xp: (profile.xp || 0) + xp
+  }).eq("id", userId)
+}
