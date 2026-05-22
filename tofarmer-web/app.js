@@ -280,8 +280,10 @@ async function syncProfile(wallet) {
 
   } else {
 
-    currentProfile =
-      data
+   currentProfile =
+  data
+
+await updateCurrentUserBalance()
   }
 }
 // ===================== POST =====================
@@ -540,6 +542,15 @@ async function getWalletTofBalance(wallet) {
   }
 }
 
+async function updateCurrentUserBalance() {
+  if (!currentWallet || !currentProfile) return
+
+  const balance = await getWalletTofBalance(currentWallet)
+
+  currentProfile.saldo_tof = balance
+
+  renderProfile()
+}
 // ===================== ECONOMY =====================
 
 async function loadEconomy() {
@@ -999,7 +1010,12 @@ function renderProfile() {
     </div>
   `
 }
-
+if (currentWallet) {
+  getWalletTofBalance(currentWallet).then(bal => {
+    currentProfile.saldo_tof = bal
+    renderProfile()
+  })
+}
 
 // ===================== AVATAR UPLOAD =====================
 
