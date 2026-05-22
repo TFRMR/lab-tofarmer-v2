@@ -15,8 +15,8 @@ async function connectWallet() {
     <div style="
       position:fixed;
       inset:0;
-      background:rgba(16,25,20,.6);
-      backdrop-filter:blur(10px);
+      background:rgba(16,25,20,.65);
+      backdrop-filter:blur(12px);
       display:flex;
       justify-content:center;
       align-items:center;
@@ -24,93 +24,68 @@ async function connectWallet() {
       padding:20px;
     ">
 
-    <div style="
-      width:100%;
-      max-width:420px;
-      background:linear-gradient(180deg,#ffffff,#f3f8f4);
-      border-radius:26px;
-      padding:24px;
-      box-shadow:0 20px 60px rgba(47,111,78,.25);
-      border:1px solid rgba(76,175,122,.15);
-      text-align:center;
-    ">
-
-      <div style="font-size:50px;">🌿☕</div>
-
-      <h2 style="
-        color:#2f6f4e;
-        margin-top:10px;
+      <div style="
+        width:100%;
+        max-width:420px;
+        background:linear-gradient(180deg,#ffffff,#f3f8f4);
+        border-radius:28px;
+        padding:26px;
+        text-align:center;
+        box-shadow:0 25px 70px rgba(47,111,78,.25);
+        border:1px solid rgba(76,175,122,.15);
+        animation: pop .25s ease;
       ">
-        Masuk ke Ladang Digital
-      </h2>
 
-      <p style="
-        color:#6f7f76;
-        font-size:13px;
-        margin:10px 0 20px;
-      ">
-        Sambungkan wallet kamu untuk mulai menanam ide di ekosistem ToFarmer
-      </p>
+        <div style="font-size:60px;">🌿☕</div>
 
-      <input id="walletInput"
-        placeholder="Masukkan wallet Algorand..."
-        style="
+        <h2 style="color:#2f6f4e;margin-top:10px;">
+          Selamat Datang, Petani Digital!
+        </h2>
+
+        <p style="color:#6f7f76;font-size:13px;margin:10px 0 20px;">
+          Kamu sudah masuk ke ekosistem ToFarmer.<br>
+          Siapkan ide, kopi, dan sedikit keberanian 😎
+        </p>
+
+        <div style="
+          background:#eef7f1;
+          padding:10px;
+          border-radius:14px;
+          font-size:12px;
+          color:#2f6f4e;
+          margin-bottom:15px;
+        ">
+          🌱 Ladang siap ditanami ide-ide liar
+        </div>
+
+        <button id="okBtn" style="
           width:100%;
           padding:12px;
-          border-radius:12px;
-          border:1px solid #ddd;
-          margin-bottom:15px;
-          outline:none;
-        "
-      />
+          border:none;
+          border-radius:14px;
+          background:linear-gradient(90deg,#4caf7a,#c9a227);
+          color:white;
+          font-weight:bold;
+          cursor:pointer;
+        ">
+          Masuk ke Ladang 🚀
+        </button>
 
-      <button id="connectBtn" style="
-        width:100%;
-        padding:12px;
-        border:none;
-        border-radius:14px;
-        background:linear-gradient(90deg,#4caf7a,#c9a227);
-        color:white;
-        font-weight:bold;
-        cursor:pointer;
-      ">
-        🌱 Masuk Ladang
-      </button>
-
-      <button id="cancelBtn" style="
-        width:100%;
-        margin-top:10px;
-        padding:10px;
-        border:none;
-        border-radius:14px;
-        background:#eef4ef;
-        color:#6f7f76;
-        font-weight:600;
-        cursor:pointer;
-      ">
-        Batal (kambing dulu 🐐)
-      </button>
-
-    </div>
+      </div>
     </div>
     `
 
     document.body.appendChild(modal)
 
-    const input = modal.querySelector("#walletInput")
-    const connectBtn = modal.querySelector("#connectBtn")
-    const cancelBtn = modal.querySelector("#cancelBtn")
-
-    // CONNECT
-    connectBtn.onclick = async () => {
-      const wallet = input.value.trim()
-
-      if (!wallet) {
-        alert("Isi wallet dulu ya petani 🌿")
-        return
-      }
+    modal.querySelector("#okBtn").onclick = async () => {
 
       document.body.removeChild(modal)
+
+      const wallet = prompt("Masukkan wallet Algorand:")
+      if (!wallet) {
+        resolve(null)
+        return
+      }
 
       currentWallet = wallet
       localStorage.setItem("tof_wallet", wallet)
@@ -120,17 +95,72 @@ async function connectWallet() {
       updateWalletUI()
       renderProfile()
 
-      alert("🌿 Selamat datang di ladang ToFarmer!")
-      resolve(wallet)
-    }
+      // 🌿 bukan alert kaku lagi
+      showWelcomePopup()
 
-    // CANCEL
-    cancelBtn.onclick = () => {
-      document.body.removeChild(modal)
-      resolve(null)
+      resolve(wallet)
     }
   })
 }
+
+function showWelcomePopup() {
+  const modal = document.createElement("div")
+
+  modal.innerHTML = `
+  <div style="
+    position:fixed;
+    inset:0;
+    background:rgba(16,25,20,.6);
+    backdrop-filter:blur(10px);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:99999;
+  ">
+
+    <div style="
+      background:linear-gradient(180deg,#ffffff,#f3f8f4);
+      padding:26px;
+      border-radius:26px;
+      text-align:center;
+      max-width:380px;
+      width:100%;
+      box-shadow:0 20px 60px rgba(47,111,78,.25);
+      border:1px solid rgba(76,175,122,.15);
+    ">
+
+      <div style="font-size:55px;">🌿🎉</div>
+
+      <h2 style="color:#2f6f4e;">
+        Ladang Terbuka!
+      </h2>
+
+      <p style="color:#6f7f76;font-size:13px;margin:10px 0 20px;">
+        Selamat datang di ToFarmer.<br>
+        Dari kopi → ide → aksi → panen 🚀
+      </p>
+
+      <button onclick="this.parentElement.parentElement.remove()" style="
+        width:100%;
+        padding:12px;
+        border:none;
+        border-radius:14px;
+        background:linear-gradient(90deg,#4caf7a,#c9a227);
+        color:white;
+        font-weight:bold;
+        cursor:pointer;
+      ">
+        Siap Panen Ide 🌱
+      </button>
+
+    </div>
+  </div>
+  `
+
+  document.body.appendChild(modal)
+}
+
+
 
 function logoutWallet() {
   currentWallet = null
