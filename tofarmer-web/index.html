@@ -283,6 +283,100 @@
       .layout{flex-direction:column;}
       .left{width:100%;}
     }
+/* ==========================
+   TOFARMER FLOATING WA
+========================== */
+
+.tof-wa-float {
+  position: fixed;
+  right: 18px;
+  left: auto;
+  bottom: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    radial-gradient(circle,
+    #5dff9d,
+    #24b45a);
+
+  box-shadow:
+    0 0 10px rgba(37,211,102,.45),
+    0 0 25px rgba(37,211,102,.28),
+    0 0 45px rgba(37,211,102,.16);
+
+  z-index: 99999;
+
+  animation:
+    tofGlow 2s infinite ease-in-out,
+    tofBlink 1.8s infinite;
+
+  transition: .25s;
+}
+
+.tof-wa-float:hover {
+  transform:
+    translateY(-4px)
+    scale(1.08);
+
+  box-shadow:
+    0 0 18px rgba(37,211,102,.6),
+    0 0 40px rgba(37,211,102,.35),
+    0 0 70px rgba(37,211,102,.22);
+}
+
+.tof-wa-float img {
+  width: 34px;
+  height: 34px;
+}
+
+@keyframes tofGlow {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tofBlink {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .78;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* mobile */
+@media(max-width:850px) {
+  .tof-wa-float {
+    width: 58px;
+    height: 58px;
+    left: 14px;
+    bottom: 16px;
+  }
+
+  .tof-wa-float img {
+    width: 30px;
+    height: 30px;
+  }
+}
   </style>
 </head>
 
@@ -659,5 +753,17 @@
 
   </div>
 </div>
+<!-- FLOATING WHATSAPP -->
+<a
+  href="https://wa.me/6285228028131?text=Halo%20Admin%20ToFarmer%20🌿"
+  class="tof-wa-float"
+  target="_blank"
+>
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/733/733585.png"
+    alt="WA"
+  />
+</a>
+
 </body>
 </html>
