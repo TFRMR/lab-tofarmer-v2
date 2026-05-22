@@ -238,16 +238,27 @@ function renderWorkspace() {
         🌿 Ruang Karya Saya
       </div>
 
-      </div>
-      <textarea
-        id="profilePostBox"
-        placeholder="Apa ide, progres, atau eksperimen hari ini?"
-        style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"
-      ></textarea>
+   <textarea
+  id="profilePostBox"
+  placeholder="Apa ide, progres, atau eksperimen hari ini?"
+  style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"
+></textarea>
 
-      <button class="btn-glow" onclick="sendProfilePost()">
-        🌱 TANAM KARYA
-      </button>
+<input
+  type="file"
+  id="profileImage"
+  accept="image/*"
+  style="
+    width:100%;
+    margin-top:10px;
+    margin-bottom:10px;
+    font-size:12px;
+  "
+/>
+
+<button class="btn-glow" onclick="sendProfilePost()">
+  🌱 TANAM KARYA
+</button>
 
     </div>
   `
@@ -259,20 +270,67 @@ function renderWorkspace() {
 // =====================
 
 async function sendProfilePost() {
-  const input = document.getElementById("profilePostBox")
-  const text = input.value.trim()
 
-  if (!text) return alert("Isi dulu 😄")
+  const input =
+    document.getElementById("profilePostBox")
 
-  const { error } = await supabaseClient
-    .from("contributions")
-    .insert([{
-      user_id: currentWallet,
-      judul_aksi: "Profile Post",
-      deskripsi_proses: text,
-      status_validasi: "pending",
-      is_private: true
-    }])
+  const imageInput =
+    document.getElementById("profileImage")
+
+  const text =
+    input.value.trim()
+
+  const file =
+    imageInput.files[0]
+
+  if (!text && !file) {
+    return alert("Isi teks atau pilih gambar 😄")
+  }
+
+  let imageUrl = null
+
+  // =====================
+  // UPLOAD IMAGE
+  // =====================
+
+  if (file) {
+
+    const fileName =
+      `${Date.now()}-${file.name}`
+
+    const { error: uploadError } =
+      await supabaseClient.storage
+        .from("profile-posts")
+        .upload(fileName, file)
+
+    if (uploadError) {
+      console.log(uploadError)
+      return alert("Upload gambar gagal")
+    }
+
+    const { data } =
+      supabaseClient.storage
+        .from("profile-posts")
+        .getPublicUrl(fileName)
+
+    imageUrl = data.publicUrl
+  }
+
+  // =====================
+  // INSERT POST
+  // =====================
+
+  const { error } =
+    await supabaseClient
+      .from("contributions")
+      .insert([{
+        user_id: currentWallet,
+        judul_aksi: "Profile Post",
+        deskripsi_proses: text,
+        image_url: imageUrl,
+        status_validasi: "pending",
+        is_private: true
+      }])
 
   if (error) {
     console.log(error)
@@ -280,7 +338,10 @@ async function sendProfilePost() {
   }
 
   input.value = ""
+  imageInput.value = ""
+
   alert("🌿 Karya ditanam")
+
   loadUserPosts()
 }
 
@@ -319,9 +380,22 @@ async function loadUserPosts() {
           🌿 ${date}
         </div>
 
-        <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
-          ${post.deskripsi_proses}
-        </div>
+       <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
+  ${post.deskripsi_proses || ""}
+</div>
+
+${post.image_url ? `
+  <img
+    src="${post.image_url}"
+    style="
+      width:100%;
+      border-radius:14px;
+      margin-bottom:12px;
+      object-fit:cover;
+      max-height:500px;
+    "
+  />
+` : ""}
 
         <div style="display:flex;gap:14px;font-size:12px;color:#666;margin-bottom:10px;">
           <span onclick="reactPost('${post.id}','sruput')">
@@ -446,7 +520,7 @@ function openQrisPopup() {
   modal.innerHTML = `
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;justify-content:center;align-items:center;z-index:99999;">
 
-    <div style="background:white;padding:20px;border-radius:20px;width:300px;text-align:center;">
+    <div style="background:white;padding:20px;border-radius:16px;width:300px;text-align:center;">
 
       <div style="font-size:20px;font-weight:700;">💰 QRIS Nabung</div>
 
