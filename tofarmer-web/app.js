@@ -27,47 +27,55 @@ async function connectWallet() {
       <div style="
         width:100%;
         max-width:420px;
-        background:linear-gradient(180deg,#ffffff,#f3f8f4);
+        background:#fff;
         border-radius:28px;
-        padding:26px;
-        text-align:center;
-        box-shadow:0 25px 70px rgba(47,111,78,.25);
-        border:1px solid rgba(76,175,122,.15);
-        animation: pop .25s ease;
+        padding:24px;
       ">
 
-        <div style="font-size:60px;">🌿☕</div>
+        <div style="text-align:center;">
+          <div style="font-size:50px;">🌿</div>
 
-        <h2 style="color:#2f6f4e;margin-top:10px;">
-          Selamat Datang, Petani Digital!
-        </h2>
+          <h2 style="color:#2f6f4e;">
+            Daftar ToFarmer
+          </h2>
 
-        <p style="color:#6f7f76;font-size:13px;margin:10px 0 20px;">
-          Kamu sudah masuk ke ekosistem ToFarmer.<br>
-          Siapkan ide, kopi, dan sedikit keberanian 😎
-        </p>
-
-        <div style="
-          background:#eef7f1;
-          padding:10px;
-          border-radius:14px;
-          font-size:12px;
-          color:#2f6f4e;
-          margin-bottom:15px;
-        ">
-          🌱 Ladang siap ditanami ide-ide liar
+          <p style="
+            font-size:12px;
+            color:#666;
+            margin-top:8px;
+          ">
+            Nama + Wallet Algorand
+          </p>
         </div>
 
-        <button id="okBtn" style="
-          width:100%;
-          padding:12px;
-          border:none;
-          border-radius:14px;
-          background:linear-gradient(90deg,#4caf7a,#c9a227);
-          color:white;
-          font-weight:bold;
-          cursor:pointer;
-        ">
+        <input
+          id="tofName"
+          placeholder="Nama pengguna"
+          style="
+            width:100%;
+            margin-top:20px;
+            padding:14px;
+            border-radius:14px;
+            border:1px solid #ddd;
+          "
+        />
+
+        <input
+          id="tofWallet"
+          placeholder="Wallet Algorand"
+          style="
+            width:100%;
+            margin-top:12px;
+            padding:14px;
+            border-radius:14px;
+            border:1px solid #ddd;
+          "
+        />
+
+        <button
+          id="registerBtn"
+          style="width:100%;"
+        >
           Masuk ke Ladang 🚀
         </button>
 
@@ -77,25 +85,113 @@ async function connectWallet() {
 
     document.body.appendChild(modal)
 
-    modal.querySelector("#okBtn").onclick = async () => {
+    modal
+      .querySelector("#registerBtn")
+      .onclick = async () => {
 
-      document.body.removeChild(modal)
+      const username =
+        document
+          .getElementById("tofName")
+          .value
+          .trim()
 
-      const wallet = prompt("Masukkan wallet Algorand:")
-      if (!wallet) {
-        resolve(null)
+      const wallet =
+        document
+          .getElementById("tofWallet")
+          .value
+          .trim()
+
+      // =====================
+      // VALIDASI NAMA
+      // =====================
+
+      if (!username) {
+        alert("Nama wajib diisi 🌱")
         return
       }
 
+      // =====================
+      // VALIDASI WALLET
+      // =====================
+
+      try {
+
+        const decoded =
+          algosdk.decodeAddress(wallet)
+
+        if (!decoded) {
+          throw new Error()
+        }
+
+      } catch {
+
+        alert(
+          "Wallet tidak valid / bukan Algorand 😄"
+        )
+
+        return
+      }
+
+      // =====================
+      // CEK USER SUDAH ADA?
+      // =====================
+
+      const {
+        data: existingUser
+      } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", wallet)
+        .maybeSingle()
+
+      // =====================
+      // BELUM ADA = DAFTAR
+      // =====================
+
+      if (!existingUser) {
+
+        const { error } =
+          await supabaseClient
+            .from("profiles")
+            .insert([
+              {
+                id: wallet,
+                username: username,
+                xp: 0,
+                saldo_tof: 0,
+                level: 1,
+
+                // default avatar emoji/logo
+                avatar_url:
+                  "https://www.tofarmer.xyz/images/logo-tofarmer.png"
+              }
+            ])
+
+        if (error) {
+          console.log(error)
+          alert("Gagal daftar")
+          return
+        }
+      }
+
+      // =====================
+      // LOGIN
+      // =====================
+
       currentWallet = wallet
-      localStorage.setItem("tof_wallet", wallet)
+
+      localStorage.setItem(
+        "tof_wallet",
+        wallet
+      )
 
       await syncProfile(wallet)
 
       updateWalletUI()
       renderProfile()
 
-      // 🌿 bukan alert kaku lagi
+      document.body.removeChild(modal)
+
       showWelcomePopup()
 
       resolve(wallet)
@@ -231,7 +327,6 @@ function updateWalletUI() {
 }
 
 // ===================== PROFILE SYNC =====================
-// ===================== PROFILE SYNC =====================
 async function syncProfile(wallet) {
 
   const { data, error } =
@@ -245,33 +340,16 @@ async function syncProfile(wallet) {
     console.log(error)
     return
   }
+// kalau belum daftar
+if (!data) {
 
-  // kalau belum ada user
-  if (!data) {
+  alert(
+    "Wallet belum terdaftar 🌱\nSilakan daftar dulu."
+  )
 
-    const { data: newUser, error: err2 } =
-      await supabaseClient
-        .from("profiles")
-        .insert([
-          {
-            id: wallet,
-            username: "GROWER_" + wallet.slice(0, 6),
-            xp: 0,
-            saldo_tof: 0,
-            level: 1,
-            avatar_url: ""
-          }
-        ])
-        .select()
-        .single()
-
-    if (err2) {
-      console.log(err2)
-      return
-    }
-
-    currentProfile = newUser
-  }
+  logoutWallet()
+  return
+}
 
   // kalau sudah ada user
   else {
@@ -742,7 +820,11 @@ async function loadFeed() {
     .from("contributions")
 .select(`
   *,
-  profiles:profiles(username, avatar_url)
+  profiles:profiles(
+    id,
+    username,
+    avatar_url
+  )
 `)
 .eq("is_private", false)
 .order("created_at", { ascending: false })
@@ -800,7 +882,16 @@ const date = new Date(item.created_at).toLocaleString("id-ID", {
     div.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;">
         <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
-        <div style="font-weight:600;color:#2f6f4e;">@${username}</div>
+        <div
+  onclick="window.location.href='profile.html?id=${item.profiles?.id}'"
+  style="
+    font-weight:600;
+    color:#2f6f4e;
+    cursor:pointer;
+  "
+>
+  @${username}
+</div>
       </div>
 
      <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
@@ -808,7 +899,9 @@ const date = new Date(item.created_at).toLocaleString("id-ID", {
 </div>
 
 <div class="text" style="margin-top:6px;">
-  ${item.deskripsi_proses || ""}
+  ${convertMentions(
+    item.deskripsi_proses || ""
+  )}
 </div>
 
 ${item.image_url ? `
@@ -850,7 +943,7 @@ ${item.image_url ? `
       <div style="margin-top:10px;font-size:12px;">
         ${postComments.slice(0, 3).map(c => `
           <div style="padding:3px 0;color:#444;">
-            💬 ${c.comment}
+           💬 ${convertMentions(c.comment)}
           </div>
         `).join("")}
       </div>
@@ -1092,6 +1185,41 @@ window.addEventListener("DOMContentLoaded", () => {
       renderProfile()
     })
   }
+function convertMentions(text) {
+  if (!text) return ""
+
+  return text.replace(
+    /@([a-zA-Z0-9_]+)/g,
+    `
+    <span
+      class="tof-mention"
+      onclick="goToUsername('$1')"
+      style="
+        color:#6ea84f;
+        font-weight:700;
+        cursor:pointer;
+      "
+    >@$1</span>
+    `
+  )
+}
+async function goToUsername(username) {
+
+  const { data, error } =
+    await supabaseClient
+      .from("profiles")
+      .select("id")
+      .eq("username", username)
+      .maybeSingle()
+
+  if (error || !data) {
+    alert("Petani tidak ditemukan 🌱")
+    return
+  }
+
+  window.location.href =
+    `profile.html?id=${data.id}`
+}
 
   loadFeed()
   loadAvatarStack()

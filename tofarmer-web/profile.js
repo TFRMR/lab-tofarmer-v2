@@ -1,6 +1,45 @@
 const currentWallet = localStorage.getItem("tof_wallet")
 
 // =====================
+// TOF LIVE CONFIG
+// =====================
+
+const TOF_ASSET_ID = 3558306283
+const ALGONODE_URL =
+  "https://mainnet-api.algonode.cloud"
+
+// =====================
+// GET WALLET TOF BALANCE
+// =====================
+
+async function getWalletTofBalance(wallet) {
+  try {
+    if (!wallet) return 0
+
+    const res = await fetch(
+      `${ALGONODE_URL}/v2/accounts/${wallet}`
+    )
+
+    if (!res.ok) return 0
+
+    const account = await res.json()
+
+    const asset = account.assets?.find(
+      a =>
+        Number(a["asset-id"]) === TOF_ASSET_ID
+    )
+
+    return asset
+      ? Number(asset.amount) / 1000000
+      : 0
+
+  } catch (err) {
+    console.log("Wallet fetch gagal:", wallet)
+    return 0
+  }
+}
+
+// =====================
 // GET USER ID FROM URL
 // =====================
 
@@ -40,7 +79,12 @@ async function refreshBalance(profileId) {
 
   return bal
 }
+// =====================
+// LOAD PROFILE
+// =====================
+
 async function loadProfile() {
+
   if (!profileId) {
     document.getElementById("profile").innerHTML = `
       <div class="card">
@@ -50,25 +94,80 @@ async function loadProfile() {
     return
   }
 
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", profileId)
-    .single()
+  // ambil profile dari supabase
+  const { data, error } =
+    await supabaseClient
+      .from("profiles")
+      .select("*")
+      .eq("id", profileId)
+      .single()
 
+  // kalau error
   if (error || !data) {
+
     document.getElementById("profile").innerHTML = `
       <div class="card">
         Profile tidak ditemukan
       </div>
     `
+
+    console.log(error)
     return
   }
 
+  // tampilkan data awal dulu
+  renderProfileData(data)
+
+  renderWorkspace()
+  loadUserPosts()
+
+  // =====================
+  // UPDATE TOF LIVE
+  // =====================
+
+  try {
+
+    const liveBalance =
+      await getWalletTofBalance(profileId)
+
+    data.saldo_tof = liveBalance
+
+    // render ulang angka TOF
+    renderProfileData(data)
+
+    // update database background
+    await supabaseClient
+      .from("profiles")
+      .update({
+        saldo_tof: liveBalance
+      })
+      .eq("id", profileId)
+
+  } catch (err) {
+    console.log(
+      "LIVE BALANCE ERROR:",
+      err
+    )
+  }
+}
+
+// jalanin profile
+loadProfile()
+
+// =====================
+// PROFILE RENDER
+// =====================
+
+function renderProfileData(data) {
+
   document.getElementById("profile").innerHTML = `
     <div class="card" style="text-align:center;">
+
       <img
-        src="${data.avatar_url || 'https://www.tofarmer.xyz/images/logo-tofarmer.png'}"
+        src="${
+          data.avatar_url ||
+          'https://www.tofarmer.xyz/images/logo-tofarmer.png'
+        }"
         style="
           width:110px;
           height:110px;
@@ -79,28 +178,60 @@ async function loadProfile() {
         "
       >
 
-      <h2 style="margin-top:14px; color:#2f6f4e;">
+      <h2 style="
+        margin-top:14px;
+        color:#2f6f4e;
+      ">
         @${data.username}
       </h2>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:16px;">
-        <div class="card" style="margin:0; padding:12px;">
-          <div style="font-size:11px; color:#888;">
+      <div style="
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:12px;
+        margin-top:16px;
+      ">
+
+        <div class="card"
+          style="margin:0;padding:12px;">
+
+          <div style="
+            font-size:11px;
+            color:#888;
+          ">
             XP
           </div>
-          <div style="font-weight:700;">
+
+          <div style="
+            font-weight:700;
+          ">
             ${data.xp || 0}
           </div>
+
         </div>
 
-        <div class="card" style="margin:0; padding:12px;">
-          <div style="font-size:11px; color:#888;">
+        <div class="card"
+          style="margin:0;padding:12px;">
+
+          <div style="
+            font-size:11px;
+            color:#888;
+          ">
             TOF
           </div>
-          <div style="color:#c9a227; font-weight:700;">
+
+          <div
+            id="profileTof"
+            style="
+              color:#c9a227;
+              font-weight:700;
+            "
+          >
             ${data.saldo_tof || 0}
           </div>
+
         </div>
+
       </div>
 
       <div style="
@@ -113,17 +244,14 @@ async function loadProfile() {
         font-size:12px;
         font-weight:600;
       ">
-        ${getRank(data.xp || 0)} • Level ${getTofLevel(data.xp || 0)}
+        ${getRank(data.xp || 0)}
+        • Level
+        ${getTofLevel(data.xp || 0)}
       </div>
+
     </div>
   `
-
-  renderWorkspace()
-  loadUserPosts()
 }
-
-loadProfile()
-
 // =====================
 // WORKSPACE
 // =====================
@@ -378,11 +506,27 @@ async function loadComments(postId) {
 
 // ===================== REALTIME PROFILE SYNC =====================
 setInterval(async () => {
-  if (!currentWallet || !currentProfile) return
 
-  const bal = await getWalletTofBalance(currentWallet)
+  if (!profileId) return
 
-  currentProfile.saldo_tof = bal
+  const liveBalance =
+    await getWalletTofBalance(profileId)
 
-  renderProfile()
-}, 10000) // tiap 10 detik
+  const tofEl =
+    document.querySelector(
+      "#profile .card .card:nth-child(2) div:last-child"
+    )
+
+  if (tofEl) {
+    tofEl.innerText = liveBalance
+  }
+
+  // sync ke database belakang layar
+  supabaseClient
+    .from("profiles")
+    .update({
+      saldo_tof: liveBalance
+    })
+    .eq("id", profileId)
+
+}, 10000)
