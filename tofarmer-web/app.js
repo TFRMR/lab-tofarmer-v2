@@ -158,13 +158,13 @@ const PILAR_MAP = {
 function pilihPilarPopup(text) {
   return new Promise((resolve) => {
     const pilihan = `
-Pilih vibe tulisanmu 😎🌿
+Pilih ANGKA vibe tulisanmu 😎🌿
 
-1️⃣ Komunitas
-2️⃣ Inovasi
-3️⃣ Ladang
-4️⃣ Finance
-5️⃣ Refleksi
+1.   Komunitas
+2.   Inovasi
+3.   Ladang
+4.   Finance
+5.   Refleksi
 
 Ketik 1-5 atau CANCEL 👇
     `
@@ -216,52 +216,82 @@ async function classifyPilar(text) {
 
 async function sendPost() {
   const input = document.getElementById("postBox")
+  const imageInput = document.getElementById("imageInput")
+
   const text = input.value.trim()
+  const file = imageInput.files[0]
 
   if (!currentWallet) {
     alert("Connect wallet dulu")
     return
   }
 
-  if (!text) {
-    alert("Isi dulu")
+  if (!text && !file) {
+    alert("Isi teks atau gambar dulu")
     return
   }
 
   const pilar = await classifyPilar(text)
 
-// 🚨 FIX FINAL: USER CANCEL = STOP TOTAL
-if (!pilar) {
-  alert("Post dibatalkan (tidak pilih pilar)")
-  return
-}
+  if (!pilar) {
+    alert("Post dibatalkan")
+    return
+  }
 
-// 🚨 FIX FINAL: validasi mapping
-if (!PILAR_MAP[pilar]) {
-  alert("Pilar tidak valid, post dibatalkan")
-  return
-}
+  if (!PILAR_MAP[pilar]) {
+    alert("Pilar tidak valid")
+    return
+  }
 
-const { error } = await supabaseClient
-  .from("contributions")
-  .insert([
-    {
-      user_id: currentWallet,
-      pilar_aksi: PILAR_MAP[pilar],
-      judul_aksi: "Feed Post",
-      deskripsi_proses: text,
-      status_validasi: "pending"
+  let imageUrl = null
+
+  // ================= UPLOAD GAMBAR =================
+  if (file) {
+    const fileName = currentWallet + "-" + Date.now()
+
+    const { error: uploadError } = await supabaseClient
+      .storage
+      .from("post-images")
+      .upload(fileName, file)
+
+    if (uploadError) {
+      console.log(uploadError)
+      alert("Upload gambar gagal")
+      return
     }
-  ])
 
-if (error) {
-  console.log(error)
-  alert("Gagal kirim: " + error.message)
-  return
-}
+    const { data } = supabaseClient
+      .storage
+      .from("post-images")
+      .getPublicUrl(fileName)
 
-input.value = ""
-loadFeed()
+    imageUrl = data.publicUrl
+  }
+
+  // ================= SIMPAN POST =================
+  const { error } = await supabaseClient
+    .from("contributions")
+    .insert([
+      {
+        user_id: currentWallet,
+        pilar_aksi: PILAR_MAP[pilar],
+        judul_aksi: "Feed Post",
+        deskripsi_proses: text,
+        image_url: imageUrl,
+        status_validasi: "pending"
+      }
+    ])
+
+  if (error) {
+    console.log(error)
+    alert("Gagal kirim: " + error.message)
+    return
+  }
+
+  input.value = ""
+  imageInput.value = ""
+
+  loadFeed()
 }
 
 // ===================== GLOBAL ECONOMY (SAFE LIVE) =====================
@@ -552,9 +582,25 @@ const date = new Date(item.created_at).toLocaleString("id-ID", {
   			 ${date}
 </div>
 
-<div class="text">
-  ${item.deskripsi_proses}
+<div class="text" style="margin-top:6px;">
+  ${item.deskripsi_proses || ""}
 </div>
+
+${item.image_url ? `
+  <div style="margin-top:10px;">
+    <img
+      src="${item.image_url}"
+      style="
+        width:50%;
+        max-height:200px;
+        object-fit:cover;
+        border-radius:14px;
+        border:1px solid rgba(0,0,0,0.08);
+        box-shadow:0 4px 14px rgba(0,0,0,0.06);
+      "
+    />
+  </div>
+` : ""}
     
       <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
         <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">
