@@ -405,7 +405,7 @@ function pilihPilarPopup(text) {
         </h2>
 
         <p style="color:#6f7f76;font-size:13px;">
-          Pilih vibe postinganmu dulu ya petani digital 😎
+          Pilih dulu temamu 😎
         </p>
       </div>
 
@@ -413,7 +413,7 @@ function pilihPilarPopup(text) {
 
   <button class="pilar-btn" data-p="community">
     🤝 Titik Kumpul
-    <small>Ngopi, ide, ngobrol, santai, dan rame-rame nanam gagasan</small>
+    <small>Ngopi, ide, ngobrol, santai, dan rame-rame nanam gagasan,ngonten</small>
   </button>
 
   <button class="pilar-btn" data-p="inovasi">
@@ -427,7 +427,7 @@ function pilihPilarPopup(text) {
   </button>
 
   <button class="pilar-btn" data-p="finance">
-    ☕ Mesin Kopi Modal
+    ☕ Duit...duit dan duit
     <small>TOF, aset, strategi hidup biar ladang tetap jalan</small>
   </button>
 
