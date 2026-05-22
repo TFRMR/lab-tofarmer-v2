@@ -28,7 +28,18 @@ function getTofLevel(xp) {
 // =====================
 // LOAD PROFILE
 // =====================
+async function refreshBalance(profileId) {
+  const bal = await getWalletTofBalance(profileId)
 
+  await supabaseClient
+    .from("profiles")
+    .update({
+      saldo_tof: bal
+    })
+    .eq("id", profileId)
+
+  return bal
+}
 async function loadProfile() {
   if (!profileId) {
     document.getElementById("profile").innerHTML = `
@@ -364,3 +375,14 @@ async function loadComments(postId) {
     </div>
   `).join("")
 }
+
+// ===================== REALTIME PROFILE SYNC =====================
+setInterval(async () => {
+  if (!currentWallet || !currentProfile) return
+
+  const bal = await getWalletTofBalance(currentWallet)
+
+  currentProfile.saldo_tof = bal
+
+  renderProfile()
+}, 10000) // tiap 10 detik

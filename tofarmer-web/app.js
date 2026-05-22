@@ -231,6 +231,7 @@ function updateWalletUI() {
 }
 
 // ===================== PROFILE SYNC =====================
+// ===================== PROFILE SYNC =====================
 async function syncProfile(wallet) {
 
   const { data, error } =
@@ -248,19 +249,13 @@ async function syncProfile(wallet) {
   // kalau belum ada user
   if (!data) {
 
-    const {
-      data: newUser,
-      error: err2
-    } =
+    const { data: newUser, error: err2 } =
       await supabaseClient
         .from("profiles")
         .insert([
           {
             id: wallet,
-            username:
-              "GROWER_" +
-              wallet.slice(0, 6),
-
+            username: "GROWER_" + wallet.slice(0, 6),
             xp: 0,
             saldo_tof: 0,
             level: 1,
@@ -275,16 +270,16 @@ async function syncProfile(wallet) {
       return
     }
 
-    currentProfile =
-      newUser
-
-  } else {
-
-   currentProfile =
-  data
-
-await updateCurrentUserBalance()
+    currentProfile = newUser
   }
+
+  // kalau sudah ada user
+  else {
+    currentProfile = data
+  }
+
+  // 🔥 FIX PENTING: selalu update saldo dari blockchain
+  await refreshUserBalance()
 }
 // ===================== POST =====================
 
@@ -541,7 +536,16 @@ async function getWalletTofBalance(wallet) {
     return 0
   }
 }
+// ===================== REFRESH BALANCE REALTIME =====================
+async function refreshUserBalance() {
+  if (!currentWallet || !currentProfile) return
 
+  const balance = await getWalletTofBalance(currentWallet)
+
+  currentProfile.saldo_tof = balance
+
+  renderProfile()
+}
 async function updateCurrentUserBalance() {
   if (!currentWallet || !currentProfile) return
 
@@ -1010,12 +1014,7 @@ function renderProfile() {
     </div>
   `
 }
-if (currentWallet) {
-  getWalletTofBalance(currentWallet).then(bal => {
-    currentProfile.saldo_tof = bal
-    renderProfile()
-  })
-}
+
 
 // ===================== AVATAR UPLOAD =====================
 
