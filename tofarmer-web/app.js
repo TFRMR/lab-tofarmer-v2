@@ -954,139 +954,123 @@ ${item.image_url ? `
 }
 // ===================== PROFILE RENDER =====================
 function renderProfile() {
-  const userBox =
-    document.getElementById(
-      "profileInfo"
-    )
-
-
-  const avatar =
-    document.getElementById(
-      "profileAvatar"
-    )
+  const userBox = document.getElementById("profileInfo")
+  const avatar = document.getElementById("profileAvatar")
 
   if (!userBox) return
 
-  // guest mode
+  // ===================== GUEST =====================
   if (!currentProfile) {
 
-    if (avatar) {
-  avatar.style.display =
-    "none"
-}
+    if (avatar) avatar.style.display = "none"
 
     userBox.innerHTML = `
       <div style="
         font-weight:700;
-        font-size:16px;
+        font-size:15px;
         color:#2f6f4e;
       ">
         @guest
       </div>
 
+      <button onclick="alert('Login dulu ya 🌱')"
+        style="
+          margin-top:10px;
+          width:100%;
+          padding:8px;
+          border:none;
+          border-radius:12px;
+          background:#ddd;
+          font-size:12px;
+        ">
+        👤 Masuk Profil
+      </button>
+
       <div style="
-        margin-top:12px;
+        margin-top:10px;
         display:grid;
         grid-template-columns:1fr 1fr;
-        gap:10px;
+        gap:8px;
       ">
 
-        <div class="card"
-          style="padding:10px;margin:0;">
-          <div style="font-size:11px;color:#888;">
-            XP
-          </div>
-          <div style="font-weight:700;">
-            0
-          </div>
+        <div class="card" style="padding:8px;margin:0;">
+          <div style="font-size:10px;color:#888;">XP</div>
+          <div style="font-weight:700;font-size:12px;">0</div>
         </div>
 
-        <div class="card"
-          style="padding:10px;margin:0;">
-          <div style="font-size:11px;color:#888;">
-            TOF
-          </div>
-          <div style="
-            font-weight:700;
-            color:#c9a227;
-          ">
-            0
-          </div>
+        <div class="card" style="padding:8px;margin:0;">
+          <div style="font-size:10px;color:#888;">TOF</div>
+          <div style="font-weight:700;color:#c9a227;font-size:12px;">0</div>
         </div>
 
       </div>
 
       <div style="
-        margin-top:10px;
+        margin-top:8px;
         background:#eef7f1;
         border-radius:999px;
-        padding:8px 14px;
+        padding:6px 12px;
         display:inline-block;
         color:#2f6f4e;
-        font-size:12px;
+        font-size:11px;
         font-weight:600;
       ">
         🌱 BELUM LOGIN
       </div>
     `
-
     return
   }
 
-
-
-
+  // ===================== LOGIN =====================
   if (avatar) {
-
-  avatar.style.display =
-    "block"
-
-  avatar.src =
-    currentProfile.avatar_url ||
-    "https://www.tofarmer.xyz/images/logo-tofarmer.png"
-}
+    avatar.style.display = "block"
+    avatar.src = currentProfile.avatar_url
+  }
 
   userBox.innerHTML = `
     <div style="
       font-weight:700;
-      font-size:16px;
+      font-size:15px;
       color:#2f6f4e;
     ">
       @${currentProfile.username}
     </div>
 
+    <!-- BUTTON PROFIL -->
+    <button onclick="window.location.href='profile.html?id=${currentWallet}'"
+      style="
+        margin-top:10px;
+        width:60%;
+        padding:8px;
+        border:none;
+        border-radius:12px;
+        background:linear-gradient(90deg,#4caf7a,#c9a227);
+        color:white;
+        font-size:12px;
+        font-weight:600;
+        cursor:pointer;
+      ">
+      ☕ Masuk Profil Saya
+    </button>
+
+    <!-- CARD KECIL -->
     <div style="
-      margin-top:12px;
+      margin-top:10px;
       display:grid;
       grid-template-columns:1fr 1fr;
-      gap:10px;
+      gap:8px;
     ">
 
-      <div class="card"
-        style="padding:10px;margin:0;">
-        <div style="
-          font-size:11px;
-          color:#888;
-        ">
-          XP
-        </div>
-        <div style="font-weight:700;">
+      <div class="card" style="padding:8px;margin:0;">
+        <div style="font-size:10px;color:#888;">XP</div>
+        <div style="font-weight:700;font-size:12px;">
           ${currentProfile.xp || 0}
         </div>
       </div>
 
-      <div class="card"
-        style="padding:10px;margin:0;">
-        <div style="
-          font-size:11px;
-          color:#888;
-        ">
-          TOF
-        </div>
-        <div style="
-          font-weight:700;
-          color:#c9a227;
-        ">
+      <div class="card" style="padding:8px;margin:0;">
+        <div style="font-size:10px;color:#888;">TOF</div>
+        <div style="font-weight:700;color:#c9a227;font-size:12px;">
           ${currentProfile.saldo_tof || 0}
         </div>
       </div>
@@ -1094,16 +1078,16 @@ function renderProfile() {
     </div>
 
     <div style="
-      margin-top:10px;
+      margin-top:8px;
       background:#eef7f1;
       border-radius:999px;
-      padding:8px 14px;
+      padding:6px 12px;
       display:inline-block;
       color:#2f6f4e;
-      font-size:12px;
+      font-size:11px;
       font-weight:600;
     ">
-      🌱 ${getRank(currentProfile.xp || 0)} (Lv ${getTofLevel(currentProfile.xp || 0)})
+      🌱 ${getRank(currentProfile.xp || 0)}
     </div>
   `
 }
