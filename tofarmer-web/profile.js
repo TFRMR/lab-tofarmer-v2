@@ -384,18 +384,34 @@ async function loadUserPosts() {
   ${post.deskripsi_proses || ""}
 </div>
 
-${post.image_url ? `
-  <img
-    src="${post.image_url}"
-    style="
-      width:100%;
-      border-radius:14px;
-      margin-bottom:12px;
-      object-fit:cover;
-      max-height:500px;
-    "
-  />
-` : ""}
+${
+  post.image_url
+    ? `
+      <div style="
+        width:100%;
+        display:flex;
+        justify-content:center;
+        margin-bottom:12px;
+      ">
+
+        <img
+          src="${post.image_url}"
+          style="
+            max-width:100%;
+            max-height:420px;
+            width:auto;
+            height:auto;
+            object-fit:contain;
+            border-radius:16px;
+            border:1px solid rgba(0,0,0,.06);
+            box-shadow:0 4px 12px rgba(0,0,0,.08);
+          "
+        />
+
+      </div>
+    `
+    : ""
+}
 
         <div style="display:flex;gap:14px;font-size:12px;color:#666;margin-bottom:10px;">
           <span onclick="reactPost('${post.id}','sruput')">

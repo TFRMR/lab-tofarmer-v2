@@ -850,8 +850,13 @@ async function loadFeed() {
   const { data: posts, error: postError } = await supabaseClient
     .from("contributions")
 .select(`
-  *,
-  profiles:profiles(
+  id,
+  created_at,
+  deskripsi_proses,
+  image_url,
+  sruput_count,
+  cangkul_count,
+  profiles!inner(
     id,
     username,
     avatar_url
@@ -936,19 +941,25 @@ const date = new Date(item.created_at).toLocaleString("id-ID", {
 </div>
 
 ${item.image_url ? `
-  <div style="margin-top:10px;">
-    <img
-      src="${item.image_url}"
-      style="
-        width:50%;
-        max-height:200px;
-        object-fit:cover;
-        border-radius:14px;
-        border:1px solid rgba(0,0,0,0.08);
-        box-shadow:0 4px 14px rgba(0,0,0,0.06);
-      "
-    />
-  </div>
+ <div style="
+  margin-top:10px;
+  display:flex;
+  justify-content:center;
+">
+  <img
+    src="${item.image_url}"
+    style="
+      max-width:100%;
+      max-height:420px;
+      width:auto;
+      height:auto;
+      object-fit:contain;
+      border-radius:14px;
+      border:1px solid rgba(0,0,0,0.08);
+      box-shadow:0 4px 14px rgba(0,0,0,0.06);
+    "
+  />
+</div>
 ` : ""}
     
       <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">

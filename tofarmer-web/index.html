@@ -788,6 +788,24 @@
     alt="WA"
   />
 </a>
+<script>
+document.getElementById("imageInput").addEventListener("change", function (e) {
+  const file = e.target.files[0];
+  const previewText = document.getElementById("imagePreviewText");
 
+  if (file) {
+    let name = file.name;
+
+    // potong biar tidak kepanjangan
+    if (name.length > 18) {
+      name = name.substring(0, 18) + "...";
+    }
+
+    previewText.innerText = "📷 " + name;
+  } else {
+    previewText.innerText = "Belum pilih gambar";
+  }
+});
+</script>
 </body>
 </html>
