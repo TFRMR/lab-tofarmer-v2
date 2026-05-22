@@ -7,20 +7,129 @@ let currentProfile = null
 
 // ===================== WALLET =====================
 async function connectWallet() {
-  const wallet = prompt("Masukkan wallet address Algorand:")
-  if (!wallet) return
+  return new Promise((resolve) => {
 
-  currentWallet = wallet
-  localStorage.setItem("tof_wallet", wallet)
+    const modal = document.createElement("div")
 
-  await syncProfile(wallet)
+    modal.innerHTML = `
+    <div style="
+      position:fixed;
+      inset:0;
+      background:rgba(16,25,20,.6);
+      backdrop-filter:blur(10px);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:99999;
+      padding:20px;
+    ">
 
-  updateWalletUI()
-  renderProfile()
+    <div style="
+      width:100%;
+      max-width:420px;
+      background:linear-gradient(180deg,#ffffff,#f3f8f4);
+      border-radius:26px;
+      padding:24px;
+      box-shadow:0 20px 60px rgba(47,111,78,.25);
+      border:1px solid rgba(76,175,122,.15);
+      text-align:center;
+    ">
 
-  alert(
-  "🌿 Wallet tersambung!"
-)
+      <div style="font-size:50px;">🌿☕</div>
+
+      <h2 style="
+        color:#2f6f4e;
+        margin-top:10px;
+      ">
+        Masuk ke Ladang Digital
+      </h2>
+
+      <p style="
+        color:#6f7f76;
+        font-size:13px;
+        margin:10px 0 20px;
+      ">
+        Sambungkan wallet kamu untuk mulai menanam ide di ekosistem ToFarmer
+      </p>
+
+      <input id="walletInput"
+        placeholder="Masukkan wallet Algorand..."
+        style="
+          width:100%;
+          padding:12px;
+          border-radius:12px;
+          border:1px solid #ddd;
+          margin-bottom:15px;
+          outline:none;
+        "
+      />
+
+      <button id="connectBtn" style="
+        width:100%;
+        padding:12px;
+        border:none;
+        border-radius:14px;
+        background:linear-gradient(90deg,#4caf7a,#c9a227);
+        color:white;
+        font-weight:bold;
+        cursor:pointer;
+      ">
+        🌱 Masuk Ladang
+      </button>
+
+      <button id="cancelBtn" style="
+        width:100%;
+        margin-top:10px;
+        padding:10px;
+        border:none;
+        border-radius:14px;
+        background:#eef4ef;
+        color:#6f7f76;
+        font-weight:600;
+        cursor:pointer;
+      ">
+        Batal (kambing dulu 🐐)
+      </button>
+
+    </div>
+    </div>
+    `
+
+    document.body.appendChild(modal)
+
+    const input = modal.querySelector("#walletInput")
+    const connectBtn = modal.querySelector("#connectBtn")
+    const cancelBtn = modal.querySelector("#cancelBtn")
+
+    // CONNECT
+    connectBtn.onclick = async () => {
+      const wallet = input.value.trim()
+
+      if (!wallet) {
+        alert("Isi wallet dulu ya petani 🌿")
+        return
+      }
+
+      document.body.removeChild(modal)
+
+      currentWallet = wallet
+      localStorage.setItem("tof_wallet", wallet)
+
+      await syncProfile(wallet)
+
+      updateWalletUI()
+      renderProfile()
+
+      alert("🌿 Selamat datang di ladang ToFarmer!")
+      resolve(wallet)
+    }
+
+    // CANCEL
+    cancelBtn.onclick = () => {
+      document.body.removeChild(modal)
+      resolve(null)
+    }
+  })
 }
 
 function logoutWallet() {
@@ -157,35 +266,106 @@ const PILAR_MAP = {
 
 function pilihPilarPopup(text) {
   return new Promise((resolve) => {
-    const pilihan = `
-Pilih ANGKA vibe tulisanmu 😎🌿
 
-1.   Komunitas
-2.   Inovasi
-3.   Ladang
-4.   Finance
-5.   Refleksi
+    const modal = document.createElement("div")
 
-Ketik 1-5 atau CANCEL 👇
+    modal.innerHTML = `
+    <div style="
+      position:fixed;
+      inset:0;
+      background:rgba(16,25,20,.55);
+      backdrop-filter:blur(10px);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:99999;
+      padding:20px;
+    ">
+
+    <div style="
+      width:100%;
+      max-width:430px;
+      background:linear-gradient(180deg,#fff,#f3f8f4);
+      border-radius:28px;
+      padding:26px;
+      box-shadow:0 20px 60px rgba(47,111,78,.18);
+      border:1px solid rgba(76,175,122,.12);
+    ">
+
+      <div style="text-align:center;">
+        <div style="font-size:50px;">☕🌿</div>
+
+        <h2 style="color:#2f6f4e;">
+          Mau ditanam di ladang mana?
+        </h2>
+
+        <p style="color:#6f7f76;font-size:13px;">
+          Pilih vibe postinganmu dulu ya petani digital 😎
+        </p>
+      </div>
+
+      <div style="display:grid;gap:10px;margin-top:20px;">
+
+  <button class="pilar-btn" data-p="community">
+    🤝 Titik Kumpul
+    <small>Ngopi, ide, ngobrol, santai, dan rame-rame nanam gagasan</small>
+  </button>
+
+  <button class="pilar-btn" data-p="inovasi">
+    🤖 Ladang Eksperimen
+    <small>AI, blockchain, robot, dan ide yang kadang “nggak masuk akal tapi jadi”</small>
+  </button>
+
+  <button class="pilar-btn" data-p="ladang">
+    🌱 Cerita Tanah & Panen
+    <small>Dari pupuk, hujan, sampai drama ayam masuk kebun</small>
+  </button>
+
+  <button class="pilar-btn" data-p="finance">
+    ☕ Mesin Kopi Modal
+    <small>TOF, aset, strategi hidup biar ladang tetap jalan</small>
+  </button>
+
+  <button class="pilar-btn" data-p="refleksi">
+    🔥 Mode Petapa Gunung
+    <small>Renungan, kabut pagi, dan pikiran random yang ternyata dalam</small>
+  </button>
+
+</div>
+
+      <button id="cancelPilar" style="
+        width:100%;
+        margin-top:16px;
+        padding:12px;
+        border:none;
+        border-radius:16px;
+        background:#eef4ef;
+        color:#6f7f76;
+        font-weight:600;
+      ">
+        🐐 batal, kambing panen dulu
+      </button>
+
+    </div>
+    </div>
     `
 
-    const input = prompt(pilihan)
+    document.body.appendChild(modal)
 
-    // ✅ FIX 1: CANCEL atau kosong = STOP
-    if (!input) {
+    // tombol klik pilihan
+    modal.querySelectorAll(".pilar-btn").forEach(btn => {
+      btn.onclick = () => {
+        const value = btn.dataset.p
+        document.body.removeChild(modal)
+        resolve(value)
+      }
+    })
+
+    // cancel
+    modal.querySelector("#cancelPilar").onclick = () => {
+      document.body.removeChild(modal)
       resolve(null)
-      return
     }
-
-    const map = {
-      "1": "community",
-      "2": "inovasi",
-      "3": "ladang",
-      "4": "finance",
-      "5": "refleksi"
-    }
-
-    resolve(map[input] || null)
   })
 }
 
