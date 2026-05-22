@@ -1175,16 +1175,6 @@ if (uploadError) {
   alert("Foto berhasil diganti 🌿")
 })
 
-window.addEventListener("DOMContentLoaded", () => {
-  const saved = localStorage.getItem("tof_wallet")
-
-  if (saved) {
-    currentWallet = saved
-    syncProfile(saved).then(() => {
-      updateWalletUI()
-      renderProfile()
-    })
-  }
 function convertMentions(text) {
   if (!text) return ""
 
@@ -1203,8 +1193,8 @@ function convertMentions(text) {
     `
   )
 }
-async function goToUsername(username) {
 
+async function goToUsername(username) {
   const { data, error } =
     await supabaseClient
       .from("profiles")
@@ -1221,10 +1211,26 @@ async function goToUsername(username) {
     `profile.html?id=${data.id}`
 }
 
+
+window.addEventListener("DOMContentLoaded", () => {
+
+  const saved = localStorage.getItem("tof_wallet")
+
+  if (saved) {
+    currentWallet = saved
+    syncProfile(saved).then(() => {
+      updateWalletUI()
+      renderProfile()
+    })
+  }
+
   loadFeed()
   loadAvatarStack()
   loadEconomy()
-  loadRankSummary()
+
+  if (typeof loadRankSummary === "function") {
+    loadRankSummary()
+  }
 })
 
 async function loadAvatarStack() {
