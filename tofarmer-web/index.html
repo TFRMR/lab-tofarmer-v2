@@ -805,6 +805,8 @@
 </a>
 <script>
 
+<script>
+
 function resetImageInput() {
   const input =
     document.getElementById("imageInput");
@@ -814,22 +816,33 @@ function resetImageInput() {
 
 document.getElementById("imageInput")
 .addEventListener("change", function (e) {
+
   const file = e.target.files?.[0];
-  const previewText = document.getElementById("imagePreviewText");
+
+  const previewText =
+    document.getElementById(
+      "imagePreviewText"
+    );
 
   if (!file) {
-    previewText.innerText = "";
+    previewText.innerText =
+      "Belum pilih gambar";
     return;
   }
 
   let name = file.name;
 
   if (name.length > 18) {
-    name = name.substring(0, 18) + "...";
+    name =
+      name.substring(0, 18)
+      + "...";
   }
 
-  previewText.innerText = "📷 " + name;
+  previewText.innerText =
+    "📷 " + name;
 });
+
+</script>
 </script>
 </body>
 </html>
