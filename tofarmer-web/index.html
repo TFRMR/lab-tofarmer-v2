@@ -686,8 +686,10 @@
   id="imageInput"
   accept="image/*"
   style="
-    position:fixed;
-    top:-1000px;
+    position:absolute;
+    left:-9999px;
+    width:1px;
+    height:1px;
     opacity:0;
   "
 />
@@ -796,60 +798,65 @@
   />
 </a>
 <script>
-
-
-
-const imageInput =
-  document.getElementById(
-    "imageInput"
-  );
-
-const openGalleryBtn =
-  document.getElementById(
-    "openGalleryBtn"
-  );
-
-openGalleryBtn.addEventListener(
-  "click",
+document.addEventListener(
+  "DOMContentLoaded",
   function () {
 
-    imageInput.value = "";
+    const imageInput =
+      document.getElementById(
+        "imageInput"
+      );
 
-    imageInput.click();
-  }
-);
-
-imageInput.addEventListener(
-  "change",
-  function (e) {
-
-    const file =
-      e.target.files?.[0];
+    const openGalleryBtn =
+      document.getElementById(
+        "openGalleryBtn"
+      );
 
     const previewText =
       document.getElementById(
         "imagePreviewText"
       );
 
-    if (!file) {
-      previewText.innerText =
-        "Belum pilih gambar";
-      return;
-    }
+    openGalleryBtn.addEventListener(
+      "click",
+      function () {
 
-    let name = file.name;
+        // reset supaya bisa pilih foto yg sama
+        imageInput.value = "";
 
-    if (name.length > 18) {
-      name =
-        name.substring(0, 18)
-        + "...";
-    }
+        // buka galeri / kamera
+        imageInput.click();
+      }
+    );
 
-    previewText.innerText =
-      "📷 " + name;
+    imageInput.addEventListener(
+      "change",
+      function (e) {
+
+        const file =
+          e.target.files?.[0];
+
+        if (!file) {
+          previewText.innerText =
+            "Belum pilih gambar";
+          return;
+        }
+
+        let name = file.name;
+
+        if (name.length > 18) {
+          name =
+            name.substring(0,18)
+            + "...";
+        }
+
+        previewText.innerText =
+          "📷 " + name;
+      }
+    );
+
   }
 );
-
 </script>
 </body>
 </html>
