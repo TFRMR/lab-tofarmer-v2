@@ -495,7 +495,9 @@ async function classifyPilar(text) {
   return userChoice || rekomendasiAwal
 }
 
-async function sendPost() {
+async function sendPost() 
+let imageUrl = null
+{
   const input = document.getElementById("postBox")
   const imageInput = document.getElementById("imageInput")
 
