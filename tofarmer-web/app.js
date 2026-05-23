@@ -1187,7 +1187,8 @@ if (uploadError) {
 function convertMentions(text) {
   if (!text) return ""
 
-  return text.replace(
+  // 1. convert mention
+  let result = text.replace(
     /@([a-zA-Z0-9_]+)/g,
     `
     <span
@@ -1201,6 +1202,11 @@ function convertMentions(text) {
     >@$1</span>
     `
   )
+
+  // 2. convert enter jadi baris baru
+  result = result.replace(/\n/g, "<br>")
+
+  return result
 }
 
 async function goToUsername(username) {
