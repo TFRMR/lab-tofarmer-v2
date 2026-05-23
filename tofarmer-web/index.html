@@ -797,43 +797,58 @@
 </a>
 <script>
 
-<script>
 
-function resetImageInput() {
-  const input =
-    document.getElementById("imageInput");
 
-  input.value = "";
-}
+const imageInput =
+  document.getElementById(
+    "imageInput"
+  );
 
-document.getElementById("imageInput")
-.addEventListener("change", function (e) {
+const openGalleryBtn =
+  document.getElementById(
+    "openGalleryBtn"
+  );
 
-  const file = e.target.files?.[0];
+openGalleryBtn.addEventListener(
+  "click",
+  function () {
 
-  const previewText =
-    document.getElementById(
-      "imagePreviewText"
-    );
+    imageInput.value = "";
 
-  if (!file) {
+    imageInput.click();
+  }
+);
+
+imageInput.addEventListener(
+  "change",
+  function (e) {
+
+    const file =
+      e.target.files?.[0];
+
+    const previewText =
+      document.getElementById(
+        "imagePreviewText"
+      );
+
+    if (!file) {
+      previewText.innerText =
+        "Belum pilih gambar";
+      return;
+    }
+
+    let name = file.name;
+
+    if (name.length > 18) {
+      name =
+        name.substring(0, 18)
+        + "...";
+    }
+
     previewText.innerText =
-      "Belum pilih gambar";
-    return;
+      "📷 " + name;
   }
-
-  let name = file.name;
-
-  if (name.length > 18) {
-    name =
-      name.substring(0, 18)
-      + "...";
-  }
-
-  previewText.innerText =
-    "📷 " + name;
-});
-
+);
 
 </script>
 </body>
