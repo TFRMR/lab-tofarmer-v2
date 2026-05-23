@@ -569,7 +569,7 @@ async function submitQrisPayment() {
     xp_reward: xpReward
   }])
 
-  alert("🌿 Menunggu konfirmasi admin")
+  alert("🌿 Konfirmasi admin lewat WA ya...")
 }
 
 async function approvePayment(paymentId, userId, xp) {
