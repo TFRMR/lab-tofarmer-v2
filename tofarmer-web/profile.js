@@ -544,7 +544,7 @@ function openQrisPopup() {
 
       <p style="font-size:12px;color:#666;">Transfer manual lalu klik konfirmasi</p>
 
-       <button class="btn-glow" onclickonclick="submitQrisPayment()">✅ Saya Sudah Transfer</button>
+       <button class="btn-glow" onclick="submitQrisPayment()">✅ Saya Sudah Transfer</button>
        <button class="btn-glow" onclick="this.parentElement.parentElement.remove()">❌ Tutup</button>
 
     </div>
