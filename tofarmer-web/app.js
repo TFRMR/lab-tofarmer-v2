@@ -1,5 +1,3 @@
-
-
 let currentWallet = null
 let currentProfile = null
 
@@ -495,13 +493,16 @@ async function classifyPilar(text) {
   return userChoice || rekomendasiAwal
 }
 
-async function sendPost() 
+async function sendPost() {
 let imageUrl = null
 
   const input = document.getElementById("postBox")
   const imageInput = document.getElementById("imageInput")
 
   const text = input.value.trim()
+
+  const pilar = await classifyPilar(text)
+  if (!pilar) return
 
   const file = imageInput?.files?.[0] || null
 
@@ -913,7 +914,7 @@ const date = new Date(item.created_at).toLocaleString("id-ID", {
       </div>
 
      <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
-  			 ${date}
+       ${date}
 </div>
 
 <div class="text" style="margin-top:6px;">
@@ -967,7 +968,7 @@ ${item.image_url ? `
       <div style="margin-top:10px;font-size:12px;">
         ${postComments.slice(0, 3).map(c => `
           <div style="padding:3px 0;color:#444;">
-           💬 ${convertMentions(c.comment)}
+            💬 ${convertMentions(c.comment)}
           </div>
         `).join("")}
       </div>
@@ -1273,4 +1274,3 @@ async function loadAvatarStack() {
     container.appendChild(img)
   })
 }
-
