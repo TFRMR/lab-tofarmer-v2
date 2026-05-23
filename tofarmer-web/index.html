@@ -4,7 +4,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <head>
+
   <title id="postTitle">ToFarmer</title>
 
   <meta name="description" id="postDesc" content="ToFarmer post">
@@ -638,32 +638,43 @@
 <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
 
   <label
-  for="imageInput"
-  style="
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:6px 10px;
-    border-radius:999px;
-    cursor:pointer;
-    width:auto;
+    for="imageInput"
+    style="
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:6px 10px;
+      border-radius:999px;
+      cursor:pointer;
 
-    background:
-      linear-gradient(
-        135deg,
-        rgba(76,175,122,.12),
-        rgba(201,162,39,.10)
-      );
+      background:
+        linear-gradient(
+          135deg,
+          rgba(76,175,122,.12),
+          rgba(201,162,39,.10)
+        );
 
-    border:1px solid rgba(76,175,122,.16);
+      border:1px solid rgba(76,175,122,.16);
 
-    color:#2f6f4e;
-    font-size:11px;
-    font-weight:600;
-  "
->
-  Foto
-</label>
+      color:#2f6f4e;
+      font-size:11px;
+      font-weight:600;
+
+      transition:0.2s;
+      user-select:none;
+    "
+    onmouseover="
+      this.style.transform='translateY(-1px)';
+      this.style.boxShadow='0 4px 12px rgba(76,175,122,.12)';
+    "
+    onmouseout="
+      this.style.transform='translateY(0)';
+      this.style.boxShadow='none';
+    "
+  >
+     Foto
+  </label>
+
   <span
     id="imagePreviewText"
     style="
@@ -684,8 +695,7 @@
   type="file"
   id="imageInput"
   accept="image/*"
-  capture="environment"
-  style="display:none;"
+  style="display:none"
 />
   <button onclick="sendPost()">
     KIRIM
@@ -792,65 +802,23 @@
   />
 </a>
 <script>
-document.addEventListener(
-  "DOMContentLoaded",
-  function () {
+document.getElementById("imageInput").addEventListener("change", function (e) {
+  const file = e.target.files?.[0];
+  const previewText = document.getElementById("imagePreviewText");
 
-    const imageInput =
-      document.getElementById(
-        "imageInput"
-      );
-
-    const openGalleryBtn =
-      document.getElementById(
-        "openGalleryBtn"
-      );
-
-    const previewText =
-      document.getElementById(
-        "imagePreviewText"
-      );
-
-    openGalleryBtn.addEventListener(
-      "click",
-      function () {
-
-        // reset supaya bisa pilih foto yg sama
-        imageInput.value = "";
-
-        // buka galeri / kamera
-        imageInput.click();
-      }
-    );
-
-    imageInput.addEventListener(
-      "change",
-      function (e) {
-
-        const file =
-          e.target.files?.[0];
-
-        if (!file) {
-          previewText.innerText =
-            "Belum pilih gambar";
-          return;
-        }
-
-        let name = file.name;
-
-        if (name.length > 18) {
-          name =
-            name.substring(0,18)
-            + "...";
-        }
-
-        previewText.innerText =
-          "📷 " + name;
-      }
-    );
-
+  if (!file) {
+    previewText.innerText = "";
+    return;
   }
-);
+
+  let name = file.name;
+
+  if (name.length > 18) {
+    name = name.substring(0, 18) + "...";
+  }
+
+  previewText.innerText = "📷 " + name;
+});
 </script>
 </body>
-</html>
+</html> 
