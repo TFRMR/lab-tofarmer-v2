@@ -637,9 +637,8 @@
   ></textarea>
 <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
 
-  <button
-  type="button"
-  id="openGalleryBtn"
+  <label
+  for="imageInput"
   style="
     display:inline-flex;
     align-items:center;
@@ -664,7 +663,7 @@
   "
 >
   Foto
-</button>
+</label>
   <span
     id="imagePreviewText"
     style="
@@ -685,13 +684,8 @@
   type="file"
   id="imageInput"
   accept="image/*"
-  style="
-    position:absolute;
-    left:-9999px;
-    width:1px;
-    height:1px;
-    opacity:0;
-  "
+  capture="environment"
+  style="display:none;"
 />
   <button onclick="sendPost()">
     KIRIM
@@ -802,39 +796,7 @@ document.addEventListener(
   "DOMContentLoaded",
   function () {
 
-    const imageInput =
-      document.getElementById(
-        "imageInput"
-      );
-
-    const openGalleryBtn =
-      document.getElementById(
-        "openGalleryBtn"
-      );
-
-    const previewText =
-      document.getElementById(
-        "imagePreviewText"
-      );
-
-    openGalleryBtn.addEventListener(
-      "click",
-      function () {
-
-        // reset supaya bisa pilih foto yg sama
-        imageInput.value = "";
-
-        // buka galeri / kamera
-        imageInput.click();
-      }
-    );
-
-    imageInput.addEventListener(
-      "change",
-      function (e) {
-
-        const file =
-          e.target.files?.[0];
+    
 
         if (!file) {
           previewText.innerText =
