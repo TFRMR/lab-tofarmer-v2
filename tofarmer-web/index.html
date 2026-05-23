@@ -796,7 +796,39 @@ document.addEventListener(
   "DOMContentLoaded",
   function () {
 
-    
+    const imageInput =
+      document.getElementById(
+        "imageInput"
+      );
+
+    const openGalleryBtn =
+      document.getElementById(
+        "openGalleryBtn"
+      );
+
+    const previewText =
+      document.getElementById(
+        "imagePreviewText"
+      );
+
+    openGalleryBtn.addEventListener(
+      "click",
+      function () {
+
+        // reset supaya bisa pilih foto yg sama
+        imageInput.value = "";
+
+        // buka galeri / kamera
+        imageInput.click();
+      }
+    );
+
+    imageInput.addEventListener(
+      "change",
+      function (e) {
+
+        const file =
+          e.target.files?.[0];
 
         if (!file) {
           previewText.innerText =
