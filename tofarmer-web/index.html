@@ -4,7 +4,17 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ToFarmer</title>
+  <head>
+  <title id="postTitle">ToFarmer</title>
+
+  <meta name="description" id="postDesc" content="ToFarmer post">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="ToFarmer Post" id="ogTitle">
+  <meta property="og:description" content="ToFarmer post" id="ogDesc">
+  <meta property="og:image" content="" id="ogImage">
+  <meta property="og:type" content="article">
+
 
   <!-- FONT -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
@@ -513,14 +523,10 @@
       id="profileInfo"
       style="margin-top:15px;"
     >
-      <div style="
-        font-weight:700;
-        font-size:16px;
-        color:#2f6f4e;
-      ">
-        @guest
-      </div>
-
+     <div id="usernameDisplay"
+     style="font-weight:700;font-size:16px;color:#2f6f4e;">
+  @guest
+</div>
       <div style="
         margin-top:12px;
         display:grid;
@@ -575,10 +581,17 @@
     <div class="avatars" id="avatarStack"></div>
   </div>
 
-  <div class="card">
-    <h4 style="color:#2f6f4e;font-size:12px;">WALLET ALGORAND</h4>
-    <button onclick="connectWallet()">CONNECT DOMPET</button>
-  </div>
+  <div class="card" id="walletCard">
+  <h4 style="color:#2f6f4e;font-size:12px;">WALLET ALGORAND</h4>
+
+  <button id="connectBtn" onclick="connectWallet()">
+    CONNECT DOMPET
+  </button>
+
+  <button id="logoutBtn" onclick="disconnectWallet()" style="display:none;">
+    BATAL / LOGOUT
+  </button>
+</div>
 
   <div class="card">
     <h4 style="color:#c9a227;font-size:12px;">FASE PROGRESS</h4>

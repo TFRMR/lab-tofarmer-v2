@@ -5,6 +5,8 @@ let currentProfile = null
 
 
 
+
+
 // ===================== WALLET =====================
 async function connectWallet() {
   return new Promise((resolve) => {
@@ -78,124 +80,116 @@ async function connectWallet() {
         >
           Masuk ke Ladang 🚀
         </button>
-
+<button
+  id="cancelBtn"
+  style="
+    width:100%;
+    margin-top:10px;
+    padding:12px;
+    border:none;
+    border-radius:14px;
+    background:#eee;
+    color:#666;
+    font-weight:600;
+    cursor:pointer;
+  "
+>
+  🐐 Batal
+</button>
       </div>
     </div>
     `
 
     document.body.appendChild(modal)
 
-    modal
-      .querySelector("#registerBtn")
-      .onclick = async () => {
+   modal.querySelector("#registerBtn").onclick = async () => {
 
-      const username =
-        document
-          .getElementById("tofName")
-          .value
-          .trim()
+  const username = document
+    .getElementById("tofName")
+    .value
+    .trim()
 
-      const wallet =
-        document
-          .getElementById("tofWallet")
-          .value
-          .trim()
+  const wallet = document
+    .getElementById("tofWallet")
+    .value
+    .trim()
 
-      // =====================
-      // VALIDASI NAMA
-      // =====================
+  // =====================
+  // VALIDASI NAMA
+  // =====================
+  if (!username) {
+    alert("Nama wajib diisi 🌱")
+    return
+  }
 
-      if (!username) {
-        alert("Nama wajib diisi 🌱")
-        return
-      }
+  // =====================
+  // VALIDASI WALLET
+  // =====================
+  try {
+    const decoded = algosdk.decodeAddress(wallet)
+    if (!decoded) throw new Error()
+  } catch {
+    alert("Wallet tidak valid / bukan Algorand 😄")
+    return
+  }
 
-      // =====================
-      // VALIDASI WALLET
-      // =====================
+  // =====================
+  // CEK USER SUDAH ADA?
+  // =====================
+  const { data: existingUser } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", wallet)
+    .maybeSingle()
 
-      try {
-
-        const decoded =
-          algosdk.decodeAddress(wallet)
-
-        if (!decoded) {
-          throw new Error()
+  // =====================
+  // DAFTAR JIKA BELUM ADA
+  // =====================
+  if (!existingUser) {
+    const { error } = await supabaseClient
+      .from("profiles")
+      .insert([
+        {
+          id: wallet,
+          username: username,
+          xp: 0,
+          saldo_tof: 0,
+          level: 1,
+          avatar_url: "https://www.tofarmer.xyz/images/logo-tofarmer.png"
         }
+      ])
 
-      } catch {
-
-        alert(
-          "Wallet tidak valid / bukan Algorand 😄"
-        )
-
-        return
-      }
-
-      // =====================
-      // CEK USER SUDAH ADA?
-      // =====================
-
-      const {
-        data: existingUser
-      } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", wallet)
-        .maybeSingle()
-
-      // =====================
-      // BELUM ADA = DAFTAR
-      // =====================
-
-      if (!existingUser) {
-
-        const { error } =
-          await supabaseClient
-            .from("profiles")
-            .insert([
-              {
-                id: wallet,
-                username: username,
-                xp: 0,
-                saldo_tof: 0,
-                level: 1,
-
-                // default avatar emoji/logo
-                avatar_url:
-                  "https://www.tofarmer.xyz/images/logo-tofarmer.png"
-              }
-            ])
-
-        if (error) {
-          console.log(error)
-          alert("Gagal daftar")
-          return
-        }
-      }
-
-      // =====================
-      // LOGIN
-      // =====================
-
-      currentWallet = wallet
-
-      localStorage.setItem(
-        "tof_wallet",
-        wallet
-      )
-
-      await syncProfile(wallet)
-
-      updateWalletUI()
-      renderProfile()
-
-      document.body.removeChild(modal)
-
-      showWelcomePopup()
-
-      resolve(wallet)
+    if (error) {
+      console.log(error)
+      alert("Gagal daftar")
+      return
     }
+  }
+
+  // =====================
+  // LOGIN SUCCESS
+  // =====================
+  currentWallet = wallet
+  localStorage.setItem("tof_wallet", wallet)
+
+  await syncProfile(wallet)
+
+  updateWalletUI()
+  renderProfile()
+
+  document.body.removeChild(modal)
+
+  showWelcomePopup()
+
+  resolve(wallet)
+}
+
+
+// ===================== FIX: CANCEL HARUS DI LUAR =====================
+modal.querySelector("#cancelBtn").onclick = () => {
+  document.body.removeChild(modal)
+  resolve(null)
+}
   })
 }
 
@@ -274,10 +268,7 @@ function logoutWallet() {
 // ===================== PROFILE SYNC =====================
 function updateWalletUI() {
 
-  const btn =
-    document.querySelector(
-      ".card button"
-    )
+  const btn = document.querySelector("button[onclick='connectWallet()']")
 
   const editBtn =
     document.getElementById(
@@ -560,6 +551,7 @@ async function sendPost() {
 
   // ================= SIMPAN POST =================
  // cek apakah posting di diri sendiri (profil pribadi)
+
 const isSelfPost = true // sementara default true (karena feed utama = diri sendiri)
 
 const xpBonus = isSelfPost ? 20 : 5
