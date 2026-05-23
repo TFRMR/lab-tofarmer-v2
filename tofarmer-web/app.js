@@ -500,55 +500,43 @@ async function sendPost() {
   const imageInput = document.getElementById("imageInput")
 
   const text = input.value.trim()
-  const file = imageInput.files[0]
 
-  if (!currentWallet) {
-    alert("Connect wallet dulu")
+  const file = imageInput?.files?.[0] || null
+
+// ================= UPLOAD GAMBAR =================
+if (file instanceof File) {
+  const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
+
+  console.log("Uploading file:", fileName, file)
+
+  const { error: uploadError } = await supabaseClient
+    .storage
+    .from("post-images")
+    .upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: false
+    })
+
+  if (uploadError) {
+    console.log("UPLOAD ERROR:", uploadError)
+    alert("Upload gambar gagal: " + uploadError.message)
     return
   }
 
-  if (!text && !file) {
-    alert("Isi teks atau gambar dulu")
+  const { data } = supabaseClient
+    .storage
+    .from("post-images")
+    .getPublicUrl(fileName)
+
+  if (!data?.publicUrl) {
+    alert("Gagal ambil URL gambar")
     return
   }
 
-  const pilar = await classifyPilar(text)
+  imageUrl = data.publicUrl
 
-  if (!pilar) {
-    alert("Post dibatalkan")
-    return
-  }
-
-  if (!PILAR_MAP[pilar]) {
-    alert("Pilar tidak valid")
-    return
-  }
-
-  let imageUrl = null
-
-  // ================= UPLOAD GAMBAR =================
-  if (file) {
-    const fileName = currentWallet + "-" + Date.now()
-
-    const { error: uploadError } = await supabaseClient
-      .storage
-      .from("post-images")
-      .upload(fileName, file)
-
-    if (uploadError) {
-      console.log(uploadError)
-      alert("Upload gambar gagal")
-      return
-    }
-
-    const { data } = supabaseClient
-      .storage
-      .from("post-images")
-      .getPublicUrl(fileName)
-
-    imageUrl = data.publicUrl
-  }
-
+  console.log("UPLOAD SUCCESS:", imageUrl)
+}
   // ================= SIMPAN POST =================
  // cek apakah posting di diri sendiri (profil pribadi)
 

@@ -449,7 +449,7 @@
 
   <!-- AVATAR STACK BARU -->
   <div class="eco-avatars">
-    <div id="avatarStack"></div>
+   
   </div>
 
 </div>
@@ -802,8 +802,24 @@
   />
 </a>
 <script>
-document.getElementById("imageInput").addEventListener("change", function (e) {
-  const file = e.target.files[0];
+document.getElementById("imageInput").addEventListener("input", function (e) {
+  const file = e.target.files?.[0];
+
+  const previewText = document.getElementById("imagePreviewText");
+
+  if (!file) {
+    previewText.innerText = "";
+    return;
+  }
+
+  let name = file.name;
+
+  if (name.length > 18) {
+    name = name.substring(0, 18) + "...";
+  }
+
+  previewText.innerText = "📷 " + name;
+});
   const previewText = document.getElementById("imagePreviewText");
 
   if (file) {
