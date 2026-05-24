@@ -729,7 +729,7 @@ async function loadEconomy() {
       const stats = getRankStats(profiles)
 
       growerEl.innerHTML =
-        `${profiles.length}
+        `Total-${profiles.length}
         ( 🌱${stats.grower}
         | 🥉${stats.pro}
         | 🥈${stats.specialist}
@@ -966,12 +966,12 @@ ${item.image_url ? `
       </div>
 
       <div style="margin-top:10px;font-size:12px;">
-        ${postComments.slice(0, 3).map(c => `
-          <div style="padding:3px 0;color:#444;">
-            💬 ${convertMentions(c.comment)}
-          </div>
-        `).join("")}
-      </div>
+  ${postComments.map(c => `
+    <div style="padding:3px 0;color:#444;">
+      💬 ${convertMentions(c.comment)}
+    </div>
+  `).join("")}
+</div>
     `
 
     feed.appendChild(div)
