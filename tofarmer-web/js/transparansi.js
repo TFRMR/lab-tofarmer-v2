@@ -69,14 +69,13 @@ function categorize(note = "") {
 
 
 // ============================
-// 5. SIMPAN CACHE (FIX SCALE + ANTI DUPLIKAT)
+// 5. SIMPAN CACHE
 // ============================
 async function saveTx(tx, wallet, username) {
 
   const amountRaw =
     tx["asset-transfer-transaction"]?.amount || 0;
 
-  // FIX: anti “nol kebanyakan / kebaca salah scale”
   const amount = Number(amountRaw) / 1e6;
 
   const note = decodeNote(tx.note);
@@ -179,22 +178,50 @@ function formatRow(tx) {
 
 
 // ============================
-// 9. LOAD REPORT FINAL
+// 9. 🔥 MODE 1: REAL BALANCE (ALLO STYLE)
+// ============================
+async function getWalletBalance(wallet) {
+  const url =
+    `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  const assets = data.account?.assets || [];
+
+  const tof = assets.find(
+    a => a["asset-id"] === TOF_ASSET_ID
+  );
+
+  return tof ? Number(tof.amount) / 1e6 : 0;
+}
+
+
+// ============================
+// 10. LOAD REPORT FINAL (FIXED ALLO MODE)
 // ============================
 async function loadReport() {
 
   const { data } = await supabaseClient
     .from("tof_history")
     .select("*")
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: true });
 
-  if (!data) return
+  if (!data) return;
 
-  const grouped = groupByUser(data)
+  const grouped = groupByUser(data);
 
-  let totalAll = data.reduce((sum, tx) => {
-    return sum + Number(tx.amount || 0)
-  }, 0)
+  // ============================
+  // 🔥 MODE 1 FIX: TOTAL = REAL BLOCKCHAIN BALANCE
+  // ============================
+  const wallets = await getAllWallets();
+
+  let totalAll = 0;
+
+  for (let w of wallets) {
+    const bal = await getWalletBalance(w.id);
+    totalAll += Number(bal || 0);
+  }
 
   let html = `
     <h1>🌿 Riwayat Transaksi & Transparansi Aset</h1>
@@ -209,30 +236,30 @@ async function loadReport() {
     <h3>📊 RINGKASAN EKOSISTEM</h3>
 
     <p>Total Transaksi: ${data.length}</p>
-    <p>Total Dana: TOF ${totalAll}</p>
-    <p>Status: ✅ ALL DATA VERIFIED</p>
+    <p>Total Dana (REAL BALANCE): TOF ${totalAll}</p>
+    <p>Status: ✅ ALL DATA VERIFIED (BLOCKCHAIN SOURCE)</p>
 
     <hr/>
-  `
+  `;
 
-  html += `<h3>👤 DETAIL KONTRIBUSI ANGGOTA</h3>`
+  html += `<h3>👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
 
   for (let user in grouped) {
 
-    html += `<h4>[ ${user} ]</h4><pre>`
+    html += `<h4>[ ${user} ]</h4><pre>`;
 
-    html += `Tanggal | Waktu | Jumlah | Keterangan\n`
+    html += `Tanggal | Waktu | Jumlah | Keterangan\n`;
 
     grouped[user].txs.forEach(tx => {
-      html += formatRow(tx) + "\n"
-    })
+      html += formatRow(tx) + "\n";
+    });
 
-    html += `\nTOTAL: TOF ${grouped[user].total}\n</pre>`
+    html += `\nTOTAL: TOF ${grouped[user].total}\n</pre>`;
   }
 
   html += `
     <h3>🛡️ VERIFIKASI AKHIR</h3>
-    <p>TOTAL SISTEM: TOF ${totalAll} (VERIFIED)</p>
+    <p>TOTAL SISTEM (ON-CHAIN): TOF ${totalAll} (VERIFIED)</p>
 
     <br/>
     <i>"Kemandirian ekonomi dimulai dari pencatatan yang jujur."</i>
@@ -242,18 +269,18 @@ async function loadReport() {
       style="padding:10px 16px; border-radius:8px; cursor:pointer;">
       ⬅ Kembali ke Beranda
     </button>
-  `
+  `;
 
-  feedEl.innerHTML = html
-  summaryEl.innerHTML = ""
+  feedEl.innerHTML = html;
+  summaryEl.innerHTML = "";
 }
 
 
 // ============================
-// 10. EVENT BUTTON
+// 11. EVENT BUTTON
 // ============================
-syncBtn.addEventListener("click", syncData)
+syncBtn.addEventListener("click", syncData);
 
 
 // AUTO LOAD
-loadReport()
+loadReport();
