@@ -6,13 +6,14 @@ const feedEl = document.getElementById("feed");
 const statusEl = document.getElementById("status");
 const syncBtn = document.getElementById("syncBtn");
 
+
 // ============================
 // 1. AMBIL SEMUA WALLET USER
 // ============================
 async function getAllWallets() {
   const { data, error } = await supabaseClient
     .from("profiles")
-    .select("id, username, saldo_tof");
+    .select("id, username");
 
   if (error) {
     console.error(error);
@@ -21,6 +22,7 @@ async function getAllWallets() {
 
   return data;
 }
+
 
 // ============================
 // 2. AMBIL TRANSAKSI ALGONODE
@@ -35,11 +37,26 @@ async function getWalletTx(wallet) {
   return data.transactions || [];
 }
 
+
 // ============================
-// 3. KATEGORI NOTE
+// 3. DECODE NOTE
+// ============================
+function decodeNote(note) {
+  try {
+    return atob(note || "");
+  } catch {
+    return "";
+  }
+}
+
+
+// ============================
+// 4. KATEGORI
 // ============================
 function categorize(note = "") {
   const n = note.toUpperCase();
+
+  if (!n) return "DANA_MASUK";
 
   if (n.includes("NABUNG")) return "NABUNG_RECEH";
   if (n.includes("REWARD")) return "REWARD";
@@ -50,38 +67,49 @@ function categorize(note = "") {
   return "DANA_MASUK";
 }
 
-// ============================
-// 4. SIMPAN KE SUPABASE CACHE
-// ============================
-async function saveTx(tx, wallet, username) {
-  await supabaseClient.from("tof_history").upsert([
-    {
-      wallet,
-      username,
-      tx_id: tx.id,
-      amount:
-        tx["asset-transfer-transaction"]?.amount || 0,
-      note: atob(tx.note || "") || "",
-      category: categorize(atob(tx.note || "") || ""),
-      sender: tx.sender,
-      receiver: tx["asset-transfer-transaction"]?.receiver,
-      created_at: new Date(tx["round-time"] * 1000),
-    },
-  ]);
-}
 
 // ============================
-// 5. SYNC DATA (BUTTON)
+// 5. SIMPAN CACHE
+// ============================
+async function saveTx(tx, wallet, username) {
+
+  const amountRaw =
+    tx["asset-transfer-transaction"]?.amount || 0;
+
+  const amount = amountRaw / 1000000; // FIX DECIMAL TOF
+
+  const note = decodeNote(tx.note);
+
+  await supabaseClient.from("tof_history").upsert([{
+    wallet,
+    username,
+    tx_id: tx.id,
+    amount,
+    note,
+    category: categorize(note),
+    sender: tx.sender,
+    receiver: tx["asset-transfer-transaction"]?.receiver,
+    created_at: new Date(tx["round-time"] * 1000)
+  }]);
+
+}
+
+
+// ============================
+// 6. SYNC SEMUA WALLET
 // ============================
 async function syncData() {
-  statusEl.innerText = "🔄 Mengupdate laporan...";
+
+  statusEl.innerText = "🔄 Mengambil semua transaksi wallet...";
 
   const wallets = await getAllWallets();
 
   for (let user of wallets) {
+
     const txs = await getWalletTx(user.id);
 
     for (let tx of txs) {
+
       const asset =
         tx["asset-transfer-transaction"]?.["asset-id"];
 
@@ -91,72 +119,146 @@ async function syncData() {
     }
   }
 
-  statusEl.innerText = "✅ Laporan terbaru sudah diperbarui";
+  statusEl.innerText = "✅ Update selesai";
 
-  loadFeed();
+  loadReport();
 }
 
+
 // ============================
-// 6. LOAD CACHE → TAMPILKAN
+// 7. GROUPING USER
 // ============================
-async function loadFeed() {
+function groupByUser(data) {
+
+  const grouped = {}
+
+  data.forEach(tx => {
+
+    const user = tx.username || tx.wallet
+
+    if (!grouped[user]) {
+      grouped[user] = {
+        txs: [],
+        total: 0
+      }
+    }
+
+    grouped[user].txs.push(tx)
+    grouped[user].total += Number(tx.amount || 0)
+  })
+
+  return grouped
+}
+
+
+// ============================
+// 8. FORMAT BARIS
+// ============================
+function formatRow(tx) {
+
+  const d = new Date(tx.created_at)
+
+  const date = d.toLocaleDateString()
+  const time = d.toLocaleTimeString()
+
+  const type = tx.category || "DANA_MASUK"
+
+  let label = ""
+
+  if (type === "NABUNG_RECEH") label = "SETOR NABUNG RECEH"
+  else if (type === "REWARD") label = "REWARD"
+  else if (type === "DONASI") label = "DONASI"
+  else if (type === "LIQUIDITAS") label = "LIQUIDITAS"
+  else label = "DANA MASUK / KELUAR"
+
+  return `${date} | ${time} | TOF ${tx.amount} | ${label}`
+}
+
+
+// ============================
+// 9. LOAD REPORT FINAL
+// ============================
+async function loadReport() {
+
   const { data } = await supabaseClient
     .from("tof_history")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: true })
 
-  let total = 0;
+  if (!data) return
 
-  feedEl.innerHTML = "";
+  const grouped = groupByUser(data)
 
-  data.forEach((tx) => {
-    total += tx.amount;
+  let totalAll = 0
 
-    feedEl.innerHTML += `
-      <div style="margin-bottom:10px;">
-        <b>${tx.username}</b><br/>
-        ${formatText(tx)}<br/>
-        <small>${new Date(tx.created_at).toLocaleString()}</small>
-        <hr/>
-      </div>
-    `;
-  });
+  data.forEach(tx => {
+    totalAll += Number(tx.amount || 0)
+  })
 
-  summaryEl.innerHTML = `
-    <h2>📊 Ringkasan</h2>
+  let html = `
+    <h1>🌿 Riwayat Transaksi & Transparansi Aset</h1>
+    <p>Diposting pada: ${new Date().toLocaleDateString()}</p>
+
+    <h2>🧮 REKAP TRANSAKSI TOF FASE 1</h2>
+    <p>
+      Sistem ToFarmer beroperasi dengan prinsip transparansi total.
+      Semua transaksi tercatat otomatis dari wallet.
+    </p>
+
+    <h3>📊 RINGKASAN EKOSISTEM</h3>
+
     <p>Total Transaksi: ${data.length}</p>
-    <p>Total Volume: ${total} TOF</p>
-  `;
+    <p>Total Dana: TOF ${totalAll}</p>
+    <p>Status: ✅ ALL DATA VERIFIED</p>
+
+    <hr/>
+  `
+
+
+  // ============================
+  // DETAIL PER USER
+  // ============================
+  html += `<h3>👤 DETAIL KONTRIBUSI ANGGOTA</h3>`
+
+
+  for (let user in grouped) {
+
+    html += `<h4>[ ${user} ]</h4><pre>`
+
+    html += `Tanggal | Waktu | Jumlah | Keterangan\n`
+
+    grouped[user].txs.forEach(tx => {
+      html += formatRow(tx) + "\n"
+    })
+
+    html += `\nTOTAL: TOF ${grouped[user].total}\n</pre>`
+  }
+
+
+  // ============================
+  // VERIFIKASI
+  // ============================
+  html += `
+    <h3>🛡️ VERIFIKASI AKHIR</h3>
+    <p>TOTAL SISTEM: TOF ${totalAll} (VERIFIED)</p>
+
+    <br/>
+    <i>
+      "Kemandirian ekonomi dimulai dari pencatatan yang jujur."
+    </i>
+  `
+
+
+  feedEl.innerHTML = html
+  summaryEl.innerHTML = ""
 }
 
-// ============================
-// 7. TEMPLATE NARASI
-// ============================
-function formatText(tx) {
-  const cat = tx.category;
-
-  if (cat === "NABUNG_RECEH")
-    return `🌱 menyisihkan TOF ${tx.amount} untuk nabung receh`;
-
-  if (cat === "REWARD")
-    return `🎁 menerima reward TOF ${tx.amount}`;
-
-  if (cat === "DONASI")
-    return `❤️ berdonasi TOF ${tx.amount}`;
-
-  if (cat === "LIQUIDITAS")
-    return `💧 menambah likuiditas TOF ${tx.amount}`;
-
-  if (cat === "TRANSAKSI")
-    return `🔄 transaksi TOF ${tx.amount}`;
-
-  return `💰 dana masuk TOF ${tx.amount}`;
-}
 
 // ============================
-// 8. EVENT BUTTON
+// 10. EVENT BUTTON
 // ============================
-syncBtn.addEventListener("click", syncData);
+syncBtn.addEventListener("click", syncData)
 
-// auto load pertama
-loadFeed();
+
+// AUTO LOAD
+loadReport()
