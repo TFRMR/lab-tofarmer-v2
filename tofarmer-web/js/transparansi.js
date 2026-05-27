@@ -69,17 +69,15 @@ function categorize(note = "") {
 
 
 // ============================
-// 5. SIMPAN CACHE (FIX SCALE + ANTI DUPLIKAT LOGIC)
+// 5. SIMPAN CACHE (FIX SCALE + ANTI DUPLIKAT)
 // ============================
 async function saveTx(tx, wallet, username) {
 
   const amountRaw =
     tx["asset-transfer-transaction"]?.amount || 0;
 
-  // ============================
-  // FIX UTAMA: SCALE BENAR (6 DECIMAL ALGORAND)
-  // ============================
-  const amount = Number(amountRaw) / Math.pow(10, 6);
+  // FIX: anti “nol kebanyakan / kebaca salah scale”
+  const amount = Number(amountRaw) / 1e6;
 
   const note = decodeNote(tx.note);
 
@@ -181,7 +179,7 @@ function formatRow(tx) {
 
 
 // ============================
-// 9. LOAD REPORT FINAL (FIX TOTAL CLEAN)
+// 9. LOAD REPORT FINAL
 // ============================
 async function loadReport() {
 
@@ -194,9 +192,6 @@ async function loadReport() {
 
   const grouped = groupByUser(data)
 
-  // ============================
-  // FIX: TOTAL AMAN (NO STRING ERROR)
-  // ============================
   let totalAll = data.reduce((sum, tx) => {
     return sum + Number(tx.amount || 0)
   }, 0)
@@ -220,9 +215,7 @@ async function loadReport() {
     <hr/>
   `
 
-
   html += `<h3>👤 DETAIL KONTRIBUSI ANGGOTA</h3>`
-
 
   for (let user in grouped) {
 
@@ -237,17 +230,19 @@ async function loadReport() {
     html += `\nTOTAL: TOF ${grouped[user].total}\n</pre>`
   }
 
-
   html += `
     <h3>🛡️ VERIFIKASI AKHIR</h3>
     <p>TOTAL SISTEM: TOF ${totalAll} (VERIFIED)</p>
 
     <br/>
-    <i>
-      "Kemandirian ekonomi dimulai dari pencatatan yang jujur."
-    </i>
-  `
+    <i>"Kemandirian ekonomi dimulai dari pencatatan yang jujur."</i>
 
+    <br/><br/>
+    <button onclick="window.location.href='/'"
+      style="padding:10px 16px; border-radius:8px; cursor:pointer;">
+      ⬅ Kembali ke Beranda
+    </button>
+  `
 
   feedEl.innerHTML = html
   summaryEl.innerHTML = ""
