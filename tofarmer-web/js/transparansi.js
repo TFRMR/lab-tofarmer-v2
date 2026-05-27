@@ -1,7 +1,5 @@
+const supabaseClient = window.supabaseClient;
 const TOF_ASSET_ID = 3558306283;
-
-// ambil supabase dari file existing
-const supabaseClient = supabase;
 
 const summaryEl = document.getElementById("summary");
 const feedEl = document.getElementById("feed");
