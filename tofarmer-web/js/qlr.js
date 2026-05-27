@@ -19,21 +19,28 @@ async function getAllWallets() {
 // =========================
 async function getUserBalance(wallet) {
   try {
+    if (!wallet) return 0;
+
     const url =
-      `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}/assets?asset-id=${3558306283}`;
+      `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}`;
 
     const res = await fetch(url);
     const data = await res.json();
 
-    const asset = data.asset_holding;
-    if (!asset) return 0;
+    const assets = data.account?.assets || [];
 
-    return Number(asset.amount || 0) / 1e6;
+    const target = assets.find(
+      a => Number(a["asset-id"]) === 3558306283
+    );
+
+    if (!target) return 0;
+
+    return Number(target.amount || 0) / 1e6;
+
   } catch (e) {
     return 0;
   }
 }
-
 // =========================
 // hitung bulan menuju target (compounding 10%)
 // =========================
