@@ -69,14 +69,17 @@ function categorize(note = "") {
 
 
 // ============================
-// 5. SIMPAN CACHE
+// 5. SIMPAN CACHE (FIX SCALE + ANTI DUPLIKAT LOGIC)
 // ============================
 async function saveTx(tx, wallet, username) {
 
   const amountRaw =
     tx["asset-transfer-transaction"]?.amount || 0;
 
-  const amount = amountRaw / 1000000; // FIX DECIMAL TOF
+  // ============================
+  // FIX UTAMA: SCALE BENAR (6 DECIMAL ALGORAND)
+  // ============================
+  const amount = Number(amountRaw) / Math.pow(10, 6);
 
   const note = decodeNote(tx.note);
 
@@ -90,7 +93,9 @@ async function saveTx(tx, wallet, username) {
     sender: tx.sender,
     receiver: tx["asset-transfer-transaction"]?.receiver,
     created_at: new Date(tx["round-time"] * 1000)
-  }]);
+  }], {
+    onConflict: "tx_id"
+  });
 
 }
 
@@ -176,7 +181,7 @@ function formatRow(tx) {
 
 
 // ============================
-// 9. LOAD REPORT FINAL
+// 9. LOAD REPORT FINAL (FIX TOTAL CLEAN)
 // ============================
 async function loadReport() {
 
@@ -189,11 +194,12 @@ async function loadReport() {
 
   const grouped = groupByUser(data)
 
-  let totalAll = 0
-
-  data.forEach(tx => {
-    totalAll += Number(tx.amount || 0)
-  })
+  // ============================
+  // FIX: TOTAL AMAN (NO STRING ERROR)
+  // ============================
+  let totalAll = data.reduce((sum, tx) => {
+    return sum + Number(tx.amount || 0)
+  }, 0)
 
   let html = `
     <h1>🌿 Riwayat Transaksi & Transparansi Aset</h1>
@@ -215,9 +221,6 @@ async function loadReport() {
   `
 
 
-  // ============================
-  // DETAIL PER USER
-  // ============================
   html += `<h3>👤 DETAIL KONTRIBUSI ANGGOTA</h3>`
 
 
@@ -235,9 +238,6 @@ async function loadReport() {
   }
 
 
-  // ============================
-  // VERIFIKASI
-  // ============================
   html += `
     <h3>🛡️ VERIFIKASI AKHIR</h3>
     <p>TOTAL SISTEM: TOF ${totalAll} (VERIFIED)</p>
