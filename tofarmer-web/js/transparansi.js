@@ -182,18 +182,16 @@ function formatRow(tx) {
 // ============================
 async function getWalletBalance(wallet) {
   const url =
-    `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}`;
+    `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}/assets?asset-id=${TOF_ASSET_ID}`;
 
   const res = await fetch(url);
   const data = await res.json();
 
-  const assets = data.account?.assets || [];
+  const asset = data.asset_holding;
 
-  const tof = assets.find(
-    a => a["asset-id"] === TOF_ASSET_ID
-  );
+  if (!asset) return 0;
 
-  return tof ? Number(tof.amount) / 1e6 : 0;
+  return Number(asset.amount || 0) / 1e6;
 }
 
 
