@@ -128,7 +128,7 @@ async function syncData() {
 
 
 // ============================
-// 7. GROUPING USER
+// 7. GROUPING USER (tetap untuk histori)
 // ============================
 function groupByUser(data) {
 
@@ -141,12 +141,11 @@ function groupByUser(data) {
     if (!grouped[user]) {
       grouped[user] = {
         txs: [],
-        total: 0
+        wallet: tx.wallet
       }
     }
 
     grouped[user].txs.push(tx)
-    grouped[user].total += Number(tx.amount || 0)
   })
 
   return grouped
@@ -178,25 +177,30 @@ function formatRow(tx) {
 
 
 // ============================
-// 9. 🔥 MODE 1: REAL BALANCE (ALLO STYLE)
+// 9. REAL BALANCE (FIX ALLIO STYLE)
 // ============================
 async function getWalletBalance(wallet) {
+
   const url =
-    `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}/assets?asset-id=${TOF_ASSET_ID}`;
+    `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}`;
 
   const res = await fetch(url);
   const data = await res.json();
 
-  const asset = data.asset_holding;
+  const assets = data.account?.assets || [];
 
-  if (!asset) return 0;
+  const tof = assets.find(
+    a => a["asset-id"] === TOF_ASSET_ID
+  );
 
-  return Number(asset.amount || 0) / 1e6;
+  if (!tof) return 0;
+
+  return Number(tof.amount || 0) / 1e6;
 }
 
 
 // ============================
-// 10. LOAD REPORT FINAL (FIXED ALLO MODE)
+// 10. LOAD REPORT FINAL (FULL FIX)
 // ============================
 async function loadReport() {
 
@@ -209,13 +213,13 @@ async function loadReport() {
 
   const grouped = groupByUser(data);
 
-  // ============================
-  // 🔥 MODE 1 FIX: TOTAL = REAL BLOCKCHAIN BALANCE
-  // ============================
   const wallets = await getAllWallets();
 
   let totalAll = 0;
 
+  // ============================
+  // GLOBAL REAL BALANCE
+  // ============================
   for (let w of wallets) {
     const bal = await getWalletBalance(w.id);
     totalAll += Number(bal || 0);
@@ -242,7 +246,14 @@ async function loadReport() {
 
   html += `<h3>👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
 
+  // ============================
+  // PER USER REAL BALANCE (FIX CYBER & QUANTUM)
+  // ============================
   for (let user in grouped) {
+
+    const wallet = grouped[user].wallet;
+
+    let realBalance = await getWalletBalance(wallet);
 
     html += `<h4>[ ${user} ]</h4><pre>`;
 
@@ -252,7 +263,7 @@ async function loadReport() {
       html += formatRow(tx) + "\n";
     });
 
-    html += `\nTOTAL: TOF ${grouped[user].total}\n</pre>`;
+    html += `\nTOTAL (REAL): TOF ${realBalance}\n</pre>`;
   }
 
   html += `
