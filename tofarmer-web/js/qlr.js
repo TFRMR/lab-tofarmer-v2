@@ -1,5 +1,5 @@
 const TARGET_TOF = 100000000;
-const RATE = 0.10;
+const RATE = 0.05;
 
 const container = document.getElementById("qlrContainer");
 
