@@ -5,8 +5,7 @@ const currentWallet = localStorage.getItem("tof_wallet")
 // =====================
 
 const TOF_ASSET_ID = 3558306283
-const ALGONODE_URL =
-  "https://mainnet-api.algonode.cloud"
+const ALGONODE_URL = "https://mainnet-api.algonode.cloud"
 
 // =====================
 // GET WALLET TOF BALANCE
@@ -25,8 +24,7 @@ async function getWalletTofBalance(wallet) {
     const account = await res.json()
 
     const asset = account.assets?.find(
-      a =>
-        Number(a["asset-id"]) === TOF_ASSET_ID
+      a => Number(a["asset-id"]) === TOF_ASSET_ID
     )
 
     return asset
@@ -40,11 +38,14 @@ async function getWalletTofBalance(wallet) {
 }
 
 // =====================
-// GET USER ID FROM URL
+// GET USERNAME FROM URL
 // =====================
 
 const urlParams = new URLSearchParams(window.location.search)
-const profileId = urlParams.get("id")
+const profileUsername = urlParams.get("u") // <--- Menggunakan u=username di URL
+
+// Menyiapkan variabel penampung ID wallet internal agar tidak bocor di URL
+let targetProfileId = null
 
 // =====================
 // RANK SYSTEM
@@ -65,7 +66,7 @@ function getTofLevel(xp) {
 }
 
 // =====================
-// LOAD PROFILE
+// LOAD PROFILE BALANCE
 // =====================
 
 async function refreshBalance(profileId) {
@@ -85,41 +86,84 @@ async function refreshBalance(profileId) {
 // LOAD PROFILE
 // =====================
 
+// =====================
+// LOAD PROFILE (DENGAN AUTO-FALLBACK PROFIL SENDIRI)
+// =====================
+
+// =====================
+// LOAD PROFILE (DENGAN SINKRONISASI COCOK DUA PARAMETER: USERNAME / WALLET ID)
+// =====================
+
 async function loadProfile() {
 
-  if (!profileId) {
-    document.getElementById("profile").innerHTML = `
-      <div class="card">
-        User tidak ditemukan
-      </div>
-    `
-    return
+  let queryField = "username"
+  let queryValue = profileUsername
+
+  // 1. Ambil parameter id (alamat wallet) langsung dari URL browser jika ada
+  const urlWalletId = urlParams.get("id")
+
+  // 2. Jalankan logika penyaringan dinamis agar tautan lama (?id=) tetap terbuka mulus
+  if (urlWalletId) {
+    queryField = "id"
+    queryValue = urlWalletId
+  } 
+  // 3. Jika parameter u maupun id kosong di URL, gunakan fallback ke dompet lokal yang sedang login
+  else if (!profileUsername) {
+    if (currentWallet) {
+      queryField = "id"
+      queryValue = currentWallet
+    } else {
+      // Jika benar-benar kosong total dari segala arah akses
+      document.getElementById("profile").innerHTML = `
+        <div class="card" style="text-align:center; color:#6f7f76;">
+          🌿 Silakan sambungkan dompet Anda terlebih dahulu atau gunakan tautan profil petani yang valid.
+        </div>
+      `
+      return
+    }
   }
 
+  // Cari data profil ke Supabase secara dinamis tanpa membocorkan data sensitif
   const { data, error } =
     await supabaseClient
       .from("profiles")
       .select("*")
-      .eq("id", profileId)
+      .eq(queryField, queryValue)
       .single()
 
   if (error || !data) {
     document.getElementById("profile").innerHTML = `
-      <div class="card">
-        Profile tidak ditemukan
+      <div class="card" style="text-align:center; color:#6f7f76;">
+        Profil tidak ditemukan di ladang ToFarmer
       </div>
     `
     console.log(error)
     return
   }
 
+  // Isi ID dompet internal ke memori RAM aplikasi (Aman, tersembunyi dari browser)
+  targetProfileId = data.id
+
+// ==========================================================================
+  // 🟢 PROSES PENYEMBUNYIAN (URL MASKING)
+  // ==========================================================================
+  // Jika pengunjung masuk lewat tautan lama (?id=J36...), langsung bersihkan URL-nya
+  if (urlWalletId) {
+    // Ubah tampilan URL di browser menjadi berbasis username (?u=nama_user) yang jauh lebih rapi
+    const cleanUrl = `${window.location.pathname}?u=${data.username}`
+    window.history.replaceState({}, document.title, cleanUrl)
+  }
+  // ==========================================================================
+
+
   renderProfileData(data)
+  document.title = `@${data.username} | Profil ToFarmer`
   renderWorkspace()
   loadUserPosts()
 
   try {
     const liveBalance =
-      await getWalletTofBalance(profileId)
+      await getWalletTofBalance(targetProfileId)
 
     data.saldo_tof = liveBalance
 
@@ -130,7 +174,7 @@ async function loadProfile() {
       .update({
         saldo_tof: liveBalance
       })
-      .eq("id", profileId)
+      .eq("id", targetProfileId)
 
   } catch (err) {
     console.log("LIVE BALANCE ERROR:", err)
@@ -210,7 +254,8 @@ function renderWorkspace() {
 
   if (!box) return
 
-  if (currentWallet !== profileId) {
+  // Sinkronisasi hak akses menggunakan ID internal dompet yang aman
+  if (currentWallet !== targetProfileId) {
     box.innerHTML = ""
     return
   }
@@ -218,9 +263,6 @@ function renderWorkspace() {
   box.innerHTML = `
     <div class="card">
 
-   
-
- <!-- QRIS BUTTON -->
         <button class="btn-glow" onclick="openQrisPopup()" style="
           padding: 6px 12px; 
           font-size: 10px; 
@@ -228,60 +270,51 @@ function renderWorkspace() {
           margin: 15px; 
           background: gold;
           color: #000;
-          border: none
+          border: none;
           border-radius: 8px;
         ">
           💰 Nabung Ladang (QRIS)
         </button>
  
-   <div style="font-weight:700;color:#2f6f4e;margin-bottom:5px;">
+       <div style="font-weight:700;color:#2f6f4e;margin-bottom:5px;">
         🌿 Ruang Karya Saya
-      </div>
+       </div>
 
-   <textarea
-  id="profilePostBox"
-  placeholder="Apa ide, progres, atau eksperimen hari ini?"
-  style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"
-></textarea>
+       <textarea
+          id="profilePostBox"
+          placeholder="Apa ide, progres, atau eksperimen hari ini?"
+          style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"
+        ></textarea>
 
-<input
-  type="file"
-  id="profileImage"
-  accept="image/*"
-  style="
-    width:100%;
-    margin-top:10px;
-    margin-bottom:10px;
-    font-size:12px;
-  "
-/>
+        <input
+          type="file"
+          id="profileImage"
+          accept="image/*"
+          style="
+            width:100%;
+            margin-top:10px;
+            margin-bottom:10px;
+            font-size:12px;
+          "
+        />
 
-<button class="btn-glow" onclick="sendProfilePost()">
-  🌱 TANAM KARYA
-</button>
+        <button class="btn-glow" onclick="sendProfilePost()">
+          🌱 TANAM KARYA
+        </button>
 
     </div>
   `
 }
-
-
 // =====================
 // SEND PROFILE POST
 // =====================
 
 async function sendProfilePost() {
 
-  const input =
-    document.getElementById("profilePostBox")
-
-  const imageInput =
-    document.getElementById("profileImage")
-
-  const text =
-    input.value.trim()
-
-  const file =
-    imageInput.files[0]
+  const input = document.getElementById("profilePostBox")
+  const imageInput = document.getElementById("profileImage")
+  const text = input.value.trim()
+  const file = imageInput.files[0]
 
   if (!text && !file) {
     return alert("Isi teks atau pilih gambar 😄")
@@ -295,8 +328,7 @@ async function sendProfilePost() {
 
   if (file) {
 
-    const fileName =
-      `${Date.now()}-${file.name}`
+    const fileName = `${Date.now()}-${file.name}`
 
     const { error: uploadError } =
       await supabaseClient.storage
@@ -346,16 +378,21 @@ async function sendProfilePost() {
 }
 
 // =====================
-// USER POSTS
+// USER POSTS (FIXED META TAG SYNC)
 // =====================
 
 async function loadUserPosts() {
   const box = document.getElementById("userPosts")
+  if (!targetProfileId) return
 
-  const { data } = await supabaseClient
+  // Ambil postingan sekaligus join data username dari tabel profiles agar pembacaan meta tag akurat
+  const { data, error } = await supabaseClient
     .from("contributions")
-    .select("*")
-    .eq("user_id", profileId)
+    .select(`
+      *,
+      profiles(username)
+    `)
+    .eq("user_id", targetProfileId)
     .eq("is_private", true)
     .order("created_at", { ascending: false })
 
@@ -363,6 +400,39 @@ async function loadUserPosts() {
     box.innerHTML = `<div class="card" style="text-align:center;color:#888;">Belum ada karya 🌱</div>`
     return
   }
+
+  // ===================== 🟢 KODE SINKRONISASI META TAG YANG SUDAH DIPERBAIKI =====================
+  try {
+    const postIdParam = urlParams.get("post");
+
+    if (postIdParam) {
+      const matchedPost = data.find(p => p.id === postIdParam || String(p.id) === String(postIdParam));
+      
+      if (matchedPost) {
+        const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres kebun karya di ToFarmer.";
+        const namaPetani = matchedPost.profiles?.username || "Petani";
+
+        // Ubah Judul Tab & Meta Tag Secara Live di Halaman Profil
+        document.title = `Karya @${namaPetani} | ToFarmer`;
+        
+        const metaDesc = document.getElementById("postDesc");
+        const ogTitle = document.getElementById("ogTitle");
+        const ogDesc = document.getElementById("ogDesc");
+        const ogImage = document.getElementById("ogImage");
+
+        if (metaDesc) metaDesc.setAttribute("content", petikTeks);
+        if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
+        if (ogDesc) ogDesc.setAttribute("content", petikTeks);
+        
+        if (matchedPost.image_url && ogImage) {
+          ogImage.setAttribute("content", matchedPost.image_url);
+        }
+      }
+    }
+  } catch (metaErr) {
+    console.log("Gagal memperbarui Meta Tag di Profil:", metaErr);
+  }
+  // ==============================================================================================
 
   box.innerHTML = data.map(post => {
     const date = new Date(post.created_at).toLocaleString("id-ID", {
@@ -373,59 +443,61 @@ async function loadUserPosts() {
       minute: "2-digit"
     })
 
+    const safeText = (post.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
+    const currentUsername = profileUsername || "Petani";
+
     return `
-      <div class="card">
+      <div class="card" style="margin-bottom:14px;">
 
         <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
           🌿 ${date}
         </div>
 
-       <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
-  ${post.deskripsi_proses || ""}
-</div>
+        <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
+          ${post.deskripsi_proses || ""}
+        </div>
 
-${
-  post.image_url
-    ? `
-      <div style="
-        width:100%;
-        display:flex;
-        justify-content:center;
-        margin-bottom:12px;
-      ">
-
-        <img
-          src="${post.image_url}"
-          style="
-            max-width:100%;
-            max-height:420px;
-            width:auto;
-            height:auto;
-            object-fit:contain;
-            border-radius:16px;
-            border:1px solid rgba(0,0,0,.06);
-            box-shadow:0 4px 12px rgba(0,0,0,.08);
-          "
-        />
-
-      </div>
-    `
-    : ""
-}
+        ${
+          post.image_url
+            ? `
+              <div style="width:100%;display:flex;justify-content:center;margin-bottom:12px;">
+                <img
+                  src="${post.image_url}"
+                  style="
+                    max-width:100%;
+                    max-height:420px;
+                    width:auto;
+                    height:auto;
+                    object-fit:contain;
+                    border-radius:16px;
+                    border:1px solid rgba(0,0,0,.06);
+                    box-shadow:0 4px 12px rgba(0,0,0,.08);
+                  "
+                />
+              </div>
+            `
+            : ""
+        }
 
         <div style="display:flex;gap:14px;font-size:12px;color:#666;margin-bottom:10px;">
-          <span onclick="reactPost('${post.id}','sruput')">
-            ☕ ${post.sruput_count || 0}
+          <span onclick="reactPost('${post.id}','sruput')" style="cursor:pointer;">
+            ☕ ${post.sruput_count || 0} Sruput
           </span>
 
-          <span onclick="reactPost('${post.id}','cangkul')">
-            ⛏️ ${post.cangkul_count || 0}
+          <span onclick="reactPost('${post.id}','cangkul')" style="cursor:pointer;">
+            ⛏️ ${post.cangkul_count || 0} Cangkul
           </span>
         </div>
 
-        <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;" />
+        <div class="post-actions">
+          <button class="share-btn" onclick="sharePost('${post.id}', '${currentUsername}', \`${safeText}\`)">
+            📢 Bagikan Karya
+          </button>
+        </div>
 
-        <button class="btn-glow" onclick="sendComment('${post.id}')">Kirim</button>
+        <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;box-sizing:border-box;" />
+
+        <button class="btn-glow" onclick="sendComment('${post.id}')" style="margin-top:6px;padding:6px 10px;font-size:12px;width:auto;">Kirim</button>
 
         <div id="commentBox-${post.id}" style="margin-top:8px;font-size:12px;color:#444;"></div>
 
@@ -515,9 +587,9 @@ async function loadComments(postId) {
 // =====================
 
 setInterval(async () => {
-  if (!profileId) return
+  if (!targetProfileId) return
 
-  const liveBalance = await getWalletTofBalance(profileId)
+  const liveBalance = await getWalletTofBalance(targetProfileId)
 
   const tofEl = document.querySelector("#profileTof")
 

@@ -832,39 +832,70 @@ async function loadFeed() {
   // ===================== AMBIL POST =====================
   const { data: posts, error: postError } = await supabaseClient
     .from("contributions")
-.select(`
-  id,
-  created_at,
-  deskripsi_proses,
-  image_url,
-  sruput_count,
-  cangkul_count,
-  profiles!inner(
-    id,
-    username,
-    avatar_url
-  )
-`)
-.eq("is_private", false)
-.order("created_at", { ascending: false })
+    .select(`
+      id,
+      created_at,
+      deskripsi_proses,
+      image_url,
+      sruput_count,
+      cangkul_count,
+      profiles!inner(
+        id,
+        username,
+        avatar_url
+      )
+    `)
+    .eq("is_private", false)
+    .order("created_at", { ascending: false })
 
   if (postError || !posts) {
     console.log("POST ERROR:", postError)
     feed.innerHTML = "<div>Gagal load post</div>"
     return
   }
+// ===================== 🔥 DI SINI TEMPATNYA: OTOMATIS UBAH META TAG VIA URL PARAMETER =====================
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const postIdParam = urlParams.get("post");
 
+    if (postIdParam) {
+      // Cari postingan yang cocok dengan id di URL dari data yang sudah di-load
+      const matchedPost = posts.find(p => p.id === postIdParam || String(p.id) === String(postIdParam));
+      
+      if (matchedPost) {
+        const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres karya di ToFarmer.";
+        const namaPetani = matchedPost.profiles?.username || "Petani";
+
+        // Ubah Judul Tab & Meta Tag Secara Live di Browser
+        document.title = `Catatan Karya @${namaPetani} | ToFarmer`;
+        
+        const metaDesc = document.getElementById("postDesc");
+        const ogTitle = document.getElementById("ogTitle");
+        const ogDesc = document.getElementById("ogDesc");
+        const ogImage = document.getElementById("ogImage");
+
+        if (metaDesc) metaDesc.setAttribute("content", petikTeks);
+        if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
+        if (ogDesc) ogDesc.setAttribute("content", petikTeks);
+        
+        // Jika postingan memiliki gambar, jadikan pratinjau utama browser
+        if (matchedPost.image_url && ogImage) {
+          ogImage.setAttribute("content", matchedPost.image_url);
+        }
+      }
+    }
+  } catch (metaErr) {
+    console.log("Gagal memperbarui Meta Tag:", metaErr);
+  }
+  // =========================================================================================================
   // ===================== AMBIL COMMENTS (SAFE MODE) =====================
   let comments = []
-
   try {
     const postIds = posts.map(p => p.id)
-
     const { data } = await supabaseClient
       .from("comments")
       .select("*")
       .in("post_id", postIds)
-
     comments = data || []
   } catch (e) {
     console.log("COMMENT ERROR:", e)
@@ -873,7 +904,6 @@ async function loadFeed() {
 
   // ===================== GROUP COMMENTS =====================
   const commentMap = {}
-
   comments.forEach(c => {
     if (!commentMap[c.post_id]) {
       commentMap[c.post_id] = []
@@ -881,70 +911,54 @@ async function loadFeed() {
     commentMap[c.post_id].push(c)
   })
 
-  // ===================== RENDER =====================
+  // ===================== RENDER POSTINGAN =====================
   posts.forEach(item => {
-
     const div = document.createElement("div")
     div.className = "post"
 
     const username = item.profiles?.username || "guest"
     const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
-
     const postComments = commentMap[item.id] || []
-const date = new Date(item.created_at).toLocaleString("id-ID", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit"
-});
+    
+    const date = new Date(item.created_at).toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    // 🔥 AMANKAN TEKS DARI BACKTICK & DOLLAR AGAR STRING ONCLICK TIDAK RUSAK
+    const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
+
     div.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;">
         <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
         <div
-  onclick="window.location.href='profile.html?id=${item.profiles?.id}'"
-  style="
-    font-weight:600;
-    color:#2f6f4e;
-    cursor:pointer;
-  "
->
-  @${username}
-</div>
+          onclick="window.location.href='profile.html?id=${item.profiles?.id}'"
+          style="font-weight:600;color:#2f6f4e;cursor:pointer;"
+        >
+          @${username}
+        </div>
       </div>
 
-     <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
-       ${date}
-</div>
+      <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
+        ${date}
+      </div>
 
-<div class="text" style="margin-top:6px;">
-  ${convertMentions(
-    item.deskripsi_proses || ""
-  )}
-</div>
+      <div class="text" style="margin-top:6px;">
+        ${convertMentions(item.deskripsi_proses || "")}
+      </div>
 
-${item.image_url ? `
- <div style="
-  margin-top:10px;
-  display:flex;
-  justify-content:center;
-">
-  <img
-    src="${item.image_url}"
-    style="
-      max-width:100%;
-      max-height:420px;
-      width:auto;
-      height:auto;
-      object-fit:contain;
-      border-radius:14px;
-      border:1px solid rgba(0,0,0,0.08);
-      box-shadow:0 4px 14px rgba(0,0,0,0.06);
-    "
-  />
-</div>
-` : ""}
-    
+      ${item.image_url ? `
+        <div style="margin-top:10px;display:flex;justify-content:center;">
+          <img
+            src="${item.image_url}"
+            style="max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain;border-radius:14px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 4px 14px rgba(0,0,0,0.06);"
+          />
+        </div>
+      ` : ""}
+      
       <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
         <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">
           ☕ ${item.sruput_count || 0} Sruput
@@ -953,6 +967,12 @@ ${item.image_url ? `
         <span onclick="reactPost('${item.id}','cangkul')" style="cursor:pointer;">
           ⛏️ ${item.cangkul_count || 0} Cangkul
         </span>
+      </div>
+
+      <div class="post-actions">
+        <button class="share-btn" onclick="sharePost('${item.id}', '${username}', \`${safeText}\`)">
+          📢 Bagikan Progres
+        </button>
       </div>
 
       <div style="margin-top:10px;">
@@ -966,12 +986,12 @@ ${item.image_url ? `
       </div>
 
       <div style="margin-top:10px;font-size:12px;">
-  ${postComments.map(c => `
-    <div style="padding:3px 0;color:#444;">
-      💬 ${convertMentions(c.comment)}
-    </div>
-  `).join("")}
-</div>
+        ${postComments.map(c => `
+          <div style="padding:3px 0;color:#444;">
+            💬 ${convertMentions(c.comment)}
+          </div>
+        `).join("")}
+      </div>
     `
 
     feed.appendChild(div)
