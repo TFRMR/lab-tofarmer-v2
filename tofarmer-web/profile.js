@@ -512,41 +512,74 @@ async function loadUserPosts() {
 // REACTION
 // =====================
 
-let reacting = false
+let reacting = false; // Ini gembok pintu depan
 
 async function reactPost(postId, type) {
-  if (reacting) return
-  reacting = true
+  // 1. Jika pintu sedang terkunci, abaikan klik selanjutnya!
+  if (reacting) return;
+  reacting = true; // Kunci pintu sekarang!
 
-  const { data: post } = await supabaseClient
-    .from("contributions")
-    .select("*")
-    .eq("id", postId)
-    .single()
+  try {
+    // Ambil data postingan terbaru
+    const { data: post, error: fetchErr } = await supabaseClient
+      .from("contributions")
+      .select("*")
+      .eq("id", postId)
+      .single();
 
-  if (post.user_id === currentWallet) return alert("Tidak bisa reaction sendiri 😄")
+    if (fetchErr || !post) return;
 
-  const { data: existing } = await supabaseClient
-    .from("reactions")
-    .select("*")
-    .eq("post_id", postId)
-    .eq("user_id", currentWallet)
-    .maybeSingle()
+    // Pemilik postingan tidak boleh klik karyanya sendiri
+    if (post.user_id === currentWallet) {
+      alert("Tidak bisa reaction di karya sendiri 😄");
+      reacting = false;
+      return;
+    }
 
-  if (!existing) {
-    await supabaseClient.from("reactions").insert([{ post_id: postId, user_id: currentWallet, type }])
+    // 2. Cek apakah di database sudah pernah ada riwayat klik dari dompet ini
+    const { data: existing } = await supabaseClient
+      .from("reactions")
+      .select("*")
+      .eq("post_id", postId)
+      .eq("user_id", currentWallet)
+      .maybeSingle();
+
+    if (existing) {
+      alert("Anda sudah memberikan apresiasi pada karya ini 🌱");
+      reacting = false;
+      return;
+    }
+
+    // 3. Daftarkan dulu ke tabel 'reactions'. 
+    // Jika gagal (karena dicegat gembok database), kode di bawahnya tidak akan jalan.
+    const { error: insertErr } = await supabaseClient
+      .from("reactions")
+      .insert([{ post_id: postId, user_id: currentWallet, type }]);
+
+    if (insertErr) {
+      console.log("Gagal, data sudah ada di database.");
+      reacting = false;
+      return;
+    }
+
+    // 4. Jika pendaftaran sukses, baru tambahkan angka +1
+    await supabaseClient
+      .from("contributions")
+      .update({
+        [type === "sruput" ? "sruput_count" : "cangkul_count"]:
+          (post[type === "sruput" ? "sruput_count" : "cangkul_count"] || 0) + 1
+      })
+      .eq("id", postId);
+
+    // Muat ulang tampilan agar angka berubah di layar browser
+    await loadUserPosts();
+
+  } catch (err) {
+    console.error("Terjadi kesalahan:", err);
+  } finally {
+    // 5. Apapun yang terjadi (sukses atau error), buka kembali gembok pintu depan
+    reacting = false;
   }
-
-  await supabaseClient
-    .from("contributions")
-    .update({
-      [type === "sruput" ? "sruput_count" : "cangkul_count"]:
-        (post[type === "sruput" ? "sruput_count" : "cangkul_count"] || 0) + 1
-    })
-    .eq("id", postId)
-
-  reacting = false
-  loadUserPosts()
 }
 
 // =====================
