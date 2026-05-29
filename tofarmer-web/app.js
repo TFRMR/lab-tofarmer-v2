@@ -771,13 +771,13 @@ function updateFaseProgress(totalTof) {
   totalTof = Number(totalTof) || 0
 
   const fases = [
-    { name: "FASE 1", target: 10000 },
-    { name: "FASE 2", target: 500000 },
-    { name: "FASE 3", target: 1000000 },
-    { name: "FASE 4", target: 3000000 },
-    { name: "FASE 5", target: 10000000 },
-    { name: "FASE 6", target: 30000000 },
-    { name: "FASE 7", target: 100000000 }
+    { name: "FASE 1", target: 10 },
+    { name: "FASE 2", target: 500 },
+    { name: "FASE 3", target: 1000 },
+    { name: "FASE 4", target: 3000 },
+    { name: "FASE 5", target: 10000 },
+    { name: "FASE 6", target: 30000 },
+    { name: "FASE 7", target: 100000 }
   ]
 
   let currentPhase = fases[0]
