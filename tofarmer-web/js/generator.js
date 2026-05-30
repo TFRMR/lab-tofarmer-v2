@@ -1,51 +1,40 @@
-// tofarmer-web/js/generator.js
-
+// Ganti seluruh isi file generator.js dengan ini:
 const Generator = {
-    // 1. Memori Kantong (LocalStorage)
-    saveDraft: (data) => {
-        localStorage.setItem('tofarmer_draft', JSON.stringify(data));
-    },
-
-    loadDraft: () => {
-        const draft = localStorage.getItem('tofarmer_draft');
-        return draft ? JSON.parse(draft) : {
-            gate: 1,
-            data: {}
-        };
-    },
-
-    // 2. Logika Update State
-    updateGate: (currentGate, newData) => {
-        let state = Generator.loadDraft();
-        state.gate = currentGate;
-        state.data = { ...state.data, ...newData };
-        Generator.saveDraft(state);
-        console.log(`Gate ${currentGate} tersimpan:`, state);
-    },
-
-    // 3. UI Handler yang sudah disinkronkan
-    initCategorySelection: (callback) => {
+    saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
+    
+    initCategorySelection: (onUpdate) => {
         const buttons = document.querySelectorAll('.category-btn');
+        const inputJudul = document.querySelector('#input-judul');
         const btnLanjut = document.querySelector('.btn-lanjut');
+
+        const validate = () => {
+            const isCategorySelected = document.querySelector('.category-btn.border-green-500');
+            const isTitleValid = inputJudul.value.trim().length >= 5;
+
+            if (isCategorySelected && isTitleValid) {
+                btnLanjut.classList.remove('cursor-not-allowed', 'text-gray-500', 'bg-gray-800');
+                btnLanjut.classList.add('bg-green-600', 'text-white', 'cursor-pointer', 'hover:bg-green-700');
+            } else {
+                btnLanjut.classList.add('cursor-not-allowed', 'text-gray-500', 'bg-gray-800');
+                btnLanjut.classList.remove('bg-green-600', 'text-white', 'cursor-pointer', 'hover:bg-green-700');
+            }
+        };
 
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Hapus style aktif dari semua tombol kategori
                 buttons.forEach(b => b.classList.remove('border-green-500', 'bg-gray-700'));
-                // Tambahkan style aktif ke tombol yang diklik
                 btn.classList.add('border-green-500', 'bg-gray-700');
-
-                // AKTIFKAN TOMBOL LANJUT
-                if (btnLanjut) {
-                    btnLanjut.classList.remove('cursor-not-allowed', 'text-gray-500', 'bg-gray-800');
-                    btnLanjut.classList.add('bg-green-600', 'text-white', 'cursor-pointer', 'hover:bg-green-700');
-                }
-                
-                callback(btn.dataset.value);
+                validate();
+                onUpdate(btn.dataset.value);
             });
         });
+        inputJudul.addEventListener('input', validate);
+    },
+
+    updateGate: (gate, data) => {
+        let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
+        state.data = { ...state.data, ...data };
+        localStorage.setItem('tofarmer_draft', JSON.stringify(state));
     }
 };
-
-// Gunakan export { Generator } agar bisa di-import dengan kurung kurawal
 export { Generator };

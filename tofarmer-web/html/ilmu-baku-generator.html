@@ -65,8 +65,26 @@
 
         <section class="mb-8">
             <label class="block text-sm text-gray-400 mb-2">Apa yang mau dijadikan ilmu baku?</label>
-            <input type="text" placeholder="Contoh: Cara buat bibit ubi anti busuk..." 
-                   class="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition-all">
+            <input type="text" id="input-judul" placeholder="Contoh: Cara buat bibit ubi anti busuk..." class="...">
+
+<script type="module">
+    import { Generator } from '../js/generator.js';
+
+    // 1. Jalankan fungsi pengawas
+    Generator.initCategorySelection((val) => Generator.updateGate(1, { domain: val }));
+
+    // 2. Simpan input judul ke memori
+    document.getElementById('input-judul').addEventListener('input', (e) => {
+        Generator.updateGate(1, { judul: e.target.value });
+    });
+
+    // 3. Tombol lanjut untuk pindah halaman
+    document.querySelector('.btn-lanjut').addEventListener('click', function() {
+        if (this.classList.contains('bg-green-600')) {
+            window.location.href = 'gate-2.html';
+        }
+    });
+</script>
         </section>
 
         <div class="mt-10">
