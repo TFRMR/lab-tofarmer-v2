@@ -6,8 +6,7 @@
     <title>ToFarmer - Mulai Eksperimen</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 2rem; }
-        
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 2rem; margin: 0; }
         .max-w-2xl { max-width: 42rem; margin: 0 auto; }
         .mb-8 { margin-bottom: 2rem; }
         .text-2xl { font-size: 1.5rem; font-weight: 800; color: white; }
@@ -26,7 +25,7 @@
         input { width: 100%; background: #111827; border: 1px solid #374151; padding: 1rem; border-radius: 0.75rem; color: white; outline: none; box-sizing: border-box; }
         input:focus { border: 1px solid #22c55e; }
 
-        .btn-lanjut { width: 100%; py-4; padding: 1rem; background: #1f2937; color: #6b7280; border: 1px solid #374151; border-radius: 0.75rem; font-weight: bold; cursor: not-allowed; margin-top: 2.5rem; }
+        .btn-lanjut { width: 100%; padding: 1rem; background: #1f2937; color: #6b7280; border: 1px solid #374151; border-radius: 0.75rem; font-weight: bold; cursor: not-allowed; margin-top: 2.5rem; }
         .btn-lanjut.active { background: #16a34a; color: white; cursor: pointer; border-color: #16a34a; }
     </style>
 </head>
@@ -52,10 +51,16 @@
 
         <section class="mb-8">
             <label>Apa yang mau dijadikan ilmu baku?</label>
-            <input type="text" id="input-judul" placeholder="Contoh: Cara buat bibit ubi anti busuk...">
+            <input type="text" id="input-judul" placeholder="Minimal 20 karakter: Objek + Metode Fisik/Taktis">
+            <div id="sensor-garis" style="height: 4px; background: #374151; margin-top: 8px; border-radius: 2px; overflow: hidden;">
+                <div id="garis-progres" style="width: 0%; height: 100%; background: #ef4444; transition: 0.3s;"></div>
+            </div>
+            <p id="pesan-sensor" style="font-size: 10px; color: #9ca3af; margin-top: 5px;">Butuh setidaknya 20 karakter...</p>
         </section>
 
-        <button class="btn-lanjut">Lanjut ke Langkah Berikutnya</button>
+        <div id="micro-inputs-container"></div>
+
+        <button class="btn-lanjut">🔒 GERBANG TERKUNCI</button>
     </div>
 
 <script type="module">
@@ -67,11 +72,19 @@
 
     const validate = () => {
         const hasCategory = document.querySelector('.category-btn.active');
-        const hasTitle = input.value.trim().length > 0;
+        const hasTitle = input.value.trim().length >= 20; // Aturan 20 karakter
+        
+        // Update Sensor Visual
+        const progress = Math.min((input.value.length / 20) * 100, 100);
+        document.getElementById('garis-progres').style.width = progress + "%";
+        document.getElementById('garis-progres').style.background = hasTitle ? "#22c55e" : "#ef4444";
+
         if (hasCategory && hasTitle) {
             btnLanjut.classList.add('active');
+            btnLanjut.innerText = "🔓 KUNCI FONDASI & MAJU KE GATE 2";
         } else {
             btnLanjut.classList.remove('active');
+            btnLanjut.innerText = "🔒 GERBANG TERKUNCI";
         }
     };
 
