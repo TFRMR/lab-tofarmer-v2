@@ -4,94 +4,83 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ToFarmer - Mulai Eksperimen</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { margin-bottom: 30px; }
+        .line { width: 60px; height: 4px; background-color: #22c55e; margin-top: 15px; border-radius: 2px; }
+        
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 30px; }
+        .category-btn { padding: 15px; border: 1px solid #374151; background: #1f2937; color: #f1f5f9; border-radius: 8px; cursor: pointer; text-align: center; }
+        .category-btn.active { border-color: #22c55e; background: #374151; }
+        
+        input { width: 100%; padding: 15px; background: #111827; border: 1px solid #374151; border-radius: 10px; color: white; box-sizing: border-box; outline: none; }
+        input:focus { border-color: #22c55e; }
+        
+        .btn-lanjut { width: 100%; padding: 15px; background: #1f2937; color: #6b7280; border: 1px solid #374151; border-radius: 10px; font-weight: bold; cursor: not-allowed; margin-top: 40px; }
+        .btn-lanjut.active { background: #16a34a; color: white; cursor: pointer; border-color: #16a34a; }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
-<script type="module">
-    import { Generator } from '../js/generator.js';
+<body>
 
-    // Inisialisasi Kategori
-    Generator.initCategorySelection((value) => {
-        console.log("Kategori dipilih:", value);
-        Generator.updateGate(1, { domain: value });
-    });
-
-    // Logika Klik Tombol Lanjut
-    const btnLanjut = document.querySelector('.btn-lanjut');
-    btnLanjut.addEventListener('click', () => {
-        if (btnLanjut.classList.contains('bg-green-600')) {
-            window.location.href = 'gate-2.html'; // Sesuaikan nama file tujuanmu
-        } else {
-            alert("Pilih kategori terlebih dahulu!");
-        }
-    });
-</script>
-    <div class="max-w-2xl mx-auto">
-        <header class="mb-8">
-            <h1 class="text-2xl font-extrabold text-white">Langkah 1: Tentukan Fokusmu</h1>
-            <p class="text-gray-400 text-sm mt-1">Pilih bidang yang ingin kamu jadikan ilmu baku agar bisa dipelajari orang lain.</p>
-            <div class="w-16 h-1 bg-green-500 mt-4 rounded"></div>
+    <div class="container">
+        <header class="header">
+            <h1>Langkah 1: Tentukan Fokusmu</h1>
+            <p>Pilih bidang yang ingin kamu jadikan ilmu baku.</p>
+            <div class="line"></div>
         </header>
 
-        <section class="mb-8">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="ladang">
-                    <span class="text-xl">🌱</span><br><span class="text-[10px] font-bold uppercase">Ilmu Ladang</span>
-                </button>
-                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="alat">
-                    <span class="text-xl">🛠️</span><br><span class="text-[10px] font-bold uppercase">Bikin Alat</span>
-                </button>
-                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="jualan">
-                    <span class="text-xl">💰</span><br><span class="text-[10px] font-bold uppercase">Ilmu Jualan</span>
-                </button>
-                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="konten">
-                    <span class="text-xl">🤝</span><br><span class="text-[10px] font-bold uppercase">Ngonten & Sosial</span>
-                </button>
-                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="keuangan">
-                    <span class="text-xl">📊</span><br><span class="text-[10px] font-bold uppercase">Keuangan</span>
-                </button>
-                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="digital">
-                    <span class="text-xl">💻</span><br><span class="text-[10px] font-bold uppercase">Ilmu Digital</span>
-                </button>
-                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="refleksi">
-                    <span class="text-xl">🧠</span><br><span class="text-[10px] font-bold uppercase">Refleksi</span>
-                </button>
-            </div>
+        <section class="grid">
+            <button class="category-btn" data-value="ladang">🌱<br>Ilmu Ladang</button>
+            <button class="category-btn" data-value="alat">🛠️<br>Bikin Alat</button>
+            <button class="category-btn" data-value="jualan">💰<br>Ilmu Jualan</button>
+            <button class="category-btn" data-value="konten">🤝<br>Ngonten</button>
         </section>
 
-        <section class="mb-8">
-            <label class="block text-sm text-gray-400 mb-2">Apa yang mau dijadikan ilmu baku?</label>
-            <input type="text" id="input-judul" placeholder="Contoh: Cara buat bibit ubi anti busuk..." 
-                   class="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition-all">
+        <input type="text" id="input-judul" placeholder="Contoh: Cara buat bibit ubi...">
+
+        <button class="btn-lanjut">Lanjut ke Langkah Berikutnya</button>
+    </div>
+
 <script type="module">
     import { Generator } from '../js/generator.js';
 
-    // 1. Jalankan fungsi pengawas
-    Generator.initCategorySelection((val) => Generator.updateGate(1, { domain: val }));
+    const buttons = document.querySelectorAll('.category-btn');
+    const input = document.getElementById('input-judul');
+    const btnLanjut = document.querySelector('.btn-lanjut');
 
-    // 2. Simpan input judul ke memori
-    document.getElementById('input-judul').addEventListener('input', (e) => {
-        Generator.updateGate(1, { judul: e.target.value });
+    const validate = () => {
+        const hasCategory = document.querySelector('.category-btn.active');
+        const hasTitle = input.value.trim().length > 0;
+        if (hasCategory && hasTitle) {
+            btnLanjut.classList.add('active');
+            btnLanjut.style.cursor = 'pointer';
+        } else {
+            btnLanjut.classList.remove('active');
+        }
+    };
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            validate();
+            Generator.updateGate(1, { domain: btn.dataset.value });
+        });
     });
 
-    // 3. Tombol lanjut untuk pindah halaman
-    document.querySelector('.btn-lanjut').addEventListener('click', function() {
-        if (this.classList.contains('bg-green-600')) {
+    input.addEventListener('input', () => {
+        validate();
+        Generator.updateGate(1, { judul: input.value });
+    });
+
+    btnLanjut.addEventListener('click', () => {
+        if (btnLanjut.classList.contains('active')) {
             window.location.href = 'gate-2.html';
         }
     });
 </script>
-        </section>
-
-        <div class="mt-10">
-            <button class="btn-lanjut w-full py-4 bg-gray-800 text-gray-500 border border-gray-700 rounded-xl font-bold cursor-not-allowed">
-                Lanjut ke Langkah Berikutnya
-            </button>
-        </div>
-    </div>
 </body>
 </html>
