@@ -92,6 +92,10 @@
         btn.addEventListener('click', () => {
             buttons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            
+            // Panggil generator input dinamis
+            Generator.renderMicroInputs(btn.dataset.value);
+            
             validate();
             Generator.updateGate(1, { domain: btn.dataset.value });
         });

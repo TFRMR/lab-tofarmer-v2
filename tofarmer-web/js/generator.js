@@ -56,8 +56,34 @@ const Generator = {
 
     renderMicroInputs: (pilar) => {
         const container = document.getElementById('micro-inputs-container');
-        // Nanti kita isi logika form dinamis per pilar di sini
-        console.log("Rendering form untuk pilar:", pilar);
+        container.innerHTML = ''; // Bersihkan kontainer
+
+        const templates = {
+            ladang: [
+                { id: 'objek', label: 'Objek/Varietas' },
+                { id: 'metode', label: 'Instrumen/Metode' },
+                { id: 'kondisi', label: 'Kondisi Lingkungan' }
+            ],
+            niaga: [
+                { id: 'produk', label: 'Produk/Jasa Target' },
+                { id: 'lokasi', label: 'Lokasi/Target Konsumen' },
+                { id: 'metrik', label: 'Metrik Validasi Utama' },
+                { id: 'modal', label: 'Batasan Modal' }
+            ]
+            // Tambahkan pilar lain dengan cara yang sama...
+        };
+
+        if (templates[pilar]) {
+            templates[pilar].forEach(field => {
+                const div = document.createElement('div');
+                div.className = 'mb-4';
+                div.innerHTML = `
+                    <label style="font-size: 12px; color: #9ca3af;">${field.label}</label>
+                    <input type="text" id="input-${field.id}" class="micro-input" placeholder="Masukkan ${field.label}...">
+                `;
+                container.appendChild(div);
+            });
+        }
     }
 };
 
