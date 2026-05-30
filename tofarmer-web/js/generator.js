@@ -1,4 +1,14 @@
 const Generator = {
+    // 1. Pemetaan Jalur (Sesuai Dokumen)
+    getJalur: (pilar) => {
+        const jalurMap = {
+            ladang: "Jalur Lambat", alat: "Jalur Lambat",
+            jualan: "Jalur Sedang", komunitas: "Jalur Sedang",
+            trading: "Jalur Sedang-Kilat", ai: "Jalur Kilat", digital: "Jalur Kilat", refleksi: "Jalur Kilat"
+        };
+        return jalurMap[pilar] || "Jalur Normal";
+    },
+
     saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
 
     // Fungsi Validasi Sensor (Langkah 2)
@@ -22,10 +32,13 @@ const Generator = {
         const microContainer = document.getElementById('micro-inputs-container');
 
         const validate = () => {
-            const isCategorySelected = document.querySelector('.category-btn.active');
+            const activeBtn = document.querySelector('.category-btn.active');
             const isTitleValid = Generator.validateSensor(inputJudul.value.trim());
+            // Validasi kelengkapan micro-inputs
+            const microInputs = microContainer.querySelectorAll('.micro-input');
+            const isMicroComplete = microInputs.length > 0 && Array.from(microInputs).every(i => i.value.trim() !== "");
 
-            if (isCategorySelected && isTitleValid) {
+            if (activeBtn && isTitleValid && isMicroComplete) {
                 btnLanjut.classList.add('active');
                 btnLanjut.innerText = "🔓 KUNCI FONDASI & MAJU KE GATE 2";
             } else {
@@ -42,6 +55,12 @@ const Generator = {
                 // Panggil renderMicroInputs saat kategori diklik
                 Generator.renderMicroInputs(btn.dataset.value);
                 
+                // Simpan karakteristik jalur saat pilar dipilih
+                Generator.updateGate(1, { 
+                    pilar_bidang: btn.dataset.value, 
+                    karakteristik_jalur: Generator.getJalur(btn.dataset.value) 
+                });
+                
                 validate();
                 onUpdate(btn.dataset.value);
             });
@@ -49,7 +68,7 @@ const Generator = {
 
         inputJudul.addEventListener('input', () => {
             validate();
-            Generator.updateGate(1, { judul: inputJudul.value });
+            Generator.updateGate(1, { judul_eksperimen: inputJudul.value });
         });
 
         // Event listener untuk Micro-Inputs agar selalu update real-time
@@ -61,7 +80,12 @@ const Generator = {
             const activePilar = document.querySelector('.category-btn.active').dataset.value;
             const kalimat = Generator.compileKalimat(activePilar, microData);
             
-            Generator.updateGate(1, { micro_inputs: microData, kalimat_baku_compiled: kalimat });
+            Generator.updateGate(1, { 
+                micro_inputs: microData, 
+                kalimat_baku_compiled: kalimat,
+                gate_1_status: "Lolos"
+            });
+            validate();
         });
     },
 
