@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToFarmer - Mulai Eksperimen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+<script type="module">
+    import Generator from '../js/generator.js';
+
+    // Inisialisasi
+    Generator.initCategorySelection((value) => {
+        console.log("Kategori dipilih:", value);
+        // Aktifkan tombol lanjut
+        const btnLanjut = document.querySelector('.btn-lanjut');
+        btnLanjut.classList.remove('cursor-not-allowed', 'text-gray-500');
+        btnLanjut.classList.add('bg-green-600', 'text-white', 'cursor-pointer');
+        
+        // Simpan ke memori kantong
+        Generator.updateGate(1, { domain: value });
+    });
+</script>
+    <div class="max-w-2xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-2xl font-extrabold text-white">Langkah 1: Tentukan Fokusmu</h1>
+            <p class="text-gray-400 text-sm mt-1">Pilih bidang yang ingin kamu jadikan ilmu baku agar bisa dipelajari orang lain.</p>
+            <div class="w-16 h-1 bg-green-500 mt-4 rounded"></div>
+        </header>
+
+        <section class="mb-8">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="ladang">
+                    <span class="text-xl">🌱</span><br><span class="text-[10px] font-bold uppercase">Ilmu Ladang</span>
+                </button>
+                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="alat">
+                    <span class="text-xl">🛠️</span><br><span class="text-[10px] font-bold uppercase">Bikin Alat</span>
+                </button>
+                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="jualan">
+                    <span class="text-xl">💰</span><br><span class="text-[10px] font-bold uppercase">Ilmu Jualan</span>
+                </button>
+                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="konten">
+                    <span class="text-xl">🤝</span><br><span class="text-[10px] font-bold uppercase">Ngonten & Sosial</span>
+                </button>
+                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="keuangan">
+                    <span class="text-xl">📊</span><br><span class="text-[10px] font-bold uppercase">Keuangan</span>
+                </button>
+                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="digital">
+                    <span class="text-xl">💻</span><br><span class="text-[10px] font-bold uppercase">Ilmu Digital</span>
+                </button>
+                <button class="category-btn p-3 rounded-lg border border-gray-700 bg-gray-800 hover:border-green-500 transition-all text-center" data-value="refleksi">
+                    <span class="text-xl">🧠</span><br><span class="text-[10px] font-bold uppercase">Refleksi</span>
+                </button>
+            </div>
+        </section>
+
+        <section class="mb-8">
+            <label class="block text-sm text-gray-400 mb-2">Apa yang mau dijadikan ilmu baku?</label>
+            <input type="text" placeholder="Contoh: Cara buat bibit ubi anti busuk..." 
+                   class="w-full bg-gray-900 border border-gray-700 p-4 rounded-xl focus:ring-2 focus:ring-green-500 outline-none transition-all">
+        </section>
+
+        <div class="mt-10">
+            <button class="btn-lanjut w-full py-4 bg-gray-800 text-gray-500 border border-gray-700 rounded-xl font-bold cursor-not-allowed">
+                Lanjut ke Langkah Berikutnya
+            </button>
+        </div>
+    </div>
+</body>
+</html>
