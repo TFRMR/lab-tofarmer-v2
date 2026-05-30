@@ -1,4 +1,29 @@
-// 3. UI Handler yang sudah disinkronkan
+// tofarmer-web/js/generator.js
+
+const Generator = {
+    // 1. Memori Kantong (LocalStorage)
+    saveDraft: (data) => {
+        localStorage.setItem('tofarmer_draft', JSON.stringify(data));
+    },
+
+    loadDraft: () => {
+        const draft = localStorage.getItem('tofarmer_draft');
+        return draft ? JSON.parse(draft) : {
+            gate: 1,
+            data: {}
+        };
+    },
+
+    // 2. Logika Update State
+    updateGate: (currentGate, newData) => {
+        let state = Generator.loadDraft();
+        state.gate = currentGate;
+        state.data = { ...state.data, ...newData };
+        Generator.saveDraft(state);
+        console.log(`Gate ${currentGate} tersimpan:`, state);
+    },
+
+    // 3. UI Handler yang sudah disinkronkan
     initCategorySelection: (callback) => {
         const buttons = document.querySelectorAll('.category-btn');
         const btnLanjut = document.querySelector('.btn-lanjut');
@@ -20,3 +45,7 @@
             });
         });
     }
+};
+
+// Gunakan export { Generator } agar bisa di-import dengan kurung kurawal
+export { Generator };

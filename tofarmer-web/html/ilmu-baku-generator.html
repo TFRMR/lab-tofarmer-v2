@@ -12,18 +12,22 @@
 </head>
 <body class="min-h-screen p-4 md:p-8">
 <script type="module">
-    import Generator from '../js/generator.js';
+    import { Generator } from '../js/generator.js';
 
-    // Inisialisasi
+    // Inisialisasi Kategori
     Generator.initCategorySelection((value) => {
         console.log("Kategori dipilih:", value);
-        // Aktifkan tombol lanjut
-        const btnLanjut = document.querySelector('.btn-lanjut');
-        btnLanjut.classList.remove('cursor-not-allowed', 'text-gray-500');
-        btnLanjut.classList.add('bg-green-600', 'text-white', 'cursor-pointer');
-        
-        // Simpan ke memori kantong
         Generator.updateGate(1, { domain: value });
+    });
+
+    // Logika Klik Tombol Lanjut
+    const btnLanjut = document.querySelector('.btn-lanjut');
+    btnLanjut.addEventListener('click', () => {
+        if (btnLanjut.classList.contains('bg-green-600')) {
+            window.location.href = 'gate-2.html'; // Sesuaikan nama file tujuanmu
+        } else {
+            alert("Pilih kategori terlebih dahulu!");
+        }
     });
 </script>
     <div class="max-w-2xl mx-auto">
