@@ -19,6 +19,7 @@ const Generator = {
         const buttons = document.querySelectorAll('.category-btn');
         const inputJudul = document.querySelector('#input-judul');
         const btnLanjut = document.querySelector('.btn-lanjut');
+        const microContainer = document.getElementById('micro-inputs-container');
 
         const validate = () => {
             const isCategorySelected = document.querySelector('.category-btn.active');
@@ -49,6 +50,18 @@ const Generator = {
         inputJudul.addEventListener('input', () => {
             validate();
             Generator.updateGate(1, { judul: inputJudul.value });
+        });
+
+        // Event listener untuk Micro-Inputs agar selalu update real-time
+        microContainer.addEventListener('input', () => {
+            const inputs = microContainer.querySelectorAll('.micro-input');
+            let microData = {};
+            inputs.forEach(i => microData[i.id.replace('input-', '')] = i.value);
+            
+            const activePilar = document.querySelector('.category-btn.active').dataset.value;
+            const kalimat = Generator.compileKalimat(activePilar, microData);
+            
+            Generator.updateGate(1, { micro_inputs: microData, kalimat_baku_compiled: kalimat });
         });
     },
 
@@ -113,6 +126,25 @@ const Generator = {
                 container.appendChild(div);
             });
         }
+    },
+
+    compileKalimat: (pilar, data) => {
+        if (pilar === 'ladang') {
+            return `Eksperimen dilakukan pada [${data.kondisi || '...'}] menggunakan instrumen/alat [${data.metode || '...'}] dengan objek target [${data.objek || '...'}].`;
+        } else if (pilar === 'alat') {
+            return `Eksperimen pembuatan alat dilakukan untuk fungsi [${data.fungsi || '...'}] menggunakan material utama [${data.material || '...'}] dengan mekanisme kerja [${data.mekanisme || '...'}].`;
+        } else if (pilar === 'jualan') {
+            return `Eksperimen niaga dilakukan pada objek [${data.produk || '...'}] yang diuji di [${data.lokasi || '...'}] di bawah batasan [${data.modal || '...'}] dengan target keberhasilan [${data.metrik || '...'}].`;
+        } else if (pilar === 'konten') {
+            return `Eksperimen konten dilakukan pada platform [${data.platform || '...'}] dengan topik [${data.topik || '...'}] yang ditujukan untuk audiens [${data.audiens || '...'}].`;
+        } else if (pilar === 'keuangan') {
+            return `Eksperimen keuangan dilakukan pada aset/instrumen [${data.aset || '...'}] menggunakan strategi [${data.strategi || '...'}] dengan batasan risiko [${data.risiko || '...'}].`;
+        } else if (pilar === 'digital') {
+            return `Eksperimen digital dilakukan menggunakan teknologi [${data.teknologi || '...'}] untuk kasus penggunaan [${data.kasus || '...'}] dengan target hasil [${data.target || '...'}].`;
+        } else if (pilar === 'refleksi') {
+            return `Eksperimen refleksi dilakukan dengan tema [${data.tema || '...'}] menggunakan metode evaluasi [${data.metode || '...'}] dalam durasi/frekuensi [${data.durasi || '...'}].`;
+        }
+        return "";
     }
 };
 
