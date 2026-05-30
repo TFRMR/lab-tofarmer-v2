@@ -37,6 +37,10 @@ const Generator = {
             btn.addEventListener('click', () => {
                 buttons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                
+                // Panggil renderMicroInputs saat kategori diklik
+                Generator.renderMicroInputs(btn.dataset.value);
+                
                 validate();
                 onUpdate(btn.dataset.value);
             });
@@ -64,13 +68,37 @@ const Generator = {
                 { id: 'metode', label: 'Instrumen/Metode' },
                 { id: 'kondisi', label: 'Kondisi Lingkungan' }
             ],
-            niaga: [
+            alat: [
+                { id: 'fungsi', label: 'Fungsi Utama Alat' },
+                { id: 'material', label: 'Material Utama' },
+                { id: 'mekanisme', label: 'Mekanisme Kerja' }
+            ],
+            jualan: [
                 { id: 'produk', label: 'Produk/Jasa Target' },
                 { id: 'lokasi', label: 'Lokasi/Target Konsumen' },
                 { id: 'metrik', label: 'Metrik Validasi Utama' },
                 { id: 'modal', label: 'Batasan Modal' }
+            ],
+            konten: [
+                { id: 'platform', label: 'Platform Target' },
+                { id: 'topik', label: 'Topik Utama' },
+                { id: 'audiens', label: 'Target Audiens' }
+            ],
+            keuangan: [
+                { id: 'aset', label: 'Aset/Instrumen' },
+                { id: 'strategi', label: 'Strategi Kelola' },
+                { id: 'risiko', label: 'Batasan Risiko' }
+            ],
+            digital: [
+                { id: 'teknologi', label: 'Stack/Teknologi' },
+                { id: 'kasus', label: 'Kasus Penggunaan' },
+                { id: 'target', label: 'Hasil/Target Output' }
+            ],
+            refleksi: [
+                { id: 'tema', label: 'Tema Refleksi' },
+                { id: 'metode', label: 'Metode Evaluasi' },
+                { id: 'durasi', label: 'Durasi/Frekuensi' }
             ]
-            // Tambahkan pilar lain dengan cara yang sama...
         };
 
         if (templates[pilar]) {
@@ -78,8 +106,9 @@ const Generator = {
                 const div = document.createElement('div');
                 div.className = 'mb-4';
                 div.innerHTML = `
-                    <label style="font-size: 12px; color: #9ca3af;">${field.label}</label>
-                    <input type="text" id="input-${field.id}" class="micro-input" placeholder="Masukkan ${field.label}...">
+                    <label style="font-size: 12px; color: #9ca3af; margin-bottom: 5px;">${field.label}</label>
+                    <input type="text" id="input-${field.id}" class="micro-input" placeholder="Masukkan ${field.label}..."
+                           style="width: 100%; background: #111827; border: 1px solid #374151; padding: 12px; border-radius: 8px; color: white; box-sizing: border-box; outline: none;">
                 `;
                 container.appendChild(div);
             });
