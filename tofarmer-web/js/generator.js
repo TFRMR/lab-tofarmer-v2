@@ -13,6 +13,7 @@ const Generator = {
 
     saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
     // FUNGSI AI PALSU (Diperbaiki agar mengambil data dari ai-logic.js)
+    // FUNGSI AI PALSU (Diperbaiki agar mengambil data dari ai-logic.js)
     updateAdvice: () => {
         const aiWhisperer = document.getElementById('ai-whisperer');
         const aiText = document.getElementById('ai-text');
@@ -24,11 +25,26 @@ const Generator = {
             const judul = inputJudul.value.trim();
             
             aiWhisperer.style.display = 'block';
+            aiWhisperer.classList.add('ai-active'); // Tambahan animasi berdenyut
             
             const pilarData = bimbingan[pilar] || { pendek: "Pilih bidang eksperimenmu untuk memulai.", lengkap: "" };
             const saran = (judul.length < 20) ? pilarData.pendek : pilarData.lengkap;
             
-            aiText.innerText = saran;
+            // --- INI BARIS YANG ANDA INGINKAN TETAP ADA ---
+            aiText.innerText = saran; 
+            
+            // --- TAMBAHAN EFEK KETIK (Mengambil isi dari saran) ---
+            let i = 0;
+            aiText.innerText = ""; 
+            if (window.typingInterval) clearInterval(window.typingInterval);
+            window.typingInterval = setInterval(() => {
+                if (i < saran.length) {
+                    aiText.innerText += saran.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(window.typingInterval);
+                }
+            }, 30);
         }
     },
 
