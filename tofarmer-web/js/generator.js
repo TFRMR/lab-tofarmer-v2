@@ -1,4 +1,19 @@
 const Generator = {
+// Tambahkan variabel ini di atas fungsi-fungsi Anda
+let aiTimer;
+
+// Ubah bagian event listener inputJudul menjadi seperti ini:
+inputJudul.addEventListener('input', () => {
+    // 1. Validasi tetap jalan langsung (biar progres bar tidak patah-patah)
+    validate(); 
+    Generator.updateGate(1, { judul_eksperimen: inputJudul.value });
+
+    // 2. Debounce untuk AI: Tunggu user berhenti mengetik 800ms (0.8 detik)
+    clearTimeout(aiTimer); 
+    aiTimer = setTimeout(() => {
+        Generator.updateAdvice(); 
+    }, 800);
+});
     // 1. Pemetaan Jalur (Sesuai Dokumen)
     getJalur: (pilar) => {
         const jalurMap = {
@@ -12,47 +27,59 @@ const Generator = {
     saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
   
     // FUNGSI AI (Sekarang mengambil saran dari Cloudflare Worker)
-    updateAdvice: async () => {
-        const aiWhisperer = document.getElementById('ai-whisperer');
-        const aiText = document.getElementById('ai-text');
-        const inputJudul = document.getElementById('input-judul');
-        const activeBtn = document.querySelector('.category-btn.active');
+   updateAdvice: async () => {
+        // --- LOGIKA DEBOUNCE (Menghindari Looping) ---
+        clearTimeout(Generator.aiTimer);
         
-        if (aiWhisperer && aiText && inputJudul) {
-            const pilar = activeBtn ? activeBtn.dataset.value : null;
-            const judul = inputJudul.value.trim();
+        Generator.aiTimer = setTimeout(async () => {
+            const aiWhisperer = document.getElementById('ai-whisperer');
+            const aiText = document.getElementById('ai-text');
+            const inputJudul = document.getElementById('input-judul');
+            const activeBtn = document.querySelector('.category-btn.active');
             
-            aiWhisperer.style.display = 'block';
-            aiWhisperer.classList.add('ai-active'); 
-            aiText.innerText = "Mencari ilmu baku untuk eksperimenmu...";
-
-            try {
-                const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pilar: pilar, teks: judul }) // Sudah sesuai dengan backend
-});
-                const result = await response.json();
-                const saran = result.saran;
-
-                // --- EFEK KETIK ---
-                let i = 0;
-                aiText.innerText = ""; 
-                if (window.typingInterval) clearInterval(window.typingInterval);
+            if (aiWhisperer && aiText && inputJudul) {
+                const pilar = activeBtn ? activeBtn.dataset.value : null;
+                const judul = inputJudul.value.trim();
                 
-                window.typingInterval = setInterval(() => {
-                    if (i < saran.length) {
-                        aiText.textContent += saran.charAt(i); 
-                        i++;
-                    } else {
-                        clearInterval(window.typingInterval);
-                    }
-                }, 30);
-            } catch (error) {
-                aiText.innerText = "Gagal memuat saran dari AI.";
-                console.error("AI Error:", error);
+                // Menunggu minimal 20 karakter agar AI tidak bekerja terlalu dini
+                if (judul.length < 20) {
+                    aiWhisperer.style.display = 'none';
+                    return;
+                }
+
+                aiWhisperer.style.display = 'block';
+                aiWhisperer.classList.add('ai-active'); 
+                aiText.innerText = "Mencari ilmu baku untuk eksperimenmu...";
+
+                try {
+                    const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ pilar: pilar, teks: judul })
+                    });
+                    
+                    const result = await response.json();
+                    const saran = result.saran;
+
+                    // --- EFEK KETIK ---
+                    let i = 0;
+                    aiText.innerText = ""; 
+                    if (window.typingInterval) clearInterval(window.typingInterval);
+                    
+                    window.typingInterval = setInterval(() => {
+                        if (i < saran.length) {
+                            aiText.textContent += saran.charAt(i); 
+                            i++;
+                        } else {
+                            clearInterval(window.typingInterval);
+                        }
+                    }, 30);
+                } catch (error) {
+                    aiText.innerText = "Gagal memuat saran dari AI.";
+                    console.error("AI Error:", error);
+                }
             }
-        }
+        }, 800); // Tunggu 0.8 detik setelah berhenti mengetik
     },
 
     validateSensor: (judul) => {
