@@ -27,11 +27,11 @@ const Generator = {
             aiText.innerText = "Mencari ilmu baku untuk eksperimenmu...";
 
             try {
-                const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pilar: pilar, teks: judul })
-                });
+                const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pilar: pilar, teks: judul }) // Sudah sesuai dengan backend
+});
                 const result = await response.json();
                 const saran = result.saran;
 

@@ -150,27 +150,42 @@ export default {
       return json({ success: true, data }, corsHeaders);
     }
 
-    // =====================================================
+   // =====================================================
     // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
     // =====================================================
     if (url.pathname === "/ai-saran" && request.method === "POST") {
       const body = await request.json();
       
-      const aiResponse = await env.AI.run('@cf/sentence-transformer/all-minilm-l6-v2', { 
+      // 1. Embedding: Ubah teks user jadi vektor pakai model BGE-M3
+      const aiEmbedding = await env.AI.run('@cf/baai/bge-m3', { 
         text: [body.teks] 
       });
-      const embedding = aiResponse.data[0];
+      const vector = aiEmbedding.data[0];
 
-      const { data, error } = await supabase.rpc('match_ilmu', {
-        query_embedding: embedding,
+      // 2. Cari ilmu terkait di Supabase
+      const { data: ilmu, error } = await supabase.rpc('match_ilmu', {
+        query_embedding: vector,
         match_threshold: 0.5,
-        match_count: 1
+        match_count: 3
       });
 
       if (error) return jsonError(error, corsHeaders);
 
+      // 3. Gabungkan ilmu sebagai konteks untuk LLM
+      const context = ilmu && ilmu.length > 0 
+        ? ilmu.map(i => i.isi_ilmu).join("\n") 
+        : "Tidak ada referensi ilmu yang ditemukan.";
+
+      // 4. Generate jawaban/saran pakai Llama-3
+      const aiChat = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
+        messages: [
+          { role: "system", content: "Anda adalah mentor pertanian ToFarmer. Berikan saran singkat berdasarkan referensi ilmu yang diberikan." },
+          { role: "user", content: `Pertanyaan: "${body.teks}". Referensi Ilmu: ${context}` }
+        ]
+      });
+
       return json({ 
-        saran: data[0]?.isi_ilmu || "Belum ada ilmu baku untuk topik ini." 
+        saran: aiChat.response 
       }, corsHeaders);
     }
 
