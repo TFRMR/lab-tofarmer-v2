@@ -1,20 +1,8 @@
 const Generator = {
-// Tambahkan variabel ini di atas fungsi-fungsi Anda
-let aiTimer;
+    // 1. Variabel untuk Debounce
+    aiTimer: null,
 
-// Ubah bagian event listener inputJudul menjadi seperti ini:
-inputJudul.addEventListener('input', () => {
-    // 1. Validasi tetap jalan langsung (biar progres bar tidak patah-patah)
-    validate(); 
-    Generator.updateGate(1, { judul_eksperimen: inputJudul.value });
-
-    // 2. Debounce untuk AI: Tunggu user berhenti mengetik 800ms (0.8 detik)
-    clearTimeout(aiTimer); 
-    aiTimer = setTimeout(() => {
-        Generator.updateAdvice(); 
-    }, 800);
-});
-    // 1. Pemetaan Jalur (Sesuai Dokumen)
+    // 2. Pemetaan Jalur (Sesuai Dokumen)
     getJalur: (pilar) => {
         const jalurMap = {
             ladang: "Jalur Lambat", alat: "Jalur Lambat",
@@ -26,8 +14,8 @@ inputJudul.addEventListener('input', () => {
 
     saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
   
-    // FUNGSI AI (Sekarang mengambil saran dari Cloudflare Worker)
-   updateAdvice: async () => {
+    // 3. FUNGSI AI (Sekarang mengambil saran dari Cloudflare Worker)
+    updateAdvice: async () => {
         // --- LOGIKA DEBOUNCE (Menghindari Looping) ---
         clearTimeout(Generator.aiTimer);
         
@@ -93,7 +81,7 @@ inputJudul.addEventListener('input', () => {
         return isLolos;
     },
     
-    // Fungsi Pilar (Langkah 1 & 3)
+    // 4. Fungsi Pilar (Langkah 1 & 3)
     initCategorySelection: (onUpdate) => {
         const buttons = document.querySelectorAll('.category-btn');
         const inputJudul = document.querySelector('#input-judul');
@@ -134,10 +122,11 @@ inputJudul.addEventListener('input', () => {
             });
         });
 
+        // Event listener dengan Debounce
         inputJudul.addEventListener('input', () => {
             validate();
             Generator.updateGate(1, { judul_eksperimen: inputJudul.value });
-            Generator.updateAdvice(); 
+            // Debounce dipanggil di dalam validate() via updateAdvice()
         });
 
         microContainer.addEventListener('input', () => {
