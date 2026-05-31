@@ -155,53 +155,56 @@ export default {
     // =====================================================
     // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
     // =====================================================
-    if (url.pathname === "/ai-saran" && request.method === "POST") {
+ if (url.pathname === "/ai-saran" && request.method === "POST") {
       const body = await request.json();
-      
-      const aiEmbedding = await env.AI.run('@cf/baai/bge-m3', { 
-        text: [body.teks] 
-      });
-      const vector = aiEmbedding.data[0];
 
-      const { data: ilmu, error } = await supabase.rpc('match_ilmu', {
-        query_embedding: vector,
-        match_threshold: 0.5,
-        match_count: 3
-      });
+      // Pindahkan pengecekan ke sini, di dalam route yang tepat
+      if (!body.teks || body.teks.length < 5) {
+        return json({ saran: "Input terlalu pendek, Kang. Coba tulis lebih jelas lagi eksperimennya." }, corsHeaders);
+      }
+  // 1. UBAH TEKS JADI VEKTOR (BGE-M3)
+  const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [body.teks] });
+  const vector = embeddings.data[0];
 
-      if (error) return jsonError(error, corsHeaders);
+  // 2. CARI DATA TERKAIT DI SUPABASE (Lewat function match_ilmu)
+  const { data: ilmu, error } = await supabase.rpc('match_ilmu', {
+    query_embedding: vector,
+    match_threshold: 0.5,
+    match_count: 2
+  });
 
-      const context = ilmu && ilmu.length > 0 
-        ? ilmu.map(i => i.isi_ilmu).join("\n") 
-        : "Belum ada ilmu baku di database, tapi eksperimenmu menarik!";
+  // 3. SUSUN KONTEKS (Jika ada ilmu yang cocok, masukkan ke pesan)
+  const context = (ilmu && ilmu.length > 0) 
+    ? ilmu.map(i => i.isi_ilmu).join("\n") 
+    : "Tidak ada referensi khusus di database.";
 
-      const aiChat = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
-        messages: [
-          { 
-            role: "system", 
-            content: `Anda adalah Mentor Lapangan di ToFarmer. 
-            TUGAS: Menguji hipotesis eksperimen user, BUKAN mengajari teori dasar.
-            
-            PERSONA: Petani senior yang bijak, humoris, santai, tapi kalau soal data dia sangat tegas dan perfeksionis.
-            
-            ATURAN:
-            1. BAHASA: Wajib Bahasa Indonesia yang luwes, jangan kaku. Gunakan celetukan khas petani seperti "Wah, ide menarik nih!" atau "Jangan cuma modal semangat, Kang...".
-            2. JANGAN TUTORIAL: Jika user tanya "cara buat...", jawablah: "Lho, itu kan bisa tanya Mbah Google! Di sini kita cari yang belum ada di Google."
-            3. CRITICAL THINKING: Tantang user dengan pertanyaan kritis. Fokus pada risiko dan metrik yang terukur.
-            4. HUMOR: Sisipkan humor ringan tentang susahnya bertani/berbisnis di lapangan agar user tidak tegang.
-            5. PENUTUP: Selalu akhiri dengan satu kalimat penyemangat yang tidak terdengar seperti copy-paste bot.` 
-          },
-          { 
-            role: "user", 
-            content: `User ingin melakukan eksperimen: "${body.teks}". Referensi Ilmu: ${context}` 
-          }
-        ]
-      });
+  // 4. KIRIM KE AI DENGAN KONTEKS
+  const aiChat = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
+    messages: [
+      { 
+       role: "system", 
+        content: `Anda adalah Mentor ToFarmer. 
+        GUNAKAN REFERENSI BERIKUT UNTUK MENGARAHKAN USER (Jika relevan): 
+        ---
+        ${context}
+        ---
+        ATURAN MUTLAK:
+        1. JANGAN berikan tutorial atau resep teknis. Itu tugas Google.
+        2. FOKUS ARAHAN: Jika user bertanya/mulai, arahkan isi kolom formulir yang kosong.
+        3. HUMOR: Gaya petani senior yang bijak, santai, dan humoris.
+        4. TEGAS: Jika di luar pengisian data, jawab: "Fokus dulu ke pengisian data ini ya, Kang. Setelah Gate 1 beres, baru kita diskusi yang lebih berat."
+        5. SINGKAT: Maksimal 2-3 kalimat.
+        6. BAHASA: Wajib Bahasa Indonesia.`
+      },
+      { 
+        role: "user", 
+        content: `Konteks: ${body.trigger}. Input user: "${body.teks}".` 
+      }
+    ]
+  });
 
-      return json({ 
-        saran: aiChat.response 
-      }, corsHeaders);
-    }
+  return json({ saran: aiChat.response }, corsHeaders);
+}
 
 
 

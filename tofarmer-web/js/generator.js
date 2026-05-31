@@ -1,5 +1,6 @@
 const Generator = {
-    // 1. Variabel untuk Debounce
+    // 1. Variabel Kontrol AI
+    komentarCount: 0, 
     aiTimer: null,
 
     // 2. Pemetaan Jalur (Sesuai Dokumen)
@@ -14,60 +15,49 @@ const Generator = {
 
     saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
   
-    // 3. FUNGSI AI (Sekarang mengambil saran dari Cloudflare Worker)
-    updateAdvice: async () => {
-        // --- LOGIKA DEBOUNCE (Menghindari Looping) ---
-        clearTimeout(Generator.aiTimer);
+    // 3. FUNGSI AI (Sekarang dengan Batasan 2x komentar & Debounce)
+    updateAdvice: async (trigger, text) => {
+        // Cek batasan (hanya 2 kali arahan per domain)
+        if (Generator.komentarCount >= 2) return;
+
+        const aiWhisperer = document.getElementById('ai-whisperer');
+        const aiText = document.getElementById('ai-text');
         
-        Generator.aiTimer = setTimeout(async () => {
-            const aiWhisperer = document.getElementById('ai-whisperer');
-            const aiText = document.getElementById('ai-text');
-            const inputJudul = document.getElementById('input-judul');
-            const activeBtn = document.querySelector('.category-btn.active');
+        if (!aiWhisperer || !aiText) return;
+
+        aiWhisperer.style.display = 'block';
+        aiWhisperer.classList.add('ai-active'); 
+        aiText.innerText = "Mentor sedang memeriksa rekam jejak...";
+
+        try {
+            const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trigger: trigger, teks: text })
+            });
             
-            if (aiWhisperer && aiText && inputJudul) {
-                const pilar = activeBtn ? activeBtn.dataset.value : null;
-                const judul = inputJudul.value.trim();
-                
-                // Menunggu minimal 20 karakter agar AI tidak bekerja terlalu dini
-                if (judul.length < 20) {
-                    aiWhisperer.style.display = 'none';
-                    return;
+            const result = await response.json();
+            const saran = result.saran;
+
+            // --- EFEK KETIK ---
+            let i = 0;
+            aiText.innerText = ""; 
+            if (window.typingInterval) clearInterval(window.typingInterval);
+            
+            window.typingInterval = setInterval(() => {
+                if (i < saran.length) {
+                    aiText.textContent += saran.charAt(i); 
+                    i++;
+                } else {
+                    clearInterval(window.typingInterval);
                 }
+            }, 30);
 
-                aiWhisperer.style.display = 'block';
-                aiWhisperer.classList.add('ai-active'); 
-                aiText.innerText = "Mencari ilmu baku untuk eksperimenmu...";
-
-                try {
-                    const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ pilar: pilar, teks: judul })
-                    });
-                    
-                    const result = await response.json();
-                    const saran = result.saran;
-
-                    // --- EFEK KETIK ---
-                    let i = 0;
-                    aiText.innerText = ""; 
-                    if (window.typingInterval) clearInterval(window.typingInterval);
-                    
-                    window.typingInterval = setInterval(() => {
-                        if (i < saran.length) {
-                            aiText.textContent += saran.charAt(i); 
-                            i++;
-                        } else {
-                            clearInterval(window.typingInterval);
-                        }
-                    }, 30);
-                } catch (error) {
-                    aiText.innerText = "Gagal memuat saran dari AI.";
-                    console.error("AI Error:", error);
-                }
-            }
-        }, 800); // Tunggu 0.8 detik setelah berhenti mengetik
+            Generator.komentarCount++; // Tambah hitungan setiap berhasil
+        } catch (error) {
+            aiText.innerText = "Mentor lagi di sawah, nanti lagi ya.";
+            console.error("AI Error:", error);
+        }
     },
 
     validateSensor: (judul) => {
@@ -102,13 +92,16 @@ const Generator = {
                 btnLanjut.classList.remove('active');
                 btnLanjut.innerText = "🔒 GERBANG TERKUNCI";
             }
-            // AI Update hanya dipanggil oleh inputJudul atau saat inisiasi
         };
 
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
                 buttons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                
+                // RESET JATAH & Panggil AI
+                Generator.komentarCount = 0;
+                Generator.updateAdvice('pilar', `User memilih pilar: ${btn.dataset.value}`);
                 
                 Generator.renderMicroInputs(btn.dataset.value);
                 
@@ -122,11 +115,14 @@ const Generator = {
             });
         });
 
-        // Event listener Judul dengan Debounce (AI Trigger)
-        inputJudul.addEventListener('input', () => {
+        // Event listener Judul menggunakan 'blur' (Trigger setelah selesai mengetik)
+        inputJudul.addEventListener('blur', () => {
+            const val = inputJudul.value.trim();
+            if (val.length >= 20) {
+                Generator.updateAdvice('judul', val);
+            }
             validate();
-            Generator.updateGate(1, { judul_eksperimen: inputJudul.value });
-            Generator.updateAdvice(); 
+            Generator.updateGate(1, { judul_eksperimen: val });
         });
 
         microContainer.addEventListener('input', () => {
@@ -134,7 +130,7 @@ const Generator = {
             let microData = {};
             inputs.forEach(i => microData[i.id.replace('input-', '')] = i.value);
             
-            const activePilar = document.querySelector('.category-btn.active').dataset.value;
+            const activePilar = document.querySelector('.category-btn.active')?.dataset.value;
             const kalimat = Generator.compileKalimat(activePilar, microData);
             
             Generator.updateGate(1, { 
@@ -143,7 +139,6 @@ const Generator = {
                 gate_1_status: "Lolos"
             });
             validate();
-            // AI Update tidak dipanggil di sini untuk mencegah looping saat pengisian detail
         });
     },
 
