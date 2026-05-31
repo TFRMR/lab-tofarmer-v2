@@ -176,14 +176,25 @@ export default {
         ? ilmu.map(i => i.isi_ilmu).join("\n") 
         : "Tidak ada referensi ilmu yang ditemukan.";
 
-      // 4. Generate jawaban/saran pakai Llama-3
+     // 4. Generate jawaban/saran pakai Llama-3 (Gaya ToFarmer Indonesia)
       const aiChat = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
         messages: [
-          { role: "system", content: "Anda adalah mentor pertanian ToFarmer. Berikan saran singkat berdasarkan referensi ilmu yang diberikan." },
-          { role: "user", content: `Pertanyaan: "${body.teks}". Referensi Ilmu: ${context}` }
+          { 
+            role: "system", 
+            content: `Anda adalah Mentor ToFarmer yang ahli, ramah, dan membumi. 
+            Jawablah semua pertanyaan dalam bahasa Indonesia yang baik, jelas, dan informatif. 
+            Gunakan gaya bahasa santai, sedikit humor, sederhana, tapi tetap berwibawa layaknya petani senior yang bijak. 
+            Sapa pengguna dengan akrab, hindari bahasa robot. 
+            Berikan saran yang praktis berdasarkan referensi ilmu yang diberikan. 
+            Jika tidak ada referensi, beri saran umum yang solutif. 
+            Selalu akhiri dengan kalimat penyemangat khas anak muda tani.` 
+          },
+          { 
+            role: "user", 
+            content: `Pertanyaan: "${body.teks}". Referensi Ilmu: ${context}` 
+          }
         ]
       });
-
       return json({ 
         saran: aiChat.response 
       }, corsHeaders);
