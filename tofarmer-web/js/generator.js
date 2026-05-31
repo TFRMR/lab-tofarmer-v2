@@ -49,11 +49,13 @@ const Generator = {
         const btnLanjut = document.querySelector('.btn-lanjut');
         const microContainer = document.getElementById('micro-inputs-container');
 
-        const validate = () => {
+       const validate = () => {
             const activeBtn = document.querySelector('.category-btn.active');
             const isTitleValid = Generator.validateSensor(inputJudul.value.trim());
-            // Validasi kelengkapan micro-inputs
+            
+            // LOGIKA DIPERBAIKI DI SINI:
             const microInputs = microContainer.querySelectorAll('.micro-input');
+            // Cek apakah ada input, dan pastikan SEMUA input tidak kosong
             const isMicroComplete = microInputs.length > 0 && Array.from(microInputs).every(i => i.value.trim() !== "");
 
             if (activeBtn && isTitleValid && isMicroComplete) {
@@ -63,6 +65,7 @@ const Generator = {
                 btnLanjut.classList.remove('active');
                 btnLanjut.innerText = "🔒 GERBANG TERKUNCI";
             }
+            Generator.updateAdvice();
         };
 
         buttons.forEach(btn => {
