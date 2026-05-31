@@ -1,3 +1,5 @@
+import { bimbingan } from './ai-logic.js';
+
 const Generator = {
     // 1. Pemetaan Jalur (Sesuai Dokumen)
     getJalur: (pilar) => {
@@ -10,12 +12,29 @@ const Generator = {
     },
 
     saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
+    // FUNGSI AI PALSU (Diperbaiki agar mengambil data dari ai-logic.js)
+    updateAdvice: () => {
+        const aiWhisperer = document.getElementById('ai-whisperer');
+        const aiText = document.getElementById('ai-text');
+        const inputJudul = document.getElementById('input-judul');
+        const activeBtn = document.querySelector('.category-btn.active');
+        
+        if (aiWhisperer && aiText && inputJudul) {
+            const pilar = activeBtn ? activeBtn.dataset.value : null;
+            const judul = inputJudul.value.trim();
+            
+            aiWhisperer.style.display = 'block';
+            
+            const pilarData = bimbingan[pilar] || { pendek: "Pilih bidang eksperimenmu untuk memulai.", lengkap: "" };
+            const saran = (judul.length < 20) ? pilarData.pendek : pilarData.lengkap;
+            
+            aiText.innerText = saran;
+        }
+    },
 
-    // Fungsi Validasi Sensor (Langkah 2)
     validateSensor: (judul) => {
         const isLolos = judul.length >= 20;
         const progres = Math.min((judul.length / 20) * 100, 100);
-        
         const garis = document.getElementById('garis-progres');
         if (garis) {
             garis.style.width = progres + "%";
@@ -23,7 +42,6 @@ const Generator = {
         }
         return isLolos;
     },
-
     // Fungsi Pilar (Langkah 1 & 3)
     initCategorySelection: (onUpdate) => {
         const buttons = document.querySelectorAll('.category-btn');
@@ -69,6 +87,7 @@ const Generator = {
         inputJudul.addEventListener('input', () => {
             validate();
             Generator.updateGate(1, { judul_eksperimen: inputJudul.value });
+            updateAdvice(); // Tambahan untuk memicu pembaruan AI Palsu
         });
 
         // Event listener untuk Micro-Inputs agar selalu update real-time
@@ -86,6 +105,7 @@ const Generator = {
                 gate_1_status: "Lolos"
             });
             validate();
+            updateAdvice(); // Tambahan untuk memicu pembaruan AI Palsu
         });
     },
 

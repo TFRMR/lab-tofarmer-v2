@@ -50,13 +50,18 @@
         </section>
 
         <section class="mb-8">
-            <label>Apa yang mau dijadikan ilmu baku?</label>
-            <input type="text" id="input-judul" placeholder="Minimal 20 karakter: Objek + Metode Fisik/Taktis">
-            <div id="sensor-garis" style="height: 4px; background: #374151; margin-top: 8px; border-radius: 2px; overflow: hidden;">
-                <div id="garis-progres" style="width: 0%; height: 100%; background: #ef4444; transition: 0.3s;"></div>
-            </div>
-            <p id="pesan-sensor" style="font-size: 10px; color: #9ca3af; margin-top: 5px;">Butuh setidaknya 20 karakter...</p>
-        </section>
+    <label>Apa yang mau dijadikan ilmu baku?</label>
+    <input type="text" id="input-judul" placeholder="Minimal 20 karakter: Objek + Metode Fisik/Taktis">
+    
+    <div id="sensor-garis" style="height: 4px; background: #374151; margin-top: 8px; border-radius: 2px; overflow: hidden;">
+        <div id="garis-progres" style="width: 0%; height: 100%; background: #ef4444; transition: 0.3s;"></div>
+    </div>
+    <p id="pesan-sensor" style="font-size: 10px; color: #9ca3af; margin-top: 5px;">Butuh setidaknya 20 karakter...</p>
+
+    <div id="ai-whisperer" style="margin-top: 10px; padding: 12px; background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; border-radius: 4px; display: none;">
+        <p id="ai-text" style="font-size: 0.85rem; color: #a3e635; margin: 0;"></p>
+    </div>
+</section>
 
         <div id="micro-inputs-container"></div>
 
@@ -65,6 +70,11 @@
 
 <script type="module">
     import { Generator } from '../js/generator.js';
+
+    // Inisialisasi AI Palsu agar elemen-elemennya aktif
+    Generator.initCategorySelection((pilar) => {
+        console.log("Pilar terpilih:", pilar);
+    });
 
     const buttons = document.querySelectorAll('.category-btn');
     const input = document.getElementById('input-judul');
