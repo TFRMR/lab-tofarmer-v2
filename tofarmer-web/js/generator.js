@@ -101,40 +101,40 @@ const Generator = {
 
         const templates = {
             ladang: [
-                { id: 'objek', label: 'Objek/Varietas' },
-                { id: 'metode', label: 'Instrumen/Metode' },
-                { id: 'kondisi', label: 'Kondisi Lingkungan' }
+                { id: 'objek', label: 'Apa yang dikerjakan?' },
+                { id: 'metode', label: 'Caranya gimana?' },
+                { id: 'kondisi', label: 'Situasi tempat kerjanya?' }
             ],
             alat: [
-                { id: 'fungsi', label: 'Fungsi Utama Alat' },
-                { id: 'material', label: 'Material Utama' },
-                { id: 'mekanisme', label: 'Mekanisme Kerja' }
+                { id: 'fungsi', label: 'Alat ini buat apa?' },
+                { id: 'material', label: 'Bahannya dari apa?' },
+                { id: 'mekanisme', label: 'Cara pakainya gimana?' }
             ],
             jualan: [
-                { id: 'produk', label: 'Produk/Jasa Target' },
-                { id: 'lokasi', label: 'Lokasi/Target Konsumen' },
-                { id: 'metrik', label: 'Metrik Validasi Utama' },
-                { id: 'modal', label: 'Batasan Modal' }
+                { id: 'produk', label: 'Apa yang dijual?' },
+                { id: 'lokasi', label: 'Mau dijual di mana?' },
+                { id: 'metrik', label: 'Targetnya pengen gimana?' },
+                { id: 'modal', label: 'Berapa modalnya?' }
             ],
             konten: [
-                { id: 'platform', label: 'Platform Target' },
-                { id: 'topik', label: 'Topik Utama' },
-                { id: 'audiens', label: 'Target Audiens' }
+                { id: 'platform', label: 'Main di platform apa?' },
+                { id: 'topik', label: 'Bahasan utamanya apa?' },
+                { id: 'audiens', label: 'Buat siapa kontennya?' }
             ],
             keuangan: [
-                { id: 'aset', label: 'Aset/Instrumen' },
-                { id: 'strategi', label: 'Strategi Kelola' },
-                { id: 'risiko', label: 'Batasan Risiko' }
+                { id: 'aset', label: 'Aset yang dikelola?' },
+                { id: 'strategi', label: 'Strategi kelolanya gimana?' },
+                { id: 'risiko', label: 'Batasan risikonya?' }
             ],
             digital: [
-                { id: 'teknologi', label: 'Stack/Teknologi' },
-                { id: 'kasus', label: 'Kasus Penggunaan' },
-                { id: 'target', label: 'Hasil/Target Output' }
+                { id: 'teknologi', label: 'Teknologi yang dipakai?' },
+                { id: 'kasus', label: 'Buat keperluan apa?' },
+                { id: 'target', label: 'Hasil akhir yang dikejar?' }
             ],
             refleksi: [
-                { id: 'tema', label: 'Tema Refleksi' },
-                { id: 'metode', label: 'Metode Evaluasi' },
-                { id: 'durasi', label: 'Durasi/Frekuensi' }
+                { id: 'tema', label: 'Tema refleksinya?' },
+                { id: 'metode', label: 'Cara evaluasinya?' },
+                { id: 'durasi', label: 'Berapa sering dilakuin?' }
             ]
         };
 
@@ -154,19 +154,19 @@ const Generator = {
 
     compileKalimat: (pilar, data) => {
         if (pilar === 'ladang') {
-            return `Eksperimen dilakukan pada [${data.kondisi || '...'}] menggunakan instrumen/alat [${data.metode || '...'}] dengan objek target [${data.objek || '...'}].`;
+            return `Saya sedang mencoba menanam [${data.objek || '...'}] dengan cara [${data.metode || '...'}] di situasi [${data.kondisi || '...'}].`;
         } else if (pilar === 'alat') {
-            return `Eksperimen pembuatan alat dilakukan untuk fungsi [${data.fungsi || '...'}] menggunakan material utama [${data.material || '...'}] dengan mekanisme kerja [${data.mekanisme || '...'}].`;
+            return `Saya sedang bikin alat untuk [${data.fungsi || '...'}] pakai bahan [${data.material || '...'}] dengan cara kerja [${data.mekanisme || '...'}].`;
         } else if (pilar === 'jualan') {
-            return `Eksperimen niaga dilakukan pada objek [${data.produk || '...'}] yang diuji di [${data.lokasi || '...'}] di bawah batasan [${data.modal || '...'}] dengan target keberhasilan [${data.metrik || '...'}].`;
+            return `Saya mau coba jualan [${data.produk || '...'}] di [${data.lokasi || '...'}] dengan modal [${data.modal || '...'}] dan targetnya [${data.metrik || '...'}].`;
         } else if (pilar === 'konten') {
-            return `Eksperimen konten dilakukan pada platform [${data.platform || '...'}] dengan topik [${data.topik || '...'}] yang ditujukan untuk audiens [${data.audiens || '...'}].`;
+            return `Saya bikin konten di [${data.platform || '...'}] bahas soal [${data.topik || '...'}] buat [${data.audiens || '...'}].`;
         } else if (pilar === 'keuangan') {
-            return `Eksperimen keuangan dilakukan pada aset/instrumen [${data.aset || '...'}] menggunakan strategi [${data.strategi || '...'}] dengan batasan risiko [${data.risiko || '...'}].`;
+            return `Saya kelola aset [${data.aset || '...'}] pakai strategi [${data.strategi || '...'}] dengan batasan risiko [${data.risiko || '...'}].`;
         } else if (pilar === 'digital') {
-            return `Eksperimen digital dilakukan menggunakan teknologi [${data.teknologi || '...'}] untuk kasus penggunaan [${data.kasus || '...'}] dengan target hasil [${data.target || '...'}].`;
+            return `Saya pakai teknologi [${data.teknologi || '...'}] untuk [${data.kasus || '...'}] dengan target [${data.target || '...'}].`;
         } else if (pilar === 'refleksi') {
-            return `Eksperimen refleksi dilakukan dengan tema [${data.tema || '...'}] menggunakan metode evaluasi [${data.metode || '...'}] dalam durasi/frekuensi [${data.durasi || '...'}].`;
+            return `Saya refleksi soal [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
         }
         return "";
     }
