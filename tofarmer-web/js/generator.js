@@ -102,7 +102,7 @@ const Generator = {
                 btnLanjut.classList.remove('active');
                 btnLanjut.innerText = "🔒 GERBANG TERKUNCI";
             }
-            Generator.updateAdvice();
+            // AI Update hanya dipanggil oleh inputJudul atau saat inisiasi
         };
 
         buttons.forEach(btn => {
@@ -122,11 +122,11 @@ const Generator = {
             });
         });
 
-        // Event listener dengan Debounce
+        // Event listener Judul dengan Debounce (AI Trigger)
         inputJudul.addEventListener('input', () => {
             validate();
             Generator.updateGate(1, { judul_eksperimen: inputJudul.value });
-            // Debounce dipanggil di dalam validate() via updateAdvice()
+            Generator.updateAdvice(); 
         });
 
         microContainer.addEventListener('input', () => {
@@ -143,7 +143,7 @@ const Generator = {
                 gate_1_status: "Lolos"
             });
             validate();
-            Generator.updateAdvice();
+            // AI Update tidak dipanggil di sini untuk mencegah looping saat pengisian detail
         });
     },
 
