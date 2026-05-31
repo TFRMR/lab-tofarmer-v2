@@ -150,19 +150,19 @@ export default {
       return json({ success: true, data }, corsHeaders);
     }
 
-   // =====================================================
+
+
+    // =====================================================
     // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
     // =====================================================
     if (url.pathname === "/ai-saran" && request.method === "POST") {
       const body = await request.json();
       
-      // 1. Embedding: Ubah teks user jadi vektor pakai model BGE-M3
       const aiEmbedding = await env.AI.run('@cf/baai/bge-m3', { 
         text: [body.teks] 
       });
       const vector = aiEmbedding.data[0];
 
-      // 2. Cari ilmu terkait di Supabase
       const { data: ilmu, error } = await supabase.rpc('match_ilmu', {
         query_embedding: vector,
         match_threshold: 0.5,
@@ -171,34 +171,39 @@ export default {
 
       if (error) return jsonError(error, corsHeaders);
 
-      // 3. Gabungkan ilmu sebagai konteks untuk LLM
       const context = ilmu && ilmu.length > 0 
         ? ilmu.map(i => i.isi_ilmu).join("\n") 
-        : "Tidak ada referensi ilmu yang ditemukan.";
+        : "Belum ada ilmu baku di database, tapi eksperimenmu menarik!";
 
-     // 4. Generate jawaban/saran pakai Llama-3 (Gaya ToFarmer Indonesia)
       const aiChat = await env.AI.run('@cf/meta/llama-3-8b-instruct', {
         messages: [
           { 
             role: "system", 
-            content: `Anda adalah Mentor ToFarmer yang ahli, ramah, dan membumi. 
-            Jawablah semua pertanyaan dalam bahasa Indonesia yang baik, jelas, dan informatif. 
-            Gunakan gaya bahasa santai, sedikit humor, sederhana, tapi tetap berwibawa layaknya petani senior yang bijak. 
-            Sapa pengguna dengan akrab, hindari bahasa robot. 
-            Berikan saran yang praktis berdasarkan referensi ilmu yang diberikan. 
-            Jika tidak ada referensi, beri saran umum yang solutif. 
-            Selalu akhiri dengan kalimat penyemangat khas anak muda tani.` 
+            content: `Anda adalah Mentor Lapangan di ToFarmer. 
+            TUGAS: Menguji hipotesis eksperimen user, BUKAN mengajari teori dasar.
+            
+            PERSONA: Petani senior yang bijak, humoris, santai, tapi kalau soal data dia sangat tegas dan perfeksionis.
+            
+            ATURAN:
+            1. BAHASA: Wajib Bahasa Indonesia yang luwes, jangan kaku. Gunakan celetukan khas petani seperti "Wah, ide menarik nih!" atau "Jangan cuma modal semangat, Kang...".
+            2. JANGAN TUTORIAL: Jika user tanya "cara buat...", jawablah: "Lho, itu kan bisa tanya Mbah Google! Di sini kita cari yang belum ada di Google."
+            3. CRITICAL THINKING: Tantang user dengan pertanyaan kritis. Fokus pada risiko dan metrik yang terukur.
+            4. HUMOR: Sisipkan humor ringan tentang susahnya bertani/berbisnis di lapangan agar user tidak tegang.
+            5. PENUTUP: Selalu akhiri dengan satu kalimat penyemangat yang tidak terdengar seperti copy-paste bot.` 
           },
           { 
             role: "user", 
-            content: `Pertanyaan: "${body.teks}". Referensi Ilmu: ${context}` 
+            content: `User ingin melakukan eksperimen: "${body.teks}". Referensi Ilmu: ${context}` 
           }
         ]
       });
+
       return json({ 
         saran: aiChat.response 
       }, corsHeaders);
     }
+
+
 
     // =====================================================
     // DEFAULT
