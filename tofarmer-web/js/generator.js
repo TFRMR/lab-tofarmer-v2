@@ -25,21 +25,20 @@ const Generator = {
             const judul = inputJudul.value.trim();
             
             aiWhisperer.style.display = 'block';
-            aiWhisperer.classList.add('ai-active'); // Tambahan animasi berdenyut
+            aiWhisperer.classList.add('ai-active'); // Menambahkan animasi berdenyut
             
             const pilarData = bimbingan[pilar] || { pendek: "Pilih bidang eksperimenmu untuk memulai.", lengkap: "" };
             const saran = (judul.length < 20) ? pilarData.pendek : pilarData.lengkap;
             
-            // --- INI BARIS YANG ANDA INGINKAN TETAP ADA ---
-            aiText.innerText = saran; 
-            
-            // --- TAMBAHAN EFEK KETIK (Mengambil isi dari saran) ---
+            // Menampilkan saran dengan efek mengetik
             let i = 0;
-            aiText.innerText = ""; 
+            aiText.innerText = ""; // Mengosongkan teks awal
+            
             if (window.typingInterval) clearInterval(window.typingInterval);
+            
             window.typingInterval = setInterval(() => {
                 if (i < saran.length) {
-                    aiText.innerText += saran.charAt(i);
+                    aiText.innerText += saran.charAt(i); // Mengambil karakter dari variabel saran
                     i++;
                 } else {
                     clearInterval(window.typingInterval);
