@@ -151,6 +151,30 @@ export default {
     }
 
     // =====================================================
+    // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
+    // =====================================================
+    if (url.pathname === "/ai-saran" && request.method === "POST") {
+      const body = await request.json();
+      
+      const aiResponse = await env.AI.run('@cf/sentence-transformer/all-minilm-l6-v2', { 
+        text: [body.teks] 
+      });
+      const embedding = aiResponse.data[0];
+
+      const { data, error } = await supabase.rpc('match_ilmu', {
+        query_embedding: embedding,
+        match_threshold: 0.5,
+        match_count: 1
+      });
+
+      if (error) return jsonError(error, corsHeaders);
+
+      return json({ 
+        saran: data[0]?.isi_ilmu || "Belum ada ilmu baku untuk topik ini." 
+      }, corsHeaders);
+    }
+
+    // =====================================================
     // DEFAULT
     // =====================================================
     return json({
@@ -160,7 +184,8 @@ export default {
         "/feed",
         "/post",
         "/like",
-        "/comment"
+        "/comment",
+        "/ai-saran"
       ]
     }, corsHeaders);
   }

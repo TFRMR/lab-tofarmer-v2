@@ -1,5 +1,3 @@
-import { bimbingan } from './ai-logic.js';
-
 const Generator = {
     // 1. Pemetaan Jalur (Sesuai Dokumen)
     getJalur: (pilar) => {
@@ -13,8 +11,8 @@ const Generator = {
 
     saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
   
-   // FUNGSI AI PALSU (Diperbaiki agar mengambil data dari ai-logic.js)
-    updateAdvice: () => {
+    // FUNGSI AI (Sekarang mengambil saran dari Cloudflare Worker)
+    updateAdvice: async () => {
         const aiWhisperer = document.getElementById('ai-whisperer');
         const aiText = document.getElementById('ai-text');
         const inputJudul = document.getElementById('input-judul');
@@ -25,29 +23,35 @@ const Generator = {
             const judul = inputJudul.value.trim();
             
             aiWhisperer.style.display = 'block';
-            aiWhisperer.classList.add('ai-active'); // Tambahan animasi berdenyut
-            
-            const pilarData = bimbingan[pilar] || { pendek: "Pilih bidang eksperimenmu untuk memulai.", lengkap: "" };
-            const saran = (judul.length < 20) ? pilarData.pendek : pilarData.lengkap;
-            
-            // --- INI BARIS YANG ANDA INGINKAN TETAP ADA ---
-            aiText.innerText = saran; 
-            
-            // --- TAMBAHAN EFEK KETIK (Mengambil isi dari saran) ---
-           let i = 0;
-            aiText.innerText = ""; 
-            if (window.typingInterval) clearInterval(window.typingInterval);
-            
-            window.typingInterval = setInterval(() => {
-                if (i < saran.length) {
-                    // Gunakan textContent untuk menjaga karakter spasi dengan presisi tinggi
-                    aiText.textContent += saran.charAt(i); 
-                    i++;
-                } else {
-                    clearInterval(window.typingInterval);
-                }
-            }, 30);
-            // ...
+            aiWhisperer.classList.add('ai-active'); 
+            aiText.innerText = "Mencari ilmu baku untuk eksperimenmu...";
+
+            try {
+                const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pilar: pilar, teks: judul })
+                });
+                const result = await response.json();
+                const saran = result.saran;
+
+                // --- EFEK KETIK ---
+                let i = 0;
+                aiText.innerText = ""; 
+                if (window.typingInterval) clearInterval(window.typingInterval);
+                
+                window.typingInterval = setInterval(() => {
+                    if (i < saran.length) {
+                        aiText.textContent += saran.charAt(i); 
+                        i++;
+                    } else {
+                        clearInterval(window.typingInterval);
+                    }
+                }, 30);
+            } catch (error) {
+                aiText.innerText = "Gagal memuat saran dari AI.";
+                console.error("AI Error:", error);
+            }
         }
     },
 
@@ -61,6 +65,7 @@ const Generator = {
         }
         return isLolos;
     },
+    
     // Fungsi Pilar (Langkah 1 & 3)
     initCategorySelection: (onUpdate) => {
         const buttons = document.querySelectorAll('.category-btn');
@@ -68,13 +73,11 @@ const Generator = {
         const btnLanjut = document.querySelector('.btn-lanjut');
         const microContainer = document.getElementById('micro-inputs-container');
 
-       const validate = () => {
+        const validate = () => {
             const activeBtn = document.querySelector('.category-btn.active');
             const isTitleValid = Generator.validateSensor(inputJudul.value.trim());
             
-            // LOGIKA DIPERBAIKI DI SINI:
             const microInputs = microContainer.querySelectorAll('.micro-input');
-            // Cek apakah ada input, dan pastikan SEMUA input tidak kosong
             const isMicroComplete = microInputs.length > 0 && Array.from(microInputs).every(i => i.value.trim() !== "");
 
             if (activeBtn && isTitleValid && isMicroComplete) {
@@ -92,10 +95,8 @@ const Generator = {
                 buttons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 
-                // Panggil renderMicroInputs saat kategori diklik
                 Generator.renderMicroInputs(btn.dataset.value);
                 
-                // Simpan karakteristik jalur saat pilar dipilih
                 Generator.updateGate(1, { 
                     pilar_bidang: btn.dataset.value, 
                     karakteristik_jalur: Generator.getJalur(btn.dataset.value) 
@@ -109,10 +110,9 @@ const Generator = {
         inputJudul.addEventListener('input', () => {
             validate();
             Generator.updateGate(1, { judul_eksperimen: inputJudul.value });
-            updateAdvice(); // Tambahan untuk memicu pembaruan AI Palsu
+            Generator.updateAdvice(); 
         });
 
-        // Event listener untuk Micro-Inputs agar selalu update real-time
         microContainer.addEventListener('input', () => {
             const inputs = microContainer.querySelectorAll('.micro-input');
             let microData = {};
@@ -127,7 +127,7 @@ const Generator = {
                 gate_1_status: "Lolos"
             });
             validate();
-            updateAdvice(); // Tambahan untuk memicu pembaruan AI Palsu
+            Generator.updateAdvice();
         });
     },
 
@@ -139,7 +139,7 @@ const Generator = {
 
     renderMicroInputs: (pilar) => {
         const container = document.getElementById('micro-inputs-container');
-        container.innerHTML = ''; // Bersihkan kontainer
+        container.innerHTML = '';
 
         const templates = {
             ladang: [
@@ -195,21 +195,13 @@ const Generator = {
     },
 
     compileKalimat: (pilar, data) => {
-        if (pilar === 'ladang') {
-            return `Saya sedang mencoba menanam [${data.objek || '...'}] dengan cara [${data.metode || '...'}] di situasi [${data.kondisi || '...'}].`;
-        } else if (pilar === 'alat') {
-            return `Saya sedang bikin alat untuk [${data.fungsi || '...'}] pakai bahan [${data.material || '...'}] dengan cara kerja [${data.mekanisme || '...'}].`;
-        } else if (pilar === 'jualan') {
-            return `Saya mau coba jualan [${data.produk || '...'}] di [${data.lokasi || '...'}] dengan modal [${data.modal || '...'}] dan targetnya [${data.metrik || '...'}].`;
-        } else if (pilar === 'konten') {
-            return `Saya bikin konten di [${data.platform || '...'}] bahas soal [${data.topik || '...'}] buat [${data.audiens || '...'}].`;
-        } else if (pilar === 'keuangan') {
-            return `Saya kelola aset [${data.aset || '...'}] pakai strategi [${data.strategi || '...'}] dengan batasan risiko [${data.risiko || '...'}].`;
-        } else if (pilar === 'digital') {
-            return `Saya pakai teknologi [${data.teknologi || '...'}] untuk [${data.kasus || '...'}] dengan target [${data.target || '...'}].`;
-        } else if (pilar === 'refleksi') {
-            return `Saya refleksi soal [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
-        }
+        if (pilar === 'ladang') return `Saya sedang mencoba menanam [${data.objek || '...'}] dengan cara [${data.metode || '...'}] di situasi [${data.kondisi || '...'}].`;
+        if (pilar === 'alat') return `Saya sedang bikin alat untuk [${data.fungsi || '...'}] pakai bahan [${data.material || '...'}] dengan cara kerja [${data.mekanisme || '...'}].`;
+        if (pilar === 'jualan') return `Saya mau coba jualan [${data.produk || '...'}] di [${data.lokasi || '...'}] dengan modal [${data.modal || '...'}] dan targetnya [${data.metrik || '...'}].`;
+        if (pilar === 'konten') return `Saya bikin konten di [${data.platform || '...'}] bahas soal [${data.topik || '...'}] buat [${data.audiens || '...'}].`;
+        if (pilar === 'keuangan') return `Saya kelola aset [${data.aset || '...'}] pakai strategi [${data.strategi || '...'}] dengan batasan risiko [${data.risiko || '...'}].`;
+        if (pilar === 'digital') return `Saya pakai teknologi [${data.teknologi || '...'}] untuk [${data.kasus || '...'}] dengan target [${data.target || '...'}].`;
+        if (pilar === 'refleksi') return `Saya refleksi soal [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
         return "";
     }
 };
