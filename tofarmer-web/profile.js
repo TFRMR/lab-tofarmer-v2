@@ -354,8 +354,72 @@ async function sendProfilePost() {
   alert("🌿 Karya ditanam")
 
   loadUserPosts()
+
+// ... di dalam sendProfilePost, setelah loadUserPosts();
+const responseBox = document.getElementById("ai-response");
+responseBox.innerText = "Teman Kebun sedang melihat karya baru...";
+
+// Reset counter
+aiChatCounter = 0; 
+document.getElementById("ai-chat-area").style.display = "block";
+const sisa = document.getElementById("sisa-chat");
+if (sisa) sisa.innerText = 3;
+
+// Panggil AI
+const komentarLucu = await panggilAiSaran("komentar", { context: text });
+responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+}
+// --- Letakkan di luar, sejajar dengan fungsi lainnya ---
+
+let aiChatCounter = 0;
+
+async function panggilAiSaran(mode, payload) {
+    try {
+        const response = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/ai-saran", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                mode: mode, 
+                teks: payload.context || payload.teks
+            })
+        });
+        const data = await response.json();
+        return data.saran;
+    } catch (e) {
+        console.error("AI sibuk:", e);
+        return "Lagi sibuk nyangkul nih, coba nanti lagi ya!";
+    }
 }
 
+async function kirimChatAI() {
+    if (aiChatCounter >= 3) return;
+
+    const input = document.getElementById("ai-input");
+    const responseBox = document.getElementById("ai-response");
+    const text = input.value.trim();
+    
+    if (!text) return;
+// --- POSISI 1: Nonaktifkan tombol di awal ---
+    const btn = document.querySelector('[onclick="kirimChatAI()"]');
+    if (btn) btn.disabled = true;
+    responseBox.innerText = "Teman Kebun sedang berpikir...";
+    
+    const jawaban = await panggilAiSaran("chat", { teks: text });
+    
+    aiChatCounter++;
+    responseBox.innerText = `🤖 Teman Kebun: ${jawaban}`;
+    input.value = "";
+    
+    // Update counter di layar
+    const sisa = document.getElementById("sisa-chat");
+    if (sisa) sisa.innerText = 3 - aiChatCounter;
+
+    if (aiChatCounter >= 3) {
+        document.getElementById("ai-chat-area").innerHTML = "<em>Sudah 3 ronde! Saya balik nyangkul dulu ya...</em>";
+    }
+// --- POSISI 2: Aktifkan kembali tombol di akhir ---
+    if (btn) btn.disabled = false;
+}
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
 // =====================
