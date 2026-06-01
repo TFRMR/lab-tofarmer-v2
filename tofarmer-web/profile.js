@@ -246,7 +246,7 @@ function renderProfileData(data) {
 }
 
 // =====================
-// WORKSPACE (FIXED - FULL UI DIGABUNG, TIDAK DIHAPUS)
+// WORKSPACE (UPDATED)
 // =====================
 
 function renderWorkspace() {
@@ -262,45 +262,66 @@ function renderWorkspace() {
 
   box.innerHTML = `
     <div class="card">
-
+      
+      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
         <button class="btn-glow" onclick="openQrisPopup()" style="
-          padding: 6px 12px; 
-          font-size: 10px; 
-          width: auto; 
-          margin: 15px; 
-          background: gold;
-          color: #000;
+          padding: 10px; 
+          font-size: 11px; 
+          width: 50%; 
+          margin: 0; 
+          background: linear-gradient(90deg, #4caf7a, #c9a227);
           border: none;
-          border-radius: 8px;
+          border-radius: 12px;
+          color: white;
+          cursor: pointer;
         ">
-          💰 Nabung Ladang (QRIS)
+          💰 Nabung Ladang
         </button>
+
+        <a href="https://www.tofarmer.xyz/html/dashboard.html" class="btn-glow" style="
+          text-decoration: none;
+          padding: 10px; 
+          font-size: 11px; 
+          width: 50%; 
+          margin: 0; 
+          background: linear-gradient(90deg, #4caf7a, #c9a227);
+          border: none;
+          border-radius: 12px;
+          color: white;
+          text-align: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          💡 Sumbang Ilmu
+        </a>
+      </div>
  
-       <div style="font-weight:700;color:#2f6f4e;margin-bottom:5px;">
+      <div style="font-weight:700;color:#2f6f4e;margin-bottom:5px;">
         🌿 Ruang Karya Saya
-       </div>
+      </div>
 
-       <textarea
-          id="profilePostBox"
-          placeholder="Apa ide, progres, atau eksperimen hari ini?"
-          style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"
-        ></textarea>
+      <textarea
+        id="profilePostBox"
+        placeholder="Apa ide, progres, atau eksperimen hari ini?"
+        style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"
+      ></textarea>
 
-        <input
-          type="file"
-          id="profileImage"
-          accept="image/*"
-          style="
-            width:100%;
-            margin-top:10px;
-            margin-bottom:10px;
-            font-size:12px;
-          "
-        />
+      <input
+        type="file"
+        id="profileImage"
+        accept="image/*"
+        style="
+          width:100%;
+          margin-top:10px;
+          margin-bottom:10px;
+          font-size:12px;
+        "
+      />
 
-        <button class="btn-glow" onclick="sendProfilePost()">
-          🌱 TANAM KARYA
-        </button>
+      <button class="btn-glow" onclick="sendProfilePost()">
+        🌱 TANAM KARYA
+      </button>
 
     </div>
   `
