@@ -41,7 +41,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         localStorage.setItem('tof_xp', data.xp);
 
         alert(`Selamat datang kembali, ${data.username}!`);
-        window.location.href = 'html/ilmu-baku-generator.html';
+        window.location.href = '/html/ilmu-baku-generator.html';
 
     } catch (err) {
         console.error("Kesalahan sistem login:", err.message);
