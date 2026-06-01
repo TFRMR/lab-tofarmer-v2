@@ -160,7 +160,18 @@ async function loadProfile() {
   document.title = `@${data.username} | Profil ToFarmer`
   renderWorkspace()
   loadUserPosts()
-
+// 🟢 Sapaan AI Otomatis saat buka profil
+setTimeout(async () => {
+    const responseBox = document.getElementById("ai-response");
+    if (responseBox) {
+        responseBox.innerText = "Teman Kebun sedang menyapa...";
+        const sapaan = await panggilAiSaran("humor", { 
+            teks: "User baru saja masuk ke halaman profil", 
+            trigger: "Sapaan pembuka" 
+        });
+        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${sapaan}`);
+    }
+}, 1000);
   try {
     const liveBalance =
       await getWalletTofBalance(targetProfileId)
@@ -328,21 +339,27 @@ async function sendProfilePost() {
     // 2. Refresh UI
     await loadUserPosts();
 
-    // 3. Trigger AI
+   // 3. Trigger AI
     const responseBox = document.getElementById("ai-response");
+    const aiChatArea = document.getElementById("ai-chat-area");
+    
     responseBox.innerText = "Teman Kebun sedang melihat karya baru...";
     
-    aiChatCounter = 0; 
-    document.getElementById("ai-chat-area").style.display = "block";
-    const sisa = document.getElementById("sisa-chat");
-    if (sisa) sisa.innerText = 3;
-
     const komentarLucu = await panggilAiSaran("humor", { 
         teks: text, 
         trigger: "Baru saja menanam karya" 
     });
     
-    responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+    // Gunakan efek ketik
+    typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
+    
+    // 🟢 Munculkan kolom chat HANYA setelah AI selesai berkomentar
+    aiChatCounter = 0; 
+    setTimeout(() => {
+        aiChatArea.style.display = "block";
+        const sisa = document.getElementById("sisa-chat");
+        if (sisa) sisa.innerText = 3;
+    }, 2000); // Tunggu 2 detik agar user baca komentar dulu
 }
 
 async function panggilAiSaran(mode, payload) {
