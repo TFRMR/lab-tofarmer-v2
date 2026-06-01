@@ -6,7 +6,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
     const btn = document.getElementById('login-btn');
     
     // 2. Ambil nilai input
-   const usernameInput = document.getElementById('input-username').value.trim();
+    const usernameInput = document.getElementById('input-username').value.trim();
     const walletInput = document.getElementById('input-wallet').value.trim();
 
     if (!usernameInput || !walletInput) {
@@ -41,7 +41,15 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         localStorage.setItem('tof_xp', data.xp);
 
         alert(`Selamat datang kembali, ${data.username}!`);
-        window.location.href = '/html/ilmu-baku-generator.html';
+        
+        // --- PENYESUAIAN PINTU PINTAR ---
+        const redirectTo = localStorage.getItem('redirect_to');
+        if (redirectTo) {
+            localStorage.removeItem('redirect_to'); // Hapus tandanya agar tidak menumpuk
+            window.location.href = redirectTo;      // Kembali ke halaman asal (misal: Dashboard)
+        } else {
+            window.location.href = '/html/ilmu-baku-generator.html'; // Default jika tidak ada asal
+        }
 
     } catch (err) {
         console.error("Kesalahan sistem login:", err.message);
