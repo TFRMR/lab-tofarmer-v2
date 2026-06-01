@@ -9,35 +9,41 @@
         .max-w-2xl { max-width: 42rem; margin: 0 auto; }
         input { width: 100%; background: #111827; border: 1px solid #374151; padding: 1rem; border-radius: 0.75rem; color: white; margin-top: 0.5rem; outline: none; }
         .btn-lanjut { width: 100%; padding: 1rem; background: #16a34a; color: white; border: none; border-radius: 0.75rem; font-weight: bold; cursor: pointer; margin-top: 2rem; }
-        #ai-box { margin-top: 2rem; padding: 1.5rem; background: rgba(34, 197, 94, 0.1); border-left: 4px solid #22c55e; border-radius: 0.5rem; }
+        .btn-refresh { margin-top: 0.5rem; font-size: 0.75rem; background: #374151; color: #e5e7eb; border: none; padding: 0.3rem 0.8rem; border-radius: 0.4rem; cursor: pointer; }
+        .ai-hint { margin-top: 0.5rem; padding: 0.8rem; background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; border-radius: 0.4rem; font-size: 0.85rem; color: #cbd5e1; }
+        #context-card { background: #1e293b; padding: 1rem; border-radius: 0.75rem; margin-bottom: 2rem; border-left: 4px solid #3b82f6; }
     </style>
 </head>
 <body>
     <div class="max-w-2xl">
         <h1>Gate 2: Tajamkan Ilmu Mikro</h1>
-        <p id="context-info" style="color: #9ca3af; font-style: italic;"></p>
+        
+        <div id="context-card">
+            <p style="margin: 0; color: #94a3b8; font-size: 0.8rem;">Tujuan awalmu:</p>
+            <p id="hasil-gate1" style="margin: 0.5rem 0 0 0; font-weight: 600;"></p>
+        </div>
 
         <div id="gate-2-form">
-            <label>Taktik (Apa yang diubah/dilakukan?)</label>
+            <label>Apa "rahasia" atau cara baru yang mau kamu coba?</label>
             <input type="text" id="taktik" class="gate2-input" placeholder="Contoh: Mengasah pisau dengan sudut 20 derajat...">
-            
-            <label style="margin-top: 1rem; display: block;">Kondisi Awal (Biasanya gimana?)</label>
-            <input type="text" id="baseline" class="gate2-input" placeholder="Contoh: Biasanya cuma laku 10 cup sehari...">
-            
-            <label style="margin-top: 1rem; display: block;">Target Hasil (Setelah diubah, jadi gimana?)</label>
-            <input type="text" id="target" class="gate2-input" placeholder="Contoh: Jadi laku 15 cup dalam 4 jam...">
+            <div id="ai-taktik" class="ai-hint">Mentor siap membantu...</div>
+            <button class="btn-refresh" onclick="refreshAi('taktik')">🔄 Cek/Refresh</button>
+
+            <label style="margin-top: 1.5rem; display: block;">Biasanya kalau pakai cara lama, hasil/kondisinya gimana?</label>
+            <input type="text" id="baseline" class="gate2-input" placeholder="Contoh: Biasanya jadi cepat tumpul...">
+            <div id="ai-baseline" class="ai-hint">Mentor siap membantu...</div>
+            <button class="btn-refresh" onclick="refreshAi('baseline')">🔄 Cek/Refresh</button>
+
+            <label style="margin-top: 1.5rem; display: block;">Setelah pakai cara baru ini, targetnya pengen jadi seberapa?</label>
+            <input type="text" id="target" class="gate2-input" placeholder="Contoh: Jadi awet tajam sampai 3 hari...">
+            <div id="ai-target" class="ai-hint">Mentor siap membantu...</div>
+            <button class="btn-refresh" onclick="refreshAi('target')">🔄 Cek/Refresh</button>
         </div>
 
-        <div id="ai-box">
-            <p id="ai-feedback" style="margin: 0; font-size: 0.9rem;">Mentor sedang menganalisis taktikmu...</p>
-        </div>
-
-       <!-- Ubah tombol di gate-2.html menjadi seperti ini -->
-<button id="btn-lanjut" class="btn-lanjut" disabled style="opacity: 0.5; cursor: not-allowed;">
-    🔒 KUNCI & MAJU KE GATE 3
-</button>
+        <button id="btn-lanjut" class="btn-lanjut" disabled style="opacity: 0.5; cursor: not-allowed;">
+            🔒 KUNCI & MAJU KE GATE 3
+        </button>
     </div>
-
     <script type="module" src="../js/gate-2.js"></script>
 </body>
 </html>
