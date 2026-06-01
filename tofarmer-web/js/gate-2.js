@@ -3,7 +3,13 @@ if (!wallet) window.location.href = '../html/login.html';
 
 const draft = JSON.parse(localStorage.getItem('tofarmer_draft') || '{}');
 document.getElementById('hasil-gate1').innerText = draft.data?.gate_1_judul || "Belum ada judul eksperimen";
-
+// Mengisi ulang input jika user kembali dari Gate 1 atau refresh
+if (draft.data?.gate_2_hipotesis) {
+    document.getElementById('taktik').value = draft.data.gate_2_hipotesis.taktik || "";
+    document.getElementById('baseline').value = draft.data.gate_2_hipotesis.baseline || "";
+    document.getElementById('target').value = draft.data.gate_2_hipotesis.target || "";
+    validateGate2(); // Aktifkan tombol jika data sudah ada
+}
 const validateGate2 = () => {
     const inputs = document.querySelectorAll('.gate2-input');
     const btn = document.getElementById('btn-lanjut');
@@ -47,6 +53,20 @@ document.querySelectorAll('.gate2-input').forEach(input => {
     input.addEventListener('input', validateGate2);
 });
 
+document.getElementById('btn-kembali').addEventListener('click', () => {
+    // Simpan state saat ini sebelum mundur
+    const dataGate2 = {
+        taktik: document.getElementById('taktik').value,
+        baseline: document.getElementById('baseline').value,
+        target: document.getElementById('target').value
+    };
+    
+    let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{}');
+    state.data.gate_2_hipotesis = dataGate2;
+    localStorage.setItem('tofarmer_draft', JSON.stringify(state));
+    
+    window.location.href = 'ilmu-baku-generator.html';
+});
 document.getElementById('btn-lanjut').addEventListener('click', () => {
     const dataGate2 = {
         taktik: document.getElementById('taktik').value,
