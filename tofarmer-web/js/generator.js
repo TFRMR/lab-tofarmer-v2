@@ -82,21 +82,26 @@ const Generator = {
         const btnLanjut = document.querySelector('.btn-lanjut');
         const microContainer = document.getElementById('micro-inputs-container');
 
-        const validate = () => {
-            const activeBtn = document.querySelector('.category-btn.active');
-            const isTitleValid = Generator.validateSensor(inputJudul.value.trim());
-            
-            const microInputs = microContainer.querySelectorAll('.micro-input');
-            const isMicroComplete = microInputs.length > 0 && Array.from(microInputs).every(i => i.value.trim() !== "");
+     const validate = () => {
+    const activeBtn = document.querySelector('.category-btn.active');
+    
+    // 1. Cek Judul (Harus >= 20 karakter)
+    const isTitleValid = inputJudul.value.trim().length >= 20;
+    
+    // 2. Cek Micro Inputs (Harus terisi semua dan tidak boleh kosong)
+    const microInputs = microContainer.querySelectorAll('.micro-input');
+    const isMicroComplete = microInputs.length > 0 && 
+                            Array.from(microInputs).every(i => i.value.trim().length > 0);
 
-            if (activeBtn && isTitleValid && isMicroComplete) {
-                btnLanjut.classList.add('active');
-                btnLanjut.innerText = "🔓 KUNCI FONDASI & MAJU KE GATE 2";
-            } else {
-                btnLanjut.classList.remove('active');
-                btnLanjut.innerText = "🔒 GERBANG TERKUNCI";
-            }
-        };
+    // KUNCI: Gabungkan semua syarat dengan logika AND (&&)
+    if (activeBtn && isTitleValid && isMicroComplete) {
+        btnLanjut.classList.add('active');
+        btnLanjut.innerText = "🔓 KUNCI FONDASI & MAJU KE GATE 2";
+    } else {
+        btnLanjut.classList.remove('active');
+        btnLanjut.innerText = "🔒 GERBANG TERKUNCI";
+    }
+};
 
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
