@@ -1,4 +1,5 @@
-import { supabase } from './js/supabase-client.js';
+// Karena login.js dan supabase-client.js ada di folder yang sama (js/), gunakan ./
+import { supabase } from './supabase-client.js';
 
 document.getElementById('login-btn').addEventListener('click', async () => {
     // 1. Ambil elemen tombol
