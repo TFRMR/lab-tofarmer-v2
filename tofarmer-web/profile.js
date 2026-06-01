@@ -376,27 +376,30 @@ async function kirimChatAI() {
     const btn = document.querySelector('[onclick="kirimChatAI()"]');
     if (btn) btn.disabled = true;
     
-    // Tampilkan loading dengan efek
-    responseBox.innerText = "Teman Kebun sedang berpikir...";
+    // Tampilkan status loading tanpa mengacaukan efek ketik
+    responseBox.innerText = "Teman Kebun sedang merangkai kata...";
     
-    const jawaban = await panggilAiSaran("humor", { teks: text, trigger: "Balas chat user" });
-    
-    aiChatCounter++;
-    
-    // 🟢 MENGGUNAKAN EFEK KETIK DI SINI
-    typeWriterEffect(responseBox, `🤖 Teman Kebun: ${jawaban}`);
-    
-    input.value = "";
-    
-    // Update counter di layar
-    const sisa = document.getElementById("sisa-chat");
-    if (sisa) sisa.innerText = 3 - aiChatCounter;
+    try {
+        const jawaban = await panggilAiSaran("humor", { teks: text, trigger: "Balas chat user" });
+        
+        aiChatCounter++;
+        // Gunakan efek ketik untuk hasil respon
+        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${jawaban}`);
+        
+        input.value = "";
+        
+        // Update counter
+        const sisa = document.getElementById("sisa-chat");
+        if (sisa) sisa.innerText = 3 - aiChatCounter;
 
-    if (aiChatCounter >= 3) {
-        document.getElementById("ai-chat-area").innerHTML = "<em>Sudah 3 ronde! Saya balik nyangkul dulu ya...</em>";
+        if (aiChatCounter >= 3) {
+            document.getElementById("ai-chat-area").innerHTML = "<em>Sudah 3 ronde! Saya balik nyangkul dulu ya...</em>";
+        }
+    } catch (err) {
+        responseBox.innerText = "🤖 Teman Kebun: Maaf, saya lagi kurang enak badan (Error API).";
+    } finally {
+        if (btn) btn.disabled = false;
     }
-    
-    if (btn) btn.disabled = false;
 }
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
@@ -717,4 +720,22 @@ async function approvePayment(paymentId, userId, xp) {
   await supabaseClient.from("profiles").update({
     xp: (profile.xp || 0) + xp
   }).eq("id", userId)
+}
+let typewriterTimeout = null; // Tambahkan variabel global ini
+
+function typeWriterEffect(element, text, speed = 20) {
+    // 1. Hentikan animasi yang sedang berjalan
+    if (typewriterTimeout) clearTimeout(typewriterTimeout);
+    
+    element.innerHTML = ""; 
+    let i = 0;
+    
+    function type() {
+        if (i < text.length) {
+            element.innerHTML += text.charAt(i);
+            i++;
+            typewriterTimeout = setTimeout(type, speed);
+        }
+    }
+    type();
 }
