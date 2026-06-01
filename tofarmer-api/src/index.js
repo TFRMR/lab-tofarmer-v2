@@ -197,7 +197,7 @@ export default {
 
       const activeMode = modes[body.trigger] || modes["humor"];
 
-      const aiChat = await env.AI.run('@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', {
+      const aiChat = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
         messages: [
           { 
             role: "system", 
