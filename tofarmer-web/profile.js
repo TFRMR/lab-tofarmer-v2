@@ -337,7 +337,7 @@ async function sendProfilePost() {
     const sisa = document.getElementById("sisa-chat");
     if (sisa) sisa.innerText = 3;
 
-    const komentarLucu = await panggilAiSaran("komentar", { 
+    const komentarLucu = await panggilAiSaran("humor", { 
         teks: text, 
         trigger: "Baru saja menanam karya" 
     });
@@ -352,8 +352,8 @@ async function panggilAiSaran(mode, payload) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 mode: mode, 
-                teks: payload.context || payload.teks,
-trigger: payload.trigger //
+                teks: payload.teks,
+                trigger: payload.trigger
             })
         });
         const data = await response.json();
@@ -377,7 +377,7 @@ async function kirimChatAI() {
     if (btn) btn.disabled = true;
     responseBox.innerText = "Teman Kebun sedang berpikir...";
     
-    const jawaban = await panggilAiSaran("chat", { teks: text });
+    const jawaban = await panggilAiSaran("humor", { teks: text, trigger: "Balas chat user" });
     
     aiChatCounter++;
     responseBox.innerText = `🤖 Teman Kebun: ${jawaban}`;

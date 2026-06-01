@@ -21,48 +21,51 @@ const Generator = {
   
     // 3. FUNGSI AI (Sekarang dengan Batasan 2x komentar & Debounce)
     updateAdvice: async (trigger, text) => {
-        // Cek batasan (hanya 2 kali arahan per domain)
-        if (Generator.komentarCount >= 2) return;
+    // Batasan 2x komentar tetap kita jaga
+    if (Generator.komentarCount >= 2) return;
 
-        const aiWhisperer = document.getElementById('ai-whisperer');
-        const aiText = document.getElementById('ai-text');
+    const aiWhisperer = document.getElementById('ai-whisperer');
+    const aiText = document.getElementById('ai-text');
+    
+    if (!aiWhisperer || !aiText) return;
+
+    aiWhisperer.style.display = 'block';
+    aiText.innerText = "Mentor sedang memeriksa rekam jejak...";
+
+    try {
+        // Panggilan ke Cloudflare Worker
+        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                mode: "humor", // Tetap konsisten dengan mode humor
+                trigger: trigger, 
+                teks: text 
+            })
+        });
         
-        if (!aiWhisperer || !aiText) return;
+        const result = await response.json();
+        const saran = result.saran || "Kebun sudah bagus, lanjut menanam!";
 
-        aiWhisperer.style.display = 'block';
-        aiWhisperer.classList.add('ai-active'); 
-        aiText.innerText = "Mentor sedang memeriksa rekam jejak...";
+        // Efek ketik
+        let i = 0;
+        aiText.innerText = ""; 
+        if (window.typingInterval) clearInterval(window.typingInterval);
+        
+        window.typingInterval = setInterval(() => {
+            if (i < saran.length) {
+                aiText.textContent += saran.charAt(i); 
+                i++;
+            } else {
+                clearInterval(window.typingInterval);
+            }
+        }, 30);
 
-        try {
-            const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trigger: trigger, teks: text })
-            });
-            
-            const result = await response.json();
-            const saran = result.saran;
-
-            // --- EFEK KETIK ---
-            let i = 0;
-            aiText.innerText = ""; 
-            if (window.typingInterval) clearInterval(window.typingInterval);
-            
-            window.typingInterval = setInterval(() => {
-                if (i < saran.length) {
-                    aiText.textContent += saran.charAt(i); 
-                    i++;
-                } else {
-                    clearInterval(window.typingInterval);
-                }
-            }, 30);
-
-            Generator.komentarCount++; // Tambah hitungan setiap berhasil
-        } catch (error) {
-            aiText.innerText = "Mentor lagi di sawah, nanti lagi ya.";
-            console.error("AI Error:", error);
-        }
-    },
+        Generator.komentarCount++;
+    } catch (error) {
+        aiText.innerText = "Mentor lagi di sawah, nanti lagi ya.";
+    }
+},
 
     validateSensor: (judul) => {
         const isLolos = judul.length >= 20;
