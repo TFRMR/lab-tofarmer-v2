@@ -1,12 +1,95 @@
-<div class="login-container">
-        <h2>Masuk ke ToFarmer</h2>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk | ToFarmer</title>
+    <style>
+        :root {
+            --primary: #22c55e;
+            --secondary: #c9a227;
+            --bg-dark: #0b1220;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: radial-gradient(circle at top left, #1a2e26, #0b1220);
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+
+        .login-container {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(15px);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        h2 { margin-bottom: 25px; color: var(--primary); }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255,255,255,0.1);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>🌿 Masuk ke ToFarmer</h2>
         
-        <input type="text" username="input-username" placeholder="Nama Pengguna (Username)...">
-        
+        <input type="text" id="input-username" placeholder="Nama Pengguna (Username)...">
         <input type="text" id="input-wallet" placeholder="Alamat Wallet (ID)...">
         
         <button id="login-btn">Masuk Ladang</button>
     </div>
 
     <script type="module" src="../login.js"></script>
-
+</body>
+</html>
