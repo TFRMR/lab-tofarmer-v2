@@ -157,7 +157,8 @@ export default {
     // =====================================================
  if (url.pathname === "/ai-saran" && request.method === "POST") {
       const body = await request.json();
-
+const teksInput = body.teks || "";
+    const triggerInfo = body.trigger || "Umum";
       // Pindahkan pengecekan ke sini, di dalam route yang tepat
       if (!body.teks || body.teks.length < 5) {
         return json({ saran: "Input terlalu pendek, Kang. Coba tulis lebih jelas lagi eksperimennya." }, corsHeaders);

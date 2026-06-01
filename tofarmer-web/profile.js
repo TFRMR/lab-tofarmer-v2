@@ -284,94 +284,66 @@ function renderWorkspace() {
     </div>
   `
 }
+let aiChatCounter = 0;
 // =====================
 // SEND PROFILE POST
 // =====================
 
 async function sendProfilePost() {
+    const input = document.getElementById("profilePostBox");
+    const imageInput = document.getElementById("profileImage");
+    const text = input.value.trim();
+    const file = imageInput.files[0];
 
-  const input = document.getElementById("profilePostBox")
-  const imageInput = document.getElementById("profileImage")
-  const text = input.value.trim()
-  const file = imageInput.files[0]
+    if (!text && !file) return alert("Isi teks atau pilih gambar 😄");
 
-  if (!text && !file) {
-    return alert("Isi teks atau pilih gambar 😄")
-  }
+    // 1. Upload & Insert (Proses Supabase)
+    let imageUrl = null;
+    if (file) {
+        const fileName = `${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabaseClient.storage
+            .from("profile-posts")
+            .upload(fileName, file);
 
-  let imageUrl = null
-
-  // =====================
-  // UPLOAD IMAGE
-  // =====================
-
-  if (file) {
-
-    const fileName = `${Date.now()}-${file.name}`
-
-    const { error: uploadError } =
-      await supabaseClient.storage
-        .from("profile-posts")
-        .upload(fileName, file)
-
-    if (uploadError) {
-      console.log(uploadError)
-      return alert("Upload gambar gagal")
+        if (uploadError) return alert("Upload gambar gagal");
+        const { data } = supabaseClient.storage.from("profile-posts").getPublicUrl(fileName);
+        imageUrl = data.publicUrl;
     }
 
-    const { data } =
-      supabaseClient.storage
-        .from("profile-posts")
-        .getPublicUrl(fileName)
-
-    imageUrl = data.publicUrl
-  }
-
-  // =====================
-  // INSERT POST
-  // =====================
-
-  const { error } =
-    await supabaseClient
-      .from("contributions")
-      .insert([{
+    const { error } = await supabaseClient.from("contributions").insert([{
         user_id: currentWallet,
         judul_aksi: "Profile Post",
         deskripsi_proses: text,
         image_url: imageUrl,
         status_validasi: "pending",
         is_private: true
-      }])
+    }]);
 
-  if (error) {
-    console.log(error)
-    return alert("Gagal kirim")
-  }
+    if (error) return alert("Gagal kirim");
 
-  input.value = ""
-  imageInput.value = ""
+    input.value = "";
+    imageInput.value = "";
+    alert("🌿 Karya ditanam");
 
-  alert("🌿 Karya ditanam")
+    // 2. Refresh UI
+    await loadUserPosts();
 
-  loadUserPosts()
+    // 3. Trigger AI
+    const responseBox = document.getElementById("ai-response");
+    responseBox.innerText = "Teman Kebun sedang melihat karya baru...";
+    
+    aiChatCounter = 0; 
+    document.getElementById("ai-chat-area").style.display = "block";
+    const sisa = document.getElementById("sisa-chat");
+    if (sisa) sisa.innerText = 3;
 
-// ... di dalam sendProfilePost, setelah loadUserPosts();
-const responseBox = document.getElementById("ai-response");
-responseBox.innerText = "Teman Kebun sedang melihat karya baru...";
-
-// Reset counter
-aiChatCounter = 0; 
-document.getElementById("ai-chat-area").style.display = "block";
-const sisa = document.getElementById("sisa-chat");
-if (sisa) sisa.innerText = 3;
-
-// Panggil AI
-const komentarLucu = await panggilAiSaran("komentar", { context: text });
-responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+    const komentarLucu = await panggilAiSaran("komentar", { 
+        teks: text, 
+        trigger: "Baru saja menanam karya" 
+    });
+    
+    responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
 }
-// --- Letakkan di luar, sejajar dengan fungsi lainnya ---
-
-let aiChatCounter = 0;
 
 async function panggilAiSaran(mode, payload) {
     try {
@@ -380,7 +352,8 @@ async function panggilAiSaran(mode, payload) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 mode: mode, 
-                teks: payload.context || payload.teks
+                teks: payload.context || payload.teks,
+trigger: payload.trigger //
             })
         });
         const data = await response.json();
