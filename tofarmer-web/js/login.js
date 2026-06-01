@@ -5,7 +5,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
     const btn = document.getElementById('login-btn');
     
     // 2. Ambil nilai input
-    const usernameInput = document.querySelector('[username="input-username"]').value.trim();
+   const usernameInput = document.getElementById('input-username').value.trim();
     const walletInput = document.getElementById('input-wallet').value.trim();
 
     if (!usernameInput || !walletInput) {
