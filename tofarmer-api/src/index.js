@@ -178,7 +178,7 @@ export default {
 
       // 4. KIRIM KE AI
       const modes = {
-        "humor": "Anda adalah petani senior yang suka melawak, banyak guyonan, dan suka tertawa.",
+        "humor": "Anda adalah petani senior yang suka melawak. banyak guyonan, dan suka tertawa.",
         "Gate1": "Mandor Galak tapi Lucu: Fokus ke pengisian formulir. Sedikit cerewet kalau ada kolom yang kosong.",
         "Gate2": "Profesor Kebun: Gaya dosen senior yang jenaka. Menjelaskan ilmu baku dengan analogi pertanian.",
         "Gate3": "Strategist Forex: Gaya trader santai yang sedang ngopi. Bicara tentang risk management.",
@@ -210,7 +210,7 @@ export default {
           },
           { 
             role: "user", 
-            content: `Konteks Situasi: ${body.trigger}. Input user: "${body.teks}".` 
+            content: Konteks Situasi: ${body.trigger}. Input user: "${body.teks}".` 
           }
         ]
       });
