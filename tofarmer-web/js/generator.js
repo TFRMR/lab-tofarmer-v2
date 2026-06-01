@@ -1,9 +1,4 @@
-// Tambahkan pengecekan instan di awal file
-const wallet = localStorage.getItem('tof_wallet');
-if (!wallet) {
-    alert("Silakan login terlebih dahulu!");
-    window.location.href = '../login.html';
-}
+
 
 import { supabase } from './supabase-client.js';
 
@@ -151,12 +146,12 @@ const Generator = {
         });
     },
 
-   updateGate: async (gate, data) => {
-// Cek Tiket di sini
+  updateGate: async (gate, data) => {
+    // Cek Tiket HANYA saat mau simpan
     const currentWallet = localStorage.getItem('tof_wallet');
     if (!currentWallet) {
-        alert("Kamu belum masuk ke ladang! Hubungkan dompet dulu di halaman utama.");
-        window.location.href = '../index.html'; // Arahkan balik ke home
+        alert("Waduh, kamu belum login! Masuk dulu ya biar ilmunya tersimpan.");
+        window.location.href = '../html/login.html'; 
         return;
     }
 
