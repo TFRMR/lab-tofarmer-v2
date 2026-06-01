@@ -28,18 +28,27 @@
 
     <div class="container">
         <h1 id="welcome-text">Selamat Datang di ToFarmer</h1>
+        
         <div id="auth-section">
-            <button class="btn-game" onclick="window.location.href='login.html'">Login untuk Mulai</button>
+            <button class="btn-game" onclick="simpanLokasiDanLogin()">Login untuk Mulai</button>
         </div>
         
-        <div id="user-section" style="display:none;">
+        <div id="user-section">
             <button class="btn-game" onclick="window.location.href='ilmu-baku-generator.html'">➕ Buat Ilmu Baru</button>
             <div id="card-draft" class="card-draft">
                 <h3 id="draft-title"></h3>
-                <button onclick="lanjutkanDraft()" style="background: #2563eb; padding: 0.5rem; border-radius: 0.5rem; border: none; color: white;">Lanjut Misi ➔</button>
+                <button onclick="lanjutkanDraft()" id="btn-lanjut-draft" style="background: #2563eb; padding: 0.5rem; border-radius: 0.5rem; border: none; color: white;">Lanjut Misi ➔</button>
             </div>
         </div>
     </div>
-    <script src="../js/dashboard.js"></script>
+
+    <script>
+        // Fungsi Pintu Pintar: Simpan halaman asal sebelum ke login
+        function simpanLokasiDanLogin() {
+            localStorage.setItem('redirect_to', 'dashboard.html');
+            window.location.href = 'login.html';
+        }
+    </script>
+    <script type="module" src="../js/dashboard.js"></script>
 </body>
 </html>

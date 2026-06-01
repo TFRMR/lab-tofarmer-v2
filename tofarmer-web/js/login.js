@@ -42,13 +42,16 @@ document.getElementById('login-btn').addEventListener('click', async () => {
 
         alert(`Selamat datang kembali, ${data.username}!`);
         
-        // --- PENYESUAIAN PINTU PINTAR ---
+        // --- PENYESUAIAN FINAL PINTU PINTAR ---
         const redirectTo = localStorage.getItem('redirect_to');
+        
         if (redirectTo) {
-            localStorage.removeItem('redirect_to'); // Hapus tandanya agar tidak menumpuk
-            window.location.href = redirectTo;      // Kembali ke halaman asal (misal: Dashboard)
+            // Jika ada tujuan asal (seperti dashboard.html), kembali ke sana
+            localStorage.removeItem('redirect_to');
+            window.location.href = redirectTo;
         } else {
-            window.location.href = '/html/ilmu-baku-generator.html'; // Default jika tidak ada asal
+            // Jika tidak ada asal, baru arahkan ke Dashboard (bukan lagi ke Generator)
+            window.location.href = 'dashboard.html';
         }
 
     } catch (err) {
