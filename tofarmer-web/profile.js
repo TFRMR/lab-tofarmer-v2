@@ -372,15 +372,20 @@ async function kirimChatAI() {
     const text = input.value.trim();
     
     if (!text) return;
-// --- POSISI 1: Nonaktifkan tombol di awal ---
+
     const btn = document.querySelector('[onclick="kirimChatAI()"]');
     if (btn) btn.disabled = true;
+    
+    // Tampilkan loading dengan efek
     responseBox.innerText = "Teman Kebun sedang berpikir...";
     
     const jawaban = await panggilAiSaran("humor", { teks: text, trigger: "Balas chat user" });
     
     aiChatCounter++;
-    responseBox.innerText = `🤖 Teman Kebun: ${jawaban}`;
+    
+    // 🟢 MENGGUNAKAN EFEK KETIK DI SINI
+    typeWriterEffect(responseBox, `🤖 Teman Kebun: ${jawaban}`);
+    
     input.value = "";
     
     // Update counter di layar
@@ -390,7 +395,7 @@ async function kirimChatAI() {
     if (aiChatCounter >= 3) {
         document.getElementById("ai-chat-area").innerHTML = "<em>Sudah 3 ronde! Saya balik nyangkul dulu ya...</em>";
     }
-// --- POSISI 2: Aktifkan kembali tombol di akhir ---
+    
     if (btn) btn.disabled = false;
 }
 // =====================
