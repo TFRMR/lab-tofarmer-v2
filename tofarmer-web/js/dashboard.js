@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // 2. Jika tidak ada di lokal, ambil dari Supabase
         if (!username) {
-            welcome.innerText = "Memuat data, Kang...";
+            welcome.innerText = "Memuat data, ...";
             try {
                 // Asumsi tabel Anda bernama 'profiles'
                 const { data, error } = await supabase
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        welcome.innerText = `Halo, Kang ${username}!`;
+        welcome.innerText = `Halo,  ${username}!`;
 
         // 3. Cek Draft
         const draft = JSON.parse(localStorage.getItem('tofarmer_draft'));
