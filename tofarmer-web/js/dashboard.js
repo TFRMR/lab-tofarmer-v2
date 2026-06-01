@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('draft-title').innerText = `Misi Berjalan: ${draft.data.gate_1_judul || "Ilmu Mikro"}`;
         }
     } else {
-        // --- MODE PENGUNJUNG (Tambahkan ini) ---
+        // --- MODE PENGUNJUNG ---
         authSection.style.display = 'block'; // Pastikan tombol login tampil
         userSection.style.display = 'none';   // Pastikan tombol buat ilmu sembunyi
         welcome.innerText = "Selamat Datang, Sahabat Tani!"; // Sapaan umum
