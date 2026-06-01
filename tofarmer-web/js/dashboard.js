@@ -41,12 +41,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('card-draft').style.display = 'block';
             document.getElementById('draft-title').innerText = `Misi Berjalan: ${draft.data.gate_1_judul || "Ilmu Mikro"}`;
         }
+    } else {
+        // --- MODE PENGUNJUNG (Tambahkan ini) ---
+        authSection.style.display = 'block'; // Pastikan tombol login tampil
+        userSection.style.display = 'none';   // Pastikan tombol buat ilmu sembunyi
+        welcome.innerText = "Selamat Datang, Sahabat Tani!"; // Sapaan umum
+        
+        // Opsional: Tambahkan sedikit teks agar pengunjung tahu mereka sedang di mode baca
+        const info = document.createElement('p');
+        info.innerText = "Mari jelajahi ilmu mikro yang sudah baku.";
+        info.style.color = "#94a3b8";
+        document.querySelector('.container').appendChild(info);
     }
 });
+
 function lanjutkanDraft() {
     const draft = JSON.parse(localStorage.getItem('tofarmer_draft'));
     // Jika data gate 2 belum ada, kembali ke Gate 2. Jika sudah, ke Gate 3.
-    if (!draft.data.gate_2_hipotesis) {
+    if (draft && draft.data && !draft.data.gate_2_hipotesis) {
         window.location.href = 'gate-2.html';
     } else {
         window.location.href = 'gate-3.html';
