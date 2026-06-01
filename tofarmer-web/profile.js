@@ -293,7 +293,7 @@ function renderWorkspace() {
           align-items: center;
           justify-content: center;
         ">
-          💡 Sumbang Ilmu
+          💡 Sumbang Ilmu (Belum siap)
         </a>
       </div>
  
