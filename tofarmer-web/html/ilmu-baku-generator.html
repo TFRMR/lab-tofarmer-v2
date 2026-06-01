@@ -94,14 +94,7 @@
     import { Generator } from '../js/generator.js';
     import { supabase } from '../js/supabase-client.js'; // Pastikan path ini benar
 
-    // --- AUTH GUARD ---
-    // Cek status login saat halaman dimuat
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        if (!session) {
-            // Jika tidak ada session, arahkan ke login
-            window.location.href = 'login.html'; 
-        }
-    });
+ 
 
     // Inisialisasi setelah pengecekan sesi
     Generator.initCategorySelection((pilar) => {
@@ -150,13 +143,24 @@
 
   // Tambahkan kata kunci 'async' di sini
 btnLanjut.addEventListener('click', async () => {
+    // 1. CEK DULU: Apakah dia sudah punya wallet/login?
+    const wallet = localStorage.getItem('tof_wallet');
+    
+    if (!wallet) {
+        alert("Waduh, kamu belum login! Masuk dulu ya biar ilmunya tersimpan di ladangmu. 🌿");
+        window.location.href = '/html/login.html'; // Baru tendang di sini
+        return;
+    }
+
     if (btnLanjut.classList.contains('active')) {
-        // Beri feedback visual
         btnLanjut.innerText = "MENYIMPAN...";
         btnLanjut.style.opacity = "0.5";
         
-        // Sekarang 'await' akan berjalan dengan benar
-        await Generator.updateGate(1, { gate_1_status: "Lolos" });
+        // Kirim data ke Supabase dengan menyertakan wallet sebagai pemilik
+        await Generator.updateGate(1, { 
+            gate_1_status: "Lolos",
+            user_id: wallet // PENTING: Lampirkan wallet-nya!
+        });
         
         window.location.href = 'gate-2.html';
     }
