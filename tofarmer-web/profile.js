@@ -167,7 +167,7 @@ setTimeout(async () => {
         responseBox.innerText = "Teman Kebun sedang menyapa...";
         const sapaan = await panggilAiSaran("humor", { 
             teks: "User baru saja masuk ke halaman profil", 
-            trigger: "Kamu adalah asisten petani yang suka bercanda tapi selalu menyuruh menanam karya" 
+            trigger: "Kamu adalah asisten petani yang suka humor maksimal tapi selalu menyuruh menanam karya" 
         });
         typeWriterEffect(responseBox, `🤖 Teman Kebun: ${sapaan}`);
     }
