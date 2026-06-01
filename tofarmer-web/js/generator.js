@@ -1,3 +1,12 @@
+// Tambahkan pengecekan instan di awal file
+const wallet = localStorage.getItem('tof_wallet');
+if (!wallet) {
+    alert("Silakan login terlebih dahulu!");
+    window.location.href = '../login.html';
+}
+
+import { supabase } from './supabase-client.js';
+
 const Generator = {
     // 1. Variabel Kontrol AI
     komentarCount: 0, 
@@ -142,11 +151,51 @@ const Generator = {
         });
     },
 
-    updateGate: (gate, data) => {
-        let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
-        state.data = { ...state.data, ...data };
-        localStorage.setItem('tofarmer_draft', JSON.stringify(state));
-    },
+   updateGate: async (gate, data) => {
+// Cek Tiket di sini
+    const currentWallet = localStorage.getItem('tof_wallet');
+    if (!currentWallet) {
+        alert("Kamu belum masuk ke ladang! Hubungkan dompet dulu di halaman utama.");
+        window.location.href = '../index.html'; // Arahkan balik ke home
+        return;
+    }
+
+    // Simpan Lokal (Backup)
+    let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
+    state.data = { ...state.data, ...data };
+    localStorage.setItem('tofarmer_draft', JSON.stringify(state));
+
+    // Sinkronisasi ke Database jika status Lolos
+    if (data.gate_1_status === "Lolos") {const alreadySynced = localStorage.getItem('tofarmer_synced');
+    if (alreadySynced) return;
+        try {
+            // Kita ambil wallet langsung dari localStorage
+const currentWallet = localStorage.getItem('tof_wallet');
+if (!currentWallet) return; // Kalau tidak ada wallet, ya berhenti
+
+            // Pemetaan pilar teks ke integer sesuai constraint DB (1-5)
+            const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, refleksi: 5 };
+            const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
+
+            const { error } = await supabase
+                .from('contributions')
+                .insert([{
+                    user_id: session.user.id,
+                    judul_aksi: state.data.judul_eksperimen,
+                    deskripsi_proses: state.data.kalimat_baku_compiled,
+                    pilar_aksi: pilarInt,
+                    status_validasi: 'PENDING'
+                }]);
+            
+            if (error) throw error;
+           // Tandai bahwa sudah disinkronkan agar tidak double insert
+        localStorage.setItem('tofarmer_synced', 'true');
+        console.log("Sinkronisasi database berhasil");
+    } catch (err) {
+        console.error("Gagal sinkronisasi:", err.message);
+    }
+}
+},
 
     renderMicroInputs: (pilar) => {
         const container = document.getElementById('micro-inputs-container');

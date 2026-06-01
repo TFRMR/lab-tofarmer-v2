@@ -92,8 +92,18 @@
 
 <script type="module">
     import { Generator } from '../js/generator.js';
+    import { supabase } from '../js/supabase-client.js'; // Pastikan path ini benar
 
-    // Inisialisasi AI Palsu agar elemen-elemennya aktif
+    // --- AUTH GUARD ---
+    // Cek status login saat halaman dimuat
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+            // Jika tidak ada session, arahkan ke login
+            window.location.href = 'login.html'; 
+        }
+    });
+
+    // Inisialisasi setelah pengecekan sesi
     Generator.initCategorySelection((pilar) => {
         console.log("Pilar terpilih:", pilar);
     });
@@ -138,11 +148,19 @@
         Generator.updateGate(1, { judul: input.value });
     });
 
-    btnLanjut.addEventListener('click', () => {
-        if (btnLanjut.classList.contains('active')) {
-            window.location.href = 'gate-2.html';
-        }
-    });
+  // Tambahkan kata kunci 'async' di sini
+btnLanjut.addEventListener('click', async () => {
+    if (btnLanjut.classList.contains('active')) {
+        // Beri feedback visual
+        btnLanjut.innerText = "MENYIMPAN...";
+        btnLanjut.style.opacity = "0.5";
+        
+        // Sekarang 'await' akan berjalan dengan benar
+        await Generator.updateGate(1, { gate_1_status: "Lolos" });
+        
+        window.location.href = 'gate-2.html';
+    }
+});
 </script>
 </body>
 </html>

@@ -515,6 +515,12 @@ async function loadUserPosts() {
 let reacting = false; // Ini gembok pintu depan
 
 async function reactPost(postId, type) {
+  // 🟢 CEK LOGIN: Jika tidak ada wallet di localStorage, hentikan dan beri tahu user
+  if (!currentWallet) {
+    alert("🌿 Sambungkan dompet dulu untuk apresiasi karya ini!");
+    return;
+  }
+
   // 1. Jika pintu sedang terkunci, abaikan klik selanjutnya!
   if (reacting) return;
   reacting = true; // Kunci pintu sekarang!

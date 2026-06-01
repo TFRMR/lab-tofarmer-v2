@@ -1,10 +1,19 @@
 let currentWallet = null
 let currentProfile = null
 
+// --- SATPAM LOGIN ---
+function checkLoginStatus() {
+    const wallet = localStorage.getItem('tof_wallet');
+    const path = window.location.pathname;
 
+    // Jika tidak ada wallet DAN bukan di halaman login/index, tendang ke login
+    if (!wallet && !path.includes('login.html') && !path.includes('index.html')) {
+        window.location.href = '/login.html'; 
+    }
+}
+checkLoginStatus(); 
 
-
-
+// ===================== WALLET =====================
 // ===================== WALLET =====================
 async function connectWallet() {
   return new Promise((resolve) => {
@@ -251,14 +260,18 @@ function showWelcomePopup() {
 
 
 function logoutWallet() {
+  const yakin = confirm("Yakin ingin meninggalkan ladang? 🌱");
+  if (!yakin) return; // Batalkan jika user klik cancel
+
   currentWallet = null
   currentProfile = null
   localStorage.removeItem("tof_wallet")
 
   updateWalletUI()
   renderProfile()
-
-  alert("Logged out")
+  
+  // Arahkan ke halaman utama setelah logout
+  window.location.href = 'index.html'; 
 }
 
 
