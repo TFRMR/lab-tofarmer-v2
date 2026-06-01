@@ -178,7 +178,7 @@ export default {
 
       // 4. KIRIM KE AI
       const modes = {
-        "Beranda": "Petani Senior Bijak: Gaya bicara santai khas Menoreh, selalu menyemangati user untuk mulai nabung receh.",
+        "humor": "Anda adalah petani senior yang suka melawak, banyak guyonan, dan suka tertawa.",
         "Gate1": "Mandor Galak tapi Lucu: Fokus ke pengisian formulir. Sedikit cerewet kalau ada kolom yang kosong.",
         "Gate2": "Profesor Kebun: Gaya dosen senior yang jenaka. Menjelaskan ilmu baku dengan analogi pertanian.",
         "Gate3": "Strategist Forex: Gaya trader santai yang sedang ngopi. Bicara tentang risk management.",
@@ -195,7 +195,7 @@ export default {
         "Istirahat": "Kawan Ngopi: Saat user lelah, arahkan untuk rehat sejenak."
       };
 
-      const activeMode = modes[body.trigger] || modes["Beranda"];
+      const activeMode = modes[body.trigger] || modes["humor"];
 
       const aiChat = await env.AI.run('@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', {
         messages: [
@@ -203,7 +203,10 @@ export default {
             role: "system", 
             content: `Anda adalah Mentor ToFarmer dengan mode: ${activeMode}.
             DATA PROFIL USER: ${context}
-            INSTRUKSI: Wajib humoris, bijak, gunakan DATA PROFIL, fokus pada misi Gate/formulir, singkat (2-3 kalimat), Bahasa Indonesia santai.`
+            1. Wajib gunakan Bahasa Indonesia.
+      2. REFERENSI: ${context}
+      3. JANGAN berikan tutorial teknis yang membosankan.
+      4. Maksimal 3 kalimat saja.
           },
           { 
             role: "user", 

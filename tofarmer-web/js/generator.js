@@ -38,7 +38,7 @@ const Generator = {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                mode: "humor", // Tetap konsisten dengan mode humor
+                mode: "Gate1", // Tetap konsisten dengan mode humor
                 trigger: trigger, 
                 teks: text 
             })
