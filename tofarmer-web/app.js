@@ -1,17 +1,17 @@
 let currentWallet = null
 let currentProfile = null
 
-// --- SATPAM LOGIN ---
+// --- SATPAM LOGIN (RAMAH TAMU) ---
 function checkLoginStatus() {
     const wallet = localStorage.getItem('tof_wallet');
-    const path = window.location.pathname;
-
-    // Jika tidak ada wallet DAN bukan di halaman login/index, tendang ke login
-    if (!wallet && !path.includes('login.html') && !path.includes('index.html')) {
-        window.location.href = '/login.html'; 
+    // Kita tidak perlu redirect paksa lagi. 
+    // Siapa saja boleh masuk, tapi fungsi tertentu akan dicek saat diklik.
+    if (!wallet) {
+        console.log("Pengunjung sedang melihat-lihat sebagai Guest 🌿");
+        return; // Biarkan mereka lanjut baca web
     }
 }
-checkLoginStatus(); 
+checkLoginStatus();
 
 // ===================== WALLET =====================
 // ===================== WALLET =====================
