@@ -8,9 +8,16 @@
         body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
         .bg-animate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%); }
         .container { max-width: 800px; width: 90%; padding: 2rem; text-align: center; }
+        
+        /* Navigasi atas */
+        .nav-top { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .nav-link { color: #94a3b8; text-decoration: none; font-size: 0.9rem; padding: 0.5rem; }
+        .nav-link:hover { color: #ffffff; }
+
         .btn-game { padding: 1rem 2rem; background: #16a34a; border: none; color: white; border-radius: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.3s; margin: 0.5rem; }
         .btn-game:hover { transform: scale(1.05); }
-        /* Style untuk kartu baru */
+        
+        /* Style untuk kartu */
         .card { background: #1e293b; padding: 1.5rem; border-radius: 1rem; margin-top: 1rem; border: 1px solid #374151; text-align: left; }
         .card h3 { margin-top: 0; color: #cbd5e1; }
         .btn-action { background: #2563eb; padding: 0.5rem 1rem; border-radius: 0.5rem; border: none; color: white; cursor: pointer; margin-top: 0.5rem; }
@@ -20,17 +27,24 @@
     <div class="bg-animate"></div>
 
     <div class="container">
-        <h1 id="welcome-text">Selamat Datang di ToFarmer</h1>
-         <nav>
-            <a href="../html/fitur-ilmu.html">🏠Kembali</a>
+        <nav class="nav-top">
+            <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="nav-link">← Kembali ke Fitur dan Ilmu</a>
+            <a href="https://www.tofarmer.xyz/profile.html" class="nav-link">Profil 👤</a>
         </nav>
+
+        <h1 id="welcome-text">Selamat Datang di ToFarmer</h1>
+        
         <div id="auth-section">
             <button class="btn-game" onclick="simpanLokasiDanLogin()">Login untuk Mulai</button>
         </div>
         
         <div id="user-section">
-            <button class="btn-game" onclick="window.location.href='ilmu-baku-generator.html'">➕ Buat Ilmu Baru</button>
-            
+            <div id="card-create" class="card">
+                <h3>Buat Ilmu Baru</h3>
+                <p>Mulai susun pengetahuan dan strategi baru Anda.</p>
+                <button onclick="window.location.href='ilmu-baku-generator.html'" class="btn-action" style="background:#16a34a;">➕ Buat Ilmu Baru</button>
+            </div>
+
             <div id="card-draft" class="card" style="display:none;">
                 <h3>Misi Berjalan</h3>
                 <p id="draft-title">-</p>
