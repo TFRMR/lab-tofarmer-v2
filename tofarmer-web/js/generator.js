@@ -18,7 +18,35 @@ const Generator = {
     },
 
     saveDraft: (data) => localStorage.setItem('tofarmer_draft', JSON.stringify(data)),
-  
+  // Tambahkan ini untuk membaca data
+    loadDraft: () => {
+        const draft = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
+        if (!draft.data) return null;
+        
+        // 1. Kembalikan Judul
+        const inputJudul = document.querySelector('#input-judul');
+        if (inputJudul && draft.data.judul_eksperimen) {
+            inputJudul.value = draft.data.judul_eksperimen;
+        }
+
+        // 2. Kembalikan Pilar (Tombol)
+        if (draft.data.pilar_bidang) {
+            const btn = document.querySelector(`[data-value="${draft.data.pilar_bidang}"]`);
+            if (btn) {
+                btn.classList.add('active');
+                Generator.renderMicroInputs(draft.data.pilar_bidang);
+            }
+        }
+
+        // 3. Kembalikan detail Micro Inputs
+        if (draft.data.micro_inputs) {
+            Object.entries(draft.data.micro_inputs).forEach(([key, value]) => {
+                const el = document.getElementById(`input-${key}`);
+                if (el) el.value = value;
+            });
+        }
+        return draft.data;
+    },
     // 3. FUNGSI AI (Sekarang dengan Batasan 2x komentar & Debounce)
     updateAdvice: async (trigger, text) => {
     // Batasan 2x komentar tetap kita jaga
@@ -84,6 +112,8 @@ const Generator = {
         const inputJudul = document.querySelector('#input-judul');
         const btnLanjut = document.querySelector('.btn-lanjut');
         const microContainer = document.getElementById('micro-inputs-container');
+
+
 
      const validate = () => {
     const activeBtn = document.querySelector('.category-btn.active');
@@ -270,3 +300,25 @@ if (!currentWallet) return; // Kalau tidak ada wallet, ya berhenti
 };
 
 export { Generator };
+
+// Jalankan ini otomatis saat halaman dibuka
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Muat data dari localStorage
+    Generator.loadDraft();
+    
+    // 2. Inisialisasi Kategori (Pilar) dan berikan fungsi supaya dia tetap ter-update
+    Generator.initCategorySelection((pilar) => {
+        console.log("Pilar dipilih:", pilar);
+    });
+    
+    // 3. Panggil validasi sekali di awal untuk memastikan tombol lanjut 
+    // dalam keadaan terkunci/terbuka sesuai data yang baru dimuat
+    // Kita panggil fungsi validate yang ada di dalam initCategorySelection 
+    // Tapi karena validate ada di dalam fungsi, kita buat pemicu klik saja
+    const activeBtn = document.querySelector('.category-btn.active');
+    if (activeBtn) {
+        // Ini memastikan validasi berjalan saat data sudah terisi
+        const event = new Event('input');
+        document.getElementById('micro-inputs-container').dispatchEvent(event);
+    }
+});

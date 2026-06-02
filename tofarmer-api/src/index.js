@@ -156,7 +156,7 @@ export default {
     if (url.pathname === "/ai-saran" && request.method === "POST") {
       const body = await request.json();
       
-      if (!body.teks || body.teks.length < 5) {
+      if (!body.teks || body.teks.length < 2) {
         return json({ saran: "Input terlalu pendek, Kang. Coba tulis lebih jelas lagi eksperimennya." }, corsHeaders);
       }
 
