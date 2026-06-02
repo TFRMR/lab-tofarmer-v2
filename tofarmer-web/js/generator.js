@@ -17,6 +17,8 @@ const Generator = {
 
     // 3. Fungsi Upsert ke Supabase (Sinkronisasi Awan)
     simpanDraft: async (userId, dataProgres) => {
+console.log("UserID yang terdeteksi:", userId); // <-- CEK INI DI CONSOLE
+    console.log("Data yang mau dikirim:", dataProgres);
         const { data, error } = await supabase
             .from('drafts')
             .upsert({
