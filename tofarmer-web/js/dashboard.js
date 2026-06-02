@@ -121,15 +121,13 @@ window.buatIlmuBaru = () => {
 };
 
 // --- LOAD ILMU BAKU & APPROVE ---
-// --- FUNGSI ILMU BAKU & APPROVE (Dipisah berdasarkan status) ---
 async function loadIlmuBaku(status, elementId) {
     const container = document.getElementById(elementId);
     if (!container) return;
     
+    // Simpan judul agar tidak hilang saat innerHTML direset
     const title = container.querySelector('h3').outerHTML;
     
-    // Status BAKU = Sudah disahkan
-    // Status PENDING = Baru selesai semua gate, menunggu verifikasi
     const { data } = await supabase.from('contributions')
         .select('*')
         .eq('status_validasi', status);
@@ -139,20 +137,20 @@ async function loadIlmuBaku(status, elementId) {
     if (data && data.length > 0) {
         data.forEach(item => {
             const btn = document.createElement('button');
-            btn.className = "btn-ilmu";
-            btn.style.cssText = "width:100%; margin:5px 0; padding:10px; background:#1e293b; border:1px solid #334155; color:#cbd5e1; border-radius:8px; cursor:pointer; text-align:left;";
+            btn.style.cssText = "width:100%; margin:5px 0; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left; font-weight:500;";
             btn.innerHTML = `<strong>${item.judul_aksi}</strong>`;
             
-            // Jika statusnya PENDING, kasih keterangan bahwa ini sedang antre
             if (status === 'PENDING') {
-                btn.innerHTML += ` <span style="font-size:0.7rem; color:#d97706;">(Menunggu Verifikasi)</span>`;
+                btn.innerHTML += `<br><span style="font-size:0.7rem; color:#f59e0b;">● Menunggu konsensus bersama</span>`;
+            } else {
+                btn.innerHTML += `<br><span style="font-size:0.7rem; color:#10b981;">● Ilmu Baku Sah</span>`;
             }
             
-            btn.onclick = () => alert("Deskripsi: " + item.deskripsi_proses);
+            btn.onclick = () => alert("Detail Ilmu:\n" + item.deskripsi_proses);
             container.appendChild(btn);
         });
     } else {
-        container.innerHTML += `<p style="color:#64748b; font-size:0.8rem;">Kosong.</p>`;
+        container.innerHTML += `<p style="color:#64748b; font-size:0.85rem;">Tidak ada data saat ini.</p>`;
     }
 }
 
