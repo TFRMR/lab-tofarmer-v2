@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userSection = document.getElementById('user-section');
     const welcome = document.getElementById('welcome-text');
     
-    // Inisialisasi Asisten Kebun
     initAsistenKebun();
 
     const userId = localStorage.getItem('tof_user_id');
@@ -26,6 +25,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadIlmuBaku('PENDING', 'card-approve');
 });
 
+// --- EFEK KETIK (TYPING EFFECT) ---
+function typeWriter(element, text, speed = 30) {
+    let i = 0;
+    element.innerHTML = "";
+    if (window.typingInterval) clearInterval(window.typingInterval);
+    window.typingInterval = setInterval(() => {
+        if (i < text.length) {
+            element.textContent += text.charAt(i);
+            i++;
+        } else {
+            clearInterval(window.typingInterval);
+        }
+    }, speed);
+}
+
 // --- FUNGSI ASISTEN KEBUN ---
 async function initAsistenKebun() {
     const aiText = document.getElementById('ai-text');
@@ -40,7 +54,7 @@ async function initAsistenKebun() {
         const pesan = aiInput.value.trim();
         if (!pesan) return;
 
-        aiText.innerText = "Mentor sedang mikir...";
+        aiText.innerText = "...";
         
         try {
             const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
@@ -54,7 +68,7 @@ async function initAsistenKebun() {
             });
             
             const result = await response.json();
-            aiText.innerText = result.saran || "Mentor lagi di sawah, nanti lagi ya.";
+            typeWriter(aiText, result.saran || "Mentor lagi di sawah, nanti lagi ya.");
         } catch (error) {
             aiText.innerText = "Waduh, sinyal di kebun lagi hilang. Coba lagi nanti!";
         }
@@ -67,15 +81,19 @@ async function loadDrafts(userId, isLogin) {
     if (!container) return;
     container.innerHTML = ''; 
 
-    let { data, error } = await supabase.from('drafts').select('*');
+    let { data } = await supabase.from('drafts').select('*');
 
-    if (data) {
+    if (data && data.length > 0) {
         data.forEach(draft => {
             if (isLogin && draft.user_id !== userId) return;
 
             const btn = document.createElement('button');
-            btn.className = "btn-draft";
-            btn.innerText = `Misi: ${draft.progres_data.judul_eksperimen || "Draft Tanpa Judul"}`;
+            btn.className = "btn-draft"; // Pastikan CSS .btn-draft ada di style
+            btn.style.cssText = "width:100%; margin:5px 0; padding:10px; background:#334155; border:1px solid #475569; color:white; border-radius:8px; cursor:pointer; transition:0.3s;";
+            btn.innerText = `➔ ${draft.progres_data.judul_eksperimen || "Draft Tanpa Judul"}`;
+            
+            btn.onmouseover = () => btn.style.background = "#475569";
+            btn.onmouseout = () => btn.style.background = "#334155";
             
             btn.onclick = () => {
                 if (!isLogin) { alert("Login dulu untuk lanjut!"); return; }
@@ -84,21 +102,19 @@ async function loadDrafts(userId, isLogin) {
             };
             container.appendChild(btn);
         });
+    } else {
+        container.innerHTML = "<p style='color:#64748b; font-size:0.8rem;'>Belum ada misi yang berjalan.</p>";
     }
 }
 
 // --- FUNGSI PENGARAH GATE ---
 function arahkankeGate(data) {
-    if (!data.gate_1_status) {
-        window.location.href = 'gate-1.html';
-    } else if (!data.gate_2_hipotesis) {
-        window.location.href = 'gate-2.html';
-    } else {
-        window.location.href = 'gate-3.html';
-    }
+    if (!data.gate_1_status) window.location.href = 'gate-1.html';
+    else if (!data.gate_2_hipotesis) window.location.href = 'gate-2.html';
+    else window.location.href = 'gate-3.html';
 }
 
-// --- RESET (Buat Ilmu Baru) ---
+// --- RESET ---
 window.buatIlmuBaru = () => {
     localStorage.removeItem('tofarmer_draft');
     localStorage.removeItem('tofarmer_synced');
@@ -110,17 +126,27 @@ async function loadIlmuBaku(status, elementId) {
     const container = document.getElementById(elementId);
     if (!container) return;
     
+    // Simpan elemen judul agar tidak tertimpa
+    const title = container.querySelector('h3').outerHTML;
+    
     const { data } = await supabase.from('contributions')
         .select('*')
         .eq('status_validasi', status);
 
-    container.innerHTML = '';
-    data?.forEach(item => {
-        const card = document.createElement('div');
-        card.className = "card-ilmu";
-        card.innerHTML = `<h3>${item.judul_aksi}</h3><p>${item.deskripsi_proses}</p>`;
-        container.appendChild(card);
-    });
+    container.innerHTML = title; // Reset dan pasang kembali judul
+    
+    if (data && data.length > 0) {
+        data.forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = "btn-ilmu";
+            btn.style.cssText = "width:100%; margin:5px 0; padding:10px; background:#1e293b; border:1px solid #334155; color:#cbd5e1; border-radius:8px; cursor:pointer; text-align:left;";
+            btn.innerHTML = `<strong>${item.judul_aksi}</strong>`;
+            btn.onclick = () => alert(item.deskripsi_proses); // Atau arahkan ke detail
+            container.appendChild(btn);
+        });
+    } else {
+        container.innerHTML += `<p style="color:#64748b; font-size:0.8rem;">Belum ada antrean.</p>`;
+    }
 }
 
 window.lanjutkanDraft = () => {
