@@ -1311,6 +1311,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (typeof loadRankSummary === "function") {
     loadRankSummary()
   }
+updateAdvice("sapaan", "buka_web", "Halo petani! Siap tanam ide apa hari ini?");
 })
 
 async function loadAvatarStack() {
