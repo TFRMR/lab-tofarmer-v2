@@ -75,25 +75,24 @@ async function initAsistenKebun() {
     });
 }
 
-// --- FUNGSI DRAFT (Misi Berjalan) ---
 async function loadDrafts(userId, isLogin) {
     const container = document.getElementById('container-misi');
     if (!container) return;
     container.innerHTML = ''; 
 
+    // Filter hanya ambil data yang belum final/baku
     let { data } = await supabase.from('drafts').select('*');
 
     if (data && data.length > 0) {
         data.forEach(draft => {
+            // Jika login, filter hanya miliknya
             if (isLogin && draft.user_id !== userId) return;
-
-            const btn = document.createElement('button');
-            btn.className = "btn-draft"; // Pastikan CSS .btn-draft ada di style
-            btn.style.cssText = "width:100%; margin:5px 0; padding:10px; background:#334155; border:1px solid #475569; color:white; border-radius:8px; cursor:pointer; transition:0.3s;";
-            btn.innerText = `➔ ${draft.progres_data.judul_eksperimen || "Draft Tanpa Judul"}`;
             
-            btn.onmouseover = () => btn.style.background = "#475569";
-            btn.onmouseout = () => btn.style.background = "#334155";
+            // Logika: Hanya tampilkan jika belum 'BAKU' atau belum 'PENDING' (Masih dalam proses gate)
+            const btn = document.createElement('button');
+            btn.className = "btn-draft";
+            btn.style.cssText = "width:100%; margin:5px 0; padding:10px; background:#334155; border:1px solid #475569; color:white; border-radius:8px; cursor:pointer;";
+            btn.innerText = `➔ ${draft.progres_data.judul_eksperimen || "Draft Tanpa Judul"}`;
             
             btn.onclick = () => {
                 if (!isLogin) { alert("Login dulu untuk lanjut!"); return; }
@@ -103,7 +102,7 @@ async function loadDrafts(userId, isLogin) {
             container.appendChild(btn);
         });
     } else {
-        container.innerHTML = "<p style='color:#64748b; font-size:0.8rem;'>Belum ada misi yang berjalan.</p>";
+        container.innerHTML = "<p style='color:#64748b; font-size:0.8rem;'>Tidak ada misi yang sedang dikerjakan.</p>";
     }
 }
 
@@ -122,18 +121,20 @@ window.buatIlmuBaru = () => {
 };
 
 // --- LOAD ILMU BAKU & APPROVE ---
+// --- FUNGSI ILMU BAKU & APPROVE (Dipisah berdasarkan status) ---
 async function loadIlmuBaku(status, elementId) {
     const container = document.getElementById(elementId);
     if (!container) return;
     
-    // Simpan elemen judul agar tidak tertimpa
     const title = container.querySelector('h3').outerHTML;
     
+    // Status BAKU = Sudah disahkan
+    // Status PENDING = Baru selesai semua gate, menunggu verifikasi
     const { data } = await supabase.from('contributions')
         .select('*')
         .eq('status_validasi', status);
 
-    container.innerHTML = title; // Reset dan pasang kembali judul
+    container.innerHTML = title; 
     
     if (data && data.length > 0) {
         data.forEach(item => {
@@ -141,11 +142,17 @@ async function loadIlmuBaku(status, elementId) {
             btn.className = "btn-ilmu";
             btn.style.cssText = "width:100%; margin:5px 0; padding:10px; background:#1e293b; border:1px solid #334155; color:#cbd5e1; border-radius:8px; cursor:pointer; text-align:left;";
             btn.innerHTML = `<strong>${item.judul_aksi}</strong>`;
-            btn.onclick = () => alert(item.deskripsi_proses); // Atau arahkan ke detail
+            
+            // Jika statusnya PENDING, kasih keterangan bahwa ini sedang antre
+            if (status === 'PENDING') {
+                btn.innerHTML += ` <span style="font-size:0.7rem; color:#d97706;">(Menunggu Verifikasi)</span>`;
+            }
+            
+            btn.onclick = () => alert("Deskripsi: " + item.deskripsi_proses);
             container.appendChild(btn);
         });
     } else {
-        container.innerHTML += `<p style="color:#64748b; font-size:0.8rem;">Belum ada antrean.</p>`;
+        container.innerHTML += `<p style="color:#64748b; font-size:0.8rem;">Kosong.</p>`;
     }
 }
 
