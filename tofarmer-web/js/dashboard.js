@@ -5,7 +5,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userSection = document.getElementById('user-section');
     const welcome = document.getElementById('welcome-text');
     
+    // 1. Panggil asisten
     initAsistenKebun();
+
+    // 2. TAMBAHKAN PEMANGGILAN SAPAAN DI SINI
+    sapaUser();
 
     const userId = localStorage.getItem('tof_user_id');
 
