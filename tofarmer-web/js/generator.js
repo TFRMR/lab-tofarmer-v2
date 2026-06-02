@@ -5,6 +5,54 @@ const Generator = {
     komentarCount: 0, 
     aiTimer: null,
 
+    // 2. Fungsi Inisialisasi User (Pindahkan ke sini)
+    initUserFromProfile: async (username) => {
+        if (!username) {
+            console.error("Username kosong");
+            return;
+        }
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('username', username)
+            .single();
+
+        if (error) {
+            console.error("Gagal ambil profiles:", error);
+            return;
+        }
+
+        localStorage.setItem('tof_user_id', data.id);
+        console.log("🔥 USER ID AKTIF (profiles.id):", data.id);
+    },
+
+    // 3. Fungsi Upsert ke Supabase
+    simpanDraft: async (userId, dataProgres) => {
+        // Cek ID di sini (Guard Clause)
+        if (!userId) {
+            console.warn("⚠️ Sinkronisasi dibatalkan: User ID belum ada.");
+            return;
+        }
+
+        try {
+            const { data, error } = await supabase
+                .from('drafts')
+                .upsert({
+                    user_id: userId,
+                    progres_data: dataProgres,
+                    updated_at: new Date().toISOString()
+                }, {
+                    onConflict: 'user_id'
+                });
+
+            if (error) console.error("4. ERROR DARI SUPABASE:", error);
+            else console.log("5. BERHASIL: Data tersimpan ke Supabase!");
+        } catch (err) {
+            console.error("6. ERROR SISTEM:", err);
+        }
+    },
+
     // 2. Pemetaan Jalur
     getJalur: (pilar) => {
         const jalurMap = {
@@ -232,8 +280,10 @@ initUserFromProfile: async (username) => {
 
 updateGate: async (gate, data) => {
         const userId = localStorage.getItem('tof_user_id');
-        if (!userId) return;
-
+        if (!userId) {
+            console.warn("UpdateGate berhenti karena userId null");
+            return;
+        }
         let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
         state.data = { ...state.data, ...data };
         localStorage.setItem('tofarmer_draft', JSON.stringify(state));
