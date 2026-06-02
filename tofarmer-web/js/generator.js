@@ -41,22 +41,26 @@ const Generator = {
             console.warn("⚠️ Sinkronisasi dibatalkan: User ID belum ada.");
             return;
         }
-        try {
-            const { data, error } = await supabase
-                .from('drafts')
-                .upsert({
-                    user_id: userId,
-                    progres_data: dataProgres,
-                    updated_at: new Date().toISOString()
-                }, { onConflict: 'user_id' });
+       try {
+        const { error } = await supabase
+            .from('drafts')
+            .upsert({
+                user_id: userId,
+                progres_data: dataProgres,
+                updated_at: new Date().toISOString(),
+                // PENTING: Tambahkan kolom ini agar tersimpan ke tabel
+                gate_1_selesai: dataProgres.gate_1_selesai === true 
+            }, { onConflict: 'user_id' });
 
-            if (error) console.error("4. ERROR DARI SUPABASE:", error);
-            else console.log("5. BERHASIL: Data tersimpan!");
-        } catch (err) {
-            console.error("6. ERROR SISTEM:", err);
+        if (error) {
+            console.error("4. ERROR DARI SUPABASE:", error);
+        } else {
+            console.log("5. BERHASIL: Data & Status Gate tersimpan!");
         }
-    },
-
+    } catch (err) {
+        console.error("6. ERROR SISTEM:", err);
+    }
+},
     saveDraft: (data) => {
         localStorage.setItem('tofarmer_draft', JSON.stringify(data));
         const userId = localStorage.getItem('tof_user_id');
