@@ -5,7 +5,7 @@ const Generator = {
     komentarCount: 0, 
     aiTimer: null,
 
-    // 2. Pemetaan Jalur (Sesuai Dokumen)
+    // 2. Pemetaan Jalur
     getJalur: (pilar) => {
         const jalurMap = {
             ladang: "Jalur Lambat", alat: "Jalur Lambat",
@@ -14,44 +14,41 @@ const Generator = {
         };
         return jalurMap[pilar] || "Jalur Normal";
     },
-    
-    autoSaveToSupabase: async () => {
-        const userId = localStorage.getItem('tof_user_id'); 
-        const state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
-        
-        if (!userId || !state.data) return;
 
-        try {
-            await supabase
-                .from('drafts')
-                .upsert({
-                    user_id: userId,
-                    progres_data: state.data,
-                    updated_at: new Date().toISOString()
-                });
-            console.log("Draft tersimpan aman di awan!");
-        } catch (err) {
-            console.error("Gagal sinkronisasi:", err.message);
+    // 3. Fungsi Upsert ke Supabase (Sinkronisasi Awan)
+    simpanDraft: async (userId, dataProgres) => {
+        const { data, error } = await supabase
+            .from('drafts')
+            .upsert({
+                user_id: userId,
+                progres_data: dataProgres,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id'
+            });
+
+        if (error) {
+            console.error("Gagal melakukan upsert:", error.message);
+        } else {
+            console.log("Data berhasil di-upsert ke awan!");
         }
     },
     
     saveDraft: (data) => {
         localStorage.setItem('tofarmer_draft', JSON.stringify(data));
-        Generator.autoSaveToSupabase(); // Penyesuaian: Memanggil auto save ke awan
+        const userId = localStorage.getItem('tof_user_id');
+        Generator.simpanDraft(userId, data.data);
     },
     
-  // Tambahkan ini untuk membaca data
     loadDraft: () => {
         const draft = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
         if (!draft.data) return null;
         
-        // 1. Kembalikan Judul
         const inputJudul = document.querySelector('#input-judul');
         if (inputJudul && draft.data.judul_eksperimen) {
             inputJudul.value = draft.data.judul_eksperimen;
         }
 
-        // 2. Kembalikan Pilar (Tombol)
         if (draft.data.pilar_bidang) {
             const btn = document.querySelector(`[data-value="${draft.data.pilar_bidang}"]`);
             if (btn) {
@@ -60,7 +57,6 @@ const Generator = {
             }
         }
 
-        // 3. Kembalikan detail Micro Inputs
         if (draft.data.micro_inputs) {
             Object.entries(draft.data.micro_inputs).forEach(([key, value]) => {
                 const el = document.getElementById(`input-${key}`);
@@ -205,60 +201,43 @@ const Generator = {
         });
     },
 
-  updateGate: async (gate, data) => {
-    // Cek Tiket HANYA saat mau simpan
-    const currentWallet = localStorage.getItem('tof_wallet');
-    if (!currentWallet) {
-        alert("Waduh, kamu belum login! Masuk dulu ya biar ilmunya tersimpan.");
-        window.location.href = '../html/login.html'; 
-        return;
-    }
+updateGate: async (gate, data) => {
+        const userId = localStorage.getItem('tof_user_id');
+        if (!userId) return;
 
-    // Simpan Lokal (Backup)
-    let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
-    state.data = { ...state.data, ...data };
-    localStorage.setItem('tofarmer_draft', JSON.stringify(state));
-    
-    // Penyesuaian: Memanggil auto save ke awan setiap gate diperbarui
-    await Generator.autoSaveToSupabase(); 
-
-    // Sinkronisasi ke Database jika status Lolos
-    if (data.gate_1_status === "Lolos") {
-        const alreadySynced = localStorage.getItem('tofarmer_synced');
-        if (alreadySynced) return;
+        let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
+        state.data = { ...state.data, ...data };
+        localStorage.setItem('tofarmer_draft', JSON.stringify(state));
         
-        try {
-            // Kita ambil wallet langsung dari localStorage
-            const currentWallet = localStorage.getItem('tof_wallet');
-            const userId = localStorage.getItem('tof_user_id'); // TAMBAHKAN INI
+        // Gunakan fungsi simpanDraft baru
+        await Generator.simpanDraft(userId, state.data);
 
-            if (!currentWallet || !userId) return; // Pastikan userId juga ada
-
-            // Pemetaan pilar teks ke integer sesuai constraint DB (1-5)
-            const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, refleksi: 5 };
-            const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
-
-            const { error } = await supabase
-                .from('contributions')
-                .insert([{
-                    user_id: userId, // PERBAIKAN DI SINI (Ganti session.user.id menjadi userId)
-                    judul_aksi: state.data.judul_eksperimen,
-                    deskripsi_proses: state.data.kalimat_baku_compiled,
-                    pilar_aksi: pilarInt,
-                    status_validasi: 'PENDING'
-                }]);
+        // Sinkronisasi Database Utama
+        if (data.gate_1_status === "Lolos") {
+            const alreadySynced = localStorage.getItem('tofarmer_synced');
+            if (alreadySynced) return;
             
-            if (error) throw error;
-            
-            // Tandai bahwa sudah disinkronkan agar tidak double insert
-            localStorage.setItem('tofarmer_synced', 'true');
-            console.log("Sinkronisasi database berhasil");
-        } catch (err) {
-            console.error("Gagal sinkronisasi:", err.message);
+            try {
+                const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, refleksi: 5 };
+                const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
+
+                const { error } = await supabase
+                    .from('contributions')
+                    .insert([{
+                        user_id: userId,
+                        judul_aksi: state.data.judul_eksperimen,
+                        deskripsi_proses: state.data.kalimat_baku_compiled,
+                        pilar_aksi: pilarInt,
+                        status_validasi: 'PENDING'
+                    }]);
+                
+                if (error) throw error;
+                localStorage.setItem('tofarmer_synced', 'true');
+            } catch (err) {
+                console.error("Gagal sinkronisasi:", err.message);
+            }
         }
-    }
-},
-
+    },
     renderMicroInputs: (pilar) => {
         const container = document.getElementById('micro-inputs-container');
         container.innerHTML = '';
