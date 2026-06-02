@@ -6,31 +6,44 @@ if (!wallet) window.location.href = '../html/login.html';
 // Inisialisasi draft dari localStorage
 let draft = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
 
-// State untuk melacak jatah 3 pertanyaan per kolom
+// State untuk melacak jatah 5 pertanyaan per kolom
 const komentarState = {
     taktik: 0,
     baseline: 0,
     target: 0
 };
-const MAX_KOMENTAR_PER_KOLOM = 3;
+const MAX_KOMENTAR_PER_KOLOM = 5;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Menampilkan judul dari Gate 1
-    const elHasilGate1 = document.getElementById('hasil-gate1');
-    if (elHasilGate1) {
-        elHasilGate1.innerText = draft.data?.judul_eksperimen || "Belum ada judul eksperimen";
+    const isiRingkasan = document.getElementById('isi-ringkasan');
+    if (isiRingkasan && draft.data) {
+        const { judul_eksperimen, pilar_bidang, kalimat_baku_compiled, micro_inputs } = draft.data;
+
+        // Susun HTML untuk menampilkan data Gate 1
+        let html = `
+            <p><strong>Judul:</strong> ${judul_eksperimen || "-"}</p>
+            <p><strong>Pilar:</strong> ${pilar_bidang || "-"}</p>
+            <p style="color: #60a5fa;"><em>"${kalimat_baku_compiled || "-"}"</em></p>
+            <hr style="border: 0; border-top: 1px solid #374151; margin: 10px 0;">
+            <ul style="font-size: 14px; list-style: none; padding: 0;">
+        `;
+
+        if (micro_inputs) {
+            Object.entries(micro_inputs).forEach(([key, value]) => {
+                html += `<li><strong>${key}:</strong> ${value}</li>`;
+            });
+        }
+        html += `</ul>`;
+        
+        isiRingkasan.innerHTML = html;
     }
 
-    // Mengisi ulang input dan memulihkan state komentar jika ada
+    // Pemulihan input gate 2 (seperti kode lama Anda)
     if (draft.data?.gate_2_hipotesis) {
         document.getElementById('taktik').value = draft.data.gate_2_hipotesis.taktik || "";
         document.getElementById('baseline').value = draft.data.gate_2_hipotesis.baseline || "";
         document.getElementById('target').value = draft.data.gate_2_hipotesis.target || "";
-        
-        // Memulihkan sisa jatah tanya dari draft jika tersimpan
-        if (draft.data.komentar_state) {
-            Object.assign(komentarState, draft.data.komentar_state);
-        }
+        if (draft.data.komentar_state) Object.assign(komentarState, draft.data.komentar_state);
         validateGate2();
     }
 });
@@ -150,7 +163,19 @@ document.getElementById('btn-kembali').addEventListener('click', () => {
 });
 
 // Event Listener untuk tombol lanjut
-document.getElementById('btn-lanjut').addEventListener('click', () => {
-    simpanState();
+// Event Listener untuk tombol lanjut
+document.getElementById('btn-lanjut').addEventListener('click', async () => {
+    // 1. Simpan semua input ke object draft terlebih dahulu
+    simpanState(); 
+
+    // 2. Tambahkan status bahwa Gate 2 sudah SELESAI
+    draft.data.gate_2_selesai = true;
+    localStorage.setItem('tofarmer_draft', JSON.stringify(draft));
+    
+    // 3. Pastikan update ke Supabase dengan status terbaru ini
+    await autoSaveToSupabase(); 
+
+    // 4. Baru pindah halaman
+    alert("Gate 2 Lulus! Pintu ke Gate 3 telah terbuka.");
     window.location.href = 'gate-3.html';
 });

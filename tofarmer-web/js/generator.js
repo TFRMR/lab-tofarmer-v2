@@ -113,32 +113,36 @@ const Generator = {
         } catch (error) { aiText.innerText = "Mentor lagi di sawah, nanti lagi ya."; }
     },
 
-    updateGate: async (gate, data) => {
-        const userId = localStorage.getItem('tof_user_id');
-        if (!userId) return;
+   updateGate: async (gate, data) => {
+    const userId = localStorage.getItem('tof_user_id');
+    if (!userId) return;
 
-       let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
-        state.data = { ...state.data, ...data };
-        localStorage.setItem('tofarmer_draft', JSON.stringify(state));
-       
+    let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
+    state.data = { ...state.data, ...data };
+    localStorage.setItem('tofarmer_draft', JSON.stringify(state));
 
-        if (data.gate_1_status === "Lolos") {
-            const alreadySynced = localStorage.getItem('tofarmer_synced');
-            if (alreadySynced) return;
-            try {
-                const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, refleksi: 5 };
-                const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
-                const { error } = await supabase.from('contributions').insert([{
-                    user_id: userId, judul_aksi: state.data.judul_eksperimen,
-                    deskripsi_proses: state.data.kalimat_baku_compiled, pilar_aksi: pilarInt,
-                    status_validasi: 'PENDING'
-                }]);
-                if (error) throw error;
-                localStorage.setItem('tofarmer_synced', 'true');
-            } catch (err) { console.error("Gagal sinkronisasi:", err.message); }
-        }
-    },
+    // OTOMATIS SINCRON KE SUPABASE SETIAP ADA PERUBAHAN
+    // Ini memastikan status gate_1_selesai tersimpan di tabel 'drafts'
+    await Generator.simpanDraft(userId, state.data);
 
+    // Logic untuk kontribusi (tetap seperti semula)
+    if (data.gate_1_status === "Lolos") {
+        const alreadySynced = localStorage.getItem('tofarmer_synced');
+        if (alreadySynced) return;
+        try {
+            const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, refleksi: 5 };
+            const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
+            await supabase.from('contributions').insert([{
+                user_id: userId, 
+                judul_aksi: state.data.judul_eksperimen,
+                deskripsi_proses: state.data.kalimat_baku_compiled, 
+                pilar_aksi: pilarInt,
+                status_validasi: 'PENDING'
+            }]);
+            localStorage.setItem('tofarmer_synced', 'true');
+        } catch (err) { console.error("Gagal sinkronisasi:", err.message); }
+    }
+},
     renderMicroInputs: (pilar) => {
         const container = document.getElementById('micro-inputs-container');
         container.innerHTML = '';
@@ -178,17 +182,24 @@ const Generator = {
         const inputJudul = document.querySelector('#input-judul');
         const btnLanjut = document.querySelector('.btn-lanjut');
 btnLanjut.addEventListener('click', async () => {
-            if (!btnLanjut.classList.contains('active')) return;
+    if (!btnLanjut.classList.contains('active')) return;
 
-            const userId = localStorage.getItem('tof_user_id');
-            const state = JSON.parse(localStorage.getItem('tofarmer_draft'));
-            
-            console.log("🚀 Menyimpan data permanen ke Supabase...");
-            await Generator.simpanDraft(userId, state.data);
-            
-            // Lanjut ke Gate berikutnya (opsional)
-            alert("Data tersimpan! Silakan lanjut ke Gate berikutnya.");
-        });
+    const userId = localStorage.getItem('tof_user_id');
+    const state = JSON.parse(localStorage.getItem('tofarmer_draft'));
+    
+    // 1. Tambahkan status gate_1_selesai: true ke dalam state
+    state.data.gate_1_selesai = true;
+    localStorage.setItem('tofarmer_draft', JSON.stringify(state));
+    
+    console.log("🚀 Mengunci Gate 1 & Menyimpan status ke Supabase...");
+    
+    // 2. Simpan ke database (pastikan fungsi simpanDraft juga mengirim status gate_1_selesai ini)
+    await Generator.simpanDraft(userId, state.data);
+    
+    // 3. Arahkan ke Gate 2
+    alert("Fondasi terkunci! Mari lanjut ke Gate 2.");
+    window.location.href = 'gate-2.html'; 
+});
         const microContainer = document.getElementById('micro-inputs-container');
 
         const validate = () => {

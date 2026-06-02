@@ -129,10 +129,20 @@ async function loadDrafts(userId, isLogin) {
     }
 }
 
+// --- FUNGSI PENGARAH GATE (Logika Otomatis) ---
 function arahkankeGate(data) {
-    if (!data.gate_1_status) window.location.href = 'gate-1.html';
-    else if (!data.gate_2_hipotesis) window.location.href = 'gate-2.html';
-    else window.location.href = 'gate-3.html';
+    // Jika Gate 1 belum selesai, wajib ke Gate 1
+    if (!data.gate_1_selesai) {
+        window.location.href = 'gate-1.html';
+    } 
+    // Jika Gate 1 sudah selesai, tapi Gate 2 belum, wajib ke Gate 2
+    else if (!data.gate_2_selesai) {
+        window.location.href = 'gate-2.html';
+    } 
+    // Jika semua sudah selesai, arahkan ke Gate 3 atau halaman akhir
+    else {
+        window.location.href = 'gate-3.html';
+    }
 }
 
 // --- RESET ---
