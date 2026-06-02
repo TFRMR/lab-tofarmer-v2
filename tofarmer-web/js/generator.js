@@ -14,15 +14,31 @@ const Generator = {
         };
         return jalurMap[pilar] || "Jalur Normal";
     },
+initUserFromProfile: async (username) => {
+    if (!username) {
+        console.error("Username kosong");
+        return;
+    }
 
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .single();
+
+    if (error) {
+        console.error("Gagal ambil profiles:", error);
+        return;
+    }
+
+    localStorage.setItem('tof_user_id', data.id);
+    console.log("🔥 USER ID AKTIF (profiles.id):", data.id);
+}
     // 3. Fungsi Upsert ke Supabase (Sinkronisasi Awan)
- simpanDraft: async (userId, dataProgres) => {
-    // 1. Detektor awal
-    console.log("--- 🕵️ DETEKTOR AKTIF ---");
-    console.log("Fungsi simpanDraft dipanggil dengan UserID:", userId);
+  simpanDraft: async (userId, dataProgres) => {
 
     if (!userId) {
-        console.warn("⚠️ STOP: UserID kosong, simpanDraft dibatalkan.");
+        console.error("3. ERROR: User ID kosong! Data tidak akan dikirim.");
         return;
     }
 
@@ -38,14 +54,15 @@ const Generator = {
             });
 
         if (error) {
-            console.error("❌ ERROR SUPABASE:", error);
+            console.error("4. ERROR DARI SUPABASE:", error);
         } else {
-            console.log("✅ SUKSES: Data tersimpan ke Supabase!", data);
+            console.log("5. BERHASIL: Data telah di-upsert ke Supabase!", data);
         }
     } catch (err) {
-        console.error("❌ ERROR SISTEM/NETWORK:", err);
+        console.error("6. ERROR SISTEM:", err);
     }
 },
+    
     saveDraft: (data) => {
         localStorage.setItem('tofarmer_draft', JSON.stringify(data));
         const userId = localStorage.getItem('tof_user_id');
@@ -322,22 +339,35 @@ updateGate: async (gate, data) => {
 export { Generator };
 
 // Jalankan ini otomatis saat halaman dibuka
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Muat data dari localStorage
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // =========================
+    // 1. AMBIL USERNAME DARI SESSION
+    // =========================
+    const username = localStorage.getItem('tof_username');
+
+    // =========================
+    // 2. KONVERSI KE profiles.id (INI YANG HILANG)
+    // =========================
+    await Generator.initUserFromProfile(username);
+
+    // =========================
+    // 3. LOAD DRAFT SETELAH USER VALID
+    // =========================
     Generator.loadDraft();
-    
-    // 2. Inisialisasi Kategori (Pilar) dan berikan fungsi supaya dia tetap ter-update
+
+    // =========================
+    // 4. INIT UI
+    // =========================
     Generator.initCategorySelection((pilar) => {
         console.log("Pilar dipilih:", pilar);
     });
-    
-    // 3. Panggil validasi sekali di awal untuk memastikan tombol lanjut 
-    // dalam keadaan terkunci/terbuka sesuai data yang baru dimuat
-    // Kita panggil fungsi validate yang ada di dalam initCategorySelection 
-    // Tapi karena validate ada di dalam fungsi, kita buat pemicu klik saja
+
+    // =========================
+    // 5. FORCE VALIDASI AWAL
+    // =========================
     const activeBtn = document.querySelector('.category-btn.active');
     if (activeBtn) {
-        // Ini memastikan validasi berjalan saat data sudah terisi
         const event = new Event('input');
         document.getElementById('micro-inputs-container').dispatchEvent(event);
     }
