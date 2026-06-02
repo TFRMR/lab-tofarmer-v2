@@ -50,7 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fungsi Sinkronisasi ke Supabase (Background)
 const autoSaveToSupabase = async () => {
-    // Ambil user_id dari sesi/profil kamu (pastikan sudah tersedia)
     const userId = localStorage.getItem('tof_user_id'); 
     if (!userId || !draft.data) return;
 
@@ -60,9 +59,11 @@ const autoSaveToSupabase = async () => {
             .upsert({
                 user_id: userId,
                 progres_data: draft.data,
-                updated_at: new Date()
-            });
-        console.log("Draft tersimpan aman di awan!");
+                // Pastikan kolom boolean ini diisi agar sinkron dengan database
+                gate_2_selesai: draft.data.gate_2_selesai === true,
+                updated_at: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+        console.log("Draft tersimpan aman di awan dengan status Gate 2!");
     } catch (err) {
         console.error("Gagal sinkronisasi:", err.message);
     }
@@ -163,19 +164,23 @@ document.getElementById('btn-kembali').addEventListener('click', () => {
 });
 
 // Event Listener untuk tombol lanjut
-// Event Listener untuk tombol lanjut
 document.getElementById('btn-lanjut').addEventListener('click', async () => {
-    // 1. Simpan semua input ke object draft terlebih dahulu
-    simpanState(); 
-
-    // 2. Tambahkan status bahwa Gate 2 sudah SELESAI
+    // 1. Update data terbaru ke draft object
+    draft.data.gate_2_hipotesis = {
+        taktik: document.getElementById('taktik').value,
+        baseline: document.getElementById('baseline').value,
+        target: document.getElementById('target').value
+    };
+    
+    // 2. Tandai Lulus
     draft.data.gate_2_selesai = true;
+    
+    // 3. Simpan ke LocalStorage
     localStorage.setItem('tofarmer_draft', JSON.stringify(draft));
     
-    // 3. Pastikan update ke Supabase dengan status terbaru ini
+    // 4. Kirim ke Supabase dengan fungsi yang sudah diperbaiki di atas
     await autoSaveToSupabase(); 
 
-    // 4. Baru pindah halaman
     alert("Gate 2 Lulus! Pintu ke Gate 3 telah terbuka.");
     window.location.href = 'gate-3.html';
 });
