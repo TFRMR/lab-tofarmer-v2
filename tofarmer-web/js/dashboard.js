@@ -1,5 +1,16 @@
 import { supabase } from './supabase-client.js';
 
+// Di awal dashboard.js, tambahkan "penyambung" ini
+const rawUserId = localStorage.getItem('tof_user_id') || localStorage.getItem('tof_wallet');
+
+// Jika ditemukan salah satu tapi yang lain kosong, kita isi supaya konsisten
+if (rawUserId) {
+    localStorage.setItem('tof_user_id', rawUserId);
+    localStorage.setItem('tof_wallet', rawUserId);
+}
+
+const userId = rawUserId; // Sekarang userId sudah pasti ada isinya
+
 document.addEventListener('DOMContentLoaded', async () => {
     const authSection = document.getElementById('auth-section');
     const userSection = document.getElementById('user-section');
