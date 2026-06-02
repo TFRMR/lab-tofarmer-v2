@@ -274,7 +274,39 @@ localStorage.removeItem("tof_user_id");
   window.location.href = 'index.html'; 
 }
 
+async function updateAdvice(mode, trigger, text) {
+    const aiWhisperer = document.getElementById('ai-whisperer');
+    const aiText = document.getElementById('ai-text');
+    if (!aiWhisperer || !aiText) return;
 
+    aiWhisperer.style.display = 'block';
+    aiText.textContent = "Sedang menyeduh ide..."; 
+
+    try {
+        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode, trigger, teks: text })
+        });
+        const result = await response.json();
+        const saran = result.saran || "Mari berkarya hari ini!";
+
+        let i = 0;
+        aiText.textContent = ""; 
+        if (window.typingInterval) clearInterval(window.typingInterval);
+        
+        window.typingInterval = setInterval(() => {
+            if (i < saran.length) {
+                aiText.textContent += saran.charAt(i);
+                i++;
+            } else {
+                clearInterval(window.typingInterval);
+            }
+        }, 20);
+    } catch (err) {
+        aiText.textContent = "Mentor lagi di ladang, lanjut tulis saja!";
+    }
+}
 
 // ===================== PROFILE SYNC =====================
 function updateWalletUI() {
