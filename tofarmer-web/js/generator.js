@@ -117,10 +117,10 @@ const Generator = {
         const userId = localStorage.getItem('tof_user_id');
         if (!userId) return;
 
-        let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
+       let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
         state.data = { ...state.data, ...data };
         localStorage.setItem('tofarmer_draft', JSON.stringify(state));
-        await Generator.simpanDraft(userId, state.data);
+       
 
         if (data.gate_1_status === "Lolos") {
             const alreadySynced = localStorage.getItem('tofarmer_synced');
@@ -177,6 +177,18 @@ const Generator = {
         const buttons = document.querySelectorAll('.category-btn');
         const inputJudul = document.querySelector('#input-judul');
         const btnLanjut = document.querySelector('.btn-lanjut');
+btnLanjut.addEventListener('click', async () => {
+            if (!btnLanjut.classList.contains('active')) return;
+
+            const userId = localStorage.getItem('tof_user_id');
+            const state = JSON.parse(localStorage.getItem('tofarmer_draft'));
+            
+            console.log("🚀 Menyimpan data permanen ke Supabase...");
+            await Generator.simpanDraft(userId, state.data);
+            
+            // Lanjut ke Gate berikutnya (opsional)
+            alert("Data tersimpan! Silakan lanjut ke Gate berikutnya.");
+        });
         const microContainer = document.getElementById('micro-inputs-container');
 
         const validate = () => {
