@@ -637,7 +637,9 @@ if (currentProfile) {
 
   loadFeed()
 }
-
+// 🔥 AI Beri Respon Setelah Posting
+  updateAdvice("apresiasi", "setelah_post", "Mantap! Progres kamu sudah masuk ke ladang, semangat terus!");
+}
 // ===================== GLOBAL ECONOMY (SAFE LIVE) =====================
 // ===================== GLOBAL CONFIG =====================
 
@@ -1303,7 +1305,8 @@ window.addEventListener("DOMContentLoaded", () => {
       renderProfile()
     })
   }
-
+// Panggil AI sapaan awal
+  updateAdvice("sapaan", "init", "Halo! Siap berkarya apa hari ini?");
   loadFeed()
   loadAvatarStack()
   loadEconomy()
