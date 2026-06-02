@@ -37,7 +37,7 @@ async function sapaUser() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                mode: "humor", 
+                mode: "Dasboard", 
                 trigger: "halaman-ilmu-ToFarmer", 
                 teks: "Berikan sapaan humoris yang singkat dan unik untuk user." 
             })
