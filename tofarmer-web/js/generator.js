@@ -17,24 +17,28 @@ const Generator = {
 
     // 3. Fungsi Upsert ke Supabase (Sinkronisasi Awan)
     simpanDraft: async (userId, dataProgres) => {
-console.log("UserID yang terdeteksi:", userId); // <-- CEK INI DI CONSOLE
-    console.log("Data yang mau dikirim:", dataProgres);
-        const { data, error } = await supabase
-            .from('drafts')
-            .upsert({
-                user_id: userId,
-                progres_data: dataProgres,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'user_id'
-            });
+    // TAMBAHKAN INI UNTUK DEBUGGING
+    console.log("Mencoba simpan draft ke Supabase...");
+    console.log("User ID:", userId);
+    console.log("Data yang dikirim:", dataProgres);
+    console.log("Variabel supabase tersedia:", typeof supabase !== 'undefined');
 
-        if (error) {
-            console.error("Gagal melakukan upsert:", error.message);
-        } else {
-            console.log("Data berhasil di-upsert ke awan!");
-        }
-    },
+    const { data, error } = await supabase
+        .from('drafts')
+        .upsert({
+            user_id: userId,
+            progres_data: dataProgres,
+            updated_at: new Date().toISOString()
+        }, {
+            onConflict: 'user_id'
+        });
+
+    if (error) {
+        console.error("Gagal melakukan upsert:", error.message);
+    } else {
+        console.log("Data berhasil di-upsert ke awan!");
+    }
+},
     
     saveDraft: (data) => {
         localStorage.setItem('tofarmer_draft', JSON.stringify(data));
