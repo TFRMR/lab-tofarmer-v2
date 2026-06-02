@@ -17,6 +17,7 @@ const Generator = {
 
     // 3. Fungsi Upsert ke Supabase (Sinkronisasi Awan)
   simpanDraft: async (userId, dataProgres) => {
+alert("Fungsi simpanDraft terpanggil!");
     console.log("--- DEBUGGING SIMPAN DRAFT ---");
     console.log("1. User ID yang terbaca:", userId);
     console.log("2. Data progres:", dataProgres);
