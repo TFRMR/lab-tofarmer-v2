@@ -25,6 +25,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDataIlmu('ilmu_baku', 'card-galeri', 'Ilmu Baku Sah');
     loadDataIlmu('ilmu_pending', 'card-approve', 'Menunggu konsensus bersama');
 });
+// --- SAPAAN HUMOR DINAMIS (BUATAN AI) ---
+async function sapaUser() {
+    const aiText = document.getElementById('ai-text');
+    if (!aiText) return;
+
+    aiText.innerText = "Membuka pintu kebun...";
+
+    try {
+        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                mode: "humor", 
+                trigger: "sapaan-awal", 
+                teks: "Berikan sapaan humoris yang singkat dan unik untuk user yang baru masuk ke halaman pusat ilmu ToFarmer. Jelaskan bahwa mereka sekarang ada di dasboard pusat ilmu ToFarmer." 
+            })
+        });
+        
+        const result = await response.json();
+        typeWriter(aiText, result.saran || "Selamat datang di pusat ilmu ToFarmer!");
+    } catch (error) {
+        typeWriter(aiText, "Halo Sahabat Tani! Senang sekali Anda kembali.");
+    }
+}
+
 
 // --- EFEK KETIK (TYPING EFFECT) ---
 function typeWriter(element, text, speed = 30) {
