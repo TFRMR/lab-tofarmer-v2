@@ -266,7 +266,7 @@ function logoutWallet() {
   currentWallet = null
   currentProfile = null
   localStorage.removeItem("tof_wallet")
-
+localStorage.removeItem("tof_user_id");
   updateWalletUI()
   renderProfile()
   
