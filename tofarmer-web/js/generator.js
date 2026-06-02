@@ -16,27 +16,34 @@ const Generator = {
     },
 
     // 3. Fungsi Upsert ke Supabase (Sinkronisasi Awan)
-    simpanDraft: async (userId, dataProgres) => {
-    // TAMBAHKAN INI UNTUK DEBUGGING
-    console.log("Mencoba simpan draft ke Supabase...");
-    console.log("User ID:", userId);
-    console.log("Data yang dikirim:", dataProgres);
-    console.log("Variabel supabase tersedia:", typeof supabase !== 'undefined');
+  simpanDraft: async (userId, dataProgres) => {
+    console.log("--- DEBUGGING SIMPAN DRAFT ---");
+    console.log("1. User ID yang terbaca:", userId);
+    console.log("2. Data progres:", dataProgres);
+    
+    if (!userId) {
+        console.error("3. ERROR: User ID kosong! Data tidak akan dikirim.");
+        return;
+    }
 
-    const { data, error } = await supabase
-        .from('drafts')
-        .upsert({
-            user_id: userId,
-            progres_data: dataProgres,
-            updated_at: new Date().toISOString()
-        }, {
-            onConflict: 'user_id'
-        });
+    try {
+        const { data, error } = await supabase
+            .from('drafts')
+            .upsert({
+                user_id: userId,
+                progres_data: dataProgres,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id'
+            });
 
-    if (error) {
-        console.error("Gagal melakukan upsert:", error.message);
-    } else {
-        console.log("Data berhasil di-upsert ke awan!");
+        if (error) {
+            console.error("4. ERROR DARI SUPABASE:", error);
+        } else {
+            console.log("5. BERHASIL: Data telah di-upsert ke Supabase!", data);
+        }
+    } catch (err) {
+        console.error("6. ERROR SISTEM:", err);
     }
 },
     
