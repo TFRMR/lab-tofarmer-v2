@@ -37,18 +37,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Fungsi Sinkronisasi ke Supabase (Background)
 const autoSaveToSupabase = async () => {
-    if (!wallet || !draft.data) return;
+    // Ambil user_id dari sesi/profil kamu (pastikan sudah tersedia)
+    const userId = localStorage.getItem('tof_user_id'); 
+    if (!userId || !draft.data) return;
+
     try {
         await supabase
-            .from('contributions')
-            .update({
+            .from('drafts')
+            .upsert({
+                user_id: userId,
                 progres_data: draft.data,
                 updated_at: new Date()
-            })
-            .eq('wallet_address', wallet); 
-        console.log("Progress tersimpan di awan (Supabase).");
+            });
+        console.log("Draft tersimpan aman di awan!");
     } catch (err) {
-        console.error("Gagal sinkronisasi latar belakang:", err.message);
+        console.error("Gagal sinkronisasi:", err.message);
     }
 };
 
@@ -93,7 +96,8 @@ window.refreshAi = async (fieldId) => {
             body: JSON.stringify({ 
                 mode: "Gate2",
                 trigger: 'gate2-mikro-spesifik', 
-                data: payload 
+                teks: userInput, // Ganti ini dari 'data' ke 'teks'
+                context: draft.data // Ji
             })
         });
         
