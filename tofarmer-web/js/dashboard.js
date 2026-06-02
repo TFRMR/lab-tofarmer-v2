@@ -38,8 +38,8 @@ async function sapaUser() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 mode: "humor", 
-                trigger: "sapaan-awal", 
-                teks: "Berikan sapaan humoris yang singkat dan unik untuk user yang baru masuk ke halaman pusat ilmu ToFarmer. Jelaskan bahwa mereka sekarang ada di dasboard pusat ilmu ToFarmer." 
+                trigger: "halaman-ilmu-ToFarmer", 
+                teks: "Berikan sapaan humoris yang singkat dan unik untuk user." 
             })
         });
         
