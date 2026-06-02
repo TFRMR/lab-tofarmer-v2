@@ -307,7 +307,23 @@ async function updateAdvice(mode, trigger, text) {
         aiText.textContent = "Mentor lagi di ladang, lanjut tulis saja!";
     }
 }
-
+async function kirimChatAI() {
+    const input = document.getElementById('ai-chat-input');
+    const pertanyaan = input.value.trim();
+    
+    // Validasi kosong
+    if (!pertanyaan) {
+        alert("Tulis sesuatu dulu ya 🌱");
+        return;
+    }
+    
+    // Panggil fungsi pusat AI
+    // Kita gunakan 'tanya' sebagai mode
+    updateAdvice("tanya", "chat_user", pertanyaan);
+    
+    // Kosongkan input setelah dikirim
+    input.value = "";
+}
 // ===================== PROFILE SYNC =====================
 function updateWalletUI() {
 
@@ -637,7 +653,11 @@ if (currentProfile) {
 
   loadFeed()
 }
-
+// Tambahkan ini untuk memicu AI agar mengomentari postingan baru tersebut
+setTimeout(() => {
+    // Kita kirim teks postingan ke AI untuk dibuatkan komentar
+    updateAdvice("komentar", "post_baru", text);
+}, 2000);
 // ===================== GLOBAL ECONOMY (SAFE LIVE) =====================
 // ===================== GLOBAL CONFIG =====================
 
@@ -1311,7 +1331,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (typeof loadRankSummary === "function") {
     loadRankSummary()
   }
-updateAdvice("sapaan", "buka_web", "Halo petani! Siap tanam ide apa hari ini?");
+updateAdvice("sapaan", "buka_web", "sapaan petani jenaka random");
 })
 
 async function loadAvatarStack() {
