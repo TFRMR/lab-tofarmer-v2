@@ -16,14 +16,13 @@ const Generator = {
     },
 
     // 3. Fungsi Upsert ke Supabase (Sinkronisasi Awan)
-  simpanDraft: async (userId, dataProgres) => {
-alert("Fungsi simpanDraft terpanggil!");
-    console.log("--- DEBUGGING SIMPAN DRAFT ---");
-    console.log("1. User ID yang terbaca:", userId);
-    console.log("2. Data progres:", dataProgres);
-    
+ simpanDraft: async (userId, dataProgres) => {
+    // 1. Detektor awal
+    console.log("--- 🕵️ DETEKTOR AKTIF ---");
+    console.log("Fungsi simpanDraft dipanggil dengan UserID:", userId);
+
     if (!userId) {
-        console.error("3. ERROR: User ID kosong! Data tidak akan dikirim.");
+        console.warn("⚠️ STOP: UserID kosong, simpanDraft dibatalkan.");
         return;
     }
 
@@ -39,15 +38,14 @@ alert("Fungsi simpanDraft terpanggil!");
             });
 
         if (error) {
-            console.error("4. ERROR DARI SUPABASE:", error);
+            console.error("❌ ERROR SUPABASE:", error);
         } else {
-            console.log("5. BERHASIL: Data telah di-upsert ke Supabase!", data);
+            console.log("✅ SUKSES: Data tersimpan ke Supabase!", data);
         }
     } catch (err) {
-        console.error("6. ERROR SISTEM:", err);
+        console.error("❌ ERROR SISTEM/NETWORK:", err);
     }
 },
-    
     saveDraft: (data) => {
         localStorage.setItem('tofarmer_draft', JSON.stringify(data));
         const userId = localStorage.getItem('tof_user_id');
