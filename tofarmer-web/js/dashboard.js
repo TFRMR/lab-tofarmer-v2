@@ -144,19 +144,25 @@ async function loadDrafts(userId, isLogin) {
     }
 }
 
-// --- FUNGSI PENGARAH GATE (Logika Otomatis) ---
 function arahkankeGate(data) {
-    // Jika Gate 1 belum selesai, wajib ke Gate 1
-    if (!data.gate_1_selesai) {
-        window.location.href = 'gate-1.html';
-    } 
-    // Jika Gate 1 sudah selesai, tapi Gate 2 belum, wajib ke Gate 2
-    else if (!data.gate_2_selesai) {
-        window.location.href = 'gate-2.html';
-    } 
-    // Jika semua sudah selesai, arahkan ke Gate 3 atau halaman akhir
-    else {
-        window.location.href = 'gate-3.html';
+    // Definisi urutan gate
+    const gates = [
+        { key: 'gate_1_selesai', url: 'gate-1.html' },
+        { key: 'gate_2_selesai', url: 'gate-2.html' },
+        { key: 'gate_3_selesai', url: 'gate-3.html' },
+        { key: 'gate_4_selesai', url: 'gate-4.html' },
+        { key: 'gate_5_selesai', url: 'gate-5.html' },
+        { key: 'gate_6_selesai', url: 'gate-6.html' }
+    ];
+
+    // Temukan gate pertama yang statusnya false
+    const targetGate = gates.find(gate => !data[gate.key]);
+
+    if (targetGate) {
+        window.location.href = targetGate.url;
+    } else {
+        // Jika semua true, arahkan ke halaman akhir
+        window.location.href = 'finish.html';
     }
 }
 
