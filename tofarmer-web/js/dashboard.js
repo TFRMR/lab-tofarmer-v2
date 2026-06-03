@@ -169,7 +169,7 @@ function arahkankeGate(data) {
 // --- RESET ---
 window.buatIlmuBaru = () => {
     localStorage.removeItem('tofarmer_draft');
-    window.location.href = 'ilmu-baku-generator.html'; // Sesuaikan file Anda
+    window.location.href = 'gate-1.html'; // Sesuaikan file Anda
 };
 
 // --- LOAD TABEL BARU ---
