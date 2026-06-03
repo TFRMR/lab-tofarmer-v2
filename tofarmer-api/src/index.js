@@ -156,10 +156,11 @@ export default {
     if (url.pathname === "/ai-saran" && request.method === "POST") {
       const body = await request.json();
       
-     
+      // Penyesuaian: Menentukan teks pemrosesan apakah dari teks biasa atau dari objek data
+      const textToProcess = body.teks || JSON.stringify(body.data);
 
       // 1. UBAH TEKS JADI VEKTOR (BGE-M3)
-      const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [body.teks] });
+      const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [textToProcess] });
       const vector = embeddings.data[0];
 
       // 2. CARI DATA TERKAIT DI SUPABASE
@@ -202,18 +203,21 @@ export default {
             content: `Anda adalah Mentor ToFarmer dengan mode: ${activeMode}.
             DATA PROFIL USER: ${context}
             1. Wajib gunakan Bahasa Indonesia.
-      2. REFERENSI: ${context}
-      3. JANGAN berikan tutorial teknis yang membosankan.
-      4. Maksimal 3 kalimat saja.
+            2. REFERENSI: ${context}
+            3. JANGAN berikan tutorial teknis yang membosankan.
+            4. Maksimal 3 kalimat saja.` 
           },
           { 
             role: "user", 
-            content: Konteks Situasi: ${body.trigger}. Input user: "${body.teks}".` 
+            content: `Konteks Situasi: ${body.trigger || "Umum"}. Input user: "${textToProcess}".` 
           }
         ]
       });
 
-      return json({ saran: aiChat.response }, corsHeaders);
+      return json({ 
+        saran: aiChat.response,
+        ilmuBaku: aiChat.response 
+      }, corsHeaders);
     }
 
     // =====================================================
