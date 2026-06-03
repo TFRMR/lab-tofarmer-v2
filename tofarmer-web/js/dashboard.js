@@ -81,16 +81,19 @@ function typeWriter(element, text, speed = 30) {
     }, speed);
 }
 
-// --- POPUP CANTIK TOFARMER VIBES ---
 function showPopup(judul, konten) {
     const overlay = document.createElement('div');
-    overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:9999;";
+    // Tambahkan overflow-y: auto pada overlay agar seluruh area bisa discroll jika perlu
+    overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:9999; overflow-y: auto; padding: 20px;";
+    
     overlay.innerHTML = `
-        <div style="background:#1e293b; padding:2rem; border-radius:1rem; width:90%; max-width:500px; border:1px solid #374151; color:white; text-align:left;">
+        <div style="background:#1e293b; padding:2rem; border-radius:1rem; width:90%; max-width:500px; border:1px solid #374151; color:white; text-align:left; max-height: 90vh; display: flex; flex-direction: column;">
             <h2 style="color:#16a34a; text-align:center; margin-bottom:1rem;">${judul}</h2>
-            <p style="color:#cbd5e1; white-space:pre-line; line-height:1.6; font-size:0.95rem;">${konten}</p>
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 1rem; padding-right: 10px;">
+                <p style="color:#cbd5e1; white-space:pre-line; line-height:1.6; font-size:0.95rem;">${konten}</p>
+            </div>
             <div style="text-align:center;">
-                <button id="close-popup" style="background:#16a34a; border:none; padding:10px 30px; color:white; border-radius:8px; cursor:pointer; margin-top:20px;">Tutup</button>
+                <button id="close-popup" style="background:#16a34a; border:none; padding:10px 30px; color:white; border-radius:8px; cursor:pointer;">Tutup</button>
             </div>
         </div>
     `;
