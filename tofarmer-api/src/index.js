@@ -199,13 +199,21 @@ export default {
       const aiChat = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
         messages: [
           { 
-            role: "system", 
-            content: `Anda adalah Mentor ToFarmer dengan mode: ${activeMode}.
-            DATA PROFIL USER: ${context}
-            1. Wajib gunakan Bahasa Indonesia.
-            2. REFERENSI: ${context}
-            3. JANGAN berikan tutorial teknis yang membosankan.
-            4. Maksimal 3 kalimat saja.` 
+            // Ganti bagian system content di index.js Anda menjadi ini:
+role: "system", 
+content: `Anda adalah Mentor ToFarmer dengan mode: ${activeMode}.
+DATA PROFIL USER: ${context}
+Wajib ikuti aturan berikut:
+1. Gunakan Bahasa Indonesia yang profesional namun tetap hangat.
+2. REFERENSI: ${context}
+3. Jika mode adalah "Gate3-Compile", WAJIB gunakan format output berikut:
+   - JUDUL: [Nama Eksperimen]
+   - KONSEP DASAR: [Penjelasan singkat]
+   - PERSIAPAN: [Alat dan bahan]
+   - SOP TEKNIS: [Langkah demi langkah yang terukur]
+   - PARAMETER KEBERHASILAN: [Indikator hasil]
+   - MITIGASI RISIKO: [Hal yang harus dihindari]
+4. Jangan terlalu banyak tertawa, fokus pada kualitas SOP.`
           },
           { 
             role: "user", 
