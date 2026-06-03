@@ -43,12 +43,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dataEksperimen = await ambilDataDariSupabase();
     if (!dataEksperimen) return;
 
-    // Mapping manual agar Worker tidak bingung
+    // Mapping: Asumsi di gate-2.js Anda menyimpan data dalam struktur ini
+    // Kita harus fleksibel dengan key yang ada
     const payload = {
-        judul_eksperimen: dataEksperimen.judul || dataEksperimen.judul_eksperimen,
-        pilar_bidang: dataEksperimen.pilar_bidang,
-        micro_inputs: dataEksperimen.micro_inputs,
-        // ... tambahkan properti lain jika perlu
+        judul_eksperimen: dataEksperimen.judul_eksperimen || dataEksperimen.judul || "Tanpa Judul",
+        pilar_bidang: dataEksperimen.pilar_bidang || "Umum",
+        micro_inputs: dataEksperimen.micro_inputs || {},
+        karakteristik_jalur: dataEksperimen.karakteristik_jalur || ""
     };
 
     try {
