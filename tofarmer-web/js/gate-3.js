@@ -39,22 +39,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     // 3. Fungsi Rakit Ilmu (AI)
-    const rakitIlmu = async () => {
-        const dataEksperimen = await ambilDataDariSupabase();
-        if (!dataEksperimen) return;
+   const rakitIlmu = async () => {
+    const dataEksperimen = await ambilDataDariSupabase();
+    if (!dataEksperimen) return;
 
-        outputArea.value = "🚀 Mentor sedang menyusun rekam jejak Anda menjadi SOP Ilmu Baku...";
-        
-        try {
-            const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    mode: "Gate3-Compile", 
-                    data: dataEksperimen 
-                })
-            });
-            
+    // Mapping manual agar Worker tidak bingung
+    const payload = {
+        judul_eksperimen: dataEksperimen.judul || dataEksperimen.judul_eksperimen,
+        pilar_bidang: dataEksperimen.pilar_bidang,
+        micro_inputs: dataEksperimen.micro_inputs,
+        // ... tambahkan properti lain jika perlu
+    };
+
+    try {
+        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                mode: "Gate3-Compile", 
+                data: payload // Gunakan payload yang sudah rapi
+            })
+        });
             const result = await response.json();
             outputArea.value = result.ilmuBaku || "Gagal menyusun ilmu.";
         } catch (err) {
