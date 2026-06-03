@@ -156,9 +156,7 @@ export default {
     if (url.pathname === "/ai-saran" && request.method === "POST") {
       const body = await request.json();
       
-      if (!body.teks || body.teks.length < 1) {
-        return json({ saran: "Input terlalu pendek, Kang. Coba tulis lebih jelas lagi eksperimennya." }, corsHeaders);
-      }
+     
 
       // 1. UBAH TEKS JADI VEKTOR (BGE-M3)
       const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [body.teks] });
