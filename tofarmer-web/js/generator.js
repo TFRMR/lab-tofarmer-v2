@@ -181,14 +181,8 @@ const Generator = {
         return "";
     },
 
-initCategorySelection: function(onUpdate) {
-        const buttons = document.querySelectorAll('.category-btn');
-        const inputJudul = document.querySelector('#input-judul');
-        const btnLanjut = document.querySelector('.btn-lanjut');
-        const microContainer = document.getElementById('micro-inputs-container');
-        let debounceTimer; // Timer untuk mencegah spam request ke database
+           const microContainer = document.getElementById('micro-inputs-container');
 
-        // Fungsi Validasi Utama
         const validate = () => {
             const activeBtn = document.querySelector('.category-btn.active');
             const isTitleValid = inputJudul.value.trim().length >= 20;
@@ -204,28 +198,6 @@ initCategorySelection: function(onUpdate) {
             }
         };
 
-        // Event Listener Tombol Lanjut
-        btnLanjut.addEventListener('click', async () => {
-            if (!btnLanjut.classList.contains('active')) return;
-
-            const userId = localStorage.getItem('tof_user_id');
-            const state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
-            
-            // 1. Tambahkan status gate_1_selesai: true ke dalam state
-            state.data.gate_1_selesai = true;
-            localStorage.setItem('tofarmer_draft', JSON.stringify(state));
-            
-            console.log("🚀 Mengunci Gate 1 & Menyimpan status ke Supabase...");
-            
-            // 2. Simpan ke database
-            await Generator.simpanDraft(userId, state.data);
-            
-            // 3. Arahkan ke Gate 2
-            alert("Fondasi terkunci! Mari lanjut ke Gate 2.");
-            window.location.href = 'gate-2.html'; 
-        });
-
-        // Event Listener untuk Tombol Kategori (Pilar)
         buttons.forEach(btn => {
             btn.addEventListener('click', () => {
                 buttons.forEach(b => b.classList.remove('active'));
@@ -233,51 +205,59 @@ initCategorySelection: function(onUpdate) {
                 Generator.komentarCount = 0;
                 Generator.updateAdvice('pilar', `User memilih pilar: ${btn.dataset.value}`);
                 Generator.renderMicroInputs(btn.dataset.value);
-                Generator.updateGate(1, { 
-                    pilar_bidang: btn.dataset.value, 
-                    karakteristik_jalur: Generator.getJalur(btn.dataset.value) 
+                Generator.updateGate(1, {
+                    pilar_bidang: btn.dataset.value,
+                    karakteristik_jalur: Generator.getJalur(btn.dataset.value)
                 });
                 validate();
                 onUpdate(btn.dataset.value);
             });
         });
 
-        // Event Listener untuk Judul
         inputJudul.addEventListener('blur', () => {
             const val = inputJudul.value.trim();
-            if (val.length >= 20) Generator.updateAdvice('judul', val);
+
+            if (val.length >= 20) {
+                Generator.updateAdvice('judul', val);
+            }
+
             validate();
-            Generator.updateGate(1, { judul_eksperimen: val });
+
+            Generator.updateGate(1, {
+                judul_eksperimen: val
+            });
         });
 
-        // Event Listener untuk Input Mikro (dengan Debounce)
         microContainer.addEventListener('input', () => {
+            const inputs = microContainer.querySelectorAll('.micro-input');
+
+            let microData = {};
+
+            inputs.forEach(i => {
+                microData[i.id.replace('input-', '')] = i.value;
+            });
+
+            const activePilar = document.querySelector('.category-btn.active')?.dataset.value;
+
+            const kalimat = Generator.compileKalimat(
+                activePilar,
+                microData
+            );
+
+            Generator.updateGate(1, {
+                micro_inputs: microData,
+                kalimat_baku_compiled: kalimat,
+                gate_1_status: "Lolos"
+            });
+
             validate();
-            
-            // Debounce: Tunggu user berhenti mengetik selama 800ms sebelum kirim ke DB
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                const inputs = microContainer.querySelectorAll('.micro-input');
-                let microData = {};
-                inputs.forEach(i => microData[i.id.replace('input-', '')] = i.value);
-                const activePilar = document.querySelector('.category-btn.active')?.dataset.value;
-                const kalimat = Generator.compileKalimat(activePilar, microData);
-                
-                // Sinkronisasi data ke Supabase
-                Generator.updateGate(1, { 
-                    micro_inputs: microData, 
-                    kalimat_baku_compiled: kalimat, 
-                    gate_1_status: "Lolos" 
-                });
-            }, 800);
         });
 
-        // Return validate di akhir agar fungsi bisa dipanggil di luar scope ini
-        return validate;
+        return validate; // <--- KUNCI: Harus di-return agar bisa dipakai di luar
     }
+};
 
 export { Generator };
-
 document.addEventListener('DOMContentLoaded', async () => {
     const username = localStorage.getItem('tof_username');
     if (username) {
