@@ -181,7 +181,23 @@ const Generator = {
         return "";
     },
 
-           const microContainer = document.getElementById('micro-inputs-container');
+         initCategorySelection: function(onUpdate) {
+        const buttons = document.querySelectorAll('.category-btn');
+        const inputJudul = document.querySelector('#input-judul');
+        const btnLanjut = document.querySelector('.btn-lanjut');
+        const microContainer = document.getElementById('micro-inputs-container');
+
+        // Tambahkan event listener untuk tombol lanjut di dalam fungsi ini
+        btnLanjut.addEventListener('click', async () => {
+            if (!btnLanjut.classList.contains('active')) return;
+            const userId = localStorage.getItem('tof_user_id');
+            const state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
+            state.data.gate_1_selesai = true;
+            localStorage.setItem('tofarmer_draft', JSON.stringify(state));
+            await Generator.simpanDraft(userId, state.data);
+            alert("Fondasi terkunci! Mari lanjut ke Gate 2.");
+            window.location.href = 'gate-2.html'; 
+        });
 
         const validate = () => {
             const activeBtn = document.querySelector('.category-btn.active');
@@ -216,38 +232,22 @@ const Generator = {
 
         inputJudul.addEventListener('blur', () => {
             const val = inputJudul.value.trim();
-
-            if (val.length >= 20) {
-                Generator.updateAdvice('judul', val);
-            }
-
+            if (val.length >= 20) Generator.updateAdvice('judul', val);
             validate();
-
-            Generator.updateGate(1, {
-                judul_eksperimen: val
-            });
+            Generator.updateGate(1, { judul_eksperimen: val });
         });
 
         microContainer.addEventListener('input', () => {
             const inputs = microContainer.querySelectorAll('.micro-input');
-
             let microData = {};
-
-            inputs.forEach(i => {
-                microData[i.id.replace('input-', '')] = i.value;
-            });
-
+            inputs.forEach(i => { microData[i.id.replace('input-', '')] = i.value; });
             const activePilar = document.querySelector('.category-btn.active')?.dataset.value;
-
-            const kalimat = Generator.compileKalimat(
-                activePilar,
-                microData
-            );
-
+            const kalimat = Generator.compileKalimat(activePilar, microData);
             Generator.updateGate(1, {
                 micro_inputs: microData,
                 kalimat_baku_compiled: kalimat,
-               });
+                gate_1_status: "Lolos"
+            });
             validate();
         });
 
