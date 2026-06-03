@@ -160,7 +160,7 @@ const simpanState = () => {
 // Event Listener untuk tombol kembali
 document.getElementById('btn-kembali').addEventListener('click', () => {
     simpanState();
-    window.location.href = 'ilmu-baku-generator.html';
+    window.location.href = 'gate-1.html';
 });
 
 // Event Listener untuk tombol lanjut
