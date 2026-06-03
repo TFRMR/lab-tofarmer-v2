@@ -5,33 +5,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnSave = document.getElementById('btn-save-ilmu');
     const userId = localStorage.getItem('tof_user_id');
 
+    // 1. Validasi Keamanan
     if (!userId) {
         alert("Sesi tidak ditemukan. Silakan login kembali.");
         window.location.href = '../html/login.html';
         return;
     }
 
-    // 1. Ambil data terbaru langsung dari Supabase
-    const fetchDraftFromSupabase = async () => {
-        outputArea.value = "🔍 Mengambil data eksperimen dari server...";
+    // 2. Fungsi Ambil Data Langsung dari Supabase
+    // Ini adalah kunci agar Gate 3 tidak "kosong"
+    const ambilDataDariSupabase = async () => {
+        outputArea.value = "🔍 Sedang mengambil rekam jejak Anda dari server...";
         
-        const { data, error } = await supabase
-            .from('drafts')
-            .select('progres_data')
-            .eq('user_id', userId)
-            .single();
+        try {
+            const { data, error } = await supabase
+                .from('drafts')
+                .select('progres_data')
+                .eq('user_id', userId)
+                .single();
 
-        if (error || !data) {
-            outputArea.value = "Gagal memuat data dari server. Pastikan Anda sudah menyelesaikan Gate 2.";
+            if (error || !data) {
+                console.error("Error/Data kosong:", error);
+                outputArea.value = "Data tidak ditemukan. Pastikan Anda sudah menyelesaikan Gate 2.";
+                return null;
+            }
+
+            console.log("Data Gate 1 & 2 ditemukan:", data.progres_data);
+            return data.progres_data; // Objek utuh dari gate 1 & 2
+        } catch (err) {
+            outputArea.value = "Gagal terhubung ke database.";
             return null;
         }
-        return data.progres_data;
     };
 
-    // 2. Fungsi memanggil AI dengan data valid dari Supabase
+    // 3. Fungsi Rakit Ilmu (AI)
     const rakitIlmu = async () => {
-        const draftData = await fetchDraftFromSupabase();
-        if (!draftData) return;
+        const dataEksperimen = await ambilDataDariSupabase();
+        if (!dataEksperimen) return;
 
         outputArea.value = "🚀 Mentor sedang menyusun rekam jejak Anda menjadi SOP Ilmu Baku...";
         
@@ -41,7 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     mode: "Gate3-Compile", 
-                    data: draftData 
+                    data: dataEksperimen 
                 })
             });
             
@@ -52,36 +62,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    // 3. Simpan Final
+    // 4. Tombol Simpan Final
     btnSave.addEventListener('click', async () => {
         const ilmuFinal = outputArea.value;
         if (!ilmuFinal.trim()) return alert("Hasil ilmu kosong!");
 
         btnSave.innerText = "Menyimpan ke Database...";
         
-        // Ambil lagi data mentah untuk referensi pilar_bidang & judul
-        const draftData = await fetchDraftFromSupabase();
+        const dataTerakhir = await ambilDataDariSupabase();
         
         try {
+            // Masukkan ke tabel ilmu_pending sesuai struktur Anda
             const { error } = await supabase
                 .from('ilmu_pending')
                 .insert([{
                     user_id: userId,
-                    judul_aksi: draftData.judul_eksperimen || "Eksperimen Tanpa Judul",
+                    judul_aksi: dataTerakhir.judul_eksperimen || "Eksperimen Tanpa Judul",
                     deskripsi_proses: ilmuFinal,
-                    pilar_aksi: parseInt(draftData.pilar_bidang) || 0
+                    pilar_aksi: parseInt(dataTerakhir.pilar_bidang) || 0
                 }]);
 
             if (error) throw error;
 
-            // Bersihkan draft di Supabase setelah dipublikasi
+            // Hapus draft agar tidak membebani database
             await supabase.from('drafts').delete().eq('user_id', userId);
 
             alert("Selamat! Ilmu Anda telah resmi dipublikasikan.");
             window.location.href = 'dashboard.html';
         } catch (err) {
             console.error(err);
-            alert("Gagal menyimpan ke database.");
+            alert("Gagal simpan ke database.");
             btnSave.innerText = "SIMPAN ILMU & PUBLIKASIKAN";
         }
     });
