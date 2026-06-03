@@ -247,15 +247,13 @@ const Generator = {
             Generator.updateGate(1, {
                 micro_inputs: microData,
                 kalimat_baku_compiled: kalimat,
-                gate_1_status: "Lolos"
-            });
-
+               });
             validate();
         });
 
-        return validate; // <--- KUNCI: Harus di-return agar bisa dipakai di luar
-    }
-};
+        return validate; 
+    } 
+}; // <--- Tutup objek Generator di sini
 
 export { Generator };
 document.addEventListener('DOMContentLoaded', async () => {
