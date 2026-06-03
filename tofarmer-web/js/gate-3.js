@@ -46,10 +46,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    mode: "Gate3-Compile", 
-                    data: payload 
-                })
+ body: JSON.stringify({ 
+    mode: "Gate3-Compile", 
+    trigger: "Gate3-Compile", // Pastikan trigger ini ada
+    data: payload 
+})
             });
             
             const result = await response.json();
