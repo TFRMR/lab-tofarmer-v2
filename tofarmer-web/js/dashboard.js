@@ -51,13 +51,9 @@ async function sapaUser() {
         const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                mode: "Dasboard", 
-                trigger: "halaman-ilmu-ToFarmer", 
-                teks: "Berikan sapaan humoris yang singkat dan unik untuk user." 
-            })
-        });
-        
+             body: JSON.stringify({ mode: "Dasboard", trigger, teks: text })
+            });
+     
         const result = await response.json();
         typeWriter(aiText, result.saran || "Selamat datang di pusat ilmu ToFarmer!");
     } catch (error) {
