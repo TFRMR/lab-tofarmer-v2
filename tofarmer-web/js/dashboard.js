@@ -196,27 +196,19 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
     
     const title = container.querySelector('h3') ? container.querySelector('h3').outerHTML : `<h3>${badgeText}</h3>`;
     
-    // Kita melakukan select dengan join ke tabel profiles.
-    // 'profiles!ilmu_pending_user_id_fkey(username)' 
-    // Bagian !ilmu_pending_user_id_fkey adalah nama constraint (jika ada), 
-    // jika belum ada relasi di DB, gunakan saja: profiles(username)
-    const { data, error } = await supabase
-        .from(tableName)
-        .select(`
-            *,
-            profiles(username)
-        `); 
+    // Kita ambil semua kolom dulu tanpa join untuk mengetes apakah datanya muncul
+    const { data, error } = await supabase.from(tableName).select('*');
 
     if (error) { 
         console.error("Error Query:", error); 
+        return; 
     }
 
     container.innerHTML = title; 
     
     if (data && data.length > 0) {
         data.forEach(item => {
-            // Karena kita join, username sekarang berada di dalam objek item.profiles
-            // Jika item.profiles ada, ambil username-nya.
+            // Karena tidak join, kita pakai username default sementara
             const username = (item.profiles && item.profiles.username) ? item.profiles.username : 'Petani';
             const itemWithUser = { ...item, username };
 
@@ -224,11 +216,11 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
             btn.style.cssText = "width:100%; margin:5px 0; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left;";
             btn.innerHTML = `<strong>${item.judul_aksi}</strong><br><span style="font-size:0.7rem; color:#f59e0b;">● ${badgeText}</span>`;
             
-            btn.onclick = () => showPopup(itemWithUser);
+            btn.onclick = () => showPopup(itemDisplay);
             container.appendChild(btn);
         });
     } else {
-        container.innerHTML += `<p style="color:#64748b; padding:10px;">Belum ada data.</p>`;
+        container.innerHTML += `<p style='color:#64748b; padding:10px;'>Belum ada data.</p>`;
     }
 }
 async function handleVote(item) {
