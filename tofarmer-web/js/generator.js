@@ -102,7 +102,7 @@ const Generator = {
             const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode: "Gate1", trigger, teks: text })
+                body: JSON.stringify({ mode: "Dasboard", trigger, teks: text })
             });
             const result = await response.json();
             const saran = result.saran || "Kebun sudah bagus, lanjut menanam!";
