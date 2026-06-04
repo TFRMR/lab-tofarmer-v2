@@ -197,11 +197,15 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
     const title = container.querySelector('h3') ? container.querySelector('h3').outerHTML : `<h3>${badgeText}</h3>`;
     
     // Kita ambil semua kolom dulu tanpa join untuk mengetes apakah datanya muncul
-    const { data, error } = await supabase.from(tableName).select('*');
+   const { data, error } = await supabase
+        .from(tableName)
+        .select(`
+            *,
+            profiles(username)
+        `); 
 
     if (error) { 
         console.error("Error Query:", error); 
-        return; 
     }
 
     container.innerHTML = title; 
