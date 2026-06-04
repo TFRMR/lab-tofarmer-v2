@@ -134,7 +134,7 @@ const Generator = {
         const alreadySynced = localStorage.getItem('tofarmer_synced');
         if (alreadySynced) return;
         try {
-            const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, cara-cara 5, refleksi: 5 };
+            const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, cara-cara: 5, refleksi: 5 };
             const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
             await supabase.from('contributions').insert([{
                 user_id: userId, 
