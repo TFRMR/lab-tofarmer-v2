@@ -10,7 +10,8 @@ const Generator = {
         const jalurMap = {
             ladang: "Jalur Lambat", alat: "Jalur Lambat",
             jualan: "Jalur Sedang", komunitas: "Jalur Sedang",
-            trading: "Jalur Sedang-Kilat", ai: "Jalur Kilat", digital: "Jalur Kilat",caracara: "Jalur Kilat, refleksi: "Jalur Kilat"
+            trading: "Jalur Sedang-Kilat", ai: "Jalur Kilat", 
+            digital: "Jalur Kilat", caracara: "Jalur Kilat", refleksi: "Jalur Kilat" // <-- FIX: Tanda kutip diperbaiki
         };
         return jalurMap[pilar] || "Jalur Normal";
     },
@@ -41,26 +42,26 @@ const Generator = {
             console.warn("⚠️ Sinkronisasi dibatalkan: User ID belum ada.");
             return;
         }
-       try {
-        const { error } = await supabase
-            .from('drafts')
-            .upsert({
-                user_id: userId,
-                progres_data: dataProgres,
-                updated_at: new Date().toISOString(),
-                // PENTING: Tambahkan kolom ini agar tersimpan ke tabel
-                gate_1_selesai: dataProgres.gate_1_selesai === true 
-            }, { onConflict: 'user_id' });
+        try {
+            const { error } = await supabase
+                .from('drafts')
+                .upsert({
+                    user_id: userId,
+                    progres_data: dataProgres,
+                    updated_at: new Date().toISOString(),
+                    gate_1_selesai: dataProgres.gate_1_selesai === true 
+                }, { onConflict: 'user_id' });
 
-        if (error) {
-            console.error("4. ERROR DARI SUPABASE:", error);
-        } else {
-            console.log("5. BERHASIL: Data & Status Gate tersimpan!");
+            if (error) {
+                console.error("4. ERROR DARI SUPABASE:", error);
+            } else {
+                console.log("5. BERHASIL: Data & Status Gate tersimpan!");
+            }
+        } catch (err) {
+            console.error("6. ERROR SISTEM:", err);
         }
-    } catch (err) {
-        console.error("6. ERROR SISTEM:", err);
-    }
-},
+    },
+
     saveDraft: (data) => {
         localStorage.setItem('tofarmer_draft', JSON.stringify(data));
         const userId = localStorage.getItem('tof_user_id');
@@ -117,36 +118,35 @@ const Generator = {
         } catch (error) { aiText.innerText = "Mentor lagi di sawah, nanti lagi ya."; }
     },
 
-   updateGate: async (gate, data) => {
-    const userId = localStorage.getItem('tof_user_id');
-    if (!userId) return;
+    updateGate: async (gate, data) => {
+        const userId = localStorage.getItem('tof_user_id');
+        if (!userId) return;
 
-    let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
-    state.data = { ...state.data, ...data };
-    localStorage.setItem('tofarmer_draft', JSON.stringify(state));
+        let state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
+        state.data = { ...state.data, ...data };
+        localStorage.setItem('tofarmer_draft', JSON.stringify(state));
 
-    // OTOMATIS SINCRON KE SUPABASE SETIAP ADA PERUBAHAN
-    // Ini memastikan status gate_1_selesai tersimpan di tabel 'drafts'
-    await Generator.simpanDraft(userId, state.data);
+        await Generator.simpanDraft(userId, state.data);
 
-    // Logic untuk kontribusi (tetap seperti semula)
-    if (data.gate_1_status === "Lolos") {
-        const alreadySynced = localStorage.getItem('tofarmer_synced');
-        if (alreadySynced) return;
-        try {
-            const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, caracara: 5, refleksi: 5 };
-            const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
-            await supabase.from('contributions').insert([{
-                user_id: userId, 
-                judul_aksi: state.data.judul_eksperimen,
-                deskripsi_proses: state.data.kalimat_baku_compiled, 
-                pilar_aksi: pilarInt,
-                status_validasi: 'PENDING'
-            }]);
-            localStorage.setItem('tofarmer_synced', 'true');
-        } catch (err) { console.error("Gagal sinkronisasi:", err.message); }
-    }
-},
+        // Logic kontribusi dijalankan hanya jika status Lolos resmi dipicu
+        if (data.gate_1_status === "Lolos") {
+            const alreadySynced = localStorage.getItem('tofarmer_synced');
+            if (alreadySynced) return;
+            try {
+                const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, caracara: 5, refleksi: 5 };
+                const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
+                await supabase.from('contributions').insert([{
+                    user_id: userId, 
+                    judul_aksi: state.data.judul_eksperimen,
+                    deskripsi_proses: state.data.kalimat_baku_compiled, 
+                    pilar_aksi: pilarInt,
+                    status_validasi: 'PENDING'
+                }]);
+                localStorage.setItem('tofarmer_synced', 'true');
+            } catch (err) { console.error("Gagal sinkronisasi:", err.message); }
+        }
+    },
+
     renderMicroInputs: (pilar) => {
         const container = document.getElementById('micro-inputs-container');
         container.innerHTML = '';
@@ -178,32 +178,34 @@ const Generator = {
         if (pilar === 'konten') return `Saya berbagi pengalaman [${data.platform || '...'}] bahas soal [${data.topik || '...'}] buat [${data.audiens || '...'}].`;
         if (pilar === 'keuangan') return `Saya berbagi pengalaman [${data.aset || '...'}] pakai strategi [${data.strategi || '...'}] dengan batasan risiko [${data.risiko || '...'}].`;
         if (pilar === 'digital') return `Saya berbagi pengalaman [${data.teknologi || '...'}] untuk [${data.kasus || '...'}] dengan target [${data.target || '...'}].`;
-        if (pilar === 'caracara') return `Saya berbagi pengalaman [${data.teknologi || '...'}] untuk [${data.kasus || '...'}] dengan target [${data.target || '...'}].`;
+        if (pilar === 'caracara') return `Saya berbagi pengalaman [${data.tema || '...'}] dengan cara [${data.metode || '...'}] di situasi [${data.kondisi || '...'}].`; // <-- FIX: Properti disesuaikan dengan template inputnya
         if (pilar === 'refleksi') return `Saya berbagi pengalaman [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
         return "";
     },
 
-         initCategorySelection: function(onUpdate) {
+    initCategorySelection: function(onUpdate) {
         const buttons = document.querySelectorAll('.category-btn');
         const inputJudul = document.querySelector('#input-judul');
         const btnLanjut = document.querySelector('.btn-lanjut');
         const microContainer = document.getElementById('micro-inputs-container');
 
-        // Tambahkan event listener untuk tombol lanjut di dalam fungsi ini
         btnLanjut.addEventListener('click', async () => {
             if (!btnLanjut.classList.contains('active')) return;
             const userId = localStorage.getItem('tof_user_id');
             const state = JSON.parse(localStorage.getItem('tofarmer_draft') || '{"data":{}}');
             state.data.gate_1_selesai = true;
             localStorage.setItem('tofarmer_draft', JSON.stringify(state));
-            await Generator.simpanDraft(userId, state.data);
+            
+            // Mengunci status akhir dan melempar status lolos ke Supabase secara aman di sini
+            await Generator.updateGate(1, { gate_1_status: "Lolos", gate_1_selesai: true });
+            
             alert("Fondasi terkunci! Mari lanjut ke Gate 2.");
             window.location.href = 'gate-2.html'; 
         });
 
         const validate = () => {
             const activeBtn = document.querySelector('.category-btn.active');
-            const isTitleValid = inputJudul.value.trim().length >= 20;
+            const isTitleValid = inputJudul && inputJudul.value.trim().length >= 20;
             const microInputs = microContainer.querySelectorAll('.micro-input');
             const isMicroComplete = microInputs.length > 0 && Array.from(microInputs).every(i => i.value.trim().length > 0);
 
@@ -232,12 +234,14 @@ const Generator = {
             });
         });
 
-        inputJudul.addEventListener('blur', () => {
-            const val = inputJudul.value.trim();
-            if (val.length >= 20) Generator.updateAdvice('judul', val);
-            validate();
-            Generator.updateGate(1, { judul_eksperimen: val });
-        });
+        if (inputJudul) {
+            inputJudul.addEventListener('blur', () => {
+                const val = inputJudul.value.trim();
+                if (val.length >= 20) Generator.updateAdvice('judul', val);
+                validate();
+                Generator.updateGate(1, { judul_eksperimen: val });
+            });
+        }
 
         microContainer.addEventListener('input', () => {
             const inputs = microContainer.querySelectorAll('.micro-input');
@@ -245,42 +249,38 @@ const Generator = {
             inputs.forEach(i => { microData[i.id.replace('input-', '')] = i.value; });
             const activePilar = document.querySelector('.category-btn.active')?.dataset.value;
             const kalimat = Generator.compileKalimat(activePilar, microData);
+            
+            // Simpan progres ketikan tanpa langsung menembak status "Lolos" kontribusi
             Generator.updateGate(1, {
                 micro_inputs: microData,
-                kalimat_baku_compiled: kalimat,
-                gate_1_status: "Lolos"
+                kalimat_baku_compiled: kalimat
             });
             validate();
         });
 
         return validate; 
     } 
-}; // <--- Tutup objek Generator di sini
+}; 
 
 export { Generator };
+
 document.addEventListener('DOMContentLoaded', async () => {
     const username = localStorage.getItem('tof_username');
     if (username) {
         await Generator.initUserFromProfile(username);
     }
     
-    // 1. Load data draft ke UI
     Generator.loadDraft();
     
-    // 2. Inisialisasi selector dan ambil fungsi 'validate' yang direturn
-    // Pastikan initCategorySelection mengembalikan fungsi validate
     const validate = Generator.initCategorySelection((pilar) => console.log("Pilar dipilih:", pilar));
     
-    // 3. Pemicu validasi manual setelah load draft
-    // Karena kita tadi sudah mengisi nilai via loadDraft, 
-    // kita perlu memaksa validasi agar tombol langsung berubah statusnya
     if (typeof validate === 'function') {
         validate();
     }
     
-    // 4. Pastikan micro-inputs juga terpicu untuk compile kalimat
     const activeBtn = document.querySelector('.category-btn.active');
-    if (activeBtn) {
-        document.getElementById('micro-inputs-container').dispatchEvent(new Event('input'));
+    const container = document.getElementById('micro-inputs-container');
+    if (activeBtn && container) {
+        container.dispatchEvent(new Event('input'));
     }
 });
