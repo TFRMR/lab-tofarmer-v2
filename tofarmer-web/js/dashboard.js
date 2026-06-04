@@ -237,45 +237,57 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
     }
 }
 async function handleVote(item) {
-    // 1. Hitung vote baru
-    const newVoteCount = (item.total_vote || 0) + 1;
+    const userId = localStorage.getItem('tof_user_id');
 
-    // 2. Update jumlah vote di tabel ilmu_pending
-    const { error: updateError } = await supabase
-        .from('ilmu_pending')
-        .update({ total_vote: newVoteCount })
-        .eq('id', item.id); // Menggunakan id sebagai acuan baris
-
-    if (updateError) {
-        console.error("Error Update Vote:", updateError);
-        alert("Gagal nge-vote, Kang! Cek console.");
+    // CEK LOGIN: Pengunjung tidak login tidak bisa vote
+    if (!userId) {
+        alert("Waduh, login dulu Kang untuk bisa memberikan dukungan!");
         return;
     }
 
-    // 3. Cek apakah sudah mencapai target konsensus (5 vote)
+    // CEK APAKAH SUDAH VOTE: Coba masukkan ke tabel votes
+    const { data: existingVote, error: voteError } = await supabase
+        .from('votes')
+        .insert([{ ilmu_id: item.id, user_id: userId }])
+        .select();
+
+    if (voteError) {
+        // Jika error, kemungkinan besar karena sudah pernah vote (karena constraint UNIQUE)
+        alert("Wah, Kang sudah pernah memberikan dukungan untuk ilmu ini!");
+        return;
+    }
+
+    // Jika berhasil input ke tabel votes, baru kita update jumlah di ilmu_pending
+    const newVoteCount = (item.total_vote || 0) + 1;
+
+    const { error: updateError } = await supabase
+        .from('ilmu_pending')
+        .update({ total_vote: newVoteCount })
+        .eq('id', item.id);
+
+    if (updateError) {
+        alert("Gagal mengupdate jumlah vote.");
+        return;
+    }
+
+    // Cek apakah mencapai 5 vote untuk pindah ke Ilmu Baku
     if (newVoteCount >= 5) {
-        // Pindahkan ke tabel ilmu_baku
         const { error: insertError } = await supabase
             .from('ilmu_baku')
             .insert([{
-                user_id: item.user_id, // Menggunakan user_id dari item yang dikirim
+                user_id: item.user_id,
                 judul_aksi: item.judul_aksi,
                 deskripsi_proses: item.deskripsi_proses,
                 total_vote: newVoteCount
             }]);
 
         if (!insertError) {
-            // Hapus dari ilmu_pending setelah sukses dipindah
             await supabase.from('ilmu_pending').delete().eq('id', item.id);
             alert("Mantap! Ilmu ini sudah lulus konsensus dan masuk Ilmu Baku!");
             location.reload();
-        } else {
-            console.error("Error Pindah ke Baku:", insertError);
-            alert("Gagal memindahkan ke Ilmu Baku.");
         }
     } else {
-        // Jika belum 5 vote, cukup beri notifikasi
-        alert(`Terima kasih vote-nya! (Total: ${newVoteCount}/5)`);
+        alert(`Dukungan berhasil! (Total: ${newVoteCount}/5)`);
         location.reload();
     }
 }
