@@ -212,7 +212,7 @@ role: "system",
                  - SOP TEKNIS: [Langkah-langkah]
                  - PARAMETER KEBERHASILAN: [Indikator]
                  - MITIGASI RISIKO: [Mitigasi]` 
-              : `Gunakan bahasa yang sangat santai, jenaka, penuh guyonan khas petani, dan selalu ceria. WAJIB Jawab dengan singkat (maksimal 3 kalimat saja).`}
+              : `WAJIB Jawab dengan singkat (maksimal 3 kalimat saja).`}
             
             1. Wajib gunakan Bahasa Indonesia.
             2. JANGAN berikan tutorial teknis yang membosankan jika bukan di Gate 3.` 
