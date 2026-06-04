@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (userId) {
         authSection.style.display = 'none';
         userSection.style.display = 'block';
-        welcome.innerText = `Halo, ${localStorage.getItem('tof_username') || 'Petani'}!`;
+        welcome.innerText = `Halo, ${localStorage.getItem('tof_username') || 'Farmer'}!`;
         loadDrafts(userId, true);
     } else {
         authSection.style.display = 'block';
