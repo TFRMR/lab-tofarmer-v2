@@ -81,23 +81,34 @@ function typeWriter(element, text, speed = 30) {
     }, speed);
 }
 
-function showPopup(judul, konten) {
+function showPopup(item) {
     const overlay = document.createElement('div');
-    // Tambahkan overflow-y: auto pada overlay agar seluruh area bisa discroll jika perlu
     overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:9999; overflow-y: auto; padding: 20px;";
     
+    // Asumsi item membawa data: judul_aksi, deskripsi_proses, id, username (atau user_id)
     overlay.innerHTML = `
         <div style="background:#1e293b; padding:2rem; border-radius:1rem; width:90%; max-width:500px; border:1px solid #374151; color:white; text-align:left; max-height: 90vh; display: flex; flex-direction: column;">
-            <h2 style="color:#16a34a; text-align:center; margin-bottom:1rem;">${judul}</h2>
-            <div style="flex: 1; overflow-y: auto; margin-bottom: 1rem; padding-right: 10px;">
-                <p style="color:#cbd5e1; white-space:pre-line; line-height:1.6; font-size:0.95rem;">${konten}</p>
+            
+            <div style="text-align:center; font-size:0.7rem; color:#94a3b8; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.1em;">
+                ToFarmer-ilmu baku (${item.id ? item.id.substring(0,8) : '000'}) oleh @${item.username || 'Petani'}
             </div>
-            <div style="text-align:center;">
-                <button id="close-popup" style="background:#16a34a; border:none; padding:10px 30px; color:white; border-radius:8px; cursor:pointer;">Tutup</button>
+
+            <h2 style="color:#16a34a; text-align:center; margin-bottom:1rem;">${item.judul_aksi}</h2>
+            
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 1rem; padding-right: 10px;">
+                <p style="color:#cbd5e1; white-space:pre-line; line-height:1.6; font-size:0.95rem;">${item.deskripsi_proses}</p>
+            </div>
+
+            <div style="text-align:center; display: flex; gap: 10px; justify-content: center;">
+                <button id="vote-btn" style="background:#f59e0b; border:none; padding:10px 20px; color:black; border-radius:8px; cursor:pointer; font-weight:bold;">👍 Vote (${item.total_vote || 0})</button>
+                <button id="close-popup" style="background:#374151; border:none; padding:10px 30px; color:white; border-radius:8px; cursor:pointer;">Tutup</button>
             </div>
         </div>
     `;
+    
     document.body.appendChild(overlay);
+    
+    document.getElementById('vote-btn').onclick = () => handleVote(item);
     document.getElementById('close-popup').onclick = () => document.body.removeChild(overlay);
 }
 
@@ -191,10 +202,47 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
             const btn = document.createElement('button');
             btn.style.cssText = "width:100%; margin:5px 0; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left;";
             btn.innerHTML = `<strong>${item.judul_aksi}</strong><br><span style="font-size:0.7rem; color:#f59e0b;">● ${badgeText}</span>`;
-            btn.onclick = () => showPopup(item.judul_aksi, item.deskripsi_proses);
+            btn.onclick = () => showPopup(item);
             container.appendChild(btn);
         });
     } else {
         container.innerHTML += `<p style="color:#64748b; padding:10px;">Belum ada data.</p>`;
+    }
+}
+
+async function handleVote(item) {
+    const newVoteCount = (item.total_vote || 0) + 1;
+
+    // 1. Update jumlah vote di tabel ilmu_pending
+    const { error } = await supabase
+        .from('ilmu_pending')
+        .update({ total_vote: newVoteCount })
+        .eq('id', item.id);
+
+    if (error) { alert("Gagal nge-vote, Kang!"); return; }
+
+    // 2. Cek apakah sudah mencapai 5 vote
+    if (newVoteCount >= 5) {
+        // Pindahkan ke tabel ilmu_baku
+        const { error: insertError } = await supabase
+            .from('ilmu_baku')
+            .insert([{
+                creator_user_id: item.user_id || 'anonymous', 
+                judul_aksi: item.judul_aksi,
+                deskripsi_proses: item.deskripsi_proses,
+                total_vote: newVoteCount
+            }]);
+
+        if (!insertError) {
+            // Hapus dari ilmu_pending
+            await supabase.from('ilmu_pending').delete().eq('id', item.id);
+            alert("Mantap! Ilmu ini sudah lulus konsensus dan masuk Ilmu Baku!");
+            location.reload();
+        } else {
+            alert("Gagal memindahkan ke Ilmu Baku.");
+        }
+    } else {
+        alert(`Terima kasih vote-nya! (Total: ${newVoteCount}/5)`);
+        location.reload();
     }
 }
