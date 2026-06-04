@@ -178,7 +178,7 @@ const Generator = {
         if (pilar === 'konten') return `Saya berbagi pengalaman [${data.platform || '...'}] bahas soal [${data.topik || '...'}] buat [${data.audiens || '...'}].`;
         if (pilar === 'keuangan') return `Saya berbagi pengalaman [${data.aset || '...'}] pakai strategi [${data.strategi || '...'}] dengan batasan risiko [${data.risiko || '...'}].`;
         if (pilar === 'digital') return `Saya berbagi pengalaman [${data.teknologi || '...'}] untuk [${data.kasus || '...'}] dengan target [${data.target || '...'}].`;
-        if (pilar === 'caracara') return `Saya berbagi pengalaman [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
+        
         if (pilar === 'refleksi') return `Saya berbagi pengalaman [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
         return "";
     },
