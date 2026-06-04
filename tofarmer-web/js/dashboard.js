@@ -271,7 +271,7 @@ async function handleVote(item) {
     }
 
     // Cek apakah mencapai 5 vote untuk pindah ke Ilmu Baku
-    if (newVoteCount >= 5) {
+    if (newVoteCount >= 7) {
         const { error: insertError } = await supabase
             .from('ilmu_baku')
             .insert([{
@@ -287,7 +287,7 @@ async function handleVote(item) {
             location.reload();
         }
     } else {
-        alert(`Dukungan berhasil! (Total: ${newVoteCount}/5)`);
+        alert(`Dukungan berhasil! (Total: ${newVoteCount}/7)`);
         location.reload();
     }
 }
