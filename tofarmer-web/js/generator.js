@@ -9,8 +9,8 @@ const Generator = {
     getJalur: (pilar) => {
         const jalurMap = {
             ladang: "Jalur Lambat", alat: "Jalur Lambat",
-            jualan: "Jalur Sedang", cara-cara: "Jalur Sedang", komunitas: "Jalur Sedang",
-            trading: "Jalur Sedang-Kilat", ai: "Jalur Kilat", digital: "Jalur Kilat", refleksi: "Jalur Kilat"
+            jualan: "Jalur Sedang", komunitas: "Jalur Sedang",
+            trading: "Jalur Sedang-Kilat", ai: "Jalur Kilat", digital: "Jalur Kilat", caracara: "Jalur Kilat" refleksi: "Jalur Kilat"
         };
         return jalurMap[pilar] || "Jalur Normal";
     },
@@ -134,7 +134,7 @@ const Generator = {
         const alreadySynced = localStorage.getItem('tofarmer_synced');
         if (alreadySynced) return;
         try {
-            const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, cara-cara: 5, refleksi: 5 };
+            const pilarMap = { ladang: 1, alat: 2, jualan: 3, konten: 4, keuangan: 5, digital: 5, caracara: 5, refleksi: 5 };
             const pilarInt = pilarMap[state.data.pilar_bidang] || 1;
             await supabase.from('contributions').insert([{
                 user_id: userId, 
@@ -157,7 +157,7 @@ const Generator = {
             konten: [{ id: 'platform', label: 'Main di platform apa?' }, { id: 'topik', label: 'Bahasan utamanya apa?' }, { id: 'audiens', label: 'Buat siapa kontennya?' }],
             keuangan: [{ id: 'aset', label: 'Aset yang dikelola?' }, { id: 'strategi', label: 'Strategi kelolanya gimana?' }, { id: 'risiko', label: 'Batasan risikonya?' }],
             digital: [{ id: 'teknologi', label: 'Teknologi yang dipakai?' }, { id: 'kasus', label: 'Buat keperluan apa?' }, { id: 'target', label: 'Hasil akhir yang dikejar?' }],
-            cara-cara: [{ id: 'tema', label: 'Tema?' }, { id: 'metode', label: 'Cara evaluasinya?' }, { id: 'durasi', label: 'Berapa sering dilakuin?' }],
+            caracara: [{ id: 'tema', label: 'Tema?' }, { id: 'metode', label: 'Cara evaluasinya?' }, { id: 'durasi', label: 'Berapa sering dilakuin?' }],
             refleksi: [{ id: 'tema', label: 'Tema refleksinya?' }, { id: 'metode', label: 'Cara evaluasinya?' }, { id: 'durasi', label: 'Berapa sering dilakuin?' }]
         };
         if (templates[pilar]) {
@@ -178,7 +178,7 @@ const Generator = {
         if (pilar === 'konten') return `Saya berbagi pengalaman [${data.platform || '...'}] bahas soal [${data.topik || '...'}] buat [${data.audiens || '...'}].`;
         if (pilar === 'keuangan') return `Saya berbagi pengalaman [${data.aset || '...'}] pakai strategi [${data.strategi || '...'}] dengan batasan risiko [${data.risiko || '...'}].`;
         if (pilar === 'digital') return `Saya berbagi pengalaman [${data.teknologi || '...'}] untuk [${data.kasus || '...'}] dengan target [${data.target || '...'}].`;
-        if (pilar === 'cara-cara') return `Saya berbagi pengalaman [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
+        if (pilar === 'caracara') return `Saya berbagi pengalaman [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
         if (pilar === 'refleksi') return `Saya berbagi pengalaman [${data.tema || '...'}] dengan cara [${data.metode || '...'}] secara [${data.durasi || '...'}].`;
         return "";
     },
