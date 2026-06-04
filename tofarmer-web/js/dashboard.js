@@ -216,7 +216,7 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
             btn.style.cssText = "width:100%; margin:5px 0; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left;";
             btn.innerHTML = `<strong>${item.judul_aksi}</strong><br><span style="font-size:0.7rem; color:#f59e0b;">● ${badgeText}</span>`;
             
-            btn.onclick = () => showPopup(itemDisplay);
+            btn.onclick = () => showPopup(itemWithUser);
             container.appendChild(btn);
         });
     } else {
