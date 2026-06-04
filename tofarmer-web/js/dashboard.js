@@ -189,31 +189,40 @@ window.buatIlmuBaru = () => {
 };
 
 // --- LOAD TABEL BARU ---
-// --- LOAD TABEL BARU ---
 async function loadDataIlmu(tableName, elementId, badgeText) {
     const container = document.getElementById(elementId);
     if (!container) return;
-    
+
     const title = container.querySelector('h3') ? container.querySelector('h3').outerHTML : `<h3>${badgeText}</h3>`;
     
-    // Kita ambil semua kolom dulu tanpa join untuk mengetes apakah datanya muncul
-   const { data, error } = await supabase
-        .from(tableName)
-        .select(`
-            *,
-            profiles(username)
-        `); 
-
-    if (error) { 
-        console.error("Error Query:", error); 
+    // 1. AMBIL DATA ILMU SAJA (Tanpa join, supaya data tidak pernah hilang)
+    const { data: ilmuData, error: ilmuError } = await supabase.from(tableName).select('*');
+    
+    if (ilmuError) {
+        console.error("Error mengambil ilmu:", ilmuError);
+        return;
     }
 
-    container.innerHTML = title; 
-    
-    if (data && data.length > 0) {
-        data.forEach(item => {
-            // Karena tidak join, kita pakai username default sementara
-            const username = (item.profiles && item.profiles.username) ? item.profiles.username : 'Petani';
+    container.innerHTML = title;
+
+    if (ilmuData && ilmuData.length > 0) {
+        // 2. AMBIL USERNAME (Opsional: Jika ini ilmu_pending)
+        let profileMap = {};
+        if (tableName === 'ilmu_pending') {
+            const userIds = [...new Set(ilmuData.map(item => item.user_id))];
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, username')
+                .in('id', userIds);
+            
+            if (profiles) {
+                profiles.forEach(p => profileMap[p.id] = p.username);
+            }
+        }
+
+        // 3. RENDER DATA
+        ilmuData.forEach(item => {
+            const username = profileMap[item.user_id] || 'Petani';
             const itemWithUser = { ...item, username };
 
             const btn = document.createElement('button');
@@ -224,7 +233,7 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
             container.appendChild(btn);
         });
     } else {
-        container.innerHTML += `<p style='color:#64748b; padding:10px;'>Belum ada data.</p>`;
+        container.innerHTML += `<p style="color:#64748b; padding:10px;">Belum ada data.</p>`;
     }
 }
 async function handleVote(item) {
