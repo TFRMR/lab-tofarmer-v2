@@ -108,7 +108,7 @@ window.refreshAi = async (fieldId) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                mode: "Gate2",
+                mode: "Evaluasi",
                 trigger: 'gate2-mikro-spesifik', 
                 teks: userInput, // Ganti ini dari 'data' ke 'teks'
                 context: draft.data // Ji
