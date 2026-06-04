@@ -189,20 +189,33 @@ window.buatIlmuBaru = () => {
 };
 
 // --- LOAD TABEL BARU ---
+// --- LOAD TABEL BARU ---
 async function loadDataIlmu(tableName, elementId, badgeText) {
     const container = document.getElementById(elementId);
     if (!container) return;
     const title = container.querySelector('h3').outerHTML;
     
-    const { data } = await supabase.from(tableName).select('*');
+    // Melakukan query dengan join ke tabel profiles untuk mengambil username
+    const { data } = await supabase
+        .from(tableName)
+        .select('*, profiles(username)');
+        
     container.innerHTML = title; 
     
     if (data && data.length > 0) {
         data.forEach(item => {
+            // Membuat objek baru yang menggabungkan username agar mudah diakses
+            const itemWithUser = {
+                ...item,
+                username: item.profiles?.username || 'Petani'
+            };
+
             const btn = document.createElement('button');
             btn.style.cssText = "width:100%; margin:5px 0; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left;";
             btn.innerHTML = `<strong>${item.judul_aksi}</strong><br><span style="font-size:0.7rem; color:#f59e0b;">● ${badgeText}</span>`;
-            btn.onclick = () => showPopup(item);
+            
+            // Mengirimkan objek yang sudah memiliki username ke showPopup
+            btn.onclick = () => showPopup(itemWithUser);
             container.appendChild(btn);
         });
     } else {
