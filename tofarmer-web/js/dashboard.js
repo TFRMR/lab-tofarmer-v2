@@ -193,28 +193,33 @@ window.buatIlmuBaru = () => {
 async function loadDataIlmu(tableName, elementId, badgeText) {
     const container = document.getElementById(elementId);
     if (!container) return;
-    const title = container.querySelector('h3').outerHTML;
     
-    // Melakukan query dengan join ke tabel profiles untuk mengambil username
-    const { data } = await supabase
-        .from(tableName)
-        .select('*, profiles(username)');
-        
+    const title = container.querySelector('h3') ? container.querySelector('h3').outerHTML : `<h3>${badgeText}</h3>`;
+    
+    // PERBAIKAN: Hanya gunakan join jika tabelnya adalah ilmu_pending
+    let query = supabase.from(tableName).select('*');
+    if (tableName === 'ilmu_pending') {
+        query = supabase.from(tableName).select('*, profiles!user_id_fkey(username)');
+    }
+    
+    const { data, error } = await query;
+
+    if (error) { 
+        console.error("Error Query pada tabel " + tableName + ":", error); 
+    }
+
     container.innerHTML = title; 
     
     if (data && data.length > 0) {
         data.forEach(item => {
-            // Membuat objek baru yang menggabungkan username agar mudah diakses
-            const itemWithUser = {
-                ...item,
-                username: item.profiles?.username || 'Petani'
-            };
+            // Jika ada join, ambil username. Jika tidak (ilmu_baku), gunakan default atau null
+            const username = (item.profiles && item.profiles.username) ? item.profiles.username : 'Petani';
+            const itemWithUser = { ...item, username };
 
             const btn = document.createElement('button');
             btn.style.cssText = "width:100%; margin:5px 0; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left;";
             btn.innerHTML = `<strong>${item.judul_aksi}</strong><br><span style="font-size:0.7rem; color:#f59e0b;">● ${badgeText}</span>`;
             
-            // Mengirimkan objek yang sudah memiliki username ke showPopup
             btn.onclick = () => showPopup(itemWithUser);
             container.appendChild(btn);
         });
@@ -222,39 +227,45 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
         container.innerHTML += `<p style="color:#64748b; padding:10px;">Belum ada data.</p>`;
     }
 }
-
 async function handleVote(item) {
+    // 1. Hitung vote baru
     const newVoteCount = (item.total_vote || 0) + 1;
 
-    // 1. Update jumlah vote di tabel ilmu_pending
-    const { error } = await supabase
+    // 2. Update jumlah vote di tabel ilmu_pending
+    const { error: updateError } = await supabase
         .from('ilmu_pending')
         .update({ total_vote: newVoteCount })
-        .eq('id', item.id);
+        .eq('id', item.id); // Menggunakan id sebagai acuan baris
 
-    if (error) { alert("Gagal nge-vote, Kang!"); return; }
+    if (updateError) {
+        console.error("Error Update Vote:", updateError);
+        alert("Gagal nge-vote, Kang! Cek console.");
+        return;
+    }
 
-    // 2. Cek apakah sudah mencapai 5 vote
+    // 3. Cek apakah sudah mencapai target konsensus (5 vote)
     if (newVoteCount >= 5) {
         // Pindahkan ke tabel ilmu_baku
         const { error: insertError } = await supabase
             .from('ilmu_baku')
             .insert([{
-                creator_user_id: item.user_id || 'anonymous', 
+                user_id: item.user_id, // Menggunakan user_id dari item yang dikirim
                 judul_aksi: item.judul_aksi,
                 deskripsi_proses: item.deskripsi_proses,
                 total_vote: newVoteCount
             }]);
 
         if (!insertError) {
-            // Hapus dari ilmu_pending
+            // Hapus dari ilmu_pending setelah sukses dipindah
             await supabase.from('ilmu_pending').delete().eq('id', item.id);
             alert("Mantap! Ilmu ini sudah lulus konsensus dan masuk Ilmu Baku!");
             location.reload();
         } else {
+            console.error("Error Pindah ke Baku:", insertError);
             alert("Gagal memindahkan ke Ilmu Baku.");
         }
     } else {
+        // Jika belum 5 vote, cukup beri notifikasi
         alert(`Terima kasih vote-nya! (Total: ${newVoteCount}/5)`);
         location.reload();
     }
