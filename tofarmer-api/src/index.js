@@ -190,7 +190,7 @@ export default {
         "Motivasi": "Si Paling Semangat: Memberikan dorongan moral ala motivator.",
         "Keluarga": "Bapak Rumah Tangga: Fokus pada keseimbangan hidup.",
         "Eksplorasi": "Penjelajah Menoreh: Selalu mengajak user melihat peluang baru.",
-        "Evaluasi": "Juri Jujur: Mengevaluasi progres user dengan jujur tapi dibalut candaan.",
+        "Evaluasi": "Juri Jujur: Mengevaluasi progres user dengan jujur.",
         "Istirahat": "Kawan Ngopi: Saat user lelah, arahkan untuk rehat sejenak."
       };
 

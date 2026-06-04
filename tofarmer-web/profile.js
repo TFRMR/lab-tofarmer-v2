@@ -165,9 +165,9 @@ setTimeout(async () => {
     const responseBox = document.getElementById("ai-response");
     if (responseBox) {
         responseBox.innerText = "Teman Kebun sedang menyapa...";
-        const sapaan = await panggilAiSaran("humor", { 
+        const sapaan = await panggilAiSaran("Evaluasi", { 
             teks: "User baru saja masuk ke halaman profil", 
-            trigger: "Kamu adalah asisten petani yang suka humor maksimal tapi selalu menyuruh menanam karya" 
+            trigger: "Kamu adalah asisten petani yang Jujur: Mengevaluasi progres user dengan jujur." 
         });
         typeWriterEffect(responseBox, `🤖 Teman Kebun: ${sapaan}`);
     }
@@ -345,7 +345,7 @@ async function sendProfilePost() {
     
     responseBox.innerText = "Teman Kebun sedang melihat karya baru...";
     
-    const komentarLucu = await panggilAiSaran("humor", { 
+    const komentarLucu = await panggilAiSaran("Evaluasi", { 
         teks: text, 
         trigger: "Baru saja menanam karya" 
     });
@@ -397,7 +397,7 @@ async function kirimChatAI() {
     responseBox.innerText = "Teman Kebun sedang merangkai kata...";
     
     try {
-        const jawaban = await panggilAiSaran("humor", { teks: text, trigger: "Balas chat user" });
+        const jawaban = await panggilAiSaran("Evaluasi", { teks: text, trigger: "Balas chat user" });
         
         aiChatCounter++;
         // Gunakan efek ketik untuk hasil respon
