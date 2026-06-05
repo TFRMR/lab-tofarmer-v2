@@ -40,25 +40,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDataIlmu('ilmu_baku', 'card-galeri', 'Ilmu Baku Sah');
     loadDataIlmu('ilmu_pending', 'card-approve', 'Menunggu konsensus bersama');
 });
-// --- SAPAAN HUMOR DINAMIS (BUATAN AI) ---
 async function sapaUser() {
-    const aiText = document.getElementById('ai-text');
-    if (!aiText) return;
+    // Ambil bekal panduan dasar dashboard dari knowledge-dashboard.js
+    const aturanMain = typeof cariKonteksDashboard === "function" ? cariKonteksDashboard("pemandu awal") : "";
 
-    aiText.innerText = "Membuka pintu kebun...";
-
-    try {
-        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ mode: "Dasboard", trigger, teks: text })
-            });
-     
-        const result = await response.json();
-        typeWriter(aiText, result.saran || "Selamat datang di pusat ilmu ToFarmer!");
-    } catch (error) {
-        typeWriter(aiText, "Halo Sahabat Tani! Senang sekali Anda kembali.");
-    }
+    updateAdvice(
+        "sapaan", 
+        `Kamu adalah AI Pemandu resmi di Dashboard Riset ToFarmer. Tugasmu adalah menyapa user dengan akrab, jenaka, dan mengingatkan mereka tentang 4 hal utama di dashboard ini:\n${aturanMain}`, 
+        "User baru saja masuk ke halaman Dashboard Utama."
+    );
 }
 
 
@@ -109,24 +99,37 @@ function showPopup(item) {
 }
 
 // --- FUNGSI ASISTEN KEBUN ---
+// 🔥 CARI DAN GANTI SELURUH FUNGSI initAsistenKebun() YANG LAMA DENGAN INI:
 async function initAsistenKebun() {
     const aiText = document.getElementById('ai-text');
     const aiInput = document.getElementById('ai-input');
     const aiBtn = document.getElementById('ai-send-btn');
     if (!aiText || !aiInput || !aiBtn) return;
+
     aiBtn.addEventListener('click', async () => {
         const pesan = aiInput.value.trim();
         if (!pesan) return;
         aiText.innerText = "...";
+
+        // Ambil aturan pemandu berdasarkan pertanyaan chat user
+        const konteksSkenario = typeof cariKonteksDashboard === "function" ? cariKonteksDashboard(pesan) : "";
+
         try {
             const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode: "humor", trigger: "chat-dashboard", teks: pesan })
+                body: JSON.stringify({ 
+                    mode: "humor", 
+                    trigger: "chat-dashboard", 
+                    teks: `Pertanyaan user: "${pesan}". Jawab berdasarkan aturan takaran skenario berikut: ${konteksSkenario}` 
+                })
             });
             const result = await response.json();
-            typeWriter(aiText, result.saran || "Mentor lagi di sawah, nanti lagi ya.");
-        } catch (e) { aiText.innerText = "Sinyal di kebun hilang!"; }
+            typeWriter(aiText, result.saran || "Mentor lagi di sawah, nanti kembali lagi.");
+        } catch (e) { 
+            aiText.innerText = "Sinyal di kebun hilang!"; 
+        }
+        aiInput.value = ''; // Bersihkan form input setelah kirim
     });
 }
 
@@ -178,10 +181,23 @@ function arahkankeGate(data) {
     }
 }
 
-// --- RESET ---
+// 🔥 CARI DAN GANTI FUNSI window.buatIlmuBaru YANG LAMA DENGAN BARIS INI:
 window.buatIlmuBaru = () => {
     localStorage.removeItem('tofarmer_draft');
-    window.location.href = 'gate-1.html'; // Sesuaikan file Anda
+    
+    const petunjukGate = typeof cariKonteksDashboard === "function" ? cariKonteksDashboard("buat ilmu baru") : "";
+    
+    // Beritahu AI di dashboard untuk mengucapkan wejangan alur Gate 1-3 sebelum halaman pindah
+    updateAdvice(
+        "Dashboard",
+        "user_klik_buat_ilmu",
+        `User mengklik buat ilmu baru. Ingatkan secara singkat alur dari Gate 1 data awal, Gate 2 spesifik, hingga Gate 3 rangkaian kata otomatis AI di mana mereka wajib review/edit: ${petunjukGate}`
+    );
+
+    // Beri jeda tipis agar efek teks terbaca sebentar sebelum pindah halaman
+    setTimeout(() => {
+        window.location.href = 'gate-1.html';
+    }, 1200);
 };
 
 // --- LOAD TABEL BARU ---
