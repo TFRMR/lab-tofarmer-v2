@@ -464,9 +464,14 @@ async function kirimChatAI() {
         const sisa = document.getElementById("sisa-chat");
         if (sisa) sisa.innerText = 3 - aiChatCounter;
 
+       // ==========================================
+// 🔄 GANTI BAGIAN IF INI
+// ==========================================
         if (aiChatCounter >= 3) {
-            document.getElementById("ai-chat-area").innerHTML = "<em>Sudah 3 ronde! Saya balik nyangkul dulu ya...</em>";
+            document.getElementById("ai-chat-area").style.display = "none";
+            responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya... (Tanam karya baru lagi untuk ngobrol lagi)";
         }
+// ==========================================
     } catch (err) {
         responseBox.innerText = "🤖 Teman Kebun: Maaf, saya lagi kurang enak badan (Error API).";
     } finally {
