@@ -84,24 +84,28 @@ const validateGate2 = () => {
 };
 
 // Fungsi AI Proaktif dengan batasan 3x per kolom
+// Di dalam file gate-2.js
+
 window.refreshAi = async (fieldId) => {
     if (komentarState[fieldId] >= MAX_KOMENTAR_PER_KOLOM) {
-        alert("Jatah tanya mentor untuk kolom ini sudah habis (3/3). Lanjut isi kolom lainnya ya!");
+        alert("Jatah tanya mentor untuk kolom ini sudah habis (5/5). Lanjut isi kolom lainnya ya!"); // Disesuaikan dengan MAX_KOMENTAR_PER_KOLOM (5) di file Anda
         return;
     }
 
     const aiFeedback = document.getElementById(`ai-${fieldId}`);
     const userInput = document.getElementById(fieldId).value;
     
-    if (!userInput.trim()) return;
+    if (!userInput.trim()) {
+        alert("Isi kolomnya dulu sebelum berkonsultasi dengan mentor!");
+        return;
+    }
     
     aiFeedback.innerText = "Mentor sedang menganalisis...";
     
-    const payload = {
-        context: draft.data,
-        field: fieldId,
-        input: userInput
-    };
+    // Ambil RAG kontekstual gabungan antara aturan kolom dan hasil draft Gate 1
+    const konteksRAG = typeof window.cariKonteksGate2 === "function"
+        ? window.cariKonteksGate2(fieldId, draft.data)
+        : "Kamu adalah Mentor Evaluator Gate 2.";
 
     try {
         const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
@@ -110,15 +114,15 @@ window.refreshAi = async (fieldId) => {
             body: JSON.stringify({ 
                 mode: "Evaluasi",
                 trigger: 'gate2-mikro-spesifik', 
-                teks: userInput, // Ganti ini dari 'data' ke 'teks'
-                context: draft.data // Ji
+                teks: `Instruksi Mentor:\n${konteksRAG}\n\nInput yang diketik user pada kolom [${fieldId.toUpperCase()}]: "${userInput}".\n\nBerikan tanggapan maksimal 2 kalimat. Validasi apakah sudah tajam, beri saran taktis perbaikan jika masih kurang.`, 
+                context: draft.data 
             })
         });
         
         const result = await response.json();
         const saran = result.saran || "Mentor sedang menyimak...";
         
-        // Efek ketik
+        // Efek ketik bawaan Anda
         let i = 0;
         aiFeedback.innerText = "";
         const typing = setInterval(() => {
@@ -129,6 +133,9 @@ window.refreshAi = async (fieldId) => {
                 clearInterval(typing);
                 komentarState[fieldId]++; // Tambah hitungan setelah selesai mengetik
                 aiFeedback.innerHTML += `<br><small style="color: #64748b;">Sisa jatah: ${MAX_KOMENTAR_PER_KOLOM - komentarState[fieldId]}x</small>`;
+                
+                // Ikut simpan state agar jatah pertanyaan yang berkurang tercatat di LocalStorage/Supabase
+                simpanState();
             }
         }, 30);
 
