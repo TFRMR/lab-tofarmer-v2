@@ -47,37 +47,66 @@
 </head>
 <body>
     <div class="bg-animate"></div>
-<div class="nav-timbul">
-    <a href="https://www.tofarmer.xyz/profile.html" class="nav-btn">👤 Profil</a>
-    <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="nav-btn">📚 Fitur & Ilmu</a>
-</div>
+    
+    <!-- Menu Navigasi Timbul -->
+    <div class="nav-timbul">
+        <a href="https://www.tofarmer.xyz/profile.html" class="nav-btn">👤 Profil</a>
+        <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="nav-btn">📚 Fitur & Ilmu</a>
+    </div>
+
     <div class="container">
         <h1 id="welcome-text">Selamat Datang</h1>
 
+        <!-- Tombol Login (Jika Belum Masuk) -->
         <div id="auth-section">
             <button class="btn-game" onclick="simpanLokasiDanLogin()">Login untuk Mulai</button>
         </div>
         
+        <!-- Area Utama Dashboard (Akan Terbuka Saat Login) -->
         <div id="user-section" style="display:none;">
+            
+            <!-- 🤖 KOTAK AI PEMANDU (OTAK ASISTEN KEBUN) -->
+            <div class="card" style="border: 1px solid #f59e0b; background: #1e293b;">
+                <h4 style="margin: 0 0 8px 0; color: #f59e0b;">🤖 Pemandu ToFarmer:</h4>
+                <p id="ai-text" style="margin: 0; font-size: 0.95rem; line-height: 1.5; color: #e2e8f0;">Membuka pintu kebun...</p>
+                
+                <!-- Kolom Tanya Pemandu -->
+                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                    <input id="ai-input" type="text" placeholder="Tanya alur ilmu di sini..." style="flex: 1; padding: 8px 12px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; font-size: 0.85rem;">
+                    <button id="ai-send-btn" style="background: #f59e0b; border: none; color: black; font-weight: bold; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;">Kirim</button>
+                </div>
+            </div>
+
+            <!-- Tombol Buat Ilmu Baru -->
             <div class="card">
                 <h3>Buat Ilmu Baru</h3>
-                <button onclick="window.buatIlmuBaru()" class="btn-action" style="background:#16a34a;">➕ Buat Ilmu Baru</button>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: -10px;">Mulai buat ilmu baku terstruktur melalui validasi Gate 1 sampai Gate 3.</p>
+                <button onclick="window.buatIlmuBaru()" class="btn-action" style="background:#16a34a; font-weight: bold; width: 100%; padding: 12px;">➕ Buat Ilmu Baru</button>
             </div>
 
+            <!-- Tempat Progres Penulisan yang Belum Selesai -->
             <div class="card">
-                <h3>Misi Berjalan (Draft)</h3>
-                <div id="container-misi"></div>
+                <h3>Misi Berjalan (Lanjutkan Progres Draft)</h3>
+                <div id="container-misi">
+                    <!-- Tombol draf otomatis disisipkan di sini oleh JS -->
+                </div>
             </div>
+
+            <!-- Card Tempat Voting Konsensus -->
+            <div id="card-approve" class="card" style="border-left: 4px solid #f59e0b;">
+                <h3>⏳ Menunggu Konsensus Bersama (Butuh Approve/Vote)</h3>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: -10px;">Cek ilmu di bawah ini, bantu vote dulu agar bisa sah menjadi Ilmu Baku!</p>
+                <div class="area-konten-ilmu"></div> <!-- Wadah murni agar h3 tidak terhapus -->
+            </div>
+
+            <!-- Card Tempat Ilmu Baku Final -->
+            <div id="card-galeri" class="card" style="border-left: 4px solid #16a34a;">
+                <h3>✅ Ilmu Baku Sah (Mading Galeri Final)</h3>
+                <p style="color: #94a3b8; font-size: 0.85rem; margin-top: -10px;">Ilmu yang sudah final dan lulus konsensus. Silakan dimanfaatkan bersama.</p>
+                <div class="area-konten-ilmu"></div> <!-- Wadah murni agar h3 tidak terhapus -->
+            </div>
+
         </div>
-
-        
-
-        <div id="card-approve" class="card">
-            <h3>Butuh Approve atau Butuh Persetujuan Bersama</h3>
-            </div>
-<div id="card-galeri" class="card">
-            <h3>Ilmu Baku (Galeri)</h3>
-            </div>
     </div>
 
     <script>
@@ -86,7 +115,8 @@
             window.location.href = 'login.html';
         }
     </script>
-<script src="knowledge-dashboard.js"></script>
+    <!-- Urutan script penuntun pikiran AI -->
+    <script src="knowledge-dashboard.js"></script>
     <script type="module" src="../js/dashboard.js"></script>
 </body>
 </html>
