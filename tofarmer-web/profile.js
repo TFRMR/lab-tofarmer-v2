@@ -385,7 +385,7 @@ async function kirimChatAI() {
    if (aiChatCounter >= 3) {
     document.getElementById("ai-chat-area").style.display = "none";
     responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya... (Tanam karya baru lagi jika ingin mengobrol kembali)";
-
+}
     
     // Tampilkan status loading tanpa mengacaukan efek ketik
     responseBox.innerText = "Teman Kebun sedang merangkai kata...";
