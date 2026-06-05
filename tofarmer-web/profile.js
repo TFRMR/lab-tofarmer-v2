@@ -65,6 +65,30 @@ function getTofLevel(xp) {
   return 1
 }
 
+// ==========================================
+// 🟢 TAMBAHKAN KODE BARU INI DI SINI
+// ==========================================
+function generateProfileContext(profileData, recentPosts = []) {
+  const rank = getRank(profileData.xp || 0);
+  const lvl = getTofLevel(profileData.xp || 0);
+  
+  // Ambil maksimal 5 postingan terakhir, gabungkan jadi histori
+  const riwayatTeks = recentPosts.slice(0, 5).map((post, index) => {
+    const tgl = new Date(post.created_at).toLocaleDateString("id-ID");
+    return `[Karya ${index + 1} - ${tgl}]: "${post.deskripsi_proses}"`;
+  }).join("\n");
+
+  // Gabungkan menjadi satu paket ingatan untuk AI
+  return `
+KONTEKS PROFIL PETANI:
+- Username: @${profileData.username}
+- Level/Rank: Level ${lvl} (${rank})
+- Total Asset: ${profileData.saldo_tof || 0} TOF / ${profileData.xp || 0} XP
+
+REKAM JEJAK / KARYA TERAKHIR:
+${riwayatTeks || "- Belum ada catatan karya sebelumnya di ladang."}
+  `.trim();
+}
 // =====================
 // LOAD PROFILE BALANCE
 // =====================
@@ -160,18 +184,35 @@ async function loadProfile() {
   document.title = `@${data.username} | Profil ToFarmer`
   renderWorkspace()
   loadUserPosts()
-// 🟢 Sapaan AI Otomatis saat buka profil
-setTimeout(async () => {
+// ==========================================
+// 🔄 GANTI SETTIMEOUT LAMA DENGAN BLOK INI
+// ==========================================
+  setTimeout(async () => {
     const responseBox = document.getElementById("ai-response");
     if (responseBox) {
-        responseBox.innerText = "Teman Kebun sedang menyapa...";
-        const sapaan = await panggilAiSaran("Evaluasi", { 
-            teks: "User baru saja masuk ke halaman profil", 
-            trigger: "Kamu adalah asisten petani yang Jujur: Mengevaluasi progres user dengan jujur." 
-        });
-        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${sapaan}`);
+      responseBox.innerText = "Teman Kebun sedang mengingat riwayat ladangmu...";
+      
+      // Ambil 5 data kontribusi terakhir dari Supabase untuk ingatan AI
+      const { data: recentPosts } = await supabaseClient
+        .from("contributions")
+        .select("deskripsi_proses, created_at")
+        .eq("user_id", targetProfileId)
+        .eq("is_private", true)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // Satukan data profil dan postingan terakhir menggunakan fungsi Langkah 1
+      const konteksRAG = generateProfileContext(data, recentPosts);
+
+      const sapaan = await panggilAiSaran("Evaluasi", { 
+        teks: "User baru saja masuk ke halaman profil.", 
+        trigger: `Kamu asisten petani jujur. Evaluasi progres berdasarkan data riwayat berikut:\n${konteksRAG}` 
+      });
+      
+      typeWriterEffect(responseBox, `🤖 Teman Kebun: ${sapaan}`);
     }
-}, 1000);
+  }, 1500); 
+// ==========================================
   try {
     const liveBalance =
       await getWalletTofBalance(targetProfileId)
@@ -339,27 +380,47 @@ async function sendProfilePost() {
     // 2. Refresh UI
     await loadUserPosts();
 
-   // 3. Trigger AI
+ // ==========================================
+// 🔄 GANTI BLOK TRIGGER AI LAMA DENGAN INI
+// ==========================================
+    // 3. Trigger AI dengan Memori Komunitas (RAG)
     const responseBox = document.getElementById("ai-response");
     const aiChatArea = document.getElementById("ai-chat-area");
     
-    responseBox.innerText = "Teman Kebun sedang melihat karya baru...";
+    responseBox.innerText = "Teman Kebun sedang menganalisis karya barumu...";
     
+    // Ambil data profil terbaru untuk memastikan XP/TOF akurat
+    const { data: currentProfile } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", currentWallet)
+        .single();
+
+    // Ambil semua postingan termasuk yang baru saja masuk
+    const { data: allPosts } = await supabaseClient
+        .from("contributions")
+        .select("deskripsi_proses, created_at")
+        .eq("user_id", currentWallet)
+        .eq("is_private", true)
+        .order("created_at", { ascending: false });
+
+    // Lewati indeks ke-0 (karena indeks 0 adalah postingan yang baru saja kita ketik)
+    const riwayatLama = allPosts.slice(1); 
+    const konteksRAG = generateProfileContext(currentProfile, riwayatLama);
+
     const komentarLucu = await panggilAiSaran("Evaluasi", { 
         teks: text, 
-        trigger: "Baru saja menanam karya" 
+        trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya di bawah ini:\n${konteksRAG}` 
     });
     
-    // Gunakan efek ketik
     typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
     
-    // 🟢 Munculkan kolom chat HANYA setelah AI selesai berkomentar
     aiChatCounter = 0; 
     setTimeout(() => {
         aiChatArea.style.display = "block";
         const sisa = document.getElementById("sisa-chat");
         if (sisa) sisa.innerText = 3;
-    }, 2000); // Tunggu 2 detik agar user baca komentar dulu
+    }, 2000);
 }
 
 async function panggilAiSaran(mode, payload) {
