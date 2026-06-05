@@ -766,10 +766,14 @@ window.addEventListener("DOMContentLoaded", () => {
     const konteksBeranda = generateFeedContext(currentFeedPosts || []);
     const pondasiDasar = typeof cariKonteksPaper === "function" ? cariKonteksPaper("filosofi pilar") : "";
 
+    // 🌟 AMBIL USERNAME SECARA DINAMIS (Jika belum login, pakai 'Petani')
+    const namaUserAktif = currentProfile ? currentProfile.username : "Petani";
+
     updateAdvice(
       "sapaan", 
-      `Kamu adalah asisten/mentor petani jenaka di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan esensi nilai visi-misi ekosistem serta rekam data berikut.\n\n[NILAI AGRAREIS FONDASI]:\n${pondasiDasar}\n\n[KONDISI TERKINI]:\n${konteksBeranda}`, 
-      "User baru saja membuka beranda utama ToFarmer."
+      `Kamu adalah asisten/mentor petani di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan esensi nilai visi-misi ekosistem serta rekam data berikut.\n\n[NILAI AGRAREIS FONDASI]:\n${pondasiDasar}\n\n[KONDISI TERKINI]:\n${konteksBeranda}`, 
+      // 🌟 KUNCI PERBAIKAN: Masukkan nama user aktif ke dalam teks input utama AI
+      `User bernama @${namaUserAktif} baru saja membuka beranda utama ToFarmer. Sapa dia langsung dengan nama akunnya tersebut!`
     );
   }, 2000);
-})
+});
