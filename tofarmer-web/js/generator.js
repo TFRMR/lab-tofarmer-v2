@@ -117,10 +117,10 @@ updateAdvice: async (trigger, text) => {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-                mode: "Evaluasi", 
-                trigger: trigger, 
-                teks: `Konteks Aturan Gate 1:\n${konteksRAG}\n\nData input user saat ini (Trigger: ${trigger}): "${text}". Berikan ulasan singkat maksimal 2 kalimat apakah input ini sudah bagus/taktis atau butuh perbaikan.` 
-            })
+    mode: "Evaluasi",
+    trigger: trigger, 
+    teks: `Konteks Aturan Gate 1:\n${konteksRAG}\n\nData input user saat ini (Trigger: ${trigger}): "${text}". Berikan ulasan singkat maksimal 2 kalimat apakah input tutorial/eksperimen ini sudah bagus/taktis atau butuh perbaikan.` 
+})
         });
         
         const result = await response.json();
