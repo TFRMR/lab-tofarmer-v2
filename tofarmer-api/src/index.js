@@ -221,7 +221,9 @@ role: "system",
             role: "user", 
             content: `Konteks Situasi: ${body.trigger || "Umum"}. Input user: "${textToProcess}".` 
           }
-        ]
+        ],
+        // 🌟 DI SINI KUNCI PERBAIKANNYA: Kita buka batas maksimal karakter keluaran hingga 1500 token
+        max_tokens: 1500
       });
 
       return json({ 
