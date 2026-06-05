@@ -382,16 +382,10 @@ async function panggilAiSaran(mode, payload) {
 }
 
 async function kirimChatAI() {
-    if (aiChatCounter >= 3) return;
+   if (aiChatCounter >= 3) {
+    document.getElementById("ai-chat-area").style.display = "none";
+    responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya... (Tanam karya baru lagi jika ingin mengobrol kembali)";
 
-    const input = document.getElementById("ai-input");
-    const responseBox = document.getElementById("ai-response");
-    const text = input.value.trim();
-    
-    if (!text) return;
-
-    const btn = document.querySelector('[onclick="kirimChatAI()"]');
-    if (btn) btn.disabled = true;
     
     // Tampilkan status loading tanpa mengacaukan efek ketik
     responseBox.innerText = "Teman Kebun sedang merangkai kata...";
