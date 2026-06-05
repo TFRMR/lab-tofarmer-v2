@@ -51,18 +51,41 @@ let targetProfileId = null
 // RANK SYSTEM
 // =====================
 
+// ===================== RANK SYSTEM (INTEGRASI TANGGA PANGKAT) =====================
+
 function getRank(xp) {
-  if (xp >= 33000) return "🥇 ELITE"
-  if (xp >= 9000) return "🥈 SPECIALIST"
-  if (xp >= 3000) return "🥉 PRO"
-  return "🌱 GROWER"
+  const lvl = getTofLevel(xp);
+  
+  if (lvl >= 91) return "🥇 ELITE";       // Level 91-100: Tahap Mastermind/Petapa
+  if (lvl >= 31) return "🥈 SPECIALIST";  // Level 31-90: Tahap Ilmu Baku
+  if (lvl >= 11) return "🥉 PRO";         // Level 11-30: Tahap Kontribusi & Validasi
+  return "🌱 GROWER";                     // Level 1-10: Tahap Belajar & Adaptasi
 }
 
 function getTofLevel(xp) {
-  if (xp >= 33000) return 4
-  if (xp >= 9000) return 3
-  if (xp >= 3000) return 2
-  return 1
+  xp = xp || 0;
+
+  // 1. GROWER: Level 1 - 10 (XP: 0 - 2999)
+  if (xp < 3000) {
+    return Math.floor(xp / 300) + 1; 
+  }
+  
+  // 2. PRO: Level 11 - 30 (XP: 3000 - 8999)
+  if (xp < 9000) {
+    const proXp = xp - 3000;
+    return 11 + Math.floor(proXp / 300);
+  }
+  
+  // 3. SPECIALIST: Level 31 - 90 (XP: 9000 - 32999)
+  if (xp < 33000) {
+    const specXp = xp - 9000;
+    return 31 + Math.floor(specXp / 400); // Dibagi rentang 400 XP per level agar muat 60 tingkat
+  }
+  
+  // 4. ELITE: Level 91 - 100 (XP: 33000+)
+  const eliteXp = xp - 33000;
+  const eliteLevel = 91 + Math.floor(eliteXp / 1000);
+  return Math.min(eliteLevel, 100); // Dikunci maksimal di Level 100
 }
 
 // ==========================================
