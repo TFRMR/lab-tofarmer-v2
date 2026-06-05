@@ -91,33 +91,59 @@ const Generator = {
         return draft.data;
     },
 
-    updateAdvice: async (trigger, text) => {
-        if (Generator.komentarCount >= 2) return;
-        const aiWhisperer = document.getElementById('ai-whisperer');
-        const aiText = document.getElementById('ai-text');
-        if (!aiWhisperer || !aiText) return;
+   // Di dalam file generator.js
 
-        aiWhisperer.style.display = 'block';
-        aiText.innerText = "Mentor sedang memeriksa rekam jejak...";
-        try {
-            const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mode: "Evaluasi", trigger, teks: text })
-            });
-            const result = await response.json();
-            const saran = result.saran || "Kebun sudah bagus, lanjut menanam!";
-            let i = 0;
-            aiText.innerText = ""; 
-            if (window.typingInterval) clearInterval(window.typingInterval);
-            window.typingInterval = setInterval(() => {
-                if (i < saran.length) { aiText.textContent += saran.charAt(i); i++; }
-                else { clearInterval(window.typingInterval); }
-            }, 30);
-            Generator.komentarCount++;
-        } catch (error) { aiText.innerText = "Mentor lagi di sawah, nanti lagi ya."; }
-    },
+updateAdvice: async (trigger, text) => {
+    // Cari tombol pilar yang sedang aktif di halaman
+    const activeBtn = document.querySelector('.category-btn.active');
+    const pilarAktif = activeBtn ? activeBtn.dataset.value : 'ladang';
+    const judulInput = document.querySelector('#input-judul')?.value || '';
 
+    // Ambil rangkuman RAG Gate 1 secara dinamis
+    const konteksRAG = typeof window.cariKonteksGate1 === "function" 
+        ? window.cariKonteksGate1(pilarAktif, judulInput) 
+        : "Kamu adalah AI Evaluator Gate 1.";
+
+    if (Generator.komentarCount >= 2) return; // Batasan komentar bawaan Anda
+    const aiWhisperer = document.getElementById('ai-whisperer');
+    const aiText = document.getElementById('ai-text');
+    if (!aiWhisperer || !aiText) return;
+
+    aiWhisperer.style.display = 'block';
+    aiText.innerText = "Mentor sedang memeriksa rekam jejak...";
+    
+    try {
+        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                mode: "Evaluasi", 
+                trigger: trigger, 
+                teks: `Konteks Aturan Gate 1:\n${konteksRAG}\n\nData input user saat ini (Trigger: ${trigger}): "${text}". Berikan ulasan singkat maksimal 2 kalimat apakah input ini sudah bagus/taktis atau butuh perbaikan.` 
+            })
+        });
+        
+        const result = await response.json();
+        const saran = result.saran || "Kebun sudah bagus, lanjut menanam!";
+        
+        // Efek ketik otomatis bawaan Anda
+        let i = 0;
+        aiText.innerText = ""; 
+        if (window.typingInterval) clearInterval(window.typingInterval);
+        window.typingInterval = setInterval(() => {
+            if (i < saran.length) { 
+                aiText.textContent += saran.charAt(i); 
+                i++; 
+            } else { 
+                clearInterval(window.typingInterval); 
+            }
+        }, 30);
+        
+        Generator.komentarCount++;
+    } catch (error) { 
+        aiText.innerText = "Mentor lagi di sawah, nanti lagi ya."; 
+    }
+},
     updateGate: async (gate, data) => {
         const userId = localStorage.getItem('tof_user_id');
         if (!userId) return;
