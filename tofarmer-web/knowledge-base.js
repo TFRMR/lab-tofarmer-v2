@@ -8,7 +8,7 @@ const TOFARMER_PAPER = {
 [BAB 1: LATAR BELAKANG & FILOSOFI TOFARMER]
 - Pertanian konvensional saat ini rapuh, identik dengan kerja otot, kelelahan fisik, dan ilmu yang sering menguap/hilang saat petani senior tiada.
 - ToFarmer lahir untuk mendefinisikan ulang pertanian sebagai aktivitas intelektual, ekologis, dan ruang belajar kolektif. Setiap jengkal tanah adalah laboratorium, setiap petani adalah peneliti.
-- Filosofi utama: "Sedang Berproses". ToFarmer menghargai kejujuran proses, rekam jejak tumbuh kembang dari nol, serta pengulangan, pengalaman, dan refleksi mendalam, bukan hasil instan.
+- Filosofi utama: "Langkah demi Langkah, blok demi blok". ToFarmer menghargai kejujuran proses, rekam jejak tumbuh kembang dari nol, serta pengulangan, pengalaman, dan refleksi mendalam, bukan hasil instan.
 - Sistem mengutamakan kearifan lokal (gotong royong) yang digandeng dengan memori digital dan teknologi open-source untuk menjaga sejarah perjuangan petani agar tidak hilang ditelan zaman.
     `.trim(),
 
