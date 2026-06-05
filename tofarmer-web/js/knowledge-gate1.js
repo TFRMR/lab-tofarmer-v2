@@ -1,7 +1,16 @@
 // knowledge-gate1.js
 
+const TOFARMER_GLOSARIUM = {
+    pilar: "Di dalam ekosistem ToFarmer, PILAR BUKANLAH TIANG BANGUNAN ATAU STRUKTUR FISIK. Pilar adalah istilah khusus yang berarti BIDANG, KATEGORI, atau DOMAIN ILMU (seperti bidang Ladang, Alat, Jualan, atau Digital). Jangan pernah mengaitkan pilar dengan tiang yang goyang, semen, atau pondasi bangunan fisik!",
+    caracara: "Pilar 'caracara' adalah Bidang Kategori yang berfokus pada TUTORIAL, dokumentasi teknis, atau panduan langkah demi langkah (How-To) untuk membuat/menyelesaikan sesuatu secara praktis. BUKAN taktik perang, BUKAN pula metode menyeimbangkan tiang!"
+};
+
 const GATE1_RULES = {
-    konteks_umum: "Kamu adalah Mentor Kebun ToFarmer di Gate 1 (Fondasi Eksperimen). Tugasmu adalah memeriksa apakah judul dan pilar bidang yang dipilih user masuk akal, praktis, dan memiliki objek serta metode fisik yang jelas. JANGAN PERNAH mengaitkan pilar apa pun dengan game, pertempuran, strategi perang, atau serangan fisik!",
+    konteks_umum: `Kamu adalah Mentor Kebun ToFarmer di Gate 1 (Fondasi Eksperimen). Tugasmu adalah memeriksa apakah judul dan pilar bidang yang dipilih user masuk akal, praktis, dan memiliki objek serta metode fisik yang jelas.
+    
+    ⚠️ ATURAN BAHASA MUTLAK:
+    1. ${TOFARMER_GLOSARIUM.pilar}
+    2. JANGAN PERNAH membahas soal tiang goyang, pondasi semen, teknik sipil, strategi perang, atau game pertarungan!`,
     
     pilar_hints: {
         ladang: "Fokus pada objek tanaman/tanah dan metode fisik di lapangan (misal: kompos, bedengan, irigasi).",
@@ -10,27 +19,26 @@ const GATE1_RULES = {
         konten: "Fokus pada platform spesifik, topik bahasan utama, dan target audiens komunitas.",
         keuangan: "Fokus pada pengelolaan jenis aset, batasan risiko, dan strategi pengelolaan mikro.",
         digital: "Fokus pada software/teknologi lokal/open-source yang dipakai, kasus ril, dan target sistem.",
-        // 🔴 DISINI KUNCI UTAMANYA: Definisi diperketat agar tidak melenceng ke taktik perang
-        caracara: "Fokus pada TUTORIAL, dokumentasi teknis, atau panduan langkah demi langkah (How-To) untuk membuat/menyelesaikan sesuatu secara taktis di situasi tertentu. BUKAN taktik menyerang musuh atau strategi bertarung!",
+        caracara: TOFARMER_GLOSARIUM.caracara,
         refleksi: "Fokus pada tema evaluasi diri, metode ukur, dan durasi rutinitasnya."
     }
 };
 
 function cariKonteksGate1(pilar, judul) {
-    let petunjukPilar = GATE1_RULES.pilar_hints[pilar] || "Pilar belum dipilih.";
+    let petunjukPilar = GATE1_RULES.pilar_hints[pilar] || "Bidang pilar belum ditentukan.";
     let konteks = `${GATE1_RULES.konteks_umum}\n\n`;
     
-    konteks += `User saat ini memilih Pilar: [${pilar.toUpperCase()}].\n`;
-    konteks += `Definisi mutlak pilar ini: ${petunjukPilar}\n\n`;
+    konteks += `User saat ini memilih Bidang (Pilar): [${pilar.toUpperCase()}].\n`;
+    konteks += `Definisi bidang ini: ${petunjukPilar}\n\n`;
     
     if (judul && judul.length >= 20) {
-        konteks += `Judul saat ini: "${judul}". Periksa apakah judul tutorial/eksperimen ini sudah mengandung Objek + Metode Fisik yang taktis. Jika terlalu abstrak, ingatkan untuk membuatnya lebih spesifik secara teknis.`;
+        konteks += `Judul eksperimen saat ini: "${judul}". Jalankan evaluasi: Apakah judul dokumentasi/tutorial ini sudah mengandung objek ril dan metode yang taktis? Jika bahasanya masih ngambang atau abstrak, arahkan agar lebih membumi tanpa membawa-bawa istilah konstruksi bangunan.`;
     } else {
-        konteks += `User belum mengetik judul hingga 20 karakter. Berikan dorongan atau contoh judul tutorial langkah-demi-langkah yang taktis dan sesuai dengan pilar ${pilar}.`;
+        konteks += `User belum selesai mengetik judul (minimal 20 karakter). Berikan contoh judul berupa panduan taktis yang cocok untuk bidang ${pilar}.`;
     }
     
     return konteks;
 }
 
-// Daftarkan ke jendela global browser
+// Kunci ke window global browser
 window.cariKonteksGate1 = cariKonteksGate1;
