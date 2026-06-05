@@ -286,11 +286,15 @@ async function updateAdvice(mode, trigger, text) {
         const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+           // ==========================================
+// 🔄 GANTI BLOK BODY INI
+// ==========================================
            body: JSON.stringify({
                 mode: "Evaluasi", 
-                teks: payload.teks,
-                trigger: payload.trigger
+                teks: text,       // Menggunakan variabel 'text' yang benar
+                trigger: trigger  // Menggunakan variabel 'trigger' yang benar
             })
+// ========================================
         });
         const result = await response.json();
         const saran = result.saran || "Mari berkarya hari ini!";
@@ -656,13 +660,29 @@ if (currentProfile) {
   imageInput.value = ""
 
   loadFeed()
+// ==========================================
+// 🔄 HAPUS SETTIMEOUT LAMA, GANTI DENGAN BLOK INI (MASUKKAN KE DALAM FUNGSINYA)
+// ==========================================
+  // Pemicu AI kontekstual setelah kirim pos di Beranda
+  setTimeout(async () => {
+      const { data: updatedFeedPosts } = await supabaseClient
+        .from("contributions")
+        .select("deskripsi_proses, profiles(username)")
+        .eq("is_private", false)
+        .order("created_at", { ascending: false });
+
+      // Postingan indeks ke-0 adalah postingan baru kita, sisanya adalah postingan tetangga
+      const posTetangga = updatedFeedPosts.slice(1);
+      const konteksBeranda = generateFeedContext(posTetangga);
+
+      updateAdvice(
+          "komentar", 
+          `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat latar belakang profil user dan aktivitas kebun lainnya di sini:\n${konteksBeranda}`,
+          text
+      );
+  }, 1500);
 }
-// Tambahkan ini untuk memicu AI agar mengomentari postingan baru tersebut
-setTimeout(() => {
-    // Kita kirim teks postingan ke AI untuk dibuatkan komentar
-    updateAdvice("komentar", "post_baru", text);
-}, 2000);
-// ===================== GLOBAL ECONOMY (SAFE LIVE) =====================
+
 // ===================== GLOBAL CONFIG =====================
 
 const TOF_ASSET_ID = 3558306283
@@ -716,6 +736,33 @@ async function updateCurrentUserBalance() {
 
   renderProfile()
 }
+// ==========================================
+// 🟢 TAMBAHKAN KODE MEMORI BARU DI SINI
+// ==========================================
+function generateFeedContext(posts = []) {
+  let ringkasanUser = "PENGUNJUNG: Sedang melihat sebagai Guest (Belum login dompet).\n";
+  
+  if (currentProfile) {
+    ringkasanUser = `
+PENGUNJUNG UTAMA (LOGGED IN):
+- Username: @${currentProfile.username}
+- Level: ${currentProfile.level || 1}
+- Tabungan: ${currentProfile.saldo_tof || 0} TOF / ${currentProfile.xp || 0} XP
+    `.trim() + "\n";
+  }
+
+  // Ambil intisari 5 postingan terbaru di beranda dari petani lain
+  const trenLadang = posts.slice(0, 5).map((p, index) => {
+    return `[Karya ${index + 1} oleh @${p.profiles?.username || 'Petani'}]: "${p.deskripsi_proses || ''}"`;
+  }).join("\n");
+
+  return `
+${ringkasanUser}
+TREN & AKTIVITAS DI LADANG SAAT INI:
+${trenLadang || "- Belum ada aktivitas baru di linimasa beranda."}
+  `.trim();
+}
+// ==========================================
 // ===================== ECONOMY =====================
 
 async function loadEconomy() {
@@ -1335,7 +1382,28 @@ window.addEventListener("DOMContentLoaded", () => {
   if (typeof loadRankSummary === "function") {
     loadRankSummary()
   }
-updateAdvice("sapaan", "buka_web", "sapaan petani jenaka random");
+// ==========================================
+// 🔄 GANTI BARIS UPDATEADVICE LAMA DENGAN BLOK INI
+// ==========================================
+  // Beri jeda 2 detik agar fungsi loadFeed selesai mengambil data dari Supabase terlebih dahulu
+  setTimeout(async () => {
+    // Ambil data postingan yang baru saja dimuat di feed umum secara rapi
+    const { data: currentFeedPosts } = await supabaseClient
+      .from("contributions")
+      .select("deskripsi_proses, profiles(username)")
+      .eq("is_private", false)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const konteksBeranda = generateFeedContext(currentFeedPosts);
+
+    updateAdvice(
+      "sapaan", 
+      `Kamu adalah asisten/mentor petani jenaka di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan ingatan data beranda berikut:\n${konteksBeranda}`, 
+      "User baru saja membuka beranda utama ToFarmer."
+    );
+  }, 2000);
+// ==========================================
 })
 
 async function loadAvatarStack() {
