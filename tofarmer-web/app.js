@@ -487,6 +487,7 @@ function generateFeedContext(posts = []) {
 
 async function loadEconomy() {
   try {
+    // Tarik id dan xp dari supabase
     const { data: profiles, error } = await supabaseClient.from("profiles").select("id, xp")
     if (error || !profiles) return
 
@@ -495,6 +496,8 @@ async function loadEconomy() {
 
     let total = 0
     const batchSize = 5
+    
+    // --- TETAP PERTAHANKAN BATCH PROMISE BLOCKCHAIN ALGORAND ---
     for (let i = 0; i < profiles.length; i += batchSize) {
       const batch = profiles.slice(i, i + batchSize)
       const balances = await Promise.all(batch.map(user => getWalletTofBalance(user.id)))
@@ -506,9 +509,11 @@ async function loadEconomy() {
       totalAsset.innerText = totalFixed.toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " TOF"
     }
 
-    setTimeout(() => { updateFaseProgress(totalFixed) }, 100)
+    // Jalankan progres bar fase dan tumpukan avatar stack
+    setTimeout(() => { typeof updateFaseProgress === "function" && updateFaseProgress(totalFixed) }, 100)
     loadAvatarStack()
 
+    // --- SINKRONISASI COUTER BARIS ATAS ---
     const growerEl = document.getElementById("rankSummary")
     if (growerEl && typeof getRankStats === "function") {
       const stats = getRankStats(profiles)
@@ -669,20 +674,33 @@ function renderProfile() {
 
   if (avatar) {
     avatar.style.display = "block"
-    avatar.src = currentProfile.avatar_url
+    avatar.src = currentProfile.avatar_url || "https://via.placeholder.com/100"
   }
+
+  // Hitung Level dan Rank dinamis berdasarkan formula Tangga Pangkat progresif
+  const calculatedLevel = typeof getTofLevel === "function" ? getTofLevel(currentProfile.xp || 0) : 1;
+  const calculatedRank = typeof getRank === "function" ? getRank(currentProfile.xp || 0) : "GROWER";
+
+  // Pasang badge emoji visual pendamping pangkat tangga beranda
+  let rankEmoji = "🌱 GROWER";
+  if (calculatedRank === "PRO") rankEmoji = "🥉 PRO";
+  if (calculatedRank === "SPECIALIST") rankEmoji = "🥈 SPECIALIST";
+  if (calculatedRank === "ELITE") rankEmoji = "🥇 ELITE";
 
   userBox.innerHTML = `
     <div style="font-weight:700;font-size:15px;color:#2f6f4e;">@${currentProfile.username}</div>
     <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:10px;width:60%;padding:8px;border:none;border-radius:12px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:12px;font-weight:600;cursor:pointer;">☕ Masuk Profil Saya</button>
     <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">XP</div><div style="font-weight:700;font-size:12px;">${currentProfile.xp || 0}</div></div>
-      <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">TOF</div><div style="font-weight:700;color:#c9a227;font-size:12px;">${currentProfile.saldo_tof || 0}</div></div>
+      <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">XP</div><div style="font-weight:700;font-size:12px;">${Math.floor(currentProfile.xp || 0)}</div></div>
+      <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">TOF</div><div style="font-weight:700;color:#c9a227;font-size:12px;">${Number(currentProfile.saldo_tof || 0).toLocaleString("id-ID")}</div></div>
     </div>
-    <div style="margin-top:8px;background:#eef7f1;border-radius:999px;padding:6px 12px;display:inline-block;color:#2f6f4e;font-size:11px;font-weight:600;">🌱 ${getRank(currentProfile.xp || 0)}</div>
+    <div style="margin-top:8px;background:#eef7f1;border-radius:999px;padding:6px 12px;display:inline-block;color:#2f6f4e;font-size:11px;font-weight:600;">
+      ${rankEmoji} • Level ${calculatedLevel}
+    </div>
   `
 }
 
+// Fitur listener upload avatar bawaan jangan diubah, biarkan utuh di bawah renderProfile
 document.addEventListener("change", async (e) => {
   if (e.target.id !== "avatarInput") return
   if (!currentWallet) { alert("Connect wallet dulu 😄"); return; }
