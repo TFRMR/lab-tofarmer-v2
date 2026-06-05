@@ -4,16 +4,13 @@ let currentProfile = null
 // --- SATPAM LOGIN (RAMAH TAMU) ---
 function checkLoginStatus() {
     const wallet = localStorage.getItem('tof_wallet');
-    // Kita tidak perlu redirect paksa lagi. 
-    // Siapa saja boleh masuk, tapi fungsi tertentu akan dicek saat diklik.
     if (!wallet) {
         console.log("Pengunjung sedang melihat-lihat sebagai Guest 🌿");
-        return; // Biarkan mereka lanjut baca web
+        return;
     }
 }
 checkLoginStatus();
 
-// ===================== WALLET =====================
 // ===================== WALLET =====================
 async function connectWallet() {
   return new Promise((resolve) => {
@@ -32,7 +29,6 @@ async function connectWallet() {
       z-index:99999;
       padding:20px;
     ">
-
       <div style="
         width:100%;
         max-width:420px;
@@ -40,240 +36,113 @@ async function connectWallet() {
         border-radius:28px;
         padding:24px;
       ">
-
         <div style="text-align:center;">
           <div style="font-size:50px;">🌿</div>
-
-          <h2 style="color:#2f6f4e;">
-            Daftar ToFarmer
-          </h2>
-
-          <p style="
-            font-size:12px;
-            color:#666;
-            margin-top:8px;
-          ">
-            Nama + Wallet Algorand
-          </p>
+          <h2 style="color:#2f6f4e;">Daftar ToFarmer</h2>
+          <p style="font-size:12px;color:#666;margin-top:8px;">Nama + Wallet Algorand</p>
         </div>
-
-        <input
-          id="tofName"
-          placeholder="Nama pengguna"
-          style="
-            width:100%;
-            margin-top:20px;
-            padding:14px;
-            border-radius:14px;
-            border:1px solid #ddd;
-          "
-        />
-
-        <input
-          id="tofWallet"
-          placeholder="Wallet Algorand"
-          style="
-            width:100%;
-            margin-top:12px;
-            padding:14px;
-            border-radius:14px;
-            border:1px solid #ddd;
-          "
-        />
-
-        <button
-          id="registerBtn"
-          style="width:100%;"
-        >
-          Masuk ke Ladang 🚀
-        </button>
-<button
-  id="cancelBtn"
-  style="
-    width:100%;
-    margin-top:10px;
-    padding:12px;
-    border:none;
-    border-radius:14px;
-    background:#eee;
-    color:#666;
-    font-weight:600;
-    cursor:pointer;
-  "
->
-  🐐 Batal
-</button>
+        <input id="tofName" placeholder="Nama pengguna" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
+        <input id="tofWallet" placeholder="Wallet Algorand" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
+        <button id="registerBtn" style="width:100%;">Masuk ke Ladang 🚀</button>
+        <button id="cancelBtn" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
       </div>
     </div>
     `
 
     document.body.appendChild(modal)
 
-   modal.querySelector("#registerBtn").onclick = async () => {
+    modal.querySelector("#registerBtn").onclick = async () => {
+      const username = document.getElementById("tofName").value.trim()
+      const wallet = document.getElementById("tofWallet").value.trim()
 
-  const username = document
-    .getElementById("tofName")
-    .value
-    .trim()
+      if (!username) {
+        alert("Nama wajib diisi 🌱")
+        return
+      }
 
-  const wallet = document
-    .getElementById("tofWallet")
-    .value
-    .trim()
+      try {
+        const decoded = algosdk.decodeAddress(wallet)
+        if (!decoded) throw new Error()
+      } catch {
+        alert("Wallet tidak valid / bukan Algorand 😄")
+        return
+      }
 
-  // =====================
-  // VALIDASI NAMA
-  // =====================
-  if (!username) {
-    alert("Nama wajib diisi 🌱")
-    return
-  }
+      const { data: existingUser } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", wallet)
+        .maybeSingle()
 
-  // =====================
-  // VALIDASI WALLET
-  // =====================
-  try {
-    const decoded = algosdk.decodeAddress(wallet)
-    if (!decoded) throw new Error()
-  } catch {
-    alert("Wallet tidak valid / bukan Algorand 😄")
-    return
-  }
+      if (!existingUser) {
+        const { error } = await supabaseClient
+          .from("profiles")
+          .insert([
+            {
+              id: wallet,
+              username: username,
+              xp: 0,
+              saldo_tof: 0,
+              level: 1,
+              avatar_url: "https://www.tofarmer.xyz/images/logo-tofarmer.png"
+            }
+          ])
 
-  // =====================
-  // CEK USER SUDAH ADA?
-  // =====================
-  const { data: existingUser } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", wallet)
-    .maybeSingle()
-
-  // =====================
-  // DAFTAR JIKA BELUM ADA
-  // =====================
-  if (!existingUser) {
-    const { error } = await supabaseClient
-      .from("profiles")
-      .insert([
-        {
-          id: wallet,
-          username: username,
-          xp: 0,
-          saldo_tof: 0,
-          level: 1,
-          avatar_url: "https://www.tofarmer.xyz/images/logo-tofarmer.png"
+        if (error) {
+          console.log(error)
+          alert("Gagal daftar")
+          return
         }
-      ])
+      }
 
-    if (error) {
-      console.log(error)
-      alert("Gagal daftar")
-      return
+      currentWallet = wallet
+      localStorage.setItem("tof_wallet", wallet)
+
+      await syncProfile(wallet)
+      updateWalletUI()
+      renderProfile()
+
+      document.body.removeChild(modal)
+      showWelcomePopup()
+      resolve(wallet)
     }
-  }
 
-  // =====================
-  // LOGIN SUCCESS
-  // =====================
-  currentWallet = wallet
-  localStorage.setItem("tof_wallet", wallet)
-
-  await syncProfile(wallet)
-
-  updateWalletUI()
-  renderProfile()
-
-  document.body.removeChild(modal)
-
-  showWelcomePopup()
-
-  resolve(wallet)
-}
-
-
-// ===================== FIX: CANCEL HARUS DI LUAR =====================
-modal.querySelector("#cancelBtn").onclick = () => {
-  document.body.removeChild(modal)
-  resolve(null)
-}
+    modal.querySelector("#cancelBtn").onclick = () => {
+      document.body.removeChild(modal)
+      resolve(null)
+    }
   })
 }
 
 function showWelcomePopup() {
   const modal = document.createElement("div")
-
   modal.innerHTML = `
-  <div style="
-    position:fixed;
-    inset:0;
-    background:rgba(16,25,20,.6);
-    backdrop-filter:blur(10px);
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:99999;
-  ">
-
-    <div style="
-      background:linear-gradient(180deg,#ffffff,#f3f8f4);
-      padding:26px;
-      border-radius:26px;
-      text-align:center;
-      max-width:380px;
-      width:100%;
-      box-shadow:0 20px 60px rgba(47,111,78,.25);
-      border:1px solid rgba(76,175,122,.15);
-    ">
-
+  <div style="position:fixed;inset:0;background:rgba(16,25,20,.6);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:center;z-index:99999;">
+    <div style="background:linear-gradient(180deg,#ffffff,#f3f8f4);padding:26px;border-radius:26px;text-align:center;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(47,111,78,.25);border:1px solid rgba(76,175,122,.15);">
       <div style="font-size:55px;">🌿🎉</div>
-
-      <h2 style="color:#2f6f4e;">
-        Ladang Terbuka!
-      </h2>
-
-      <p style="color:#6f7f76;font-size:13px;margin:10px 0 20px;">
-        Selamat datang di ToFarmer.<br>
-        Dari kopi → ide → aksi → panen 🚀
-      </p>
-
-      <button onclick="this.parentElement.parentElement.remove()" style="
-        width:100%;
-        padding:12px;
-        border:none;
-        border-radius:14px;
-        background:linear-gradient(90deg,#4caf7a,#c9a227);
-        color:white;
-        font-weight:bold;
-        cursor:pointer;
-      ">
-        Siap Panen Ide 🌱
-      </button>
-
+      <h2 style="color:#2f6f4e;">Ladang Terbuka!</h2>
+      <p style="color:#6f7f76;font-size:13px;margin:10px 0 20px;">Selamat datang di ToFarmer.<br>Dari kopi → ide → aksi → panen 🚀</p>
+      <button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;border:none;border-radius:14px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-weight:bold;cursor:pointer;">Siap Panen Ide 🌱</button>
     </div>
   </div>
   `
-
   document.body.appendChild(modal)
 }
 
-
-
 function logoutWallet() {
   const yakin = confirm("Yakin ingin meninggalkan ladang? 🌱");
-  if (!yakin) return; // Batalkan jika user klik cancel
+  if (!yakin) return;
 
   currentWallet = null
   currentProfile = null
   localStorage.removeItem("tof_wallet")
-localStorage.removeItem("tof_user_id");
+  localStorage.removeItem("tof_user_id")
   updateWalletUI()
   renderProfile()
-  
-  // Arahkan ke halaman utama setelah logout
   window.location.href = 'index.html'; 
 }
 
+// ===================== CORE ENGINE AI =====================
 async function updateAdvice(mode, trigger, text) {
     const aiWhisperer = document.getElementById('ai-whisperer');
     const aiText = document.getElementById('ai-text');
@@ -286,17 +155,12 @@ async function updateAdvice(mode, trigger, text) {
         const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-           // ==========================================
-/// =========================================================================
-// 🔄 UPDATE: Mengirimkan Tambahan Data Dokumen Sebagai Konteks RAG Lokal
-// =========================================================================
-           body: JSON.stringify({
+            body: JSON.stringify({
                 mode: mode, 
                 teks: text,       
                 trigger: trigger,
                 konteks_dokumen: typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : ""
             })
-// =========================================================================
         });
         const result = await response.json();
         const saran = result.saran || "Mari berkarya hari ini!";
@@ -319,7 +183,7 @@ async function updateAdvice(mode, trigger, text) {
 }
 
 // =========================================================================
-// 🟢 KODE BARU: Manajemen Counter & Fungsi Obrolan Pintar Berbasis Dokumen
+// 🟢 KODE FIX: Fungsi Obrolan Tunggal Berbasis Rag Dokumen Lokal
 // =========================================================================
 let aiBerandaChatCounter = 0;
 
@@ -333,6 +197,7 @@ async function kirimChatAI() {
     }
 
     const input = document.getElementById('ai-chat-input');
+    if (!input) return;
     const pertanyaan = input.value.trim();
     
     if (!pertanyaan) {
@@ -350,13 +215,11 @@ async function kirimChatAI() {
         sisaEl.innerText = 5 - aiBerandaChatCounter;
     }
     
-    // Mengekstrak bab paper tentang.html yang paling relevan secara lokal[cite: 2]
     let konteksTambahan = "";
     if (typeof cariKonteksPaper === "function") {
         konteksTambahan = cariKonteksPaper(pertanyaan);
     }
     
-    // Menggabungkan pertanyaan user dengan data dokumen pendukung
     const instruksiPrompt = `
 Pertanyaan User: "${pertanyaan}"
 
@@ -364,7 +227,6 @@ Gunakan potongan dokumen internal dari "tentang.html" berikut sebagai acuan utam
 ${konteksTambahan}
     `.trim();
     
-    // Memicu pengiriman ke API dengan instruksi yang kaya konteks
     await updateAdvice("tanya", "chat_user", instruksiPrompt);
     
     if (btn) btn.disabled = false;
@@ -377,135 +239,51 @@ ${konteksTambahan}
         }, 1000);
     }
 }
-// =========================================================================
 
-    const input = document.getElementById('ai-chat-input');
-    const pertanyaan = input.value.trim();
-    
-    // Validasi input kosong
-    if (!pertanyaan) {
-        alert("Tulis sesuatu dulu ya 🌱");
-        return;
-    }
-    
-    const btn = document.querySelector('[onclick="kirimChatAI()"]');
-    if (btn) btn.disabled = true; // Kunci tombol saat AI sedang berpikir
-    
-    // Tambahkan angka hitungan chat
-    aiBerandaChatCounter++;
-    
-    // Tampilkan sisa kuota chat pada teks tombol jika elemen penampung sisa chat tersedia di HTML Anda
-    // Contoh target ID di HTML tombol: <span id="sisa-chat-beranda">5</span>
-    const sisaEl = document.getElementById("sisa-chat-beranda");
-    if (sisaEl) {
-        sisaEl.innerText = 5 - aiBerandaChatCounter;
-    }
-    
-    // Panggil fungsi pusat AI dengan mode tanya
-    await updateAdvice("tanya", "chat_user", pertanyaan);
-    
-    // Buka kembali kunci tombol setelah selesai merespons
-    if (btn) btn.disabled = false;
-    
-    // Kosongkan input setelah dikirim
-    input.value = "";
-
-    // Jika setelah klik ini hitungan mencapai 5, kunci tampilannya secara otomatis
-    if (aiBerandaChatCounter >= 5) {
-        setTimeout(() => {
-            const aiText = document.getElementById('ai-text');
-            if (aiText) aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
-        }, 1000);
-    }
-}
-// ==========================================
-// ===================== PROFILE SYNC =====================
+// ===================== UI & PROFILE SYNC =====================
 function updateWalletUI() {
-
   const btn = document.querySelector("button[onclick='connectWallet()']")
-
-  const editBtn =
-    document.getElementById(
-      "editAvatarBtn"
-    )
+  const editBtn = document.getElementById("editAvatarBtn")
 
   if (!btn) return
 
-  // ================= LOGIN =================
   if (currentWallet) {
-
-    btn.innerText =
-      "🌿 LOGOUT DOMPET"
-
-    btn.style.background =
-      "#4caf7a"
-
-    btn.onclick =
-      logoutWallet
-
-    // tampilkan ikon pensil
-    if (editBtn) {
-      editBtn.style.visibility =
-  "visible"
-    }
-
-  }
-
-  // ================= GUEST =================
-  else {
-
-    btn.innerText =
-      "CONNECT DOMPET"
-
-    btn.style.background =
-      ""
-
-    btn.onclick =
-      connectWallet
-
-    // sembunyikan ikon pensil
-    if (editBtn) {
-      editBtn.style.visibility =
-  "hidden"
-    }
+    btn.innerText = "🌿 LOGOUT DOMPET"
+    btn.style.background = "#4caf7a"
+    btn.onclick = logoutWallet
+    if (editBtn) editBtn.style.visibility = "visible"
+  } else {
+    btn.innerText = "CONNECT DOMPET"
+    btn.style.background = ""
+    btn.onclick = connectWallet
+    if (editBtn) editBtn.style.visibility = "hidden"
   }
 }
 
-// ===================== PROFILE SYNC =====================
 async function syncProfile(wallet) {
-
-  const { data, error } =
-    await supabaseClient
-      .from("profiles")
-      .select("*")
-      .eq("id", wallet)
-      .maybeSingle()
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", wallet)
+    .maybeSingle()
 
   if (error) {
     console.log(error)
     return
   }
-// kalau belum daftar
-if (!data) {
 
-  alert(
-    "Wallet belum terdaftar 🌱\nSilakan daftar dulu."
-  )
-
-  logoutWallet()
-  return
-}
-
-  // kalau sudah ada user
-  else {
+  if (!data) {
+    alert("Wallet belum terdaftar 🌱\nSilakan daftar dulu.")
+    logoutWallet()
+    return
+  } else {
     currentProfile = data
   }
 
-  // 🔥 FIX PENTING: selalu update saldo dari blockchain
   await refreshUserBalance()
 }
-// ===================== POST =====================
 
+// ===================== POSTING SYSTEM =====================
 const PILAR_MAP = {
   community: 1,
   inovasi: 2,
@@ -516,98 +294,28 @@ const PILAR_MAP = {
 
 function pilihPilarPopup(text) {
   return new Promise((resolve) => {
-
     const modal = document.createElement("div")
-
     modal.innerHTML = `
-    <div style="
-      position:fixed;
-      inset:0;
-      background:rgba(16,25,20,.55);
-      backdrop-filter:blur(10px);
-      display:flex;
-justify-content:center;
-align-items:flex-start;
-padding-top:40px;
-overflow-y:auto;
-      z-index:99999;
-      padding:20px;
-    ">
-
-    <div style="
-  width:100%;
-  max-width:430px;
-  max-height:85vh;
-  overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
-  background:linear-gradient(180deg,#fff,#f3f8f4);
-  border-radius:28px;
-  padding:26px;
-  box-shadow:0 20px 60px rgba(47,111,78,.18);
-  border:1px solid rgba(76,175,122,.12);
-">
-
-      <div style="text-align:center;">
-        <div style="font-size:50px;">☕🌿</div>
-
-        <h2 style="color:#2f6f4e;">
-          Mau ditanam di ladang mana?
-        </h2>
-
-        <p style="color:#6f7f76;font-size:13px;">
-          Pilih dulu temamu 😎
-        </p>
+    <div style="position:fixed;inset:0;background:rgba(16,25,20,.55);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:flex-start;padding-top:40px;overflow-y:auto;z-index:99999;padding:20px;">
+      <div style="width:100%;max-width:430px;max-height:85vh;overflow-y:auto;background:linear-gradient(180deg,#fff,#f3f8f4);border-radius:28px;padding:26px;box-shadow:0 20px 60px rgba(47,111,78,.18);border:1px solid rgba(76,175,122,.12);">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">☕🌿</div>
+          <h2 style="color:#2f6f4e;">Mau ditanam di ladang mana?</h2>
+          <p style="color:#6f7f76;font-size:13px;">Pilih dulu temamu 😎</p>
+        </div>
+        <div style="display:grid;gap:10px;margin-top:20px;">
+          <button class="pilar-btn" data-p="community">🤝 Titik Kumpul <small>Ngopi, ide, ngobrol, santai ,ngonten</small></button>
+          <button class="pilar-btn" data-p="inovasi">🤖 Ladang Eksperimen <small>AI, blockchain, robot, dan ide yang kadang “nggak masuk akal”</small></button>
+          <button class="pilar-btn" data-p="ladang">🌱 Cerita Tanah & Panen <small>Drama masuk kebun</small></button>
+          <button class="pilar-btn" data-p="finance">☕ Duit...duit dan duit <small>TOF, aset, strategi biar ladang tetap jalan</small></button>
+          <button class="pilar-btn" data-p="refleksi">🔥 Mode Petapa Gunung <small>Renungan, kabut pagi, dan pikiran random</small></button>
+        </div>
+        <button id="cancelPilar" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:16px;background:#eef4ef;color:#6f7f76;font-weight:600;">🐐 batal, kambing panen dulu</button>
       </div>
-
-      <div style="display:grid;gap:10px;margin-top:20px;">
-
-  <button class="pilar-btn" data-p="community">
-    🤝 Titik Kumpul
-    <small>Ngopi, ide, ngobrol, santai ,ngonten</small>
-  </button>
-
-  <button class="pilar-btn" data-p="inovasi">
-    🤖 Ladang Eksperimen
-    <small>AI, blockchain, robot, dan ide yang kadang “nggak masuk akal tapi jadi”</small>
-  </button>
-
-  <button class="pilar-btn" data-p="ladang">
-    🌱 Cerita Tanah & Panen
-    <small>Drama masuk kebun</small>
-  </button>
-
-  <button class="pilar-btn" data-p="finance">
-    ☕ Duit...duit dan duit
-    <small>TOF, aset, strategi biar ladang tetap jalan</small>
-  </button>
-
-  <button class="pilar-btn" data-p="refleksi">
-    🔥 Mode Petapa Gunung
-    <small>Renungan, kabut pagi, dan pikiran random yang ternyata dalam</small>
-  </button>
-
-</div>
-
-      <button id="cancelPilar" style="
-        width:100%;
-        margin-top:16px;
-        padding:12px;
-        border:none;
-        border-radius:16px;
-        background:#eef4ef;
-        color:#6f7f76;
-        font-weight:600;
-      ">
-        🐐 batal, kambing panen dulu
-      </button>
-
-    </div>
     </div>
     `
-
     document.body.appendChild(modal)
 
-    // tombol klik pilihan
     modal.querySelectorAll(".pilar-btn").forEach(btn => {
       btn.onclick = () => {
         const value = btn.dataset.p
@@ -616,7 +324,6 @@ overflow-y:auto;
       }
     })
 
-    // cancel
     modal.querySelector("#cancelPilar").onclick = () => {
       document.body.removeChild(modal)
       resolve(null)
@@ -624,10 +331,8 @@ overflow-y:auto;
   })
 }
 
-// Gabungan logika ganda classifyPilar agar tidak tumpang tuntih
 async function classifyPilar(text) {
   const t = text.toLowerCase()
-
   let rekomendasiAwal = "community"
 
   if (t.includes("modal") || t.includes("profit") || t.includes("aset")) {
@@ -639,141 +344,98 @@ async function classifyPilar(text) {
   }
 
   const userChoice = await pilihPilarPopup(text)
-
-  // ❗ FIX PENTING:
-  // kalau user cancel → STOP TOTAL
-  if (userChoice === null) {
-    return null
-  }
+  if (userChoice === null) return null
 
   return userChoice || rekomendasiAwal
 }
 
 async function sendPost() {
-let imageUrl = null
-
+  let imageUrl = null
   const input = document.getElementById("postBox")
   const imageInput = document.getElementById("imageInput")
+  if (!input) return
 
   const text = input.value.trim()
+  if (!text) return
 
   const pilar = await classifyPilar(text)
   if (!pilar) return
 
   const file = imageInput?.files?.[0] || null
 
-// ================= UPLOAD GAMBAR =================
-if (file instanceof File) {
-  const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
+  if (file instanceof File) {
+    const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
+    const { error: uploadError } = await supabaseClient.storage
+      .from("post-images")
+      .upload(fileName, file, { cacheControl: "3600", upsert: false })
 
-  console.log("Uploading file:", fileName, file)
-
-  const { error: uploadError } = await supabaseClient
-    .storage
-    .from("post-images")
-    .upload(fileName, file, {
-      cacheControl: "3600",
-      upsert: false
-    })
-
-  if (uploadError) {
-    console.log("UPLOAD ERROR:", uploadError)
-    alert("Upload gambar gagal: " + uploadError.message)
-    return
-  }
-
-  const { data } = supabaseClient
-    .storage
-    .from("post-images")
-    .getPublicUrl(fileName)
-
-  if (!data?.publicUrl) {
-    alert("Gagal ambil URL gambar")
-    return
-  }
-
-  imageUrl = data.publicUrl
-
-  console.log("UPLOAD SUCCESS:", imageUrl)
-}
-  // ================= SIMPAN POST =================
- // cek apakah posting di diri sendiri (profil pribadi)
-
-const isSelfPost = true // sementara default true (karena feed utama = diri sendiri)
-
-const xpBonus = isSelfPost ? 20 : 5
-
-const { error } = await supabaseClient
-  .from("contributions")
-  .insert([
-    {
-      user_id: currentWallet,
-      pilar_aksi: PILAR_MAP[pilar],
-      judul_aksi: "Feed Post",
-      deskripsi_proses: text,
-      image_url: imageUrl,
-      status_validasi: "pending",
-
-      // 🔥 TAMBAHAN BARU
-      xp_reward: xpBonus,
-      is_self_post: isSelfPost
+    if (uploadError) {
+      alert("Upload gambar gagal: " + uploadError.message)
+      return
     }
-  ])
 
-// ================= XP UPDATE =================
-if (currentProfile) {
-  const newXP = (currentProfile.xp || 0) + xpBonus
-
-  const { error: xpError } = await supabaseClient
-    .from("profiles")
-    .update({
-      xp: newXP
-    })
-    .eq("id", currentWallet)
-
-  if (!xpError) {
-    currentProfile.xp = newXP
-    renderProfile()
+    const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
+    if (!data?.publicUrl) {
+      alert("Gagal ambil URL gambar")
+      return
+    }
+    imageUrl = data.publicUrl
   }
-}
+
+  const isSelfPost = true
+  const xpBonus = isSelfPost ? 20 : 5
+
+  const { error } = await supabaseClient
+    .from("contributions")
+    .insert([
+      {
+        user_id: currentWallet,
+        pilar_aksi: PILAR_MAP[pilar],
+        judul_aksi: "Feed Post",
+        deskripsi_proses: text,
+        image_url: imageUrl,
+        status_validasi: "pending",
+        xp_reward: xpBonus,
+        is_self_post: isSelfPost
+      }
+    ])
+
+  if (currentProfile) {
+    const newXP = (currentProfile.xp || 0) + xpBonus
+    const { error: xpError } = await supabaseClient
+      .from("profiles")
+      .update({ xp: newXP })
+      .eq("id", currentWallet)
+
+    if (!xpError) {
+      currentProfile.xp = newXP
+      renderProfile()
+    }
+  }
 
   if (error) {
-    console.log(error)
     alert("Gagal kirim: " + error.message)
     return
   }
 
   input.value = ""
-  imageInput.value = ""
+  if (imageInput) imageInput.value = ""
 
   loadFeed()
-// ==========================================
-// 🔄 HAPUS SETTIMEOUT LAMA, GANTI DENGAN BLOK INI (MASUKKAN KE DALAM FUNGSINYA)
-// ==========================================
-  // Pemicu AI kontekstual setelah kirim pos di Beranda
+
   setTimeout(async () => {
-// ==========================================
-// 🟢 SISIPKAN KODE RESET INI DI DALAM TIMEOUT
-// ==========================================
-      aiBerandaChatCounter = 0; // Reset hitungan chat beranda kembali menjadi 0
-      
+      aiBerandaChatCounter = 0; 
       const sisaEl = document.getElementById("sisa-chat-beranda");
-      if (sisaEl) sisaEl.innerText = 5; // Kembalikan teks indikator tombol ke angka 5
-// ==========================================
+      if (sisaEl) sisaEl.innerText = 5; 
+
       const { data: updatedFeedPosts } = await supabaseClient
         .from("contributions")
         .select("deskripsi_proses, profiles(username)")
         .eq("is_private", false)
         .order("created_at", { ascending: false });
 
-      // Postingan indeks ke-0 adalah postingan baru kita, sisanya adalah postingan tetangga
-      const posTetangga = updatedFeedPosts.slice(1);
+      const posTetangga = updatedFeedPosts ? updatedFeedPosts.slice(1) : [];
       const konteksBeranda = generateFeedContext(posTetangga);
-
-      // =========================================================================
-// 🔄 UPDATE: Menyisipkan Pengetahuan Terstruktur Saat User Posting Karya
-// =========================================================================
-      // Mencari bab yang paling cocok dengan isi postingan baru
       const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
 
       updateAdvice(
@@ -781,310 +443,147 @@ if (currentProfile) {
           `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat aturan ekosistem, latar belakang profil user, dan aktivitas kebun lainnya.\n\n[DOKUMEN INTEGRASI "tentang.html"]:\n${referensiKamus}\n\n[LINIMASA LALU]:\n${konteksBeranda}`,
           text
       );
-// =========================================================================
   }, 1500);
 }
 
-// ===================== GLOBAL CONFIG =====================
-
+// ===================== ECONOMY & ALGORAND INFRA =====================
 const TOF_ASSET_ID = 3558306283
-const ALGONODE_URL =
-  "https://mainnet-api.algonode.cloud"
-
-// ===================== WALLET BALANCE =====================
+const ALGONODE_URL = "https://mainnet-api.algonode.cloud"
 
 async function getWalletTofBalance(wallet) {
   try {
     if (!wallet) return 0
-
-    const res = await fetch(
-      `${ALGONODE_URL}/v2/accounts/${wallet}`
-    )
-
+    const res = await fetch(`${ALGONODE_URL}/v2/accounts/${wallet}`)
     if (!res.ok) return 0
 
     const account = await res.json()
-
-    const asset = account.assets?.find(
-      a =>
-        Number(a["asset-id"]) === TOF_ASSET_ID
-    )
-
-    return asset
-      ? Number(asset.amount) / 1000000
-      : 0
-
+    const asset = account.assets?.find(a => Number(a["asset-id"]) === TOF_ASSET_ID)
+    return asset ? Number(asset.amount) / 1000000 : 0
   } catch (err) {
     console.log("Wallet fetch gagal:", wallet)
     return 0
   }
 }
-// ===================== REFRESH BALANCE REALTIME =====================
+
 async function refreshUserBalance() {
   if (!currentWallet || !currentProfile) return
-
   const balance = await getWalletTofBalance(currentWallet)
-
   currentProfile.saldo_tof = balance
-
   renderProfile()
 }
-async function updateCurrentUserBalance() {
-  if (!currentWallet || !currentProfile) return
 
-  const balance = await getWalletTofBalance(currentWallet)
-
-  currentProfile.saldo_tof = balance
-
-  renderProfile()
-}
-// ==========================================
-// 🟢 TAMBAHKAN KODE MEMORI BARU DI SINI
-// ==========================================
 function generateFeedContext(posts = []) {
   let ringkasanUser = "PENGUNJUNG: Sedang melihat sebagai Guest (Belum login dompet).\n";
-  
   if (currentProfile) {
-    ringkasanUser = `
-PENGUNJUNG UTAMA (LOGGED IN):
-- Username: @${currentProfile.username}
-- Level: ${currentProfile.level || 1}
-- Tabungan: ${currentProfile.saldo_tof || 0} TOF / ${currentProfile.xp || 0} XP
-    `.trim() + "\n";
+    ringkasanUser = `PENGUNJUNG UTAMA (LOGGED IN):\n- Username: @${currentProfile.username}\n- Level: ${currentProfile.level || 1}\n- Tabungan: ${currentProfile.saldo_tof || 0} TOF / ${currentProfile.xp || 0} XP\n`;
   }
 
-  // Ambil intisari 5 postingan terbaru di beranda dari petani lain
   const trenLadang = posts.slice(0, 5).map((p, index) => {
     return `[Karya ${index + 1} oleh @${p.profiles?.username || 'Petani'}]: "${p.deskripsi_proses || ''}"`;
   }).join("\n");
 
-  return `
-${ringkasanUser}
-TREN & AKTIVITAS DI LADANG SAAT INI:
-${trenLadang || "- Belum ada aktivitas baru di linimasa beranda."}
-  `.trim();
+  return `${ringkasanUser}\nTREN & AKTIVITAS DI LADANG SAAT INI:\n${trenLadang || "- Belum ada aktivitas baru."}`;
 }
-// ==========================================
-// ===================== ECONOMY =====================
 
 async function loadEconomy() {
-
   try {
+    const { data: profiles, error } = await supabaseClient.from("profiles").select("id, xp")
+    if (error || !profiles) return
 
-    const { data: profiles, error } =
-      await supabaseClient
-        .from("profiles")
-        .select("id, xp")
-
-    if (error || !profiles) {
-      console.log(error)
-      return
-    }
-
-    const totalAsset =
-      document.getElementById("totalAsset")
-
-    if (totalAsset) {
-      totalAsset.innerText = "Sync..."
-    }
-
-    // =====================
-    // HITUNG TOTAL LIVE
-    // =====================
+    const totalAsset = document.getElementById("totalAsset")
+    if (totalAsset) totalAsset.innerText = "Sync..."
 
     let total = 0
     const batchSize = 5
-
     for (let i = 0; i < profiles.length; i += batchSize) {
-
       const batch = profiles.slice(i, i + batchSize)
-
-      const balances = await Promise.all(
-        batch.map(user =>
-          getWalletTofBalance(user.id)
-        )
-      )
-
-      total += balances.reduce(
-        (sum, bal) => sum + bal,
-        0
-      )
+      const balances = await Promise.all(batch.map(user => getWalletTofBalance(user.id)))
+      total += balances.reduce((sum, bal) => sum + bal, 0)
     }
 
     const totalFixed = Number(total) || 0
-
-    console.log("TOTAL BLOCKCHAIN:", totalFixed)
-
     if (totalAsset) {
-      totalAsset.innerText =
-        totalFixed.toLocaleString("id-ID", {
-          maximumFractionDigits: 2
-        }) + " TOF"
+      totalAsset.innerText = totalFixed.toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " TOF"
     }
 
-    // =====================
-    // UPDATE FASE PROGRESS
-    // =====================
-
-    setTimeout(() => {
-      updateFaseProgress(totalFixed)
-    }, 100)
-
-    // =====================
-    // AVATAR STACK
-    // =====================
-
+    setTimeout(() => { updateFaseProgress(totalFixed) }, 100)
     loadAvatarStack()
 
-    // =====================
-    // RANK SUMMARY (optional)
-    // =====================
-
-    const growerEl =
-      document.getElementById("rankSummary")
-
+    const growerEl = document.getElementById("rankSummary")
     if (growerEl && typeof getRankStats === "function") {
       const stats = getRankStats(profiles)
-
-      growerEl.innerHTML =
-        `Total-${profiles.length}
-        ( 🌱${stats.grower}
-        | 🥉${stats.pro}
-        | 🥈${stats.specialist}
-        | 🥇${stats.elite} )`
+      growerEl.innerHTML = `Total-${profiles.length} ( 🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite} )`
     }
-
   } catch (err) {
     console.log("ECONOMY ERROR:", err)
   }
 }
 
-// ===================== FORMAT NUMBER =====================
-
 function formatShort(num) {
-
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1).replace(".0","") + "M"
-  }
-
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1).replace(".0","") + "K"
-  }
-
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(".0","") + "M"
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(".0","") + "K"
   return num.toString()
 }
 
-// ===================== FASE PROGRESS =====================
-
 function updateFaseProgress(totalTof) {
-
   const faseBar = document.getElementById("faseBar")
   const faseText = document.getElementById("faseText")
-
-  if (!faseBar || !faseText) {
-    console.log("❌ faseBar / faseText tidak ditemukan")
-    return
-  }
+  if (!faseBar || !faseText) return
 
   totalTof = Number(totalTof) || 0
-
   const fases = [
-    { name: "FASE 1", target: 10 },
-    { name: "FASE 2", target: 500 },
-    { name: "FASE 3", target: 1000 },
-    { name: "FASE 4", target: 3000 },
-    { name: "FASE 5", target: 10000 },
-    { name: "FASE 6", target: 30000 },
+    { name: "FASE 1", target: 10 }, { name: "FASE 2", target: 500 },
+    { name: "FASE 3", target: 1000 }, { name: "FASE 4", target: 3000 },
+    { name: "FASE 5", target: 10000 }, { name: "FASE 6", target: 30000 },
     { name: "FASE 7", target: 100000 }
   ]
 
   let currentPhase = fases[0]
   let previousTarget = 0
-
   for (let i = 0; i < fases.length; i++) {
-    if (totalTof <= fases[i].target) {
-      currentPhase = fases[i]
-      break
-    }
+    if (totalTof <= fases[i].target) { currentPhase = fases[i]; break; }
     previousTarget = fases[i].target
   }
 
   const range = currentPhase.target - previousTarget
-
-  let progress = range > 0
-    ? ((totalTof - previousTarget) / range) * 100
-    : 100
-
+  let progress = range > 0 ? ((totalTof - previousTarget) / range) * 100 : 100
   progress = Math.max(0, Math.min(progress, 100))
-
   faseBar.style.width = progress + "%"
 
   const sisa = Math.max(0, currentPhase.target - totalTof)
-
   faseText.innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:#2f6f4e;">
-      🌿 ${currentPhase.name}
-    </div>
-
-    <div style="font-size:10px;color:#6f7f76;margin-top:2px;">
-      ${Math.floor(progress)}% progress
-    </div>
-
-    <div style="font-size:10px;color:#b5942b;margin-top:2px;">
-      ${formatShort(totalTof)} / ${formatShort(currentPhase.target)} TOF
-    </div>
-
-    <div style="font-size:10px;color:#999;margin-top:2px;">
-      Sisa ${formatShort(sisa)} TOF
-    </div>
+    <div style="font-size:11px;font-weight:700;color:#2f6f4e;">🌿 ${currentPhase.name}</div>
+    <div style="font-size:10px;color:#6f7f76;margin-top:2px;">${Math.floor(progress)}% progress</div>
+    <div style="font-size:10px;color:#b5942b;margin-top:2px;">${formatShort(totalTof)} / ${formatShort(currentPhase.target)} TOF</div>
+    <div style="font-size:10px;color:#999;margin-top:2px;">Sisa ${formatShort(sisa)} TOF</div>
   `
 }
 
-// ===================== FEED =====================
+// ===================== RENDERING LINI MASA (FEED) =====================
 async function loadFeed() {
   const feed = document.getElementById("feed")
   if (!feed) return
-
   feed.innerHTML = ""
 
-  // ===================== AMBIL POST =====================
   const { data: posts, error: postError } = await supabaseClient
     .from("contributions")
-    .select(`
-      id,
-      created_at,
-      deskripsi_proses,
-      image_url,
-      sruput_count,
-      cangkul_count,
-      profiles!inner(
-        id,
-        username,
-        avatar_url
-      )
-    `)
+    .select(`id, created_at, deskripsi_proses, image_url, sruput_count, cangkul_count, profiles!inner(id, username, avatar_url)`)
     .eq("is_private", false)
     .order("created_at", { ascending: false })
 
   if (postError || !posts) {
-    console.log("POST ERROR:", postError)
     feed.innerHTML = "<div>Gagal load post</div>"
     return
   }
-// ===================== 🔥 DI SINI TEMPATNYA: OTOMATIS UBAH META TAG VIA URL PARAMETER =====================
+
   try {
     const urlParams = new URLSearchParams(window.location.search);
     const postIdParam = urlParams.get("post");
-
     if (postIdParam) {
-      // Cari postingan yang cocok dengan id di URL dari data yang sudah di-load
-      const matchedPost = posts.find(p => p.id === postIdParam || String(p.id) === String(postIdParam));
-      
+      const matchedPost = posts.find(p => String(p.id) === String(postIdParam));
       if (matchedPost) {
         const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres karya di ToFarmer.";
         const namaPetani = matchedPost.profiles?.username || "Petani";
-
-        // Ubah Judul Tab & Meta Tag Secara Live di Browser
         document.title = `Catatan Karya @${namaPetani} | ToFarmer`;
         
         const metaDesc = document.getElementById("postDesc");
@@ -1095,41 +594,24 @@ async function loadFeed() {
         if (metaDesc) metaDesc.setAttribute("content", petikTeks);
         if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
         if (ogDesc) ogDesc.setAttribute("content", petikTeks);
-        
-        // Jika postingan memiliki gambar, jadikan pratinjau utama browser
-        if (matchedPost.image_url && ogImage) {
-          ogImage.setAttribute("content", matchedPost.image_url);
-        }
+        if (matchedPost.image_url && ogImage) ogImage.setAttribute("content", matchedPost.image_url);
       }
     }
-  } catch (metaErr) {
-    console.log("Gagal memperbarui Meta Tag:", metaErr);
-  }
-  // =========================================================================================================
-  // ===================== AMBIL COMMENTS (SAFE MODE) =====================
+  } catch (metaErr) { console.log(metaErr); }
+
   let comments = []
   try {
     const postIds = posts.map(p => p.id)
-    const { data } = await supabaseClient
-      .from("comments")
-      .select("*")
-      .in("post_id", postIds)
+    const { data } = await supabaseClient.from("comments").select("*").in("post_id", postIds)
     comments = data || []
-  } catch (e) {
-    console.log("COMMENT ERROR:", e)
-    comments = []
-  }
+  } catch (e) { comments = [] }
 
-  // ===================== GROUP COMMENTS =====================
   const commentMap = {}
   comments.forEach(c => {
-    if (!commentMap[c.post_id]) {
-      commentMap[c.post_id] = []
-    }
+    if (!commentMap[c.post_id]) commentMap[c.post_id] = []
     commentMap[c.post_id].push(c)
   })
 
-  // ===================== RENDER POSTINGAN =====================
   posts.forEach(item => {
     const div = document.createElement("div")
     div.className = "post"
@@ -1137,338 +619,126 @@ async function loadFeed() {
     const username = item.profiles?.username || "guest"
     const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
     const postComments = commentMap[item.id] || []
-    
-    const date = new Date(item.created_at).toLocaleString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
-
-    // 🔥 AMANKAN TEKS DARI BACKTICK & DOLLAR AGAR STRING ONCLICK TIDAK RUSAK
+    const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
 
     div.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;">
         <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
-        <div
-          onclick="window.location.href='profile.html?id=${item.profiles?.id}'"
-          style="font-weight:600;color:#2f6f4e;cursor:pointer;"
-        >
-          @${username}
-        </div>
+        <div onclick="window.location.href='profile.html?id=${item.profiles?.id}'" style="font-weight:600;color:#2f6f4e;cursor:pointer;">@${username}</div>
       </div>
-
-      <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
-        ${date}
-      </div>
-
-      <div class="text" style="margin-top:6px;">
-        ${convertMentions(item.deskripsi_proses || "")}
-      </div>
-
-      ${item.image_url ? `
-        <div style="margin-top:10px;display:flex;justify-content:center;">
-          <img
-            src="${item.image_url}"
-            style="max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain;border-radius:14px;border:1px solid rgba(0,0,0,0.08);box-shadow:0 4px 14px rgba(0,0,0,0.06);"
-          />
-        </div>
-      ` : ""}
-      
+      <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">${date}</div>
+      <div class="text" style="margin-top:6px;">${convertMentions(item.deskripsi_proses || "")}</div>
+      ${item.image_url ? `<div style="margin-top:10px;display:flex;justify-content:center;"><img src="${item.image_url}" style="max-width:100%;max-height:420px;border-radius:14px;border:1px solid rgba(0,0,0,0.08);" /></div>` : ""}
       <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
-        <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">
-          ☕ ${item.sruput_count || 0} Sruput
-        </span>
-
-        <span onclick="reactPost('${item.id}','cangkul')" style="cursor:pointer;">
-          ⛏️ ${item.cangkul_count || 0} Cangkul
-        </span>
+        <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">☕ ${item.sruput_count || 0} Sruput</span>
+        <span onclick="reactPost('${item.id}','cangkul')" style="cursor:pointer;">⛏️ ${item.cangkul_count || 0} Cangkul</span>
       </div>
-
-      <div class="post-actions">
-        <button class="share-btn" onclick="sharePost('${item.id}', '${username}', \`${safeText}\`)">
-          📢 Bagikan Progres
-        </button>
-      </div>
-
+      <div class="post-actions"><button class="share-btn" onclick="sharePost('${item.id}', '${username}', \`${safeText}\`)">📢 Bagikan Progres</button></div>
       <div style="margin-top:10px;">
-        <input id="comment-${item.id}" placeholder="Tulis komentar..."
-          style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;" />
-
-        <button onclick="sendComment('${item.id}')"
-          style="margin-top:6px;padding:6px 10px;font-size:12px;">
-          Kirim
-        </button>
+        <input id="comment-${item.id}" placeholder="Tulis komentar..." style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;" />
+        <button onclick="sendComment('${item.id}')" style="margin-top:6px;padding:6px 10px;font-size:12px;">Kirim</button>
       </div>
-
       <div style="margin-top:10px;font-size:12px;">
-        ${postComments.map(c => `
-          <div style="padding:3px 0;color:#444;">
-            💬 ${convertMentions(c.comment)}
-          </div>
-        `).join("")}
+        ${postComments.map(c => `<div style="padding:3px 0;color:#444;">💬 ${convertMentions(c.comment)}</div>`).join("")}
       </div>
     `
-
     feed.appendChild(div)
   })
 }
-// ===================== PROFILE RENDER =====================
+
+// ===================== MANAGEMENT PROFIL =====================
 function renderProfile() {
   const userBox = document.getElementById("profileInfo")
   const avatar = document.getElementById("profileAvatar")
-
   if (!userBox) return
 
-  // ===================== GUEST =====================
   if (!currentProfile) {
-
     if (avatar) avatar.style.display = "none"
-
     userBox.innerHTML = `
-      <div style="
-        font-weight:700;
-        font-size:15px;
-        color:#2f6f4e;
-      ">
-        @guest
+      <div style="font-weight:700;font-size:15px;color:#2f6f4e;">@guest</div>
+      <button onclick="alert('Login dulu ya 🌱')" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:12px;background:#ddd;font-size:12px;">👤 Masuk Profil</button>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">XP</div><div style="font-weight:700;font-size:12px;">0</div></div>
+        <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">TOF</div><div style="font-weight:700;color:#c9a227;font-size:12px;">0</div></div>
       </div>
-
-      <button onclick="alert('Login dulu ya 🌱')"
-        style="
-          margin-top:10px;
-          width:100%;
-          padding:8px;
-          border:none;
-          border-radius:12px;
-          background:#ddd;
-          font-size:12px;
-        ">
-        👤 Masuk Profil
-      </button>
-
-      <div style="
-        margin-top:10px;
-        display:grid;
-        grid-template-columns:1fr 1fr;
-        gap:8px;
-      ">
-
-        <div class="card" style="padding:8px;margin:0;">
-          <div style="font-size:10px;color:#888;">XP</div>
-          <div style="font-weight:700;font-size:12px;">0</div>
-        </div>
-
-        <div class="card" style="padding:8px;margin:0;">
-          <div style="font-size:10px;color:#888;">TOF</div>
-          <div style="font-weight:700;color:#c9a227;font-size:12px;">0</div>
-        </div>
-
-      </div>
-
-      <div style="
-        margin-top:8px;
-        background:#eef7f1;
-        border-radius:999px;
-        padding:6px 12px;
-        display:inline-block;
-        color:#2f6f4e;
-        font-size:11px;
-        font-weight:600;
-      ">
-        🌱 BELUM LOGIN
-      </div>
+      <div style="margin-top:8px;background:#eef7f1;border-radius:999px;padding:6px 12px;display:inline-block;color:#2f6f4e;font-size:11px;font-weight:600;">🌱 BELUM LOGIN</div>
     `
     return
   }
 
-  // ===================== LOGIN =====================
   if (avatar) {
     avatar.style.display = "block"
     avatar.src = currentProfile.avatar_url
   }
 
   userBox.innerHTML = `
-    <div style="
-      font-weight:700;
-      font-size:15px;
-      color:#2f6f4e;
-    ">
-      @${currentProfile.username}
+    <div style="font-weight:700;font-size:15px;color:#2f6f4e;">@${currentProfile.username}</div>
+    <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:10px;width:60%;padding:8px;border:none;border-radius:12px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:12px;font-weight:600;cursor:pointer;">☕ Masuk Profil Saya</button>
+    <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">XP</div><div style="font-weight:700;font-size:12px;">${currentProfile.xp || 0}</div></div>
+      <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">TOF</div><div style="font-weight:700;color:#c9a227;font-size:12px;">${currentProfile.saldo_tof || 0}</div></div>
     </div>
-
-    <!-- BUTTON PROFIL -->
-    <button onclick="window.location.href='profile.html?id=${currentWallet}'"
-      style="
-        margin-top:10px;
-        width:60%;
-        padding:8px;
-        border:none;
-        border-radius:12px;
-        background:linear-gradient(90deg,#4caf7a,#c9a227);
-        color:white;
-        font-size:12px;
-        font-weight:600;
-        cursor:pointer;
-      ">
-      ☕ Masuk Profil Saya
-    </button>
-
-    <!-- CARD KECIL -->
-    <div style="
-      margin-top:10px;
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:8px;
-    ">
-
-      <div class="card" style="padding:8px;margin:0;">
-        <div style="font-size:10px;color:#888;">XP</div>
-        <div style="font-weight:700;font-size:12px;">
-          ${currentProfile.xp || 0}
-        </div>
-      </div>
-
-      <div class="card" style="padding:8px;margin:0;">
-        <div style="font-size:10px;color:#888;">TOF</div>
-        <div style="font-weight:700;color:#c9a227;font-size:12px;">
-          ${currentProfile.saldo_tof || 0}
-        </div>
-      </div>
-
-    </div>
-
-    <div style="
-      margin-top:8px;
-      background:#eef7f1;
-      border-radius:999px;
-      padding:6px 12px;
-      display:inline-block;
-      color:#2f6f4e;
-      font-size:11px;
-      font-weight:600;
-    ">
-      🌱 ${getRank(currentProfile.xp || 0)}
-    </div>
+    <div style="margin-top:8px;background:#eef7f1;border-radius:999px;padding:6px 12px;display:inline-block;color:#2f6f4e;font-size:11px;font-weight:600;">🌱 ${getRank(currentProfile.xp || 0)}</div>
   `
 }
 
-
-// ===================== AVATAR UPLOAD =====================
-
 document.addEventListener("change", async (e) => {
   if (e.target.id !== "avatarInput") return
-
-  if (!currentWallet) {
-    alert("Connect wallet dulu 😄")
-    return
-  }
+  if (!currentWallet) { alert("Connect wallet dulu 😄"); return; }
 
   const file = e.target.files[0]
-
   if (!file) return
 
-  const fileName =
-    currentWallet + "-" + Date.now()
+  const fileName = currentWallet + "-" + Date.now()
+  const { data: uploadData, error: uploadError } = await supabaseClient.storage.from("avatars").upload(fileName, file)
 
-  // upload ke storage
-  const { data: uploadData, error: uploadError } =
-  await supabaseClient.storage
-    .from("avatars")
-    .upload(fileName, file)
+  if (uploadError) { alert("Upload gagal: " + uploadError.message); return; }
 
-if (uploadError) {
-  console.log("UPLOAD ERROR:", uploadError)
-
-  alert(
-    "Upload gagal: " +
-    uploadError.message
-  )
-
-  return
-}
-
-  // ambil public url
-  const { data } =
-    supabaseClient.storage
-      .from("avatars")
-      .getPublicUrl(fileName)
-
+  const { data } = supabaseClient.storage.from("avatars").getPublicUrl(fileName)
   const avatarUrl = data.publicUrl
 
-  // update profile
-  const { error: updateError } =
-    await supabaseClient
-      .from("profiles")
-      .update({
-        avatar_url: avatarUrl
-      })
-      .eq("id", currentWallet)
+  const { error: updateError } = await supabaseClient.from("profiles").update({ avatar_url: avatarUrl }).eq("id", currentWallet)
+  if (updateError) { alert("Gagal update profile"); return; }
 
-  if (updateError) {
-    console.log(updateError)
-    alert("Gagal update profile")
-    return
-  }
-
-  currentProfile.avatar_url =
-    avatarUrl
-
+  currentProfile.avatar_url = avatarUrl
   renderProfile()
   loadEconomy()
-
   alert("Foto berhasil diganti 🌿")
 })
 
 function convertMentions(text) {
   if (!text) return ""
-
-  // 1. convert mention
-  let result = text.replace(
-    /@([a-zA-Z0-9_]+)/g,
-    `
-    <span
-      class="tof-mention"
-      onclick="goToUsername('$1')"
-      style="
-        color:#6ea84f;
-        font-weight:700;
-        cursor:pointer;
-      "
-    >@$1</span>
-    `
-  )
-
-  // 2. convert enter jadi baris baru
+  let result = text.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="goToUsername('$1')" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`)
   result = result.replace(/\n/g, "<br>")
-
   return result
 }
 
 async function goToUsername(username) {
-  const { data, error } =
-    await supabaseClient
-      .from("profiles")
-      .select("id")
-      .eq("username", username)
-      .maybeSingle()
-
-  if (error || !data) {
-    alert("Petani tidak ditemukan 🌱")
-    return
-  }
-
-  window.location.href =
-    `profile.html?id=${data.id}`
+  const { data, error } = await supabaseClient.from("profiles").select("id").eq("username", username).maybeSingle()
+  if (error || !data) { alert("Petani tidak ditemukan 🌱"); return; }
+  window.location.href = `profile.html?id=${data.id}`
 }
 
+async function loadAvatarStack() {
+  const { data, error } = await supabaseClient.from("profiles").select("id, avatar_url, username").limit(30)
+  const container = document.getElementById("avatarStack")
+  if (!container || error || !data) return
 
+  container.innerHTML = ""
+  data.forEach(user => {
+    const img = document.createElement("img")
+    img.src = user.avatar_url || "https://via.placeholder.com/100"
+    img.className = "avatar-item"
+    img.title = user.username
+    img.onclick = () => { window.location.href = `profile.html?id=${user.id}` }
+    container.appendChild(img)
+  })
+}
+
+// ===================== BOOTSTRAP INIT =====================
 window.addEventListener("DOMContentLoaded", () => {
-
   const saved = localStorage.getItem("tof_wallet")
-
   if (saved) {
     currentWallet = saved
     syncProfile(saved).then(() => {
@@ -1484,12 +754,8 @@ window.addEventListener("DOMContentLoaded", () => {
   if (typeof loadRankSummary === "function") {
     loadRankSummary()
   }
-// ==========================================
-// 🔄 GANTI BARIS UPDATEADVICE LAMA DENGAN BLOK INI
-// ==========================================
-  // Beri jeda 2 detik agar fungsi loadFeed selesai mengambil data dari Supabase terlebih dahulu
+
   setTimeout(async () => {
-    // Ambil data postingan yang baru saja dimuat di feed umum secara rapi
     const { data: currentFeedPosts } = await supabaseClient
       .from("contributions")
       .select("deskripsi_proses, profiles(username)")
@@ -1497,12 +763,7 @@ window.addEventListener("DOMContentLoaded", () => {
       .order("created_at", { ascending: false })
       .limit(5);
 
-    const konteksBeranda = generateFeedContext(currentFeedPosts);
-
-  // =========================================================================
-// 🔄 UPDATE: Menyertakan Visi Filosofi "tentang.html" Pada Sapaan Awal Halaman
-// =========================================================================
-    // Mengambil dasar filosofi dan 5 pilar sebagai bekal sapaan awal mentor[cite: 2]
+    const konteksBeranda = generateFeedContext(currentFeedPosts || []);
     const pondasiDasar = typeof cariKonteksPaper === "function" ? cariKonteksPaper("filosofi pilar") : "";
 
     updateAdvice(
@@ -1510,40 +771,5 @@ window.addEventListener("DOMContentLoaded", () => {
       `Kamu adalah asisten/mentor petani jenaka di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan esensi nilai visi-misi ekosistem serta rekam data berikut.\n\n[NILAI AGRAREIS FONDASI]:\n${pondasiDasar}\n\n[KONDISI TERKINI]:\n${konteksBeranda}`, 
       "User baru saja membuka beranda utama ToFarmer."
     );
-// =========================================================================
   }, 2000);
-// ==========================================
 })
-
-async function loadAvatarStack() {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("id, avatar_url, username")
-    .limit(30)
-
-  const container = document.getElementById("avatarStack")
-  if (!container || error) return
-
-  container.innerHTML = ""
-
-  data.forEach(user => {
-    const img = document.createElement("img")
-
-    img.src =
-      user.avatar_url ||
-      "https://via.placeholder.com/100"
-
-    img.className = "avatar-item"
-
-    img.title = user.username
-
-    img.onclick = () => {
-
-  window.location.href =
-    `profile.html?id=${user.id}`
-
-}
-
-    container.appendChild(img)
-  })
-}
