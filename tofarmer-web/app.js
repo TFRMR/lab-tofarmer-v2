@@ -315,23 +315,63 @@ async function updateAdvice(mode, trigger, text) {
         aiText.textContent = "Mentor lagi di ladang, lanjut tulis saja!";
     }
 }
+// ==========================================
+// 🟢 TAMBAHKAN KODE BARU INI DI SINI
+// ==========================================
+let aiBerandaChatCounter = 0;
+// ==========================================
+// 🔄 GANTI SELURUH FUNGSI KIRIMCHATAI DENGAN BLOK INI
+// ==========================================
 async function kirimChatAI() {
+    // 1. Cek apakah sudah mencapai batas 5 kali chat
+    if (aiBerandaChatCounter >= 5) {
+        const aiText = document.getElementById('ai-text');
+        if (aiText) {
+            aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
+        }
+        return;
+    }
+
     const input = document.getElementById('ai-chat-input');
     const pertanyaan = input.value.trim();
     
-    // Validasi kosong
+    // Validasi input kosong
     if (!pertanyaan) {
         alert("Tulis sesuatu dulu ya 🌱");
         return;
     }
     
-    // Panggil fungsi pusat AI
-    // Kita gunakan 'tanya' sebagai mode
-    updateAdvice("tanya", "chat_user", pertanyaan);
+    const btn = document.querySelector('[onclick="kirimChatAI()"]');
+    if (btn) btn.disabled = true; // Kunci tombol saat AI sedang berpikir
+    
+    // Tambahkan angka hitungan chat
+    aiBerandaChatCounter++;
+    
+    // Tampilkan sisa kuota chat pada teks tombol jika elemen penampung sisa chat tersedia di HTML Anda
+    // Contoh target ID di HTML tombol: <span id="sisa-chat-beranda">5</span>
+    const sisaEl = document.getElementById("sisa-chat-beranda");
+    if (sisaEl) {
+        sisaEl.innerText = 5 - aiBerandaChatCounter;
+    }
+    
+    // Panggil fungsi pusat AI dengan mode tanya
+    await updateAdvice("tanya", "chat_user", pertanyaan);
+    
+    // Buka kembali kunci tombol setelah selesai merespons
+    if (btn) btn.disabled = false;
     
     // Kosongkan input setelah dikirim
     input.value = "";
+
+    // Jika setelah klik ini hitungan mencapai 5, kunci tampilannya secara otomatis
+    if (aiBerandaChatCounter >= 5) {
+        setTimeout(() => {
+            const aiText = document.getElementById('ai-text');
+            if (aiText) aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
+        }, 1000);
+    }
 }
+// ==========================================
 // ===================== PROFILE SYNC =====================
 function updateWalletUI() {
 
@@ -665,6 +705,14 @@ if (currentProfile) {
 // ==========================================
   // Pemicu AI kontekstual setelah kirim pos di Beranda
   setTimeout(async () => {
+// ==========================================
+// 🟢 SISIPKAN KODE RESET INI DI DALAM TIMEOUT
+// ==========================================
+      aiBerandaChatCounter = 0; // Reset hitungan chat beranda kembali menjadi 0
+      
+      const sisaEl = document.getElementById("sisa-chat-beranda");
+      if (sisaEl) sisaEl.innerText = 5; // Kembalikan teks indikator tombol ke angka 5
+// ==========================================
       const { data: updatedFeedPosts } = await supabaseClient
         .from("contributions")
         .select("deskripsi_proses, profiles(username)")
