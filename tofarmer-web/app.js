@@ -286,7 +286,7 @@ async function updateAdvice(mode, trigger, text) {
         const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode, trigger, teks: text })
+            body: JSON.stringify({ mode: Evaluasi, trigger, teks: text })
         });
         const result = await response.json();
         const saran = result.saran || "Mari berkarya hari ini!";

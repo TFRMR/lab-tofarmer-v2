@@ -368,7 +368,7 @@ async function panggilAiSaran(mode, payload) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                mode: mode, 
+                mode: Evaluasi, 
                 teks: payload.teks,
                 trigger: payload.trigger
             })
