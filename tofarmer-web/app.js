@@ -287,14 +287,16 @@ async function updateAdvice(mode, trigger, text) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
            // ==========================================
-// 🔄 GANTI BLOK BODY INI
-// ==========================================
+/// =========================================================================
+// 🔄 UPDATE: Mengirimkan Tambahan Data Dokumen Sebagai Konteks RAG Lokal
+// =========================================================================
            body: JSON.stringify({
-                mode: "Evaluasi", 
-                teks: text,       // Menggunakan variabel 'text' yang benar
-                trigger: trigger  // Menggunakan variabel 'trigger' yang benar
+                mode: mode, 
+                teks: text,       
+                trigger: trigger,
+                konteks_dokumen: typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : ""
             })
-// ========================================
+// =========================================================================
         });
         const result = await response.json();
         const saran = result.saran || "Mari berkarya hari ini!";
@@ -315,15 +317,13 @@ async function updateAdvice(mode, trigger, text) {
         aiText.textContent = "Mentor lagi di ladang, lanjut tulis saja!";
     }
 }
-// ==========================================
-// 🟢 TAMBAHKAN KODE BARU INI DI SINI
-// ==========================================
+
+// =========================================================================
+// 🟢 KODE BARU: Manajemen Counter & Fungsi Obrolan Pintar Berbasis Dokumen
+// =========================================================================
 let aiBerandaChatCounter = 0;
-// ==========================================
-// 🔄 GANTI SELURUH FUNGSI KIRIMCHATAI DENGAN BLOK INI
-// ==========================================
+
 async function kirimChatAI() {
-    // 1. Cek apakah sudah mencapai batas 5 kali chat
     if (aiBerandaChatCounter >= 5) {
         const aiText = document.getElementById('ai-text');
         if (aiText) {
@@ -331,6 +331,53 @@ async function kirimChatAI() {
         }
         return;
     }
+
+    const input = document.getElementById('ai-chat-input');
+    const pertanyaan = input.value.trim();
+    
+    if (!pertanyaan) {
+        alert("Tulis sesuatu dulu ya 🌱");
+        return;
+    }
+    
+    const btn = document.querySelector('[onclick="kirimChatAI()"]');
+    if (btn) btn.disabled = true; 
+    
+    aiBerandaChatCounter++;
+    
+    const sisaEl = document.getElementById("sisa-chat-beranda");
+    if (sisaEl) {
+        sisaEl.innerText = 5 - aiBerandaChatCounter;
+    }
+    
+    // Mengekstrak bab paper tentang.html yang paling relevan secara lokal[cite: 2]
+    let konteksTambahan = "";
+    if (typeof cariKonteksPaper === "function") {
+        konteksTambahan = cariKonteksPaper(pertanyaan);
+    }
+    
+    // Menggabungkan pertanyaan user dengan data dokumen pendukung
+    const instruksiPrompt = `
+Pertanyaan User: "${pertanyaan}"
+
+Gunakan potongan dokumen internal dari "tentang.html" berikut sebagai acuan utama Anda untuk menjawab:
+${konteksTambahan}
+    `.trim();
+    
+    // Memicu pengiriman ke API dengan instruksi yang kaya konteks
+    await updateAdvice("tanya", "chat_user", instruksiPrompt);
+    
+    if (btn) btn.disabled = false;
+    input.value = "";
+
+    if (aiBerandaChatCounter >= 5) {
+        setTimeout(() => {
+            const aiText = document.getElementById('ai-text');
+            if (aiText) aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
+        }, 1000);
+    }
+}
+// =========================================================================
 
     const input = document.getElementById('ai-chat-input');
     const pertanyaan = input.value.trim();
@@ -723,11 +770,18 @@ if (currentProfile) {
       const posTetangga = updatedFeedPosts.slice(1);
       const konteksBeranda = generateFeedContext(posTetangga);
 
+      // =========================================================================
+// 🔄 UPDATE: Menyisipkan Pengetahuan Terstruktur Saat User Posting Karya
+// =========================================================================
+      // Mencari bab yang paling cocok dengan isi postingan baru
+      const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
+
       updateAdvice(
           "komentar", 
-          `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat latar belakang profil user dan aktivitas kebun lainnya di sini:\n${konteksBeranda}`,
+          `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat aturan ekosistem, latar belakang profil user, dan aktivitas kebun lainnya.\n\n[DOKUMEN INTEGRASI "tentang.html"]:\n${referensiKamus}\n\n[LINIMASA LALU]:\n${konteksBeranda}`,
           text
       );
+// =========================================================================
   }, 1500);
 }
 
@@ -1445,11 +1499,18 @@ window.addEventListener("DOMContentLoaded", () => {
 
     const konteksBeranda = generateFeedContext(currentFeedPosts);
 
+  // =========================================================================
+// 🔄 UPDATE: Menyertakan Visi Filosofi "tentang.html" Pada Sapaan Awal Halaman
+// =========================================================================
+    // Mengambil dasar filosofi dan 5 pilar sebagai bekal sapaan awal mentor[cite: 2]
+    const pondasiDasar = typeof cariKonteksPaper === "function" ? cariKonteksPaper("filosofi pilar") : "";
+
     updateAdvice(
       "sapaan", 
-      `Kamu adalah asisten/mentor petani jenaka di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan ingatan data beranda berikut:\n${konteksBeranda}`, 
+      `Kamu adalah asisten/mentor petani jenaka di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan esensi nilai visi-misi ekosistem serta rekam data berikut.\n\n[NILAI AGRAREIS FONDASI]:\n${pondasiDasar}\n\n[KONDISI TERKINI]:\n${konteksBeranda}`, 
       "User baru saja membuka beranda utama ToFarmer."
     );
+// =========================================================================
   }, 2000);
 // ==========================================
 })
