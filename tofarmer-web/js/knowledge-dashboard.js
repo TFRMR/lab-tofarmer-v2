@@ -23,7 +23,10 @@ function cariKonteksDashboard(pertanyaan) {
     let konteks = DASHBOARD_RULES.alur_pemandu + "\n\n";
 
     if (kueri.includes("buat") || kueri.includes("ilmu baru") || kueri.includes("gate") || kueri.includes("tahap") || kueri.includes("simpan") || kueri.includes("edit")) {
-        konteks += DASHBOARD_RULES.mekanisme_gate_pembuatan;
+        contek += DASHBOARD_RULES.mekanisme_gate_pembuatan;
     }
     return konteks;
 }
+
+// 🔴 TAMBAHKAN BARIS INI DI PALING BAWAH FILE AGAR BISA DIBACA DASHBOARD.JS
+window.cariKonteksDashboard = cariKonteksDashboard;

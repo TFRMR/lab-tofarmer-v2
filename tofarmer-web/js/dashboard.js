@@ -41,14 +41,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadDataIlmu('ilmu_pending', 'card-approve', 'Menunggu konsensus bersama');
 });
 async function sapaUser() {
-    // Ambil bekal panduan dasar dashboard dari knowledge-dashboard.js
-    const aturanMain = typeof cariKonteksDashboard === "function" ? cariKonteksDashboard("pemandu awal") : "";
+    const aiText = document.getElementById('ai-text');
+    if (!aiText) return;
 
-    updateAdvice(
-        "sapaan", 
-        `Kamu adalah AI Pemandu resmi di Dashboard Riset ToFarmer. Tugasmu adalah menyapa user dengan akrab, jenaka, dan mengingatkan mereka tentang 4 hal utama di dashboard ini:\n${aturanMain}`, 
-        "User baru saja masuk ke halaman Dashboard Utama."
-    );
+    aiText.innerText = "Membuka pintu kebun...";
+
+    // Mengambil aturan main murni dari RAG global window
+    const aturanMain = typeof window.cariKonteksDashboard === "function" ? window.cariKonteksDashboard("pemandu awal") : "";
+
+    try {
+        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                mode: "Dashboard", 
+                trigger: "user_masuk", 
+                teks: `Kamu adalah AI Pemandu ToFarmer. Sapa user dengan akrab dan ingatkan poin-poin aturan dashboard ini dengan gaya santai: ${aturanMain}` 
+            })
+        });
+     
+        const result = await response.json();
+        typeWriter(aiText, result.saran || "Selamat datang di pusat ilmu ToFarmer!");
+    } catch (error) {
+        typeWriter(aiText, "Halo Sahabat Tani! Senang sekali Anda kembali.");
+    }
 }
 
 
@@ -111,8 +127,8 @@ async function initAsistenKebun() {
         if (!pesan) return;
         aiText.innerText = "...";
 
-        // Ambil aturan pemandu berdasarkan pertanyaan chat user
-        const konteksSkenario = typeof cariKonteksDashboard === "function" ? cariKonteksDashboard(pesan) : "";
+        // Ambil bekal dari RAG berdasarkan apa yang diketik oleh user di input chat
+        const konteksSkenario = typeof window.cariKonteksDashboard === "function" ? window.cariKonteksDashboard(pesan) : "";
 
         try {
             const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
@@ -121,7 +137,7 @@ async function initAsistenKebun() {
                 body: JSON.stringify({ 
                     mode: "humor", 
                     trigger: "chat-dashboard", 
-                    teks: `Pertanyaan user: "${pesan}". Jawab berdasarkan aturan takaran skenario berikut: ${konteksSkenario}` 
+                    teks: `Pertanyaan user: "${pesan}". Jawablah pertanyaan tersebut dengan menyelipkan informasi dari aturan dasar ekosistem berikut: ${konteksSkenario}` 
                 })
             });
             const result = await response.json();
@@ -129,7 +145,7 @@ async function initAsistenKebun() {
         } catch (e) { 
             aiText.innerText = "Sinyal di kebun hilang!"; 
         }
-        aiInput.value = ''; // Bersihkan form input setelah kirim
+        aiInput.value = ''; 
     });
 }
 
@@ -182,22 +198,36 @@ function arahkankeGate(data) {
 }
 
 // 🔥 CARI DAN GANTI FUNSI window.buatIlmuBaru YANG LAMA DENGAN BARIS INI:
-window.buatIlmuBaru = () => {
+window.buatIlmuBaru = async () => {
     localStorage.removeItem('tofarmer_draft');
     
-    const petunjukGate = typeof cariKonteksDashboard === "function" ? cariKonteksDashboard("buat ilmu baru") : "";
+    const aiText = document.getElementById('ai-text');
+    const petunjukGate = typeof window.cariKonteksDashboard === "function" ? window.cariKonteksDashboard("buat ilmu baru") : "";
     
-    // Beritahu AI di dashboard untuk mengucapkan wejangan alur Gate 1-3 sebelum halaman pindah
-    updateAdvice(
-        "Dashboard",
-        "user_klik_buat_ilmu",
-        `User mengklik buat ilmu baru. Ingatkan secara singkat alur dari Gate 1 data awal, Gate 2 spesifik, hingga Gate 3 rangkaian kata otomatis AI di mana mereka wajib review/edit: ${petunjukGate}`
-    );
+    if (aiText) {
+        aiText.innerText = "...";
+        try {
+            // Tembak AI untuk memberikan wejangan ringkas tentang Gate 1-3 sebelum user pindah halaman
+            const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    mode: "Dashboard", 
+                    trigger: "klik_buat_ilmu", 
+                    teks: `User mau buat ilmu baru. Berikan pengingat super singkat tentang alur Gate 1 sampai Gate 3 (di mana mereka harus review tulisan AI): ${petunjukGate}` 
+                })
+            });
+            const result = await response.json();
+            typeWriter(aiText, result.saran || "Menyiapkan lembar kerja baru...");
+        } catch (e) {
+            aiText.innerText = "Menyiapkan lembar kerja...";
+        }
+    }
 
-    // Beri jeda tipis agar efek teks terbaca sebentar sebelum pindah halaman
+    // Beri jeda 2 detik agar user sempat membaca wejangan AI sebelum mental ke gate-1.html
     setTimeout(() => {
         window.location.href = 'gate-1.html';
-    }, 1200);
+    }, 2000);
 };
 
 // --- LOAD TABEL BARU ---
