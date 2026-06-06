@@ -822,7 +822,34 @@ window.addEventListener("DOMContentLoaded", () => {
     })
   }
 
-  loadFeed()
+ loadFeed().then(() => {
+    // 2. Cek apakah di link URL ada parameter "?post=xxx"
+    const urlParams = new URLSearchParams(window.location.search);
+    const postIdParam = urlParams.get("post");
+
+    if (postIdParam) {
+      // 給 Beri jeda 800 milidetik agar browser selesai menggambar kartu di layar
+      setTimeout(() => {
+        const targetCard = document.getElementById(`post-card-${postIdParam}`);
+        if (targetCard) {
+          // Hitung lokasi koordinat kartu tersebut
+          const koordinatY = targetCard.getBoundingClientRect().top + window.scrollY;
+          
+          // Luncurkan layar otomatis ke lokasi kartu (dikurangi 100px agar pas di tengah pandangan)
+          window.scrollTo({
+            top: koordinatY - 100,
+            behavior: 'smooth' // 'smooth' memberikan efek meluncur halus yang estetik
+          });
+          
+          // Opsional: Beri efek highlight/kedip tipis pada kartu agar user tahu itu pos yang dituju
+          targetCard.style.border = "2px solid #4caf7a";
+          targetCard.style.transition = "border 1s ease";
+        }
+      }, 800); 
+    }
+  });
+
+  // 🟢 BATAS BAWAH KODE BARU
   loadAvatarStack()
   loadEconomy()
 
@@ -983,27 +1010,3 @@ function sharePost(postId, username, text) {
     alert(`Salin tautan ini secara manual:\n${shareUrl}`);
   });
 }
-// ==========================================================================
-  // 🟢 AUTO-SCROLL ANCHORING DARI LINK YANG DIBAGIKAN DI BERANDA UTAMA
-  // ==========================================================================
-  setTimeout(async () => {
-    const postIdParam = urlParams.get("post");
-    if (postIdParam) {
-      // Cari kartu postingan fisik berdasarkan ID unik yang kita buat di Langkah awal kemarin
-      const targetCard = document.getElementById(`post-card-${postIdParam}`);
-      if (targetCard) {
-        // Otomatis buka kotak komentar di beranda
-        if (typeof toggleKomentarBox === "function") {
-          await toggleKomentarBox(postIdParam);
-        }
-        
-        // Gulirkan layar ke koordinat kartu secara halus
-        targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        
-        // Beri efek highlight visual penanda hijau
-        targetCard.style.transition = "all 0.5s ease";
-        targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
-        targetCard.style.borderColor = "#2f6f4e";
-      }
-    }
-  }, 500); // Diberi jeda 500ms agar data Supabase beranda selesai dirender utuh ke layar DOM
