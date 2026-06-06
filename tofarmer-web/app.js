@@ -38,7 +38,7 @@ async function connectWallet() {
       ">
         <div style="text-align:center;">
           <div style="font-size:50px;">🌿</div>
-          <h2 style="color:#2f6f4e;">Daftar ToFarmer</h2>
+          <h2 style="color:#2f6f4e;">Login/Daftar ToFarmer</h2>
           <p style="font-size:12px;color:#666;margin-top:8px;">Nama + Wallet Algorand</p>
 <p style="font-size:12px;color:#666;margin-top:8px;">
   Daftar pakai Nama | Alamat Dompet Algorand<br>
