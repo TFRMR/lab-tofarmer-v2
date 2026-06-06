@@ -1430,7 +1430,6 @@ function inisialisasiKomponenNotif() {
   const styleNotif = document.createElement("style");
   styleNotif.id = "tof-notif-style";
   styleNotif.innerHTML = `
-   styleNotif.innerHTML = `
     #tof-notif-wrapper {
       /* 💡 PERBAIKAN 1: Mengubah fixed menjadi absolute agar lonceng ikut hanyut ke atas saat di-scroll */
       position: absolute !important;
