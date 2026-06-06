@@ -1460,7 +1460,7 @@ function inisialisasiKomponenNotif() {
         /* 💡 PERBAIKAN 2: Pastikan di HP juga menggunakan absolute agar tidak mengunci di layar kaca */
         position: absolute !important;
         top: 85px !important;    
-        right: 70% !important;   
+        right: 60% !important;   
         transform: translateX(50%) !important; 
       }
       #box-notif-tof {
