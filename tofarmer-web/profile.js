@@ -1416,6 +1416,11 @@ result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick=
 // ==========================================
 
 // 1. Fungsi untuk Membuat Elemen Tombol Lonceng & Kotak Dropdown secara otomatis di Layar
+// =====================================================================
+// 🔔 SISTEM NOTIFIKASI ELEMEN TOF (PAKET UTUH, AMAN & PAS DI TENGAH HP)
+// =====================================================================
+
+// 1. FUNGSI MEMBUAT TOMBOL LONCENG & DROPDOWN
 function inisialisasiKomponenNotif() {
   if (!currentWallet) return; 
 
@@ -1428,7 +1433,7 @@ function inisialisasiKomponenNotif() {
     #tof-notif-wrapper {
       position: fixed !important;
       top: 15px !important;
-      right: 15px !important; /* Standar PC di kanan atas */
+      right: 15px !important;
       z-index: 999999999 !important;
       font-family: sans-serif !important;
       display: block !important;
@@ -1448,16 +1453,16 @@ function inisialisasiKomponenNotif() {
       overflow-y: auto !important;
     }
 
-    /* 📱 💡 TRIK KHUSUS LAYAR HAPE (Pindah ke Tengah Atas) */
+    /* 📱 Trik Khusus HP (Rata Tengah Atas) */
     @media (max-width: 768px) {
       #tof-notif-wrapper {
-        top: 85px !important;    /* Menghindari hantaman navbar atas HP */
-        right: 50% !important;   /* Lempar ke tengah */
-        transform: translateX(50%) !important; /* Sempurnakan posisi pas di center */
+        top: 85px !important;    
+        right: 50% !important;   
+        transform: translateX(50%) !important; 
       }
       #box-notif-tof {
         right: auto !important;
-        left: 50% !important;    /* Dropdown juga ikut rata tengah */
+        left: 50% !important;    
         transform: translateX(-50%) !important;
         width: 280px !important;
         max-height: 320px !important;
@@ -1489,7 +1494,6 @@ function inisialisasiKomponenNotif() {
     </div>
   `;
 
-  // Tetap paksa pasang di paling atas struktur tubuh HTML
   if (document.body.firstChild) {
     document.body.insertBefore(notifWrapper, document.body.firstChild);
   } else {
@@ -1522,7 +1526,86 @@ function inisialisasiKomponenNotif() {
     tandaiSemuaNotifDibaca();
   });
 }
-// 3. Fungsi mengubah status notifikasi agar angka merahnya hilang
+
+// 2. FUNGSI AMBIL DATA SUPABASE (AMAN DARI EROR SKEMA 400)
+async function loadNotifikasiUser() {
+  if (!currentWallet) return;
+
+  try {
+    const { data: notifs, error } = await supabaseClient
+      .from("notifications")
+      .select("*")
+      .eq("user_id", currentWallet)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    const badge = document.getElementById("badge-notif-tof");
+    const listContainer = document.getElementById("list-notif-tof");
+
+    const jumlahBelumBaca = notifs ? notifs.filter(n => !n.is_read).length : 0;
+    if (badge) {
+      if (jumlahBelumBaca > 0) {
+        badge.innerText = jumlahBelumBaca;
+        badge.style.display = "block";
+      } else {
+        badge.style.display = "none";
+      }
+    }
+
+    if (!notifs || notifs.length === 0) {
+      if (listContainer) {
+        listContainer.innerHTML = `<div style="padding: 20px; text-align: center; color: #999;">Belum ada pemberitahuan baru.</div>`;
+      }
+      return;
+    }
+
+    const semuaSender = [...new Set(notifs.map(n => n.sender_id))];
+    const { data: daftarProfil, error: errorProfil } = await supabaseClient
+      .from("profiles")
+      .select("id, username")
+      .in("id", semuaSender);
+
+    const petaProfil = {};
+    if (!errorProfil && daftarProfil) {
+      daftarProfil.forEach(p => {
+        petaProfil[p.id] = p.username;
+      });
+    }
+
+    const listHtml = notifs.map(n => {
+      const namaPengirim = petaProfil[n.sender_id] || "Seseorang";
+      let linkAksi = "";
+
+      if (n.type === 'comment' || n.type === 'mention') {
+         linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
+      } else if (n.type === 'vote_needed') {
+         linkAksi = `if(typeof window.bukaDetailIlmuProfil === "function"){ window.bukaDetailIlmuProfil('${n.related_id}', 'ilmu_pending'); }`;
+      }
+
+      const bgWarna = n.is_read ? "white" : "#f0fdf4";
+
+      return `
+        <div onclick="${linkAksi}" style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; background: ${bgWarna}; transition: background 0.2s;" onmouseover="this.style.background='#f7faf8'" onmouseout="this.style.background='${bgWarna}'">
+          <strong>@${namaPengirim}</strong> ${n.message}
+          <span style="font-size: 10px; color: #999; display: block; margin-top: 4px;">
+            ${new Date(n.created_at).toLocaleDateString('id-ID')}
+          </span>
+        </div>
+      `;
+    }).join("");
+    
+    if (listContainer) {
+      listContainer.innerHTML = listHtml;
+    }
+
+  } catch (err) {
+    console.log("Gagal memuat notifikasi:", err.message);
+  }
+}
+
+// 3. FUNGSI TOMBOL TANDAI BACA
 async function tandaiSemuaNotifDibaca() {
   if (!currentWallet) return;
   try {
@@ -1538,15 +1621,14 @@ async function tandaiSemuaNotifDibaca() {
   }
 }
 
-// 4. Picu jalannya sistem notifikasi saat halaman terbuka
+// 4. PEMICU OTOMATIS SAAT HALAMAN DIBUKA
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     inisialisasiKomponenNotif();
-    setTimeout(loadNotifikasiUser, 2000); // Cek badge setelah koneksi Supabase siap
+    setTimeout(loadNotifikasiUser, 2000); 
   });
 } else {
   inisialisasiKomponenNotif();
   setTimeout(loadNotifikasiUser, 2000);
 }
-
 
