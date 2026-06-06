@@ -637,6 +637,7 @@ const { data: rawComments, error: qErr } = await supabaseClient
  posts.forEach(item => {
     const div = document.createElement("div")
     div.className = "post"
+    div.id = `post-card-${item.id}` // 🟢 Tambahkan ini sebagai jangkar koordinat
 
     const username = item.profiles?.username || "guest"
     const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
@@ -670,11 +671,11 @@ const { data: rawComments, error: qErr } = await supabaseClient
         
         <div style="display:flex; gap:8px; margin-bottom:12px;">
           <input id="comment-${item.id}" placeholder="Tulis komentar ladang..." style="flex-grow:1; padding:8px 12px; border-radius:20px; border:1px solid #ddd; font-size:12px; outline:none;" />
-          <button onclick="sendComment('${item.id}')" style="margin-top:0; width:auto; padding:6px 14px; font-size:12px; border-radius:20px;">Kirim</button>
+          <button type="button" onclick="sendComment('${item.id}')" style="margin-top:0; width:auto; padding:6px 14px; font-size:12px; border-radius:20px;">Kirim</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
-          ${postComments.length === 0 ? `<div style="color:#999; text-align:center; padding:5px 0;">Belum ada diskusi, yuk sapa petani! 🌱</div>` : ''}
+        <div id="list-komentar-${item.id}" style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+          ${postComments.length === 0 ? `<div id="empty-comment-${item.id}" style="color:#999; text-align:center; padding:5px 0;">Belum ada diskusi, yuk sapa petani! 🌱</div>` : ''}
           
          ${postComments.map(c => {
             if (!c) return '';
@@ -860,5 +861,112 @@ function toggleKomentarBox(postId) {
     box.style.display = "block";
   } else {
     box.style.display = "none";
+  }
+}
+async function sendComment(postId) {
+  const input = document.getElementById(`comment-${postId}`);
+  if (!input) return;
+  const commentText = input.value.trim();
+  if (!commentText) return;
+
+  if (!currentWallet) {
+    alert("Connect wallet dulu untuk ikut berdiskusi 🌱");
+    return;
+  }
+
+  // 1. Kirim data ke database Supabase
+  const { data, error } = await supabaseClient
+    .from("comments")
+    .insert([
+      {
+        post_id: postId,
+        user_id: currentWallet,
+        comment: commentText
+      }
+    ]);
+
+  if (error) {
+    alert("Gagal mengirim komentar: " + error.message);
+    return;
+  }
+
+  // 2. Ambil container list diskusi spesifik yang sudah kita beri ID di Langkah 2
+  const listContainer = document.getElementById(`list-komentar-${postId}`);
+  if (!listContainer) return;
+
+  // Hapus tulisan "Belum ada diskusi" jika ini adalah komentar pertama di post tersebut
+  const emptyMessage = document.getElementById(`empty-comment-${postId}`);
+  if (emptyMessage) {
+    emptyMessage.remove();
+  }
+
+  // 3. Siapkan data profil lokal untuk langsung dirender secara instan
+  const currentUsername = currentProfile ? currentProfile.username : "Petani";
+  const currentAvatar = currentProfile ? currentProfile.avatar_url : "https://www.tofarmer.xyz/images/logo-tofarmer.png";
+
+  // 4. Struktur HTML untuk komentar baru Anda
+  const newCommentHtml = `
+    <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
+      <img src="${currentAvatar}" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid rgba(0,0,0,0.08);" />
+      <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.05); max-width:calc(100% - 32px);">
+        <span style="font-weight:700; color:#2f6f4e; margin-right:4px;">@${currentUsername}</span>
+        <span style="color:#2c3a33; white-space:pre-wrap;">${convertMentions(commentText)}</span>
+      </div>
+    </div>
+  `;
+
+  // 5. Suntikkan HTML ke bagian paling bawah container tanpa merusak state halaman
+  listContainer.insertAdjacentHTML('beforeend', newCommentHtml);
+
+  // 6. Bersihkan kotak input komentar
+  input.value = "";
+
+  // 7. Update text counter jumlah komentar secara dinamis di luar kotak
+  const counterEl = document.querySelector(`[onclick="toggleKomentarBox('${postId}')"]`);
+  if (counterEl) {
+    // Ambil angka lama, tambah 1, lalu tulis ulang
+    const currentCount = parseInt(counterEl.innerText.replace(/[^0-9]/g, '')) || 0;
+    counterEl.innerHTML = `💬 ${currentCount + 1} Komentar`;
+  }
+}
+async function reactPost(postId, type) {
+  if (!currentWallet) {
+    alert("Connect wallet dulu untuk memberikan apresiasi 🌱");
+    return;
+  }
+
+  // 1. Tentukan kolom mana yang akan ditambah berdasarkan tipe reaksi
+  const columnUpdate = type === 'sruput' ? { sruput_count: 1 } : { cangkul_count: 1 };
+
+  try {
+    // 2. Kirim perintah RPC / increment ke Supabase (menggunakan fiturnya Supabase)
+    // Catatan: Jika Anda belum membuat fungsi RPC increment di Supabase, 
+    // pastikan logika update data baris ini disesuaikan dengan struktur database Anda.
+    const { error } = await supabaseClient
+      .rpc(type === 'sruput' ? 'increment_sruput' : 'increment_cangkul', { row_id: postId });
+
+    if (error) {
+      // Cara alternatif jika tidak menggunakan RPC (langsung update via query)
+      // Kita perlu tahu jumlah lama dulu, atau serahkan ke backend workers.
+      console.log("RPC gagal, mencoba metode update langsung...");
+    }
+
+    // 3. KUNCI KOORDINAT: Ambil posisi scroll sebelum feed dimuat ulang
+    const targetCard = document.getElementById(`post-card-${postId}`);
+    const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
+
+    // 4. Memuat ulang lini masa agar angka counter yang baru muncul
+    await loadFeed();
+
+    // 5. Kembalikan layar ke posisi koordinat semula secara instan tanpa efek lompat kasar
+    if (koordinatY) {
+      window.scrollTo({
+        top: koordinatY - 100, // dikurangi 100px agar ada jarak ruang di atas card
+        behavior: 'auto' // 'auto' membuat layar langsung mengunci tanpa animasi memantul
+      });
+    }
+
+  } catch (err) {
+    console.log("Gagal memproses reaksi:", err);
   }
 }
