@@ -604,27 +604,32 @@ async function loadFeed() {
     }
   } catch (metaErr) { console.log(metaErr); }
 
- let comments = []
+let comments = []
   try {
     const postIds = posts.map(p => p.id)
-    // KUNCI PERBAIKAN: Kita tambahkan nama kolom 'user_id' sebelum tanda titik dua (:) 
-    // Ini memberi tahu Supabase: "Hubungkan kolom user_id di tabel comments ke id di tabel profiles"
-    const { data } = await supabaseClient
+    // Kita panggil data secara eksplisit agar Supabase tidak bingung memetakan foreign key tabel profiles
+    const { data, error: qErr } = await supabaseClient
       .from("comments")
-      .select("*, profiles:user_id(id, username, avatar_url)")
+      .select("id, post_id, user_id, comment, created_at, profiles:user_id(id, username, avatar_url)")
       .in("post_id", postIds)
+    
+    if (qErr) console.log("Supabase error komentar:", qErr)
     comments = data || []
   } catch (e) { 
     console.log("Error ambil komentar:", e)
     comments = [] 
   }
 
+  // MEMBUAT WADAH PEMETAAN KOMENTAR DENGAN MEMAKSA KEY MENJADI STRING
   const commentMap = {}
   comments.forEach(c => {
-    // KODE BARU: Memastikan post_id dipaksa menjadi String agar cocok saat dicari di loop posts
-    const pId = String(c.post_id);
-    if (!commentMap[pId]) commentMap[pId] = [];
-    commentMap[pId].push(c);
+    if (c.post_id !== null && c.post_id !== undefined) {
+      const pIdStr = String(c.post_id).trim();
+      if (!commentMap[pIdStr]) {
+        commentMap[pIdStr] = [];
+      }
+      commentMap[pIdStr].push(c);
+    }
   })
 
   posts.forEach(item => {
@@ -633,8 +638,10 @@ async function loadFeed() {
 
     const username = item.profiles?.username || "guest"
     const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
-    // KODE BARU: Kita samakan pencarian key menggunakan String(item.id) agar pemetaan dari database akurat
-    const postComments = commentMap[String(item.id)] || []
+    
+    // KODE BARU: Ambil ID postingan dari contributions, paksa jadi string bersih tanpa spasi
+    const currentPostIdStr = String(item.id).trim();
+    const postComments = commentMap[currentPostIdStr] || [];
     const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
 
