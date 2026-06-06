@@ -79,89 +79,54 @@ function formatTime(months) {
 // =========================
 // garis per user (TOF FARMER RADAR STYLE)
 // =========================
-function createLine(username, months, progress) {
-
+// Tambahkan parameter 'index' dan 'balance' untuk menampilkan nomor dan jumlah saldo
+function createLine(username, months, balance, index) {
   const line = document.createElement("div");
 
+  // Style container baris agar padat dan rapi
   line.style = `
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin:5px 0;
-    font-size:11px;
-    font-family:Inter, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    margin: 4px 0;
+    font-size: 11px;
+    font-family: 'Inter', sans-serif;
+    background: rgba(248, 250, 249, 0.6);
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.02);
   `;
 
-  // USER LABEL
-  const label = document.createElement("div");
-  label.style = `
-    width:95px;
-    font-weight:600;
-    color:#2f6f4e;
-  `;
-  label.innerText = "@" + username;
+  // 1. KOLOM MEDALI / NOMOR URUT
+  let medali = `${index + 1}.`;
+  if (index === 0) medali = "🥇";
+  if (index === 1) medali = "🥈";
+  if (index === 2) medali = "🥉";
 
-  // TRACK LINE
-  const track = document.createElement("div");
-  track.style = `
-    flex:1;
-    height:2px;
-    background:linear-gradient(90deg,
-      rgba(76,175,122,0.15),
-      rgba(201,162,39,0.10));
-    border-radius:10px;
-    position:relative;
-    overflow:hidden;
-  `;
+  const medalEl = document.createElement("div");
+  medalEl.style = "width: 22px; font-weight: bold; flex-shrink: 0;";
+  medalEl.innerText = medali;
 
-  // GLOW PULSE BACKGROUND (radar feel)
-  const glow = document.createElement("div");
-  glow.style = `
-    position:absolute;
-    top:0;
-    left:0;
-    height:100%;
-    width:100%;
-    background:radial-gradient(circle,
-      rgba(76,175,122,0.15),
-      transparent);
-    animation:pulseGlow 2.5s infinite ease-in-out;
-  `;
+  // 2. KOLOM USERNAME
+  const labelEl = document.createElement("div");
+  labelEl.style = "flex: 1; font-weight: 600; color: #2f6f4e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px;";
+  labelEl.innerText = "@" + username;
 
-  // DOT (POSITION BASED PROGRESS)
-  const dot = document.createElement("div");
-  dot.style = `
-    width:8px;
-    height:8px;
-    border-radius:50%;
-    background:#c9a227;
-    position:absolute;
-    top:-3px;
-    left:${progress}%;
-    transform:translateX(-50%);
-    box-shadow:
-      0 0 8px rgba(201,162,39,0.7),
-      0 0 18px rgba(76,175,122,0.3);
-    animation:dotBreath 1.8s infinite ease-in-out;
-  `;
+  // 3. KOLOM SALDO TOF (Format ribuan ala Indonesia)
+  const balanceEl = document.createElement("div");
+  balanceEl.style = "width: 85px; text-align: right; font-weight: 700; color: #b5942b; flex-shrink: 0; font-variant-numeric: tabular-nums;";
+  balanceEl.innerText = balance.toLocaleString("id-ID", { maximumFractionDigits: 0 }) + " TOF";
 
-  track.appendChild(glow);
-  track.appendChild(dot);
+  // 4. KOLOM SISA WAKTU (ESTIMASI COMOUNDING)
+  const timeEl = document.createElement("div");
+  timeEl.style = "width: 65px; text-align: right; color: #6f7f76; flex-shrink: 0; font-size: 10px;";
+  timeEl.innerText = "⏳ " + formatTime(months);
 
-  // TEXT (ESTIMASI)
-  const text = document.createElement("div");
-  text.style = `
-    width:80px;
-    text-align:right;
-    font-size:10px;
-    color:#6f7f76;
-  `;
-
-  text.innerText = formatTime(months);
-
-  line.appendChild(label);
-  line.appendChild(track);
-  line.appendChild(text);
+  // Masukkan semua kolom ke dalam baris
+  line.appendChild(medalEl);
+  line.appendChild(labelEl);
+  line.appendChild(balanceEl);
+  line.appendChild(timeEl);
 
   return line;
 }
@@ -170,26 +135,39 @@ function createLine(username, months, progress) {
 // render radar
 // =========================
 async function renderQLR() {
-
-  container.innerHTML = "";
+  container.innerHTML = "<div style='font-size:11px; color:#6f7f76; text-align:center; padding:10px;'>Menghitung radar ladang... 🌿</div>";
 
   const users = await getAllWallets();
+  const userListWithBalance = [];
 
+  // 1. Kumpulkan semua data saldo dari blockchain terlebih dahulu
   for (let u of users) {
-
     const balance = await getUserBalance(u.id);
-
     const months = calcMonths(balance);
-    const progress = calcProgress(balance);
-
-    const line = createLine(
-      u.username || u.id,
-      months,
-      progress
-    );
-
-    container.appendChild(line);
+    
+    userListWithBalance.push({
+      username: u.username || u.id,
+      balance: balance,
+      months: months
+    });
   }
+
+  // 2. URUTKAN: Saldo paling besar berada di urutan paling atas
+  userListWithBalance.sort((a, b) => b.balance - a.balance);
+
+  // Bersihkan teks loading sebelum render data asli
+  container.innerHTML = "";
+
+  // 3. Render data yang sudah urut ke dalam card container
+  userListWithBalance.forEach((user, index) => {
+    const line = createLine(
+      user.username,
+      user.months,
+      user.balance,
+      index // Berikan posisi index untuk penentuan medali
+    );
+    container.appendChild(line);
+  });
 }
 
 // =========================
