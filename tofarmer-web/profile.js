@@ -1411,6 +1411,54 @@ result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick=
 
   return result;
 }
+async function loadNotifikasiUser() {
+  if (!currentWallet) return;
 
+  const { data: notifs, error } = await supabaseClient
+    .from("notifications")
+    .select(`
+      *,
+      profiles:sender_id(username) -- Ambil username si pemicu
+    `)
+    .eq("user_id", currentWallet)
+    .order("created_at", { ascending: false })
+    .limit(10); // Ambil 10 teratas
+
+  if (error || !notifs.length) return;
+
+  // Skenario 1: Bikin badge angka merah di menu navigasi jika ada is_read == false
+  const jumlahBelumBaca = notifs.filter(n => !n.is_read).length;
+  if (jumlahBelumBaca > 0) {
+     // Misal ada elemen <span id="notif-badge"></span> di HTML navigasi Anda
+     const badge = document.getElementById("notif-badge");
+     if (badge) {
+       badge.innerText = jumlahBelumBaca;
+       badge.style.display = "inline-block";
+     }
+  }
+
+  // Skenario 2: Render ke dalam kotak dropdown / halaman khusus notifikasi
+  // Anda bisa memetakan pesannya berdasarkan tipe
+  const listHtml = notifs.map(n => {
+    const namaPengirim = n.profiles?.username || "Seseorang";
+    let linkAksi = "";
+
+    // Manfaatkan parameter ?post= atau mekanisme popup ilmu yang sudah Anda buat!
+    if (n.type === 'comment' || n.type === 'mention') {
+       linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
+    } else if (n.type === 'vote_needed') {
+       linkAksi = `window.bukaDetailIlmuProfil('${n.related_id}', 'ilmu_pending')`;
+    }
+
+    return `
+      <div onclick="${linkAksi}" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; background: ${n.is_read ? 'white' : '#f0fdf4'}">
+        <strong>@${namaPengirim}</strong> ${n.message}
+        <span style="font-size:10px; color:#999; display:block;"> Baru saja </span>
+      </div>
+    `;
+  }).join("");
+  
+  // Tinggal tembak listHtml ini ke elemen pembungkus di UI Anda
+}
 
 
