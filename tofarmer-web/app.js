@@ -607,13 +607,17 @@ async function loadFeed() {
  let comments = []
   try {
     const postIds = posts.map(p => p.id)
-    // KODE BARU: Kita meminta Supabase mengambil data profiles berdasarkan relasi user_id di tabel comments
+    // KUNCI PERBAIKAN: Kita tambahkan nama kolom 'user_id' sebelum tanda titik dua (:) 
+    // Ini memberi tahu Supabase: "Hubungkan kolom user_id di tabel comments ke id di tabel profiles"
     const { data } = await supabaseClient
       .from("comments")
-      .select("*, profiles(id, username, avatar_url)")
+      .select("*, profiles:user_id(id, username, avatar_url)")
       .in("post_id", postIds)
     comments = data || []
-  } catch (e) { comments = [] }
+  } catch (e) { 
+    console.log("Error ambil komentar:", e)
+    comments = [] 
+  }
 
   const commentMap = {}
   comments.forEach(c => {
