@@ -608,10 +608,9 @@ let comments = [];
   try {
     const postIds = posts.map(p => p.id);
     
-    // 1. Ambil data komentar murni secara utuh
     const { data: rawComments, error: qErr } = await supabaseClient
-      .from("comments")
-      .select("id, post_id, user_id, comment, created_at")
+  .from("comments")
+  .select("*");
       .in("post_id", postIds);
     
     if (qErr) console.log("Gagal ambil data komentar:", qErr);
