@@ -613,23 +613,35 @@ async function loadUserPosts() {
           </span>
         </div>
 
-        <div class="post-actions">
+       <div class="post-actions">
           <button class="share-btn" onclick="sharePost('${post.id}', '${currentUsername}', \`${safeText}\`)">
             📢 Bagikan Karya
           </button>
         </div>
 
-        <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;box-sizing:border-box;" />
+        <div style="margin-top: 10px; margin-bottom: 10px; font-size: 12px;">
+          <span id="comment-count-${post.id}" onclick="toggleCommentBox('${post.id}')" style="cursor:pointer; color:#2f6f4e; font-weight:600; user-select:none;">
+            💬 Memuat jumlah komentar...
+          </span>
+        </div>
 
-        <button class="btn-glow" onclick="sendComment('${post.id}')" style="margin-top:6px;padding:6px 10px;font-size:12px;width:auto;">Kirim</button>
+        <div id="commentWrapper-${post.id}" style="display: none; border-top: 1px dashed #ddd; padding-top: 10px; margin-top: 5px;">
+          
+          <div id="commentBox-${post.id}" style="font-size:12px; color:#444; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
+          
+          <div style="display:flex; gap:6px;">
+            <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; font-size:12px; box-sizing:border-box;" />
+            <button class="btn-glow" onclick="sendComment('${post.id}')" style="margin:0; padding:8px 14px; font-size:12px; width:auto;">Kirim</button>
+          </div>
 
-        <div id="commentBox-${post.id}" style="margin-top:8px;font-size:12px;color:#444;"></div>
+        </div>
 
       </div>
     `
   }).join("")
 
-  setTimeout(() => data.forEach(p => loadComments(p.id)), 0)
+  // MODIFIKASI: Panggil fungsi hitung jumlah komentar saja saat awal load halaman
+  setTimeout(() => data.forEach(p => updateCommentCount(p.id)), 0)
 }
 
 // =====================
@@ -720,6 +732,12 @@ async function sendComment(postId) {
   const input = document.getElementById("cmt-" + postId)
   const text = input.value.trim()
 
+  // Skenario proteksi jika user belum login/connect wallet
+  if (!currentWallet) {
+    alert("🌿 Sambungkan dompet dulu untuk ikut berdiskusi!");
+    return
+  }
+
   if (!text) return
 
   await supabaseClient.from("comments").insert([{
@@ -729,20 +747,83 @@ async function sendComment(postId) {
   }])
 
   input.value = ""
-  loadComments(postId)
+  
+  // Refresh data list komentar & update jumlah angka notifikasinya
+  await loadComments(postId)
+  await updateCommentCount(postId)
 }
 
+// Fungsi Load Komentar Baru: Mengambil data teks sekaligus Profil Pengomentar
 async function loadComments(postId) {
-  const { data } = await supabaseClient
+  const { data, error } = await supabaseClient
     .from("comments")
-    .select("*")
+    .select(`
+      id,
+      comment,
+      created_at,
+      user_id,
+      profiles(username, avatar_url)
+    `)
     .eq("post_id", postId)
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: true }) // Diurutkan dari yang lama ke baru seperti Facebook
 
   const box = document.getElementById("commentBox-" + postId)
-  if (!box) return
+  if (!box || error) return
 
-  box.innerHTML = (data || []).map(c => `💬 ${c.comment}`).join("")
+  if (!data || data.length === 0) {
+    box.innerHTML = `<div style="color:#999; font-style:italic; padding: 4px 0;">Belum ada diskusi, jadilah yang pertama! 🌱</div>`
+    return
+  }
+
+  box.innerHTML = data.map(c => {
+    const userCommentar = c.profiles?.username || "Petani";
+    const avatarCommentar = c.profiles?.avatar_url || "https://www.tofarmer.xyz/images/logo-tofarmer.png";
+    
+    // Tautan klik dialihkan secara dinamis ke halaman profil user tersebut (?u=username)
+    return `
+      <div style="display: flex; gap: 8px; align-items: flex-start; background: #f9f9f9; padding: 8px; border-radius: 12px; margin-bottom: 2px;">
+        <a href="?u=${userCommentar}" style="display: block; flex-shrink: 0;">
+          <img src="${avatarCommentar}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" />
+        </a>
+        <div style="flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
+            <a href="?u=${userCommentar}" style="text-decoration: none; color: #2f6f4e; font-weight: 700; font-size: 11px;">@${userCommentar}</a>
+          </div>
+          <div style="color: #333; font-size: 12px; line-height: 1.4;">
+            ${c.comment}
+          </div>
+        </div>
+      </div>
+    `
+  }).join("")
+}
+
+// FUNGSI BARU: Hanya menghitung total baris komentar dari database Supabase
+async function updateCommentCount(postId) {
+  const { count, error } = await supabaseClient
+    .from("comments")
+    .select("*", { count: "exact", head: true })
+    .eq("post_id", postId)
+
+  const countEl = document.getElementById(`comment-count-${postId}`)
+  if (countEl && !error) {
+    countEl.innerText = `💬 ${count || 0} Komentar`;
+  }
+}
+
+// FUNGSI BARU: Mekanisme buka-tutup box (Klik jumlah komentar -> Baru panggil API & Munculkan)
+async function toggleCommentBox(postId) {
+  const wrapper = document.getElementById(`commentWrapper-${postId}`)
+  if (!wrapper) return
+
+  if (wrapper.style.display === "none") {
+    // Saat dibuka, jalankan fungsi penarik data terbaru
+    await loadComments(postId)
+    wrapper.style.display = "block"
+  } else {
+    // Saat diklik lagi, sembunyikan kembali
+    wrapper.style.display = "none"
+  }
 }
 
 // =====================
