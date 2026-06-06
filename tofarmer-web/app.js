@@ -40,6 +40,10 @@ async function connectWallet() {
           <div style="font-size:50px;">🌿</div>
           <h2 style="color:#2f6f4e;">Daftar ToFarmer</h2>
           <p style="font-size:12px;color:#666;margin-top:8px;">Nama + Wallet Algorand</p>
+<p style="font-size:12px;color:#666;margin-top:8px;">
+  Daftar pakai Nama | Alamat Dompet Algorand<br>
+  Bikin dompet dulu di Pera Wallet/Defly
+</p>
         </div>
         <input id="tofName" placeholder="Nama pengguna" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
         <input id="tofWallet" placeholder="Wallet Algorand" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
