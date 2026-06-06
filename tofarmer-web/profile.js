@@ -1457,7 +1457,7 @@ function inisialisasiKomponenNotif() {
     @media (max-width: 768px) {
       #tof-notif-wrapper {
         top: 85px !important;    
-        right: 10% !important;   
+        right: 40% !important;   
         transform: translateX(50%) !important; 
       }
       #box-notif-tof {
