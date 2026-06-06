@@ -822,34 +822,42 @@ window.addEventListener("DOMContentLoaded", () => {
     })
   }
 
- loadFeed().then(() => {
-    // 2. Cek apakah di link URL ada parameter "?post=xxx"
+loadFeed().then(() => {
+    // 1. BUAT KANTONG URL (PENTING: Ini yang sebelumnya hilang sehingga bikin macet!)
     const urlParams = new URLSearchParams(window.location.search);
     const postIdParam = urlParams.get("post");
 
     if (postIdParam) {
-      // 給 Beri jeda 800 milidetik agar browser selesai menggambar kartu di layar
+      // 2. Beri jeda 1000 milidetik (1 detik) agar browser selesai menggambar kartu & komentar di layar
       setTimeout(() => {
         const targetCard = document.getElementById(`post-card-${postIdParam}`);
         if (targetCard) {
-          // Hitung lokasi koordinat kartu tersebut
+          
+          // 3. OTOMATIS BUKA KOTAK KOMENTAR (Biar user langsung bisa baca/tulis diskusi)
+          if (typeof toggleKomentarBox === "function") {
+            toggleKomentarBox(postIdParam);
+          }
+
+          // 4. Hitung lokasi koordinat kartu tersebut di dalam halaman web
           const koordinatY = targetCard.getBoundingClientRect().top + window.scrollY;
           
-          // Luncurkan layar otomatis ke lokasi kartu (dikurangi 100px agar pas di tengah pandangan)
+          // 5. Luncurkan layar otomatis ke lokasi kartu secara mulus
           window.scrollTo({
-            top: koordinatY - 100,
-            behavior: 'smooth' // 'smooth' memberikan efek meluncur halus yang estetik
+            top: koordinatY - 100, // Dikurangi 100px agar ada jarak ruang nyaman di atas kartu
+            behavior: 'smooth'    // Memberikan efek meluncur halus yang estetik
           });
           
-          // Opsional: Beri efek highlight/kedip tipis pada kartu agar user tahu itu pos yang dituju
-          targetCard.style.border = "2px solid #4caf7a";
-          targetCard.style.transition = "border 1s ease";
+          // 6. Beri efek highlight visual (bingkai hijau + bayangan menyala) agar user tahu itu pos tujuan
+          targetCard.style.transition = "all 0.8s ease";
+          targetCard.style.boxShadow = "0 0 20px rgba(47, 111, 78, 0.4)";
+          targetCard.style.borderColor = "#2f6f4e";
+          targetCard.style.borderWidth = "2px";
         }
-      }, 800); 
+      }, 1000); // Durasi 1000ms sangat aman bahkan saat koneksi internet sedang lambat
     }
   });
 
-  // 🟢 BATAS BAWAH KODE BARU
+  // 🟢 BATAS BAWAH KODE BARU AMAN SUNTIK
   loadAvatarStack()
   loadEconomy()
 
