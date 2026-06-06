@@ -1050,7 +1050,7 @@ async function loadRadarPeringkat() {
       .from("profiles")
       .select("username, xp")
       .order("xp", { ascending: false })
-      .limit(10); // Membatasi top 10 petani teratas agar pas di dalam card
+      .limit(10);
 
     if (error) throw error;
 
@@ -1066,7 +1066,7 @@ async function loadRadarPeringkat() {
         const levelUser = Math.floor(Math.sqrt(xpUser / 100)) + 1;
 
         return `
-          <div style="display:flex;align-items:center;justify-content:between;background:#f8fafc;border:1px solid #f1f5f9;padding:6px 10px;border-radius:8px;font-size:11px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid #f1f5f9;padding:6px 10px;border-radius:8px;font-size:11px;">
             <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
               <span style="font-weight:bold;color:#64748b;width:16px;flex-shrink:0;">${medali}</span>
               <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -1075,7 +1075,7 @@ async function loadRadarPeringkat() {
               </div>
             </div>
             <div style="text-align:right;flex-shrink:0;font-weight:600;color:#2f6f4e;background:#eef7f1;padding:2px 6px;border-radius:999px;font-size:10px;margin-left:4px;">
-              Lvl ${levelUser} <span style="font-size:9px;font-weight:normal;color:#6f7f76;">(${xpUser} XP)</span>
+              Lvl ${levelUser} <span style="font-size:9px;font-weight:normal;color:#6f7f76;">(${xpUser})</span>
             </div>
           </div>
         `;
