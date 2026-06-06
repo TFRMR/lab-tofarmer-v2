@@ -999,7 +999,7 @@ async function reactPost(postId, type) {
 
   // Panggil pengisian daftar peringkat petani untuk radar card
   loadRadarPeringkat();
-});
+
 
     // C. KEMBALIKAN POSISI SCROLL LAYAR
     if (koordinatY) {
