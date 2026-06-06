@@ -765,7 +765,7 @@ async function loadComments(postId) {
       user_id,
       profiles(username, avatar_url)
     `)
-    .eq("post_id", postIds)
+    .eq("post_id", postId) // 🟢 SEKARANG DAFTAR KOMENTAR AKAN MUNCUL SELESAI DICARI
     .order("created_at", { ascending: true }) // Diurutkan dari lama ke baru ala Facebook
 
   const box = document.getElementById("commentBox-" + postId)
