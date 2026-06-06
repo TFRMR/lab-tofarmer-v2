@@ -758,24 +758,45 @@ async function sendComment(postId) {
 
 // Fungsi Load Komentar Baru: Mengambil data teks sekaligus Profil Pengomentar
 async function loadComments(postId) {
-  // PERBAIKAN: Menambahkan destructuring 'error' dan menarik data 'profiles'
-  const { data, error } = await supabaseClient
-    .from("comments")
-    .select(`
-      id,
-      comment,
-      created_at,
-      user_id,
-      profiles(username, avatar_url)
-    `)
-    .eq("post_id", postId) // 🟢 SEKARANG DAFTAR KOMENTAR AKAN MUNCUL SELESAI DICARI
-    .order("created_at", { ascending: true }) // Diurutkan dari lama ke baru ala Facebook
 
-  const box = document.getElementById("commentBox-" + postId)
+  // 1. ambil comments saja
+  const { data: comments, error } = await supabaseClient
+    .from("comments")
+    .select("*")
+    .eq("post_id", Number(postId))
+    .order("created_at", { ascending: true });
+
+  const box = document.getElementById("commentBox-" + postId);
+
   if (!box || error) {
     console.error("Gagal memuat komentar:", error);
     return;
   }
+
+  if (!comments || comments.length === 0) {
+    box.innerHTML = "<p>Belum ada komentar</p>";
+    return;
+  }
+
+  // 2. ambil semua user_id unik
+  const userIds = [...new Set(comments.map(c => c.user_id))];
+
+  // 3. ambil profiles berdasarkan user_id
+  const { data: profiles } = await supabaseClient
+    .from("profiles")
+    .select("id, username, avatar_url")
+    .in("id", userIds);
+
+  // 4. mapping profiles ke object
+  const profileMap = Object.fromEntries(
+    (profiles || []).map(p => [p.id, p])
+  );
+
+  // 5. gabungkan data
+  const merged = comments.map(c => ({
+    ...c,
+    profiles: profileMap[c.user_id] || null
+  }));
 
   if (!data || data.length === 0) {
     box.innerHTML = `<div style="color:#999; font-style:italic; padding: 4px 0;">Belum ada diskusi, jadilah yang pertama! 🌱</div>`
