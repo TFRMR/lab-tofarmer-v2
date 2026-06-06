@@ -248,12 +248,14 @@ function updateWalletUI() {
   if (!btn) return
 
   if (currentWallet) {
-    btn.innerText = "🌿 LOGOUT DOMPET"
+    // 1. Teks jika petani SUDAH LOGIN / CONNECT
+    btn.innerText = "🚪 KELUAR LADANG"
     btn.style.background = "#4caf7a"
     btn.onclick = logoutWallet
     if (editBtn) editBtn.style.visibility = "visible"
   } else {
-    btn.innerText = "CONNECT DOMPET"
+    // 2. Teks jika petani BELUM LOGIN (Ini yang Anda tanyakan 😎)
+    btn.innerText = "🔑 MASUK / DAFTAR 🌿"
     btn.style.background = ""
     btn.onclick = connectWallet
     if (editBtn) editBtn.style.visibility = "hidden"
