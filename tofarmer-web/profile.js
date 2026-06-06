@@ -1417,11 +1417,13 @@ result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick=
 
 // 1. Fungsi untuk Membuat Elemen Tombol Lonceng & Kotak Dropdown secara otomatis di Layar
 function inisialisasiKomponenNotif() {
-  if (!currentWallet) return; // Jika pengunjung tidak login wallet, fitur tidak muncul
+  if (!currentWallet) return; 
 
   const notifWrapper = document.createElement("div");
   notifWrapper.id = "tof-notif-wrapper";
-  notifWrapper.style.cssText = "position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: sans-serif;";
+  
+  // 💡 PERBAIKAN 1: Mengubah bottom menjadi top agar posisi pindah ke atas kanan layar
+  notifWrapper.style.cssText = "position: fixed; top: 20px; right: 20px; z-index: 9999; font-family: sans-serif;";
 
   notifWrapper.innerHTML = `
     <button id="btn-lonceng-tof" style="background: #2f6f4e; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; display: flex; align-items: center; justify-content: center; font-size: 20px; outline: none;">
@@ -1429,7 +1431,7 @@ function inisialisasiKomponenNotif() {
       <span id="badge-notif-tof" style="display: none; position: absolute; top: 0; right: 0; background: #dc2626; color: white; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 10px; border: 2px solid white;">0</span>
     </button>
 
-    <div id="box-notif-tof" style="display: none; position: absolute; bottom: 60px; right: 0; width: 320px; max-height: 400px; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow-y: auto;">
+    <div id="box-notif-tof" style="display: none; position: absolute; top: 60px; right: 0; width: 320px; max-height: 400px; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow-y: auto;">
       <div style="padding: 12px; background: #f4fbf7; border-bottom: 1px solid #e2ece7; font-weight: bold; color: #2f6f4e; display: flex; justify-content: space-between; align-items: center;">
         <span>Pemberitahuan Ladang</span>
         <button id="btn-tandai-baca" style="background:none; border:none; color:#6ea84f; font-size:11px; cursor:pointer; font-weight:600;">Tandai Dibaca</button>
@@ -1445,7 +1447,6 @@ function inisialisasiKomponenNotif() {
   const btnLonceng = document.getElementById("btn-lonceng-tof");
   const boxNotif = document.getElementById("box-notif-tof");
   
-  // Klik lonceng untuk buka-tutup kotak dan muat data terbaru
   btnLonceng.addEventListener("click", () => {
     if (boxNotif.style.display === "none") {
       boxNotif.style.display = "block";
