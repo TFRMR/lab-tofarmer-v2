@@ -1463,12 +1463,10 @@ async function loadNotifikasiUser() {
   if (!currentWallet) return;
 
   try {
+    // 1. Ambil data notifikasi murni tanpa JOIN terlebih dahulu (Menghindari Eror 400)
     const { data: notifs, error } = await supabaseClient
       .from("notifications")
-      .select(`
-        *,
-        profiles:sender_id(username)
-      `)
+      .select("*")
       .eq("user_id", currentWallet)
       .order("created_at", { ascending: false })
       .limit(10);
@@ -1478,7 +1476,6 @@ async function loadNotifikasiUser() {
     const badge = document.getElementById("badge-notif-tof");
     const listContainer = document.getElementById("list-notif-tof");
 
-    // Hitung notifikasi yang belum dibaca untuk angka badge merah
     const jumlahBelumBaca = notifs ? notifs.filter(n => !n.is_read).length : 0;
     if (badge) {
       if (jumlahBelumBaca > 0) {
@@ -1496,12 +1493,27 @@ async function loadNotifikasiUser() {
       return;
     }
 
-    // Petakan data ke dalam baris HTML di dalam dropdown
+    // 2. Ambil semua sender_id unik untuk dicari nama profilnya secara manual
+    const semuaSender = [...new Set(notifs.map(n => n.sender_id))];
+    const { data: daftarProfil, error: errorProfil } = await supabaseClient
+      .from("profiles")
+      .select("id, username")
+      .in("id", semuaSender);
+
+    // Buat peta (map) agar pencarian nama nanti super cepat
+    const petaProfil = {};
+    if (!errorProfil && daftarProfil) {
+      daftarProfil.forEach(p => {
+        petaProfil[p.id] = p.username;
+      });
+    }
+
+    // 3. Petakan data ke dalam baris HTML di dalam dropdown
     const listHtml = notifs.map(n => {
-      const namaPengirim = n.profiles?.username || "Seseorang";
+      // Ambil username dari peta profil, jika tidak ketemu pakai "Seseorang"
+      const namaPengirim = petaProfil[n.sender_id] || "Seseorang";
       let linkAksi = "";
 
-      // Pengalihan otomatis saat notifikasi diklik
       if (n.type === 'comment' || n.type === 'mention') {
          linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
       } else if (n.type === 'vote_needed') {
@@ -1513,7 +1525,7 @@ async function loadNotifikasiUser() {
       return `
         <div onclick="${linkAksi}" style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; background: ${bgWarna}; transition: background 0.2s;" onmouseover="this.style.background='#f7faf8'" onmouseout="this.style.background='${bgWarna}'">
           <strong>@${namaPengirim}</strong> ${n.message}
-          <span style="font-size:10px; color:#999; display:block; margin-top:4px;">
+          <span style="font-size: 10px; color: #999; display: block; margin-top: 4px;">
             ${new Date(n.created_at).toLocaleDateString('id-ID')}
           </span>
         </div>
