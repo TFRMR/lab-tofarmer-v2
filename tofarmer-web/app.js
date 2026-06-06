@@ -621,16 +621,20 @@ let comments = []
   }
 
   // MEMBUAT WADAH PEMETAAN KOMENTAR DENGAN MEMAKSA KEY MENJADI STRING
-  const commentMap = {}
-  comments.forEach(c => {
-    if (c.post_id !== null && c.post_id !== undefined) {
-      const pIdStr = String(c.post_id).trim();
-      if (!commentMap[pIdStr]) {
-        commentMap[pIdStr] = [];
+  // MEMBUAT WADAH PEMETAAN KOMENTAR DENGAN MENGAMANKAN TIPE DATA NUMBER DAN STRING
+  const commentMap = {};
+  if (Array.isArray(comments)) {
+    comments.forEach(c => {
+      if (c && c.post_id !== null && c.post_id !== undefined) {
+        // Kita ubah menjadi string bersih dan hilangkan kemungkinan bug whitespace
+        const pIdStr = String(c.post_id).trim();
+        if (!commentMap[pIdStr]) {
+          commentMap[pIdStr] = [];
+        }
+        commentMap[pIdStr].push(c);
       }
-      commentMap[pIdStr].push(c);
-    }
-  })
+    });
+  }
 
   posts.forEach(item => {
     const div = document.createElement("div")
@@ -639,9 +643,9 @@ let comments = []
     const username = item.profiles?.username || "guest"
     const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
     
-    // KODE BARU: Ambil ID postingan dari contributions, paksa jadi string bersih tanpa spasi
+    // AMANKAN COCOKAN: Kita pastikan ID postingan dicari dalam format string murni
     const currentPostIdStr = String(item.id).trim();
-    const postComments = commentMap[currentPostIdStr] || [];
+    const postComments = commentMap[currentPostIdStr] || commentMap[Number(item.id)] || [];
     const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
 
@@ -674,24 +678,26 @@ let comments = []
         <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
           ${postComments.length === 0 ? `<div style="color:#999; text-align:center; padding:5px 0;">Belum ada diskusi, yuk sapa petani! 🌱</div>` : ''}
           
-          ${postComments.map(c => {
-            // Berikan fallback jika ada data profile kosong atau user anonim
-            const cUser = c.profiles?.username || "Petani_Misterius";
-            const cAvatar = c.profiles?.avatar_url || "https://www.tofarmer.xyz/images/logo-tofarmer.png";
-            const cUserId = c.profiles?.id || "";
+         ${postComments.map(c => {
+            if (!c) return '';
+            // Ambil data profile dari objek gabungan Supabase
+            const cUser = (c.profiles && c.profiles.username) ? c.profiles.username : "Petani_Misterius";
+            const cAvatar = (c.profiles && c.profiles.avatar_url) ? c.profiles.avatar_url : "https://www.tofarmer.xyz/images/logo-tofarmer.png";
+            const cUserId = (c.profiles && c.profiles.id) ? c.profiles.id : "";
+            const isiKomentar = c.comment || "";
             
             return `
-              <div style="display:flex; align-items:flex-start; gap:8px;">
+              <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
                 <img src="${cAvatar}" 
                      onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
-                     style="width:24px; height:24px; border-radius:50%; object-fit:cover; cursor:pointer; border:1px solid rgba(0,0,0,0.05);" />
+                     style="width:24px; height:24px; border-radius:50%; object-fit:cover; cursor:pointer; border:1px solid rgba(0,0,0,0.08);" />
                 
-                <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.04); max-width:calc(100% - 32px);">
+                <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.05); max-width:calc(100% - 32px);">
                   <span onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
                         style="font-weight:700; color:#2f6f4e; cursor:pointer; margin-right:4px;">
                     @${cUser}
                   </span>
-                  <span style="color:#2c3a33; white-space:pre-wrap;">${convertMentions(c.comment || "")}</span>
+                  <span style="color:#2c3a33; white-space:pre-wrap;">${convertMentions(isiKomentar)}</span>
                 </div>
               </div>
             `;
