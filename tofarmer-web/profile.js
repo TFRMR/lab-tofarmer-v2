@@ -562,7 +562,7 @@ async function loadUserPosts() {
     console.log("Gagal memperbarui Meta Tag di Profil:", metaErr);
   }
 
-  box.innerHTML = data.map(post => {
+ box.innerHTML = data.map(post => {
     const date = new Date(post.created_at).toLocaleString("id-ID", {
       day: "2-digit",
       month: "short",
@@ -575,7 +575,7 @@ async function loadUserPosts() {
     const currentUsername = profileUsername || "Petani";
 
     return `
-      <div class="card" style="margin-bottom:14px;">
+      <div id="post-card-${post.id}" class="card" style="margin-bottom:14px;">
 
         <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
           🌿 ${date}
@@ -635,7 +635,7 @@ async function loadUserPosts() {
           
           <div style="display:flex; gap:6px;">
             <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; font-size:12px; box-sizing:border-box;" />
-            <button class="btn-glow" onclick="sendComment('${post.id}')" style="margin:0; padding:8px 14px; font-size:12px; width:auto;">Kirim</button>
+            <button type="button" class="btn-glow" onclick="sendComment('${post.id}')" style="margin:0; padding:8px 14px; font-size:12px; width:auto;">Kirim</button>
           </div>
 
         </div>
@@ -707,7 +707,7 @@ async function reactPost(postId, type) {
       return;
     }
 
-    // 4. Jika pendaftaran sukses, baru tambahkan angka +1
+  // 4. Jika pendaftaran sukses, baru tambahkan angka +1
     await supabaseClient
       .from("contributions")
       .update({
@@ -716,8 +716,20 @@ async function reactPost(postId, type) {
       })
       .eq("id", postId);
 
+    // 🟢 KUNCI KOORDINAT: Catat posisi scroll aktual kartu sebelum UI digambar ulang
+    const targetCard = document.getElementById(`post-card-${postId}`);
+    const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
+
     // Muat ulang tampilan agar angka berubah di layar browser
     await loadUserPosts();
+
+    // 🟢 KEMBALIKAN POSISI: Kembalikan posisi scroll ke koordinat semula secara presisi
+    if (koordinatY) {
+      window.scrollTo({
+        top: koordinatY - 40, // Beri sedikit kelonggaran batas atas sebesar 40px agar nyaman di mata
+        behavior: "auto"      // 'auto' mengunci posisi secara instan tanpa animasi geser kasat mata
+      });
+    }
 
   } catch (err) {
     console.error("Terjadi kesalahan:", err);
@@ -749,11 +761,23 @@ async function sendComment(postId) {
     comment: text
   }])
 
+  // 🟢 KUNCI KOORDINAT: Simpan posisi kartu sebelum memproses pembaruan komponen internal
+  const targetCard = document.getElementById(`post-card-${postId}`);
+  const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
+
   input.value = ""
   
   // Refresh data list komentar & update jumlah angka notifikasinya
   await loadComments(postId)
   await updateCommentCount(postId)
+
+  // 🟢 KEMBALIKAN POSISI: Pertahankan letak koordinat box agar tidak meloncat
+  if (koordinatY) {
+    window.scrollTo({
+      top: koordinatY - 40,
+      behavior: "auto"
+    });
+  }
 }
 
 // Fungsi Load Komentar Baru: Mengambil data teks sekaligus Profil Pengomentar
