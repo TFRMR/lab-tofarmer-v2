@@ -144,7 +144,7 @@ async function refreshBalance(profileId) {
 async function loadProfile() {
 
   let queryField = "username"
-  let queryValue = profileUsername
+ let queryValue = profileUsername || null
 
   // 1. Ambil parameter id (alamat wallet) langsung dari URL browser jika ada
   const urlWalletId = urlParams.get("id")
@@ -821,9 +821,7 @@ async function loadUserPosts() {
           ` : ''}
         </div>
 
-        <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
-          ${post.deskripsi_proses || ""}
-        </div>
+       
 
         <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
           ${post.deskripsi_proses || ""}
@@ -891,27 +889,7 @@ async function loadUserPosts() {
   // 1. Tetap jalankan update counter jumlah komentar secara paralel
   setTimeout(() => data.forEach(p => updateCommentCount(p.id)), 0)
 
-  // 🟢 2. FITUR AUTO-SCROLL ANCHORING DARI TAUTAN BAGIKAN KARYA
-  setTimeout(async () => {
-    const postIdParam = urlParams.get("post");
-    if (postIdParam) {
-      // Cari kartu postingan fisik di layar DOM
-      const targetCard = document.getElementById(`post-card-${postIdParam}`);
-      if (targetCard) {
-        // A. Otomatis buka kotak komentar agar pengguna langsung diarahkan berdiskusi
-        await toggleCommentBox(postIdParam);
-        
-        // B. Gulirkan layar komputer/HP menuju koordinat postingan tersebut secara halus (smooth)
-        targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        
-        // C. Berikan efek highlight kilasan hijau tipis agar pengguna tahu postingan mana yang sedang disorot
-        targetCard.style.transition = "all 0.5s ease";
-        targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
-        targetCard.style.borderColor = "#2f6f4e";
-      }
-    }
-  }, 300); // Diberi jeda 300ms agar browser selesai menyusun HTML kartu terlebih dahulu
-}
+  
 
 // =====================
 // REACTION
