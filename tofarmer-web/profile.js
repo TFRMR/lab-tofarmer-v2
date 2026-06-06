@@ -1419,74 +1419,92 @@ result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick=
 function inisialisasiKomponenNotif() {
   if (!currentWallet) return; 
 
-  // 1. Buat elemen style pembantu untuk mendeteksi layar HP secara otomatis
+  // 1. Hapus wrapper lama jika tidak sengaja terbuat ganda
+  const wrapperLama = document.getElementById("tof-notif-wrapper");
+  if (wrapperLama) wrapperLama.remove();
+
+  // 2. Buat elemen style pembantu untuk memaksa posisi di HP & PC
   const styleNotif = document.createElement("style");
+  styleNotif.id = "tof-notif-style";
   styleNotif.innerHTML = `
-    /* Tampilan standar untuk PC / Layar Lebar */
     #tof-notif-wrapper {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 999999; /* Dibuat sangat tinggi agar tidak tenggelam di bawah navbar */
-      font-family: sans-serif;
+      position: fixed !important;
+      top: 15px !important;
+      right: 15px !important;
+      z-index: 999999999 !important; /* Kasta tertinggi HTML */
+      font-family: sans-serif !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
     }
     #box-notif-tof {
       display: none;
-      position: absolute;
-      top: 60px;
-      right: 0;
-      width: 320px;
-      max-height: 400px;
-      background: white;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-      overflow-y: auto;
+      position: absolute !important;
+      top: 55px !important;
+      right: 0 !important;
+      width: 300px !important;
+      max-height: 380px !important;
+      background: white !important;
+      border: 2px solid #2f6f4e !important; /* Border tebal agar kelihatan jelas */
+      border-radius: 8px !important;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
+      overflow-y: auto !important;
+      z-index: 1000000000 !important;
     }
 
-    /* 📱 KONDISI KHUSUS LAYAR HAPE (Lebar di bawah 768px) */
+    /* 📱 PAKSA TAMPILAN KHUSUS HAPE */
     @media (max-width: 768px) {
       #tof-notif-wrapper {
-        top: 75px !important;   /* Diturunkan jadi 75px agar lolos dari jeratan Navbar atas HP */
-        right: 15px !important;  /* Jarak aman dari tepi layar kanan HP */
+        top: 85px !important;    /* Turun lebih dalam agar lolos dari navbar HP */
+        right: 10px !important;   /* Menempel pas di kanan HP */
       }
       #box-notif-tof {
         right: 0 !important;
-        width: 290px !important; /* Dikecilkan sedikit agar kotak tidak meluber keluar layar HP */
-        max-height: 350px !important;
+        width: 280px !important;  /* Ukuran aman layar HP */
+        max-height: 320px !important;
       }
     }
   `;
+  
+  // Bersihkan style lama jika ada, lalu pasang yang baru di head
+  const styleLama = document.getElementById("tof-notif-style");
+  if (styleLama) styleLama.remove();
   document.head.appendChild(styleNotif);
 
-  // 2. Buat pembungkus utama
+  // 3. Buat pembungkus utama
   const notifWrapper = document.createElement("div");
   notifWrapper.id = "tof-notif-wrapper";
 
   notifWrapper.innerHTML = `
-    <button id="btn-lonceng-tof" style="background: #2f6f4e; color: white; border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.25); position: relative; display: flex; align-items: center; justify-content: center; font-size: 20px; outline: none; -webkit-tap-highlight-color: transparent;">
+    <button id="btn-lonceng-tof" style="background: #2f6f4e; color: white; border: 2px solid white; width: 46px; height: 46px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4); position: relative; display: flex; align-items: center; justify-content: center; font-size: 20px; outline: none; -webkit-tap-highlight-color: transparent;">
       🔔
-      <span id="badge-notif-tof" style="display: none; position: absolute; top: -2px; right: -2px; background: #dc2626; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; border: 2px solid white;">0</span>
+      <span id="badge-notif-tof" style="display: none; position: absolute; top: -4px; right: -4px; background: #dc2626; color: white; font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 10px; border: 1px solid white;">0</span>
     </button>
 
     <div id="box-notif-tof">
-      <div style="padding: 12px; background: #f4fbf7; border-bottom: 1px solid #e2ece7; font-weight: bold; color: #2f6f4e; display: flex; justify-content: space-between; align-items: center;">
-        <span>Pemberitahuan Ladang</span>
+      <div style="padding: 10px; background: #f4fbf7; border-bottom: 1px solid #e2ece7; font-weight: bold; color: #2f6f4e; display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size:12px;">Pemberitahuan Ladang</span>
         <button id="btn-tandai-baca" style="background:none; border:none; color:#6ea84f; font-size:11px; cursor:pointer; font-weight:600;">Tandai Dibaca</button>
       </div>
-      <div id="list-notif-tof" style="font-size: 13px;">
+      <div id="list-notif-tof" style="font-size: 13px; background: white;">
         <div style="padding: 20px; text-align: center; color: #999;">Memuat pemberitahuan...</div>
       </div>
     </div>
   `;
 
-  document.body.appendChild(notifWrapper);
+  // 💡 TRICK PAMUNGKAS: Jangan appendChild di bawah body, tapi paksa sisipkan di paling atas elemen body!
+  if (document.body.firstChild) {
+    document.body.insertBefore(notifWrapper, document.body.firstChild);
+  } else {
+    document.body.appendChild(notifWrapper);
+  }
 
   const btnLonceng = document.getElementById("btn-lonceng-tof");
   const boxNotif = document.getElementById("box-notif-tof");
   
   btnLonceng.addEventListener("click", (e) => {
-    e.stopPropagation(); // Mencegah bentrok click event di HP
+    e.preventDefault();
+    e.stopPropagation();
     if (boxNotif.style.display === "none" || boxNotif.style.display === "") {
       boxNotif.style.display = "block";
       loadNotifikasiUser(); 
@@ -1495,7 +1513,6 @@ function inisialisasiKomponenNotif() {
     }
   });
 
-  // Klik di luar kotak notif untuk menutup otomatis (Biar ramah pengguna HP)
   document.addEventListener("click", (e) => {
     if (!notifWrapper.contains(e.target)) {
       boxNotif.style.display = "none";
@@ -1503,6 +1520,7 @@ function inisialisasiKomponenNotif() {
   });
 
   document.getElementById("btn-tandai-baca").addEventListener("click", (e) => {
+    e.preventDefault();
     e.stopPropagation();
     tandaiSemuaNotifDibaca();
   });
