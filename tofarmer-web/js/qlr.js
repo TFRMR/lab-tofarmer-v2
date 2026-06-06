@@ -90,7 +90,7 @@ function createLine(username, months, balance, index) {
     justify-content: space-between;
     padding: 6px 8px;
     margin: 4px 0;
-    font-size: 11px;
+    font-size: 8px;
     font-family: 'Inter', sans-serif;
     background: rgba(248, 250, 249, 0.6);
     border-radius: 8px;
