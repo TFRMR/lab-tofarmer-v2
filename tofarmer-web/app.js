@@ -994,7 +994,12 @@ async function reactPost(postId, type) {
     const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
 
     // B. Muat ulang lini masa feed
-    await loadFeed();
+    // Jalankan feed pertama kali
+  await loadFeed();
+
+  // Panggil pengisian daftar peringkat petani untuk radar card
+  loadRadarPeringkat();
+});
 
     // C. KEMBALIKAN POSISI SCROLL LAYAR
     if (koordinatY) {
@@ -1015,12 +1020,73 @@ function sharePost(postId, username, text) {
   // Menggunakan window.location.origin + pathname agar dinamis baik di lokal maupun domain live
   const shareUrl = `${window.location.origin}${window.location.pathname}?u=${username}&post=${postId}`;
 
-  // 2. Gunakan Clipboard API bawaan browser untuk menyalin tautan
-  navigator.clipboard.writeText(shareUrl).then(() => {
+ navigator.clipboard.writeText(shareUrl).then(() => {
     alert(`📢 Tautan karya @${username} berhasil disalin! Siap dibagikan ke komunitas 🌱\n\nLink: ${shareUrl}`);
   }).catch((err) => {
     console.error("Gagal menyalin tautan:", err);
-    // Fallback manual jika browser memblokir clipboard API
     alert(`Salin tautan ini secara manual:\n${shareUrl}`);
   });
 }
+
+// 🟢 AWAL SISIPAN: FUNGSI MEMBACA PERINGKAT UNTUK RADAR CARD
+function getRadarRank(xp) {
+  const lvl = Math.floor(Math.sqrt(xp / 100)) + 1;
+  if (lvl >= 50) return "👑 Mahaguru Tani";
+  if (lvl >= 40) return "🧙‍♂️ Sesepuh Kebun";
+  if (lvl >= 30) return "👨‍🌾 Penguasa Lahan";
+  if (lvl >= 20) return "🌱 Petani Teladan";
+  if (lvl >= 10) return "🌿 Pembasmi Gulma";
+  if (lvl >= 5)  return "🍃 Penyiram Ulung";
+  return "🪵 Buruh Macul";
+}
+
+async function loadRadarPeringkat() {
+  const wadahRadar = document.getElementById("radar-peringkat-list");
+  if (!wadahRadar) return;
+
+  try {
+    // Mengambil data user dari tabel 'profiles', diurutkan berdasarkan 'xp' tertinggi
+    const { data: users, error } = await supabase
+      .from("profiles")
+      .select("username, xp")
+      .order("xp", { ascending: false })
+      .limit(10); // Membatasi top 10 petani teratas agar pas di dalam card
+
+    if (error) throw error;
+
+    if (users && users.length > 0) {
+      wadahRadar.innerHTML = users.map((user, indeks) => {
+        const posisi = indeks + 1;
+        let medali = `${posisi}.`;
+        if (posisi === 1) medali = "🥇";
+        if (posisi === 2) medali = "🥈";
+        if (posisi === 3) medali = "🥉";
+
+        const xpUser = user.xp || 0;
+        const levelUser = Math.floor(Math.sqrt(xpUser / 100)) + 1;
+
+        return `
+          <div style="display:flex;align-items:center;justify-content:between;background:#f8fafc;border:1px solid #f1f5f9;padding:6px 10px;border-radius:8px;font-size:11px;">
+            <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
+              <span style="font-weight:bold;color:#64748b;width:16px;flex-shrink:0;">${medali}</span>
+              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <strong style="color:#1e293b;">@${user.username}</strong>
+                <div style="font-size:9px;color:#64748b;">${getRadarRank(xpUser)}</div>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;font-weight:600;color:#2f6f4e;background:#eef7f1;padding:2px 6px;border-radius:999px;font-size:10px;margin-left:4px;">
+              Lvl ${levelUser} <span style="font-size:9px;font-weight:normal;color:#6f7f76;">(${xpUser} XP)</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    } else {
+      wadahRadar.innerHTML = `<p style="font-size:11px;color:#94a3b8;text-align:center;margin:0;">Belum ada data petani.</p>`;
+    }
+  } catch (err) {
+    console.error("Gagal memuat radar peringkat:", err);
+    wadahRadar.innerHTML = `<p style="font-size:11px;color:#ef4444;text-align:center;margin:0;">⚠️ Gagal memuat peringkat</p>`;
+  }
+}
+// 🟢 AKHIR SISIPAN FUNGSI
+
