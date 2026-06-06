@@ -338,7 +338,7 @@ function renderProfileData(data) {
          </div>
 
          <div id="profil-ilmu-pending">
-            <h4 style="font-size: 12px; color: #f59e0b; margin-bottom: 5px;">⏳ Menunggu Konsensus (Pending)</h4>
+            <h4 style="font-size: 12px; color: #f59e0b; margin-bottom: 5px;">⏳ Menunggu Persetujuan (Pending)</h4>
             <div class="area-pending-list">Memuat ilmu...</div>
          </div>
       </div>
