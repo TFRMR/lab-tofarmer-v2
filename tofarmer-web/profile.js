@@ -644,7 +644,29 @@ async function loadUserPosts() {
     `
   }).join("")
 
+  // 1. Tetap jalankan update counter jumlah komentar secara paralel
   setTimeout(() => data.forEach(p => updateCommentCount(p.id)), 0)
+
+  // 🟢 2. FITUR AUTO-SCROLL ANCHORING DARI TAUTAN BAGIKAN KARYA
+  setTimeout(async () => {
+    const postIdParam = urlParams.get("post");
+    if (postIdParam) {
+      // Cari kartu postingan fisik di layar DOM
+      const targetCard = document.getElementById(`post-card-${postIdParam}`);
+      if (targetCard) {
+        // A. Otomatis buka kotak komentar agar pengguna langsung diarahkan berdiskusi
+        await toggleCommentBox(postIdParam);
+        
+        // B. Gulirkan layar komputer/HP menuju koordinat postingan tersebut secara halus (smooth)
+        targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        
+        // C. Berikan efek highlight kilasan hijau tipis agar pengguna tahu postingan mana yang sedang disorot
+        targetCard.style.transition = "all 0.5s ease";
+        targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
+        targetCard.style.borderColor = "#2f6f4e";
+      }
+    }
+  }, 300); // Diberi jeda 300ms agar browser selesai menyusun HTML kartu terlebih dahulu
 }
 
 // =====================
@@ -1018,4 +1040,18 @@ function typeWriterEffect(element, text, speed = 20) {
         }
     }
     type();
+}
+function sharePost(postId, username, text) {
+  // 1. Susun URL unik yang mengarah langsung ke postingan ini di halaman profil
+  // Menggunakan window.location.origin + pathname agar dinamis baik di lokal maupun domain live
+  const shareUrl = `${window.location.origin}${window.location.pathname}?u=${username}&post=${postId}`;
+
+  // 2. Gunakan Clipboard API bawaan browser untuk menyalin tautan
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    alert(`📢 Tautan karya @${username} berhasil disalin! Siap dibagikan ke komunitas 🌱\n\nLink: ${shareUrl}`);
+  }).catch((err) => {
+    console.error("Gagal menyalin tautan:", err);
+    // Fallback manual jika browser memblokir clipboard API
+    alert(`Salin tautan ini secara manual:\n${shareUrl}`);
+  });
 }
