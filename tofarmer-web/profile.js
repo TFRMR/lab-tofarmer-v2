@@ -144,7 +144,7 @@ async function refreshBalance(profileId) {
 async function loadProfile() {
 
   let queryField = "username"
- let queryValue = profileUsername || null
+  let queryValue = profileUsername
 
   // 1. Ambil parameter id (alamat wallet) langsung dari URL browser jika ada
   const urlWalletId = urlParams.get("id")
