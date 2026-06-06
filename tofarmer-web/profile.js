@@ -764,7 +764,7 @@ async function loadComments(postId) {
     .from("comments")
     .select("*")
     .eq("post_id", Number(postId))
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
   const box = document.getElementById("commentBox-" + postId);
 
