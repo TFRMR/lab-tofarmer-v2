@@ -1387,7 +1387,7 @@ async function aksiKembalikanKeBeranda(postId) {
 function convertMentions(text) {
   if (!text) return "";
 
-  // 1. Pola untuk Tautan/Link (Case-Insensitive /ig)
+  // 💡 PERBAIKAN: Menambahkan flag 'i' di akhir regex (ig) agar tidak sensitif huruf besar/kecil
   const linkPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\b[A-Z0-9._%+-]+\.(com|org|id|net|xyz|app|online|tech)\b([-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])?)/ig;
 
   let result = text.replace(linkPattern, function(url) {
@@ -1399,24 +1399,21 @@ function convertMentions(text) {
       href = url;
     }
 
+    // 💡 PERBAIKAN: Menggunakan .toLowerCase() saat pengecekan awal protokol
     if (!/^https?:\/\//i.test(href)) {
-      href = "https://" + href;
+      // Jika pengguna mengetik WWW.tofarmer.xyz, pastikan link href-nya tetap valid menggunakan https:// kecil
+      if (/^www\./i.test(href)) {
+        href = "https://" + href;
+      } else {
+        href = "https://" + href;
+      }
     }
 
-    // Menggunakan petik tunggal di luar agar aman saat masuk innerHTML kartu postingan
-    return `<a href='${href}' target='_blank' style='color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #4caf7a;' onmouseover='this.style.color="#b5942b"' onmouseout='this.style.color="#2f6f4e"'>${url}</a>${akhirTandaBaca}`;
+    return `<a href="${href}" target="_blank" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #4caf7a;" onmouseover="this.style.color='#b5942b'" onmouseout="this.style.color='#2f6f4e'">${url}</a>${akhirTandaBaca}`;
   });
 
-  // 2. Pola untuk @Mention (Case-Insensitive /ig)
-  // 💡 PERBAIKAN UTAMA: Menggunakan kombinasi petik yang aman agar tidak merusak innerHTML
-  result = result.replace(/@([a-zA-Z0-9_]+)/ig, function(match, username) {
-    const namaKecil = username.toLowerCase(); 
-    
-    // Di sini onclick menggunakan petik dua di luar, dan melemparkan string menggunakan tanda petik satu lepas (\')
-    return `<span class='tof-mention' onclick='goToUsername("${namaKecil}")' style='color:#6ea84f;font-weight:700;cursor:pointer;'>${match}</span>`;
-  });
-
-  // 3. Ubah enter menjadi baris baru
+  // Untuk mention @username (Regex [a-zA-Z] sudah mencakup huruf besar dan kecil, jadi aman)
+  result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="goToUsername('$1')" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
   result = result.replace(/\n/g, "<br>");
 
   return result;
