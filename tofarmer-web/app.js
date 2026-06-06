@@ -789,12 +789,39 @@ document.addEventListener("change", async (e) => {
 })
 
 function convertMentions(text) {
-  if (!text) return ""
-  let result = text.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="goToUsername('$1')" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`)
-  result = result.replace(/\n/g, "<br>")
-  return result
-}
+  if (!text) return "";
 
+  // 1. Pola Regex cerdas untuk menangkap segala jenis bentuk link (http, https, www, maupun ekstensi langsung)
+  const linkPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\b[A-Z0-9._%+-]+\.(com|org|id|net|xyz|app|online|tech)\b([-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])?)/ig;
+
+  let result = text.replace(linkPattern, function(url) {
+    let href = url;
+    
+    // Skenario antisipasi tanda baca di akhir kalimat agar tidak ikut kecatut ke dalam link
+    let akhirTandaBaca = "";
+    if (/[.,;:!?]$/.test(url)) {
+      akhirTandaBaca = url.slice(-1);
+      url = url.slice(0, -1);
+      href = url;
+    }
+
+    // Jika user menulis tanpa http/https (misal cuma www.xxx atau langsung xxx.com), 
+    // kita wajib tambahkan 'https://' di href-nya agar browser tidak mengira itu link internal halaman web ToFarmer
+    if (!/^https?:\/\//i.test(href)) {
+      href = "https://" + href;
+    }
+
+    return `<a href="${href}" target="_blank" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #4caf7a;" onmouseover="this.style.color='#b5942b'" onmouseout="this.style.color='#2f6f4e'">${url}</a>${akhirTandaBaca}`;
+  });
+
+  // 2. Pertahankan fitur deteksi @mention bawaan Anda
+  result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="goToUsername('$1')" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
+
+  // 3. Pertahankan fitur ganti baris enter bawaan Anda
+  result = result.replace(/\n/g, "<br>");
+
+  return result;
+}
 async function goToUsername(username) {
   const { data, error } = await supabaseClient.from("profiles").select("id").eq("username", username).maybeSingle()
   if (error || !data) { alert("Petani tidak ditemukan 🌱"); return; }
