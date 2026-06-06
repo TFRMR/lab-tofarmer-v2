@@ -826,11 +826,30 @@ async function loadUserPosts() {
     const safeText = (post.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
     const currentUsername = profileUsername || "Petani";
 
+    // KUNCI FB PROFIL: Menu titik tiga hanya nampak jika Anda adalah pemilik profil ini yang sedang login
+    const isMyPost = currentWallet === targetProfileId;
+
     return `
       <div id="post-card-${post.id}" class="card" style="margin-bottom:14px;">
 
-        <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">
-          🌿 ${date}
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px;">
+          <div style="font-size:11px;color:#6f7f76;">
+            🌿 ${date}
+          </div>
+
+          ${isMyPost ? `
+          <div class="post-menu-container" style="position: relative; display: inline-block;">
+            <button class="btn-dot-menu" onclick="toggleDotMenu('${post.id}')" style="background:none; border:none; color:#65676b; font-size:16px; cursor:pointer; padding:2px 6px;">•••</button>
+            <div class="dot-dropdown" id="dropdown-${post.id}" style="display:none; position:absolute; right:0; top:20px; background:white; box-shadow:0 2px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:160px; border:1px solid #e4e6eb; padding:4px 0;">
+              <button onclick="aksiEditPostingan('${post.id}', \`${safeText}\`)" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
+              <button onclick="aksiKembalikanKeBeranda('${post.id}')" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">🌍 Tampilkan di Beranda</button>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+
+        <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
+          ${post.deskripsi_proses || ""}
         </div>
 
         <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
@@ -1331,3 +1350,54 @@ function sharePost(postId, username, text) {
       }
     }
   }, 500); // Diberi jeda 500ms agar data Supabase beranda selesai dirender utuh ke layar DOM
+
+// Fungsi pengendali menu dropdown titik tiga ala FB untuk Beranda utama
+function toggleDotMenu(postId) {
+  const dropdown = document.getElementById(`dropdown-${postId}`);
+  if (!dropdown) return;
+  document.querySelectorAll('.dot-dropdown').forEach(el => {
+    if (el.id !== `dropdown-${postId}`) el.style.display = 'none';
+  });
+  dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+}
+
+window.addEventListener('click', function(e) {
+  if (!e.target.matches('.btn-dot-menu')) {
+    document.querySelectorAll('.dot-dropdown').forEach(el => el.style.display = 'none');
+  }
+});
+
+async function aksiEditPostingan(postId, teksLama) {
+  const teksBaru = prompt("Edit postingan Anda:", teksLama);
+  if (teksBaru === null) return;
+  if (!teksBaru.trim()) return alert("Teks tidak boleh kosong!");
+
+  const { error } = await supabaseClient
+    .from("contributions")
+    .update({ deskripsi_proses: teksBaru.trim() })
+    .eq("id", postId);
+
+  if (error) {
+    alert("Gagal mengedit: " + error.message);
+  } else {
+    alert("Postingan berhasil diperbarui! 🌱");
+    if (typeof loadFeed === "function") loadFeed();
+  }
+}
+
+async function aksiSembunyikanKeProfil(postId) {
+  const yakin = confirm("Sembunyikan dari Beranda Utama? Postingan tetap tersimpan aman di Profil pribadi Anda.");
+  if (!yakin) return;
+
+  const { error } = await supabaseClient
+    .from("contributions")
+    .update({ is_private: true })
+    .eq("id", postId);
+
+  if (error) {
+    alert("Gagal menyembunyikan: " + error.message);
+  } else {
+    alert("Postingan berhasil dipindahkan ke arsip profil pribadi 🔒");
+    if (typeof loadFeed === "function") loadFeed();
+  }
+}
