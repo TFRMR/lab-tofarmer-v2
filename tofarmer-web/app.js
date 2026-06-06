@@ -606,12 +606,12 @@ async function loadFeed() {
 
 let comments = [];
   try {
-    const postIds = posts.map(p => p.id);
-    
-    const { data: rawComments, error: qErr } = await supabaseClient
+    const postIds = posts.map(p => String(p.id));
+
+const { data: rawComments, error: qErr } = await supabaseClient
   .from("comments")
-  .select("*");
-      .in("post_id", postIds);
+  .select("*")
+  .in("post_id", postIds);
     
     if (qErr) console.log("Gagal ambil data komentar:", qErr);
     
