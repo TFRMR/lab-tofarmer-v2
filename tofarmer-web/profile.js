@@ -800,7 +800,7 @@ async function loadComments(postId) {
 
  // 6. 🔥 INI DIA YANG KAMU TANYA → RENDER KE UI
  box.innerHTML = merged.map(c => {
-  const user = c.profiles?.username || "Petani";
+  const user = c.profiles?.username || "Pengunjung";
   const avatar = c.profiles?.avatar_url || "/aset/favicon.png";
 
   const time = new Date(c.created_at).toLocaleString("id-ID", {
