@@ -1419,23 +1419,20 @@ result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick=
 function inisialisasiKomponenNotif() {
   if (!currentWallet) return; 
 
-  // 1. Hapus wrapper lama jika tidak sengaja terbuat ganda
   const wrapperLama = document.getElementById("tof-notif-wrapper");
   if (wrapperLama) wrapperLama.remove();
 
-  // 2. Buat elemen style pembantu untuk memaksa posisi di HP & PC
   const styleNotif = document.createElement("style");
   styleNotif.id = "tof-notif-style";
   styleNotif.innerHTML = `
     #tof-notif-wrapper {
       position: fixed !important;
       top: 15px !important;
-      right: 15px !important;
-      z-index: 999999999 !important; /* Kasta tertinggi HTML */
+      right: 15px !important; /* Standar PC di kanan atas */
+      z-index: 999999999 !important;
       font-family: sans-serif !important;
       display: block !important;
       visibility: visible !important;
-      opacity: 1 !important;
     }
     #box-notif-tof {
       display: none;
@@ -1445,33 +1442,33 @@ function inisialisasiKomponenNotif() {
       width: 300px !important;
       max-height: 380px !important;
       background: white !important;
-      border: 2px solid #2f6f4e !important; /* Border tebal agar kelihatan jelas */
+      border: 2px solid #2f6f4e !important;
       border-radius: 8px !important;
       box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
       overflow-y: auto !important;
-      z-index: 1000000000 !important;
     }
 
-    /* 📱 PAKSA TAMPILAN KHUSUS HAPE */
+    /* 📱 💡 TRIK KHUSUS LAYAR HAPE (Pindah ke Tengah Atas) */
     @media (max-width: 768px) {
       #tof-notif-wrapper {
-        top: 85px !important;    /* Turun lebih dalam agar lolos dari navbar HP */
-        right: 10px !important;   /* Menempel pas di kanan HP */
+        top: 85px !important;    /* Menghindari hantaman navbar atas HP */
+        right: 50% !important;   /* Lempar ke tengah */
+        transform: translateX(50%) !important; /* Sempurnakan posisi pas di center */
       }
       #box-notif-tof {
-        right: 0 !important;
-        width: 280px !important;  /* Ukuran aman layar HP */
+        right: auto !important;
+        left: 50% !important;    /* Dropdown juga ikut rata tengah */
+        transform: translateX(-50%) !important;
+        width: 280px !important;
         max-height: 320px !important;
       }
     }
   `;
   
-  // Bersihkan style lama jika ada, lalu pasang yang baru di head
   const styleLama = document.getElementById("tof-notif-style");
   if (styleLama) styleLama.remove();
   document.head.appendChild(styleNotif);
 
-  // 3. Buat pembungkus utama
   const notifWrapper = document.createElement("div");
   notifWrapper.id = "tof-notif-wrapper";
 
@@ -1492,7 +1489,7 @@ function inisialisasiKomponenNotif() {
     </div>
   `;
 
-  // 💡 TRICK PAMUNGKAS: Jangan appendChild di bawah body, tapi paksa sisipkan di paling atas elemen body!
+  // Tetap paksa pasang di paling atas struktur tubuh HTML
   if (document.body.firstChild) {
     document.body.insertBefore(notifWrapper, document.body.firstChild);
   } else {
