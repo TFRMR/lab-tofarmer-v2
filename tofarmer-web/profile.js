@@ -1456,8 +1456,8 @@ function inisialisasiKomponenNotif() {
     /* 📱 Trik Khusus HP (Rata Tengah Atas) */
     @media (max-width: 768px) {
       #tof-notif-wrapper {
-        top: 85px !important;    
-        right: 50% !important;   
+        top: 75px !important;    
+        right: 10% !important;   
         transform: translateX(50%) !important; 
       }
       #box-notif-tof {
