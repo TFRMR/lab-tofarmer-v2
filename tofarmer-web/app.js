@@ -253,7 +253,7 @@ function updateWalletUI() {
 
   if (currentWallet) {
     // 1. Teks jika petani SUDAH LOGIN / CONNECT
-    btn.innerText = "🚪 KELUAR LADANG"
+    btn.innerText = "🚪 LOGOUT"
     btn.style.background = "#4caf7a"
     btn.onclick = logoutWallet
     if (editBtn) editBtn.style.visibility = "visible"
