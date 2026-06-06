@@ -644,12 +644,46 @@ async function loadFeed() {
         <span onclick="reactPost('${item.id}','cangkul')" style="cursor:pointer;">⛏️ ${item.cangkul_count || 0} Cangkul</span>
       </div>
       <div class="post-actions"><button class="share-btn" onclick="sharePost('${item.id}', '${username}', \`${safeText}\`)">📢 Bagikan Progres</button></div>
-      <div style="margin-top:10px;">
-        <input id="comment-${item.id}" placeholder="Tulis komentar..." style="width:100%;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;" />
-        <button onclick="sendComment('${item.id}')" style="margin-top:6px;padding:6px 10px;font-size:12px;">Kirim</button>
+      <div style="margin-top:10px; padding-top:8px; border-top:1px solid #f0f0f0; display:flex; gap:16px; font-size:12px; color:#6f7f76;">
+        <span onclick="toggleKomentarBox('${item.id}')" style="cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+          💬 ${postComments.length} Komentar
+        </span>
       </div>
-      <div style="margin-top:10px;font-size:12px;">
-        ${postComments.map(c => `<div style="padding:3px 0;color:#444;">💬 ${convertMentions(c.comment)}</div>`).join("")}
+
+      <div id="box-komentar-${item.id}" style="display:none; margin-top:12px; padding:12px; background:#f8faf9; border-radius:12px;">
+        
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <input id="comment-${item.id}" placeholder="Tulis komentar ladang..." style="flex-grow:1; padding:8px 12px; border-radius:20px; border:1px solid #ddd; font-size:12px; outline:none;" />
+          <button onclick="sendComment('${item.id}')" style="margin-top:0; width:auto; padding:6px 14px; font-size:12px; border-radius:20px;">Kirim</button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+          ${postComments.length === 0 ? `<div style="color:#999; text-align:center; padding:5px 0;">Belum ada diskusi, yuk sapa petani! 🌱</div>` : ''}
+          
+          ${postComments.map(c => {
+            // Berikan fallback jika ada data profile kosong atau user anonim
+            const cUser = c.profiles?.username || "Petani_Misterius";
+            const cAvatar = c.profiles?.avatar_url || "https://www.tofarmer.xyz/images/logo-tofarmer.png";
+            const cUserId = c.profiles?.id || "";
+            
+            return `
+              <div style="display:flex; align-items:flex-start; gap:8px;">
+                <img src="${cAvatar}" 
+                     onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
+                     style="width:24px; height:24px; border-radius:50%; object-fit:cover; cursor:pointer; border:1px solid rgba(0,0,0,0.05);" />
+                
+                <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.04); max-width:calc(100% - 32px);">
+                  <span onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
+                        style="font-weight:700; color:#2f6f4e; cursor:pointer; margin-right:4px;">
+                    @${cUser}
+                  </span>
+                  <span style="color:#2c3a33; white-space:pre-wrap;">${convertMentions(c.comment || "")}</span>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+
       </div>
     `
     feed.appendChild(div)
@@ -799,3 +833,14 @@ window.addEventListener("DOMContentLoaded", () => {
     );
   }, 2000);
 });
+// --- FUNGSI ALA FACEBOOK UNTUK KONTROL BUKA/TUTUP KOTAK KOMENTAR ---
+function toggleKomentarBox(postId) {
+  const box = document.getElementById(`box-komentar-${postId}`);
+  if (!box) return;
+  
+  if (box.style.display === "none" || box.style.display === "") {
+    box.style.display = "block";
+  } else {
+    box.style.display = "none";
+  }
+}
