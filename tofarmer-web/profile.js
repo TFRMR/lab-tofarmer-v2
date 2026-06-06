@@ -798,6 +798,20 @@ async function loadComments(postId) {
     profiles: profileMap[c.user_id] || null
   }));
 
+ // 6. 🔥 INI DIA YANG KAMU TANYA → RENDER KE UI
+  box.innerHTML = merged.map(c => `
+    <div class="comment">
+      <div class="user">
+        <img src="${c.profiles?.avatar_url || '/default.png'}" width="30" />
+        <b>${c.profiles?.username || 'unknown'}</b>
+      </div>
+
+      <p>${c.comment}</p>
+      <small>${c.created_at}</small>
+    </div>
+  `).join("");
+}
+
   if (!data || data.length === 0) {
     box.innerHTML = `<div style="color:#999; font-style:italic; padding: 4px 0;">Belum ada diskusi, jadilah yang pertama! 🌱</div>`
     return
