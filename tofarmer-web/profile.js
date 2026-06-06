@@ -212,9 +212,11 @@ async function loadProfile() {
   document.title = `@${data.username} | Profil ToFarmer`
   renderWorkspace()
   loadUserPosts()
-  
-  // Perintah memuat list portofolio ilmu milik pemilik profil
-  loadProfilIlmu();
+
+  // 🟢 PERBAIKAN: Berikan jeda 800 milidetik agar targetProfileId terisi penuh terlebih dahulu
+  setTimeout(() => {
+    loadProfilIlmu();
+  }, 800);
 
 // ==========================================
 // 🔄 GANTI SETTIMEOUT LAMA DENGAN BLOK INI
