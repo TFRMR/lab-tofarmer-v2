@@ -387,85 +387,7 @@ function renderWorkspace() {
   `
 }
 
-async function sendProfilePost() {
-  let imageUrl = null
-  const input = document.getElementById("profilePostBox")
-  const imageInput = document.getElementById("profileImage")
-  if (!input) return
 
-  const text = input.value.trim()
-  if (!text) return
-
-  // Membuka popup pilihan pilar agar sama dengan beranda umum
-  const pilar = await classifyPilar(text)
-  if (!pilar) return
-
-  const file = imageInput?.files?.[0] || null
-
-  if (file instanceof File) {
-    const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
-    const { error: uploadError } = await supabaseClient.storage
-      .from("post-images")
-      .upload(fileName, file, { cacheControl: "3600", upsert: false })
-
-    if (uploadError) {
-      alert("Upload gambar gagal: " + uploadError.message)
-      return
-    }
-
-    const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
-    if (!data?.publicUrl) {
-      alert("Gagal ambil URL gambar")
-      return
-    }
-    imageUrl = data.publicUrl
-  }
-
-  const isSelfPost = true
-  const xpBonus = 20
-
-  // Kirim data ke tabel contributions agar masuk ke database utama (Beranda & Profil terhubung!)
-  const { error } = await supabaseClient
-    .from("contributions")
-    .insert([
-      {
-        user_id: currentWallet,
-        pilar_aksi: PILAR_MAP[pilar],
-        judul_aksi: "Feed Post",
-        deskripsi_proses: text,
-        image_url: imageUrl,
-        status_validasi: "pending",
-        xp_reward: xpBonus,
-        is_self_post: isSelfPost
-      }
-    ])
-
-  if (error) {
-    alert("Gagal kirim: " + error.message)
-    return
-  }
-
-  // Tambahkan XP Petani
-  if (currentProfile) {
-    const newXP = (currentProfile.xp || 0) + xpBonus
-    const { error: xpError } = await supabaseClient
-      .from("profiles")
-      .update({ xp: newXP })
-      .eq("id", currentWallet)
-
-    if (!xpError) {
-      currentProfile.xp = newXP
-    }
-  }
-
-  input.value = ""
-  if (imageInput) imageInput.value = ""
-
-  // Muat ulang daftar postingan di profil secara otomatis setelah berhasil posting
-  loadUserPosts() 
-}
-
-let aiChatCounter = 0;
 
 // ==========================================================================
 // FUNGSI MEMUAT ILMU DAN VOTE KHUSUS HALAMAN PROFIL (FIXED NO LOADING)
@@ -616,87 +538,138 @@ async function aksiVoteDariProfil(item) {
 // SEND PROFILE POST
 // =============================
 
+// =========================================================================
+// 🌿 FUNGSI UTAMA: SEND PROFILE POST (INTEGRASI DATABASE & AI TEMAN KEBUN)
+// =========================================================================
 async function sendProfilePost() {
-    const input = document.getElementById("profilePostBox");
-    const imageInput = document.getElementById("profileImage");
-    const text = input.value.trim();
-    const file = imageInput.files[0];
+  let imageUrl = null
+  const input = document.getElementById("profilePostBox")
+  const imageInput = document.getElementById("profileImage")
+  if (!input) return
 
-    if (!text && !file) return alert("Isi teks atau pilih gambar 😄");
+  const text = input.value.trim()
+  if (!text) return
 
-    // 1. Upload & Insert (Proses Supabase)
-    let imageUrl = null;
-    if (file) {
-        const fileName = `${Date.now()}-${file.name}`;
-        const { error: uploadError } = await supabaseClient.storage
-            .from("profile-posts")
-            .upload(fileName, file);
+  // 1. Membuka popup pilihan pilar aksi
+  const pilar = await classifyPilar(text)
+  if (!pilar) return
 
-        if (uploadError) return alert("Upload gambar gagal");
-        const { data } = supabaseClient.storage.from("profile-posts").getPublicUrl(fileName);
-        imageUrl = data.publicUrl;
+  const file = imageInput?.files?.[0] || null
+
+  // 2. Proses Upload Gambar ke Bucket post-images
+  if (file instanceof File) {
+    const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
+    const { error: uploadError } = await supabaseClient.storage
+      .from("post-images")
+      .upload(fileName, file, { cacheControl: "3600", upsert: false })
+
+    if (uploadError) {
+      alert("Upload gambar gagal: " + uploadError.message)
+      return
     }
 
-    const { error } = await supabaseClient.from("contributions").insert([{
+    const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
+    if (!data?.publicUrl) {
+      alert("Gagal ambil URL gambar")
+      return
+    }
+    imageUrl = data.publicUrl
+  }
+
+  const isSelfPost = true
+  const xpBonus = 20
+
+  // 3. Kirim data ke tabel contributions (Setis_private: false agar otomatis masuk Beranda)
+  const { error } = await supabaseClient
+    .from("contributions")
+    .insert([
+      {
         user_id: currentWallet,
-        judul_aksi: "Profile Post",
+        pilar_aksi: PILAR_MAP[pilar],
+        judul_aksi: "Feed Post",
         deskripsi_proses: text,
         image_url: imageUrl,
         status_validasi: "pending",
-        is_private: true
-    }]);
+        xp_reward: xpBonus,
+        is_self_post: isSelfPost,
+        is_private: false 
+      }
+    ])
 
-    if (error) return alert("Gagal kirim");
+  if (error) {
+    alert("Gagal kirim: " + error.message)
+    return
+  }
 
-    input.value = "";
-    imageInput.value = "";
-    alert("🌿 Karya ditanam");
+  // 4. Tambahkan XP Petani (+20 XP)
+  if (currentProfile) {
+    const newXP = (currentProfile.xp || 0) + xpBonus
+    const { error: xpError } = await supabaseClient
+      .from("profiles")
+      .update({ xp: newXP })
+      .eq("id", currentWallet)
 
-    // 2. Refresh UI
-    await loadUserPosts();
+    if (!xpError) {
+      currentProfile.xp = newXP
+    }
+  }
 
- // ==========================================
-// 🔄 GANTI BLOK TRIGGER AI LAMA DENGAN INI
-// ==========================================
-    // 3. Trigger AI dengan Memori Komunitas (RAG)
-    const responseBox = document.getElementById("ai-response");
-    const aiChatArea = document.getElementById("ai-chat-area");
-    
+  // Bersihkan form input
+  input.value = ""
+  if (imageInput) imageInput.value = ""
+
+  // Muat ulang daftar postingan di profil secara otomatis
+  await loadUserPosts() 
+
+  // =========================================================================
+  // 🤖 CANGKOKAN: TRIGGER AI TEMAN KEBUN DENGAN MEMORI KOMUNITAS (RAG)
+  // =========================================================================
+  const responseBox = document.getElementById("ai-response");
+  const aiChatArea = document.getElementById("ai-chat-area");
+  
+  if (responseBox && aiChatArea) {
     responseBox.innerText = "Teman Kebun sedang menganalisis karya barumu...";
     
-    // Ambil data profil terbaru untuk memastikan XP/TOF akurat
-    const { data: currentProfile } = await supabaseClient
+    const { data: latestProfile } = await supabaseClient
         .from("profiles")
         .select("*")
         .eq("id", currentWallet)
         .single();
 
-    // Ambil semua postingan termasuk yang baru saja masuk
     const { data: allPosts } = await supabaseClient
         .from("contributions")
         .select("deskripsi_proses, created_at")
         .eq("user_id", currentWallet)
-        .eq("is_private", true)
         .order("created_at", { ascending: false });
 
-    // Lewati indeks ke-0 (karena indeks 0 adalah postingan yang baru saja kita ketik)
-    const riwayatLama = allPosts.slice(1); 
-    const konteksRAG = generateProfileContext(currentProfile, riwayatLama);
+    const riwayatLama = allPosts ? allPosts.slice(1) : []; 
+    
+    if (typeof generateProfileContext === "function" && typeof panggilAiSaran === "function") {
+      const konteksRAG = generateProfileContext(latestProfile || currentProfile, riwayatLama);
 
-    const komentarLucu = await panggilAiSaran("Evaluasi", { 
-        teks: text, 
-        trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya di bawah ini:\n${konteksRAG}` 
-    });
-    
-    typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
-    
-    aiChatCounter = 0; 
-    setTimeout(() => {
-        aiChatArea.style.display = "block";
-        const sisa = document.getElementById("sisa-chat");
-        if (sisa) sisa.innerText = 3;
-    }, 2000);
+      const komentarLucu = await panggilAiSaran("Evaluasi", { 
+          teks: text, 
+          trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya di bawah ini:\n${konteksRAG}` 
+      });
+      
+      if (typeof typeWriterEffect === "function") {
+        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
+      } else {
+        responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+      }
+      
+      aiChatCounter = 0; 
+      setTimeout(() => {
+          aiChatArea.style.display = "block";
+          const sisa = document.getElementById("sisa-chat");
+          if (sisa) sisa.innerText = 3;
+      }, 2000);
+    }
+  }
 }
+
+// Counter batas obrolan chat AI
+let aiChatCounter = 0;
 
 async function panggilAiSaran(mode, payload) {
     try {
@@ -1355,11 +1328,15 @@ function sharePost(postId, username, text) {
 // 🟢 FUNGSI MANAJEMEN POSTINGAN (EDIT & PRIVASI) ALA FACEBOOK
 // =========================================================================
 
+// =========================================================================
+// 🟢 FUNGSI MANAJEMEN POSTINGAN (EDIT & PRIVASI) ALA FACEBOOK - HALAMAN PROFIL
+// =========================================================================
+
 function toggleDotMenu(postId) {
   const dropdown = document.getElementById(`dropdown-${postId}`);
   if (!dropdown) return;
   
-  // Tutup dropdown lain yang sedang terbuka
+  // Tutup dropdown lain yang sedang terbuka agar tidak tabrakan
   document.querySelectorAll('.dot-dropdown').forEach(el => {
     if (el.id !== `dropdown-${postId}`) el.style.display = 'none';
   });
@@ -1367,7 +1344,7 @@ function toggleDotMenu(postId) {
   dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
 }
 
-// Tutup otomatis jika klik di luar area menu
+// Tutup menu melayang otomatis jika user klik di sembarang tempat
 window.addEventListener('click', function(e) {
   if (!e.target.matches('.btn-dot-menu')) {
     document.querySelectorAll('.dot-dropdown').forEach(el => el.style.display = 'none');
@@ -1376,7 +1353,7 @@ window.addEventListener('click', function(e) {
 
 async function aksiEditPostingan(postId, teksLama) {
   const teksBaru = prompt("Edit catatan karya Anda:", teksLama);
-  if (teksBaru === null) return; // User menekan batal
+  if (teksBaru === null) return; 
   if (!teksBaru.trim()) return alert("Catatan tidak boleh kosong 🌱");
 
   const { error } = await supabaseClient
@@ -1388,7 +1365,7 @@ async function aksiEditPostingan(postId, teksLama) {
     alert("Gagal memperbarui postingan: " + error.message);
   } else {
     alert("Postingan berhasil diperbarui! 🌿");
-    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil
+    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil otomatis
   }
 }
 
@@ -1398,18 +1375,18 @@ async function aksiKembalikanKeBeranda(postId) {
 
   const { error } = await supabaseClient
     .from("contributions")
-    .update({ is_private: false }) // Setel status menjadi Publik kembali
+    .update({ is_private: false }) // Mengubah status privasi ke publik kembali
     .eq("id", postId);
 
   if (error) {
     alert("Gagal memproses: " + error.message);
   } else {
     alert("Postingan dipublikasikan kembali ke Beranda Umum! 🚀");
-    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil
+    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil otomatis
   }
 }
 
-// Fungsi Pengubah Link & @Mention agar teks bisa diklik & bisa enter (Sudah Diperbaiki)
+// Fungsi Cerdas: Pengubah Link Situs Web & @Mention agar Teks Bisa Diklik dan Bisa Enter
 function convertMentions(text) {
   if (!text) return "";
 
@@ -1436,3 +1413,6 @@ function convertMentions(text) {
 
   return result;
 }
+
+
+
