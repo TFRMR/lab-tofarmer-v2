@@ -326,7 +326,7 @@ function renderProfileData(data) {
 
 function renderWorkspace() {
   const box = document.getElementById("profileWorkspace")
-  if (!box) return
+
 
   // Sinkronisasi hak akses
   if (currentWallet !== targetProfileId) {
