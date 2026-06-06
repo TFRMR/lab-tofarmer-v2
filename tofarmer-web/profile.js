@@ -755,17 +755,10 @@ async function sendComment(postId) {
 
 // Fungsi Load Komentar Baru: Mengambil data teks sekaligus Profil Pengomentar
 async function loadComments(postId) {
-  const { data, error } = await supabaseClient
-    .from("comments")
-    .select(`
-      id,
-      comment,
-      created_at,
-      user_id,
-      profiles(username, avatar_url)
-    `)
-    .eq("post_id", postId)
-    .order("created_at", { ascending: true }) // Diurutkan dari yang lama ke baru seperti Facebook
+  const { data } = await supabaseClient
+  .from("comments")
+  .select("*")
+  .order("created_at", { ascending: false })
 
   const box = document.getElementById("commentBox-" + postId)
   if (!box || error) return
