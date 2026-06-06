@@ -1405,7 +1405,8 @@ function convertMentions(text) {
     return `<a href="${href}" target="_blank" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #4caf7a;" onmouseover="this.style.color='#b5942b'" onmouseout="this.style.color='#2f6f4e'">${url}</a>${akhirTandaBaca}`;
   });
 
-  result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="goToUsername('$1')" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
+ // Alternatif jika fungsi goToUsername belum ada, ubah baris mention di fungsi convertMentions menjadi:
+result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="window.location.href='?u=$1'" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
   result = result.replace(/\n/g, "<br>");
 
   return result;
