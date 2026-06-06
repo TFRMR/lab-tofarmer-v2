@@ -1411,54 +1411,149 @@ result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick=
 
   return result;
 }
+// ==========================================
+// 🔔 SISTEM NOTIFIKASI OTOMATIS (FRONTEND TOF)
+// ==========================================
+
+// 1. Fungsi untuk Membuat Elemen Tombol Lonceng & Kotak Dropdown secara otomatis di Layar
+function inisialisasiKomponenNotif() {
+  if (!currentWallet) return; // Jika pengunjung tidak login wallet, fitur tidak muncul
+
+  const notifWrapper = document.createElement("div");
+  notifWrapper.id = "tof-notif-wrapper";
+  notifWrapper.style.cssText = "position: fixed; bottom: 20px; right: 20px; z-index: 9999; font-family: sans-serif;";
+
+  notifWrapper.innerHTML = `
+    <button id="btn-lonceng-tof" style="background: #2f6f4e; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; display: flex; align-items: center; justify-content: center; font-size: 20px; outline: none;">
+      🔔
+      <span id="badge-notif-tof" style="display: none; position: absolute; top: 0; right: 0; background: #dc2626; color: white; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 10px; border: 2px solid white;">0</span>
+    </button>
+
+    <div id="box-notif-tof" style="display: none; position: absolute; bottom: 60px; right: 0; width: 320px; max-height: 400px; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow-y: auto;">
+      <div style="padding: 12px; background: #f4fbf7; border-bottom: 1px solid #e2ece7; font-weight: bold; color: #2f6f4e; display: flex; justify-content: space-between; align-items: center;">
+        <span>Pemberitahuan Ladang</span>
+        <button id="btn-tandai-baca" style="background:none; border:none; color:#6ea84f; font-size:11px; cursor:pointer; font-weight:600;">Tandai Dibaca</button>
+      </div>
+      <div id="list-notif-tof" style="font-size: 13px;">
+        <div style="padding: 20px; text-align: center; color: #999;">Memuat pemberitahuan...</div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(notifWrapper);
+
+  const btnLonceng = document.getElementById("btn-lonceng-tof");
+  const boxNotif = document.getElementById("box-notif-tof");
+  
+  // Klik lonceng untuk buka-tutup kotak dan muat data terbaru
+  btnLonceng.addEventListener("click", () => {
+    if (boxNotif.style.display === "none") {
+      boxNotif.style.display = "block";
+      loadNotifikasiUser(); 
+    } else {
+      boxNotif.style.display = "none";
+    }
+  });
+
+  document.getElementById("btn-tandai-baca").addEventListener("click", tandaiSemuaNotifDibaca);
+}
+
+// 2. Fungsi Mengambil Data dari Supabase (Versi yang sudah disempurnakan dengan penembak UI)
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
 
-  const { data: notifs, error } = await supabaseClient
-    .from("notifications")
-    .select(`
-      *,
-      profiles:sender_id(username) -- Ambil username si pemicu
-    `)
-    .eq("user_id", currentWallet)
-    .order("created_at", { ascending: false })
-    .limit(10); // Ambil 10 teratas
+  try {
+    const { data: notifs, error } = await supabaseClient
+      .from("notifications")
+      .select(`
+        *,
+        profiles:sender_id(username)
+      `)
+      .eq("user_id", currentWallet)
+      .order("created_at", { ascending: false })
+      .limit(10);
 
-  if (error || !notifs.length) return;
+    if (error) throw error;
 
-  // Skenario 1: Bikin badge angka merah di menu navigasi jika ada is_read == false
-  const jumlahBelumBaca = notifs.filter(n => !n.is_read).length;
-  if (jumlahBelumBaca > 0) {
-     // Misal ada elemen <span id="notif-badge"></span> di HTML navigasi Anda
-     const badge = document.getElementById("notif-badge");
-     if (badge) {
-       badge.innerText = jumlahBelumBaca;
-       badge.style.display = "inline-block";
-     }
-  }
+    const badge = document.getElementById("badge-notif-tof");
+    const listContainer = document.getElementById("list-notif-tof");
 
-  // Skenario 2: Render ke dalam kotak dropdown / halaman khusus notifikasi
-  // Anda bisa memetakan pesannya berdasarkan tipe
-  const listHtml = notifs.map(n => {
-    const namaPengirim = n.profiles?.username || "Seseorang";
-    let linkAksi = "";
-
-    // Manfaatkan parameter ?post= atau mekanisme popup ilmu yang sudah Anda buat!
-    if (n.type === 'comment' || n.type === 'mention') {
-       linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
-    } else if (n.type === 'vote_needed') {
-       linkAksi = `window.bukaDetailIlmuProfil('${n.related_id}', 'ilmu_pending')`;
+    // Hitung notifikasi yang belum dibaca untuk angka badge merah
+    const jumlahBelumBaca = notifs ? notifs.filter(n => !n.is_read).length : 0;
+    if (badge) {
+      if (jumlahBelumBaca > 0) {
+        badge.innerText = jumlahBelumBaca;
+        badge.style.display = "block";
+      } else {
+        badge.style.display = "none";
+      }
     }
 
-    return `
-      <div onclick="${linkAksi}" style="padding:10px; border-bottom:1px solid #eee; cursor:pointer; background: ${n.is_read ? 'white' : '#f0fdf4'}">
-        <strong>@${namaPengirim}</strong> ${n.message}
-        <span style="font-size:10px; color:#999; display:block;"> Baru saja </span>
-      </div>
-    `;
-  }).join("");
-  
-  // Tinggal tembak listHtml ini ke elemen pembungkus di UI Anda
+    if (!notifs || notifs.length === 0) {
+      if (listContainer) {
+        listContainer.innerHTML = `<div style="padding: 20px; text-align: center; color: #999;">Belum ada pemberitahuan baru.</div>`;
+      }
+      return;
+    }
+
+    // Petakan data ke dalam baris HTML di dalam dropdown
+    const listHtml = notifs.map(n => {
+      const namaPengirim = n.profiles?.username || "Seseorang";
+      let linkAksi = "";
+
+      // Pengalihan otomatis saat notifikasi diklik
+      if (n.type === 'comment' || n.type === 'mention') {
+         linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
+      } else if (n.type === 'vote_needed') {
+         linkAksi = `if(typeof window.bukaDetailIlmuProfil === "function"){ window.bukaDetailIlmuProfil('${n.related_id}', 'ilmu_pending'); }`;
+      }
+
+      const bgWarna = n.is_read ? "white" : "#f0fdf4";
+
+      return `
+        <div onclick="${linkAksi}" style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; background: ${bgWarna}; transition: background 0.2s;" onmouseover="this.style.background='#f7faf8'" onmouseout="this.style.background='${bgWarna}'">
+          <strong>@${namaPengirim}</strong> ${n.message}
+          <span style="font-size:10px; color:#999; display:block; margin-top:4px;">
+            ${new Date(n.created_at).toLocaleDateString('id-ID')}
+          </span>
+        </div>
+      `;
+    }).join("");
+    
+    if (listContainer) {
+      listContainer.innerHTML = listHtml;
+    }
+
+  } catch (err) {
+    console.log("Gagal memuat notifikasi:", err.message);
+  }
+}
+
+// 3. Fungsi mengubah status notifikasi agar angka merahnya hilang
+async function tandaiSemuaNotifDibaca() {
+  if (!currentWallet) return;
+  try {
+    await supabaseClient
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", currentWallet)
+      .eq("is_read", false);
+
+    loadNotifikasiUser();
+  } catch (err) {
+    console.log("Gagal menandai baca:", err.message);
+  }
+}
+
+// 4. Picu jalannya sistem notifikasi saat halaman terbuka
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    inisialisasiKomponenNotif();
+    setTimeout(loadNotifikasiUser, 2000); // Cek badge setelah koneksi Supabase siap
+  });
+} else {
+  inisialisasiKomponenNotif();
+  setTimeout(loadNotifikasiUser, 2000);
 }
 
 
