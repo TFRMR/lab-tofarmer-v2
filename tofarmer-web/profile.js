@@ -1430,8 +1430,10 @@ function inisialisasiKomponenNotif() {
   const styleNotif = document.createElement("style");
   styleNotif.id = "tof-notif-style";
   styleNotif.innerHTML = `
+   styleNotif.innerHTML = `
     #tof-notif-wrapper {
-      position: fixed !important;
+      /* 💡 PERBAIKAN 1: Mengubah fixed menjadi absolute agar lonceng ikut hanyut ke atas saat di-scroll */
+      position: absolute !important;
       top: 15px !important;
       right: 15px !important;
       z-index: 999999999 !important;
@@ -1456,6 +1458,8 @@ function inisialisasiKomponenNotif() {
     /* 📱 Trik Khusus HP (Rata Tengah Atas) */
     @media (max-width: 768px) {
       #tof-notif-wrapper {
+        /* 💡 PERBAIKAN 2: Pastikan di HP juga menggunakan absolute agar tidak mengunci di layar kaca */
+        position: absolute !important;
         top: 85px !important;    
         right: 75% !important;   
         transform: translateX(50%) !important; 
