@@ -604,33 +604,32 @@ async function loadFeed() {
     }
   } catch (metaErr) { console.log(metaErr); }
 
-let comments = []
+let comments = [];
   try {
-    const postIds = posts.map(p => p.id)
-    
-    // Tarik data relasi user_id dari comments ke tabel profiles secara langsung
+    // KODE FIX AMAN: Kita ambil semua data komentar terbaru dari tabel langsung 
+    // tanpa filter .in() agar tidak terbentur masalah konversi tipe data BigInt
     const { data, error: qErr } = await supabaseClient
       .from("comments")
       .select("id, post_id, user_id, comment, created_at, profiles:user_id(id, username, avatar_url)")
-      .in("post_id", postIds)
+      .order("created_at", { ascending: true });
     
-    if (qErr) console.log("Supabase error komentar:", qErr)
-    comments = data || []
+    if (qErr) console.log("Supabase error komentar:", qErr);
+    comments = data || [];
   } catch (e) { 
-    console.log("Error ambil komentar:", e)
-    comments = [] 
+    console.log("Error ambil komentar:", e);
+    comments = []; 
   }
 
-  posts.forEach(item => {
+ posts.forEach(item => {
     const div = document.createElement("div")
     div.className = "post"
 
     const username = item.profiles?.username || "guest"
     const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
     
-    // KODE BARU: Langsung filter array comments yang post_id-nya sama persis dengan id postingan saat ini.
-    // Metode ini membandingkan value angka/string secara fleksibel dengan perbandingan ganda (==)
-    const postComments = comments.filter(c => c && c.post_id == item.id);
+    // KODE FIX AMAN: Langsung saring array komentar menggunakan pembanding longgar (==)
+    // Menjamin kecocokan meskipun yang satu bertipe angka dan yang satu string
+    const postComments = comments.filter(c => c && String(c.post_id).trim() == String(item.id).trim());
     const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
 
