@@ -929,44 +929,57 @@ async function sendComment(postId) {
     counterEl.innerHTML = `💬 ${currentCount + 1} Komentar`;
   }
 }
+let isReactingFeed = false; // <-- Ini gembok pengamannya
+
 async function reactPost(postId, type) {
   if (!currentWallet) {
     alert("Connect wallet dulu untuk memberikan apresiasi 🌱");
     return;
   }
 
-  // 1. Tentukan kolom mana yang akan ditambah berdasarkan tipe reaksi
-  const columnUpdate = type === 'sruput' ? { sruput_count: 1 } : { cangkul_count: 1 };
+  if (isReactingFeed) return; // <-- Jika gembok masih mengunci, abaikan klik selanjutnya!
+  isReactingFeed = true;      // <-- Kunci pintu!
 
   try {
-    // 2. Kirim perintah RPC / increment ke Supabase (menggunakan fiturnya Supabase)
-    // Catatan: Jika Anda belum membuat fungsi RPC increment di Supabase, 
-    // pastikan logika update data baris ini disesuaikan dengan struktur database Anda.
     const { error } = await supabaseClient
       .rpc(type === 'sruput' ? 'increment_sruput' : 'increment_cangkul', { row_id: postId });
 
     if (error) {
-      // Cara alternatif jika tidak menggunakan RPC (langsung update via query)
-      // Kita perlu tahu jumlah lama dulu, atau serahkan ke backend workers.
-      console.log("RPC gagal, mencoba metode update langsung...");
+      console.log("RPC gagal, mencoba metode update alternatif...");
     }
 
-    // 3. KUNCI KOORDINAT: Ambil posisi scroll sebelum feed dimuat ulang
+    // A. KUNCI KOORDINAT LAYAR
     const targetCard = document.getElementById(`post-card-${postId}`);
     const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
 
-    // 4. Memuat ulang lini masa agar angka counter yang baru muncul
+    // B. Muat ulang lini masa feed
     await loadFeed();
 
-    // 5. Kembalikan layar ke posisi koordinat semula secara instan tanpa efek lompat kasar
+    // C. KEMBALIKAN POSISI SCROLL LAYAR
     if (koordinatY) {
       window.scrollTo({
-        top: koordinatY - 100, // dikurangi 100px agar ada jarak ruang di atas card
-        behavior: 'auto' // 'auto' membuat layar langsung mengunci tanpa animasi memantul
+        top: koordinatY - 100, 
+        behavior: 'auto'       
       });
     }
 
   } catch (err) {
     console.log("Gagal memproses reaksi:", err);
+  } finally {
+    isReactingFeed = false; // <-- Selesai / Error? Buka kembali gemboknya!
   }
+}
+function sharePost(postId, username, text) {
+  // 1. Susun URL unik yang mengarah langsung ke postingan ini di halaman profil
+  // Menggunakan window.location.origin + pathname agar dinamis baik di lokal maupun domain live
+  const shareUrl = `${window.location.origin}${window.location.pathname}?u=${username}&post=${postId}`;
+
+  // 2. Gunakan Clipboard API bawaan browser untuk menyalin tautan
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    alert(`📢 Tautan karya @${username} berhasil disalin! Siap dibagikan ke komunitas 🌱\n\nLink: ${shareUrl}`);
+  }).catch((err) => {
+    console.error("Gagal menyalin tautan:", err);
+    // Fallback manual jika browser memblokir clipboard API
+    alert(`Salin tautan ini secara manual:\n${shareUrl}`);
+  });
 }
