@@ -823,9 +823,9 @@ async function loadUserPosts() {
 
        
 
-        <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
-          ${post.deskripsi_proses || ""}
-        </div>
+       <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
+  ${convertMentions(post.deskripsi_proses || "")}
+</div>
 
         ${
           post.image_url
@@ -1145,13 +1145,12 @@ async function loadComments(postId) {
 
         <!-- COMMENT TEXT -->
         <div style="
-          font-size: 13px;
-          color: #222;
-          line-height: 1.4;
-          white-space: pre-wrap;
-        ">
-          ${c.comment}
-        </div>
+  font-size: 13px;
+  color: #222;
+  line-height: 1.4;
+">
+  ${convertMentions(c.comment || "")}
+</div>
 
       </div>
     </div>
