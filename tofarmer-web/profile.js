@@ -321,6 +321,20 @@ function renderProfileData(data) {
         • Level ${getTofLevel(data.xp || 0)}
       </div>
 
+      <div style="margin-top: 25px; text-align: left; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
+         <h3 style="font-size: 14px; color: #2f6f4e; margin-bottom: 10px;">🎓 Portofolio Ilmu</h3>
+         
+         <div id="profil-ilmu-baku" style="margin-bottom: 15px;">
+            <h4 style="font-size: 12px; color: #16a34a; margin-bottom: 5px;">📜 Ilmu Baku Sah</h4>
+            <div class="area-baku-list">Memuat ilmu...</div>
+         </div>
+
+         <div id="profil-ilmu-pending">
+            <h4 style="font-size: 12px; color: #f59e0b; margin-bottom: 5px;">⏳ Menunggu Konsensus (Pending)</h4>
+            <div class="area-pending-list">Memuat ilmu...</div>
+         </div>
+      </div>
+
     </div>
   `
 }
