@@ -517,7 +517,6 @@ async function loadUserPosts() {
   const box = document.getElementById("userPosts")
   if (!targetProfileId) return
 
-  // Ambil postingan sekaligus join data username dari tabel profiles agar pembacaan meta tag akurat
   const { data, error } = await supabaseClient
     .from("contributions")
     .select(`
@@ -533,7 +532,6 @@ async function loadUserPosts() {
     return
   }
 
-  // ===================== 🟢 KODE SINKRONISASI META TAG YANG SUDAH DIPERBAIKI =====================
   try {
     const postIdParam = urlParams.get("post");
 
@@ -544,7 +542,6 @@ async function loadUserPosts() {
         const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres kebun karya di ToFarmer.";
         const namaPetani = matchedPost.profiles?.username || "Petani";
 
-        // Ubah Judul Tab & Meta Tag Secara Live di Halaman Profil
         document.title = `Karya @${namaPetani} | ToFarmer`;
         
         const metaDesc = document.getElementById("postDesc");
@@ -564,7 +561,6 @@ async function loadUserPosts() {
   } catch (metaErr) {
     console.log("Gagal memperbarui Meta Tag di Profil:", metaErr);
   }
-  // ==============================================================================================
 
   box.innerHTML = data.map(post => {
     const date = new Date(post.created_at).toLocaleString("id-ID", {
@@ -621,7 +617,7 @@ async function loadUserPosts() {
           </span>
         </div>
 
-       <div class="post-actions">
+        <div class="post-actions">
           <button class="share-btn" onclick="sharePost('${post.id}', '${currentUsername}', '${encodeURIComponent(safeText)}')">
             📢 Bagikan Karya
           </button>
@@ -643,21 +639,11 @@ async function loadUserPosts() {
           </div>
 
         </div>
-          
-          <div id="commentBox-${post.id}" style="font-size:12px; color:#444; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
-          
-          <div style="display:flex; gap:6px;">
-            <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; font-size:12px; box-sizing:border-box;" />
-            <button class="btn-glow" onclick="sendComment('${post.id}')" style="margin:0; padding:8px 14px; font-size:12px; width:auto;">Kirim</button>
-          </div>
-
-        </div>
 
       </div>
     `
   }).join("")
 
-  // MODIFIKASI: Panggil fungsi hitung jumlah komentar saja saat awal load halaman
   setTimeout(() => data.forEach(p => updateCommentCount(p.id)), 0)
 }
 
