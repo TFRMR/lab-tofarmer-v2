@@ -17,7 +17,7 @@ const TOFARMER_PAPER = {
 ToFarmer mengadopsi semangat desentralisasi (Open Source/Linux/Blockchain) yang bergerak transparan melalui 5 Pilar Aksi yang saling mengunci:
 1. Pilar 1 - Komunitas & Narasi Kreatif: Ruh gerakan, menjaga keharmonisan anggota, membangun jaringan, mendokumentasikan perjuangan tanah agar bertani dipandang keren dan terhormat.
 2. Pilar 2 - Inovasi & Rekayasa Teknologi: Tempat para pengulik (tinkerer) menciptakan solusi fisik, mekanisasi tepat guna, robotika, pemrograman software, dan kecerdasan buatan (AI) untuk efisiensi kerja.
-3. Pilar 3 - Ladang Belajar (Proof of Work): Tempat pengujian nyata atas teknologi dan gagasan langsung di atas tanah. Laboratorium hidup pembentuk "Ilmu Baku".
+3. Pilar 3 - Ladang (Proof of Work): Tempat pengujian nyata atas teknologi dan gagasan langsung di atas tanah. Laboratorium hidup pembentuk "Ilmu Baku".
 4. Pilar 4 - Finansial & Investasi (Mesin Ekonomi): Pengelola modal ekosistem untuk instrumen investasi cerdas guna memberikan "napas panjang" dan kemakmuran jangka panjang bagi komunitas.
 5. Pilar 5 - Refleksi Petapa (Kompas Kemanusiaan): Pusat kendali filosofis, menjaga agar gerakan tetap jujur, menghormati alam, dan tidak berubah menjadi mesin industri dingin yang eksploitatif.
     `.trim(),
@@ -43,7 +43,7 @@ Keterlibatan di ToFarmer terbagi menjadi saringan organik 3 fase:
 - Filosofi "Nabung Receh": Mengumpulkan aset sedikit demi sedikit dari aktivitas interaksi di Titik Kumpul (Mading) demi membangun modal "Uang Dingin" tanpa beban utang atau tekanan hidup.
 - Konversi Aset: Setiap interaksi dikonversi menjadi unit TOF, di mana 1 TOF = Rp1.000.
 - Target Tangga Kemandirian: Fase 1 (100 TOF - Lulus), Fase 2 (500 TOF - Lulus), Fase 3 (1000 TOF - Target Saat Ini), dan seterusnya (3K, 10K, 30K, hingga 100K TOF).
-- Mesin Compounding: Saklar otomatis aktif tepat saat aset kolektif menyentuh angka 500.000. Target bunga berbunga (compounding) 5% - 10% per bulan melalui investasi/usaha yang disepakati bersama.
+- Mesin Compounding: Saklar otomatis aktif tepat saat aset kolektif menyentuh angka 500 TOF. Target bunga berbunga (compounding) 5% - 10% per bulan melalui investasi/usaha yang disepakati bersama.
 - Tujuan Akhir: Mencapai stabilitas finansial untuk menghasilkan "Gaji Otomatis" bagi program idealis komunitas dan pendapatan pasif anggota.
     `.trim(),
 
