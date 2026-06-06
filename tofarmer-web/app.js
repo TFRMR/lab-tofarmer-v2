@@ -607,7 +607,8 @@ async function loadFeed() {
 let comments = []
   try {
     const postIds = posts.map(p => p.id)
-    // Kita panggil data secara eksplisit agar Supabase tidak bingung memetakan foreign key tabel profiles
+    
+    // Tarik data relasi user_id dari comments ke tabel profiles secara langsung
     const { data, error: qErr } = await supabaseClient
       .from("comments")
       .select("id, post_id, user_id, comment, created_at, profiles:user_id(id, username, avatar_url)")
@@ -620,22 +621,6 @@ let comments = []
     comments = [] 
   }
 
-  // MEMBUAT WADAH PEMETAAN KOMENTAR DENGAN MEMAKSA KEY MENJADI STRING
-  // MEMBUAT WADAH PEMETAAN KOMENTAR DENGAN MENGAMANKAN TIPE DATA NUMBER DAN STRING
-  const commentMap = {};
-  if (Array.isArray(comments)) {
-    comments.forEach(c => {
-      if (c && c.post_id !== null && c.post_id !== undefined) {
-        // Kita ubah menjadi string bersih dan hilangkan kemungkinan bug whitespace
-        const pIdStr = String(c.post_id).trim();
-        if (!commentMap[pIdStr]) {
-          commentMap[pIdStr] = [];
-        }
-        commentMap[pIdStr].push(c);
-      }
-    });
-  }
-
   posts.forEach(item => {
     const div = document.createElement("div")
     div.className = "post"
@@ -643,9 +628,9 @@ let comments = []
     const username = item.profiles?.username || "guest"
     const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
     
-    // AMANKAN COCOKAN: Kita pastikan ID postingan dicari dalam format string murni
-    const currentPostIdStr = String(item.id).trim();
-    const postComments = commentMap[currentPostIdStr] || commentMap[Number(item.id)] || [];
+    // KODE BARU: Langsung filter array comments yang post_id-nya sama persis dengan id postingan saat ini.
+    // Metode ini membandingkan value angka/string secara fleksibel dengan perbandingan ganda (==)
+    const postComments = comments.filter(c => c && c.post_id == item.id);
     const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
 
