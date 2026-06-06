@@ -1377,27 +1377,58 @@ async function aksiEditPostingan(postId, teksLama) {
     .update({ deskripsi_proses: teksBaru.trim() })
     .eq("id", postId);
 
-  if (error) {
+ if (error) {
     alert("Gagal mengedit: " + error.message);
   } else {
     alert("Postingan berhasil diperbarui! 🌱");
-    if (typeof loadFeed === "function") loadFeed();
+    // Saringan cerdas: periksa fungsi loadUserPosts, jika ada langsung segarkan profil
+    if (typeof loadUserPosts === "function") {
+      loadUserPosts();
+    }
   }
-}
 
-async function aksiSembunyikanKeProfil(postId) {
-  const yakin = confirm("Sembunyikan dari Beranda Utama? Postingan tetap tersimpan aman di Profil pribadi Anda.");
+// TAMBAHKAN BARIS BARU INI DI PALING BAWAH PROFILE.JS
+async function aksiKembalikanKeBeranda(postId) {
+  const yakin = confirm("Tampilkan kembali postingan ini ke lini masa Beranda Umum? 🌍");
   if (!yakin) return;
 
   const { error } = await supabaseClient
     .from("contributions")
-    .update({ is_private: true })
+    .update({ is_private: false }) // Mengubah status menjadi Publik kembali
     .eq("id", postId);
 
   if (error) {
-    alert("Gagal menyembunyikan: " + error.message);
+    alert("Gagal memproses: " + error.message);
   } else {
-    alert("Postingan berhasil dipindahkan ke arsip profil pribadi 🔒");
-    if (typeof loadFeed === "function") loadFeed();
+    alert("Postingan dipublikasikan kembali ke Beranda Umum! 🚀");
+    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil Anda
   }
+}
+
+// Fungsi Pengubah Link & @Mention agar teks postingan di profil bisa diklik & bisa enter
+function convertMentions(text) {
+  if (!text) return "";
+
+  const linkPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\b[A-Z0-9._%+-]+\.(com|org|id|net|xyz|app|online|tech)\b([-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])?)/ig;
+
+  let result = text.replace(linkPattern, function(url) {
+    let href = url;
+    let akhirTandaBaca = "";
+    if (/[.,;:!?]$/.test(url)) {
+      akhirTandaBaca = url.slice(-1);
+      url = url.slice(0, -1);
+      href = url;
+    }
+
+    if (!/^https?:\/\//i.test(href)) {
+      href = "https://" + href;
+    }
+
+    return `<a href="${href}" target="_blank" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #4caf7a;" onmouseover="this.style.color='#b5942b'" onmouseout="this.style.color='#2f6f4e'">${url}</a>${akhirTandaBaca}`;
+  });
+
+  result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="goToUsername('$1')" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
+  result = result.replace(/\n/g, "<br>");
+
+  return result;
 }
