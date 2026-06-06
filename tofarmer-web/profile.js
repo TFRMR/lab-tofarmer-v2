@@ -756,10 +756,17 @@ async function sendComment(postId) {
 // Fungsi Load Komentar Baru: Mengambil data teks sekaligus Profil Pengomentar
 async function loadComments(postId) {
   // PERBAIKAN: Menambahkan destructuring 'error' dan menarik data 'profiles'
-  const { data: rawComments, error: qErr } = await supabaseClient
-  .from("comments")
-  .select("*")
-  .in("post_id", postIds);
+  const { data, error } = await supabaseClient
+    .from("comments")
+    .select(`
+      id,
+      comment,
+      created_at,
+      user_id,
+      profiles(username, avatar_url)
+    `)
+    .eq("post_id", postIds)
+    .order("created_at", { ascending: true }) // Diurutkan dari lama ke baru ala Facebook
 
   const box = document.getElementById("commentBox-" + postId)
   if (!box || error) {
