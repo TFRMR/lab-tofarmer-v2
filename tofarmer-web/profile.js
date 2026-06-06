@@ -755,13 +755,24 @@ async function sendComment(postId) {
 
 // Fungsi Load Komentar Baru: Mengambil data teks sekaligus Profil Pengomentar
 async function loadComments(postId) {
-  const { data } = await supabaseClient
-  .from("comments")
-  .select("*")
-  .order("created_at", { ascending: false })
+  // PERBAIKAN: Menambahkan destructuring 'error' dan menarik data 'profiles'
+  const { data, error } = await supabaseClient
+    .from("comments")
+    .select(`
+      id,
+      comment,
+      created_at,
+      user_id,
+      profiles(username, avatar_url)
+    `)
+    .eq("post_id", postId)
+    .order("created_at", { ascending: true }) // Diurutkan dari lama ke baru ala Facebook
 
   const box = document.getElementById("commentBox-" + postId)
-  if (!box || error) return
+  if (!box || error) {
+    console.error("Gagal memuat komentar:", error);
+    return;
+  }
 
   if (!data || data.length === 0) {
     box.innerHTML = `<div style="color:#999; font-style:italic; padding: 4px 0;">Belum ada diskusi, jadilah yang pertama! 🌱</div>`
@@ -772,7 +783,6 @@ async function loadComments(postId) {
     const userCommentar = c.profiles?.username || "Petani";
     const avatarCommentar = c.profiles?.avatar_url || "https://www.tofarmer.xyz/images/logo-tofarmer.png";
     
-    // Tautan klik dialihkan secara dinamis ke halaman profil user tersebut (?u=username)
     return `
       <div style="display: flex; gap: 8px; align-items: flex-start; background: #f9f9f9; padding: 8px; border-radius: 12px; margin-bottom: 2px;">
         <a href="?u=${userCommentar}" style="display: block; flex-shrink: 0;">
