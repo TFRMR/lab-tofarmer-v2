@@ -391,7 +391,7 @@ async function sendPost() {
   const isSelfPost = true
   const xpBonus = isSelfPost ? 20 : 5
 
-  const { error } = await supabaseClient
+ const { error } = await supabaseClient
     .from("contributions")
     .insert([
       {
@@ -402,7 +402,8 @@ async function sendPost() {
         image_url: imageUrl,
         status_validasi: "pending",
         xp_reward: xpBonus,
-        is_self_post: isSelfPost
+        is_self_post: isSelfPost,
+        is_private: false // <<< TAMBAHKAN BARIS INI AGAR TEGAS SEBAGAI POSTINGAN PUBLIK
       }
     ])
 

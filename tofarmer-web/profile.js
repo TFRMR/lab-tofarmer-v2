@@ -382,10 +382,89 @@ function renderWorkspace() {
       <div style="font-weight:700;color:#2f6f4e;margin-bottom:5px;">🌿 Ruang Karya Saya</div>
       <textarea id="profilePostBox" placeholder="Apa ide, progres, atau eksperimen hari ini?" style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"></textarea>
       <input type="file" id="profileImage" accept="image/*" style="width:100%; margin-top:10px; margin-bottom:10px; font-size:12px;" />
-      <button class="btn-glow" onclick="sendProfilePost()">🌱 TANAM KARYA</button>
+     <button class="btn-glow" onclick="sendProfilePost()">🌱 TANAM KARYA</button>
     </div>
   `
 }
+
+async function sendProfilePost() {
+  let imageUrl = null
+  const input = document.getElementById("profilePostBox")
+  const imageInput = document.getElementById("profileImage")
+  if (!input) return
+
+  const text = input.value.trim()
+  if (!text) return
+
+  // Membuka popup pilihan pilar agar sama dengan beranda umum
+  const pilar = await classifyPilar(text)
+  if (!pilar) return
+
+  const file = imageInput?.files?.[0] || null
+
+  if (file instanceof File) {
+    const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
+    const { error: uploadError } = await supabaseClient.storage
+      .from("post-images")
+      .upload(fileName, file, { cacheControl: "3600", upsert: false })
+
+    if (uploadError) {
+      alert("Upload gambar gagal: " + uploadError.message)
+      return
+    }
+
+    const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
+    if (!data?.publicUrl) {
+      alert("Gagal ambil URL gambar")
+      return
+    }
+    imageUrl = data.publicUrl
+  }
+
+  const isSelfPost = true
+  const xpBonus = 20
+
+  // Kirim data ke tabel contributions agar masuk ke database utama (Beranda & Profil terhubung!)
+  const { error } = await supabaseClient
+    .from("contributions")
+    .insert([
+      {
+        user_id: currentWallet,
+        pilar_aksi: PILAR_MAP[pilar],
+        judul_aksi: "Feed Post",
+        deskripsi_proses: text,
+        image_url: imageUrl,
+        status_validasi: "pending",
+        xp_reward: xpBonus,
+        is_self_post: isSelfPost
+      }
+    ])
+
+  if (error) {
+    alert("Gagal kirim: " + error.message)
+    return
+  }
+
+  // Tambahkan XP Petani
+  if (currentProfile) {
+    const newXP = (currentProfile.xp || 0) + xpBonus
+    const { error: xpError } = await supabaseClient
+      .from("profiles")
+      .update({ xp: newXP })
+      .eq("id", currentWallet)
+
+    if (!xpError) {
+      currentProfile.xp = newXP
+    }
+  }
+
+  input.value = ""
+  if (imageInput) imageInput.value = ""
+
+  // Muat ulang daftar postingan di profil secara otomatis setelah berhasil posting
+  loadUserPosts() 
+}
+
 let aiChatCounter = 0;
 
 // ==========================================================================
@@ -696,8 +775,8 @@ async function loadUserPosts() {
       *,
       profiles(username)
     `)
-    .eq("user_id", targetProfileId)
-    .eq("is_private", true)
+    .eq("user_id", targetProfileId) // Tetap pertahankan ini agar hanya postingan milik user ini yang ditarik
+    // BARIS ".eq("is_private", true)" SUDAH DIHAPUS DI SINI AGAR POSTINGAN UMUM JUGA IKUT MUNCUL
     .order("created_at", { ascending: false })
 
   if (!data?.length) {
