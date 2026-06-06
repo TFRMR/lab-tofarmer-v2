@@ -466,13 +466,21 @@ async function panggilAiSaran(mode, payload) {
 }
 
 async function kirimChatAI() {
-   if (aiChatCounter >= 3) {
-    document.getElementById("ai-chat-area").style.display = "none";
-    responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya... (Tanam karya baru lagi jika ingin mengobrol kembali)";
-}
+    const input = document.getElementById("ai-input");
+    const responseBox = document.getElementById("ai-response");
+    const btn = document.querySelector("#ai-chat-area button");
+    const text = input ? input.value.trim() : "";
+
+    if (!text && aiChatCounter < 3) return;
+    if (btn) btn.disabled = true;
+
+    if (aiChatCounter >= 3) {
+        if (document.getElementById("ai-chat-area")) document.getElementById("ai-chat-area").style.display = "none";
+        if (responseBox) responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya... (Tanam karya baru lagi jika ingin mengobrol kembali)";
+        return;
+    }
     
-    // Tampilkan status loading tanpa mengacaukan efek ketik
-    responseBox.innerText = "Teman Kebun sedang merangkai kata...";
+    if (responseBox) responseBox.innerText = "Teman Kebun sedang merangkai kata...";
     
     try {
         const jawaban = await panggilAiSaran("Evaluasi", { teks: text, trigger: "Balas chat user" });
@@ -614,7 +622,7 @@ async function loadUserPosts() {
         </div>
 
        <div class="post-actions">
-          <button class="share-btn" onclick="sharePost('${post.id}', '${currentUsername}', \`${safeText}\`)">
+          <button class="share-btn" onclick="sharePost('${post.id}', '${currentUsername}', '${encodeURIComponent(safeText)}')">
             📢 Bagikan Karya
           </button>
         </div>
@@ -626,6 +634,15 @@ async function loadUserPosts() {
         </div>
 
         <div id="commentWrapper-${post.id}" style="display: none; border-top: 1px dashed #ddd; padding-top: 10px; margin-top: 5px;">
+          
+          <div id="commentBox-${post.id}" style="font-size:12px; color:#444; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
+          
+          <div style="display:flex; gap:6px;">
+            <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; font-size:12px; box-sizing:border-box;" />
+            <button class="btn-glow" onclick="sendComment('${post.id}')" style="margin:0; padding:8px 14px; font-size:12px; width:auto;">Kirim</button>
+          </div>
+
+        </div>
           
           <div id="commentBox-${post.id}" style="font-size:12px; color:#444; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
           
