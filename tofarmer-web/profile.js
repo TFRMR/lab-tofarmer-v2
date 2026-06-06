@@ -812,32 +812,7 @@ async function loadComments(postId) {
   `).join("");
 }
 
-  if (!data || data.length === 0) {
-    box.innerHTML = `<div style="color:#999; font-style:italic; padding: 4px 0;">Belum ada diskusi, jadilah yang pertama! 🌱</div>`
-    return
-  }
-
-  box.innerHTML = data.map(c => {
-    const userCommentar = c.profiles?.username || "Petani";
-    const avatarCommentar = c.profiles?.avatar_url || "https://www.tofarmer.xyz/images/logo-tofarmer.png";
-    
-    return `
-      <div style="display: flex; gap: 8px; align-items: flex-start; background: #f9f9f9; padding: 8px; border-radius: 12px; margin-bottom: 2px;">
-        <a href="?u=${userCommentar}" style="display: block; flex-shrink: 0;">
-          <img src="${avatarCommentar}" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid #ddd;" />
-        </a>
-        <div style="flex: 1;">
-          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
-            <a href="?u=${userCommentar}" style="text-decoration: none; color: #2f6f4e; font-weight: 700; font-size: 11px;">@${userCommentar}</a>
-          </div>
-          <div style="color: #333; font-size: 12px; line-height: 1.4;">
-            ${c.comment}
-          </div>
-        </div>
-      </div>
-    `
-  }).join("")
-}
+  
 
 // FUNGSI BARU: Hanya menghitung total baris komentar dari database Supabase
 async function updateCommentCount(postId) {
