@@ -154,13 +154,18 @@ async function loadProfile() {
     queryField = "id"
     queryValue = urlWalletId
   } 
-  // 3. Jika parameter u maupun id kosong di URL, gunakan fallback ke dompet lokal yang sedang login
+ // 3. Jika parameter u maupun id kosong di URL, gunakan fallback ke dompet lokal yang sedang login
   else if (!profileUsername) {
     if (currentWallet) {
       queryField = "id"
       queryValue = currentWallet
     } else {
-      // Jika benar-benar kosong total dari segala arah akses
+      // 🟢 PERBAIKAN: Jika ada parameter ?post di halaman beranda, jangan ganti HTML profil jadi error
+      if (urlParams.get("post")) {
+        console.log("Membuka postingan spesifik dari beranda...");
+        return; // Hentikan fungsi loadProfile dengan aman tanpa memunculkan teks error
+      }
+
       document.getElementById("profile").innerHTML = `
         <div class="card" style="text-align:center; color:#6f7f76;">
           🌿 Silakan sambungkan dompet Anda terlebih dahulu atau gunakan tautan profil petani yang valid.
@@ -1055,3 +1060,27 @@ function sharePost(postId, username, text) {
     alert(`Salin tautan ini secara manual:\n${shareUrl}`);
   });
 }
+// ==========================================================================
+  // 🟢 AUTO-SCROLL ANCHORING DARI LINK YANG DIBAGIKAN DI BERANDA UTAMA
+  // ==========================================================================
+  setTimeout(async () => {
+    const postIdParam = urlParams.get("post");
+    if (postIdParam) {
+      // Cari kartu postingan fisik berdasarkan ID unik yang kita buat di Langkah awal kemarin
+      const targetCard = document.getElementById(`post-card-${postIdParam}`);
+      if (targetCard) {
+        // Otomatis buka kotak komentar di beranda
+        if (typeof toggleKomentarBox === "function") {
+          await toggleKomentarBox(postIdParam);
+        }
+        
+        // Gulirkan layar ke koordinat kartu secara halus
+        targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        
+        // Beri efek highlight visual penanda hijau
+        targetCard.style.transition = "all 0.5s ease";
+        targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
+        targetCard.style.borderColor = "#2f6f4e";
+      }
+    }
+  }, 500); // Diberi jeda 500ms agar data Supabase beranda selesai dirender utuh ke layar DOM
