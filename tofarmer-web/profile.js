@@ -212,13 +212,6 @@ async function loadProfile() {
   document.title = `@${data.username} | Profil ToFarmer`
   renderWorkspace()
   loadUserPosts()
-  
-  // 🟢 SISIPKAN DI SINI: Panggil fungsi pembuat list ilmu porto
-  loadProfilIlmu();
-
-// ==========================================
-// 🔄 GANTI SETTIMEOUT LAMA DENGAN BLOK INI
-// ==========================================
 // ==========================================
 // 🔄 GANTI SETTIMEOUT LAMA DENGAN BLOK INI
 // ==========================================
@@ -328,20 +321,7 @@ function renderProfileData(data) {
         • Level ${getTofLevel(data.xp || 0)}
       </div>
 
-      <div style="margin-top: 25px; text-align: left; border-top: 1px dashed #cbd5e1; pt: 15px;">
-         <h3 style="font-size: 14px; color: #2f6f4e; margin-bottom: 10px;">🎓 Portofolio Ilmu</h3>
-         
-         <div id="profil-ilmu-baku" style="margin-bottom: 15px;">
-            <h4 style="font-size: 12px; color: #16a34a; margin-bottom: 5px;">📜 Ilmu Baku Sah</h4>
-            <div class="area-baku-list">Memuat ilmu...</div>
-         </div>
-
-         <div id="profil-ilmu-pending">
-            <h4 style="font-size: 12px; color: #f59e0b; margin-bottom: 5px;">⏳ Menunggu Konsensus (Pending)</h4>
-            <div class="area-pending-list">Memuat ilmu...</div>
-         </div>
-      </div>
-      </div>
+    </div>
   `
 }
 
@@ -384,156 +364,7 @@ function renderWorkspace() {
     </div>
   `
 }
-}
 let aiChatCounter = 0;
-
-// ==========================================================================
-// 🟢 AWAL SISIPAN: FUNGSI MEMUAT ILMU DAN VOTE KHUSUS HALAMAN PROFIL
-// ==========================================================================
-
-async function loadProfilIlmu() {
-  // Ambil elemen HTML tempat list ilmu akan ditampilkan
-  const wadahBaku = document.querySelector("#profil-ilmu-baku .area-baku-list");
-  const wadahPending = document.querySelector("#profil-ilmu-pending .area-pending-list");
-
-  if (!targetProfileId) return;
-
-  // 1. Ambil Data Ilmu Baku milik user ini saja
-  const { data: dataBaku } = await supabaseClient
-    .from("ilmu_baku")
-    .select("*")
-    .eq("user_id", targetProfileId);
-
-  if (wadahBaku) {
-    if (dataBaku && dataBaku.length > 0) {
-      wadahBaku.innerHTML = dataBaku.map(item => `
-        <button onclick="bukaPopupProfilIlmu(${JSON.stringify(item).replace(/"/g, '&quot;')}, 'Ilmu Baku Sah')" style="width:100%; margin:4px 0; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-left:4px solid #16a34a; color:#334155; border-radius:8px; cursor:pointer; text-align:left; font-size:12px;">
-          <strong>${item.judul_aksi}</strong>
-        </button>
-      `).join("");
-    } else {
-      wadahBaku.innerHTML = `<p style="font-size:11px; color:#94a3b8; font-style:italic; margin:0;">Belum ada ilmu yang disahkan.</p>`;
-    }
-  }
-
-  // 2. Ambil Data Ilmu Pending milik user ini saja
-  const { data: dataPending } = await supabaseClient
-    .from("ilmu_pending")
-    .select("*")
-    .eq("user_id", targetProfileId);
-
-  if (wadahPending) {
-    if (dataPending && dataPending.length > 0) {
-      wadahPending.innerHTML = dataPending.map(item => `
-        <button onclick="bukaPopupProfilIlmu(${JSON.stringify(item).replace(/"/g, '&quot;')}, 'Menunggu konsensus bersama')" style="width:100%; margin:4px 0; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-left:4px solid #f59e0b; color:#334155; border-radius:8px; cursor:pointer; text-align:left; font-size:12px;">
-          <strong>${item.judul_aksi}</strong><br>
-          <span style="font-size:10px; color:#f59e0b;">👍 ${item.total_vote || 0} Dukungan</span>
-        </button>
-      `).join("");
-    } else {
-      wadahPending.innerHTML = `<p style="font-size:11px; color:#94a3b8; font-style:italic; margin:0;">Tidak ada ilmu dalam antrean.</p>`;
-    }
-  }
-}
-
-// Fungsi menampilkan popup detail ilmu saat tombol ilmu diklik di profil
-function bukaPopupProfilIlmu(item, badgeText) {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:99999; padding: 20px;";
-    
-    // Cek apakah tombol vote perlu dimunculkan (Hanya untuk ilmu_pending)
-    const isPending = !badgeText.includes("Sah");
-
-    overlay.innerHTML = `
-        <div style="background:#1e293b; padding:2rem; border-radius:1rem; width:90%; max-width:500px; border:1px solid #374151; color:white; text-align:left; max-height: 90vh; display: flex; flex-direction: column;">
-            
-            <div style="text-align:center; font-size:0.7rem; color:#94a3b8; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.1em;">
-                ToFarmer - ${badgeText}
-            </div>
-
-            <h2 style="color:#16a34a; text-align:center; margin-bottom:1rem; font-size:18px;">${item.judul_aksi}</h2>
-            
-            <div style="flex: 1; overflow-y: auto; margin-bottom: 1rem; padding-right: 10px;">
-                <p style="color:#cbd5e1; white-space:pre-line; line-height:1.6; font-size:13px;">${item.deskripsi_proses}</p>
-            </div>
-
-            <div style="text-align:center; display: flex; gap: 10px; justify-content: center;">
-                ${isPending ? `<button id="profil-vote-btn" style="background:#f59e0b; border:none; padding:10px 20px; color:black; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;">👍 Vote (${item.total_vote || 0})</button>` : ''}
-                <button id="profil-close-popup" style="background:#374151; border:none; padding:10px 30px; color:white; border-radius:8px; cursor:pointer; font-size:12px;">Tutup</button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(overlay);
-    
-    if (isPending) {
-        document.getElementById('profil-vote-btn').onclick = () => aksiVoteDariProfil(item);
-    }
-    document.getElementById('profil-close-popup').onclick = () => document.body.removeChild(overlay);
-}
-
-// Logika vote yang disadur dari dashboard.js, disesuaikan untuk profile.js
-async function aksiVoteDariProfil(item) {
-    // Gunakan id pendaftar dari browser yang sedang membuka web (currentWallet)
-    if (!currentWallet) {
-        alert("Waduh, login/sambungkan dompet dulu ya untuk bisa memberikan dukungan!");
-        return;
-    }
-
-    // 1. Cek apakah user sudah pernah vote data ini di tabel votes
-    const { data: existingVote, error: voteError } = await supabaseClient
-        .from('votes')
-        .insert([{ ilmu_id: item.id, user_id: currentWallet }])
-        .select();
-
-    if (voteError) {
-        alert("Wah, Kang sudah pernah memberikan dukungan untuk ilmu ini!");
-        return;
-    }
-
-    // 2. Tambah angka vote
-    const newVoteCount = (item.total_vote || 0) + 1;
-
-    const { error: updateError } = await supabaseClient
-        .from('ilmu_pending')
-        .update({ total_vote: newVoteCount })
-        .eq('id', item.id);
-
-    if (updateError) {
-        alert("Gagal mengupdate jumlah vote.");
-        return;
-    }
-
-    // 3. Jika mencapai atau melampaui batas 7 vote, otomatis naik kelas ke ilmu_baku
-    if (newVoteCount >= 7) {
-        const { error: insertError } = await supabaseClient
-            .from('ilmu_baku')
-            .insert([{
-                user_id: item.user_id,
-                judul_aksi: item.judul_aksi,
-                deskripsi_proses: item.deskripsi_proses,
-                total_vote: newVoteCount
-            }]);
-
-        if (!insertError) {
-            await supabaseClient.from('ilmu_pending').delete().eq('id', item.id);
-            alert("Mantap! Ilmu ini sudah lulus konsensus dan masuk Ilmu Baku!");
-            location.reload();
-        }
-    } else {
-        alert(`Dukungan berhasil! (Total: ${newVoteCount}/7)`);
-        location.reload();
-    }
-}
-
-// ==========================================================================
-// 🟢 AKHIR SISIPAN FUNGSI BARU
-// ==========================================================================
-
-// =====================
-// SEND PROFILE POST
-// =====================
-
 // =====================
 // SEND PROFILE POST
 // =====================
