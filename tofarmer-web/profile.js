@@ -801,7 +801,7 @@ async function loadComments(postId) {
  // 6. 🔥 INI DIA YANG KAMU TANYA → RENDER KE UI
  box.innerHTML = merged.map(c => {
   const user = c.profiles?.username || "Petani";
-  const avatar = c.profiles?.avatar_url || "https://www.tofarmer.xyz/images/logo-tofarmer.png";
+  const avatar = c.profiles?.avatar_url || "/aset/favicon.png";
 
   const time = new Date(c.created_at).toLocaleString("id-ID", {
     day: "2-digit",
