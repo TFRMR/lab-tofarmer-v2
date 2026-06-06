@@ -604,10 +604,14 @@ async function loadFeed() {
     }
   } catch (metaErr) { console.log(metaErr); }
 
-  let comments = []
+ let comments = []
   try {
     const postIds = posts.map(p => p.id)
-    const { data } = await supabaseClient.from("comments").select("*").in("post_id", postIds)
+    // KODE BARU: Kita meminta Supabase mengambil data profiles berdasarkan relasi user_id di tabel comments
+    const { data } = await supabaseClient
+      .from("comments")
+      .select("*, profiles(id, username, avatar_url)")
+      .in("post_id", postIds)
     comments = data || []
   } catch (e) { comments = [] }
 
