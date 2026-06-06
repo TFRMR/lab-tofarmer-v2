@@ -1419,19 +1419,57 @@ result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick=
 function inisialisasiKomponenNotif() {
   if (!currentWallet) return; 
 
+  // 1. Buat elemen style pembantu untuk mendeteksi layar HP secara otomatis
+  const styleNotif = document.createElement("style");
+  styleNotif.innerHTML = `
+    /* Tampilan standar untuk PC / Layar Lebar */
+    #tof-notif-wrapper {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 999999; /* Dibuat sangat tinggi agar tidak tenggelam di bawah navbar */
+      font-family: sans-serif;
+    }
+    #box-notif-tof {
+      display: none;
+      position: absolute;
+      top: 60px;
+      right: 0;
+      width: 320px;
+      max-height: 400px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      overflow-y: auto;
+    }
+
+    /* 📱 KONDISI KHUSUS LAYAR HAPE (Lebar di bawah 768px) */
+    @media (max-width: 768px) {
+      #tof-notif-wrapper {
+        top: 75px !important;   /* Diturunkan jadi 75px agar lolos dari jeratan Navbar atas HP */
+        right: 15px !important;  /* Jarak aman dari tepi layar kanan HP */
+      }
+      #box-notif-tof {
+        right: 0 !important;
+        width: 290px !important; /* Dikecilkan sedikit agar kotak tidak meluber keluar layar HP */
+        max-height: 350px !important;
+      }
+    }
+  `;
+  document.head.appendChild(styleNotif);
+
+  // 2. Buat pembungkus utama
   const notifWrapper = document.createElement("div");
   notifWrapper.id = "tof-notif-wrapper";
-  
-  // 💡 PERBAIKAN 1: Mengubah bottom menjadi top agar posisi pindah ke atas kanan layar
-  notifWrapper.style.cssText = "position: fixed; top: 20px; right: 20px; z-index: 9999; font-family: sans-serif;";
 
   notifWrapper.innerHTML = `
-    <button id="btn-lonceng-tof" style="background: #2f6f4e; color: white; border: none; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); position: relative; display: flex; align-items: center; justify-content: center; font-size: 20px; outline: none;">
+    <button id="btn-lonceng-tof" style="background: #2f6f4e; color: white; border: none; width: 48px; height: 48px; border-radius: 50%; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.25); position: relative; display: flex; align-items: center; justify-content: center; font-size: 20px; outline: none; -webkit-tap-highlight-color: transparent;">
       🔔
-      <span id="badge-notif-tof" style="display: none; position: absolute; top: 0; right: 0; background: #dc2626; color: white; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 10px; border: 2px solid white;">0</span>
+      <span id="badge-notif-tof" style="display: none; position: absolute; top: -2px; right: -2px; background: #dc2626; color: white; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 10px; border: 2px solid white;">0</span>
     </button>
 
-    <div id="box-notif-tof" style="display: none; position: absolute; top: 60px; right: 0; width: 320px; max-height: 400px; background: white; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.15); overflow-y: auto;">
+    <div id="box-notif-tof">
       <div style="padding: 12px; background: #f4fbf7; border-bottom: 1px solid #e2ece7; font-weight: bold; color: #2f6f4e; display: flex; justify-content: space-between; align-items: center;">
         <span>Pemberitahuan Ladang</span>
         <button id="btn-tandai-baca" style="background:none; border:none; color:#6ea84f; font-size:11px; cursor:pointer; font-weight:600;">Tandai Dibaca</button>
@@ -1447,8 +1485,9 @@ function inisialisasiKomponenNotif() {
   const btnLonceng = document.getElementById("btn-lonceng-tof");
   const boxNotif = document.getElementById("box-notif-tof");
   
-  btnLonceng.addEventListener("click", () => {
-    if (boxNotif.style.display === "none") {
+  btnLonceng.addEventListener("click", (e) => {
+    e.stopPropagation(); // Mencegah bentrok click event di HP
+    if (boxNotif.style.display === "none" || boxNotif.style.display === "") {
       boxNotif.style.display = "block";
       loadNotifikasiUser(); 
     } else {
@@ -1456,92 +1495,18 @@ function inisialisasiKomponenNotif() {
     }
   });
 
-  document.getElementById("btn-tandai-baca").addEventListener("click", tandaiSemuaNotifDibaca);
+  // Klik di luar kotak notif untuk menutup otomatis (Biar ramah pengguna HP)
+  document.addEventListener("click", (e) => {
+    if (!notifWrapper.contains(e.target)) {
+      boxNotif.style.display = "none";
+    }
+  });
+
+  document.getElementById("btn-tandai-baca").addEventListener("click", (e) => {
+    e.stopPropagation();
+    tandaiSemuaNotifDibaca();
+  });
 }
-
-// 2. Fungsi Mengambil Data dari Supabase (Versi yang sudah disempurnakan dengan penembak UI)
-async function loadNotifikasiUser() {
-  if (!currentWallet) return;
-
-  try {
-    // 1. Ambil data notifikasi murni tanpa JOIN terlebih dahulu (Menghindari Eror 400)
-    const { data: notifs, error } = await supabaseClient
-      .from("notifications")
-      .select("*")
-      .eq("user_id", currentWallet)
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    if (error) throw error;
-
-    const badge = document.getElementById("badge-notif-tof");
-    const listContainer = document.getElementById("list-notif-tof");
-
-    const jumlahBelumBaca = notifs ? notifs.filter(n => !n.is_read).length : 0;
-    if (badge) {
-      if (jumlahBelumBaca > 0) {
-        badge.innerText = jumlahBelumBaca;
-        badge.style.display = "block";
-      } else {
-        badge.style.display = "none";
-      }
-    }
-
-    if (!notifs || notifs.length === 0) {
-      if (listContainer) {
-        listContainer.innerHTML = `<div style="padding: 20px; text-align: center; color: #999;">Belum ada pemberitahuan baru.</div>`;
-      }
-      return;
-    }
-
-    // 2. Ambil semua sender_id unik untuk dicari nama profilnya secara manual
-    const semuaSender = [...new Set(notifs.map(n => n.sender_id))];
-    const { data: daftarProfil, error: errorProfil } = await supabaseClient
-      .from("profiles")
-      .select("id, username")
-      .in("id", semuaSender);
-
-    // Buat peta (map) agar pencarian nama nanti super cepat
-    const petaProfil = {};
-    if (!errorProfil && daftarProfil) {
-      daftarProfil.forEach(p => {
-        petaProfil[p.id] = p.username;
-      });
-    }
-
-    // 3. Petakan data ke dalam baris HTML di dalam dropdown
-    const listHtml = notifs.map(n => {
-      // Ambil username dari peta profil, jika tidak ketemu pakai "Seseorang"
-      const namaPengirim = petaProfil[n.sender_id] || "Seseorang";
-      let linkAksi = "";
-
-      if (n.type === 'comment' || n.type === 'mention') {
-         linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
-      } else if (n.type === 'vote_needed') {
-         linkAksi = `if(typeof window.bukaDetailIlmuProfil === "function"){ window.bukaDetailIlmuProfil('${n.related_id}', 'ilmu_pending'); }`;
-      }
-
-      const bgWarna = n.is_read ? "white" : "#f0fdf4";
-
-      return `
-        <div onclick="${linkAksi}" style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; background: ${bgWarna}; transition: background 0.2s;" onmouseover="this.style.background='#f7faf8'" onmouseout="this.style.background='${bgWarna}'">
-          <strong>@${namaPengirim}</strong> ${n.message}
-          <span style="font-size: 10px; color: #999; display: block; margin-top: 4px;">
-            ${new Date(n.created_at).toLocaleDateString('id-ID')}
-          </span>
-        </div>
-      `;
-    }).join("");
-    
-    if (listContainer) {
-      listContainer.innerHTML = listHtml;
-    }
-
-  } catch (err) {
-    console.log("Gagal memuat notifikasi:", err.message);
-  }
-}
-
 // 3. Fungsi mengubah status notifikasi agar angka merahnya hilang
 async function tandaiSemuaNotifDibaca() {
   if (!currentWallet) return;
