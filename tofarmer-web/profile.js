@@ -799,17 +799,76 @@ async function loadComments(postId) {
   }));
 
  // 6. 🔥 INI DIA YANG KAMU TANYA → RENDER KE UI
-  box.innerHTML = merged.map(c => `
-    <div class="comment">
-      <div class="user">
-        <img src="${c.profiles?.avatar_url || '/default.png'}" width="30" />
-        <b>${c.profiles?.username || 'unknown'}</b>
-      </div>
+ box.innerHTML = merged.map(c => {
+  const user = c.profiles?.username || "Petani";
+  const avatar = c.profiles?.avatar_url || "https://www.tofarmer.xyz/images/logo-tofarmer.png";
 
-      <p>${c.comment}</p>
-      <small>${c.created_at}</small>
+  const time = new Date(c.created_at).toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
+  return `
+    <div style="
+      display: flex;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    ">
+
+      <!-- AVATAR -->
+      <img src="${avatar}" style="
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+      " />
+
+      <!-- CONTENT -->
+      <div style="flex: 1;">
+
+        <!-- HEADER (username + time) -->
+        <div style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 3px;
+        ">
+
+          <div style="
+            font-weight: 700;
+            font-size: 13px;
+            color: #2f6f4e;
+          ">
+            @${user}
+          </div>
+
+          <div style="
+            font-size: 11px;
+            color: #999;
+          ">
+            ${time}
+          </div>
+
+        </div>
+
+        <!-- COMMENT TEXT -->
+        <div style="
+          font-size: 13px;
+          color: #222;
+          line-height: 1.4;
+          white-space: pre-wrap;
+        ">
+          ${c.comment}
+        </div>
+
+      </div>
     </div>
-  `).join("");
+  `;
+}).join("");
 }
 
   
