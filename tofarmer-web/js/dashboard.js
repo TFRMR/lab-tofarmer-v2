@@ -283,7 +283,7 @@ async function handleVote(item) {
 
     // CEK LOGIN: Pengunjung tidak login tidak bisa vote
     if (!userId) {
-        alert("Waduh, login dulu Kang untuk bisa memberikan dukungan!");
+        alert("Waduh, login dulu ya untuk bisa memberikan dukungan!");
         return;
     }
 
