@@ -655,10 +655,25 @@ const { data: rawComments, error: qErr } = await supabaseClient
     const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
 
+    // KUNCI FB: Cek apakah postingan ini milik user yang sedang login sekarang
+    const isMyPost = item.profiles?.id === currentWallet;
+
     div.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;">
-        <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
-        <div onclick="window.location.href='profile.html?id=${item.profiles?.id}'" style="font-weight:600;color:#2f6f4e;cursor:pointer;">@${username}</div>
+      <div style="display:flex; align-items:center; justify-content:between; gap:8px; width:100%;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+          <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
+          <div onclick="window.location.href='profile.html?id=${item.profiles?.id}'" style="font-weight:600;color:#2f6f4e;cursor:pointer;">@${username}</div>
+        </div>
+        
+        ${isMyPost ? `
+        <div class="post-menu-container" style="position: relative; display: inline-block;">
+          <button class="btn-dot-menu" onclick="toggleDotMenu('${item.id}')" style="background:none; border:none; color:#65676b; font-size:16px; cursor:pointer; padding:4px 8px;">•••</button>
+          <div class="dot-dropdown" id="dropdown-${item.id}" style="display:none; position:absolute; right:0; top:24px; background:white; box-shadow:0 2px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:150px; border:1px solid #e4e6eb; padding:4px 0;">
+            <button onclick="aksiEditPostingan('${item.id}', \`${safeText}\`)" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
+            <button onclick="aksiSembunyikanKeProfil('${item.id}')" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">🔒 Sembunyikan ke Profil</button>
+          </div>
+        </div>
+        ` : ''}
       </div>
       <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">${date}</div>
       <div class="text" style="margin-top:6px;">${convertMentions(item.deskripsi_proses || "")}</div>
@@ -1117,4 +1132,53 @@ async function loadRadarPeringkat() {
   }
 }
 // 🟢 AKHIR SISIPAN FUNGSI
+// Fungsi pengendali menu dropdown titik tiga ala FB untuk Beranda utama
+function toggleDotMenu(postId) {
+  const dropdown = document.getElementById(`dropdown-${postId}`);
+  if (!dropdown) return;
+  document.querySelectorAll('.dot-dropdown').forEach(el => {
+    if (el.id !== `dropdown-${postId}`) el.style.display = 'none';
+  });
+  dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+}
 
+window.addEventListener('click', function(e) {
+  if (!e.target.matches('.btn-dot-menu')) {
+    document.querySelectorAll('.dot-dropdown').forEach(el => el.style.display = 'none');
+  }
+});
+
+async function aksiEditPostingan(postId, teksLama) {
+  const teksBaru = prompt("Edit postingan Anda:", teksLama);
+  if (teksBaru === null) return;
+  if (!teksBaru.trim()) return alert("Teks tidak boleh kosong!");
+
+  const { error } = await supabaseClient
+    .from("contributions")
+    .update({ deskripsi_proses: teksBaru.trim() })
+    .eq("id", postId);
+
+  if (error) {
+    alert("Gagal mengedit: " + error.message);
+  } else {
+    alert("Postingan berhasil diperbarui! 🌱");
+    if (typeof loadFeed === "function") loadFeed();
+  }
+}
+
+async function aksiSembunyikanKeProfil(postId) {
+  const yakin = confirm("Sembunyikan dari Beranda Utama? Postingan tetap tersimpan aman di Profil pribadi Anda.");
+  if (!yakin) return;
+
+  const { error } = await supabaseClient
+    .from("contributions")
+    .update({ is_private: true })
+    .eq("id", postId);
+
+  if (error) {
+    alert("Gagal menyembunyikan: " + error.message);
+  } else {
+    alert("Postingan berhasil dipindahkan ke arsip profil pribadi 🔒");
+    if (typeof loadFeed === "function") loadFeed();
+  }
+}
