@@ -1351,16 +1351,23 @@ function sharePost(postId, username, text) {
     }
   }, 500); // Diberi jeda 500ms agar data Supabase beranda selesai dirender utuh ke layar DOM
 
-// Fungsi pengendali menu dropdown titik tiga ala FB untuk Beranda utama
+// =========================================================================
+// 🟢 FUNGSI MANAJEMEN POSTINGAN (EDIT & PRIVASI) ALA FACEBOOK
+// =========================================================================
+
 function toggleDotMenu(postId) {
   const dropdown = document.getElementById(`dropdown-${postId}`);
   if (!dropdown) return;
+  
+  // Tutup dropdown lain yang sedang terbuka
   document.querySelectorAll('.dot-dropdown').forEach(el => {
     if (el.id !== `dropdown-${postId}`) el.style.display = 'none';
   });
+
   dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
 }
 
+// Tutup otomatis jika klik di luar area menu
 window.addEventListener('click', function(e) {
   if (!e.target.matches('.btn-dot-menu')) {
     document.querySelectorAll('.dot-dropdown').forEach(el => el.style.display = 'none');
@@ -1368,44 +1375,41 @@ window.addEventListener('click', function(e) {
 });
 
 async function aksiEditPostingan(postId, teksLama) {
-  const teksBaru = prompt("Edit postingan Anda:", teksLama);
-  if (teksBaru === null) return;
-  if (!teksBaru.trim()) return alert("Teks tidak boleh kosong!");
+  const teksBaru = prompt("Edit catatan karya Anda:", teksLama);
+  if (teksBaru === null) return; // User menekan batal
+  if (!teksBaru.trim()) return alert("Catatan tidak boleh kosong 🌱");
 
   const { error } = await supabaseClient
     .from("contributions")
     .update({ deskripsi_proses: teksBaru.trim() })
     .eq("id", postId);
 
- if (error) {
-    alert("Gagal mengedit: " + error.message);
+  if (error) {
+    alert("Gagal memperbarui postingan: " + error.message);
   } else {
-    alert("Postingan berhasil diperbarui! 🌱");
-    // Saringan cerdas: periksa fungsi loadUserPosts, jika ada langsung segarkan profil
-    if (typeof loadUserPosts === "function") {
-      loadUserPosts();
-    }
+    alert("Postingan berhasil diperbarui! 🌿");
+    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil
   }
+}
 
-// TAMBAHKAN BARIS BARU INI DI PALING BAWAH PROFILE.JS
 async function aksiKembalikanKeBeranda(postId) {
   const yakin = confirm("Tampilkan kembali postingan ini ke lini masa Beranda Umum? 🌍");
   if (!yakin) return;
 
   const { error } = await supabaseClient
     .from("contributions")
-    .update({ is_private: false }) // Mengubah status menjadi Publik kembali
+    .update({ is_private: false }) // Setel status menjadi Publik kembali
     .eq("id", postId);
 
   if (error) {
     alert("Gagal memproses: " + error.message);
   } else {
     alert("Postingan dipublikasikan kembali ke Beranda Umum! 🚀");
-    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil Anda
+    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil
   }
 }
 
-// Fungsi Pengubah Link & @Mention agar teks postingan di profil bisa diklik & bisa enter
+// Fungsi Pengubah Link & @Mention agar teks bisa diklik & bisa enter (Sudah Diperbaiki)
 function convertMentions(text) {
   if (!text) return "";
 
