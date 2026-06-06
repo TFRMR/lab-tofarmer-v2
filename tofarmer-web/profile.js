@@ -379,9 +379,155 @@ function renderWorkspace() {
   `
 }
 let aiChatCounter = 0;
+
+// ==========================================================================
+// FUNGSI MEMUAT ILMU DAN VOTE KHUSUS HALAMAN PROFIL (FIXED NO LOADING)
+// ==========================================================================
+
+// Kita buat fungsi pembantu untuk mempermudah buka popup tanpa merusak HTML text
+window.bukaDetailIlmuProfil = async function(idIlmu, tipeTabel) {
+  try {
+    const { data: item, error } = await supabaseClient
+      .from(tipeTabel)
+      .select("*")
+      .eq("id", idIlmu)
+      .single();
+
+    if (error || !item) return alert("Gagal memuat detail ilmu.");
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:99999; padding: 20px;";
+    
+    const isPending = (tipeTabel === "ilmu_pending");
+
+    overlay.innerHTML = `
+        <div style="background:#1e293b; padding:2rem; border-radius:1rem; width:90%; max-width:500px; border:1px solid #374151; color:white; text-align:left; max-height: 90vh; display: flex; flex-direction: column;">
+            <div style="text-align:center; font-size:0.7rem; color:#94a3b8; margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.1em;">
+                ToFarmer - ${isPending ? 'Menunggu Konsensus' : 'Ilmu Baku Sah'}
+            </div>
+            <h2 style="color:#16a34a; text-align:center; margin-bottom:1rem; font-size:18px;">${item.judul_aksi}</h2>
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 1rem; padding-right: 10px;">
+                <p style="color:#cbd5e1; white-space:pre-line; line-height:1.6; font-size:13px;">${item.deskripsi_proses}</p>
+            </div>
+            <div style="text-align:center; display: flex; gap: 10px; justify-content: center;">
+                ${isPending ? `<button id="profil-vote-btn" style="background:#f59e0b; border:none; padding:10px 20px; color:black; border-radius:8px; cursor:pointer; font-weight:bold; font-size:12px;">👍 Vote (${item.total_vote || 0})</button>` : ''}
+                <button id="profil-close-popup" style="background:#374151; border:none; padding:10px 30px; color:white; border-radius:8px; cursor:pointer; font-size:12px;">Tutup</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    if (isPending) {
+        document.getElementById('profil-vote-btn').onclick = () => aksiVoteDariProfil(item);
+    }
+    document.getElementById('profil-close-popup').onclick = () => document.body.removeChild(overlay);
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function loadProfilIlmu() {
+  if (!targetProfileId) return;
+
+  const wadahBaku = document.querySelector("#profil-ilmu-baku .area-baku-list");
+  const wadahPending = document.querySelector("#profil-ilmu-pending .area-pending-list");
+
+  // 1. Ambil Ilmu Baku milik user profil ini
+  const { data: dataBaku } = await supabaseClient
+    .from("ilmu_baku")
+    .select("*")
+    .eq("user_id", targetProfileId);
+
+  if (wadahBaku) {
+    if (dataBaku && dataBaku.length > 0) {
+      wadahBaku.innerHTML = dataBaku.map(item => `
+        <button onclick="window.bukaDetailIlmuProfil('${item.id}', 'ilmu_baku')" style="width:100%; margin:4px 0; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-left:4px solid #16a34a; color:#334155; border-radius:8px; cursor:pointer; text-align:left; font-size:12px;">
+          <strong>📜 ${item.judul_aksi}</strong>
+        </button>
+      `).join("");
+    } else {
+      wadahBaku.innerHTML = `<p style="font-size:11px; color:#94a3b8; font-style:italic; margin:0;">Belum ada ilmu yang disahkan.</p>`;
+    }
+  }
+
+  // 2. Ambil Ilmu Pending milik user profil ini
+  const { data: dataPending } = await supabaseClient
+    .from("ilmu_pending")
+    .select("*")
+    .eq("user_id", targetProfileId);
+
+  if (wadahPending) {
+    if (dataPending && dataPending.length > 0) {
+      wadahPending.innerHTML = dataPending.map(item => `
+        <button onclick="window.bukaDetailIlmuProfil('${item.id}', 'ilmu_pending')" style="width:100%; margin:4px 0; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-left:4px solid #f59e0b; color:#334155; border-radius:8px; cursor:pointer; text-align:left; font-size:12px;">
+          <strong>⏳ ${item.judul_aksi}</strong><br>
+          <span style="font-size:10px; color:#f59e0b;">👍 ${item.total_vote || 0} Dukungan</span>
+        </button>
+      `).join("");
+    } else {
+      wadahPending.innerHTML = `<p style="font-size:11px; color:#94a3b8; font-style:italic; margin:0;">Tidak ada ilmu dalam antrean.</p>`;
+    }
+  }
+}
+
+async function aksiVoteDariProfil(item) {
+    if (!currentWallet) {
+        alert("Waduh, login/sambungkan dompet dulu ya untuk bisa memberikan dukungan!");
+        return;
+    }
+
+    // Gunakan 'supabaseClient' sesuai konfigurasi bawaan profile.js
+    const { data: existingVote, error: voteError } = await supabaseClient
+        .from('votes')
+        .insert([{ ilmu_id: item.id, user_id: currentWallet }])
+        .select();
+
+    if (voteError) {
+        alert("Wah, Kang sudah pernah memberikan dukungan untuk ilmu ini!");
+        return;
+    }
+
+    const newVoteCount = (item.total_vote || 0) + 1;
+
+    const { error: updateError } = await supabaseClient
+        .from('ilmu_pending')
+        .update({ total_vote: newVoteCount })
+        .eq('id', item.id);
+
+    if (updateError) {
+        alert("Gagal mengupdate jumlah vote.");
+        return;
+    }
+
+    if (newVoteCount >= 7) {
+        const { error: insertError } = await supabaseClient
+            .from('ilmu_baku')
+            .insert([{
+                user_id: item.user_id,
+                judul_aksi: item.judul_aksi,
+                deskripsi_proses: item.deskripsi_proses,
+                total_vote: newVoteCount
+            }]);
+
+        if (!insertError) {
+            await supabaseClient.from('ilmu_pending').delete().eq('id', item.id);
+            alert("Mantap! Ilmu ini sudah lulus konsensus dan masuk Ilmu Baku!");
+            location.reload();
+        }
+    } else {
+        alert(`Dukungan berhasil! (Total: ${newVoteCount}/7)`);
+        location.reload();
+    }
+}
+
+// ==========================================================================
+// AKHIR FUNGSI PERBAIKAN ILMU
+// ==========================================================================
+
 // =====================
 // SEND PROFILE POST
-// =====================
+// =============================
 
 async function sendProfilePost() {
     const input = document.getElementById("profilePostBox");
