@@ -1444,7 +1444,7 @@ function inisialisasiKomponenNotif() {
       display: none;
       position: absolute !important;
       top: 55px !important;
-      right: 0 !important;
+      right: 40 !important;
       width: 300px !important;
       max-height: 380px !important;
       background: white !important;
