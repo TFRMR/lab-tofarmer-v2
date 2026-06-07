@@ -728,7 +728,7 @@ async function sendProfilePost() {
 
 } 
 }
-
+}
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
 // =====================
@@ -1630,4 +1630,4 @@ if (document.readyState === "loading") {
   inisialisasiKomponenNotif();
   setTimeout(loadNotifikasiUser, 2000);
 }
-}
+
