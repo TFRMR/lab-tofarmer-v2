@@ -1460,3 +1460,64 @@ async function panggilAiSaran(mode, payload) {
         return "Lagi sibuk nyangkul nih, coba nanti lagi ya!";
     }
 }
+
+// ==========================================
+// 🤖 INTERAKSI LANJUTAN: BALAS CHAT TEMAN KEBUN
+// ==========================================
+async function kirimChatAI() {
+  const chatInput = document.getElementById("ai-input");
+  const responseBox = document.getElementById("ai-response");
+  const sisaLabel = document.getElementById("sisa-chat");
+  const aiChatArea = document.getElementById("ai-chat-area");
+
+  if (!chatInput || !responseBox) return;
+
+  const userReply = chatInput.value.trim();
+  if (!userReply) return;
+
+  // Cek inisialisasi counter jatah chat (Maksimal 3 kali)
+  if (typeof window.aiChatCounter === "undefined") {
+    window.aiChatCounter = 0;
+  }
+
+  if (window.aiChatCounter >= 3) {
+    alert("Jatah diskusi ronde ini sudah habis, Kang! Teman Kebun mau lanjut nyangkul di ladang dulu. 🚜");
+    if (aiChatArea) aiChatArea.style.display = "none";
+    return;
+  }
+
+  // Naikkan counter & update UI sisa chat
+  window.aiChatCounter++;
+  const sisaKuota = 3 - window.aiChatCounter;
+  if (sisaLabel) sisaLabel.innerText = sisaKuota;
+
+  // Kosongkan kolom ketik balasan langsung
+  chatInput.value = "";
+  responseBox.innerText = "Teman Kebun sedang mendengarkan curhatanmu...";
+
+  try {
+    // Panggil Cloudflare Workers untuk membalas chat secara kontekstual
+    const balasanAi = await panggilAiSaran("Diskusi", {
+      teks: userReply,
+      trigger: `User membalas obrolanmu tentang karyanya. Karyanya tadi: "${window.lastAiContext || 'Baru menanam'}". User berkata: "${userReply}". Jawab dia dengan gaya asisten petani lokal yang akrab, singkat, solutif, serta beri sentuhan humor!`
+    });
+
+    if (typeof typeWriterEffect === "function") {
+      typeWriterEffect(responseBox, `🤖 Teman Kebun: ${balasanAi}`);
+    } else {
+      responseBox.innerText = `🤖 Teman Kebun: ${balasanAi}`;
+    }
+
+    // Jika jatah sudah habis setelah chat ini, tutup form inputnya otomatis
+    if (sisaKuota <= 0) {
+      setTimeout(() => {
+        if (aiChatArea) aiChatArea.style.display = "none";
+        responseBox.innerHTML += "<br><br><em>🤖 Teman Kebun: Sudah 3 ronde obrolan nih Kang, saya balik nyangkul dulu ya! Sampai jumpa di karya berikutnya!</em>";
+      }, 5000);
+    }
+
+  } catch (err) {
+    console.error("Gagal melanjutkan diskusi AI:", err);
+    responseBox.innerText = "🤖 Teman Kebun: Cangkul saya agak patah barusan, coba ketik lagi Kang!";
+  }
+}
