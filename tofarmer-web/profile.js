@@ -713,7 +713,17 @@ async function sendProfilePost() {
           if (sisa) sisa.innerText = 3;
       }, 2000);
    
+} catch (err) {
 
+  console.log("AI error:", err);
+  responseBox.innerText =
+    "🤖 Teman Kebun: Lagi nyangkul, coba lagi nanti ya.";
+
+} finally {
+
+  if (btn) btn.disabled = false;
+
+}
        // ==========================================
 // 🔄 GANTI BAGIAN IF INI
 // ==========================================
@@ -721,13 +731,7 @@ async function sendProfilePost() {
             document.getElementById("ai-chat-area").style.display = "none";
             responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya... (Tanam karya baru lagi untuk ngobrol lagi)";
         }
-// ==========================================
-    } catch (err) {
-        responseBox.innerText = "🤖 Teman Kebun: Maaf, saya lagi kurang enak badan (Error API).";
-    } finally {
-        if (btn) btn.disabled = false;
-    }
-}
+
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
 // =====================
