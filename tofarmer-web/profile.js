@@ -486,6 +486,9 @@ async function aksiVoteDariProfil(item) {
 // =========================================================================
 // 🌿 FUNGSI UTAMA: SEND PROFILE POST (INTEGRASI DATABASE & AI TEMAN KEBUN)
 // =========================================================================
+// =========================================================================
+// 🌿 FUNGSI UTAMA: SEND PROFILE POST (INTEGRASI DATABASE & AI TEMAN KEBUN)
+// =========================================================================
 async function sendProfilePost() {
   let imageUrl = null
   const input = document.getElementById("profilePostBox")
@@ -560,11 +563,27 @@ async function sendProfilePost() {
 
   alert("Karya berhasil ditanam di ladang! 🌱🎨");
 
+  // --- AMANKAN UPDATE XP (SUPAYA KODE TIDAK BERHENTI DI SINI) ---
   try {
-    const { data: semuaUser } = await supabaseClient
+    // Cari data profile saat ini langsung dari DB jika variabel global currentProfile kosong
+    const { data: dbProfile } = await supabaseClient
       .from("profiles")
-      .select("id");
+      .select("xp")
+      .eq("id", currentWallet)
+      .single();
 
+    const currentXp = dbProfile?.xp || 0;
+    await supabaseClient
+      .from("profiles")
+      .update({ xp: currentXp + xpBonus })
+      .eq("id", currentWallet);
+  } catch (xpErr) {
+    console.log("Gagal sinkronisasi bonus XP:", xpErr);
+  }
+
+  // --- KIRIM NOTIFIKASI MASSAL ---
+  try {
+    const { data: semuaUser } = await supabaseClient.from("profiles").select("id");
     if (semuaUser && semuaUser.length > 0 && dataBaru && dataBaru[0]) {
       const daftarNotif = semuaUser
         .filter(u => u.id !== currentWallet) 
@@ -580,38 +599,30 @@ async function sendProfilePost() {
         }));
 
       if (daftarNotif.length > 0) {
-        await supabaseClient
-          .from("notifications")
-          .insert(daftarNotif);
+        await supabaseClient.from("notifications").insert(daftarNotif);
       }
     }
   } catch (errNotif) {
     console.log("Notifikasi massal dilewati:", errNotif.message);
   }
 
-  if (currentProfile) {
-    const newXP = (currentProfile.xp || 0) + xpBonus
-    const { error: xpError } = await supabaseClient
-      .from("profiles")
-      .update({ xp: newXP })
-      .eq("id", currentWallet)
-
-    if (!xpError) {
-      currentProfile.xp = newXP
-    }
-  }
-
+  // --- SEGERA KOSONGKAN KOLOM DAN REFLECTION DATA TANPA REFRESH ---
   input.value = ""
   if (imageInput) imageInput.value = ""
 
-  await loadUserPosts() 
+  await loadUserPosts(); // Menampilkan postingan baru secara realtime ke bawah list profil
 
+  // --- AKTIFKAN SISTEM WADAH CHAT TEMAN KEBUN ---
   const responseBox = document.getElementById("ai-response");
   const aiChatArea = document.getElementById("ai-chat-area");
   
   if (responseBox && aiChatArea) {
     responseBox.innerText = "Teman Kebun sedang menganalisis karya barumu...";
     
+    // Siapkan limit ronde chat global
+    window.aiChatCounter = 0; 
+    window.lastAiContext = text; // Simpan ingatan postingan terakhir
+
     const { data: latestProfile } = await supabaseClient
         .from("profiles")
         .select("*")
@@ -627,37 +638,25 @@ async function sendProfilePost() {
     const riwayatLama = allPosts ? allPosts.slice(1) : []; 
     
     if (typeof generateProfileContext === "function" && typeof panggilAiSaran === "function") {
-      const konteksRAG = generateProfileContext(latestProfile || currentProfile, riwayatLama);
+      const konteksRAG = generateProfileContext(latestProfile, riwayatLama);
 
       const komentarLucu = await panggilAiSaran("Evaluasi", { 
           teks: text, 
-          trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya:\n${konteksRAG}` 
+          trigger: `User baru saja menanam karya baru: "${text}". Berikan evaluasi singkat, jujur, humoris, khas petani Indonesia. Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya:\n${konteksRAG}` 
       });
       
-      try {
-        if (typeof typeWriterEffect === "function") {
-          typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
-        } else {
-          responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
-        }
+      if (typeof typeWriterEffect === "function") {
+        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
+      } else {
+        responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+      }
 
-        let aiChatCounter = 0;
-
-        setTimeout(() => {
-          if (aiChatArea) aiChatArea.style.display = "block";
-          const sisa = document.getElementById("sisa-chat");
-          if (sisa) sisa.innerText = 3;
-        }, 2000);
-
-        if (aiChatCounter >= 3) {
-          document.getElementById("ai-chat-area").style.display = "none";
-          responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya...";
-        }
-
-      } catch (err) {
-        console.log("AI error:", err);
-        responseBox.innerText = "🤖 Teman Kebun: Lagi nyangkul, coba lagi nanti ya.";
-      } 
+      // Tampilkan form balasan chat AI setelah 2 detik komentar muncul
+      setTimeout(() => {
+        aiChatArea.style.display = "block";
+        const sisa = document.getElementById("sisa-chat");
+        if (sisa) sisa.innerText = 3;
+      }, 2000);
     }
   }
 }
