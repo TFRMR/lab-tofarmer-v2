@@ -1630,4 +1630,4 @@ if (document.readyState === "loading") {
   inisialisasiKomponenNotif();
   setTimeout(loadNotifikasiUser, 2000);
 }
-
+}
