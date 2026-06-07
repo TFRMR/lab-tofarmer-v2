@@ -1366,16 +1366,11 @@ function inisialisasiKomponenNotif() {
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER & FIX BUG LINK ALTERNATIF
 // =========================================================================
 // =========================================================================
-// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: ID CONTAINER & TARGET ACCURATE)
-// =========================================================================
-// =========================================================================
-// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (GARANSI 100% LOCK TARGET & NO CRASH)
-// =========================================================================
-// =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (GARANSI 100% LOCK TARGET & NO CRASH)
 // =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
+
   try {
     const { data: notifications, error } = await supabaseClient
       .from("notifications")
@@ -1386,11 +1381,14 @@ async function loadNotifikasiUser() {
 
     if (error) throw error;
 
-    const listContainer = document.getElementById("list-notif-tof") || document.getElementById("notification-list");
+    const listContainer =
+      document.getElementById("list-notif-tof") ||
+      document.getElementById("notification-list");
 
     if (!notifications || notifications.length === 0) {
       if (listContainer) {
-        listContainer.innerHTML = "<p style='padding:15px; color:#999; font-style:italic; font-size:13px; text-align:center;'>Belum ada pemberitahuan baru.</p>";
+        listContainer.innerHTML =
+          "<p style='padding:15px; color:#999; font-style:italic; font-size:13px; text-align:center;'>Belum ada pemberitahuan baru.</p>";
       }
       return;
     }
@@ -1407,29 +1405,46 @@ async function loadNotifikasiUser() {
     );
 
     const listHtml = notifications.map(n => {
-      // 1. Ambil username murni milik si pengirim dari database
-      const usernameAsliPengirim = profileMap[n.sender_id]?.username || "petani";
-      
+      const usernameAsliPengirim =
+        profileMap[n.sender_id]?.username || "petani";
+
       let namaDisplay = `@${usernameAsliPengirim}`;
       if (n.sender_id === currentWallet) {
         namaDisplay = "Anda";
       }
 
-      // Default awal: jika tidak ada post terkait, langsung kunci ke profile.html?u=namauser
-      let linkAksi = `window.location.assign('profile.html?u=${usernameAsliPengirim}');`;
-      
-      // 2. Jika ada target postingan karya (Comment, Mention, Like)
-      if ((n.type === 'mention' || n.type === 'comment' || n.type === 'like') && n.related_id) {
-        // DIKUNCI SATU BARIS PADAT: Kirim parameter targetPost secara absolut agar dibaca script profile utama
-        linkAksi = `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}#post-card-${n.related_id}');`;
-      } else if (n.type === 'vote_needed') {
-        linkAksi = `window.location.assign('/html/dashboard.html');`;
+      // ===============================
+      // DEFAULT: ke profile user
+      // ===============================
+      let linkAksi =
+        `window.location.assign('profile.html?u=${usernameAsliPengirim}');`;
+
+      // ===============================
+      // FIX: arahkan ke post target
+      // ===============================
+      if (
+        (n.type === "mention" ||
+          n.type === "comment" ||
+          n.type === "like") &&
+        n.related_id
+      ) {
+        // hanya kirim targetPost (JANGAN pakai hash dulu biar tidak misleading)
+        linkAksi =
+          `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
+      } else if (n.type === "vote_needed") {
+        linkAksi =
+          `window.location.assign('/html/dashboard.html');`;
       }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
 
       return `
-        <div onclick="${linkAksi}" style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; background: ${bgWarna}; transition: background 0.2s;" onmouseover="this.style.background='#f7faf8'" onmouseout="this.style.background='${bgWarna}'">
+        <div 
+          onclick="${linkAksi}" 
+          style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; background:${bgWarna}; transition: background 0.2s;" 
+          onmouseover="this.style.background='#f7faf8'" 
+          onmouseout="this.style.background='${bgWarna}'"
+        >
           <strong>${namaDisplay}</strong> ${n.message}
           <span style="font-size: 10px; color: #999; display: block; margin-top: 4px;">
             ${new Date(n.created_at).toLocaleDateString('id-ID')}
@@ -1437,7 +1452,7 @@ async function loadNotifikasiUser() {
         </div>
       `;
     }).join("");
-    
+
     if (listContainer) {
       listContainer.innerHTML = listHtml;
     }
@@ -1534,29 +1549,31 @@ async function kirimChatAI() {
     responseBox.innerText = "🤖 Teman Kebun: Cangkul saya agak patah barusan, coba ketik lagi Kang!";
   }
 }
-// =========================================================================
-// 🚀 FUNGSI OTOMATIS GULUNG LAYAR KE TARGET POSTINGAN NOTIFIKASI
-// =========================================================================
-function periksaDanLompatKePostingan() {
+// =====================================================
+// 🎯 AUTO FOCUS TARGET POST DARI NOTIFIKASI
+// =====================================================
+function handleTargetPostFromNotification() {
   const urlParams = new URLSearchParams(window.location.search);
-  const targetPostId = urlParams.get("targetPost");
-  
-  if (targetPostId) {
-    // Cari elemen berdasarkan ID kartu postingan Anda (sesuaikan dengan ID elemen card postingan Anda)
-    // Biasanya id="post-card-XXX" atau id="post-XXX"
-    setTimeout(() => {
-      const elemenPost = document.getElementById(`post-card-${targetPostId}`) || document.getElementById(`post-${targetPostId}`);
-      if (elemenPost) {
-        // Gulung layar dengan efek halus (smooth) tepat ke kartu karya tersebut
-        elemenPost.scrollIntoView({ behavior: "smooth", block: "center" });
-        // Beri efek highlight kuning kedip sebentar agar user tahu itu postingannya
-        elemenPost.style.backgroundColor = "#fef08a"; 
-        setTimeout(() => {
-          elemenPost.style.backgroundColor = ""; 
-        }, 2000);
-      }
-    }, 800); // Beri jeda 0.8 detik agar data kartu postingan selesai ter-render di HTML
-  }
+  const targetPost = urlParams.get("targetPost");
+
+  if (!targetPost) return;
+
+  setTimeout(() => {
+    const el = document.getElementById(`post-card-${targetPost}`);
+
+    if (el) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+      // highlight biar keliatan targetnya
+      el.style.border = "2px solid #22c55e";
+      el.style.background = "#f0fdf4";
+      el.style.transition = "0.3s ease";
+    }
+  }, 700); // sedikit lebih aman dari 500ms
 }
 
-// Panggil fungsi pencari lokasi ini tepat di baris akhir setelah fungsi loadUserPosts() selesai dijalankan!
+// jalankan setelah semua script jalan
+handleTargetPostFromNotification();
