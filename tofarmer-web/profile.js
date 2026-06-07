@@ -1434,7 +1434,7 @@ function inisialisasiKomponenNotif() {
       /* 💡 PERBAIKAN 1: Mengubah fixed menjadi absolute agar lonceng ikut hanyut ke atas saat di-scroll */
       position: absolute !important;
       top: 15px !important;
-      right: 15px !important;
+      right: 40px !important;
       z-index: 999999999 !important;
       font-family: sans-serif !important;
       display: block !important;
