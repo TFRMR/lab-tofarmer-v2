@@ -3,6 +3,10 @@ const RATE = 0.10;
 
 const container = document.getElementById("qlrContainer");
 
+// Variabel state global untuk menyimpan data radar & status lipat
+let globalUserList = [];
+let isExpanded = false;
+
 // =========================
 // ambil semua wallet
 // =========================
@@ -79,11 +83,9 @@ function formatTime(months) {
 // =========================
 // garis per user (TOF FARMER RADAR STYLE)
 // =========================
-// Tambahkan parameter 'index' dan 'balance' untuk menampilkan nomor dan jumlah saldo
 function createLine(username, months, balance, index) {
   const line = document.createElement("div");
 
-  // Style container baris agar padat dan rapi
   line.style = `
     display: flex;
     align-items: center;
@@ -122,32 +124,29 @@ function createLine(username, months, balance, index) {
   `;
   labelEl.innerText = "@" + username;
 
-  // Pasang fungsi klik melompat langsung ke halaman profil
   labelEl.onclick = () => {
     window.location.assign(`profile.html?u=${username}`);
   };
 
-  // Efek visual interaktif saat kursor menyentuh nama akun
   labelEl.onmouseover = () => {
-    labelEl.style.color = "#16a34a"; // Mengubah warna jadi hijau pupuk cerah
-    labelEl.style.textDecoration = "underline"; // Efek garis bawah penunjuk link
+    labelEl.style.color = "#16a34a";
+    labelEl.style.textDecoration = "underline";
   };
   labelEl.onmouseout = () => {
-    labelEl.style.color = "#2f6f4e"; // Kembalikan ke warna default
+    labelEl.style.color = "#2f6f4e";
     labelEl.style.textDecoration = "none";
   };
 
-  // 3. KOLOM SALDO TOF (Format ribuan ala Indonesia)
+  // 3. KOLOM SALDO TOF
   const balanceEl = document.createElement("div");
   balanceEl.style = "width: 85px; text-align: right; font-weight: 700; color: #b5942b; flex-shrink: 0; font-variant-numeric: tabular-nums;";
   balanceEl.innerText = balance.toLocaleString("id-ID", { maximumFractionDigits: 0 }) + " TOF";
 
-  // 4. KOLOM SISA WAKTU (ESTIMASI COMOUNDING)
+  // 4. KOLOM SISA WAKTU
   const timeEl = document.createElement("div");
   timeEl.style = "width: 65px; text-align: right; color: #6f7f76; flex-shrink: 0; font-size: 10px;";
   timeEl.innerText = "⏳ " + formatTime(months);
 
-  // Masukkan semua kolom ke dalam baris
   line.appendChild(medalEl);
   line.appendChild(labelEl);
   line.appendChild(balanceEl);
@@ -156,21 +155,81 @@ function createLine(username, months, balance, index) {
   return line;
 }
 
+// ========================================================
+// FUNGSI KHUSUS: MERENDER DATA BERDASARKAN KONDISI TOMBOL
+// ========================================================
+function drawRadarItems() {
+  // Bersihkan penampung utama terlebih dahulu
+  container.innerHTML = "";
+
+  // Tentukan batas item: Ambil 10 jika dilipat, ambil semua jika dibuka
+  const itemsToRender = isExpanded ? globalUserList : globalUserList.slice(0, 10);
+
+  // Render baris data
+  itemsToRender.forEach((user, index) => {
+    const line = createLine(user.username, user.months, user.balance, index);
+    container.appendChild(line);
+  });
+
+  // Jika total user lebih dari 10 orang, munculkan tombol ekspand di bawahnya
+  if (globalUserList.length > 10) {
+    const btnContainer = document.createElement("div");
+    btnContainer.style = "text-align: center; margin-top: 10px; margin-bottom: 4px;";
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.style = `
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #16a34a;
+      padding: 6px 14px;
+      font-size: 9px;
+      font-weight: 600;
+      border-radius: 20px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    `;
+    
+    // Sesuaikan label teks tombol berdasarkan state
+    toggleBtn.innerText = isExpanded ? "Ringkas Tampilan 🌾" : `Intip Seluruh Radar Ladang (${globalUserList.length} Warga) 🌿`;
+
+    // Efek Hover Tombol
+    toggleBtn.onmouseover = () => {
+      toggleBtn.style.background = "#dcfce7";
+      toggleBtn.style.transform = "scale(1.03)";
+    };
+    toggleBtn.onmouseout = () => {
+      toggleBtn.style.background = "#f0fdf4";
+      toggleBtn.style.transform = "scale(1)";
+    };
+
+    // Aksi klik untuk mengubah state pelipatan tanpa fetch ulang blockchain
+    toggleBtn.onclick = () => {
+      isExpanded = !isExpanded;
+      drawRadarItems(); // Gambar ulang tampilannya saja
+    };
+
+    btnContainer.appendChild(toggleBtn);
+    container.appendChild(btnContainer);
+  }
+}
+
 // =========================
-// render radar
+// AMBIL DATA AWAL RADAR
 // =========================
 async function renderQLR() {
   container.innerHTML = "<div style='font-size:11px; color:#6f7f76; text-align:center; padding:10px;'>Menghitung radar ladang... 🌿</div>";
 
   const users = await getAllWallets();
-  const userListWithBalance = [];
+  globalUserList = []; // Reset ulang wadah data global
 
-  // 1. Kumpulkan semua data saldo dari blockchain terlebih dahulu
+  // 1. Kumpulkan semua data saldo dari blockchain
   for (let u of users) {
     const balance = await getUserBalance(u.id);
     const months = calcMonths(balance);
     
-    userListWithBalance.push({
+    globalUserList.push({
       username: u.username || u.id,
       balance: balance,
       months: months
@@ -178,21 +237,10 @@ async function renderQLR() {
   }
 
   // 2. URUTKAN: Saldo paling besar berada di urutan paling atas
-  userListWithBalance.sort((a, b) => b.balance - a.balance);
+  globalUserList.sort((a, b) => b.balance - a.balance);
 
-  // Bersihkan teks loading sebelum render data asli
-  container.innerHTML = "";
-
-  // 3. Render data yang sudah urut ke dalam card container
-  userListWithBalance.forEach((user, index) => {
-    const line = createLine(
-      user.username,
-      user.months,
-      user.balance,
-      index // Berikan posisi index untuk penentuan medali
-    );
-    container.appendChild(line);
-  });
+  // 3. Jalankan fungsi render visual ke HTML
+  drawRadarItems();
 }
 
 // =========================
