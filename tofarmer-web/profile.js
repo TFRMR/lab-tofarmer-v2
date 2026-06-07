@@ -712,7 +712,11 @@ async function sendProfilePost() {
           const sisa = document.getElementById("sisa-chat");
           if (sisa) sisa.innerText = 3;
       }, 2000);
-   
+   if (aiChatCounter >= 3) {
+    document.getElementById("ai-chat-area").style.display = "none";
+    responseBox.innerText =
+      "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya...";
+  }
 } catch (err) {
 
   console.log("AI error:", err);
@@ -724,13 +728,7 @@ async function sendProfilePost() {
   if (btn) btn.disabled = false;
 
 }
-       // ==========================================
-// 🔄 GANTI BAGIAN IF INI
-// ==========================================
-        if (aiChatCounter >= 3) {
-            document.getElementById("ai-chat-area").style.display = "none";
-            responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya... (Tanam karya baru lagi untuk ngobrol lagi)";
-        }
+ 
 
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
