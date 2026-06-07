@@ -700,36 +700,35 @@ async function sendProfilePost() {
           trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya:\n${konteksRAG}` 
       });
       
-      if (typeof typeWriterEffect === "function") {
-        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
-      } else {
-        responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
-      }
-      
-      aiChatCounter = 0; 
-      setTimeout(() => {
-          if(aiChatArea) aiChatArea.style.display = "block";
-          const sisa = document.getElementById("sisa-chat");
-          if (sisa) sisa.innerText = 3;
-      }, 2000);
-   if (aiChatCounter >= 3) {
+      try {
+  if (typeof typeWriterEffect === "function") {
+    typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
+  } else {
+    responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+  }
+
+  aiChatCounter = 0;
+
+  setTimeout(() => {
+    if (aiChatArea) aiChatArea.style.display = "block";
+    const sisa = document.getElementById("sisa-chat");
+    if (sisa) sisa.innerText = 3;
+  }, 2000);
+
+  if (aiChatCounter >= 3) {
     document.getElementById("ai-chat-area").style.display = "none";
     responseBox.innerText =
       "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya...";
   }
-} catch (err) {
 
+} catch (err) {
   console.log("AI error:", err);
   responseBox.innerText =
     "🤖 Teman Kebun: Lagi nyangkul, coba lagi nanti ya.";
 
 } finally {
-
   if (btn) btn.disabled = false;
-
 }
- 
-
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
 // =====================
