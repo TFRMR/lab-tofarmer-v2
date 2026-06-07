@@ -1422,19 +1422,32 @@ async function loadNotifikasiUser() {
       // ===============================
       // FIX: arahkan ke post target
       // ===============================
-      if (
-        (n.type === "mention" ||
-          n.type === "comment" ||
-          n.type === "like") &&
-        n.related_id
-      ) {
-        // hanya kirim targetPost (JANGAN pakai hash dulu biar tidak misleading)
-        linkAksi =
-          `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
-      } else if (n.type === "vote_needed") {
-        linkAksi =
-          `window.location.assign('/html/dashboard.html');`;
-      }
+     const type = (n.type || "").toLowerCase().trim();
+
+// pastikan target post benar-benar ada
+const targetPostId = n.related_id;
+
+// ===============================
+// HANDLE NAVIGASI TARGET POST
+// ===============================
+if (
+  (type === "mention" ||
+   type === "comment" ||
+   type === "like") &&
+  targetPostId
+) {
+  linkAksi =
+    `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${targetPostId}');`;
+}
+
+// ===============================
+// SPECIAL CASE: vote
+// ===============================
+else if (type === "vote_needed") {
+  linkAksi =
+    `window.location.assign('/html/dashboard.html');`;
+}
+     
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
 
