@@ -1368,6 +1368,9 @@ function inisialisasiKomponenNotif() {
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: ID CONTAINER & TARGET ACCURATE)
 // =========================================================================
+// =========================================================================
+// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: LOMPAT LANGSUNG KE LOKASI KARYA)
+// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
   try {
@@ -1380,8 +1383,6 @@ async function loadNotifikasiUser() {
 
     if (error) throw error;
 
-    // FIX: Sesuaikan ID container agar sinkron dengan komponen lonceng bawaan (#list-notif-tof)
-    // Kita cek keduanya (notification-list atau list-notif-tof) agar aman di halaman mana pun
     const listContainer = document.getElementById("list-notif-tof") || document.getElementById("notification-list");
 
     if (!notifications || notifications.length === 0) {
@@ -1403,22 +1404,20 @@ async function loadNotifikasiUser() {
     );
 
     const listHtml = notifications.map(n => {
-      // 1. PEMISAHAN DATA VARIABEL: Murni dari database sender_id asli
       const usernameAsliPengirim = profileMap[n.sender_id]?.username || "petani";
       
-      // Tampilan teks pembaca (jika diri sendiri, tulis "Anda")
       let namaDisplay = `@${usernameAsliPengirim}`;
       if (n.sender_id === currentWallet) {
         namaDisplay = "Anda";
       }
 
-      // 2. MEMUTUS HUBUNGAN DARI PARAMETER URL (profileUsername DIKUNCI)
-      // Link diarahkan ke pemilik postingan asli, bukan halaman tempat user berada sekarang
+      // Default awal: lurus ke profil utama pengirim
       let linkAksi = `window.location.href='?u=${usernameAsliPengirim}'`;
       
-      // 3. TARGET ANCHOR POSTINGAN YANG AKURAT DAN PAS
+      // JIKA NOTIFIKASI TERKAIT POSTINGAN KARYA (Comment, Mention, Like)
       if ((n.type === 'mention' || n.type === 'comment' || n.type === 'like') && n.related_id) {
-        linkAksi = `window.location.href='?u=${usernameAsliPengirim}&post=${n.related_id}#post-card-${n.related_id}'`;
+        // Kita gunakan window.location.origin + pathname untuk memaksa browser reload halaman secara bersih
+        linkAksi = `window.location.href = window.location.pathname + '?u=${usernameAsliPengirim}&targetPost=${n.related_id}#post-card-${n.related_id}'; setTimeout(() => { window.location.reload(); }, 50);`;
       } else if (n.type === 'vote_needed') {
         linkAksi = `window.location.href='/html/dashboard.html'`;
       }
@@ -1441,21 +1440,6 @@ async function loadNotifikasiUser() {
 
   } catch (err) {
     console.log("Gagal memuat notifikasi:", err.message);
-  }
-}
-
-async function tandaiSemuaNotifDibaca() {
-  if (!currentWallet) return;
-  try {
-    await supabaseClient
-      .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", currentWallet)
-      .eq("is_read", false);
-
-    loadNotifikasiUser();
-  } catch (err) {
-    console.log("Gagal menandai baca:", err.message);
   }
 }
 
@@ -1547,3 +1531,29 @@ async function kirimChatAI() {
     responseBox.innerText = "🤖 Teman Kebun: Cangkul saya agak patah barusan, coba ketik lagi Kang!";
   }
 }
+// =========================================================================
+// 🚀 FUNGSI OTOMATIS GULUNG LAYAR KE TARGET POSTINGAN NOTIFIKASI
+// =========================================================================
+function periksaDanLompatKePostingan() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetPostId = urlParams.get("targetPost");
+  
+  if (targetPostId) {
+    // Cari elemen berdasarkan ID kartu postingan Anda (sesuaikan dengan ID elemen card postingan Anda)
+    // Biasanya id="post-card-XXX" atau id="post-XXX"
+    setTimeout(() => {
+      const elemenPost = document.getElementById(`post-card-${targetPostId}`) || document.getElementById(`post-${targetPostId}`);
+      if (elemenPost) {
+        // Gulung layar dengan efek halus (smooth) tepat ke kartu karya tersebut
+        elemenPost.scrollIntoView({ behavior: "smooth", block: "center" });
+        // Beri efek highlight kuning kedip sebentar agar user tahu itu postingannya
+        elemenPost.style.backgroundColor = "#fef08a"; 
+        setTimeout(() => {
+          elemenPost.style.backgroundColor = ""; 
+        }, 2000);
+      }
+    }, 800); // Beri jeda 0.8 detik agar data kartu postingan selesai ter-render di HTML
+  }
+}
+
+// Panggil fungsi pencari lokasi ini tepat di baris akhir setelah fungsi loadUserPosts() selesai dijalankan!
