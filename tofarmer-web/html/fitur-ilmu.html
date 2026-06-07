@@ -6,7 +6,7 @@
 
 <title>Ruang ToFarmer • Fitur & Ilmu</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
 
 <style>
 
@@ -18,17 +18,18 @@ box-sizing:border-box;
 
 body{
 font-family:'Plus Jakarta Sans',sans-serif;
+/* Gradien Warna Hutan Menoreh Kelam di Sore Hari yang Subur */
 background:
-radial-gradient(circle at top left,#edf6ef 0%,transparent 35%),
-radial-gradient(circle at bottom right,#f4efe0 0%,transparent 30%),
-linear-gradient(135deg,#edf4ef 0%,#e6efe7 45%,#edf1e6 100%);
+    radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+    radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+    linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
 min-height:100vh;
 overflow-x:hidden;
-color:#183222;
+color:#e2e8f0;
 position:relative;
 }
 
-/* kabut lembut */
+/* kabut lembut pegunungan menoreh */
 body::before{
 content:"";
 position:fixed;
@@ -36,7 +37,7 @@ inset:0;
 background:
 linear-gradient(
 120deg,
-rgba(255,255,255,.18),
+rgba(255,255,255,.03),
 rgba(255,255,255,0)
 );
 pointer-events:none;
@@ -62,7 +63,7 @@ HEADER
 
 .hero{
 position:relative;
-padding:40px 20px 70px;
+padding:40px 20px 50px;
 text-align:center;
 }
 
@@ -70,7 +71,7 @@ text-align:center;
 content:"";
 position:absolute;
 left:50%;
-bottom:20px;
+bottom:10px;
 transform:translateX(-50%);
 width:180px;
 height:1px;
@@ -78,7 +79,7 @@ background:
 linear-gradient(
 90deg,
 transparent,
-rgba(181,148,43,.6),
+rgba(234, 179, 8, 0.4),
 transparent
 );
 }
@@ -94,29 +95,33 @@ width:95px;
 height:95px;
 border-radius:50%;
 padding:5px;
-background:rgba(255,255,255,.65);
+background:rgba(20, 38, 27, 0.6);
 backdrop-filter:blur(12px);
+-webkit-backdrop-filter:blur(12px);
+border: 1px solid rgba(74, 222, 128, 0.25);
 box-shadow:
-0 10px 30px rgba(25,60,35,.08),
-0 0 0 1px rgba(255,255,255,.7);
+0 10px 30px rgba(0,0,0,0.5);
 transition:.5s;
 }
 
 .logo:hover{
 transform:rotate(8deg) scale(1.04);
+border-color: #eab308;
+box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
 }
 
 .hero h1{
+font-family: 'Playfair Display', serif;
 font-size:3rem;
 font-weight:800;
-letter-spacing:-2px;
-line-height:1.1;
+letter-spacing:-1px;
+line-height:1.2;
 background:
 linear-gradient(
 135deg,
-#173722,
-#2c6545,
-#b5942b
+#fef08a 0%,
+#4ade80 50%,
+#22c55e 100
 );
 -webkit-background-clip:text;
 -webkit-text-fill-color:transparent;
@@ -126,58 +131,60 @@ linear-gradient(
 margin-top:18px;
 font-size:.98rem;
 line-height:1.8;
-color:#587060;
+color:#84a98c;
 max-width:650px;
 margin-inline:auto;
 }
 
 /* =========================
-TOP BUTTON
+TOP BUTTON (MENU ATAS CANTIK)
 ========================= */
 
 .top-nav{
 display:flex;
 justify-content:center;
-margin-top:26px;
+margin-top:30px;
 }
 
 .top-btn{
 display:inline-flex;
 align-items:center;
 gap:10px;
-padding:14px 24px;
+padding:14px 28px;
 border-radius:999px;
 text-decoration:none;
 font-size:.83rem;
 font-weight:700;
 letter-spacing:.5px;
-background:rgba(255,255,255,.65);
-backdrop-filter:blur(10px);
-color:#234431;
-border:1px solid rgba(255,255,255,.7);
-box-shadow:
-0 10px 25px rgba(20,40,30,.04);
-transition:.3s;
+background: rgba(20, 36, 26, 0.5);
+backdrop-filter: blur(12px);
+-webkit-backdrop-filter: blur(12px);
+color:#a7f3d0;
+border:1px solid rgba(74, 222, 128, 0.2);
+box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+transition:.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .top-btn:hover{
-transform:translateY(-2px);
-background:#214632;
-color:white;
+transform:translateY(-3px);
+background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+color:#050b07;
+border-color: #4ade80;
+box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
 }
 
 /* =========================
-MAIN CARD
+MAIN CARD BOX (PANEL UTAMA BERKABUT)
 ========================= */
 
 .main-box{
-background:rgba(255,255,255,.52);
-backdrop-filter:blur(22px);
-border:1px solid rgba(255,255,255,.7);
+background: rgba(14, 28, 19, 0.45);
+backdrop-filter: blur(22px);
+-webkit-backdrop-filter: blur(22px);
+border:1px solid rgba(255, 255, 255, 0.05);
 border-radius:34px;
-padding:34px;
-box-shadow:
-0 15px 50px rgba(20,50,30,.06);
+padding:40px;
+box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 position:relative;
 overflow:hidden;
 }
@@ -192,32 +199,32 @@ height:240px;
 background:
 radial-gradient(
 circle,
-rgba(181,148,43,.12),
+rgba(234, 179, 8, 0.08),
 transparent 70%
 );
 }
 
 /* =========================
-SECTION
+SECTION TITLE
 ========================= */
 
 .section{
-margin-bottom:42px;
+margin-bottom:45px;
 }
 
 .section-title{
 display:flex;
 align-items:center;
 gap:14px;
-margin-bottom:18px;
+margin-bottom:22px;
 }
 
 .section-title span{
-font-size:.78rem;
+font-size:.82rem;
 font-weight:800;
 letter-spacing:2px;
 text-transform:uppercase;
-color:#b5942b;
+color:#fde047; /* Warna Sunset Elegan */
 white-space:nowrap;
 }
 
@@ -227,25 +234,25 @@ height:1px;
 background:
 linear-gradient(
 90deg,
-rgba(181,148,43,.5),
-rgba(30,70,49,.08),
+rgba(234, 179, 8, 0.3),
+rgba(34, 197, 94, 0.05),
 transparent
 );
 }
 
 /* =========================
-GRID
+GRID LAYOUT
 ========================= */
 
 .grid{
 display:grid;
 grid-template-columns:
-repeat(auto-fit,minmax(170px,1fr));
-gap:18px;
+repeat(auto-fit,minmax(200px,1fr));
+gap:20px;
 }
 
 /* =========================
-CARD BUTTON
+CARD BUTTON ELEGAN SUASANA HUTAN
 ========================= */
 
 .card-btn{
@@ -255,36 +262,32 @@ flex-direction:column;
 align-items:center;
 justify-content:center;
 text-decoration:none;
-padding:28px 18px;
+padding:32px 20px;
 border-radius:24px;
-
-background:
-linear-gradient(
-180deg,
-rgba(255,255,255,.78),
-rgba(255,255,255,.42)
-);
-
-border:1px solid rgba(255,255,255,.7);
-
-box-shadow:
-0 8px 20px rgba(20,50,30,.04);
-
-transition:.35s;
+background: rgba(18, 35, 24, 0.4);
+border: 1px solid rgba(255, 255, 255, 0.03);
+border-left: 2px solid rgba(34, 197, 94, 0.15);
+box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+transition: all .35s cubic-bezier(0.4, 0, 0.2, 1);
 overflow:hidden;
 }
 
-.card-btn:hover{
-transform:translateY(-6px);
-box-shadow:
-0 18px 30px rgba(20,50,30,.08),
-0 0 25px rgba(181,148,43,.08);
+/* Efek Sentuhan Sejuk & Melayang */
+.card-btn:hover {
+transform: translateY(-6px);
+background: rgba(22, 46, 31, 0.6);
+border-color: rgba(74, 222, 128, 0.25);
+border-left-color: #4ade80;
+box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.4),
+    0 0 25px rgba(234, 179, 8, 0.05);
 }
 
 .card-btn:active{
 transform:scale(.97);
 }
 
+/* Garis Pembatas Atas Saat Hover */
 .card-btn::before{
 content:"";
 position:absolute;
@@ -297,7 +300,7 @@ background:
 linear-gradient(
 90deg,
 transparent,
-#b5942b,
+#eab308,
 transparent
 );
 opacity:0;
@@ -309,62 +312,77 @@ opacity:1;
 }
 
 .icon{
-font-size:2.4rem;
+font-size:2.6rem;
 margin-bottom:16px;
 transition:.4s;
-filter:drop-shadow(0 6px 10px rgba(0,0,0,.06));
+filter:drop-shadow(0 6px 12px rgba(0,0,0,0.3));
 }
 
 .card-btn:hover .icon{
 transform:
 translateY(-5px)
-scale(1.08);
+scale(1.1);
 }
 
 .label{
-font-size:.8rem;
+font-size:.83rem;
 font-weight:700;
 letter-spacing:1px;
 text-transform:uppercase;
-color:#264633;
+color:#f8fafc;
 text-align:center;
+transition: color .2s;
+}
+
+.card-btn:hover .label {
+color: #fde047;
 }
 
 .desc{
-margin-top:8px;
-font-size:.72rem;
-line-height:1.5;
+margin-top:10px;
+font-size:.75rem;
+line-height:1.6;
 text-align:center;
-color:#68806f;
+color:#94a3b8;
 }
 
 /* =========================
-COMING SOON
+COMING SOON (KARTU MASA DEPAN)
 ========================= */
 
 .soon{
-opacity:.72;
+opacity:.45;
 border-style:dashed;
+background: rgba(255, 255, 255, 0.01);
+border-color: rgba(255, 255, 255, 0.08);
 }
+.soon:hover {
+transform: none;
+box-shadow: none;
+background: rgba(255, 255, 255, 0.01);
+border-color: rgba(255, 255, 255, 0.08);
+}
+.soon:hover .label { color: #f8fafc; }
+.soon:hover .icon { transform: none; }
 
 /* =========================
-FOOTER
+FOOTER HARMONI ALAM
 ========================= */
 
 .footer{
-padding:45px 20px 70px;
+padding:50px 20px 60px;
 text-align:center;
 }
 
 .footer-text{
-font-size:.76rem;
-color:#728476;
-line-height:1.8;
+font-size:.78rem;
+color:#475569;
+line-height:1.9;
 letter-spacing:.5px;
 }
 
 /* =========================
-MOBILE
+MOBILE RESPONSIVE LAYOUT
 ========================= */
 
 @media(max-width:768px){
@@ -374,15 +392,15 @@ padding:14px;
 }
 
 .hero{
-padding:28px 10px 50px;
+padding:28px 10px 40px;
 }
 
 .hero h1{
-font-size:2.2rem;
+font-size:2.1rem;
 }
 
 .hero p{
-font-size:.88rem;
+font-size:.9rem;
 line-height:1.7;
 }
 
@@ -398,21 +416,22 @@ gap:14px;
 }
 
 .card-btn{
-padding:22px 12px;
+padding:24px 12px;
 border-radius:20px;
 }
 
 .icon{
-font-size:2rem;
+font-size:2.2rem;
 margin-bottom:12px;
 }
 
 .label{
-font-size:.72rem;
+font-size:.74rem;
 }
 
 .desc{
-font-size:.66rem;
+font-size:.68rem;
+margin-top:6px;
 }
 
 }
@@ -427,17 +446,16 @@ font-size:.66rem;
 
 function setActiveLinks() {
   const links = document.querySelectorAll(".card-btn, .top-btn")
-
   const currentPath = window.location.pathname
 
   links.forEach(link => {
     const href = link.getAttribute("href")
-
     if (!href) return
 
     if (currentPath.includes(href.replace("../", ""))) {
-      link.style.border = "1px solid #b5942b"
-      link.style.boxShadow = "0 0 18px rgba(181,148,43,.25)"
+      link.style.borderColor = "#eab308"
+      link.style.borderLeftColor = "#eab308"
+      link.style.boxShadow = "0 0 20px rgba(234, 179, 8, 0.15)"
     }
   })
 }
@@ -451,7 +469,6 @@ function enhanceNavigation() {
 
   links.forEach(link => {
     link.addEventListener("click", (e) => {
-
       const href = link.getAttribute("href")
 
       // ignore external / special links
@@ -483,14 +500,13 @@ window.addEventListener("DOMContentLoaded", () => {
 
 <div class="container">
 
-<!-- HERO -->
-
 <section class="hero">
 
 <div class="logo-wrap">
 <img
 src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzXfCj2gYXzyKmWfs871-jqeTvs6345OTXsndg-mLpIUzsDxvk2JByeMIv5G0XJOT1V3WoGBqUJAhBxuXFkO_IP6Hb98YPCS6KJNrIaG7IB8eeI9gBT5iH-8P2F7qOBY4UfJ6v9g18PnWwcjNAEzYpya-qgtEc5jwiM9IUeQ1i-XZC9RJTHYsbp2FfNYw/s389/logo.png"
 class="logo"
+alt="ToFarmer Logo"
 >
 </div>
 
@@ -511,11 +527,7 @@ dengan semangat kreatif dan keberanian belajar.
 
 </section>
 
-<!-- MAIN -->
-
 <div class="main-box">
-
-<!-- JELAJAH -->
 
 <section class="section">
 
@@ -560,8 +572,6 @@ Eksperimen & perjalanan proyek.
 
 </section>
 
-<!-- TOOLS -->
-
 <section class="section">
 
 <div class="section-title">
@@ -587,7 +597,7 @@ Pemandu Eksperimen.
 </div>
 </a>
 
-<a href="" class="card-btn">
+<a href="" class="card-btn soon">
 <div class="icon">🤖</div>
 <div class="label">Catatan Hidup</div>
 <div class="desc">
@@ -598,7 +608,6 @@ Menyimpan jejak proses bertumbuh.
 </div>
 
 </section>
-<!-- ILMU -->
 
 <section class="section">
 
@@ -609,7 +618,7 @@ Menyimpan jejak proses bertumbuh.
 
 <div class="grid">
 
-<a href="https://www.tofarmer.xyz/html/dashboard.html" class="card-btn">
+<a href="" class="card-btn soon">
 <div class="icon">🧠</div>
 <div class="label">AI</div>
 <div class="desc">
@@ -617,7 +626,7 @@ Belajar kecerdasan buatan.
 </div>
 </a>
 
-<a href="https://www.tofarmer.xyz/html/dashboard.html" class="card-btn">
+<a href="" class="card-btn soon">
 <div class="icon">💻</div>
 <div class="label">Coding</div>
 <div class="desc">
@@ -625,7 +634,7 @@ Membangun dunia digital sendiri.
 </div>
 </a>
 
-<a href="https://www.tofarmer.xyz/html/dashboard.html" class="card-btn">
+<a href="" class="card-btn soon">
 <div class="icon">🌱</div>
 <div class="label">Pertanian</div>
 <div class="desc">
@@ -636,8 +645,6 @@ Ilmu ladang & eksperimen tani.
 </div>
 
 </section>
-
-<!-- FUTURE -->
 
 <section class="section">
 
@@ -686,8 +693,6 @@ Petani masa depan & komunitas.
 
 </div>
 
-<!-- FOOTER -->
-
 <footer class="footer">
 <div class="footer-text">
 ToFarmer • Bertumbuh dari praktik ☕🌱<br>
@@ -696,6 +701,6 @@ Membangun masa depan dari ladang, kopi, dan keberanian belajar.
 </footer>
 
 </div>
-<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script><!-- End Cloudflare Web Analytics -->
-</body>
+
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script></body>
 </html>
