@@ -1368,54 +1368,24 @@ function inisialisasiKomponenNotif() {
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (GARANSI 100% LOCK TARGET & NO CRASH)
 // =========================================================================
-// =========================================================================
-// 🔔 FUNGSI: MEMUAT NOTIFIKASI GABUNGAN (TABEL NOTIFIKASI + TABEL KOMENTAR KARYA)
-// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
 
   try {
-    const listContainer =
-      document.getElementById("list-notif-tof") ||
-      document.getElementById("notification-list");
-
-    // -----------------------------------------------------------------
-    // LANGKAH 1: Ambil data dari tabel NOTIFICATIONS (Ilmu Baru, Vote, dll)
-    // -----------------------------------------------------------------
-    const promiseNotif = supabaseClient
+    const { data: notifications, error } = await supabaseClient
       .from("notifications")
       .select("*")
       .eq("user_id", currentWallet)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(20);
 
-    // -----------------------------------------------------------------
-    // LANGKAH 2: Ambil data KOMENTAR BARU yang masuk ke KARYA KITA
-    // Kita cari komentar di mana post_id-nya milik wallet kita (contributions.user_id = kita)
-    // -----------------------------------------------------------------
-    const promiseKomentar = supabaseClient
-      .from("comments")
-      .select(`
-        id,
-        post_id,
-        user_id,
-        comment_text,
-        created_at,
-        contributions!inner(user_id, title)
-      `)
-      .eq("contributions.user_id", currentWallet) // Hanya ambil komentar yang masuk ke karya milik kita
-      .neq("user_id", currentWallet)               // Abaikan komentar yang kita tulis sendiri
-      .order("created_at", { ascending: false })
-      .limit(10);
+    if (error) throw error;
 
-    // Jalankan kedua query secara bersamaan biar cepat
-    const [resNotif, resKomentar] = await Promise.all([promiseNotif, promiseKomentar]);
+    const listContainer =
+      document.getElementById("list-notif-tof") ||
+      document.getElementById("notification-list");
 
-    const rawNotifications = resNotif.data || [];
-    const rawComments = resKomentar.data || [];
-
-    // Jika dua-duanya kosong, langsung tampilkan pesan kosong
-    if (rawNotifications.length === 0 && rawComments.length === 0) {
+    if (!notifications || notifications.length === 0) {
       if (listContainer) {
         listContainer.innerHTML =
           "<p style='padding:15px; color:#999; font-style:italic; font-size:13px; text-align:center;'>Belum ada pemberitahuan baru.</p>";
@@ -1423,15 +1393,7 @@ async function loadNotifikasiUser() {
       return;
     }
 
-    // -----------------------------------------------------------------
-    // LANGKAH 3: Kumpulkan semua sender_id/user_id untuk mengambil Username
-    // -----------------------------------------------------------------
-    const senderIds = [
-      ...new Set([
-        ...rawNotifications.map(n => n.sender_id),
-        ...rawComments.map(c => c.user_id)
-      ])
-    ];
+    const senderIds = [...new Set(notifications.map(n => n.sender_id))];
 
     const { data: senderProfiles } = await supabaseClient
       .from("profiles")
@@ -1442,44 +1404,7 @@ async function loadNotifikasiUser() {
       (senderProfiles || []).map(p => [p.id, p])
     );
 
-    // -----------------------------------------------------------------
-    // LANGKAH 4: Standardisasi format data agar bisa digabungkan
-    // -----------------------------------------------------------------
-    
-    // Format data dari tabel notifications
-    const formattedNotif = rawNotifications.map(n => ({
-      id: `notif-${n.id}`,
-      sender_id: n.sender_id,
-      type: n.type,
-      message: n.message,
-      related_id: n.related_id,
-      is_read: n.is_read || false,
-      created_at: n.created_at
-    }));
-
-    // Format data dari tabel comments menjadi bentuk notifikasi
-    const formattedComments = rawComments.map(c => ({
-      id: `comment-${c.id}`,
-      sender_id: c.user_id,
-      type: "comment", // kita paksa tipenya comment agar dibaca oleh logika di bawah
-      message: `mengomentari catatan karya anda "${c.contributions?.title || ''}": "${c.comment_text.substring(0, 30)}..."`,
-      related_id: c.post_id, // mengarah ke ID postingannya
-      is_read: false, // bisa disesuaikan nanti
-      created_at: c.created_at
-    }));
-
-    // Gabungkan keduanya lalu URUTKAN berdasarkan tanggal paling baru
-    const semuaNotifGabungan = [...formattedNotif, ...formattedComments].sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
-    );
-
-    // Potong maksimal ambil 20 list teratas saja setelah digabung
-    const finalNotifList = semuaNotifGabungan.slice(0, 20);
-
-    // -----------------------------------------------------------------
-    // LANGKAH 5: Render HTML (Menggunakan logika link aksi Akang yang utuh)
-    // -----------------------------------------------------------------
-    const listHtml = finalNotifList.map(n => {
+    const listHtml = notifications.map(n => {
       const usernameAsliPengirim =
         profileMap[n.sender_id]?.username || "petani";
 
@@ -1488,33 +1413,27 @@ async function loadNotifikasiUser() {
         namaDisplay = "Anda";
       }
 
-      // ==========================================
-      // LOGIKA LINK AKSI UTUH MILIK AKANG (100% SAMA)
-      // ==========================================
+      // ===============================
+      // DEFAULT: ke profile user
+      // ===============================
       let linkAksi =
         `window.location.assign('profile.html?u=${usernameAsliPengirim}');`;
 
+      // ===============================
+      // FIX: arahkan ke post target
+      // ===============================
       if (
         (n.type === "mention" ||
           n.type === "comment" ||
           n.type === "like") &&
         n.related_id
       ) {
+        // hanya kirim targetPost (JANGAN pakai hash dulu biar tidak misleading)
         linkAksi =
           `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
       } else if (n.type === "vote_needed") {
         linkAksi =
           `window.location.assign('/html/dashboard.html');`;
-      } 
-      // Logika Tambahan Ilmu/Karya baru global
-      else if (
-        (n.type === "new_post" || 
-         n.type === "share" || 
-         n.type === "karya_baru" || 
-         n.type === "ilmu_baru") && 
-        n.related_id
-      ) {
-        linkAksi = `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
       }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
@@ -1539,7 +1458,7 @@ async function loadNotifikasiUser() {
     }
 
   } catch (err) {
-    console.log("Gagal memuat notifikasi gabungan:", err.message);
+    console.log("Gagal memuat notifikasi:", err.message);
   }
 }
 if (document.readyState === "loading") {
