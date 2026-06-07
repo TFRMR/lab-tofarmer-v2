@@ -1379,11 +1379,11 @@ async function loadNotifikasiUser() {
       const namaPengirim = petaProfil[n.sender_id] || "Seseorang";
       let linkAksi = "";
 
-      if (n.type === 'comment' || n.type === 'mention') {
-          linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
-      } else if (n.type === 'vote_needed') {
-          linkAksi = `window.location.href='/html/dashboard.html'`;
-      }
+     if (n.type === 'comment' || n.type === 'mention') {
+    linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
+} else if (n.type === 'vote_needed') {
+    // Mengubah aksi agar langsung pindah ke halaman dashboard saat diklik
+    linkAksi = `window.location.href='/html/dashboard.html'`;
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
 
