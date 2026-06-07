@@ -712,9 +712,7 @@ async function sendProfilePost() {
           const sisa = document.getElementById("sisa-chat");
           if (sisa) sisa.innerText = 3;
       }, 2000);
-    }
-  }
-}
+   
 
        // ==========================================
 // 🔄 GANTI BAGIAN IF INI
