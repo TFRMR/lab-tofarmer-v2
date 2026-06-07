@@ -199,7 +199,7 @@ async function loadProfile() {
   }, 800);
 
 // ==========================================
-  setTimeout(async () => {
+ setTimeout(async () => {
     const responseBox = document.getElementById("ai-response");
     if (responseBox) {
       responseBox.innerText = "Teman Kebun sedang mengingat riwayat ladangmu...";
@@ -606,48 +606,48 @@ async function sendProfilePost() {
 
   await loadUserPosts() 
 
-  const responseBox = document.getElementById("ai-response");
-  const aiChatArea = document.getElementById("ai-chat-area");
-  
-  if (responseBox && aiChatArea) {
+ // ==========================================
+// 🔄 GANTI BLOK TRIGGER AI LAMA DENGAN INI
+// ==========================================
+    // 3. Trigger AI dengan Memori Komunitas (RAG)
+    const responseBox = document.getElementById("ai-response");
+    const aiChatArea = document.getElementById("ai-chat-area");
+    
     responseBox.innerText = "Teman Kebun sedang menganalisis karya barumu...";
     
-    const { data: latestProfile } = await supabaseClient
+    // Ambil data profil terbaru untuk memastikan XP/TOF akurat
+    const { data: currentProfile } = await supabaseClient
         .from("profiles")
         .select("*")
         .eq("id", currentWallet)
         .single();
 
+    // Ambil semua postingan termasuk yang baru saja masuk
     const { data: allPosts } = await supabaseClient
         .from("contributions")
         .select("deskripsi_proses, created_at")
         .eq("user_id", currentWallet)
+        .eq("is_private", true)
         .order("created_at", { ascending: false });
 
-    const riwayatLama = allPosts ? allPosts.slice(1) : []; 
+    // Lewati indeks ke-0 (karena indeks 0 adalah postingan yang baru saja kita ketik)
+    const riwayatLama = allPosts.slice(1); 
+    const konteksRAG = generateProfileContext(currentProfile, riwayatLama);
+
+    const komentarLucu = await panggilAiSaran("Evaluasi", { 
+        teks: text, 
+        trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya di bawah ini:\n${konteksRAG}` 
+    });
     
-    if (typeof generateProfileContext === "function" && typeof panggilAiSaran === "function") {
-      const konteksRAG = generateProfileContext(latestProfile || currentProfile, riwayatLama);
-
-      const komentarLucu = await panggilAiSaran("Evaluasi", { 
-          teks: text, 
-          trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya:\n${konteksRAG}` 
-      });
-      
-      try {
-        if (typeof typeWriterEffect === "function") {
-          typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
-        } else {
-          responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
-        }
-
-        let aiChatCounter = 0;
-
-        setTimeout(() => {
-          if (aiChatArea) aiChatArea.style.display = "block";
-          const sisa = document.getElementById("sisa-chat");
-          if (sisa) sisa.innerText = 3;
-        }, 2000);
+    typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
+    
+    aiChatCounter = 0; 
+    setTimeout(() => {
+        aiChatArea.style.display = "block";
+        const sisa = document.getElementById("sisa-chat");
+        if (sisa) sisa.innerText = 3;
+    }, 2000);
+}
 
         if (aiChatCounter >= 3) {
           document.getElementById("ai-chat-area").style.display = "none";
