@@ -1582,10 +1582,11 @@ async function loadNotifikasiUser() {
       let linkAksi = "";
 
       if (n.type === 'comment' || n.type === 'mention') {
-         linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
-      } else if (n.type === 'vote_needed') {
-         linkAksi = `if(typeof window.bukaDetailIlmuProfil === "function"){ window.bukaDetailIlmuProfil('${n.related_id}', 'ilmu_pending'); }`;
-      }
+    linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
+} else if (n.type === 'vote_needed') {
+    // Mengubah aksi agar langsung pindah ke halaman dashboard saat diklik
+    linkAksi = `window.location.href='dashboard.html'`;
+}
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
 
