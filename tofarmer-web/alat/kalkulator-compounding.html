@@ -4,118 +4,362 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Quantum Compounding Tracker | ToFarmer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
+
     <style>
-         
-        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter', sans-serif; }
-        body { background:#0d0d0f; color:#e0e0e0; line-height:1.8; overflow-x: hidden; }
-        .container { max-width:1000px; margin:auto; padding:1rem; }
+        /* =========================================================================
+           🌿 RESET & ATMOSFER GELAP HUTAN MENOREH
+           ========================================================================= */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+        }
 
-         
-        header { text-align:center; padding:2rem 1rem; }
-        .header-brand { display: inline-flex; align-items: center; justify-content: center; gap: 15px; text-decoration: none; }
-        .header-logo { height: 50px; width: auto; filter: drop-shadow(0 0 5px rgba(0,242,255,0.5)); }
-        header h1 { font-size: 2.2rem; color: #00f2ff; text-shadow: 0 0 10px #00f2ff; letter-spacing: 1px; }
+        body { 
+            background: 
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.09) 0%, transparent 40%),
+                linear-gradient(135deg, #060c08 0%, #0c1c13 50%, #040805 100%);
+            color: #e2e8f0; 
+            line-height: 1.8; 
+            overflow-x: hidden; 
+            min-height: 100vh;
+        }
 
-        nav { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 20px; margin-bottom: 2rem; }
+        .container { 
+            max-width: 1000px; 
+            margin: auto; 
+            padding: 1rem; 
+        }
+
+        /* =========================================================================
+           🧭 HEADER SEJUK BERKABUT
+           ========================================================================= */
+        header { 
+            text-align: center; 
+            padding: 2.5rem 1rem 1.5rem; 
+        }
+
+        .header-brand { 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 15px; 
+            text-decoration: none; 
+        }
+
+        .header-logo { 
+            height: 55px; 
+            width: auto; 
+            border-radius: 50%;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            padding: 3px;
+            background: rgba(20, 38, 27, 0.4);
+            filter: drop-shadow(0 4px 15px rgba(0, 0, 0, 0.5)); 
+            transition: transform 0.4s ease;
+        }
+
+        .header-brand:hover .header-logo {
+            transform: rotate(6deg) scale(1.05);
+            border-color: #eab308;
+        }
+
+        header h1 { 
+            font-family: 'Playfair Display', serif;
+            font-size: 2.4rem; 
+            font-weight: 800;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px; 
+        }
+
+        /* =========================================================================
+           🧭 MENU NAVIGASI OVAL GLASSMORPHISM
+           ========================================================================= */
+        nav { 
+            display: flex; 
+            gap: 12px; 
+            align-items: center; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+            padding: 12px; 
+            margin-bottom: 2.5rem; 
+            background: rgba(18, 32, 24, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.12);
+            border-radius: 50px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
         nav a { 
-            text-decoration: none; color: #00f2ff; font-size: 0.85em; font-weight: 600; 
-            background: rgba(0, 242, 255, 0.05); border: 1px solid rgba(0, 242, 255, 0.3); 
-            padding: 10px 20px; border-radius: 8px; text-transform: uppercase;
+            text-decoration: none; 
+            color: #a7f3d0; 
+            font-size: 0.8rem; 
+            font-weight: 700; 
+            background: rgba(255, 255, 255, 0.02); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            padding: 10px 22px; 
+            border-radius: 50px; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        nav a:hover { background: rgba(0, 242, 255, 0.2); border-color: #00f2ff; box-shadow: 0 0 15px rgba(0, 242, 255, 0.4); color: #fff; }
 
-         
+        nav a:hover { 
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(234, 179, 8, 0.1) 100%);
+            border-color: rgba(234, 179, 8, 0.4); 
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.15); 
+            color: #fef08a; 
+            transform: translateY(-2px);
+        }
+
+        /* =========================================================================
+           📖 WADAH KONTEN UTAMA (FRAME MESIN TERAWANG)
+           ========================================================================= */
         .content-area { 
-            max-width: 800px; 
+            max-width: 850px; 
             margin: 0 auto; 
-            background: #16161a; 
-            padding: 3rem; 
-            border-radius: 20px; 
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(14, 28, 19, 0.45); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 3.5rem; 
+            border-radius: 30px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255, 255, 255, 0.04);
         }
-        .content-area h1 { color: #00f2ff; margin-bottom: 1rem; font-size: 2.5rem; line-height: 1.2; }
-        .meta-info { color: #666; font-size: 0.8rem; margin-bottom: 2rem; font-family: monospace; }
-        
-         
-        .post-body { font-size: 1.1rem; color: #d1d1d1; }
-        .post-body h2, .post-body h3 { color: #ff00ff; margin: 2rem 0 1rem; text-shadow: 0 0 5px rgba(255, 0, 255, 0.2); }
-        .post-body p { margin-bottom: 1.5rem; }
-        .post-body img { max-width: 100%; border-radius: 10px; border: 1px solid #333; margin: 1rem 0; }
-        .post-body a { color: #00f2ff; text-decoration: none; border-bottom: 1px dashed #00f2ff; }
-        .post-body blockquote { border-left: 4px solid #00f2ff; padding-left: 20px; font-style: italic; color: #aaa; margin: 2rem 0; }
 
-         
-        .custom-footer-tofarmer { text-align: center; margin-top: 50px; padding: 20px; font-family: monospace; font-size: 12px; color: #8affff; opacity: 0.7; }
+        .content-area h1 { 
+            font-family: 'Playfair Display', serif;
+            color: #fde047; 
+            margin-bottom: 0.5rem; 
+            font-size: 2.5rem; 
+            line-height: 1.2; 
+            font-weight: 800;
+        }
 
-        @media screen and (max-width: 600px) {
-            .content-area { padding: 1.5rem; }
-            .content-area h1 { font-size: 1.8rem; }
+        .meta-info { 
+            color: #4b5563; 
+            font-size: 0.8rem; 
+            margin-bottom: 2.5rem; 
+            font-family: monospace; 
+            background: rgba(255, 255, 255, 0.02);
+            padding: 4px 12px;
+            border-radius: 6px;
+            display: inline-block;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .post-body { 
+            font-size: 1.05rem; 
+            color: #cbd5e1; 
+        }
+
+        .post-body p { 
+            margin-bottom: 1.5rem; 
+        }
+
+        /* =========================================================================
+           🧮 PANEL INSTRUMEN KALKULATOR (UPGRADED DESIGN)
+           ========================================================================= */
+        #tofarmer-future-calc {
+            background: rgba(8, 16, 11, 0.8) !important;
+            border-radius: 24px !important;
+            border: 1px solid rgba(74, 222, 128, 0.2) !important;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(34, 197, 94, 0.05) !important;
+            padding: 35px !important;
+            max-width: 520px !important;
+            margin: 30px auto !important;
+        }
+
+        #tofarmer-future-calc h2 {
+            font-family: 'Playfair Display', serif !important;
+            color: #fde047 !important;
+            font-size: 1.4em !important;
+            font-weight: 700 !important;
+            letter-spacing: 0px !important;
+            margin-bottom: 25px !important;
+            text-shadow: none !important;
+            text-transform: none !important;
+        }
+
+        /* Desain Kolom Input & Label */
+        #tofarmer-future-calc label {
+            color: #84cc16 !important; /* Hijau Stabilo Daun Muda */
+            font-size: 0.78rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 1px !important;
+            margin-bottom: 8px !important;
+            font-family: monospace !important;
+        }
+
+        #tofarmer-future-calc input, #tofarmer-future-calc select {
+            background: rgba(5, 10, 7, 0.6) !important;
+            border-radius: 10px !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #fef08a !important; /* Teks Angka Emas Lembut */
+            font-family: monospace !important;
+            font-size: 1.1rem !important;
+            padding: 14px !important;
+            transition: all 0.3s ease !important;
+        }
+
+        #tofarmer-future-calc input:focus, #tofarmer-future-calc select:focus {
+            border-color: #4ade80 !important;
+            background: rgba(14, 28, 19, 0.9) !important;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.15) !important;
+        }
+
+        /* Tombol Eksekusi Terawang */
+        #tofarmer-future-calc button {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%) !important;
+            border-radius: 12px !important;
+            color: #040805 !important;
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+            font-weight: 800 !important;
+            letter-spacing: 1px !important;
+            padding: 16px !important;
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.2) !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+
+        #tofarmer-future-calc button:hover {
+            opacity: 1 !important;
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 10px 25px rgba(34, 197, 94, 0.35) !important;
+        }
+
+        /* Area Cetakan Output Utama */
+        #summary {
+            color: #fde047 !important; /* Kuning Emas */
+            font-family: monospace !important;
+            font-size: 1.05rem !important;
+            background: rgba(255, 255, 255, 0.02) !important;
+            padding: 10px !important;
+            border-radius: 8px !important;
+            border: 1px dashed rgba(234, 179, 8, 0.2) !important;
+        }
+
+        /* Konsol Log Gulungan Dokumen */
+        #logBox {
+            background: #030704 !important;
+            border-radius: 12px !important;
+            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+            color: #a7f3d0 !important; /* Teks Konsol Hijau Mint Meredup */
+            padding: 15px !important;
+            line-height: 1.6 !important;
+        }
+
+        /* Catatan Edukasi Kaki Pembatas */
+        #tofarmer-future-calc p {
+            color: #4b5563 !important;
+            line-height: 1.7 !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.04) !important;
+            padding-top: 15px !important;
+        }
+
+        /* =========================================================================
+           👣 FOOTER HARMONI
+           ========================================================================= */
+        .custom-footer-tofarmer { 
+            text-align: center; 
+            margin-top: 60px; 
+            padding: 20px; 
+            font-family: monospace; 
+            font-size: 11px; 
+            color: #475569; 
+        }
+
+        /* RESPONSIVE LAYOUT HP */
+        @media screen and (max-width: 768px) {
+            nav { border-radius: 20px; padding: 10px; gap: 8px; }
+            nav a { width: 48%; text-align: center; padding: 10px 5px; font-size: 0.75rem; border-radius: 12px; }
+            .content-area { padding: 2rem 1.2rem; border-radius: 20px; }
+            .content-area h1 { font-size: 1.9rem; }
+            #tofarmer-future-calc { padding: 20px 15px !important; }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        
         <header>
             <a href="../../" class="header-brand">
-                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzXfCj2gYXzyKmWfs871-jqeTvs6345OTXsndg-mLpIUzsDxvk2JByeMIv5G0XJOT1V3WoGBqUJAhBxuXFkO_IP6Hb98YPCS6KJNrIaG7IB8eeI9gBT5iH-8P2F7qOBY4UfJ6v9g18PnWwcjNAEzYpya-qgtEc5jwiM9IUeQ1i-XZC9RJTHYsbp2FfNYw/s389/logo.png" alt="Logo" class="header-logo">
-                <h1>ToFarmer</h1>
+                <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzXfCj2gYXzyKmWfs871-jqeTvs6345OTXsndg-mLpIUzsDxvk2JByeMIv5G0XJOT1V3WoGBqUJAhBxuXFkO_IP6Hb98YPCS6KJNrIaG7IB8eeI9gBT5iH-8P2F7qOBY4UfJ6v9g18PnWwcjNAEzYpya-qgtEc5jwiM9IUeQ1i-XZC9RJTHYsbp2FfNYw/s389/logo.png" alt="ToFarmer Logo" class="header-logo">
+                <h1>ToFarmer Way of Money</h1>
             </a>
         </header>
 
         <nav>
-            <a href="../../">🏠 Kembali ke Beranda</a>
-<a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="nav-btn">📚 Fitur & Info</a>
+            <a href="../../">🏠 Ke Beranda</a>
+            <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html">📚 Fitur & Info</a>
         </nav>
 
         <article class="content-area">
             <h1>Quantum Compounding Tracker</h1>
-            <div class="meta-info">Diposting pada: 14 May 2026</div>
+            <div class="meta-info">LOG SISTEM • INSTRUMEN PROYEKSI ASSET</div>
             
             <div class="post-body">
-                <p>Gunakan kalkulator ini untuk mensimulasikan pertumbuhan aset ToFarmer Anda. Ingat, kekayaan sejati dibangun melalui konsistensi dan pemanfaatan waktu ($n$) dalam siklus ekonomi.</p>
-<div id="tofarmer-future-calc" style="background: rgb(13, 17, 23); border-radius: 20px; border: 1px solid rgb(48, 54, 61); box-shadow: rgba(0, 255, 255, 0.1) 0px 0px 20px; box-sizing: border-box; color: #e6edf3; font-family: &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif; margin: 20px auto; max-width: 480px; padding: 30px;">
-    
-    <h2 style="color: #58a6ff; font-size: 1.2em; letter-spacing: 1px; margin-bottom: 25px; text-align: center; text-shadow: rgba(88, 166, 255, 0.3) 0px 0px 10px; text-transform: uppercase;">
-        Quantum Compounding Tracker
-    </h2>
-    
-    <div style="margin-bottom: 20px;">
-        <label style="color: #8b949e; display: block; font-size: 0.9em; margin-bottom: 8px;">MODAL AWALMU BERAPA RUPIAH (PV)</label>
-        <input id="pv" style="background: rgb(22, 27, 34); border-radius: 8px; border: 1px solid rgb(48, 54, 61); box-sizing: border-box; color: #00ffcc; font-family: monospace; outline: none; padding: 12px; width: 100%;" type="number" />
-    </div>
+                <p>Gunakan kalkulator terawang ini untuk mensimulasikan percepatan pertumbuhan aset ToFarmer Anda secara matematis. Kekayaan sejati di akar rumput dibangun melalui kedisiplinan mengulung profit dan konsistensi waktu ($n$) di dalam siklus roda ekonomi mandiri.</p>
+                
+                <div id="tofarmer-future-calc">
+                    
+                    <h2>Quantum Compounding Tracker</h2>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label>MODAL AWALMU BERAPA RUPIAH (PV)</label>
+                        <input id="pv" type="number" placeholder="Contoh: 1000000" />
+                    </div>
 
-    <div style="margin-bottom: 20px;">
-        <label style="color: #8b949e; display: block; font-size: 0.9em; margin-bottom: 8px;">INGIN PUNYA UANG BERAPA RUPIAH (FV)</label>
-        <input id="fv" style="background: rgb(22, 27, 34); border-radius: 8px; border: 1px solid rgb(48, 54, 61); box-sizing: border-box; color: #00ffcc; font-family: monospace; outline: none; padding: 12px; width: 100%;" type="number" />
-    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label>INGIN PUNYA UANG BERAPA RUPIAH (FV)</label>
+                        <input id="fv" type="number" placeholder="Contoh: 500000000" />
+                    </div>
 
-    <div style="display: flex; gap: 15px; margin-bottom: 25px;">
-        <div style="flex: 2 1 0%;">
-            <label style="color: #8b949e; display: block; font-size: 0.9em; margin-bottom: 8px;">RATA-RATA PROFITMU BERAPA PERSEN (%)</label>
-            <input id="rate" style="background: rgb(22, 27, 34); border-radius: 8px; border: 1px solid rgb(48, 54, 61); box-sizing: border-box; color: #00ffcc; font-family: monospace; outline: none; padding: 12px; width: 100%;" type="number" />
+                    <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+                        <div style="flex: 2 1 0%;">
+                            <label>RATA-RATA PROFIT (%)</label>
+                            <input id="rate" type="number" placeholder="10" />
+                        </div>
+                        <div style="flex: 1.5 1 0%;">
+                            <label>TENOR SIKLUS</label>
+                            <select id="tenor">
+                                <option value="Hari">HARI</option>
+                                <option value="Minggu">MINGGU</option>
+                                <option selected="" value="Bulan">BULAN</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button onclick="calculateCompounding()">
+                        ANALISIS PERTUMBUHAN
+                    </button>
+
+                    <div id="summary" style="margin: 20px 0px; min-height: 24px; text-align: center;">
+                        Sistem Siap Terawang...
+                    </div>
+
+                    <textarea id="logBox" readonly="" placeholder="[LOG OUTPUT AKAN MUNCUL DI SINI]" style="resize: none; scrollbar-width: thin; width: 100%; height: 180px;"></textarea>
+                    
+                    <p style="font-size: 10px; letter-spacing: 0.5px; margin-top: 15px; text-align: justify; text-transform: uppercase;">
+                        SYSTEM READY // TOFARMER OS <br><br>
+                        METODE COMPOUNDING ADALAH STRATEGI MENGGULUNG KEKAYAAN YANG DIPAKAI ORANG KAYA MENJADI MAKIN KAYA DAN LEBIH CEPAT, CONTOH JIKA MODAL KITA NAIK 10 PERSEN PERBULAN, MAKA 10 PERSEN BULAN SELANJUTNYA BERASAL DARI TOTAL MODAL DITAMBAH KEUNTUNGAN BULAN LALU. NILAI BARU INI YANG MENJADI ACUAN PERSENTASE UNTUK MENENTUKAN 10 PERSEN TARGET BULAN DEPANNYA. MAKA NILAI 10 PERSEN INI AKAN SELALU NAIK TIAP BULANNYA. SEDERHANANYA GAJI KITA AKAN SELALU NAIK TIAP BULAN.<br><br>
+                        PADA NILAI DIBAWAH 100 JUTA MASIH BISA DICAPAI DENGAN KERJA TRADISIONAL. TAPI JIKA DI ATAS ITU HANYA BISA DICAPAI DENGAN CARA INVESTASI KALAU KITA TIDAK PUNYA KEMAMPUAN BISNIS SKALA BESAR.<br><br>
+                        KALAU PETANI NGGAK PAKAI CARA INI, MAKA MASIH AKAN TERUS MISKIN, KARENA NILAI KEKAYAAN AKAN SELALU TIDAK RELEVAN DENGAN NILAI KEKAYAAN DUNIA MODERN. PERTUMBUHANYA AKAN SELALU LAMBAT DAN TAK PERNAH BISA MENGEJAR BIDANG LAIN.
+                    </p>
+                </div>
+                </div>
+        </article>
+
+        <div class="custom-footer-tofarmer">
+            ToFarmer &middot; Diorkestrasikan dari lereng pegunungan Menoreh ☕🌱
         </div>
-        <div style="flex: 1.5 1 0%;">
-            <label style="color: #8b949e; display: block; font-size: 0.9em; margin-bottom: 8px;">TENOR</label>
-            <select id="tenor" style="background: rgb(22, 27, 34); border-radius: 8px; border: 1px solid rgb(48, 54, 61); color: #58a6ff; cursor: pointer; outline: none; padding: 12px; width: 100%;">
-                <option value="Hari">HARI</option>
-                <option value="Minggu">MINGGU</option>
-                <option selected="" value="Bulan">BULAN</option>
-            </select>
-        </div>
     </div>
-
-    <button onclick="calculateCompounding()" onmouseout="this.style.opacity='1'" onmouseover="this.style.opacity='0.8'" style="background: linear-gradient(45deg, rgb(31, 111, 235), rgb(0, 255, 204)); border-radius: 8px; border: none; box-shadow: rgba(0, 255, 204, 0.2) 0px 4px 15px; color: #0d1117; cursor: pointer; font-weight: bold; letter-spacing: 2px; padding: 15px; text-transform: uppercase; transition: 0.3s; width: 100%;">
-        ANALISIS PERTUMBUHAN
-    </button>
-
-    <div id="summary" style="color: #00ffcc; font-family: monospace; font-weight: bold; margin: 20px 0px; min-height: 24px; text-align: center;"></div>
-
-    <textarea id="logBox" readonly="" style="background: rgb(1, 4, 9); border-radius: 8px; border: 1px solid rgb(48, 54, 61); box-sizing: border-box; color: #8b949e; font-family: &quot;Courier New&quot;, monospace; font-size: 11px; height: 180px; padding: 15px; resize: none; scrollbar-color: rgb(48, 54, 61) rgb(1, 4, 9); scrollbar-width: thin; width: 100%;"></textarea>
-    
-    <p style="color: #484f58; font-size: 10px; letter-spacing: 1px; margin-top: 15px; text-align: center;">SYSTEM READY // TOFARMER OS</p><p style="color: #484f58; font-size: 10px; letter-spacing: 1px; margin-top: 15px; text-align: center;">METODE COMPOUNDING ADALAH STRATEGI MENGGULUNG KEKAYAAN YANG DIPAKAI ORANG KAYA MENJADI MAKIN KAYA DAN LEBIH CEPAT, CONTOH&nbsp; JIKA MODAL KITA NAIK 10 PERSEN PERBULAN, MAKA 10 PERSEN BULAN SELANJUTNYA BERASAL DARI TOTAL MODAL DITAMBAH KEUNTUNGAN BULAN LALU.NILAI BARU INI YANG MENJADI ACUAN PERSENTASE UNTUK MENENTUKAN 10 PERSEN TARGET BULAN DEPANNYA. MAKA NILAI 10 PERSEN INI AKAN SELALU NAIK TIAP BULANNYA. SEDERHANANYA GAJI KITA AKAN SELALU NAIK TIAP BULAN.</p><p style="color: #484f58; font-size: 10px; letter-spacing: 1px; margin-top: 15px; text-align: center;">PADA NILAI DIBAWAH 100 JUTA MASIH BISA DICAPAI DENGAN KERJA TRADISIONAL. TAPI JIKA DI ATAS ITU HANYA BISA DICAPAI DENGAN CARA INVESTASI KALAU KITA TIDAK PUNYA KEMAMPUAN BISNIS SKALA BESAR.</p><p style="color: #484f58; font-size: 10px; letter-spacing: 1px; margin-top: 15px; text-align: center;">KALAU PETANI NGGAK PAKAI CARA INI, MAKA MASIH AKAN TERUS MISKIN, KARENA NILAI KEKAYAAN AKAN SELALU TIDAK RELEVAN DENGAN NILAI KEKAYAAN DUNIA MODERN. PERTUMBUHANYA AKAN SELALU LAMBAT DAN TAK PERNAH BISA MENGEJAR BIDANG LAIN.</p>
-</div>
 
 <script>
 function calculateCompounding() {
@@ -163,17 +407,7 @@ function calculateCompounding() {
 }
 </script>
 
-            </div>
-        </article>
-
-        <div class="custom-footer-tofarmer">
-            ToFarmer &middot; Bertumbuh dari praktik.
-        </div>
-    </div>
-
 <script>
-    
-
     async function ambilSaldoTofBlockchain(walletAddress) {
         if (!walletAddress || walletAddress.trim() === "") return 0;
         
@@ -190,7 +424,6 @@ function calculateCompounding() {
                 const tokenTof = accountInfo['assets'].find(ast => Number(ast['asset-id']) === Number(ASSET_ID_TOF));
                 if (tokenTof) {
                     let saldoMentah = Number(tokenTof['amount']);
-                    
                     return saldoMentah / 1000000; 
                 }
             }
@@ -202,7 +435,6 @@ function calculateCompounding() {
     }
 
     async function sinkronisasiWeb3Profil() {
-        
         const elemenTofProfil = document.getElementById('p-tof');
         if (!elemenTofProfil) return; 
 
@@ -211,13 +443,11 @@ function calculateCompounding() {
         if (!userKey) return;
 
         try {
-            
             let jalurJson = '/lab-tofarmer/data/users.json';
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                 jalurJson = '/data/users.json';
             }
 
-            
             const response = await fetch(jalurJson);
             if (!response.ok) throw new Error('File JSON tidak ditemukan');
             
@@ -230,9 +460,7 @@ function calculateCompounding() {
                     elemenTofProfil.innerText = "Sync...";
                     const saldoLive = await ambilSaldoTofBlockchain(u.wallet_address);
                     
-                    
                     elemenTofProfil.innerText = saldoLive.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 2}) + " TOF";
-                    
                     
                     const papanLastSeen = document.getElementById('p-lastseen');
                     if (papanLastSeen) {
@@ -247,9 +475,9 @@ function calculateCompounding() {
         }
     }
 
-    
     window.addEventListener('DOMContentLoaded', sinkronisasiWeb3Profil);
 </script>
-<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script><!-- End Cloudflare Web Analytics -->
+
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
 </body>
 </html>

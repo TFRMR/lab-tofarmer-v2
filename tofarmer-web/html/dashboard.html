@@ -3,57 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <title>ToFarmer - Pusat Ilmu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
-        .bg-animate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%); }
-        .container { max-width: 800px; width: 90%; padding: 2rem; text-align: center; }
+        /* =========================================================================
+           🌿 RESET & REALM GELAP PEKAT HUTAN MENOREH
+           ========================================================================= */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+        }
+
+        body { 
+            background: #060c08; 
+            color: #e2e8f0; 
+            margin: 0; 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            overflow-x: hidden; 
+            line-height: 1.6;
+        }
+
+        /* Latar Belakang Animasi Gradien Senja Berpendar */
+        .bg-animate { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: -1; 
+            background: 
+                radial-gradient(circle at top left, rgba(234, 179, 8, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.08) 0%, transparent 45%),
+                linear-gradient(135deg, #060c08 0%, #0b1a11 50%, #030604 100%); 
+        }
+
+        /* Bingkai Konten Dashboard */
+        .container { 
+            max-width: 850px; 
+            width: 92%; 
+            padding: 2.5rem 1rem; 
+            text-align: center; 
+        }
+
+        /* =========================================================================
+           👑 TYPOGRAPHY UTAMA (JUDUL DASHBOARD)
+           ========================================================================= */
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.6rem;
+            font-weight: 800;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        /* =========================================================================
+           🧭 NAVIGASI OVAL TIMBUL (GLASSMORPHISM MISTIS)
+           ========================================================================= */
+        .nav-timbul {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            width: 100%;
+            z-index: 10;
+            flex-wrap: wrap;
+            padding: 0 10px;
+        }
+
+        .nav-btn {
+            background: rgba(18, 32, 24, 0.55); 
+            backdrop-filter: blur(12px);        
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.15);
+            color: #a7f3d0;
+            padding: 10px 22px;
+            border-radius: 50px;              
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-btn:hover {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(234, 179, 8, 0.1) 100%); 
+            border-color: rgba(234, 179, 8, 0.4);
+            color: #fef08a;
+            transform: translateY(-2px);         
+            box-shadow: 0 10px 25px rgba(34, 197, 94, 0.15);
+        }
+
+        /* Gaya Navigasi Lama (Tetap dipertahankan untuk kompatibilitas internal jika ada) */
         .nav-top { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .nav-link { color: #94a3b8; text-decoration: none; font-size: 0.9rem; padding: 0.5rem; }
-        .btn-game { padding: 1rem 2rem; background: #16a34a; border: none; color: white; border-radius: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.3s; margin: 0.5rem; }
-        .card { background: #1e293b; padding: 1.5rem; border-radius: 1rem; margin-top: 1rem; border: 1px solid #374151; text-align: left; }
-        .btn-action { background: #2563eb; padding: 0.5rem 1rem; border-radius: 0.5rem; border: none; color: white; cursor: pointer; margin-top: 0.5rem; }
-        .btn-draft { display: block; width: 100%; background: #475569; padding: 0.8rem; border: none; border-radius: 0.5rem; color: white; margin-bottom: 0.5rem; cursor: pointer; }
-        .card-ilmu { border-bottom: 1px solid #334155; padding: 10px 0; }
-.nav-timbul {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 20px;
-    width: 100%;
-    z-index: 10;
-}
+        .nav-link { color: #64748b; text-decoration: none; font-size: 0.9rem; padding: 0.5rem; }
 
-.nav-btn {
-    background: rgba(30, 41, 59, 0.6); /* Transparan gelap */
-    backdrop-filter: blur(10px);        /* Efek blur cantik */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 50px;              /* Oval */
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* Efek timbul */
-    transition: all 0.3s ease;
-}
+        /* =========================================================================
+           🔮 KARTU PANEL INSTRUMEN EKOSISTEM (KOTAK BERNYAWA)
+           ========================================================================= */
+        .card { 
+            background: rgba(14, 28, 19, 0.45); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 2rem; 
+            border-radius: 20px; 
+            margin-top: 1.5rem; 
+            border: 1px solid rgba(255, 255, 255, 0.04); 
+            border-left: 3px solid #22c55e;
+            text-align: left; 
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(74, 222, 128, 0.25);
+            border-left-color: #eab308; /* Semburat Emas saat di-hover */
+        }
 
-.nav-btn:hover {
-    background: rgba(59, 130, 246, 0.2); /* Sedikit glow saat hover */
-    transform: translateY(-2px);         /* Efek sedikit terangkat */
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
-}
+        .card h3 {
+            font-family: 'Playfair Display', serif;
+            color: #fde047;
+            font-size: 1.25rem;
+            margin-bottom: 0.8rem;
+            font-weight: 700;
+        }
+
+        .card p {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Pembatas Entri Data Ilmu */
+        .card-ilmu { 
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+            padding: 12px 0; 
+            color: #cbd5e1;
+        }
+        .card-ilmu:last-child {
+            border-bottom: none;
+        }
+
+        /* ELEMENT INPUT ASISTEN AI KEBUN */
+        #ai-input {
+            background: rgba(5, 10, 7, 0.6) !important;
+            border-radius: 8px !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            color: #fef08a !important;
+            font-size: 0.95rem !important;
+            outline: none !important;
+            transition: all 0.3s ease !important;
+            margin-right: 8px;
+        }
+
+        #ai-input:focus {
+            border-color: #4ade80 !important;
+            background: rgba(14, 28, 19, 0.9) !important;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.15) !important;
+        }
+
+        /* =========================================================================
+           ⚡ SISTEM TOMBOL INTERAKTIF (RESPONSIF KELAM)
+           ========================================================================= */
+        /* Tombol Game Utama (Login) */
+        .btn-game { 
+            padding: 14px 32px; 
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); 
+            border: none; 
+            color: #050b07; 
+            border-radius: 12px; 
+            font-weight: 800; 
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            cursor: pointer; 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            margin: 1.5rem 0; 
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.2); 
+        }
+        
+        .btn-game:hover { 
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(34, 197, 94, 0.35);
+        }
+
+        /* Tombol Aksi Umum (Tanya / Buat Ilmu) */
+        .btn-action { 
+            background: rgba(37, 99, 235, 0.25) !important; 
+            border: 1px solid rgba(59, 130, 246, 0.4) !important;
+            padding: 11px 20px !important; 
+            border-radius: 8px !important; 
+            color: #bfdbfe !important; 
+            cursor: pointer; 
+            font-weight: 700;
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-action:hover { 
+            background: #2563eb !important; 
+            color: white !important;
+            border-color: #3b82f6 !important;
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Tombol Khusus Buat Ilmu Baru di Dalam Blok Login */
+        .card .btn-action[style*="background:#16a34a"], 
+        .card .btn-action[style*="background: rgb(22, 163, 74)"] {
+            background: rgba(22, 163, 74, 0.2) !important;
+            border: 1px solid rgba(34, 197, 94, 0.4) !important;
+            color: #bbf7d0 !important;
+        }
+
+        .card .btn-action[style*="background:#16a34a"]:hover {
+            background: #16a34a !important;
+            color: white !important;
+        }
+
+        /* Tombol Draft Informasi Ringkas */
+        .btn-draft { 
+            display: block; 
+            width: 100%; 
+            background: rgba(71, 85, 105, 0.2); 
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px; 
+            border-radius: 8px; 
+            color: #cbd5e1; 
+            margin-bottom: 0.6rem; 
+            cursor: pointer; 
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-draft:hover { 
+            background: #475569; 
+            color: white;
+        }
+
+        /* SCREEN MONITOR HP RESPONSIVE */
+        @media screen and (max-width: 600px) {
+            h1 { font-size: 2rem; }
+            .container { width: 95%; padding: 1.5rem 0.5rem; }
+            .nav-btn { width: 31%; font-size: 0.7rem; padding: 10px 2px; text-align: center; border-radius: 12px; }
+            .card { padding: 1.25rem; border-radius: 14px; }
+            #ai-input { width: 65% !important; padding: 10px !important; }
+            #ai-send-btn { width: 30% !important; padding: 10px 2px !important; }
+            .btn-game { width: 100%; padding: 14px; }
+        }
     </style>
 </head>
 <body>
+
     <div class="bg-animate"></div>
-<div class="nav-timbul">
-<a href="https://www.tofarmer.xyz" class="nav-btn">🏠 Titik Kumpul</a>
-    <a href="https://www.tofarmer.xyz/profile.html" class="nav-btn">👤 Profil</a>
-    <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="nav-btn">📚 Fitur & Info</a>
-</div>
+
+    <div class="nav-timbul">
+        <a href="https://www.tofarmer.xyz" class="nav-btn">🏠 Titik Kumpul</a>
+        <a href="https://www.tofarmer.xyz/profile.html" class="nav-btn">👤 Profil</a>
+        <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="nav-btn">📚 Fitur & Info</a>
+    </div>
+
     <div class="container">
-        <h1 id="welcome-text">Selamat Datang</h1>
+        
+        <h1 id="welcome-text">Dashboard (Pusat Ilmu)</h1>
         
         <div id="card-asisten" class="card">
             <h3>🤖 Asisten Kebun</h3>
@@ -78,14 +302,14 @@
             </div>
         </div>
 
-        
-
         <div id="card-approve" class="card">
             <h3>Butuh Approve atau Butuh Persetujuan Bersama</h3>
-            </div>
-<div id="card-galeri" class="card">
+        </div>
+
+        <div id="card-galeri" class="card">
             <h3>Ilmu Baku (Galeri)</h3>
-            </div>
+        </div>
+
     </div>
 
     <script>
@@ -94,10 +318,10 @@
             window.location.href = 'login.html';
         }
     </script>
-   <!-- Cek dan pastikan letak foldernya benar, arahkan ke file knowledge-dashboard.js Anda -->
-<script src="knowledge-dashboard.js"></script>
-<script type="module" src="../js/dashboard.js"></script>
-<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script><!-- End Cloudflare Web Analytics -->
-</body>
-</body>
+    
+    <script src="knowledge-dashboard.js"></script>
+    <script type="module" src="../js/dashboard.js"></script>
+
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+    </body>
 </html>

@@ -3,31 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <title>ToFarmer - Gate 2: Anatomi Hipotesis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; padding: 2rem; }
-        .max-w-2xl { max-width: 42rem; margin: 0 auto; }
-        input { width: 100%; background: #111827; border: 1px solid #374151; padding: 1rem; border-radius: 0.75rem; color: white; margin-top: 0.5rem; outline: none; }
-        .btn-lanjut { width: 100%; padding: 1rem; background: #16a34a; color: white; border: none; border-radius: 0.75rem; font-weight: bold; cursor: pointer; margin-top: 2rem; }
-        .btn-refresh { margin-top: 0.5rem; font-size: 0.75rem; background: #374151; color: #e5e7eb; border: none; padding: 0.3rem 0.8rem; border-radius: 0.4rem; cursor: pointer; }
-        .ai-hint { margin-top: 0.5rem; padding: 0.8rem; background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; border-radius: 0.4rem; font-size: 0.85rem; color: #cbd5e1; }
-        #context-card { background: #1e293b; padding: 1rem; border-radius: 0.75rem; margin-bottom: 2rem; border-left: 4px solid #3b82f6; }
+        /* =========================================================================
+           🌿 RESET & REALM GELAP PEKAT HUTAN MENOREH
+           ========================================================================= */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+        }
+
+        body { 
+            background: 
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.07) 0%, transparent 45%),
+                linear-gradient(135deg, #060c08 0%, #0b1a11 50%, #030604 100%);
+            color: #e2e8f0; 
+            padding: 2rem 1rem; 
+            margin: 0; 
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .max-w-2xl { 
+            max-width: 44rem; 
+            margin: 0 auto; 
+            background: rgba(14, 28, 19, 0.45); 
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 2.5rem;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        /* =========================================================================
+           👑 TYPOGRAPHY & TITEL GERBANG
+           ========================================================================= */
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+            text-align: left;
+        }
+
+        /* LABEL INFORMASI FORMULIR */
+        label { 
+            display: block; 
+            font-size: 0.88rem; 
+            color: #84cc16; /* Hijau Tunas Muda */
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            margin-bottom: 0.5rem;
+        }
+
+        /* =========================================================================
+           🛡️ PANEL BLOK INFORMASI & RINGKASAN (GAYA KOTAK EMAS REDUP)
+           ========================================================================= */
+        /* Override gaya inline ringkasan via CSS spesifik */
+        #ringkasan-gate1 { 
+            background: rgba(5, 10, 7, 0.6) !important; 
+            padding: 18px !important; 
+            border-radius: 14px !important; 
+            margin-bottom: 2rem !important;
+            border: 1px solid rgba(234, 179, 8, 0.15) !important;
+            border-left: 4px solid #eab308 !important; /* Semburat Emas Penanda Fondasi */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        #ringkasan-gate1 h3 {
+            font-family: 'Playfair Display', serif !important;
+            font-weight: 700 !important;
+            font-size: 1.05rem !important;
+            color: #fef08a !important; /* Judul Ringkasan Menjadi Emas */
+            margin-bottom: 6px !important;
+        }
+
+        #isi-ringkasan {
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+
+        /* Kartu Konteks Tambahan Bawaan */
+        #context-card { 
+            background: rgba(14, 28, 19, 0.5); 
+            padding: 1.2rem; 
+            border-radius: 12px; 
+            margin-bottom: 2rem; 
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-left: 4px solid #3b82f6; 
+        }
+
+        /* =========================================================================
+           ✍️ AREA INPUT & KOTAK BISIKAN AI MENTOR
+           ========================================================================= */
+        input { 
+            width: 100%; 
+            background: rgba(5, 10, 7, 0.6); 
+            border: 1px solid rgba(255, 255, 255, 0.08); 
+            padding: 1.1rem; 
+            border-radius: 12px; 
+            color: #fef08a; /* Warna Teks Input Emas Kalem */
+            font-size: 0.98rem;
+            margin-top: 0.25rem; 
+            outline: none; 
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        input:focus { 
+            border-color: #4ade80;
+            background: rgba(14, 28, 19, 0.85);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.15);
+        }
+
+        /* Kotak Rekomendasi/Bisikan AI Mentor */
+        .ai-hint { 
+            margin-top: 0.6rem; 
+            padding: 12px 16px; 
+            background: rgba(34, 197, 94, 0.08) !important; 
+            border-left: 3px solid #22c55e !important; 
+            border-radius: 8px; 
+            font-size: 0.88rem; 
+            color: #a7f3d0; /* Teks Mint Sejuk */
+            line-height: 1.5;
+        }
+
+        /* =========================================================================
+           🛠️ TOMBOL NAVIGASI & AKSI INTERAKTIF
+           ========================================================================= */
+        /* Tombol Kembali (Bentuk Oval Halus) */
+        #btn-kembali {
+            background: rgba(18, 32, 24, 0.5) !important;
+            color: #94a3b8 !important;
+            border: 1px solid rgba(255, 255, 255, 0.06) !important;
+            padding: 8px 18px !important;
+            border-radius: 50px !important; /* Oval */
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 1.5rem !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        #btn-kembali:hover {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: white !important;
+            border-color: rgba(255, 255, 255, 0.15) !important;
+        }
+
+        /* Tombol Refresh Bisikan AI */
+        .btn-refresh { 
+            margin-top: 0.6rem; 
+            font-size: 0.72rem; 
+            background: rgba(71, 85, 105, 0.2); 
+            color: #cbd5e1; 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            padding: 5px 12px; 
+            border-radius: 6px; 
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            cursor: pointer; 
+            transition: all 0.2s ease;
+        }
+
+        .btn-refresh:hover { 
+            background: #475569; 
+            color: white;
+            border-color: #64748b;
+        }
+
+        /* Tombol Utama Lanjut Eksekusi (Kondisi Aktif/Terkunci Terkendali) */
+        .btn-lanjut { 
+            width: 100%; 
+            padding: 1.1rem; 
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); 
+            color: #040805; 
+            border: none; 
+            border-radius: 12px; 
+            font-weight: 800; 
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+            cursor: pointer; 
+            margin-top: 2.5rem; 
+            box-shadow: 0 10px 30px rgba(34, 197, 94, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-lanjut:hover:not([disabled]) {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(34, 197, 94, 0.35);
+        }
+
+        /* Penanganan Khusus Saat Dinonaktifkan oleh Skrip JavaScript */
+        .btn-lanjut[disabled] {
+            background: rgba(71, 85, 105, 0.15) !important;
+            color: #475569 !important;
+            box-shadow: none !important;
+        }
+
+        /* RESPONSIF LAYAR PONSEL */
+        @media (max-width: 600px) {
+            body { padding: 1rem 0.5rem; }
+            .max-w-2xl { padding: 1.75rem 1.2rem; border-radius: 18px; }
+            h1 { font-size: 1.75rem; }
+            input { padding: 0.95rem; font-size: 0.9rem; }
+        }
     </style>
 </head>
 <body>
+
     <div class="max-w-2xl">
-        <h1>Gate 2: Tajamkan Ilmu</h1>
-       <!-- Tambahkan tombol ini di dalam div max-w-2xl -->
-<button id="btn-kembali" style="background: transparent; color: #94a3b8; border: 1px solid #374151; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; margin-bottom: 1rem;">
+        
+       <button id="btn-kembali" onclick="window.location.href='gate-1.html'">
     ⬅️ Kembali ke Gate 1
-</button> 
-<div id="ringkasan-gate1" style="background: #1f2937; padding: 15px; border-radius: 10px; margin-bottom: 2rem;">
-            <h3 style="margin-top: 0; font-size: 1rem; color: #60a5fa;">Ringkasan Fondasi (Gate 1)</h3>
+</button>
+
+        <h1>Gate 2: Tajamkan Ilmu</h1>
+
+        <div id="ringkasan-gate1">
+            <h3>Ringkasan Fondasi (Gate 1)</h3>
             <div id="isi-ringkasan"></div>
         </div>
-       
-
+        
         <div id="gate-2-form">
+            
             <label>Apa "rahasia" atau cara baru yang mau kamu coba?</label>
             <input type="text" id="taktik" class="gate2-input" placeholder="Contoh: Mengasah pisau dengan sudut 20 derajat...">
             <div id="ai-taktik" class="ai-hint">Mentor siap membantu...</div>
@@ -42,16 +260,19 @@
             <input type="text" id="target" class="gate2-input" placeholder="Contoh: Jadi awet tajam sampai 3 hari...">
             <div id="ai-target" class="ai-hint">Mentor siap membantu...</div>
             <button class="btn-refresh" onclick="refreshAi('target')">🔄 Cek/Refresh</button>
+            
         </div>
 
         <button id="btn-lanjut" class="btn-lanjut" disabled style="opacity: 0.5; cursor: not-allowed;">
             🔒 KUNCI & MAJU KE GATE 3
         </button>
+
     </div>
+
     <script src="knowledge-gate2.js"></script>
 
-<!-- Script utama pengontrol halaman Gate 2 -->
-<script type="module" src="../js/gate-2.js"></script>
-<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script><!-- End Cloudflare Web Analytics -->
-</body>
+    <script type="module" src="../js/gate-2.js"></script>
+
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+    </body>
 </html>
