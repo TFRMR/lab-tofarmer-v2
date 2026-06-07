@@ -647,7 +647,7 @@ async function sendProfilePost() {
         const sisa = document.getElementById("sisa-chat");
         if (sisa) sisa.innerText = 3;
     }, 2000);
-}
+
 
         if (aiChatCounter >= 3) {
           document.getElementById("ai-chat-area").style.display = "none";
