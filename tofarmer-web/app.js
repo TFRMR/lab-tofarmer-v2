@@ -1074,7 +1074,7 @@ function sharePost(postId, username, text) {
 // 🟢 AWAL SISIPAN: FUNGSI MEMBACA PERINGKAT UNTUK RADAR CARD
 function getRadarRank(xp) {
   const lvl = Math.floor(Math.sqrt(xp / 100)) + 1;
-  if (lvl >= 50) return "👑 Mahaguru Tani";
+  if (lvl >= 50) return "👑 Mahaguru ladang";
   if (lvl >= 40) return "🧙‍♂️ Sesepuh Kebun";
   if (lvl >= 30) return "👨‍🌾 Penguasa Lahan";
   if (lvl >= 20) return "🌱 Petani Teladan";
@@ -1088,8 +1088,8 @@ async function loadRadarPeringkat() {
   if (!wadahRadar) return;
 
   try {
-    // Mengambil data user dari tabel 'profiles', diurutkan berdasarkan 'xp' tertinggi
-    const { data: users, error } = await supabase
+    // 🟢 SUDAH FIX: diganti menjadi 'supabaseClient'
+    const { data: users, error } = await supabaseClient
       .from("profiles")
       .select("username, xp")
       .order("xp", { ascending: false })
