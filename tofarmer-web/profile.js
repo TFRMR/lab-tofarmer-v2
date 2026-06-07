@@ -1368,6 +1368,9 @@ function inisialisasiKomponenNotif() {
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (GARANSI 100% LOCK TARGET & NO CRASH)
 // =========================================================================
+// =========================================================================
+// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: FIX TARGET LINK KOMENTAR/MENTION)
+// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
 
@@ -1404,6 +1407,11 @@ async function loadNotifikasiUser() {
       (senderProfiles || []).map(p => [p.id, p])
     );
 
+    // Ambil username kita sendiri (pemilik wallet saat ini) dari parameter URL fallback atau profile data global jika ada
+    // Jika tidak ada di URL param 'u', kita kunci agar tetap fleksibel menuju profil yang tepat
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentProfileUser = urlParams.get("u") || profileUsername;
+
     const listHtml = notifications.map(n => {
       const usernameAsliPengirim =
         profileMap[n.sender_id]?.username || "petani";
@@ -1413,24 +1421,24 @@ async function loadNotifikasiUser() {
         namaDisplay = "Anda";
       }
 
-      // ===============================
-      // DEFAULT: ke profile user
-      // ===============================
-      let linkAksi =
-        `window.location.assign('profile.html?u=${usernameAsliPengirim}');`;
+      // ===================================================================
+      // FIX LOGIKATAUTAN KELURAHAN / LADANG
+      // ===================================================================
+      let linkAksi = `window.location.assign('profile.html?u=${usernameAsliPengirim}');`;
 
-      // ===============================
-      // FIX: arahkan ke post target
-      // ===============================
       if (
         (n.type === "mention" ||
           n.type === "comment" ||
           n.type === "like") &&
         n.related_id
       ) {
-        // hanya kirim targetPost (JANGAN pakai hash dulu biar tidak misleading)
+        // --- PERUBAHAN DI SINI ---
+        // Jika target profil saat ini tersedia di URL, gunakan itu agar tidak melompat ke kebun orang lain.
+        // Jika kosong, arahkan ke username kita sendiri (karena notifikasi ini ditujukan ke wallet kita).
+        const targetUser = currentProfileUser || usernameAsliPengirim; 
+        
         linkAksi =
-          `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
+          `window.location.assign('profile.html?u=${targetUser}&targetPost=${n.related_id}');`;
       } else if (n.type === "vote_needed") {
         linkAksi =
           `window.location.assign('/html/dashboard.html');`;
