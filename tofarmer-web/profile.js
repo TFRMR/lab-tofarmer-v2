@@ -1371,6 +1371,9 @@ function inisialisasiKomponenNotif() {
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: LOMPAT LANGSUNG KE LOKASI KARYA)
 // =========================================================================
+// =========================================================================
+// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: LOCK TARGET PROFIL & REFRESH)
+// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
   try {
@@ -1404,6 +1407,7 @@ async function loadNotifikasiUser() {
     );
 
     const listHtml = notifications.map(n => {
+      // 1. Kunci Username Pembuat Karya Asli dari Database
       const usernameAsliPengirim = profileMap[n.sender_id]?.username || "petani";
       
       let namaDisplay = `@${usernameAsliPengirim}`;
@@ -1411,13 +1415,13 @@ async function loadNotifikasiUser() {
         namaDisplay = "Anda";
       }
 
-      // Default awal: lurus ke profil utama pengirim
-      let linkAksi = `window.location.href='?u=${usernameAsliPengirim}'`;
+      // Default awal lurus ke profil utama pengirim
+      let linkAksi = `window.location.href='profile.html?u=${usernameAsliPengirim}'`;
       
-      // JIKA NOTIFIKASI TERKAIT POSTINGAN KARYA (Comment, Mention, Like)
+      // 2. Jika tipe notifikasi berhubungan dengan postingan/karya
       if ((n.type === 'mention' || n.type === 'comment' || n.type === 'like') && n.related_id) {
-        // Kita gunakan window.location.origin + pathname untuk memaksa browser reload halaman secara bersih
-        linkAksi = `window.location.href = window.location.pathname + '?u=${usernameAsliPengirim}&targetPost=${n.related_id}#post-card-${n.related_id}'; setTimeout(() => { window.location.reload(); }, 50);`;
+        // Tembak langsung ke target file profile.html dengan parameter lengkap, lalu paksa reload seketika
+        linkAksi = `window.location.href='profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}#post-card-${n.related_id}'; setTimeout(() => { window.location.reload(); }, 10);`;
       } else if (n.type === 'vote_needed') {
         linkAksi = `window.location.href='/html/dashboard.html'`;
       }
