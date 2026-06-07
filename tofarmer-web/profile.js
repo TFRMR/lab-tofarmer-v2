@@ -51,8 +51,6 @@ let targetProfileId = null
 // RANK SYSTEM
 // =====================
 
-// ===================== RANK SYSTEM (INTEGRASI TANGGA PANGKAT) =====================
-
 function getRank(xp) {
   const lvl = getTofLevel(xp);
   
@@ -88,9 +86,6 @@ function getTofLevel(xp) {
   return Math.min(eliteLevel, 100); // Dikunci maksimal di Level 100
 }
 
-// ==========================================
-// 🟢 TAMBAHKAN KODE BARU INI DI SINI
-// ==========================================
 function generateProfileContext(profileData, recentPosts = []) {
   const rank = getRank(profileData.xp || 0);
   const lvl = getTofLevel(profileData.xp || 0);
@@ -112,6 +107,7 @@ REKAM JEJAK / KARYA TERAKHIR:
 ${riwayatTeks || "- Belum ada catatan karya sebelumnya di ladang."}
   `.trim();
 }
+
 // =====================
 // LOAD PROFILE BALANCE
 // =====================
@@ -133,14 +129,6 @@ async function refreshBalance(profileId) {
 // LOAD PROFILE
 // =====================
 
-// =====================
-// LOAD PROFILE (DENGAN AUTO-FALLBACK PROFIL SENDIRI)
-// =====================
-
-// =====================
-// LOAD PROFILE (DENGAN SINKRONISASI COCOK DUA PARAMETER: USERNAME / WALLET ID)
-// =====================
-
 async function loadProfile() {
 
   let queryField = "username"
@@ -154,16 +142,15 @@ async function loadProfile() {
     queryField = "id"
     queryValue = urlWalletId
   } 
- // 3. Jika parameter u maupun id kosong di URL, gunakan fallback ke dompet lokal yang sedang login
+  // 3. Jika parameter u maupun id kosong di URL, gunakan fallback ke dompet lokal yang sedang login
   else if (!profileUsername) {
     if (currentWallet) {
       queryField = "id"
       queryValue = currentWallet
     } else {
-      // 🟢 PERBAIKAN: Jika ada parameter ?post di halaman beranda, jangan ganti HTML profil jadi error
       if (urlParams.get("post")) {
         console.log("Membuka postingan spesifik dari beranda...");
-        return; // Hentikan fungsi loadProfile dengan aman tanpa memunculkan teks error
+        return; 
       }
 
       document.getElementById("profile").innerHTML = `
@@ -196,39 +183,26 @@ async function loadProfile() {
   // Isi ID dompet internal ke memori RAM aplikasi (Aman, tersembunyi dari browser)
   targetProfileId = data.id
 
-// ==========================================================================
-  // 🟢 PROSES PENYEMBUNYIAN (URL MASKING)
-  // ==========================================================================
   // Jika pengunjung masuk lewat tautan lama (?id=J36...), langsung bersihkan URL-nya
   if (urlWalletId) {
-    // Ubah tampilan URL di browser menjadi berbasis username (?u=nama_user) yang jauh lebih rapi
     const cleanUrl = `${window.location.pathname}?u=${data.username}`
     window.history.replaceState({}, document.title, cleanUrl)
   }
-  // ==========================================================================
-
 
   renderProfileData(data)
   document.title = `@${data.username} | Profil ToFarmer`
   renderWorkspace()
   loadUserPosts()
 
-  // 🟢 PERBAIKAN: Berikan jeda 800 milidetik agar targetProfileId terisi penuh terlebih dahulu
   setTimeout(() => {
     loadProfilIlmu();
   }, 800);
 
-// ==========================================
-// 🔄 GANTI SETTIMEOUT LAMA DENGAN BLOK INI
-// ==========================================
-// 🔄 GANTI SETTIMEOUT LAMA DENGAN BLOK INI
-// ==========================================
   setTimeout(async () => {
     const responseBox = document.getElementById("ai-response");
     if (responseBox) {
       responseBox.innerText = "Teman Kebun sedang mengingat riwayat ladangmu...";
       
-      // Ambil 5 data kontribusi terakhir dari Supabase untuk ingatan AI
       const { data: recentPosts } = await supabaseClient
         .from("contributions")
         .select("deskripsi_proses, created_at")
@@ -237,7 +211,6 @@ async function loadProfile() {
         .order("created_at", { ascending: false })
         .limit(5);
 
-      // Satukan data profil dan postingan terakhir menggunakan fungsi Langkah 1
       const konteksRAG = generateProfileContext(data, recentPosts);
 
       const sapaan = await panggilAiSaran("Evaluasi", { 
@@ -248,20 +221,15 @@ async function loadProfile() {
       typeWriterEffect(responseBox, `🤖 Teman Kebun: ${sapaan}`);
     }
   }, 1500); 
-// ==========================================
+
   try {
-    const liveBalance =
-      await getWalletTofBalance(targetProfileId)
-
+    const liveBalance = await getWalletTofBalance(targetProfileId)
     data.saldo_tof = liveBalance
-
     renderProfileData(data)
 
     await supabaseClient
       .from("profiles")
-      .update({
-        saldo_tof: liveBalance
-      })
+      .update({ saldo_tof: liveBalance })
       .eq("id", targetProfileId)
 
   } catch (err) {
@@ -276,15 +244,10 @@ loadProfile()
 // =====================
 
 function renderProfileData(data) {
-
   document.getElementById("profile").innerHTML = `
     <div class="card" style="text-align:center;">
-
       <img
-        src="${
-          data.avatar_url ||
-          'https://www.tofarmer.xyz/images/logo-tofarmer.png'
-        }"
+        src="${data.avatar_url || 'https://www.tofarmer.xyz/images/logo-tofarmer.png'}"
         style="
           width:110px;
           height:110px;
@@ -300,19 +263,16 @@ function renderProfileData(data) {
       </h2>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
-
         <div class="card" style="margin:0;padding:12px;">
           <div style="font-size:11px;color:#888;">XP</div>
           <div style="font-weight:700;">${data.xp || 0}</div>
         </div>
-
         <div class="card" style="margin:0;padding:12px;">
           <div style="font-size:11px;color:#888;">TOF</div>
           <div id="profileTof" style="color:#c9a227;font-weight:700;">
             ${data.saldo_tof || 0}
           </div>
         </div>
-
       </div>
 
       <div style="
@@ -342,7 +302,6 @@ function renderProfileData(data) {
             <div class="area-pending-list">Memuat ilmu...</div>
          </div>
       </div>
-
     </div>
   `
 }
@@ -354,8 +313,6 @@ function renderProfileData(data) {
 function renderWorkspace() {
   const box = document.getElementById("profileWorkspace")
 
-
-  // Sinkronisasi hak akses
   if (currentWallet !== targetProfileId) {
     box.innerHTML = ""
     return
@@ -382,18 +339,15 @@ function renderWorkspace() {
       <div style="font-weight:700;color:#2f6f4e;margin-bottom:5px;">🌿 Ruang Karya Saya</div>
       <textarea id="profilePostBox" placeholder="Apa ide, progres, atau eksperimen hari ini?" style="width:100%;min-height:100px;padding:14px;border-radius:16px;border:2px solid rgba(76,175,122,.12);resize:none;outline:none;"></textarea>
       <input type="file" id="profileImage" accept="image/*" style="width:100%; margin-top:10px; margin-bottom:10px; font-size:12px;" />
-     <button class="btn-glow" onclick="sendProfilePost()">🌱 TANAM KARYA</button>
+      <button class="btn-glow" onclick="sendProfilePost()">🌱 TANAM KARYA</button>
     </div>
   `
 }
-
-
 
 // ==========================================================================
 // FUNGSI MEMUAT ILMU DAN VOTE KHUSUS HALAMAN PROFIL (FIXED NO LOADING)
 // ==========================================================================
 
-// Kita buat fungsi pembantu untuk mempermudah buka popup tanpa merusak HTML text
 window.bukaDetailIlmuProfil = async function(idIlmu, tipeTabel) {
   try {
     const { data: item, error } = await supabaseClient
@@ -442,7 +396,6 @@ async function loadProfilIlmu() {
   const wadahBaku = document.querySelector("#profil-ilmu-baku .area-baku-list");
   const wadahPending = document.querySelector("#profil-ilmu-pending .area-pending-list");
 
-  // 1. Ambil Ilmu Baku milik user profil ini
   const { data: dataBaku } = await supabaseClient
     .from("ilmu_baku")
     .select("*")
@@ -460,7 +413,6 @@ async function loadProfilIlmu() {
     }
   }
 
-  // 2. Ambil Ilmu Pending milik user profil ini
   const { data: dataPending } = await supabaseClient
     .from("ilmu_pending")
     .select("*")
@@ -486,7 +438,6 @@ async function aksiVoteDariProfil(item) {
         return;
     }
 
-    // Gunakan 'supabaseClient' sesuai konfigurasi bawaan profile.js
     const { data: existingVote, error: voteError } = await supabaseClient
         .from('votes')
         .insert([{ ilmu_id: item.id, user_id: currentWallet }])
@@ -530,14 +481,6 @@ async function aksiVoteDariProfil(item) {
     }
 }
 
-// ==========================================================================
-// AKHIR FUNGSI PERBAIKAN ILMU
-// ==========================================================================
-
-// =====================
-// SEND PROFILE POST
-// =============================
-
 // =========================================================================
 // 🌿 FUNGSI UTAMA: SEND PROFILE POST (INTEGRASI DATABASE & AI TEMAN KEBUN)
 // =========================================================================
@@ -553,7 +496,6 @@ async function sendProfilePost() {
     return;
   }
 
-  // 🟢 FIX JALUR AMAN PILAR AKSI: Jika fungsi classifyPilar error/tidak ada, otomatis diset pilar 1 biar tidak macet
   let pilarAksiFinal = 1;
   try {
     if (typeof classifyPilar === "function") {
@@ -568,7 +510,6 @@ async function sendProfilePost() {
 
   const file = imageInput?.files?.[0] || null
 
-  // Proses Upload Gambar ke Bucket post-images
   if (file instanceof File) {
     const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
     try {
@@ -593,7 +534,6 @@ async function sendProfilePost() {
   const isSelfPost = true
   const xpBonus = 20
 
-  // Kirim data ke tabel contributions sesuai skema kolom database Akang
   const { data: dataBaru, error } = await supabaseClient
     .from("contributions")
     .insert([
@@ -602,8 +542,8 @@ async function sendProfilePost() {
         pilar_aksi: pilarAksiFinal,
         judul_aksi: imageUrl ? "Berbagi Karya Foto" : "Feed Post",
         deskripsi_proses: text,
-        image_url: imageUrl,             // Kolom gambar contributions asli
-        status_validasi: "PENDING",       // Sesuai DEFAULT 'PENDING'::text database
+        image_url: imageUrl,             
+        status_validasi: "PENDING",       
         xp_reward: xpBonus,
         is_self_post: isSelfPost,
         is_private: false 
@@ -618,9 +558,6 @@ async function sendProfilePost() {
 
   alert("Karya berhasil ditanam di ladang! 🌱🎨");
 
-  // =========================================================================
-  // KODE BARU: SEBAR NOTIFIKASI KE 15 PENGGUNA AGAR KOMUNITAS RAMAI
-  // =========================================================================
   try {
     const { data: semuaUser } = await supabaseClient
       .from("profiles")
@@ -628,11 +565,11 @@ async function sendProfilePost() {
 
     if (semuaUser && semuaUser.length > 0 && dataBaru && dataBaru[0]) {
       const daftarNotif = semuaUser
-        .filter(u => u.id !== currentWallet) // Kirim ke orang lain saja
+        .filter(u => u.id !== currentWallet) 
         .map(u => ({
           user_id: u.id,                       
           sender_id: currentWallet,             
-          type: 'mention', // Menggunakan type 'mention' agar link klik-nya aktif bawaan profile.js
+          type: 'mention', 
           message: imageUrl 
             ? `baru saja membagikan foto karya baru di profilnya! 🎨` 
             : `baru saja membagikan catatan perkembangan baru di profilnya! 📝`,
@@ -649,9 +586,7 @@ async function sendProfilePost() {
   } catch (errNotif) {
     console.log("Notifikasi massal dilewati:", errNotif.message);
   }
-  // =========================================================================
 
-  // Tambahkan XP Petani (+20 XP)
   if (currentProfile) {
     const newXP = (currentProfile.xp || 0) + xpBonus
     const { error: xpError } = await supabaseClient
@@ -664,14 +599,11 @@ async function sendProfilePost() {
     }
   }
 
-  // Bersihkan form input setelah berhasil
   input.value = ""
   if (imageInput) imageInput.value = ""
 
-  // Muat ulang daftar postingan di profil secara otomatis
   await loadUserPosts() 
 
-  // Trigger AI Teman Kebun bawaan sistem Akang
   const responseBox = document.getElementById("ai-response");
   const aiChatArea = document.getElementById("ai-chat-area");
   
@@ -701,41 +633,40 @@ async function sendProfilePost() {
       });
       
       try {
-  if (typeof typeWriterEffect === "function") {
-    typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
-  } else {
-    responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+        if (typeof typeWriterEffect === "function") {
+          typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
+        } else {
+          responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+        }
+
+        let aiChatCounter = 0;
+
+        setTimeout(() => {
+          if (aiChatArea) aiChatArea.style.display = "block";
+          const sisa = document.getElementById("sisa-chat");
+          if (sisa) sisa.innerText = 3;
+        }, 2000);
+
+        if (aiChatCounter >= 3) {
+          document.getElementById("ai-chat-area").style.display = "none";
+          responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya...";
+        }
+
+      } catch (err) {
+        console.log("AI error:", err);
+        responseBox.innerText = "🤖 Teman Kebun: Lagi nyangkul, coba lagi nanti ya.";
+      } 
+    }
   }
-
-  aiChatCounter = 0;
-
-  setTimeout(() => {
-    if (aiChatArea) aiChatArea.style.display = "block";
-    const sisa = document.getElementById("sisa-chat");
-    if (sisa) sisa.innerText = 3;
-  }, 2000);
-
-  if (aiChatCounter >= 3) {
-    document.getElementById("ai-chat-area").style.display = "none";
-    responseBox.innerText =
-      "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya...";
-  }
-
-} catch (err) {
-  console.log("AI error:", err);
-  responseBox.innerText =
-    "🤖 Teman Kebun: Lagi nyangkul, coba lagi nanti ya.";
-
-} 
 }
-}
+
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
 // =====================
 
 async function loadUserPosts() {
   const box = document.getElementById("userPosts")
-  if (!targetProfileId) return
+  if (!targetProfileId || !box) return
 
   const { data, error } = await supabaseClient
     .from("contributions")
@@ -743,8 +674,7 @@ async function loadUserPosts() {
       *,
       profiles(username)
     `)
-    .eq("user_id", targetProfileId) // Tetap pertahankan ini agar hanya postingan milik user ini yang ditarik
-    // BARIS ".eq("is_private", true)" SUDAH DIHAPUS DI SINI AGAR POSTINGAN UMUM JUGA IKUT MUNCUL
+    .eq("user_id", targetProfileId) 
     .order("created_at", { ascending: false })
 
   if (!data?.length) {
@@ -782,7 +712,7 @@ async function loadUserPosts() {
     console.log("Gagal memperbarui Meta Tag di Profil:", metaErr);
   }
 
- box.innerHTML = data.map(post => {
+  box.innerHTML = data.map(post => {
     const date = new Date(post.created_at).toLocaleString("id-ID", {
       day: "2-digit",
       month: "short",
@@ -793,13 +723,10 @@ async function loadUserPosts() {
 
     const safeText = (post.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
     const currentUsername = profileUsername || "Petani";
-
-    // KUNCI FB PROFIL: Menu titik tiga hanya nampak jika Anda adalah pemilik profil ini yang sedang login
     const isMyPost = currentWallet === targetProfileId;
 
     return `
       <div id="post-card-${post.id}" class="card" style="margin-bottom:14px;">
-
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px;">
           <div style="font-size:11px;color:#6f7f76;">
             🌿 ${date}
@@ -816,11 +743,9 @@ async function loadUserPosts() {
           ` : ''}
         </div>
 
-       
-
-       <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
-  ${convertMentions(post.deskripsi_proses || "")}
-</div>
+        <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
+          ${convertMentions(post.deskripsi_proses || "")}
+        </div>
 
         ${
           post.image_url
@@ -848,7 +773,6 @@ async function loadUserPosts() {
           <span onclick="reactPost('${post.id}','sruput')" style="cursor:pointer;">
             ☕ ${post.sruput_count || 0} Sruput
           </span>
-
           <span onclick="reactPost('${post.id}','cangkul')" style="cursor:pointer;">
             ⛏️ ${post.cangkul_count || 0} Cangkul
           </span>
@@ -867,64 +791,49 @@ async function loadUserPosts() {
         </div>
 
         <div id="commentWrapper-${post.id}" style="display: none; border-top: 1px dashed #ddd; padding-top: 10px; margin-top: 5px;">
-          
           <div id="commentBox-${post.id}" style="font-size:12px; color:#444; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
-          
           <div style="display:flex; gap:6px;">
             <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; font-size:12px; box-sizing:border-box;" />
             <button type="button" class="btn-glow" onclick="sendComment('${post.id}')" style="margin:0; padding:8px 14px; font-size:12px; width:auto;">Kirim</button>
           </div>
-
         </div>
-
       </div>
     `
   }).join("")
 
-  // 1. Tetap jalankan update counter jumlah komentar secara paralel
   setTimeout(() => data.forEach(p => updateCommentCount(p.id)), 0)
 
-  // 🟢 2. FITUR AUTO-SCROLL ANCHORING DARI TAUTAN BAGIKAN KARYA
   setTimeout(async () => {
     const postIdParam = urlParams.get("post");
     if (postIdParam) {
-      // Cari kartu postingan fisik di layar DOM
       const targetCard = document.getElementById(`post-card-${postIdParam}`);
       if (targetCard) {
-        // A. Otomatis buka kotak komentar agar pengguna langsung diarahkan berdiskusi
         await toggleCommentBox(postIdParam);
-        
-        // B. Gulirkan layar komputer/HP menuju koordinat postingan tersebut secara halus (smooth)
         targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        
-        // C. Berikan efek highlight kilasan hijau tipis agar pengguna tahu postingan mana yang sedang disorot
         targetCard.style.transition = "all 0.5s ease";
         targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
         targetCard.style.borderColor = "#2f6f4e";
       }
     }
-  }, 300); // Diberi jeda 300ms agar browser selesai menyusun HTML kartu terlebih dahulu
+  }, 300); 
 }
 
 // =====================
 // REACTION
 // =====================
 
-let reacting = false; // Ini gembok pintu depan
+let reacting = false; 
 
 async function reactPost(postId, type) {
-  // 🟢 CEK LOGIN: Jika tidak ada wallet di localStorage, hentikan dan beri tahu user
   if (!currentWallet) {
     alert("🌿 Sambungkan dompet dulu untuk apresiasi karya ini!");
     return;
   }
 
-  // 1. Jika pintu sedang terkunci, abaikan klik selanjutnya!
   if (reacting) return;
-  reacting = true; // Kunci pintu sekarang!
+  reacting = true; 
 
   try {
-    // Ambil data postingan terbaru
     const { data: post, error: fetchErr } = await supabaseClient
       .from("contributions")
       .select("*")
@@ -933,14 +842,12 @@ async function reactPost(postId, type) {
 
     if (fetchErr || !post) return;
 
-    // Pemilik postingan tidak boleh klik karyanya sendiri
     if (post.user_id === currentWallet) {
       alert("Tidak bisa reaction di karya sendiri 😄");
       reacting = false;
       return;
     }
 
-    // 2. Cek apakah di database sudah pernah ada riwayat klik dari dompet ini
     const { data: existing } = await supabaseClient
       .from("reactions")
       .select("*")
@@ -954,8 +861,6 @@ async function reactPost(postId, type) {
       return;
     }
 
-    // 3. Daftarkan dulu ke tabel 'reactions'. 
-    // Jika gagal (karena dicegat gembok database), kode di bawahnya tidak akan jalan.
     const { error: insertErr } = await supabaseClient
       .from("reactions")
       .insert([{ post_id: postId, user_id: currentWallet, type }]);
@@ -966,7 +871,6 @@ async function reactPost(postId, type) {
       return;
     }
 
-  // 4. Jika pendaftaran sukses, baru tambahkan angka +1
     await supabaseClient
       .from("contributions")
       .update({
@@ -975,25 +879,21 @@ async function reactPost(postId, type) {
       })
       .eq("id", postId);
 
-    // 🟢 KUNCI KOORDINAT: Catat posisi scroll aktual kartu sebelum UI digambar ulang
     const targetCard = document.getElementById(`post-card-${postId}`);
     const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
 
-    // Muat ulang tampilan agar angka berubah di layar browser
     await loadUserPosts();
 
-    // 🟢 KEMBALIKAN POSISI: Kembalikan posisi scroll ke koordinat semula secara presisi
     if (koordinatY) {
       window.scrollTo({
-        top: koordinatY - 40, // Beri sedikit kelonggaran batas atas sebesar 40px agar nyaman di mata
-        behavior: "auto"      // 'auto' mengunci posisi secara instan tanpa animasi geser kasat mata
+        top: koordinatY - 40, 
+        behavior: "auto"      
       });
     }
 
   } catch (err) {
     console.error("Terjadi kesalahan:", err);
   } finally {
-    // 5. Apapun yang terjadi (sukses atau error), buka kembali gembok pintu depan
     reacting = false;
   }
 }
@@ -1006,7 +906,6 @@ async function sendComment(postId) {
   const input = document.getElementById("cmt-" + postId)
   const text = input.value.trim()
 
-  // Skenario proteksi jika user belum login/connect wallet
   if (!currentWallet) {
     alert("🌿 Sambungkan dompet dulu untuk ikut berdiskusi!");
     return
@@ -1020,17 +919,14 @@ async function sendComment(postId) {
     comment: text
   }])
 
-  // 🟢 KUNCI KOORDINAT: Simpan posisi kartu sebelum memproses pembaruan komponen internal
   const targetCard = document.getElementById(`post-card-${postId}`);
   const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
 
   input.value = ""
   
-  // Refresh data list komentar & update jumlah angka notifikasinya
   await loadComments(postId)
   await updateCommentCount(postId)
 
-  // 🟢 KEMBALIKAN POSISI: Pertahankan letak koordinat box agar tidak meloncat
   if (koordinatY) {
     window.scrollTo({
       top: koordinatY - 40,
@@ -1039,10 +935,7 @@ async function sendComment(postId) {
   }
 }
 
-// Fungsi Load Komentar Baru: Mengambil data teks sekaligus Profil Pengomentar
 async function loadComments(postId) {
-
-  // 1. ambil comments saja
   const { data: comments, error } = await supabaseClient
     .from("comments")
     .select("*")
@@ -1061,101 +954,50 @@ async function loadComments(postId) {
     return;
   }
 
-  // 2. ambil semua user_id unik
   const userIds = [...new Set(comments.map(c => c.user_id))];
 
-  // 3. ambil profiles berdasarkan user_id
   const { data: profiles } = await supabaseClient
     .from("profiles")
     .select("id, username, avatar_url")
     .in("id", userIds);
 
-  // 4. mapping profiles ke object
   const profileMap = Object.fromEntries(
     (profiles || []).map(p => [p.id, p])
   );
 
-  // 5. gabungkan data
   const merged = comments.map(c => ({
     ...c,
     profiles: profileMap[c.user_id] || null
   }));
 
- // 6. 🔥 INI DIA YANG KAMU TANYA → RENDER KE UI
- box.innerHTML = merged.map(c => {
-  const user = c.profiles?.username || "Pengunjung";
-  const avatar = c.profiles?.avatar_url || "/aset/favicon.png";
+  box.innerHTML = merged.map(c => {
+    const user = c.profiles?.username || "Pengunjung";
+    const avatar = c.profiles?.avatar_url || "/aset/favicon.png";
 
-  const time = new Date(c.created_at).toLocaleString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+    const time = new Date(c.created_at).toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
 
-  return `
-    <div style="
-      display: flex;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid #eee;
-    ">
-
-      <!-- AVATAR -->
-      <img src="${avatar}" style="
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        object-fit: cover;
-        flex-shrink: 0;
-      " />
-
-      <!-- CONTENT -->
-      <div style="flex: 1;">
-
-        <!-- HEADER (username + time) -->
-        <div style="
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 3px;
-        ">
-
-          <div style="
-            font-weight: 700;
-            font-size: 13px;
-            color: #2f6f4e;
-          ">
-            @${user}
+    return `
+      <div style="display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee;">
+        <img src="${avatar}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" />
+        <div style="flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+            <div style="font-weight: 700; font-size: 13px; color: #2f6f4e;">@${user}</div>
+            <div style="font-size: 11px; color: #999;">${time}</div>
           </div>
-
-          <div style="
-            font-size: 11px;
-            color: #999;
-          ">
-            ${time}
+          <div style="font-size: 13px; color: #222; line-height: 1.4;">
+            ${convertMentions(c.comment || "")}
           </div>
-
         </div>
-
-        <!-- COMMENT TEXT -->
-        <div style="
-  font-size: 13px;
-  color: #222;
-  line-height: 1.4;
-">
-  ${convertMentions(c.comment || "")}
-</div>
-
       </div>
-    </div>
-  `;
-}).join("");
+    `;
+  }).join("");
 }
 
-  
-
-// FUNGSI BARU: Hanya menghitung total baris komentar dari database Supabase
 async function updateCommentCount(postId) {
   const { count, error } = await supabaseClient
     .from("comments")
@@ -1168,17 +1010,14 @@ async function updateCommentCount(postId) {
   }
 }
 
-// FUNGSI BARU: Mekanisme buka-tutup box (Klik jumlah komentar -> Baru panggil API & Munculkan)
 async function toggleCommentBox(postId) {
   const wrapper = document.getElementById(`commentWrapper-${postId}`)
   if (!wrapper) return
 
   if (wrapper.style.display === "none") {
-    // Saat dibuka, jalankan fungsi penarik data terbaru
     await loadComments(postId)
     wrapper.style.display = "block"
   } else {
-    // Saat diklik lagi, sembunyikan kembali
     wrapper.style.display = "none"
   }
 }
@@ -1189,13 +1028,9 @@ async function toggleCommentBox(postId) {
 
 setInterval(async () => {
   if (!targetProfileId) return
-
   const liveBalance = await getWalletTofBalance(targetProfileId)
-
   const tofEl = document.querySelector("#profileTof")
-
   if (tofEl) tofEl.innerText = liveBalance
-
 }, 10000)
 
 // =====================
@@ -1203,27 +1038,18 @@ setInterval(async () => {
 // =====================
 
 function openQrisPopup() {
-
   const modal = document.createElement("div")
-
   modal.innerHTML = `
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;justify-content:center;align-items:center;z-index:99999;">
-
-    <div style="background:white;padding:20px;border-radius:16px;width:300px;text-align:center;">
-
+    <div style="background:white;padding:20px;border-radius:166px;width:300px;text-align:center;">
       <div style="font-size:20px;font-weight:700;">💰 QRIS Nabung</div>
-
       <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg" />
-
       <p style="font-size:12px;color:#666;">Transfer manual lalu klik konfirmasi</p>
-
        <button class="btn-glow" onclick="submitQrisPayment()">✅ Saya Sudah Transfer</button>
        <button class="btn-glow" onclick="this.parentElement.parentElement.remove()">❌ Tutup</button>
-
     </div>
   </div>
   `
-
   document.body.appendChild(modal)
 }
 
@@ -1246,7 +1072,6 @@ async function submitQrisPayment() {
 }
 
 async function approvePayment(paymentId, userId, xp) {
-
   await supabaseClient.from("payments").update({ status: "confirmed" }).eq("id", paymentId)
 
   const { data: profile } = await supabaseClient
@@ -1259,10 +1084,10 @@ async function approvePayment(paymentId, userId, xp) {
     xp: (profile.xp || 0) + xp
   }).eq("id", userId)
 }
-let typewriterTimeout = null; // Tambahkan variabel global ini
+
+let typewriterTimeout = null; 
 
 function typeWriterEffect(element, text, speed = 20) {
-    // 1. Hentikan animasi yang sedang berjalan
     if (typewriterTimeout) clearTimeout(typewriterTimeout);
     
     element.innerHTML = ""; 
@@ -1277,58 +1102,40 @@ function typeWriterEffect(element, text, speed = 20) {
     }
     type();
 }
+
 function sharePost(postId, username, text) {
-  // 1. Susun URL unik yang mengarah langsung ke postingan ini di halaman profil
-  // Menggunakan window.location.origin + pathname agar dinamis baik di lokal maupun domain live
   const shareUrl = `${window.location.origin}${window.location.pathname}?u=${username}&post=${postId}`;
 
-  // 2. Gunakan Clipboard API bawaan browser untuk menyalin tautan
   navigator.clipboard.writeText(shareUrl).then(() => {
     alert(`📢 Tautan karya @${username} berhasil disalin! Siap dibagikan ke komunitas 🌱\n\nLink: ${shareUrl}`);
   }).catch((err) => {
     console.error("Gagal menyalin tautan:", err);
-    // Fallback manual jika browser memblokir clipboard API
     alert(`Salin tautan ini secara manual:\n${shareUrl}`);
   });
 }
-// ==========================================================================
-  // 🟢 AUTO-SCROLL ANCHORING DARI LINK YANG DIBAGIKAN DI BERANDA UTAMA
-  // ==========================================================================
-  setTimeout(async () => {
-    const postIdParam = urlParams.get("post");
-    if (postIdParam) {
-      // Cari kartu postingan fisik berdasarkan ID unik yang kita buat di Langkah awal kemarin
-      const targetCard = document.getElementById(`post-card-${postIdParam}`);
-      if (targetCard) {
-        // Otomatis buka kotak komentar di beranda
-        if (typeof toggleKomentarBox === "function") {
-          await toggleKomentarBox(postIdParam);
-        }
-        
-        // Gulirkan layar ke koordinat kartu secara halus
-        targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        
-        // Beri efek highlight visual penanda hijau
-        targetCard.style.transition = "all 0.5s ease";
-        targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
-        targetCard.style.borderColor = "#2f6f4e";
+
+setTimeout(async () => {
+  const postIdParam = urlParams.get("post");
+  if (postIdParam) {
+    const targetCard = document.getElementById(`post-card-${postIdParam}`);
+    if (targetCard) {
+      if (typeof toggleKomentarBox === "function") {
+        await toggleKomentarBox(postIdParam);
       }
+      
+      targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+      
+      targetCard.style.transition = "all 0.5s ease";
+      targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
+      targetCard.style.borderColor = "#2f6f4e";
     }
-  }, 500); // Diberi jeda 500ms agar data Supabase beranda selesai dirender utuh ke layar DOM
-
-// =========================================================================
-// 🟢 FUNGSI MANAJEMEN POSTINGAN (EDIT & PRIVASI) ALA FACEBOOK
-// =========================================================================
-
-// =========================================================================
-// 🟢 FUNGSI MANAJEMEN POSTINGAN (EDIT & PRIVASI) ALA FACEBOOK - HALAMAN PROFIL
-// =========================================================================
+  }
+}, 500); 
 
 function toggleDotMenu(postId) {
   const dropdown = document.getElementById(`dropdown-${postId}`);
   if (!dropdown) return;
   
-  // Tutup dropdown lain yang sedang terbuka agar tidak tabrakan
   document.querySelectorAll('.dot-dropdown').forEach(el => {
     if (el.id !== `dropdown-${postId}`) el.style.display = 'none';
   });
@@ -1336,7 +1143,6 @@ function toggleDotMenu(postId) {
   dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
 }
 
-// Tutup menu melayang otomatis jika user klik di sembarang tempat
 window.addEventListener('click', function(e) {
   if (!e.target.matches('.btn-dot-menu')) {
     document.querySelectorAll('.dot-dropdown').forEach(el => el.style.display = 'none');
@@ -1357,7 +1163,7 @@ async function aksiEditPostingan(postId, teksLama) {
     alert("Gagal memperbarui postingan: " + error.message);
   } else {
     alert("Postingan berhasil diperbarui! 🌿");
-    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil otomatis
+    if (typeof loadUserPosts === "function") loadUserPosts(); 
   }
 }
 
@@ -1367,18 +1173,17 @@ async function aksiKembalikanKeBeranda(postId) {
 
   const { error } = await supabaseClient
     .from("contributions")
-    .update({ is_private: false }) // Mengubah status privasi ke publik kembali
+    .update({ is_private: false }) 
     .eq("id", postId);
 
   if (error) {
     alert("Gagal memproses: " + error.message);
   } else {
     alert("Postingan dipublikasikan kembali ke Beranda Umum! 🚀");
-    if (typeof loadUserPosts === "function") loadUserPosts(); // Segarkan halaman profil otomatis
+    if (typeof loadUserPosts === "function") loadUserPosts(); 
   }
 }
 
-// Fungsi Cerdas: Pengubah Link Situs Web & @Mention agar Teks Bisa Diklik dan Bisa Enter
 function convertMentions(text) {
   if (!text) return "";
 
@@ -1400,22 +1205,16 @@ function convertMentions(text) {
     return `<a href="${href}" target="_blank" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #4caf7a;" onmouseover="this.style.color='#b5942b'" onmouseout="this.style.color='#2f6f4e'">${url}</a>${akhirTandaBaca}`;
   });
 
- // Alternatif jika fungsi goToUsername belum ada, ubah baris mention di fungsi convertMentions menjadi:
-result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="window.location.href='?u=$1'" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
+  result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="window.location.href='?u=$1'" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
   result = result.replace(/\n/g, "<br>");
 
   return result;
 }
+
 // ==========================================
 // 🔔 SISTEM NOTIFIKASI OTOMATIS (FRONTEND TOF)
 // ==========================================
 
-// 1. Fungsi untuk Membuat Elemen Tombol Lonceng & Kotak Dropdown secara otomatis di Layar
-// =====================================================================
-// 🔔 SISTEM NOTIFIKASI ELEMEN TOF (PAKET UTUH, AMAN & PAS DI TENGAH HP)
-// =====================================================================
-
-// 1. FUNGSI MEMBUAT TOMBOL LONCENG & DROPDOWN
 function inisialisasiKomponenNotif() {
   if (!currentWallet) return; 
 
@@ -1426,7 +1225,6 @@ function inisialisasiKomponenNotif() {
   styleNotif.id = "tof-notif-style";
   styleNotif.innerHTML = `
     #tof-notif-wrapper {
-      /* 💡 PERBAIKAN 1: Mengubah fixed menjadi absolute agar lonceng ikut hanyut ke atas saat di-scroll */
       position: absolute !important;
       top: 15px !important;
       left: 60px !important;
@@ -1439,7 +1237,6 @@ function inisialisasiKomponenNotif() {
       display: none;
       position: absolute !important;
       top: 55px !important;
-      right: 100 !important;
       width: 300px !important;
       max-height: 380px !important;
       background: white !important;
@@ -1448,11 +1245,8 @@ function inisialisasiKomponenNotif() {
       box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
       overflow-y: auto !important;
     }
-
-    /* 📱 Trik Khusus HP (Rata Tengah Atas) */
     @media (max-width: 768px) {
       #tof-notif-wrapper {
-        /* 💡 PERBAIKAN 2: Pastikan di HP juga menggunakan absolute agar tidak mengunci di layar kaca */
         position: absolute !important;
         top: 85px !important;    
         right: 60% !important;   
@@ -1525,7 +1319,6 @@ function inisialisasiKomponenNotif() {
   });
 }
 
-// 2. FUNGSI AMBIL DATA SUPABASE (AMAN DARI EROR SKEMA 400)
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
 
@@ -1577,11 +1370,10 @@ async function loadNotifikasiUser() {
       let linkAksi = "";
 
       if (n.type === 'comment' || n.type === 'mention') {
-    linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
-} else if (n.type === 'vote_needed') {
-    // Mengubah aksi agar langsung pindah ke halaman dashboard saat diklik
-    linkAksi = `window.location.href='/html/dashboard.html'`;
-}
+          linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
+      } else if (n.type === 'vote_needed') {
+          linkAksi = `window.location.href='/html/dashboard.html'`;
+      }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
 
@@ -1604,7 +1396,6 @@ async function loadNotifikasiUser() {
   }
 }
 
-// 3. FUNGSI TOMBOL TANDAI BACA
 async function tandaiSemuaNotifDibaca() {
   if (!currentWallet) return;
   try {
@@ -1620,7 +1411,6 @@ async function tandaiSemuaNotifDibaca() {
   }
 }
 
-// 4. PEMICU OTOMATIS SAAT HALAMAN DIBUKA
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     inisialisasiKomponenNotif();
@@ -1629,5 +1419,4 @@ if (document.readyState === "loading") {
 } else {
   inisialisasiKomponenNotif();
   setTimeout(loadNotifikasiUser, 2000);
-}
 }
