@@ -1422,3 +1422,38 @@ if (document.readyState === "loading") {
   inisialisasiKomponenNotif();
   setTimeout(loadNotifikasiUser, 2000);
 }
+// ==========================================
+// JEMBATAN KONEKSI KE CLOUDFLARE WORKERS AI
+// ==========================================
+async function panggilAiSaran(tipe, opsi) {
+  try {
+    const CLOUDFLARE_WORKER_URL = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran"; 
+
+    const response = await fetch(CLOUDFLARE_WORKER_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        tipe: tipe,           // Mengirimkan "Evaluasi"
+        teks: opsi.teks,       // Mengirim pesan trigger masuk profil
+        trigger: opsi.trigger // Mengirimkan seluruh instruksi & data RAG petani
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Worker merespons dengan status: ${response.status}`);
+    }
+
+    const hasil = await response.json();
+    
+    // Catatan: Jika Cloudflare Worker kamu mengembalikan data dalam bentuk objek, 
+    // pastikan properti di bawah ini (hasil.jawaban / hasil.text) sesuai dengan isi script Worker kamu.
+    return hasil.jawaban || hasil.text || hasil.output || hasil;
+
+  } catch (error) {
+    console.error("Gagal menghubungi Cloudflare Worker:", error);
+    // Fallback pesan ramah jika Worker down atau bermasalah agar frontend tidak nge-crash
+    return "Lagi agak sibuk di ladang cloud, tapi yang jelas rekam jejakmu sudah tercatat dengan baik! Tetap semangat menanam karya! ☕🌱";
+  }
+}
