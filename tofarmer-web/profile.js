@@ -1368,15 +1368,6 @@ function inisialisasiKomponenNotif() {
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: ID CONTAINER & TARGET ACCURATE)
 // =========================================================================
-// =========================================================================
-// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: LOMPAT LANGSUNG KE LOKASI KARYA)
-// =========================================================================
-// =========================================================================
-// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: LOCK TARGET PROFIL & REFRESH)
-// =========================================================================
-// =========================================================================
-// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED TOTAL: ANTI-BALIK KE PROFIL SENDIRI)
-// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
   try {
@@ -1389,6 +1380,8 @@ async function loadNotifikasiUser() {
 
     if (error) throw error;
 
+    // FIX: Sesuaikan ID container agar sinkron dengan komponen lonceng bawaan (#list-notif-tof)
+    // Kita cek keduanya (notification-list atau list-notif-tof) agar aman di halaman mana pun
     const listContainer = document.getElementById("list-notif-tof") || document.getElementById("notification-list");
 
     if (!notifications || notifications.length === 0) {
@@ -1410,27 +1403,24 @@ async function loadNotifikasiUser() {
     );
 
     const listHtml = notifications.map(n => {
-      // 1. Ambil nama username murni pembuat karya dari database
+      // 1. PEMISAHAN DATA VARIABEL: Murni dari database sender_id asli
       const usernameAsliPengirim = profileMap[n.sender_id]?.username || "petani";
       
+      // Tampilan teks pembaca (jika diri sendiri, tulis "Anda")
       let namaDisplay = `@${usernameAsliPengirim}`;
       if (n.sender_id === currentWallet) {
         namaDisplay = "Anda";
       }
 
-      // Default awal: Menggunakan rute absolut URL asal domain agar tidak salah folder lokasi
-      let linkAksi = `window.location.href = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/profile.html?u=${usernameAsliPengirim}';`;
+      // 2. MEMUTUS HUBUNGAN DARI PARAMETER URL (profileUsername DIKUNCI)
+      // Link diarahkan ke pemilik postingan asli, bukan halaman tempat user berada sekarang
+      let linkAksi = `window.location.href='?u=${usernameAsliPengirim}'`;
       
-      // 2. Jika tipe notifikasi mengandung interaksi karya (Comment, Mention, Like)
+      // 3. TARGET ANCHOR POSTINGAN YANG AKURAT DAN PAS
       if ((n.type === 'mention' || n.type === 'comment' || n.type === 'like') && n.related_id) {
-        // KUNCI AMAN: Menggunakan rute absolut, memaksa replace lokasi jendela, dan mentrigger reload keras (hard reload)
-        linkAksi = `
-          const tujuanUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}#post-card-${n.related_id}';
-          window.location.replace(tujuanUrl);
-          setTimeout(() => { window.location.reload(); }, 30);
-        `.replace(/\s+/g, ' '); // Bersihkan spasi agar aman ditaruh di dalam atribut string HTML
+        linkAksi = `window.location.href='?u=${usernameAsliPengirim}&post=${n.related_id}#post-card-${n.related_id}'`;
       } else if (n.type === 'vote_needed') {
-        linkAksi = `window.location.href='/html/dashboard.html';`;
+        linkAksi = `window.location.href='/html/dashboard.html'`;
       }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
@@ -1453,7 +1443,6 @@ async function loadNotifikasiUser() {
     console.log("Gagal memuat notifikasi:", err.message);
   }
 }
-
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     inisialisasiKomponenNotif();
