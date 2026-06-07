@@ -726,9 +726,7 @@ async function sendProfilePost() {
   responseBox.innerText =
     "🤖 Teman Kebun: Lagi nyangkul, coba lagi nanti ya.";
 
-} finally {
-  if (btn) btn.disabled = false;
-}
+} 
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
 // =====================
