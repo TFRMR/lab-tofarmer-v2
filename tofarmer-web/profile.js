@@ -548,60 +548,110 @@ async function sendProfilePost() {
   if (!input) return
 
   const text = input.value.trim()
-  if (!text) return
+  if (!text) {
+    alert("Deskripsi karya tidak boleh kosong, Kang! ☕");
+    return;
+  }
 
-  // 1. Membuka popup pilihan pilar aksi
-  const pilar = await classifyPilar(text)
-  if (!pilar) return
+  // 🟢 FIX JALUR AMAN PILAR AKSI: Jika fungsi classifyPilar error/tidak ada, otomatis diset pilar 1 biar tidak macet
+  let pilarAksiFinal = 1;
+  try {
+    if (typeof classifyPilar === "function") {
+      const pilar = await classifyPilar(text);
+      if (pilar && typeof PILAR_MAP !== "undefined" && PILAR_MAP[pilar]) {
+        pilarAksiFinal = PILAR_MAP[pilar];
+      }
+    }
+  } catch (errPilar) {
+    console.log("Fungsi pencarian pilar dilewati:", errPilar.message);
+  }
 
   const file = imageInput?.files?.[0] || null
 
-  // 2. Proses Upload Gambar ke Bucket post-images
+  // Proses Upload Gambar ke Bucket post-images
   if (file instanceof File) {
     const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
-    const { error: uploadError } = await supabaseClient.storage
-      .from("post-images")
-      .upload(fileName, file, { cacheControl: "3600", upsert: false })
+    try {
+      const { error: uploadError } = await supabaseClient.storage
+        .from("post-images")
+        .upload(fileName, file, { cacheControl: "3600", upsert: false })
 
-    if (uploadError) {
-      alert("Upload gambar gagal: " + uploadError.message)
-      return
-    }
+      if (uploadError) throw uploadError;
 
-    const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
-    if (!data?.publicUrl) {
-      alert("Gagal ambil URL gambar")
-      return
+      const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
+      if (!data?.publicUrl) {
+        alert("Gagal mengambil URL gambar.");
+        return;
+      }
+      imageUrl = data.publicUrl
+    } catch (errUpload) {
+      alert("Gagal mengunggah gambar: " + errUpload.message);
+      return;
     }
-    imageUrl = data.publicUrl
   }
 
   const isSelfPost = true
   const xpBonus = 20
 
-  // 3. Kirim data ke tabel contributions (Setis_private: false agar otomatis masuk Beranda)
-  const { error } = await supabaseClient
+  // Kirim data ke tabel contributions sesuai skema kolom database Akang
+  const { data: dataBaru, error } = await supabaseClient
     .from("contributions")
     .insert([
       {
         user_id: currentWallet,
-        pilar_aksi: PILAR_MAP[pilar],
-        judul_aksi: "Feed Post",
+        pilar_aksi: pilarAksiFinal,
+        judul_aksi: imageUrl ? "Berbagi Karya Foto" : "Feed Post",
         deskripsi_proses: text,
-        image_url: imageUrl,
-        status_validasi: "pending",
+        image_url: imageUrl,             // Kolom gambar contributions asli
+        status_validasi: "PENDING",       // Sesuai DEFAULT 'PENDING'::text database
         xp_reward: xpBonus,
         is_self_post: isSelfPost,
         is_private: false 
       }
     ])
+    .select();
 
   if (error) {
-    alert("Gagal kirim: " + error.message)
+    alert("Gagal menanam karya: " + error.message)
     return
   }
 
-  // 4. Tambahkan XP Petani (+20 XP)
+  alert("Karya berhasil ditanam di ladang! 🌱🎨");
+
+  // =========================================================================
+  // KODE BARU: SEBAR NOTIFIKASI KE 15 PENGGUNA AGAR KOMUNITAS RAMAI
+  // =========================================================================
+  try {
+    const { data: semuaUser } = await supabaseClient
+      .from("profiles")
+      .select("id");
+
+    if (semuaUser && semuaUser.length > 0 && dataBaru && dataBaru[0]) {
+      const daftarNotif = semuaUser
+        .filter(u => u.id !== currentWallet) // Kirim ke orang lain saja
+        .map(u => ({
+          user_id: u.id,                       
+          sender_id: currentWallet,             
+          type: 'mention', // Menggunakan type 'mention' agar link klik-nya aktif bawaan profile.js
+          message: imageUrl 
+            ? `baru saja membagikan foto karya baru di profilnya! 🎨` 
+            : `baru saja membagikan catatan perkembangan baru di profilnya! 📝`,
+          related_id: dataBaru[0].id,               
+          is_read: false
+        }));
+
+      if (daftarNotif.length > 0) {
+        await supabaseClient
+          .from("notifications")
+          .insert(daftarNotif);
+      }
+    }
+  } catch (errNotif) {
+    console.log("Notifikasi massal dilewati:", errNotif.message);
+  }
+  // =========================================================================
+
+  // Tambahkan XP Petani (+20 XP)
   if (currentProfile) {
     const newXP = (currentProfile.xp || 0) + xpBonus
     const { error: xpError } = await supabaseClient
@@ -614,16 +664,14 @@ async function sendProfilePost() {
     }
   }
 
-  // Bersihkan form input
+  // Bersihkan form input setelah berhasil
   input.value = ""
   if (imageInput) imageInput.value = ""
 
   // Muat ulang daftar postingan di profil secara otomatis
   await loadUserPosts() 
 
-  // =========================================================================
-  // 🤖 CANGKOKAN: TRIGGER AI TEMAN KEBUN DENGAN MEMORI KOMUNITAS (RAG)
-  // =========================================================================
+  // Trigger AI Teman Kebun bawaan sistem Akang
   const responseBox = document.getElementById("ai-response");
   const aiChatArea = document.getElementById("ai-chat-area");
   
@@ -649,7 +697,7 @@ async function sendProfilePost() {
 
       const komentarLucu = await panggilAiSaran("Evaluasi", { 
           teks: text, 
-          trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya di bawah ini:\n${konteksRAG}` 
+          trigger: `User baru saja menanam karya baru: "${text}". Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya:\n${konteksRAG}` 
       });
       
       if (typeof typeWriterEffect === "function") {
@@ -660,65 +708,13 @@ async function sendProfilePost() {
       
       aiChatCounter = 0; 
       setTimeout(() => {
-          aiChatArea.style.display = "block";
+          if(aiChatArea) aiChatArea.style.display = "block";
           const sisa = document.getElementById("sisa-chat");
           if (sisa) sisa.innerText = 3;
       }, 2000);
     }
   }
 }
-
-// Counter batas obrolan chat AI
-let aiChatCounter = 0;
-
-async function panggilAiSaran(mode, payload) {
-    try {
-        const response = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/ai-saran", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                mode: "Evaluasi", 
-                teks: payload.teks,
-                trigger: payload.trigger
-            })
-        });
-        const data = await response.json();
-        return data.saran;
-    } catch (e) {
-        console.error("AI sibuk:", e);
-        return "Lagi sibuk nyangkul nih, coba nanti lagi ya!";
-    }
-}
-
-async function kirimChatAI() {
-    const input = document.getElementById("ai-input");
-    const responseBox = document.getElementById("ai-response");
-    const btn = document.querySelector("#ai-chat-area button");
-    const text = input ? input.value.trim() : "";
-
-    if (!text && aiChatCounter < 3) return;
-    if (btn) btn.disabled = true;
-
-    if (aiChatCounter >= 3) {
-        if (document.getElementById("ai-chat-area")) document.getElementById("ai-chat-area").style.display = "none";
-        if (responseBox) responseBox.innerText = "🤖 Teman Kebun: Sudah 3 ronde! Saya balik nyangkul dulu ya... (Tanam karya baru lagi jika ingin mengobrol kembali)";
-        return;
-    }
-    
-    if (responseBox) responseBox.innerText = "Teman Kebun sedang merangkai kata...";
-    
-    try {
-        const jawaban = await panggilAiSaran("Evaluasi", { teks: text, trigger: "Balas chat user" });
-        
-        aiChatCounter++;
-        // Gunakan efek ketik untuk hasil respon
-        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${jawaban}`);
-        
-        input.value = "";
-        
-        // Update counter
-        const sisa = document.getElementById("sisa-chat");
-        if (sisa) sisa.innerText = 3 - aiChatCounter;
 
        // ==========================================
 // 🔄 GANTI BAGIAN IF INI
