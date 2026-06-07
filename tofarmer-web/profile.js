@@ -1362,68 +1362,66 @@ function inisialisasiKomponenNotif() {
   });
 }
 
+// =========================================================================
+// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER & FIX BUG LINK ALTERNATIF
+// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
-
   try {
-    const { data: notifs, error } = await supabaseClient
+    const { data: notifications, error } = await supabaseClient
       .from("notifications")
       .select("*")
       .eq("user_id", currentWallet)
       .order("created_at", { ascending: false })
-      .limit(10);
+      .limit(20);
 
     if (error) throw error;
 
-    const badge = document.getElementById("badge-notif-tof");
-    const listContainer = document.getElementById("list-notif-tof");
-
-    const jumlahBelumBaca = notifs ? notifs.filter(n => !n.is_read).length : 0;
-    if (badge) {
-      if (jumlahBelumBaca > 0) {
-        badge.innerText = jumlahBelumBaca;
-        badge.style.display = "block";
-      } else {
-        badge.style.display = "none";
-      }
-    }
-
-    if (!notifs || notifs.length === 0) {
+    const listContainer = document.getElementById("notification-list");
+    if (!notifications || notifications.length === 0) {
       if (listContainer) {
-        listContainer.innerHTML = `<div style="padding: 20px; text-align: center; color: #999;">Belum ada pemberitahuan baru.</div>`;
+        listContainer.innerHTML = "<p style='padding:15px; color:#999; font-style:italic; font-size:13px; text-align:center;'>Belum ada pemberitahuan baru.</p>";
       }
       return;
     }
 
-    const semuaSender = [...new Set(notifs.map(n => n.sender_id))];
-    const { data: daftarProfil, error: errorProfil } = await supabaseClient
+    const senderIds = [...new Set(notifications.map(n => n.sender_id))];
+
+    const { data: senderProfiles } = await supabaseClient
       .from("profiles")
       .select("id, username")
-      .in("id", semuaSender);
+      .in("id", senderIds);
 
-    const petaProfil = {};
-    if (!errorProfil && daftarProfil) {
-      daftarProfil.forEach(p => {
-        petaProfil[p.id] = p.username;
-      });
-    }
+    const profileMap = Object.fromEntries(
+      (senderProfiles || []).map(p => [p.id, p])
+    );
 
-    const listHtml = notifs.map(n => {
-      const namaPengirim = petaProfil[n.sender_id] || "Seseorang";
-      let linkAksi = "";
+    const listHtml = notifications.map(n => {
+      // FIX BUG: Ambil username murni milik si pengirim dari map database
+      const usernameAsliPengirim = profileMap[n.sender_id]?.username || "petani";
+      
+      // Tampilan teks pembaca (jika diri sendiri, tulis "Anda")
+      let namaDisplay = `@${usernameAsliPengirim}`;
+      if (n.sender_id === currentWallet) {
+        namaDisplay = "Anda";
+      }
 
-     if (n.type === 'comment' || n.type === 'mention') {
-    linkAksi = `window.location.href='?u=${profileUsername}&post=${n.related_id}'`;
-} else if (n.type === 'vote_needed') {
-    // Mengubah aksi agar langsung pindah ke halaman dashboard saat diklik
-    linkAksi = `window.location.href='/html/dashboard.html'`;
-}
+      // Tentukan ke mana arah link klik notifikasi secara presisi
+      let linkAksi = `window.location.href='?u=${usernameAsliPengirim}'`;
+      
+      if (n.type === 'mention' && n.related_id) {
+        linkAksi = `window.location.href='?u=${usernameAsliPengirim}#post-${n.related_id}'`;
+      } else if (n.type === 'comment' && n.related_id) {
+        linkAksi = `window.location.href='?u=${usernameAsliPengirim}#post-${n.related_id}'`;
+      } else if (n.type === 'like' && n.related_id) {
+        linkAksi = `window.location.href='?u=${usernameAsliPengirim}#post-${n.related_id}'`;
+      }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
 
       return `
         <div onclick="${linkAksi}" style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; background: ${bgWarna}; transition: background 0.2s;" onmouseover="this.style.background='#f7faf8'" onmouseout="this.style.background='${bgWarna}'">
-          <strong>@${namaPengirim}</strong> ${n.message}
+          <strong>${namaDisplay}</strong> ${n.message}
           <span style="font-size: 10px; color: #999; display: block; margin-top: 4px;">
             ${new Date(n.created_at).toLocaleDateString('id-ID')}
           </span>
