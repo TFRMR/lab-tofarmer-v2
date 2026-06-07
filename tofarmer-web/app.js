@@ -768,7 +768,7 @@ function renderProfile() {
 
   userBox.innerHTML = `
     <div style="font-weight:700;font-size:15px;color:#2f6f4e;">@${currentProfile.username}</div>
-    <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:10px;width:60%;padding:8px;border:none;border-radius:12px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:12px;font-weight:600;cursor:pointer;">☕ Masuk Profil Saya</button>
+    <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:10px;width:60%;padding:8px;border:none;border-radius:12px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:12px;font-weight:600;cursor:pointer;">☕ Masuk Profil </button>
     <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">XP</div><div style="font-weight:700;font-size:12px;">${Math.floor(currentProfile.xp || 0)}</div></div>
       <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">TOF</div><div style="font-weight:700;color:#c9a227;font-size:12px;">${Number(currentProfile.saldo_tof || 0).toLocaleString("id-ID")}</div></div>
