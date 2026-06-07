@@ -487,12 +487,18 @@ async function aksiVoteDariProfil(item) {
 // 🌿 FUNGSI UTAMA: SEND PROFILE POST (INTEGRASI DATABASE & AI TEMAN KEBUN)
 // =========================================================================
 // =========================================================================
-// 🌿 FUNGSI UTAMA: SEND PROFILE POST (INTEGRASI DATABASE & AI TEMAN KEBUN)
+// 🌿 FUNGSI UTAMA: SEND PROFILE POST (INTEGRASI DATABASE, AI & LOADING)
 // =========================================================================
 async function sendProfilePost() {
   let imageUrl = null
   const input = document.getElementById("profilePostBox")
   const imageInput = document.getElementById("profileImage")
+  
+  // Ambil elemen tombol untuk dipasangi efek loading
+  // Pastikan di HTML Anda tombol ini memiliki onclick="sendProfilePost()"
+  // Kita cari berdasarkan teks tombol atau Anda bisa menambahkan id="btnTanamKarya" pada tag button HTML-nya
+  const btnTanam = document.querySelector("button[onclick='sendProfilePost()']");
+  
   if (!input) return
 
   const text = input.value.trim()
@@ -501,23 +507,36 @@ async function sendProfilePost() {
     return;
   }
 
-  let pilarAksiFinal = 1;
-  try {
-    if (typeof classifyPilar === "function") {
-      const pilar = await classifyPilar(text);
-      if (pilar && typeof PILAR_MAP !== "undefined" && PILAR_MAP[pilar]) {
-        pilarAksiFinal = PILAR_MAP[pilar];
-      }
-    }
-  } catch (errPilar) {
-    console.log("Fungsi pencarian pilar dilewati:", errPilar.message);
+  // --- START LOADING EFFECT ---
+  let teksTombolAsli = "🌱 TANAM KARYA";
+  if (btnTanam) {
+    teksTombolAsli = btnTanam.innerHTML;
+    btnTanam.disabled = true; // Kunci tombol agar tidak bisa diklik dua kali
+    btnTanam.style.opacity = "0.7";
+    btnTanam.innerHTML = "⏳ Sedang Menanam Karya ke Ladang..."; 
   }
 
-  const file = imageInput?.files?.[0] || null
-
-  if (file instanceof File) {
-    const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
+  try {
+    let pilarAksiFinal = 1;
     try {
+      if (typeof classifyPilar === "function") {
+        const pilar = await classifyPilar(text);
+        if (pilar && typeof PILAR_MAP !== "undefined" && PILAR_MAP[pilar]) {
+          pilarAksiFinal = PILAR_MAP[pilar];
+        }
+      }
+    } catch (errPilar) {
+      console.log("Fungsi pencarian pilar dilewati:", errPilar.message);
+    }
+
+    const file = imageInput?.files?.[0] || null
+
+    if (file instanceof File) {
+      // Update teks loading khusus jika sedang upload file gambar yang berat
+      if (btnTanam) btnTanam.innerHTML = "📸 Sedang Mengompres & Mengunggah Gambar...";
+      
+      const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
+      
       const { error: uploadError } = await supabaseClient.storage
         .from("post-images")
         .upload(fileName, file, { cacheControl: "3600", upsert: false })
@@ -526,137 +545,140 @@ async function sendProfilePost() {
 
       const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
       if (!data?.publicUrl) {
-        alert("Gagal mengambil URL gambar.");
-        return;
+        throw new Error("Gagal mengambil public URL gambar.");
       }
       imageUrl = data.publicUrl
-    } catch (errUpload) {
-      alert("Gagal mengunggah gambar: " + errUpload.message);
-      return;
     }
-  }
 
-  const isSelfPost = true
-  const xpBonus = 20
+    if (btnTanam) btnTanam.innerHTML = "📝 Mencatat di Buku Ladang Supabase...";
 
-  const { data: dataBaru, error } = await supabaseClient
-    .from("contributions")
-    .insert([
-      {
-        user_id: currentWallet,
-        pilar_aksi: pilarAksiFinal,
-        judul_aksi: imageUrl ? "Berbagi Karya Foto" : "Feed Post",
-        deskripsi_proses: text,
-        image_url: imageUrl,             
-        status_validasi: "PENDING",       
-        xp_reward: xpBonus,
-        is_self_post: isSelfPost,
-        is_private: false 
-      }
-    ])
-    .select();
+    const isSelfPost = true
+    const xpBonus = 20
 
-  if (error) {
-    alert("Gagal menanam karya: " + error.message)
-    return
-  }
+    const { data: dataBaru, error } = await supabaseClient
+      .from("contributions")
+      .insert([
+        {
+          user_id: currentWallet,
+          pilar_aksi: pilarAksiFinal,
+          judul_aksi: imageUrl ? "Berbagi Karya Foto" : "Feed Post",
+          deskripsi_proses: text,
+          image_url: imageUrl,             
+          status_validasi: "PENDING",       
+          xp_reward: xpBonus,
+          is_self_post: isSelfPost,
+          is_private: false 
+        }
+      ])
+      .select();
 
-  alert("Karya berhasil ditanam di ladang! 🌱🎨");
+    if (error) throw error;
 
-  // --- AMANKAN UPDATE XP (SUPAYA KODE TIDAK BERHENTI DI SINI) ---
-  try {
-    // Cari data profile saat ini langsung dari DB jika variabel global currentProfile kosong
-    const { data: dbProfile } = await supabaseClient
-      .from("profiles")
-      .select("xp")
-      .eq("id", currentWallet)
-      .single();
+    alert("Karya berhasil ditanam di ladang! 🌱🎨");
 
-    const currentXp = dbProfile?.xp || 0;
-    await supabaseClient
-      .from("profiles")
-      .update({ xp: currentXp + xpBonus })
-      .eq("id", currentWallet);
-  } catch (xpErr) {
-    console.log("Gagal sinkronisasi bonus XP:", xpErr);
-  }
-
-  // --- KIRIM NOTIFIKASI MASSAL ---
-  try {
-    const { data: semuaUser } = await supabaseClient.from("profiles").select("id");
-    if (semuaUser && semuaUser.length > 0 && dataBaru && dataBaru[0]) {
-      const daftarNotif = semuaUser
-        .filter(u => u.id !== currentWallet) 
-        .map(u => ({
-          user_id: u.id,                       
-          sender_id: currentWallet,             
-          type: 'mention', 
-          message: imageUrl 
-            ? `baru saja membagikan foto karya baru di profilnya! 🎨` 
-            : `baru saja membagikan catatan perkembangan baru di profilnya! 📝`,
-          related_id: dataBaru[0].id,               
-          is_read: false
-        }));
-
-      if (daftarNotif.length > 0) {
-        await supabaseClient.from("notifications").insert(daftarNotif);
-      }
-    }
-  } catch (errNotif) {
-    console.log("Notifikasi massal dilewati:", errNotif.message);
-  }
-
-  // --- SEGERA KOSONGKAN KOLOM DAN REFLECTION DATA TANPA REFRESH ---
-  input.value = ""
-  if (imageInput) imageInput.value = ""
-
-  await loadUserPosts(); // Menampilkan postingan baru secara realtime ke bawah list profil
-
-  // --- AKTIFKAN SISTEM WADAH CHAT TEMAN KEBUN ---
-  const responseBox = document.getElementById("ai-response");
-  const aiChatArea = document.getElementById("ai-chat-area");
-  
-  if (responseBox && aiChatArea) {
-    responseBox.innerText = "Teman Kebun sedang menganalisis karya barumu...";
-    
-    // Siapkan limit ronde chat global
-    window.aiChatCounter = 0; 
-    window.lastAiContext = text; // Simpan ingatan postingan terakhir
-
-    const { data: latestProfile } = await supabaseClient
+    // --- AMANKAN UPDATE XP ---
+    try {
+      const { data: dbProfile } = await supabaseClient
         .from("profiles")
-        .select("*")
+        .select("xp")
         .eq("id", currentWallet)
         .single();
 
-    const { data: allPosts } = await supabaseClient
-        .from("contributions")
-        .select("deskripsi_proses, created_at")
-        .eq("user_id", currentWallet)
-        .order("created_at", { ascending: false });
+      const currentXp = dbProfile?.xp || 0;
+      await supabaseClient
+        .from("profiles")
+        .update({ xp: currentXp + xpBonus })
+        .eq("id", currentWallet);
+    } catch (xpErr) {
+      console.log("Gagal sinkronisasi bonus XP:", xpErr);
+    }
 
-    const riwayatLama = allPosts ? allPosts.slice(1) : []; 
-    
-    if (typeof generateProfileContext === "function" && typeof panggilAiSaran === "function") {
-      const konteksRAG = generateProfileContext(latestProfile, riwayatLama);
+    // --- KIRIM NOTIFIKASI MASSAL ---
+    try {
+      const { data: semuaUser } = await supabaseClient.from("profiles").select("id");
+      if (semuaUser && semuaUser.length > 0 && dataBaru && dataBaru[0]) {
+        const daftarNotif = semuaUser
+          .filter(u => u.id !== currentWallet) 
+          .map(u => ({
+            user_id: u.id,                       
+            sender_id: currentWallet,             
+            type: 'mention', 
+            message: imageUrl 
+              ? `baru saja membagikan foto karya baru di profilnya! 🎨` 
+              : `baru saja membagikan catatan perkembangan baru di profilnya! 📝`,
+            related_id: dataBaru[0].id,               
+            is_read: false
+          }));
 
-      const komentarLucu = await panggilAiSaran("Evaluasi", { 
-          teks: text, 
-          trigger: `User baru saja menanam karya baru: "${text}". Berikan evaluasi singkat, jujur, humoris, khas petani Indonesia. Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya:\n${konteksRAG}` 
-      });
-      
-      if (typeof typeWriterEffect === "function") {
-        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
-      } else {
-        responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+        if (daftarNotif.length > 0) {
+          await supabaseClient.from("notifications").insert(daftarNotif);
+        }
       }
+    } catch (errNotif) {
+      console.log("Notifikasi massal dilewati:", errNotif.message);
+    }
 
-      // Tampilkan form balasan chat AI setelah 2 detik komentar muncul
-      setTimeout(() => {
-        aiChatArea.style.display = "block";
-        const sisa = document.getElementById("sisa-chat");
-        if (sisa) sisa.innerText = 3;
-      }, 2000);
+    // Bereskan form input
+    input.value = ""
+    if (imageInput) imageInput.value = ""
+
+    await loadUserPosts(); 
+
+    // --- ANTARMUKA INTERAKSI AI TEMAN KEBUN ---
+    const responseBox = document.getElementById("ai-response");
+    const aiChatArea = document.getElementById("ai-chat-area");
+    
+    if (responseBox && aiChatArea) {
+      responseBox.innerText = "Teman Kebun sedang menganalisis karya barumu...";
+      
+      window.aiChatCounter = 0; 
+      window.lastAiContext = text; 
+
+      const { data: latestProfile } = await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("id", currentWallet)
+          .single();
+
+      const { data: allPosts } = await supabaseClient
+          .from("contributions")
+          .select("deskripsi_proses, created_at")
+          .eq("user_id", currentWallet)
+          .order("created_at", { ascending: false });
+
+      const riwayatLama = allPosts ? allPosts.slice(1) : []; 
+      
+      if (typeof generateProfileContext === "function" && typeof panggilAiSaran === "function") {
+        const konteksRAG = generateProfileContext(latestProfile, riwayatLama);
+
+        const komentarLucu = await panggilAiSaran("Evaluasi", { 
+            teks: text, 
+            trigger: `User baru saja menanam karya baru: "${text}". Berikan evaluasi singkat, jujur, humoris, khas petani Indonesia. Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya:\n${konteksRAG}` 
+        });
+        
+        if (typeof typeWriterEffect === "function") {
+          typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
+        } else {
+          responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
+        }
+
+        setTimeout(() => {
+          aiChatArea.style.display = "block";
+          const sisa = document.getElementById("sisa-chat");
+          if (sisa) sisa.innerText = 3;
+        }, 2000);
+      }
+    }
+
+  } catch (globalError) {
+    console.error("Proses menanam gagal:", globalError);
+    alert("Gagal menanam karya: " + globalError.message);
+  } finally {
+    // --- STOP LOADING EFFECT (KEMBALIKAN TOMBOL KE SEMULA) ---
+    if (btnTanam) {
+      btnTanam.disabled = false;
+      btnTanam.style.opacity = "1";
+      btnTanam.innerHTML = teksTombolAsli;
     }
   }
 }
