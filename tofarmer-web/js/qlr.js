@@ -107,10 +107,35 @@ function createLine(username, months, balance, index) {
   medalEl.style = "width: 22px; font-weight: bold; flex-shrink: 0;";
   medalEl.innerText = medali;
 
-  // 2. KOLOM USERNAME
+  // 2. KOLOM USERNAME INTERAKTIF (BISA DIKLIK KE PROFIL)
   const labelEl = document.createElement("div");
-  labelEl.style = "flex: 1; font-weight: 600; color: #2f6f4e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 4px;";
+  labelEl.style = `
+    flex: 1; 
+    font-weight: 600; 
+    color: #2f6f4e; 
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    padding-right: 4px;
+    cursor: pointer;
+    transition: color 0.15s, text-decoration 0.15s;
+  `;
   labelEl.innerText = "@" + username;
+
+  // Pasang fungsi klik melompat langsung ke halaman profil
+  labelEl.onclick = () => {
+    window.location.assign(`profile.html?u=${username}`);
+  };
+
+  // Efek visual interaktif saat kursor menyentuh nama akun
+  labelEl.onmouseover = () => {
+    labelEl.style.color = "#16a34a"; // Mengubah warna jadi hijau pupuk cerah
+    labelEl.style.textDecoration = "underline"; // Efek garis bawah penunjuk link
+  };
+  labelEl.onmouseout = () => {
+    labelEl.style.color = "#2f6f4e"; // Kembalikan ke warna default
+    labelEl.style.textDecoration = "none";
+  };
 
   // 3. KOLOM SALDO TOF (Format ribuan ala Indonesia)
   const balanceEl = document.createElement("div");
