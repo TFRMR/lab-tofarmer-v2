@@ -952,7 +952,7 @@ async function loadComments(postId) {
   }
 
   if (!comments || comments.length === 0) {
-    box.innerHTML = "<p>Belum ada komentar</p>";
+    box.innerHTML = "<p style='font-size:11px; color:#999; font-style:italic;'>Belum ada komentar</p>";
     return;
   }
 
@@ -974,7 +974,7 @@ async function loadComments(postId) {
 
   box.innerHTML = merged.map(c => {
     const user = c.profiles?.username || "Pengunjung";
-    const avatar = c.profiles?.avatar_url || "/aset/favicon.png";
+    const avatar = c.profiles?.avatar_url || "https://www.tofarmer.xyz/images/logo-tofarmer.png";
 
     const time = new Date(c.created_at).toLocaleString("id-ID", {
       day: "2-digit",
@@ -983,12 +983,24 @@ async function loadComments(postId) {
       minute: "2-digit"
     });
 
+    // Perubahan ada di bagian onclick di bawah ini, Kang!
     return `
       <div style="display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee;">
-        <img src="${avatar}" style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" />
+        <img 
+          src="${avatar}" 
+          onclick="window.location.href='?u=${user}'"
+          style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0; cursor: pointer;" 
+        />
         <div style="flex: 1;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
-            <div style="font-weight: 700; font-size: 13px; color: #2f6f4e;">@${user}</div>
+            <div 
+              onclick="window.location.href='?u=${user}'"
+              style="font-weight: 700; font-size: 13px; color: #2f6f4e; cursor: pointer;"
+              onmouseover="this.style.textDecoration='underline'"
+              onmouseout="this.style.textDecoration='none'"
+            >
+              @${user}
+            </div>
             <div style="font-size: 11px; color: #999;">${time}</div>
           </div>
           <div style="font-size: 13px; color: #222; line-height: 1.4;">
