@@ -1384,6 +1384,7 @@ async function loadNotifikasiUser() {
 } else if (n.type === 'vote_needed') {
     // Mengubah aksi agar langsung pindah ke halaman dashboard saat diklik
     linkAksi = `window.location.href='/html/dashboard.html'`;
+}
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
 
