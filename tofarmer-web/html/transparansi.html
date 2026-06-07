@@ -4,76 +4,312 @@
   <meta charset="UTF-8">
   <title>Transparansi TOF</title>
   <link rel="stylesheet" href="../style.css">
- <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; overflow-x: hidden; }
-        .bg-animate { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%); }
-        .container { max-width: 800px; width: 90%; padding: 2rem; text-align: center; }
-        .nav-top { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .nav-link { color: #94a3b8; text-decoration: none; font-size: 0.9rem; padding: 0.5rem; }
-        .btn-game { padding: 1rem 2rem; background: #16a34a; border: none; color: white; border-radius: 0.75rem; font-weight: bold; cursor: pointer; transition: 0.3s; margin: 0.5rem; }
-        .card { background: #1e293b; padding: 1.5rem; border-radius: 1rem; margin-top: 1rem; border: 1px solid #374151; text-align: left; }
-        .btn-action { background: #2563eb; padding: 0.5rem 1rem; border-radius: 0.5rem; border: none; color: white; cursor: pointer; margin-top: 0.5rem; }
-        .btn-draft { display: block; width: 100%; background: #475569; padding: 0.8rem; border: none; border-radius: 0.5rem; color: white; margin-bottom: 0.5rem; cursor: pointer; }
-        .card-ilmu { border-bottom: 1px solid #334155; padding: 10px 0; }
-.nav-timbul {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 20px;
-    width: 100%;
-    z-index: 10;
-}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
 
-.nav-btn {
-    background: rgba(30, 41, 59, 0.6); /* Transparan gelap */
-    backdrop-filter: blur(10px);        /* Efek blur cantik */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 50px;              /* Oval */
-    text-decoration: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* Efek timbul */
-    transition: all 0.3s ease;
-}
+  <style>
+    /* =========================================================================
+       🌿 RESET & SETTING ATMOSFER GELAP HUTAN MENOREH SMARAGDINA
+       ========================================================================= */
+    * { 
+        margin: 0; 
+        padding: 0; 
+        box-sizing: border-box; 
+        font-family: 'Plus Jakarta Sans', sans-serif; 
+    }
 
-.nav-btn:hover {
-    background: rgba(59, 130, 246, 0.2); /* Sedikit glow saat hover */
-    transform: translateY(-2px);         /* Efek sedikit terangkat */
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.3);
-}
-    </style>
+    body { 
+        background: #060c08; 
+        color: #e2e8f0; 
+        margin: 0; 
+        min-height: 100vh; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        overflow-x: hidden; 
+        line-height: 1.6;
+    }
+
+    /* Background Interaktif - Dipertahankan Sesuai Kerangka Asli */
+    .bg-animate { 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        z-index: -1; 
+        background: 
+            radial-gradient(circle at top right, rgba(234, 179, 8, 0.07) 0%, transparent 45%),
+            radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.08) 0%, transparent 40%),
+            linear-gradient(135deg, #060c08 0%, #0c1c13 50%, #040805 100%); 
+    }
+
+    /* Container Utama Transparansi */
+    .container { 
+        max-width: 850px; 
+        width: 92%; 
+        padding: 2.5rem 1rem; 
+        text-align: center; 
+    }
+
+    /* =========================================================================
+       👑 JUDUL UTAMA & TITIK NAVIGASI TIMBUL GLASSMORPHISM
+       ========================================================================= */
+    h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.6rem;
+        font-weight: 800;
+        margin-top: 1.5rem;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.5px;
+    }
+
+    .nav-timbul {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 15px;
+        margin-bottom: 2.5rem;
+        width: 100%;
+        z-index: 10;
+        flex-wrap: wrap;
+    }
+
+    .nav-btn {
+        background: rgba(18, 32, 24, 0.5); 
+        backdrop-filter: blur(12px);        
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(74, 222, 128, 0.15);
+        color: #a7f3d0;
+        padding: 10px 22px;
+        border-radius: 50px;              
+        text-decoration: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .nav-btn:hover {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(234, 179, 8, 0.1) 100%); 
+        border-color: rgba(234, 179, 8, 0.4);
+        color: #fef08a;
+        transform: translateY(-2px);         
+        box-shadow: 0 10px 25px rgba(34, 197, 94, 0.15);
+    }
+
+    /* Navigasi Top Lawas (Dijaga kompatibilitasnya jika terpanggil di JS) */
+    .nav-top { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .nav-link { color: #64748b; text-decoration: none; font-size: 0.9rem; padding: 0.5rem; transition: color 0.2s; }
+    .nav-link:hover { color: #fde047; }
+
+    /* =========================================================================
+       📊 KARTU DATA & SUMMARY DARI SUPABASE (EFEK MELAYANG KELAM)
+       ========================================================================= */
+    /* Area Summary Utama */
+    #summary {
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+
+    /* Indikator Loading Awal */
+    #summary:has(> p, text) {
+        font-style: italic;
+        color: #64748b;
+    }
+
+    /* Komponen Card Fleksibel (Inject JS Langsung Auto Elegan) */
+    .card { 
+        background: rgba(14, 28, 19, 0.45); 
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 2rem; 
+        border-radius: 20px; 
+        margin-top: 1.2rem; 
+        border: 1px solid rgba(255, 255, 255, 0.04); 
+        border-left: 3px solid #22c55e;
+        text-align: left; 
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        transition: transform 0.3s, border-color 0.3s;
+    }
+    
+    .card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(74, 222, 128, 0.25);
+        border-left-color: #eab308; /* Berubah Emas saat di-hover */
+    }
+
+    /* Penataan Teks di Dalam Card */
+    .card h2, .card h3 {
+        font-family: 'Playfair Display', serif;
+        color: #fde047;
+        margin-bottom: 0.8rem;
+    }
+
+    .card p {
+        color: #cbd5e1;
+        font-size: 0.98rem;
+    }
+
+    /* Pembatas Baris Ilmu / Entri Data Mikro */
+    .card-ilmu { 
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05); 
+        padding: 12px 0; 
+        color: #cbd5e1;
+    }
+    .card-ilmu:last-child {
+        border-bottom: none;
+    }
+
+    /* =========================================================================
+       ⚡ TOMBOL-TOMBOL NAVIGASI & SINKRONISASI AKTIF
+       ========================================================================= */
+    /* Tombol Utama Sinkronisasi (Sync Laporan Terakhir) */
+    #syncBtn {
+        padding: 13px 28px; 
+        background: rgba(20, 38, 27, 0.6);
+        border: 1px solid rgba(74, 222, 128, 0.3); 
+        color: #4ade80; 
+        border-radius: 12px; 
+        font-weight: 700; 
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        cursor: pointer; 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        margin: 1rem 0 0.5rem; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    #syncBtn:hover {
+        background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+        color: #050b07;
+        border-color: #4ade80;
+        transform: scale(1.03);
+        box-shadow: 0 10px 25px rgba(34, 197, 94, 0.25);
+    }
+    
+    #syncBtn:active {
+        transform: scale(0.98);
+    }
+
+    /* Label Status Kecil di Bawah Tombol Sync */
+    #status {
+        display: block;
+        color: #4b5563;
+        font-family: monospace;
+        font-size: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Tombol-Tombol Aksi Lain (Jika di-inject oleh skrip) */
+    .btn-game { 
+        padding: 12px 24px; 
+        background: #16a34a; 
+        border: none; 
+        color: white; 
+        border-radius: 10px; 
+        font-weight: bold; 
+        cursor: pointer; 
+        transition: background 0.2s, transform 0.2s; 
+        margin: 0.5rem; 
+    }
+    .btn-game:hover { background: #15803d; transform: translateY(-1px); }
+
+    .btn-action { 
+        background: #2563eb; 
+        padding: 8px 16px; 
+        border-radius: 8px; 
+        border: none; 
+        color: white; 
+        cursor: pointer; 
+        margin-top: 0.5rem; 
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+    .btn-action:hover { background: #1d4ed8; }
+
+    .btn-draft { 
+        display: block; 
+        width: 100%; 
+        background: #475569; 
+        padding: 12px; 
+        border: none; 
+        border-radius: 8px; 
+        color: white; 
+        margin-bottom: 0.6rem; 
+        cursor: pointer; 
+        font-weight: 600;
+        transition: background 0.2s;
+    }
+    .btn-draft:hover { background: #334155; }
+
+    /* Garis Horizontal Pembatas Lembut */
+    hr {
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.25), transparent);
+        margin: 2rem 0;
+        width: 100%;
+    }
+
+    /* Wadah Feed Dinamis */
+    #feed {
+        width: 100%;
+        text-align: left;
+    }
+
+    /* RESPONSIVE SCREEN UNTUK TAMPILAN HP */
+    @media screen and (max-width: 600px) {
+        h1 { font-size: 2rem; }
+        .container { width: 95%; padding: 1.5rem 0.5rem; }
+        .nav-btn { width: 48%; text-align: center; padding: 10px 5px; font-size: 0.75rem; }
+        .card { padding: 1.25rem; border-radius: 14px; }
+        #syncBtn { width: 100%; padding: 14px; }
+    }
+  </style>
 </head>
 
 <body>
 
-<h1>🌿 TRANSPARANSI TOF</h1>
-<div class="bg-animate"></div>
-<div class="nav-timbul">
-<a href="https://www.tofarmer.xyz" class="nav-btn">🏠 Titik Kumpul</a>
-<a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="nav-btn">📚 Fitur & Info</a>
+  <div class="bg-animate"></div>
+
+  <div class="container">
+
+    <h1>🌿 Transparansi Radar TOF</h1>
     
-</div>
-<div id="summary">
-  Loading data...
-</div>
+    <div class="nav-timbul">
+      <a href="https://www.tofarmer.xyz" class="nav-btn">🏠 Titik Kumpul</a>
+      <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="nav-btn">📚 Fitur & Info</a>
+    </div>
 
-<button id="syncBtn">
-  🔄 Update Laporan Terakhir
-</button>
+    <div id="summary">
+      <div class="card" style="text-align: center; border-left: none; color: #64748b;">
+        ⏳ Menghubungkan ke lumbung data ...
+      </div>
+    </div>
 
-<small id="status"></small>
+    <button id="syncBtn">
+      🔄 Update Laporan Terakhir
+    </button>
 
-<hr>
+    <small id="status">Sistem siap menerima pembaruan...</small>
 
-<div id="feed"></div>
+    <hr>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <div id="feed"></div>
 
-<script src="../config-supabase.js"></script>
-<script src="../js/transparansi.js"></script>
-<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script><!-- End Cloudflare Web Analytics -->
-</body>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../config-supabase.js"></script>
+  <script src="../js/transparansi.js"></script>
+
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+  </body>
 </html>
