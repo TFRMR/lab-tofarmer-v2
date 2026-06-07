@@ -1365,6 +1365,9 @@ function inisialisasiKomponenNotif() {
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER & FIX BUG LINK ALTERNATIF
 // =========================================================================
+// =========================================================================
+// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: ID CONTAINER & TARGET ACCURATE)
+// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
   try {
@@ -1377,7 +1380,10 @@ async function loadNotifikasiUser() {
 
     if (error) throw error;
 
-    const listContainer = document.getElementById("notification-list");
+    // FIX: Sesuaikan ID container agar sinkron dengan komponen lonceng bawaan (#list-notif-tof)
+    // Kita cek keduanya (notification-list atau list-notif-tof) agar aman di halaman mana pun
+    const listContainer = document.getElementById("list-notif-tof") || document.getElementById("notification-list");
+
     if (!notifications || notifications.length === 0) {
       if (listContainer) {
         listContainer.innerHTML = "<p style='padding:15px; color:#999; font-style:italic; font-size:13px; text-align:center;'>Belum ada pemberitahuan baru.</p>";
@@ -1397,7 +1403,7 @@ async function loadNotifikasiUser() {
     );
 
     const listHtml = notifications.map(n => {
-      // FIX BUG: Ambil username murni milik si pengirim dari map database
+      // 1. PEMISAHAN DATA VARIABEL: Murni dari database sender_id asli
       const usernameAsliPengirim = profileMap[n.sender_id]?.username || "petani";
       
       // Tampilan teks pembaca (jika diri sendiri, tulis "Anda")
@@ -1406,15 +1412,15 @@ async function loadNotifikasiUser() {
         namaDisplay = "Anda";
       }
 
-      // Tentukan ke mana arah link klik notifikasi secara presisi
+      // 2. MEMUTUS HUBUNGAN DARI PARAMETER URL (profileUsername DIKUNCI)
+      // Link diarahkan ke pemilik postingan asli, bukan halaman tempat user berada sekarang
       let linkAksi = `window.location.href='?u=${usernameAsliPengirim}'`;
       
-      if (n.type === 'mention' && n.related_id) {
-        linkAksi = `window.location.href='?u=${usernameAsliPengirim}#post-${n.related_id}'`;
-      } else if (n.type === 'comment' && n.related_id) {
-        linkAksi = `window.location.href='?u=${usernameAsliPengirim}#post-${n.related_id}'`;
-      } else if (n.type === 'like' && n.related_id) {
-        linkAksi = `window.location.href='?u=${usernameAsliPengirim}#post-${n.related_id}'`;
+      // 3. TARGET ANCHOR POSTINGAN YANG AKURAT DAN PAS
+      if ((n.type === 'mention' || n.type === 'comment' || n.type === 'like') && n.related_id) {
+        linkAksi = `window.location.href='?u=${usernameAsliPengirim}&post=${n.related_id}#post-card-${n.related_id}'`;
+      } else if (n.type === 'vote_needed') {
+        linkAksi = `window.location.href='/html/dashboard.html'`;
       }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
