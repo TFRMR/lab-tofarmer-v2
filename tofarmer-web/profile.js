@@ -1366,12 +1366,15 @@ function inisialisasiKomponenNotif() {
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER & FIX BUG LINK ALTERNATIF
 // =========================================================================
 // =========================================================================
-// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (GARANSI 100% LOCK TARGET & NO CRASH)
+// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER EKOSISTEM SEMESTA TOF (7 TABEL GABUNGAN)
 // =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
 
   try {
+    // -----------------------------------------------------------------
+    // 1. PANGGIL TABEL UTAMA (NOTIFICATIONS) - FORMAT ASLI AKANG
+    // -----------------------------------------------------------------
     const { data: notifications, error } = await supabaseClient
       .from("notifications")
       .select("*")
@@ -1385,7 +1388,167 @@ async function loadNotifikasiUser() {
       document.getElementById("list-notif-tof") ||
       document.getElementById("notification-list");
 
-    if (!notifications || notifications.length === 0) {
+    // -----------------------------------------------------------------
+    // 2. AMBIL DATA DARI TABEL-TABEL INTERAKSI & KONTEN LAINNYA
+    // -----------------------------------------------------------------
+    
+    // A. Ambil data dari tabel COMMENTS
+    const { data: rawComments, error: errorComments } = await supabaseClient
+      .from("comments")
+      .select("id, post_id, user_id, comment, created_at")
+      .neq("user_id", currentWallet) // Abaikan komentar kita sendiri
+      .order("created_at", { ascending: false })
+      .limit(15);
+
+    if (errorComments) console.log("Gagal memuat data tabel comments:", errorComments.message);
+
+    // B. Ambil data dari tabel CONTRIBUTIONS (Karya/Catatan Baru)
+    const { data: rawContributions, error: errorContributions } = await supabaseClient
+      .from("contributions")
+      .select("id, user_id, judul_aksi, created_at")
+      .neq("user_id", currentWallet) // Abaikan karya sendiri
+      .order("created_at", { ascending: false })
+      .limit(15);
+
+    if (errorContributions) console.log("Gagal memuat data tabel contributions:", errorContributions.message);
+
+    // C. Ambil data dari tabel ILMU_BAKU (Ilmu Terverifikasi)
+    const { data: rawIlmuBaku, error: errorIlmuBaku } = await supabaseClient
+      .from("ilmu_baku")
+      .select("id, user_id, judul_aksi, approved_at")
+      .neq("user_id", currentWallet)
+      .order("approved_at", { ascending: false })
+      .limit(15);
+
+    if (errorIlmuBaku) console.log("Gagal memuat data tabel ilmu_baku:", errorIlmuBaku.message);
+
+    // D. Ambil data dari tabel ILMU_PENDING (Usulan Ilmu Baru)
+    const { data: rawIlmuPending, error: errorIlmuPending } = await supabaseClient
+      .from("ilmu_pending")
+      .select("id, user_id, judul_aksi, created_at")
+      .neq("user_id", currentWallet)
+      .order("created_at", { ascending: false })
+      .limit(15);
+
+    if (errorIlmuPending) console.log("Gagal memuat data tabel ilmu_pending:", errorIlmuPending.message);
+
+    // E. Ambil data dari tabel REACTIONS (Sruput & Cangkul)
+    const { data: rawReactions, error: errorReactions } = await supabaseClient
+      .from("reactions")
+      .select("id, post_id, user_id, type, created_at")
+      .neq("user_id", currentWallet) // Abaikan reaksi dari diri kita sendiri
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (errorReactions) console.log("Gagal memuat data tabel reactions:", errorReactions.message);
+
+    // -----------------------------------------------------------------
+    // 3. PROSES PENGGABUNGAN MANUAL DAN STANDARDISASI FORMAT DATA
+    // -----------------------------------------------------------------
+    let semuaNotifGabungan = [];
+
+    // [Tabel 1] Masukkan data dari tabel notifications (Format Asli)
+    if (notifications && notifications.length > 0) {
+      notifications.forEach(n => {
+        semuaNotifGabungan.push({
+          id: `notif-${n.id}`,
+          sender_id: n.sender_id,
+          type: n.type,
+          message: n.message,
+          related_id: n.related_id,
+          is_read: n.is_read || false,
+          created_at: n.created_at
+        });
+      });
+    }
+
+    // [Tabel 2] Masukkan data dari tabel comments
+    if (rawComments && rawComments.length > 0) {
+      rawComments.forEach(c => {
+        semuaNotifGabungan.push({
+          id: `comment-${c.id}`,
+          sender_id: c.user_id,
+          type: "comment", // Memicu pengkondisian link komentar di bawah
+          message: `mengomentari catatan karya anda: "${c.comment ? c.comment.substring(0, 30) : ''}..."`,
+          related_id: c.post_id,
+          is_read: false,
+          created_at: c.created_at
+        });
+      });
+    }
+
+    // [Tabel 3] Masukkan data dari tabel contributions (Karya Baru)
+    if (rawContributions && rawContributions.length > 0) {
+      rawContributions.forEach(post => {
+        semuaNotifGabungan.push({
+          id: `post-${post.id}`,
+          sender_id: post.user_id,
+          type: "karya_baru", 
+          message: `baru saja membagikan karya baru: "${post.judul_aksi}"`,
+          related_id: post.id,
+          is_read: false,
+          created_at: post.created_at
+        });
+      });
+    }
+
+    // [Tabel 4] Masukkan data dari tabel ilmu_baku (Ilmu Sah)
+    if (rawIlmuBaku && rawIlmuBaku.length > 0) {
+      rawIlmuBaku.forEach(ib => {
+        semuaNotifGabungan.push({
+          id: `ilmubaku-${ib.id}`,
+          sender_id: ib.user_id,
+          type: "ilmu_baru",
+          message: `menambahkan ilmu baku baru ke lumbung: "${ib.judul_aksi}"`,
+          related_id: ib.id,
+          is_read: false,
+          created_at: ib.approved_at
+        });
+      });
+    }
+
+    // [Tabel 5] Masukkan data dari tabel ilmu_pending (Usulan Ilmu Masuk Sistem Moderasi)
+    if (rawIlmuPending && rawIlmuPending.length > 0) {
+      rawIlmuPending.forEach(ip => {
+        semuaNotifGabungan.push({
+          id: `ilmupending-${ip.id}`,
+          sender_id: ip.user_id,
+          type: "vote_needed", // Lari ke dashboard untuk rembugan warga
+          message: `mengajukan usulan ilmu baru untuk di-vote bersama: "${ip.judul_aksi}"`,
+          related_id: ip.id,
+          is_read: false,
+          created_at: ip.created_at
+        });
+      });
+    }
+
+    // [Tabel 6] Masukkan data dari tabel reactions (Sruput & Cangkul)
+    if (rawReactions && rawReactions.length > 0) {
+      rawReactions.forEach(r => {
+        let jenisReaksiMessage = "";
+        
+        if (r.type === "sruput") {
+          jenisReaksiMessage = "baru saja menyeruput kopi hangat di catatan karya anda ☕";
+        } else if (r.type === "cangkul") {
+          jenisReaksiMessage = "datang memberikan bantuan cangkul (sangat menyukai) di ladang karya anda 🌾";
+        } else {
+          jenisReaksiMessage = "memberikan apresiasi pada karya anda";
+        }
+
+        semuaNotifGabungan.push({
+          id: `reaction-${r.id}`,
+          sender_id: r.user_id,   // Alamat wallet warga yang ngasih reaksi
+          type: r.type,           // Nilai asli: "sruput" atau "cangkul"
+          message: jenisReaksiMessage,
+          related_id: r.post_id,  // ID karya target
+          is_read: false,
+          created_at: r.created_at
+        });
+      });
+    }
+
+    // Jika seluruh semesta tabel kosong, cetak info kosong
+    if (semuaNotifGabungan.length === 0) {
       if (listContainer) {
         listContainer.innerHTML =
           "<p style='padding:15px; color:#999; font-style:italic; font-size:13px; text-align:center;'>Belum ada pemberitahuan baru.</p>";
@@ -1393,7 +1556,16 @@ async function loadNotifikasiUser() {
       return;
     }
 
-    const senderIds = [...new Set(notifications.map(n => n.sender_id))];
+    // Urutkan segalanya secara kronologis murni (Terbaru berada di paling atas)
+    semuaNotifGabungan.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    // Batasi total tayangan maksimal 20 baris teratas saja
+    const finalNotifications = semuaNotifGabungan.slice(0, 20);
+
+    // -----------------------------------------------------------------
+    // 4. AMBIL DATA USERNAME (TABEL PROFILES) - FORMAT ASLI AKANG
+    // -----------------------------------------------------------------
+    const senderIds = [...new Set(finalNotifications.map(n => n.sender_id))];
 
     const { data: senderProfiles } = await supabaseClient
       .from("profiles")
@@ -1404,7 +1576,13 @@ async function loadNotifikasiUser() {
       (senderProfiles || []).map(p => [p.id, p])
     );
 
-    const listHtml = notifications.map(n => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentProfileUser = urlParams.get("u") || profileUsername;
+
+    // -----------------------------------------------------------------
+    // 5. RENDER HTML DAN KONFIGURASI LINK AKSI - FORMAT ASLI AKANG
+    // -----------------------------------------------------------------
+    const listHtml = finalNotifications.map(n => {
       const usernameAsliPengirim =
         profileMap[n.sender_id]?.username || "petani";
 
@@ -1419,21 +1597,37 @@ async function loadNotifikasiUser() {
       let linkAksi =
         `window.location.assign('profile.html?u=${usernameAsliPengirim}');`;
 
-      // ===============================
-      // FIX: arahkan ke post target
-      // ===============================
+      // =========================================================================
+      // FIX: Arahkan ke post target (Mendukung pancingan interaksi sosial warga)
+      // =========================================================================
       if (
         (n.type === "mention" ||
           n.type === "comment" ||
-          n.type === "like") &&
+          n.type === "sruput" ||   
+          n.type === "cangkul") && 
         n.related_id
       ) {
-        // hanya kirim targetPost (JANGAN pakai hash dulu biar tidak misleading)
+        // Jika interaksinya berupa komentar, kunci tetap di halaman profil pemilik karya saat ini
+        const targetUser = (n.type === "comment") ? (currentProfileUser || usernameAsliPengirim) : usernameAsliPengirim;
+
         linkAksi =
-          `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
+          `window.location.assign('profile.html?u=${targetUser}&targetPost=${n.related_id}');`;
       } else if (n.type === "vote_needed") {
+        // Otomatis lari ke halaman dashboard kelurahan untuk proses rembug/voting
         linkAksi =
           `window.location.assign('/html/dashboard.html');`;
+      }
+      // ==========================================
+      // LINK AKSI UNTUK KARYA/ILMU BARU GLOBAL
+      // ==========================================
+      else if (
+        (n.type === "new_post" || 
+         n.type === "share" || 
+         n.type === "karya_baru" || 
+         n.type === "ilmu_baru") && 
+        n.related_id
+      ) {
+        linkAksi = `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
       }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
@@ -1458,7 +1652,7 @@ async function loadNotifikasiUser() {
     }
 
   } catch (err) {
-    console.log("Gagal memuat notifikasi:", err.message);
+    console.log("Gagal memuat sistem notifikasi hybrid:", err.message);
   }
 }
 if (document.readyState === "loading") {
@@ -1572,7 +1766,7 @@ function handleTargetPostFromNotification() {
       el.style.background = "#f0fdf4";
       el.style.transition = "0.3s ease";
     }
-  }, 700); // sedikit lebih aman dari 500ms
+  }, 800); // sedikit lebih aman dari 500ms
 }
 
 // jalankan setelah semua script jalan
