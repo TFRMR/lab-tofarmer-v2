@@ -727,6 +727,8 @@ async function sendProfilePost() {
     "🤖 Teman Kebun: Lagi nyangkul, coba lagi nanti ya.";
 
 } 
+}
+
 // =====================
 // USER POSTS (FIXED META TAG SYNC)
 // =====================
