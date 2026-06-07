@@ -1368,9 +1368,6 @@ function inisialisasiKomponenNotif() {
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (GARANSI 100% LOCK TARGET & NO CRASH)
 // =========================================================================
-// =========================================================================
-// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: GABUNGAN LOGIKA SASARAN TRANSFER URL)
-// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
 
@@ -1407,10 +1404,6 @@ async function loadNotifikasiUser() {
       (senderProfiles || []).map(p => [p.id, p])
     );
 
-    // Ambil username profil tempat kita berada saat ini (dari parameter URL '?u=...')
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentProfileUser = urlParams.get("u");
-
     const listHtml = notifications.map(n => {
       const usernameAsliPengirim =
         profileMap[n.sender_id]?.username || "petani";
@@ -1420,29 +1413,27 @@ async function loadNotifikasiUser() {
         namaDisplay = "Anda";
       }
 
-      // 1. DEFAULT DEFAULT AWAL: Mengarah ke profil orang yang mengirim notifikasi
-      let linkAksi = `window.location.assign('profile.html?u=${usernameAsliPengirim}');`;
+      // ===============================
+      // DEFAULT: ke profile user
+      // ===============================
+      let linkAksi =
+        `window.location.assign('profile.html?u=${usernameAsliPengirim}');`;
 
-      // 2. KONDISI PEMBAGIAN SASARAN (Komentar vs Karya Baru)
-      if (n.type === "vote_needed") {
-        linkAksi = `window.location.assign('/html/dashboard.html');`;
-      } 
-      else if (n.related_id) {
-        // Jika tipenya adalah interaksi pada karya yang sudah ada (Komentar, Like, Mention)
-        if (n.type === "comment" || n.type === "like" || n.type === "mention") {
-          
-          // Kunci target ke profil tempat karya itu menetap. 
-          // Jika currentProfileUser kosong (misal di halaman luar), arahkan ke username kita sendiri (karena itu notifikasi kita)
-          // Jika kita sedang mengintip profil orang lain dan ada interaksi di sana, dia tetap di profil itu.
-          const targetUser = currentProfileUser || profileUsername || usernameAsliPengirim;
-          
-          linkAksi = `window.location.assign('profile.html?u=${targetUser}&targetPost=${n.related_id}');`;
-        } 
-        else {
-          // Untuk tipe selain itu (Misal: "baru saja membagikan karya baru di profilnya")
-          // Karyanya berada di lapak/profil si pengirim itu sendiri! Maka kita arahkan ke profil dia + target id karyanya.
-          linkAksi = `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
-        }
+      // ===============================
+      // FIX: arahkan ke post target
+      // ===============================
+      if (
+        (n.type === "mention" ||
+          n.type === "comment" ||
+          n.type === "like") &&
+        n.related_id
+      ) {
+        // hanya kirim targetPost (JANGAN pakai hash dulu biar tidak misleading)
+        linkAksi =
+          `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
+      } else if (n.type === "vote_needed") {
+        linkAksi =
+          `window.location.assign('/html/dashboard.html');`;
       }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
