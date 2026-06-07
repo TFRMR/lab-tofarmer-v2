@@ -1,84 +1,206 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-<meta charset="UTF-8">
-<title>ToFarmer Timeline</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>ToFarmer Timeline Portfolio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body{
-    margin:0;
-    padding:20px;
-    background:#0b1220;
-    color:#e5e7eb;
-    font-family:Arial, sans-serif;
-    line-height:1.6;
-}
+  <style>
+    /* Reset & Variabel Global ToFarmer Vibes */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0b1220;
+      color: #e5e7eb;
+      font-family: 'Inter', Arial, sans-serif;
+      line-height: 1.6;
+    }
 
-h1{
-    text-align:center;
-    margin-bottom:40px;
-    color:#22c55e;
-}
+    .main-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
 
-.year{
-    margin-top:50px;
-    padding:10px 15px;
-    border-left:5px solid #22c55e;
-    font-size:20px;
-    font-weight:bold;
-    color:#86efac;
-    background:#0f172a;
-    border-radius:6px;
-}
+    h1 {
+      text-align: center;
+      margin: 10px 0 30px 0;
+      color: #22c55e;
+      font-size: 26px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      text-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
+    }
 
-.item{
-    margin:15px 0;
-    padding:15px;
-    background:#111827;
-    border-radius:10px;
-    border:1px solid #1f2937;
-}
+    /* =========================================================================
+       ✨ MENU NAVIGATION - TOMBOL CANTIK ATAS
+       ========================================================================= */
+    .nav-container {
+      width: 100%;
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 12px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
 
-.date{
-    color:#38bdf8;
-    font-weight:bold;
-}
+    .nav-menu {
+      display: inline-block;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
 
-.title{
-    font-weight:bold;
-    margin-top:5px;
-    color:#fbbf24;
-}
+    .nav-item {
+      display: inline-block;
+      margin: 4px 6px;
+    }
 
-.content{
-    margin-top:8px;
-    color:#d1d5db;
-    white-space:pre-line;
-}
+    .nav-link {
+      display: block;
+      padding: 10px 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #86efac;
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 8px;
+      transition: all 0.25s ease-in-out;
+    }
 
-.link{
-    margin-top:8px;
-    color:#60a5fa;
-    font-size:13px;
-}
+    /* Efek Hover Tombol Cantik */
+    .nav-link:hover {
+      background: #22c55e;
+      color: #0b1220;
+      border-color: #22c55e;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
 
-hr{
-    border:0;
-    border-top:1px solid #1f2937;
-    margin:10px 0;
-}
-</style>
+    .nav-link.active {
+      background: #22c55e;
+      color: #0b1220;
+      border-color: #22c55e;
+    }
+
+    /* =========================================================================
+       🌾 STRUKTUR TIMELINE & KARTU DAFTAR KARYA
+       ========================================================================= */
+    .year {
+      margin: 40px 0 20px 0;
+      padding: 12px 20px;
+      border-left: 5px solid #22c55e;
+      font-size: 18px;
+      font-weight: bold;
+      color: #86efac;
+      background: #0f172a;
+      border-radius: 0 8px 8px 0;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .item {
+      margin: 16px 0;
+      padding: 20px;
+      background: #111827;
+      border-radius: 12px;
+      border: 1px solid #1f2937;
+      transition: all 0.2s ease;
+    }
+
+    /* Efek kartu melayang rapi saat disorot */
+    .item:hover {
+      border-color: rgba(34, 197, 94, 0.4);
+      transform: translateX(4px);
+      background: #151f32;
+    }
+
+    /* Baris Atas Kartu (Tanggal & Aksi) */
+    .item-header {
+      width: 100%;
+      display: table;
+      margin-bottom: 8px;
+    }
+
+    .date {
+      display: table-cell;
+      color: #38bdf8;
+      font-weight: 700;
+      font-size: 13px;
+      font-family: monospace, sans-serif;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 6px 0 10px 0;
+      color: #fbbf24;
+    }
+
+    .content {
+      margin-top: 8px;
+      color: #d1d5db;
+      font-size: 14px;
+      text-align: justify;
+    }
+
+    /* Tautan luar menuju tulisan asli di blogspot */
+    .link-container {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px dashed #1f2937;
+    }
+
+    .link {
+      display: inline-block;
+      font-size: 12px;
+      color: #38bdf8;
+      text-decoration: none;
+      word-break: break-all;
+    }
+
+    .link:hover {
+      text-decoration: underline;
+      color: #60a5fa;
+    }
+
+    /* Responsivitas Layar Kecil HP */
+    @media (max-width: 600px) {
+      .main-wrapper {
+        padding: 15px 10px;
+      }
+      .nav-item {
+        display: block;
+        margin: 6px 0;
+      }
+      .nav-link {
+        text-align: center;
+      }
+    }
+  </style>
 </head>
-
 <body>
 
-<h1>🌿 ToFarmer Timeline</h1>
- <div class="item">
-<a href="https://www.tofarmer.xyz">🏠 Titik Kumpul   </a>
-    <a href="https://www.tofarmer.xyz/profile.html">👤 Profil   </a>
-    <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html">📚 Fitur & Info</a>
-</div>
+<div class="main-wrapper">
+
+  <div class="nav-container">
+    <ul class="nav-menu">
+      <li class="nav-item"><a href="#" class="nav-link active">Timeline Utama</a></li>
+      <li class="nav-item"><a href="https://tofarmer.blogspot.com" target="_blank" class="nav-link">Blog ToFarmer</a></li>
+      <li class="nav-item"><a href="#" class="nav-link">Lumbung Ilmu</a></li>
+      <li class="nav-item"><a href="#" class="nav-link">Radar Ladang</a></li>
+    </ul>
+  </div>
 <!-- 2026 -->
 <div class="year">🌿 2026 — ERA WEB3 HYBRID, AI, DAN EKONOMI KOMUNITAS REAL-TIME</div>
 
