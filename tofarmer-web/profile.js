@@ -1374,6 +1374,9 @@ function inisialisasiKomponenNotif() {
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED: LOCK TARGET PROFIL & REFRESH)
 // =========================================================================
+// =========================================================================
+// 🔔 FUNGSI: MEMUAT NOTIFIKASI USER (FIXED TOTAL: ANTI-BALIK KE PROFIL SENDIRI)
+// =========================================================================
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
   try {
@@ -1407,7 +1410,7 @@ async function loadNotifikasiUser() {
     );
 
     const listHtml = notifications.map(n => {
-      // 1. Kunci Username Pembuat Karya Asli dari Database
+      // 1. Ambil nama username murni pembuat karya dari database
       const usernameAsliPengirim = profileMap[n.sender_id]?.username || "petani";
       
       let namaDisplay = `@${usernameAsliPengirim}`;
@@ -1415,15 +1418,19 @@ async function loadNotifikasiUser() {
         namaDisplay = "Anda";
       }
 
-      // Default awal lurus ke profil utama pengirim
-      let linkAksi = `window.location.href='profile.html?u=${usernameAsliPengirim}'`;
+      // Default awal: Menggunakan rute absolut URL asal domain agar tidak salah folder lokasi
+      let linkAksi = `window.location.href = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/profile.html?u=${usernameAsliPengirim}';`;
       
-      // 2. Jika tipe notifikasi berhubungan dengan postingan/karya
+      // 2. Jika tipe notifikasi mengandung interaksi karya (Comment, Mention, Like)
       if ((n.type === 'mention' || n.type === 'comment' || n.type === 'like') && n.related_id) {
-        // Tembak langsung ke target file profile.html dengan parameter lengkap, lalu paksa reload seketika
-        linkAksi = `window.location.href='profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}#post-card-${n.related_id}'; setTimeout(() => { window.location.reload(); }, 10);`;
+        // KUNCI AMAN: Menggunakan rute absolut, memaksa replace lokasi jendela, dan mentrigger reload keras (hard reload)
+        linkAksi = `
+          const tujuanUrl = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}#post-card-${n.related_id}';
+          window.location.replace(tujuanUrl);
+          setTimeout(() => { window.location.reload(); }, 30);
+        `.replace(/\s+/g, ' '); // Bersihkan spasi agar aman ditaruh di dalam atribut string HTML
       } else if (n.type === 'vote_needed') {
-        linkAksi = `window.location.href='/html/dashboard.html'`;
+        linkAksi = `window.location.href='/html/dashboard.html';`;
       }
 
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
