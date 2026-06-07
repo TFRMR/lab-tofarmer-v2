@@ -198,11 +198,13 @@ async function loadProfile() {
     loadProfilIlmu();
   }, 800);
 
+// ==========================================
   setTimeout(async () => {
     const responseBox = document.getElementById("ai-response");
     if (responseBox) {
       responseBox.innerText = "Teman Kebun sedang mengingat riwayat ladangmu...";
       
+      // Ambil 5 data kontribusi terakhir dari Supabase untuk ingatan AI
       const { data: recentPosts } = await supabaseClient
         .from("contributions")
         .select("deskripsi_proses, created_at")
@@ -211,6 +213,7 @@ async function loadProfile() {
         .order("created_at", { ascending: false })
         .limit(5);
 
+      // Satukan data profil dan postingan terakhir menggunakan fungsi Langkah 1
       const konteksRAG = generateProfileContext(data, recentPosts);
 
       const sapaan = await panggilAiSaran("Evaluasi", { 
@@ -221,7 +224,6 @@ async function loadProfile() {
       typeWriterEffect(responseBox, `🤖 Teman Kebun: ${sapaan}`);
     }
   }, 1500); 
-
   try {
     const liveBalance = await getWalletTofBalance(targetProfileId)
     data.saldo_tof = liveBalance
