@@ -2,17 +2,18 @@
  * =================================================================
  * TOPLES ECOSYSTEM EXTERNAL INJECTOR (MANDIRI & 100% AMAN DI LUAR)
  * =================================================================
- * File ini mengontrol visual dan data @toples_ecosystem secara total 
+ * File ini mengontrol visual dan data @TOPLES_ECOSYSTEM secara total 
  * tanpa mengganggu fungsionalitas core profile bawaan.
  */
 
 (async function() {
-    // 1. DETEKSI URL PARAMETER (Cek apakah ini profil toples)
+    // 1. DETEKSI URL PARAMETER
     const urlParams = new URLSearchParams(window.location.search);
-    const targetUsername = urlParams.get('u'); // Sesuaikan parameter username di web Anda (misal: 'username' atau 'u')
+    const targetUsername = urlParams.get('u'); 
 
-    if (targetUsername !== 'toples_ecosystem') {
-        return; // JIKA BUKAN TOPLES, JANGAN LAKUKAN APA-APA (PROFIL LAIN AMAN)
+    // Taktik Kebal Case-Sensitive: Paksa teks URL menjadi uppercase saat divalidasi
+    if (!targetUsername || targetUsername.toUpperCase() !== 'TOPLES_ECOSYSTEM') {
+        return; // JIKA BUKAN TOPLES (BAIK KECIL MAUPUN BESAR), LEWATI.
     }
 
     console.log("🏺 Toples Injector Berhasil Mencegat Jalur Profil...");
@@ -77,7 +78,7 @@
                     
                     <div class="toples-header" style="text-align: center; background: #fdf6e2; padding: 20px; border-radius: 12px; border: 1px solid #f3e5be; margin-bottom: 20px;">
                         <div style="margin-bottom: 10px;"><span style="font-size: 48px;">🏺</span></div>
-                        <h2 style="margin: 5px 0 0 0; font-size: 22px;">@toples_ecosystem</h2>
+                        <h2 style="margin: 5px 0 0 0; font-size: 22px;">@TOPLES_ECOSYSTEM</h2>
                         <span style="display: inline-block; background: #cca43b; color: #fff; font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 20px; margin-top: 8px; text-transform: uppercase;">
                             Akun Sistem / Bendahara Penampung
                         </span>
