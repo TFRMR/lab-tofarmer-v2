@@ -2,8 +2,6 @@
  * =================================================================
  * TOPLES ECOSYSTEM EXTERNAL INJECTOR (MANDIRI & 100% AMAN DI LUAR)
  * =================================================================
- * File ini mengontrol visual dan data @TOPLES_ECOSYSTEM secara total 
- * tanpa mengganggu fungsionalitas core profile bawaan.
  */
 
 (async function() {
@@ -11,14 +9,13 @@
     const urlParams = new URLSearchParams(window.location.search);
     const targetUsername = urlParams.get('u'); 
 
-    // Taktik Kebal Case-Sensitive: Paksa teks URL menjadi uppercase saat divalidasi
     if (!targetUsername || targetUsername.toUpperCase() !== 'TOPLES_ECOSYSTEM') {
-        return; // JIKA BUKAN TOPLES (BAIK KECIL MAUPUN BESAR), LEWATI.
+        return; // JIKA BUKAN TOPLES, BIARKAN PROFILE.JS BERJALAN NORMAL
     }
 
     console.log("🏺 Toples Injector Berhasil Mencegat Jalur Profil...");
 
-    // ALAMAT DOMPET & ASSET CONFIG
+    // CONFIG
     const WALLET_TOPLES = "HVYBLWO7XBPO76SP7KBBYZ5ZVTCPWA5Z4RTVCYBH4IBL3GJFV5DBZTWNMI";
     const TOF_ASSET_ID = 3558306283;
     const TARGET_COMPOUNDING = 500000;
@@ -37,8 +34,7 @@
         console.error("Gagal sinkronisasi data on-chain:", e);
     }
 
-    // 3. AMBIL DATA PAPAN CATATAN DARI SUPABASE tabel 'posts'
-    // Menggunakan window.supabaseClient yang sudah ada di platform Anda
+    // 3. AMBIL DATA PAPAN CATATAN DARI SUPABASE
     let contentLedger = `🏺 Toples kosong. Belum ada transaksi penitipan baru yang terdeteksi untuk fase berjalan ini.`;
     let tglMulai = "-";
 
@@ -46,7 +42,7 @@
         if (window.supabaseClient) {
             const { data: postAktif } = await window.supabaseClient
                 .from("posts")
-                .eq("user_id", WALLET_TOPLES) // Menggunakan wallet sebagai ID sesuai database Anda
+                .eq("user_id", WALLET_TOPLES)
                 .eq("status", "AKTIF_PENITIPAN")
                 .single();
 
@@ -59,21 +55,20 @@
         console.error("Gagal menarik data ledger dari Supabase:", dbErr);
     }
 
-    // HITUNG PROGRESS BAR
     let persentaseIsi = (totalTofSekarang / TARGET_COMPOUNDING) * 100;
     if (persentaseIsi > 100) persentaseIsi = 100;
     if (persentaseIsi < 0) persentaseIsi = 0;
 
-  // 4. INJEKSI TEMPLATE HTML (Menimpa Kontainer Feed secara Eksternal)
-    // Mengubah target pencarian dari 'profile-content' menjadi 'userPosts' sesuai HTML asli Anda
+    // 4. TRIK SAKTI: BAJAK ELEMENT AGAR TIDAK BISA DIUBAH OLEH PROFILE.JS LOGIC
     const intervalCheck = setInterval(() => {
-        const profileContentElement = document.getElementById("userPosts"); // <--- INI SUDAH DIGANTI JADI userPosts
+        const profileContentElement = document.getElementById("userPosts");
+        const profileHeaderElement = document.getElementById("profile"); // Tangkap juga box profile atas jika ingin ditimpa
         
         if (profileContentElement) {
-            clearInterval(intervalCheck); // Hentikan pengecekan
+            clearInterval(intervalCheck); 
 
-            // Ganti isi komponen di dalam elemen userPosts dengan UI khusus Toples
-            profileContentElement.innerHTML = `
+            // Bangun Template UI Celengan
+            const templateHtml = `
                 <div class="toples-ecosystem-theme" style="max-width: 600px; margin: 0 auto; padding: 15px; font-family: sans-serif; color: #333;">
                     
                     <div class="toples-header" style="text-align: center; background: #fdf6e2; padding: 20px; border-radius: 12px; border: 1px solid #f3e5be; margin-bottom: 20px;">
@@ -118,13 +113,32 @@
                 </div>
             `;
 
-            // Eksekusi Animasi Progress Bar Luwes
+            // Bersihkan isi box profil atas bawaan (bila ada teks loading atau komponen user biasa)
+            if (profileHeaderElement) {
+                profileHeaderElement.innerHTML = "";
+                profileHeaderElement.style.display = "none";
+            }
+
+            // Suntikkan UI khusus kita
+            profileContentElement.innerHTML = templateHtml;
+
+            // KUNCI COCOK: Overwrite fungsi innerHTML khusus untuk elemen ini agar kebal timpa!
+            Object.defineProperty(profileContentElement, 'innerHTML', {
+                get: function() { return templateHtml; },
+                set: function(val) { 
+                    console.log("🛡️ Blokade Terpasang: Mencegah profile.js menimpa papan celengan.");
+                    // Abaikan perintah set dari profile.js agar visual kita abadi di layar
+                },
+                configurable: true
+            });
+
+            // Jalankan animasi progress bar
             setTimeout(() => {
                 const barFill = document.querySelector('.progress-bar-fill');
                 if (barFill) barFill.style.width = persentaseIsi + '%';
             }, 100);
 
-            // Eksekusi Auto Scroll log paling bawah
+            // Auto Scroll log paling bawah
             setTimeout(() => {
                 const kotakLedger = document.querySelector('.ledger-content');
                 if (kotakLedger) kotakLedger.scrollTop = kotakLedger.scrollHeight;
