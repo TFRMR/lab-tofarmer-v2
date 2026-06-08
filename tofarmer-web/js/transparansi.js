@@ -229,7 +229,7 @@ async function loadReport() {
     <h1>🌿 Riwayat Transaksi & Transparansi Aset</h1>
     <p>Diposting pada: ${new Date().toLocaleDateString()}</p>
 
-    <h2>🧮 REKAP TRANSAKSI TOF FASE 1</h2>
+    <h2>🧮 REKAP TRANSAKSI TOF FASE 3</h2>
     <p>
       Sistem ToFarmer beroperasi dengan prinsip transparansi total.
       Semua transaksi tercatat otomatis dari wallet.
