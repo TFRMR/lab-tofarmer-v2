@@ -36,19 +36,19 @@
                 <div class="card" style="background:#fff; border:1px solid rgba(47,111,78,.12); border-radius:12px; padding:24px; text-align:center; box-shadow:0 4px 12px rgba(0,0,0,0.01);">
                     
                     <div class="robot-avatar" style="width: 90px; height: 90px; background: #fdf6e2; border: 2px solid #2f6f4e; border-radius: 50%; margin: 0 auto 12px auto; display: flex; align-items: center; justify-content: center; font-size: 42px; box-shadow: 0 4px 8px rgba(47,111,78,0.1);">
-                        🤖
+                        🏺
                     </div>
 
                     <h2 style="margin: 0 0 4px 0; font-size: 20px; font-weight: 700; color: #1c2b22;">@TOPLES_ECOSYSTEM</h2>
                     
                     <div style="margin-bottom: 14px;">
                         <span style="display: inline-block; background: #2f6f4e; color: #fff; font-size: 10px; font-weight: bold; padding: 3px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;">
-                            ⚙️ ROBOT OTOMASI / PETANI PENJAGA
+                            ⚙️ 🏺ROBOT OTOMASI / BENDAHARA CELENGAN SEMANTARA
                         </span>
                     </div>
 
                     <p style="font-size: 13px; color: #4c5a50; max-width: 460px; margin: 0 auto; line-height: 1.6; font-style: italic;">
-                        "Saya adalah sistem otomatis pelayan ladang ToFarmer. Tugas utama saya hanya berdiam di sini, mengawasi gerbang blockchain, dan menjaga setiap butir koin amanah dari program Nabung Receh agar tetap genap di dalam celengan sebelum diantar ke lumbung utama."
+                        "Saya adalah sistem otomatis pelayan ladang ToFarmer. Tugas utama saya hanya berdiam di sini, mengawasi gerbang blockchain, dan menjaga setiap butir koin dari program Nabung Receh agar tetap genap di dalam celengan sebelum diantar ke lumbung utama."
                     </p>
 
                 </div>
