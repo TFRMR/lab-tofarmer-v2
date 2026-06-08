@@ -4,7 +4,7 @@
  * =================================================================
  * Ekosistem: ToFarmer (On-Chain Algorand)
  * Peran Akun: Robot Otomasi / Petani Penjaga Celengan Sementara
- * Batas Transisi Fase: 500,000 TOF (Estimasi Rp500.000.000)
+ * Batas Transisi Fase: 500 TOF (Estimasi Rp500.000)
  */
 
 (function() {
