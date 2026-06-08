@@ -1,8 +1,3 @@
-const scriptToples = document.createElement('script');
-scriptToples.src = 'toples_injector.js';
-document.head.appendChild(scriptToples);
-
-
 const currentWallet = localStorage.getItem("tof_wallet")
 
 // =====================

@@ -64,15 +64,15 @@
     if (persentaseIsi > 100) persentaseIsi = 100;
     if (persentaseIsi < 0) persentaseIsi = 0;
 
-    // 4. INJEKSI TEMPLATE HTML (Menimpa Container Utama secara Eksternal)
-    // Script ini menunggu kontainer HTML siap dimuat di browser
+  // 4. INJEKSI TEMPLATE HTML (Menimpa Kontainer Feed secara Eksternal)
+    // Mengubah target pencarian dari 'profile-content' menjadi 'userPosts' sesuai HTML asli Anda
     const intervalCheck = setInterval(() => {
-        const profileContentElement = document.getElementById("profile-content");
+        const profileContentElement = document.getElementById("userPosts"); // <--- INI SUDAH DIGANTI JADI userPosts
         
         if (profileContentElement) {
             clearInterval(intervalCheck); // Hentikan pengecekan
 
-            // Ganti isi komponen di dalam elemen pembungkus utama dengan UI khusus Toples
+            // Ganti isi komponen di dalam elemen userPosts dengan UI khusus Toples
             profileContentElement.innerHTML = `
                 <div class="toples-ecosystem-theme" style="max-width: 600px; margin: 0 auto; padding: 15px; font-family: sans-serif; color: #333;">
                     
