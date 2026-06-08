@@ -77,7 +77,7 @@
                 const txData = await resTx.json();
                 const transactions = txData.transactions || [];
 
-                contentLedger = "==================================================\n";
+                contentLedger = "\n";
                 contentLedger += "       CATATAN TRANSIT: RECEH USER RIIL\n";
                 contentLedger += "==================================================\n\n";
 
