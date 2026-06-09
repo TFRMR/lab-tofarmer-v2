@@ -1,15 +1,7 @@
 (function() {
-    // =========================================================================
-    // 1. PENGATURAN UTAMA (ALAMAT JEMBATAN)
-    // =========================================================================
-    // GANTI teks di dalam tanda kutip di bawah ini dengan URL Cloudflare Worker yang Njenengan dapat dari Langkah 1 tadi!
     const URL_JEMBATAN_CLOUDFLARE = "https://jembatan-ai-tofarmer.tofarmer-api.workers.dev/"; 
-    
     const BOT_USERNAME = "@mbah_eko";
 
-    // =========================================================================
-    // 2. BASIS DATA PAPER TOFARMER (DOKUMEN IDIOLOGI SI MBAH)
-    // =========================================================================
     const TOFARMER_PAPER = {
         filosofi: `ToFarmer mendefinisikan ulang bertani sebagai aktivitas intelektual. Proses bertahap "blok demi blok", menghargai kejujuran proses dari nol dan refleksi mendalam, bukan hasil instan. Gotong royong dibalut open-source (Linux, Blockchain) biar sejarah perjuangan tak hilang ditelan zaman.`,
         lima_pilar: `5 Pilar ToFarmer yang saling mengunci: 1. Komunitas & Narasi Kreatif (menjaga harmoni). 2. Inovasi & Rekayasa Teknologi (software, coding Linux Lite, AI, mekanisasi tepat guna). 3. Ladang Proof of Work (uji nyata gagasan di atas tanah). 4. Finansial & Investasi (mesin ekonomi). 5. Refleksi Petapa (kompas kemanusiaan jujur menghormati alam).`,
@@ -18,40 +10,35 @@
         xp_level: `Perolehan XP (Proof of Work): Bikin ilmu baku (+100 XP), Aktif di Web (+20 XP), Gagasan (+50 XP), Praktik Ladang (+25 XP). Pangkat: GROWER (Lv 1-10), PRO (Lv 11-30), SPECIALIST (Lv 31-90), ELITE (Lv 91-99). Skema Batas Penarikan (SBP) Token sesuai level.`
     };
 
-    // =========================================================================
-    // 3. ENGINE PENCARI KONTEKS (RAG LOKAL OTOMATIS)
-    // =========================================================================
     function cariMemoriPaper(isiPostingan) {
         let kueri = isiPostingan.toLowerCase();
         let memori = "";
-        
         if (kueri.includes("filosofi") || kueri.includes("berproses") || kueri.includes("sejarah")) memori += TOFARMER_PAPER.filosofi + "\n";
         if (kueri.includes("pilar") || kueri.includes("rekayasa") || kueri.includes("coding") || kueri.includes("linux") || kueri.includes("teknologi")) memori += TOFARMER_PAPER.lima_pilar + "\n";
         if (kueri.includes("ilmu") || kueri.includes("baku") || kueri.includes("gagal") || kueri.includes("catatan")) memori += TOFARMER_PAPER.ilmu_baku + "\n";
         if (kueri.includes("receh") || kueri.includes("nabung") || kueri.includes("compounding") || kueri.includes("tof") || kueri.includes("aset")) memori += TOFARMER_PAPER.ekonomi + "\n";
         if (kueri.includes("xp") || kueri.includes("level") || kueri.includes("pangkat") || kueri.includes("tarik")) memori += TOFARMER_PAPER.xp_level + "\n";
-        
         if (memori === "") memori = TOFARMER_PAPER.filosofi + "\n" + TOFARMER_PAPER.lima_pilar;
         return memori;
     }
 
-    // =========================================================================
-    // 4. ENGINE PENGINTAI FEED (MENEGAKKAN 3 GERBANG ANTI-SPAM & DETEKSI FOTO)
-    // =========================================================================
+    let kebalGoncangan = false;
+
     async function periksaDanSapaFeed() {
-        // Mengintai seluruh elemen post berdasarkan struktur HTML asli web ToFarmer
+        // Jika sedang dalam masa jeda aman, abaikan riak-riak perubahan HTML dari app.js
+        if (kebalGoncangan) return; 
+
         const semuaPostingan = document.querySelectorAll("#feed .post"); 
+        if (!semuaPostingan.length) return;
 
         for (const post of semuaPostingan) {
-            // Ambil nama penulis post (misal: @system atau @user)
+            // Jika postingan sudah dikunci atau sukses diproses, jangan disentuh lagi!
+            if (post.getAttribute("data-mbah-lock") === "true" || post.getAttribute("data-mbah-done") === "true") continue;
+
             const postAuthor = post.querySelector(".user")?.innerText.trim() || "";
-            
-            // Gerbang Pengaman: Jangan komentari postingan robot system atau postingan si Mbah sendiri
-            if (postAuthor === "@system" || postAuthor === BOT_USERNAME) continue;
+            if (postAuthor === "@system" || postAuthor === BOT_USERNAME || postAuthor === "") continue;
 
             const kontenTeks = post.querySelector(".text")?.innerText || "";
-
-            // Deteksi jejak komentar di bawah postingan ini (mencari class comment-item atau reply-item)
             const daftarKomentar = post.querySelectorAll(".comment-item, .reply-item"); 
             
             let mbahSudahKomentar = false;
@@ -60,60 +47,52 @@
             let komentarPalingBawahAdalahMbah = false;
 
             daftarKomentar.forEach((comment, index) => {
-                const penulisKomentar = comment.getAttribute("data-comment-author") || "";
+                const penulisKomentar = comment.getAttribute("data-comment-author") || comment.querySelector("strong")?.innerText.trim() || "";
                 const teksKomentar = comment.innerText || "";
 
-                if (penulisKomentar === BOT_USERNAME) mbahSudahKomentar = true;
+                if (penulisKomentar.includes(BOT_USERNAME)) mbahSudahKomentar = true;
                 if (teksKomentar.includes(BOT_USERNAME)) adaMentionMbah = true;
 
-                // Cek status baris komentar paling bawah/terbaru
                 if (index === daftarKomentar.length - 1) {
-                    if (penulisKomentar === BOT_USERNAME) komentarPalingBawahAdalahMbah = true;
-                    // Jika Mbah sudah pernah komen, dan komen terbaru di bawahnya ditulis oleh pemilik postingan
-                    if (mbahSudahKomentar && penulisKomentar === postAuthor) userBalasMbah = true;
+                    if (penulisKomentar.includes(BOT_USERNAME)) komentarPalingBawahAdalahMbah = true;
+                    if (mbahSudahKomentar && penulisKomentar.includes(postAuthor)) userBalasMbah = true;
                 }
             });
 
-            // EVALUASI STRATEGI 3 GERBANG MUTLAK
             let lolosGerbang = false;
-
             if (!mbahSudahKomentar) {
-                lolosGerbang = true; // GERBANG 1: First Post Greet (Komentar pertama kali)
+                lolosGerbang = true; 
             } else if (adaMentionMbah && !komentarPalingBawahAdalahMbah) {
-                lolongGerbang = true; // GERBANG 3: Mention Summon (Dipanggil pakai kata @mbah_eko)
+                lolosGerbang = true; 
             } else if (userBalasMbah && !komentarPalingBawahAdalahMbah) {
-                lolosGerbang = true; // GERBANG 2: User Reply (Pemilik postingan ngajak ngobrol balik)
+                lolosGerbang = true; 
             }
 
-            // Jika lolos seleksi gerbang dan postingan sedang tidak dalam antrean proses kirim
-            if (lolosGerbang && !post.getAttribute("data-mbah-lock")) {
-                post.setAttribute("data-mbah-lock", "true"); // Kunci layar agar tidak menembak AI berulang-ulang
+            if (lolosGerbang) {
+                // Kunci elemen ini secepat kilat agar script lain tidak mendahului
+                post.setAttribute("data-mbah-lock", "true"); 
+                kebalGoncangan = true;
 
-                // DETEKSI INTELLIGENT VISUAL (Mencari apakah ada elemen gambar yang diunggah user di dalam post)
                 const elemenFoto = post.querySelector("img");
                 let urlFoto = null;
-                // Pastikan gambar yang dibaca bukan gambar logo ToFarmer
-                if (elemenFoto && elemenFoto.src && !elemenFoto.src.includes("logo.png")) {
+                if (elemenFoto && elemenFoto.src && !elemenFoto.src.includes("logo") && !elemenFoto.src.includes("avatar")) {
                     urlFoto = elemenFoto.src;
                 }
 
-                // Ambil ingatan Paper ToFarmer yang paling relevan dengan ketikan user
                 const referensiPaper = cariMemoriPaper(kontenTeks);
+                const ComicSistem = `Kamu adalah ${BOT_USERNAME}, sesepuh digital yang adem, sopan, dan sangat bijak di ekosistem ToFarmer. Aturan Bahasa Mutlak: JANGAN PERNAH gunakan kata sapaan 'le' atau 'nduk'! Ganti dengan sapaan halus penyejuk hati: 'Ger' (Ngger), 'Kang', 'Mbak', 'Njenengan', atau 'Sedulur'. Tanggapi postingan user dengan menyisipkan nilai resmi ToFarmer berikut:\n---\n${referensiPaper}\n---\nJawab ringkas, padat, berwibawa, dan mengalir alami.`;
 
-                // ATURAN SENSOR KEARIFAN LOKAL (ANTI KATA KASAR "LE/NDUK")
-                const instruksiSistem = `Kamu adalah ${BOT_USERNAME}, sesepuh digital yang adem, sopan, dan sangat bijak di ekosistem ToFarmer.
-Aturan Bahasa Mutlak: JANGAN PERNAH gunakan kata sapaan 'le' atau 'nduk' karena dinilai kurang pas/kasar di lokasi kita! Ganti dengan sapaan halus penyejuk hati: 'Ger' (Ngger), 'Kang', 'Mbak', 'Njenengan', 'Sedulur', atau 'Kanca-kanca'.
-Tugas: Tanggapi postingan user dengan menyisipkan atau mengaitkan nilai-nilai dari dokumen panduan resmi ToFarmer berikut:\n---\n${referensiPaper}\n---\nJawab secara ringkas, berwibawa, penuh bimbingan orang tua, dan mengalir alami (jangan kaku seperti mesin).`;
-
-                // Lempar data ke Cloudflare Jembatan
-                await kirimKeJembatan(post, kontenTeks, postAuthor, instruksiSistem, urlFoto);
+                await kirimKeJembatan(post, kontenTeks, postAuthor, ComicSistem, urlFoto);
+                
+                post.setAttribute("data-mbah-done", "true"); 
+                post.removeAttribute("data-mbah-lock");
+                
+                // Beri jeda 2 detik sebelum membuka radar kembali agar browser bernapas
+                setTimeout(() => { kebalGoncangan = false; }, 2000);
             }
         }
     }
 
-    // =========================================================================
-    // 5. MENGHUBUNGI JEMBATAN CLOUDFLARE
-    // =========================================================================
     async function kirimKeJembatan(elemenPost, teksUser, author, instruksi, foto) {
         try {
             const res = await fetch(URL_JEMBATAN_CLOUDFLARE, {
@@ -122,7 +101,7 @@ Tugas: Tanggapi postingan user dengan menyisipkan atau mengaitkan nilai-nilai da
                 body: JSON.stringify({
                     instruksiSistem: instruksi,
                     tulisanUser: `Postingan dari ${author}: "${teksUser}"`,
-                    urlGambar: foto // Mengirim link foto (otomatis mengaktifkan AI Vision LLaVA jika ada)
+                    urlGambar: foto
                 })
             });
 
@@ -131,23 +110,19 @@ Tugas: Tanggapi postingan user dengan menyisipkan atau mengaitkan nilai-nilai da
                 if (data.balasanMbah) {
                     suntikKomentarKeHTML(elemenPost, data.balasanMbah);
                 }
+            } else {
+                console.warn("Jembatan Cloudflare merespon dengan status:", res.status);
             }
         } catch (e) { 
-            console.error("Mbah Eko kesulitan terhubung ke jembatan:", e); 
-            elemenPost.removeAttribute("data-mbah-lock"); // Lepas kunci jika gagal agar bisa dicoba lagi
+            console.error("Mbah Eko gagal mendayung melewati jembatan:", e); 
         }
     }
 
-   
-    // =========================================================================
-    // 6. MENYUNTIKKAN HASIL JAWABAN SECARA VISUAL KE HALAMAN WEB (VERSI ADA PROFILE LINK)
-    // =========================================================================
     function suntikKomentarKeHTML(elemenPost, teksBalasanMbah) {
-        let wadahKomentar = elemenPost.querySelector(".comments-box-list, .post-actions");
+        let wadahKomentar = elemenPost.querySelector(".comments-box-list, .post-actions, .comments-section");
         
-        // Di sini kita tambahkan link bungkus tag <a> pada username agar mengarah ke profile.html?user=mbah_eko
         const htmlMbah = `
-            <div class="comment-item" data-comment-author="${BOT_USERNAME}" style="display: flex; gap: 10px; margin-top: 12px; padding: 12px; background: #fdf6e2; border-left: 4px solid #2f6f4e; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+            <div class="comment-item" data-comment-author="${BOT_USERNAME}" style="display: flex; gap: 10px; margin-top: 12px; padding: 12px; background: #fdf6e2; border-left: 4px solid #2f6f4e; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); text-align: left;">
                 <div style="font-size: 18px; margin-top: 2px;">👴</div>
                 <div style="font-size: 12px; font-family: sans-serif; color: #1c2b22; width: 100%;">
                     <a href="profile.html?user=mbah_eko" style="text-decoration: none; color: #2f6f4e; display: block; margin-bottom: 2px; font-weight: bold;">
@@ -164,7 +139,9 @@ Tugas: Tanggapi postingan user dengan menyisipkan atau mengaitkan nilai-nilai da
             elemenPost.insertAdjacentHTML("beforeend", htmlMbah);
         }
     }
-    // Pengintai otomatis: Memantau layar feed secara senyap, mendeteksi jika ada postingan baru
+
+    // Hanya intip area kontainer feed utama saja agar tidak terganggu oleh rombakan info finansial/avatar
+    const targetFeed = document.getElementById("feed") || document.body;
     const observer = new MutationObserver(periksaDanSapaFeed);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(targetFeed, { childList: true, subtree: true });
 })();
