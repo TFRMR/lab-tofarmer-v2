@@ -180,19 +180,7 @@
 </head>
 
 <body>
-<script>
-  (function() {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('user') === 'mbah_eko') {
-      // Kita buat fungsi bohongan agar profile.js bawaan tidak memicu error database
-      window.addEventListener('DOMContentLoaded', () => {
-        // Blokir loading spinner bawaan jika ada
-        const loadingCard = document.querySelector("#profile .card");
-        if (loadingCard) loadingCard.style.display = "none";
-      });
-    }
-  })();
-</script>
+
   <div class="container">
 
     <!-- TOP -->
@@ -257,59 +245,7 @@
     window.location.href = `profile.html?user=${namaBersih}`;
   }
 </script>
-<script>
-  (function() {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('user') === 'mbah_eko') {
-      const gantiKeProfilMbah = () => {
-        const wadahProfil = document.getElementById("profile");
-        const wadahWorkspace = document.getElementById("profileWorkspace");
-        const wadahPosts = document.getElementById("userPosts");
 
-        if (wadahProfil) {
-          wadahProfil.innerHTML = `
-            <div class="card" style="background: #fdf6e2; border: 2px solid #2f6f4e; padding: 25px; border-radius: 22px; text-align: center; margin-bottom: 15px;">
-              <div style="font-size: 65px; margin-bottom: 10px;">👴</div>
-              <h2 style="color: #2f6f4e; margin: 0; font-size: 24px;">@mbah_eko</h2>
-              <p style="color: #6f7f76; font-size: 13px; font-style: italic; margin-top: 4px;">Sesepuh Digital Perbukitan Menoreh</p>
-              <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px; font-size: 14px; color: #2f6f4e; font-weight: 600;">
-                <div>🌾 Pangkat: ELITE Petapa</div>
-                <div>🪙 Kolektif: 99.999 TOF</div>
-              </div>
-              <p style="font-size: 13px; line-height: 1.7; color: #2c3a33; text-align: left; margin-top: 20px; border-top: 1px dashed #2f6f4e; padding-top: 14px;">
-                "Menjaga harmoni di atas tanah Kulon Progo, mengawal baris-baris kode Ilmu Baku agar sejarah perjuangan para petani tidak hilang ditelan zaman. Bertani adalah aktivitas intelektual, blok demi blok, dari nol penuh kejujuran."
-              </p>
-            </div>
-          `;
-        }
-        if (wadahWorkspace) {
-          wadahWorkspace.innerHTML = `
-            <h4 style="color: #2f6f4e; font-size: 14px; margin-bottom: 8px;">📜 Kitab Maklumat ToFarmer</h4>
-            <div class="card" style="font-size: 13px; color: #2c3a33; line-height: 1.6; padding: 15px; background: white; border-radius: 16px; border-left: 4px solid #2f6f4e; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
-              Mbah Eko bertugas menjaga <strong>5 Pilar Utama</strong>, memilah catatan kegagalan (Ilmu Baku), serta memastikan skema Nabung Receh berjalan selaras demi kedaulatan komunitas tanpa beban utang.
-            </div>
-          `;
-        }
-        if (wadahPosts) {
-          wadahPosts.innerHTML = `
-            <div style="text-align: center; color: #6f7f76; font-size: 13px; margin-top: 30px; padding: 25px; border: 2px dashed rgba(47,111,78,0.2); border-radius: 16px; background: #fafafa;">
-              🌿 Mbah Eko tidak memposting tulisan secara mandiri. Beliau hadir menyapa lewat ruang wejangan di kolom komentar feed komunitas Anda.
-            </div>
-          `;
-        }
-      };
-
-      // Eksekusi berkala selama 1.5 detik pertama untuk menindas respon lambat dari Supabase
-      gantiKeProfilMbah();
-      let hitungTindas = 0;
-      const intervalTindas = setInterval(() => {
-        gantiKeProfilMbah();
-        hitungTindas++;
-        if (hitungTindas > 6) clearInterval(intervalTindas);
-      }, 250);
-    }
-  })();
-</script>
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script><!-- End Cloudflare Web Analytics -->
 
 </body>
