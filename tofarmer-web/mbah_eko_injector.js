@@ -88,13 +88,7 @@
 
                     if (!error) {
                         console.log(`🎯 [Operator] Sukses! Komentar @mbah_eko sah masuk database.`);
-                       if (typeof window.loadFeed === "function") {
-    console.log("⏳ Menunggu database sinkronisasi...");
-    setTimeout(() => {
-        window.loadFeed();
-        console.log("🔄 Feed berhasil di-refresh otomatis oleh Mbah Eko.");
-    }, 1500); // Tunggu 1,5 detik agar data tersimpan sempurna
-}
+                        if (typeof window.loadFeed === "function") window.loadFeed();
                     } else {
                         console.error("❌ Supabase menolak:", error.message);
                     }
