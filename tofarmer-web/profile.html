@@ -180,7 +180,19 @@
 </head>
 
 <body>
-
+<script>
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('user') === 'mbah_eko') {
+      // Kita buat fungsi bohongan agar profile.js bawaan tidak memicu error database
+      window.addEventListener('DOMContentLoaded', () => {
+        // Blokir loading spinner bawaan jika ada
+        const loadingCard = document.querySelector("#profile .card");
+        if (loadingCard) loadingCard.style.display = "none";
+      });
+    }
+  })();
+</script>
   <div class="container">
 
     <!-- TOP -->
