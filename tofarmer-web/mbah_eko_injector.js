@@ -25,51 +25,74 @@
     let kebalGoncangan = false;
 
     async function periksaDanSapaFeed() {
-        // Jika sedang dalam masa jeda aman, abaikan riak-riak perubahan HTML dari app.js
         if (kebalGoncangan) return; 
 
+        // 1. Ambil semua postingan utama di feed
         const semuaPostingan = document.querySelectorAll("#feed .post"); 
         if (!semuaPostingan.length) return;
 
         for (const post of semuaPostingan) {
-            // Jika postingan sudah dikunci atau sukses diproses, jangan disentuh lagi!
-            if (post.getAttribute("data-mbah-lock") === "true" || post.getAttribute("data-mbah-done") === "true") continue;
+            if (post.getAttribute("data-mbah-lock") === "true") continue;
 
             const postAuthor = post.querySelector(".user")?.innerText.trim() || "";
             if (postAuthor === "@system" || postAuthor === BOT_USERNAME || postAuthor === "") continue;
 
-            const kontenTeks = post.querySelector(".text")?.innerText || "";
-            const daftarKomentar = post.querySelectorAll(".comment-item, .reply-item"); 
+            const kontenTeksUtama = post.querySelector(".text")?.innerText || "";
             
-            let mbahSudahKomentar = false;
-            let adaMentionMbah = false;
-            let userBalasMbah = false;
-            let komentarPalingBawahAdalahMbah = false;
+            // 2. Ambil seluruh elemen teks di area komentar (termasuk buatan comments.js)
+            // Kita kumpulkan semua elemen teks di dalam post tersebut agar tidak ada yang lolos
+            const seluruhBalonTeks = post.querySelectorAll("p, span, div");
+            
+            let adaMentionMbahDiKomentar = false;
+            let teksKomentarMention = "";
+            let mbahSudahPernahKomentar = false;
 
-            daftarKomentar.forEach((comment, index) => {
-                const penulisKomentar = comment.getAttribute("data-comment-author") || comment.querySelector("strong")?.innerText.trim() || "";
-                const teksKomentar = comment.innerText || "";
+            seluruhBalonTeks.forEach((elemen) => {
+                const teksMentah = elemen.innerText || "";
+                
+                // Cek apakah ini komentar asli buatan si Mbah sendiri
+                if (teksMentah.includes("Petapa Menoreh") || elemen.getAttribute("data-comment-author") === BOT_USERNAME) {
+                    mbahSudahPernahKomentar = true;
+                }
 
-                if (penulisKomentar.includes(BOT_USERNAME)) mbahSudahKomentar = true;
-                if (teksKomentar.includes(BOT_USERNAME)) adaMentionMbah = true;
+                // EFEK MAGIS: Jika ada teks @mbah_eko atau @username lain yang masih berupa teks mati,
+                // kita bungkus otomatis menjadi tautan profil aktif yang bisa diklik!
+                if (teksMentah.includes("@") && !elemen.querySelector("a")) {
+                    const htmlAsli = elemen.innerHTML;
+                    // Ubah teks @username menjadi link dinamis
+                    const htmlBaru = htmlAsli.replace(/@([a-zA-Z0-9_]+)/g, function(match, username) {
+                        return `<a href="profile.html?user=${username}" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #2f6f4e;">@${username}</a>`;
+                    });
+                    if (htmlAsli !== htmlBaru) {
+                        elemen.innerHTML = htmlBaru;
+                    }
+                }
 
-                if (index === daftarKomentar.length - 1) {
-                    if (penulisKomentar.includes(BOT_USERNAME)) komentarPalingBawahAdalahMbah = true;
-                    if (mbahSudahKomentar && penulisKomentar.includes(postAuthor)) userBalasMbah = true;
+                // Catat jika ada mention spesifik ke @mbah_eko di kolom komentar
+                if (teksMentah.includes(BOT_USERNAME) && !teksMentah.includes("Petapa Menoreh") && elemen.getAttribute("data-comment-author") !== BOT_USERNAME) {
+                    adaMentionMbahDiKomentar = true;
+                    teksKomentarMention = teksMentah;
                 }
             });
 
+            // 3. LOGIKA GERBANG KEDATANGAN AI MBAH EKO
             let lolosGerbang = false;
-            if (!mbahSudahKomentar) {
-                lolosGerbang = true; 
-            } else if (adaMentionMbah && !komentarPalingBawahAdalahMbah) {
-                lolosGerbang = true; 
-            } else if (userBalasMbah && !komentarPalingBawahAdalahMbah) {
-                lolosGerbang = true; 
+            let bahanTulisanAI = kontenTeksUtama;
+
+            if (!mbahSudahPernahKomentar) {
+                // Sapaan pertama kali pada postingan baru
+                lolosGerbang = true;
+            } else if (adaMentionMbahDiKomentar) {
+                // Sapaan karena dipanggil di kolom komentar
+                const hashMention = btoa(teksKomentarMention).substring(0, 10);
+                if (post.getAttribute("data-mbah-mention-read") !== hashMention) {
+                    lolosGerbang = true;
+                    bahanTulisanAI = `[PENGGUNA MEMENTION KAMU DI KOMENTAR: "${teksKomentarMention}"]\n\nIsi postingan utama mereka: ${kontenTeksUtama}`;
+                    post.setAttribute("data-mbah-mention-read", hashMention);
+                }
             }
 
             if (lolosGerbang) {
-                // Kunci elemen ini secepat kilat agar script lain tidak mendahului
                 post.setAttribute("data-mbah-lock", "true"); 
                 kebalGoncangan = true;
 
@@ -79,16 +102,13 @@
                     urlFoto = elemenFoto.src;
                 }
 
-                const referensiPaper = cariMemoriPaper(kontenTeks);
-                const ComicSistem = `Kamu adalah ${BOT_USERNAME}, sesepuh digital yang adem, sopan, dan sangat bijak di ekosistem ToFarmer. Aturan Bahasa Mutlak: JANGAN PERNAH gunakan kata sapaan 'le' atau 'nduk'! Ganti dengan sapaan halus penyejuk hati: 'Ger' (Ngger), 'Kang', 'Mbak', 'Njenengan', atau 'Sedulur'. Tanggapi postingan user dengan menyisipkan nilai resmi ToFarmer berikut:\n---\n${referensiPaper}\n---\nJawab ringkas, padat, berwibawa, dan mengalir alami.`;
+                const referensiPaper = cariMemoriPaper(kontenTeksUtama + " " + teksKomentarMention);
+                const ComicSistem = `Kamu adalah ${BOT_USERNAME}, sesepuh digital yang adem, sopan, dan sangat bijak di ekosistem ToFarmer. Aturan Bahasa Mutlak: JANGAN PERNAH gunakan kata sapaan 'le' atau 'nduk'! Ganti dengan sapaan halus penyejuk hati: 'Ger' (Ngger), 'Kang', 'Mbak', 'Njenengan', atau 'Sedulur'. Tanggapi postingan/komentar user dengan menyisipkan nilai resmi ToFarmer berikut:\n---\n${referensiPaper}\n---\nJawab ringkas, padat, penuh petuah tua, dan mengalir alami.`;
 
-                await kirimKeJembatan(post, kontenTeks, postAuthor, ComicSistem, urlFoto);
+                await kirimKeJembatan(post, bahanTulisanAI, postAuthor, ComicSistem, urlFoto);
                 
-                post.setAttribute("data-mbah-done", "true"); 
                 post.removeAttribute("data-mbah-lock");
-                
-                // Beri jeda 2 detik sebelum membuka radar kembali agar browser bernapas
-                setTimeout(() => { kebalGoncangan = false; }, 2000);
+                setTimeout(() => { kebalGoncangan = false; }, 2500);
             }
         }
     }
