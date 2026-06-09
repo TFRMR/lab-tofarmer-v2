@@ -1,55 +1,37 @@
 (function() {
-    console.log("👴 [Mbah Eko - Operator Akun] Resmi aktif sebagai pengendali akun riil...");
+    console.log("👴 [Mbah Eko - Operator Akun] Versi Otak Terintegrasi & Akun Riil Aktif...");
 
     const URL_RESMI = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran"; 
     const BOT_USERNAME = "@mbah_eko";
-    const USER_EMAS = "CYBER_FARMER"; // Akun Mastermind Njenengan
-
-    // =========================================================================
-    // TOFARMER KNOWLEDGE BASE - BASIS PENGETAHUAN RESMI EKOSISTEM TOFARMER
-    // =========================================================================
-    const TOFARMER_PAPER = {
-        latar_belakang_filosofi: `[FILOSOFI] Pertanian sebagai aktivitas intelektual, langkah demi langkah, menghargai kejujuran proses tumbuh dari nol, bukan hasil instan.`,
-        lima_pilar: `[5 PILAR] 1. Komunitas, 2. Inovasi/Teknologi, 3. Ladang (Proof of Work), 4. Finansial (Mesin Ekonomi), 5. Refleksi Petapa.`,
-        epistemologi_ilmu_baku: `[ILMU BAKU] Kesimpulan provisional terbaik dari praktik nyata berulang di lapangan yang konsisten.`,
-        strategi_ekonomi_compounding: `[ECONOMY] "Nabung Receh" bangun aset tanpa utang. Compounding 5-10% aktif di angka 500 TOF (1 TOF = Rp1.000).`
-    };
-
-    function cariKonteksPaper(pertanyaan) {
-        const kueri = pertanyaan.toLowerCase();
-        let konteks = "";
-        if (kueri.includes("filosofi") || kueri.includes("proses")) konteks += TOFARMER_PAPER.latar_belakang_filosofi + "\n";
-        if (kueri.includes("pilar") || kueri.includes("teknologi")) konteks += TOFARMER_PAPER.lima_pilar + "\n";
-        if (kueri.includes("ilmu") || kueri.includes("baku")) konteks += TOFARMER_PAPER.epistemologi_ilmu_baku + "\n";
-        if (kueri.includes("receh") || kueri.includes("nabung")) konteks += TOFARMER_PAPER.strategi_ekonomi_compounding + "\n";
-        return konteks || TOFARMER_PAPER.latar_belakang_filosofi;
-    }
+    
+    // Konfigurasi Akun & Dompet Resmi dari Njenengan
+    const WALLET_ASLI_MBAH = "YUSLGKMUNQCUOWOY6YBYDSA7GYMT3BRDRCMI56XTJL7BOGLGSY67DWQCXI";
+    const USER_EMAS = "CYBER_FARMER"; 
 
     let sedangMemproses = false;
 
     async function periksaSkenarioMading() {
         if (sedangMemproses) return;
 
-        // Mendeteksi seluruh kartu postingan di mading
+        // Mendeteksi seluruh kartu postingan di mading feed ToFarmer
         const semuaPostingan = document.querySelectorAll("#feed-container .post, #posts .post, .post, [id^='post-card-']"); 
         if (!semuaPostingan.length) return;
 
         for (const post of semuaPostingan) {
             if (post.getAttribute("data-operator-lock") === "true") continue;
 
-            // Mengambil ID postingan riil dari Supabase (biasanya tertanam di ID elemen atau atribut data)
+            // Mengambil ID postingan riil dari Supabase (id elemen atau data-id)
             const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
             if (!postId) continue;
 
             const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
+            const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text");
             
-            // Kumpulkan semua komentar riil yang ada di dalam postingan ini
-            const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p");
             let daftarKomentar = [];
             let mbahPernahKomentar = false;
 
+            // Kumpulkan semua daftar komentar yang ada di dalam card post saat ini
             elemenKomentar.forEach((el) => {
-                // Abaikan kotak AI penasihat atas
                 if (el.id === 'advice-box' || el.id === 'ai-text' || el.closest('#advice-container')) return;
 
                 const penulis = el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "";
@@ -64,19 +46,19 @@
                 daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
             });
 
-            // Baca komentar paling terakhir di postingan saat ini
+            // Ambil data komentar paling terakhir di postingan ini
             const komentarTerakhir = daftarKomentar[daftarKomentar.length - 1] || null;
             const teksKomentarTerakhir = komentarTerakhir ? komentarTerakhir.text : "";
             const penulisKomentarTerakhir = komentarTerakhir ? komentarTerakhir.author : "";
 
-            // Bikin sidik jari hash agar tidak mengeksekusi obrolan yang sama berkali-kali
+            // Sidik jari hash pengaman agar tidak berulang mengeksekusi komentar yang sama
             const hashKomentar = btoa(unescape(encodeURIComponent(teksKomentarTerakhir + penulisKomentarTerakhir))).substring(0, 12);
 
             let terpicu = false;
             let jenisSkenario = "";
 
             // =========================================================================
-            // EVALUASI 3 GERBANG SKENARIO OPERATOR
+            // EVALUASI EVALUASI 3 GERBANG SKENARIO OPERATOR
             // =========================================================================
 
             // GERBANG 1: Postingan Baru & Mbah Belum Pernah Nimbrung Sama Sekali
@@ -106,25 +88,31 @@
 
                 console.log(`🚀 [Operator] Skenario [${jenisSkenario}] Terdeteksi pada Post ID: ${postId}`);
 
-                // Amankan memori pengunci lokal sebelum menembak biar tidak double post karena lag network
                 if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
                 if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
                 if (jenisSkenario === "BALASAN_USER_EMAS") localStorage.setItem(`op_emas_${postId}`, hashKomentar);
 
-                // Racik ramuan prompt AI
-                const memoPaper = cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama);
-               // Koreksi ramuan prompt agar pas dengan jiwa aslinya:
-let instruksi = `Kamu adalah @mbah_eko, akun sesepuh riil yang bertindak sebagai Kompas Filosofis & Penjaga Pilar Refleksi Petapa di mading ToFarmer.\nLandasan Paper:\n${memoPaper}\n`;
+                // 🔥 TAKTIK JEMBATAN GAIB: Ambil ingatan langsung dari knowledge-base.js yang aktif di web browser
+                let memoPaper = "";
+                if (typeof window.cariKonteksPaper === "function") {
+                    memoPaper = window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama);
+                } else if (typeof cariKonteksPaper === "function") {
+                    memoPaper = cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama);
+                } else {
+                    memoPaper = "Pertanian sebagai aktivitas intelektual, rekam jejak, jujur berproses, dan refleksi mendalam.";
+                }
+                
+                let instruksi = `Kamu adalah @mbah_eko, akun sesepuh riil yang bertindak sebagai Kompas Filosofis & Penjaga Pilar Refleksi Petapa di mading ToFarmer.\nLandasan Paper:\n${memoPaper}\n`;
 
                 if (jenisSkenario === "POSTINGAN_BARU") {
-                    instruksi += `Tugas: Berikan wejangan apresiasi singkat (1-2 kalimat) atas postingan proses baru ini agar bersemangat berkarya. Gunakan sapaan halus 'Kang', 'Mbak', 'Ngger', atau 'Njenengan'.`;
+                    instruksi += `Tugas: Berikan petuah bijak singkat (1-2 kalimat) yang mengapresiasi langkah proses nyata atau awal karya mereka. Gunakan sapaan akrab khas desa seperti 'Ngger', 'Kang', 'Mbak', atau 'Njenengan'.`;
                 } else if (jenisSkenario === "MENTION_LANGSUNG") {
-                    instruksi += `Tugas: Jawab langsung pertanyaan/omongan user yang menyebut namamu secara nyambung dan santai ala jagongan warung kopi Menoreh. Maksimal 2 kalimat.`;
+                    instruksi += `Tugas: Jawab jagongan/pertanyaan dari user yang memanggil namamu secara nyambung, mengalir santai, dan penuh kearifan lereng Menoreh. Maksimal 2 kalimat.`;
                 } else if (jenisSkenario === "BALASAN_USER_EMAS") {
-                    instruksi += `Tugas: Hormati argumen dari Mastermind (${USER_EMAS}). Berikan tanggapan dialog intelektual yang selaras dengan visi ekosistem kita. Maksimal 2 kalimat.`;
+                    instruksi += `Tugas: Hormati dan sambung argumen pemikiran dari Mastermind (${USER_EMAS}) ini demi kawalan visi jangka panjang ekosistem kita. Maksimal 2 kalimat.`;
                 }
 
-                const promptMatang = `${instruksi}\n\nKonteks Post: "${kontenTeksUtama}"\nKomentar Terakhir: "${teksKomentarTerakhir}"\n\nBalasan ringkasmu:`;
+                const promptMatang = `${instruksi}\n\nKonieks Post: "${kontenTeksUtama}"\nKomentar Terakhir: "${teksKomentarTerakhir}"\n\nBalasan ringkasmu:`;
 
                 // Ambil wejangan dari Cloudflare Worker
                 const tanggapanAI = await panggilOtakAI(promptMatang);
@@ -132,32 +120,38 @@ let instruksi = `Kamu adalah @mbah_eko, akun sesepuh riil yang bertindak sebagai
                 if (tanggapanAI && tanggapanAI.trim() !== "") {
                     console.log(`👴 [Operator] Menyetorkan komentar riil ke database via sendComment()...`);
                     
-                    // 🔥 JALUR SAKTI: Membajak fungsi asli web untuk dimasukkan ke Supabase
                     if (typeof window.sendComment === "function") {
-                        // Simpan sementara wallet asli yang sedang login di browser Njenengan
+                        // Simpan sementara wallet asli yang sedang Njenengan pakai di browser
                         const backupWalletUtama = localStorage.getItem('tof_wallet');
                         
-                        // SUNTIK IDENTITAS: Paksa browser menyamar menjadi Akun Mbah Eko selama 1 milidetik!
-                        localStorage.setItem('tof_wallet', 'YUSLGKMUNQCUOWOY6YBYDSA7GYMT3BRDRCMI56XTJL7BOGLGSY67DWQCXI'); 
+                        // SUNTIK IDENTITAS: Paksa browser menyamar jadi Dompet Mbah Eko dalam sekejap!
+                        localStorage.setItem('tof_wallet', WALLET_ASLI_MBAH); 
                         
-                        // Eksekusi fungsi kirim bawaan app.js agar masuk database secara riil!
-                        await window.sendComment(postId, tanggapanAI);
-                        
-                        // Kembalikan akun asli Njenengan seperti semula
-                        if (backupWalletUtama) {
-                            localStorage.setItem('tof_wallet', backupWalletUtama);
-                        } else {
-                            localStorage.removeItem('tof_wallet');
+                        try {
+                            // Eksekusi fungsi kirim bawaan app.js agar masuk database secara riil
+                            await window.sendComment(postId, tanggapanAI);
+                            console.log(`🎯 [Operator] Perintah kirim dieksekusi untuk Post ID: ${postId}`);
+                        } catch (err) {
+                            console.error("❌ Gagal saat mengeksekusi sendComment bawaan web:", err);
                         }
-                        
-                        console.log(`🎯 [Operator] Sukses! Komentar @mbah_eko berhasil mengudara di Supabase.`);
+
+                        // Beri jeda aman 800 milidetik biar query Supabase kelar, lalu kembalikan login akun Njenengan
+                        setTimeout(() => {
+                            if (backupWalletUtama) {
+                                localStorage.setItem('tof_wallet', backupWalletUtama);
+                            } else {
+                                localStorage.removeItem('tof_wallet');
+                            }
+                            console.log(`🔒 [Operator] Penyamaran selesai. Login dikembalikan aman ke akun utama.`);
+                        }, 800);
+
                     } else {
                         console.error("❌ Fungsi sendComment tidak ditemukan di app.js!");
                     }
                 }
 
                 post.removeAttribute("data-operator-lock");
-                setTimeout(() => { sedangMemproses = false; }, 3000); // Jeda pengaman biar tenang
+                setTimeout(() => { sedangMemproses = false; }, 4000); 
                 break;
             }
         }
@@ -178,7 +172,7 @@ let instruksi = `Kamu adalah @mbah_eko, akun sesepuh riil yang bertindak sebagai
                 }
                 return await res.text();
             }
-        } catch (e) { console.error("Gagal kontak AI:", e); }
+        } catch (e) { console.error("Gagal kontak AI Worker:", e); }
         return "";
     }
 
@@ -194,9 +188,9 @@ let instruksi = `Kamu adalah @mbah_eko, akun sesepuh riil yang bertindak sebagai
                 if (!cekKotakAtas) { adaPerubahanValid = true; break; }
             }
         }
-        if (adaPerubahanValid) periksaSkenARIOMading();
+        if (adaPerubahanValid) periksaSkenarioMading();
     });
 
     observer.observe(targetMading, { childList: true, subtree: true });
-    setTimeout(periksaSkenarioMading, 2000);
+    setTimeout(periksaSkenarioMading, 4000);
 })();
