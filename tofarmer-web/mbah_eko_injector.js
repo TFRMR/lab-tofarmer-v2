@@ -18,7 +18,8 @@
             if (!postId) continue;
 
             const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
-            const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text");
+            // Tambahkan .tof-mention ke daftar selector
+const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention");
             
             let daftarKomentar = [];
             let mbahPernahKomentar = false;
