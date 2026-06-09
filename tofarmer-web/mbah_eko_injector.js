@@ -113,35 +113,36 @@
 
     async function kirimKeJembatan(elemenPost, teksUser) {
         try {
-            // Kita langsung tembak endpoint resmi Njenengan yang sudah teruji aktif
             const URL_RESMI = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran";
+
+            console.log("👴 [Mbah Eko] Menghubungi API Utama menggunakan jalur teks aman...");
+
+            // 🔥 KUNCI UTAMA: Kirim data berupa teks polosan/form biasa agar lolos sensor CORS browser,
+            // persis seperti cara kerja kotak khusus bagian atas yang sudah ON.
+            const parameterData = new URLSearchParams();
+            parameterData.append("prompt", teksUser); 
 
             const res = await fetch(URL_RESMI, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    // Kita sesuaikan properti pengiriman teksnya. 
-                    // Jika API /ai-saran biasanya membaca properti tertentu, sesuaikan di bawah ini:
-                    instruksiSistem: `Kamu adalah @mbah_eko, sesepuh digital ToFarmer dari Menoreh. Aturan Mutlak: JANGAN PERNAH gunakan kata sapaan 'le' atau 'nduk'! Ganti dengan sapaan halus: 'Ger' (Ngger), 'Kang', 'Mbak', 'Njenengan', atau 'Sedulur'. Jawab ringkas, padat, penuh petuah tua, mengalir alami seperti obrolan warung kopi (jagongan).`,
-                    tulisanUser: `Obrolan: "${teksUser}"`,
-                    prompt: `Kamu adalah @mbah_eko sesepuh ToFarmer Menoreh. Jawab sapaan dengan 'Kang/Ger/Njenengan'. Tanggapi ini: ${teksUser}` // Cadangan jika API membaca properti 'prompt'
-                })
+                headers: { 
+                    "Content-Type": "application/x-www-form-urlencoded" // Format aman non-JSON
+                },
+                body: parameterData
             });
 
             if (res.ok) {
-                // 🔥 KUNCI UTAMA: Membaca sebagai TEKS MENTAH (.text()), bukan JSON!
+                // Ambil balasan teks mentah langsung dari API
                 const teksBalasanMbah = await res.text();
-                
-                console.log("👴 [Mbah Eko] Dapat balasan teks dari API utama:", teksBalasanMbah);
+                console.log("👴 [Mbah Eko] Mendapat balasan teks:", teksBalasanMbah);
                 
                 if (teksBalasanMbah && teksBalasanMbah.trim() !== "") {
                     suntikKomentarKeHTML(elemenPost, teksBalasanMbah);
                 }
             } else {
-                console.warn("👴 [Mbah Eko] API /ai-saran merespon status:", res.status);
+                console.warn("👴 [Mbah Eko] Pipa API merespon status:", res.status);
             }
         } catch (e) { 
-            console.error("👴 [Mbah Eko] Gagal mendayung lewat API utama:", e); 
+            console.error("👴 [Mbah Eko] Gagal mendayung lewat jalur utama:", e); 
         }
     }
 
