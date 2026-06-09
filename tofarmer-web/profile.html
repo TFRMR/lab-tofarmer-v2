@@ -248,7 +248,15 @@
   <!-- PROFILE LOGIC -->
 
   <script src="profile.js"></script>
-
+<script>
+  function goToUsername(username) {
+    if (!username) return;
+    // Bersihkan tanda '@' jika terbawa masuk ke dalam parameter
+    const namaBersih = username.replace('@', '').trim();
+    // Alihkan halaman secara mulus ke parameter user yang dituju
+    window.location.href = `profile.html?user=${namaBersih}`;
+  }
+</script>
 <script>
   (function() {
     const params = new URLSearchParams(window.location.search);
