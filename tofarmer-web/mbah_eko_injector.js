@@ -83,6 +83,7 @@
                             post_id: parseInt(postId),
                             user_id: "mbah_eko",
                             comment: tanggapanAI
+sender_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY"
                         }]);
 
                     if (!error) {
