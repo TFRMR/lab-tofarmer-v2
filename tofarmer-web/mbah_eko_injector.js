@@ -22,44 +22,46 @@
         return memori;
     }
 
-    let kebalGoncangan = false;
+    let sedangMemprosesKomentar = false;
 
-    async function periksaDanSapaFeed() {
-        if (kebalGoncangan) return; 
+   async function periksaDanSapaFeed() {
+        if (sedangMemprosesKomentar) return;
 
-        // 1. Ambil semua postingan utama di feed
         const semuaPostingan = document.querySelectorAll("#feed .post"); 
         if (!semuaPostingan.length) return;
 
         for (const post of semuaPostingan) {
             if (post.getAttribute("data-mbah-lock") === "true") continue;
 
+            // --- 🛑 REM SAKRAL: BATASI JUMLAH BALASAN SI MBAH ---
+            // Ambil hitungan berapa kali si Mbah sudah membalas di pos ini
+            let jumlahBalasanMbah = parseInt(post.getAttribute("data-mbah-counter") || "0");
+            if (jumlahBalasanMbah >= 3) {
+                // Jika sudah 3 kali atau lebih, si Mbah pamit bertapa lagi. Obrolan dikunci!
+                continue; 
+            }
+
             const postAuthor = post.querySelector(".user")?.innerText.trim() || "";
             if (postAuthor === "@system" || postAuthor === BOT_USERNAME || postAuthor === "") continue;
 
             const kontenTeksUtama = post.querySelector(".text")?.innerText || "";
-            
-            // 2. Ambil seluruh elemen teks di area komentar (termasuk buatan comments.js)
-            // Kita kumpulkan semua elemen teks di dalam post tersebut agar tidak ada yang lolos
             const seluruhBalonTeks = post.querySelectorAll("p, span, div");
             
-            let adaMentionMbahDiKomentar = false;
-            let teksKomentarMention = "";
+            let adaMentionMbahMurni = false;
             let mbahSudahPernahKomentar = false;
+            let teksKomentarTerakhirUser = "";
 
             seluruhBalonTeks.forEach((elemen) => {
+                if (elemen.tagName === "INPUT" || elemen.tagName === "TEXTAREA" || elemen.classList.contains("comment-input")) return;
+                
                 const teksMentah = elemen.innerText || "";
                 
-                // Cek apakah ini komentar asli buatan si Mbah sendiri
                 if (teksMentah.includes("Petapa Menoreh") || elemen.getAttribute("data-comment-author") === BOT_USERNAME) {
                     mbahSudahPernahKomentar = true;
                 }
 
-                // EFEK MAGIS: Jika ada teks @mbah_eko atau @username lain yang masih berupa teks mati,
-                // kita bungkus otomatis menjadi tautan profil aktif yang bisa diklik!
-                if (teksMentah.includes("@") && !elemen.querySelector("a")) {
+                if (teksMentah.includes("@") && !elemen.querySelector("a") && !elemen.querySelector("input")) {
                     const htmlAsli = elemen.innerHTML;
-                    // Ubah teks @username menjadi link dinamis
                     const htmlBaru = htmlAsli.replace(/@([a-zA-Z0-9_]+)/g, function(match, username) {
                         return `<a href="profile.html?user=${username}" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #2f6f4e;">@${username}</a>`;
                     });
@@ -68,33 +70,43 @@
                     }
                 }
 
-                // Catat jika ada mention spesifik ke @mbah_eko di kolom komentar
-                if (teksMentah.includes(BOT_USERNAME) && !teksMentah.includes("Petapa Menoreh") && elemen.getAttribute("data-comment-author") !== BOT_USERNAME) {
-                    adaMentionMbahDiKomentar = true;
-                    teksKomentarMention = teksMentah;
+                if (teksMentah.trim() !== "" && !teksMentah.includes("Petapa Menoreh") && elemen.getAttribute("data-comment-author") !== BOT_USERNAME) {
+                    teksKomentarTerakhirUser = teksMentah;
+                    if (teksMentah.includes(BOT_USERNAME)) {
+                        adaMentionMbahMurni = true;
+                    }
                 }
             });
 
-            // 3. LOGIKA GERBANG KEDATANGAN AI MBAH EKO
             let lolosGerbang = false;
             let bahanTulisanAI = kontenTeksUtama;
 
             if (!mbahSudahPernahKomentar) {
-                // Sapaan pertama kali pada postingan baru
                 lolosGerbang = true;
-            } else if (adaMentionMbahDiKomentar) {
-                // Sapaan karena dipanggil di kolom komentar
-                const hashMention = btoa(teksKomentarMention).substring(0, 10);
-                if (post.getAttribute("data-mbah-mention-read") !== hashMention) {
+            } else if (teksKomentarTerakhirUser !== "") {
+                const hashObrolan = btoa(unescape(encodeURIComponent(teksKomentarTerakhirUser))).substring(0, 12);
+                
+                if (post.getAttribute("data-mbah-mention-read") !== hashObrolan) {
                     lolosGerbang = true;
-                    bahanTulisanAI = `[PENGGUNA MEMENTION KAMU DI KOMENTAR: "${teksKomentarMention}"]\n\nIsi postingan utama mereka: ${kontenTeksUtama}`;
-                    post.setAttribute("data-mbah-mention-read", hashMention);
+                    // Berikan info ke AI tentang sisa kuota obrolannya agar dia bisa menyesuaikan kalimat penutup
+                    const sisaKuota = 3 - (jumlahBalasanMbah + 1);
+                    let infoTambahan = `\n[PENGGUNA LANJUT NGOBROL DENGANMU: "${teksKomentarTerakhirUser}"]`;
+                    if (sisaKuota === 0) {
+                        infoTambahan += `\n[PERINGATAN SISTEM: Ini adalah kesempatan terakhirmu membalas di pos ini. Sampaikan petuah penutup yang berkesan lalu pamit dengan sopan untuk melanjutkan tirakat/ibadah!]`;
+                    }
+                    
+                    bahanTulisanAI = infoTambahan + `\n\nKonteks postingan awal: ${kontenTeksUtama}`;
+                    post.setAttribute("data-mbah-mention-read", hashObrolan);
                 }
             }
 
             if (lolosGerbang) {
                 post.setAttribute("data-mbah-lock", "true"); 
-                kebalGoncangan = true;
+                sedangMemprosesKomentar = true;
+
+                // Tambah angka hitungan counter balasan si Mbah
+                jumlahBalasanMbah++;
+                post.setAttribute("data-mbah-counter", jumlahBalasanMbah.toString());
 
                 const elemenFoto = post.querySelector("img");
                 let urlFoto = null;
@@ -102,13 +114,13 @@
                     urlFoto = elemenFoto.src;
                 }
 
-                const referensiPaper = cariMemoriPaper(kontenTeksUtama + " " + teksKomentarMention);
-                const ComicSistem = `Kamu adalah ${BOT_USERNAME}, sesepuh digital yang adem, sopan, dan sangat bijak di ekosistem ToFarmer. Aturan Bahasa Mutlak: JANGAN PERNAH gunakan kata sapaan 'le' atau 'nduk'! Ganti dengan sapaan halus penyejuk hati: 'Ger' (Ngger), 'Kang', 'Mbak', 'Njenengan', atau 'Sedulur'. Tanggapi postingan/komentar user dengan menyisipkan nilai resmi ToFarmer berikut:\n---\n${referensiPaper}\n---\nJawab ringkas, padat, penuh petuah tua, dan mengalir alami.`;
+                const referensiPaper = cariMemoriPaper(kontenTeksUtama + " " + teksKomentarTerakhirUser);
+                const ComicSistem = `Kamu adalah ${BOT_USERNAME}, sesepuh digital yang adem, sopan, dan sangat bijak di ekosistem ToFarmer. Aturan Bahasa Mutlak: JANGAN PERNAH gunakan kata sapaan 'le' atau 'nduk'! Ganti dengan sapaan halus penyejuk hati: 'Ger' (Ngger), 'Kang', 'Mbak', 'Njenengan', atau 'Sedulur'. Tanggapi obrolan/komentar user dengan menyisipkan nilai resmi ToFarmer berikut:\n---\n${referensiPaper}\n---\nJawab ringkas, padat, penuh petuah tua, mengalir alami seperti obrolan warung kopi (jagongan).`;
 
                 await kirimKeJembatan(post, bahanTulisanAI, postAuthor, ComicSistem, urlFoto);
                 
                 post.removeAttribute("data-mbah-lock");
-                setTimeout(() => { kebalGoncangan = false; }, 2500);
+                setTimeout(() => { sedangMemprosesKomentar = false; }, 1000);
             }
         }
     }
@@ -139,7 +151,8 @@
     }
 
     function suntikKomentarKeHTML(elemenPost, teksBalasanMbah) {
-        let wadahKomentar = elemenPost.querySelector(".comments-box-list, .post-actions, .comments-section");
+        // Cari kontainer list komentar bawaan web Njenengan
+        let wadahKomentar = elemenPost.querySelector(".comments-box-list, .comments-section, .post-actions");
         
         const htmlMbah = `
             <div class="comment-item" data-comment-author="${BOT_USERNAME}" style="display: flex; gap: 10px; margin-top: 12px; padding: 12px; background: #fdf6e2; border-left: 4px solid #2f6f4e; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); text-align: left;">
@@ -154,14 +167,18 @@
         `;
 
         if (wadahKomentar) {
-            wadahKomentar.insertAdjacentHTML("afterend", htmlMbah);
+            wadahKomentar.appendChild(document.createRange().createContextualFragment(htmlMbah));
         } else {
             elemenPost.insertAdjacentHTML("beforeend", htmlMbah);
         }
     }
 
-    // Hanya intip area kontainer feed utama saja agar tidak terganggu oleh rombakan info finansial/avatar
+    // KONFIGURASI RADAR TOTAL: Mengendus text mentah, struktur anak, hingga sub-elemen terdalam
     const targetFeed = document.getElementById("feed") || document.body;
     const observer = new MutationObserver(periksaDanSapaFeed);
-    observer.observe(targetFeed, { childList: true, subtree: true });
+    observer.observe(targetFeed, { 
+        childList: true, 
+        subtree: true,
+        characterData: true 
+    });
 })();
