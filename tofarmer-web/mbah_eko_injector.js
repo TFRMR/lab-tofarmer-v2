@@ -201,19 +201,38 @@ Berikan petuah atau tanggapanmu:`;
 
     async function kirimKeJembatan(elemenPost, teksUser) {
         try {
-            // Gunakan format URLSearchParams agar otomatis dibungkus x-www-form-urlencoded demi menembus CORS browser
-            const parameterData = new URLSearchParams();
-            parameterData.append("prompt", teksUser); 
+            console.log("👴 [Mbah Eko] Menghubungi API Utama menggunakan JSON ramah Worker...");
+
+            // 🔥 PERUBAHAN TOTAL: Kirim sebagai JSON murni sesuai selera Cloudflare Worker Njenengan
+            const bungkusanData = {
+                mode: "komentar",
+                trigger: "mbah_eko_comment",
+                teks: teksUser, // Menggunakan properti 'teks' agar selaras dengan kebutuhan app.js
+                prompt: teksUser
+            };
 
             const res = await fetch(URL_RESMI, {
                 method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: parameterData
+                headers: { 
+                    "Content-Type": "application/json" // Kembali ke JSON agar tidak memicu eror "Unexpected token 'p'"
+                },
+                body: JSON.stringify(bungkusanData)
             });
 
             if (res.ok) {
-                const teksBalasanMbah = await res.text();
+                // Mencoba membaca balasan, sesuaikan apakah Worker membalas teks polosan atau objek JSON
+                const contentType = res.headers.get("content-type") || "";
+                let teksBalasanMbah = "";
+
+                if (contentType.includes("application/json")) {
+                    const hasilJson = await res.json();
+                    teksBalasanMbah = hasilJson.saran || hasilJson.reply || hasilJson.text || "";
+                } else {
+                    teksBalasanMbah = await res.text();
+                }
+
                 console.log("👴 [Mbah Eko] Berhasil memanen wejangan berbobot Paper.");
+                
                 if (teksBalasanMbah && teksBalasanMbah.trim() !== "") {
                     suntikKomentarKeHTML(elemenPost, teksBalasanMbah);
                 }
