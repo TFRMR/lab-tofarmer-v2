@@ -249,7 +249,7 @@ function renderProfileData(data) {
   document.getElementById("profile").innerHTML = `
     <div class="card" style="text-align:center;">
       <img
-        src="${data.avatar_url || 'https://www.tofarmer.xyz/images/logo-tofarmer.png'}"
+        src="${data.avatar_url || 'https://www.tofarmer.xyz/aset/favicon.png'}"
         style="
           width:110px;
           height:110px;
