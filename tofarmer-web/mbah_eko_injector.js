@@ -1,10 +1,10 @@
 (function() {
-    console.log("👴 [Mbah Eko - Operator Akun] Versi Otak Terintegrasi & Akun Riil Aktif...");
+    console.log("👴 [Mbah Eko - Operator Akun] Jalur Tembak Langsung Supabase Aktif...");
 
     const URL_RESMI = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran"; 
     const BOT_USERNAME = "@mbah_eko";
     
-    // Konfigurasi Akun & Dompet Resmi dari Njenengan
+    // Konfigurasi Akun Resmi & Dompet dari Njenengan
     const WALLET_ASLI_MBAH = "YUSLGKMUNQCUOWOY6YBYDSA7GYMT3BRDRCMI56XTJL7BOGLGSY67DWQCXI";
     const USER_EMAS = "CYBER_FARMER"; 
 
@@ -58,7 +58,7 @@
             let jenisSkenario = "";
 
             // =========================================================================
-            // EVALUASI EVALUASI 3 GERBANG SKENARIO OPERATOR
+            // EVALUASI 3 GERBANG SKENARIO OPERATOR
             // =========================================================================
 
             // GERBANG 1: Postingan Baru & Mbah Belum Pernah Nimbrung Sama Sekali
@@ -92,7 +92,7 @@
                 if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
                 if (jenisSkenario === "BALASAN_USER_EMAS") localStorage.setItem(`op_emas_${postId}`, hashKomentar);
 
-                // 🔥 TAKTIK JEMBATAN GAIB: Ambil ingatan langsung dari knowledge-base.js yang aktif di web browser
+                // Ambil ingatan langsung dari knowledge-base.js yang aktif di web browser
                 let memoPaper = "";
                 if (typeof window.cariKonteksPaper === "function") {
                     memoPaper = window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama);
@@ -118,37 +118,35 @@
                 const tanggapanAI = await panggilOtakAI(promptMatang);
 
                 if (tanggapanAI && tanggapanAI.trim() !== "") {
-                    console.log(`👴 [Operator] Menyetorkan komentar riil ke database via sendComment()...`);
-                    
-                    if (typeof window.sendComment === "function") {
-                        // Simpan sementara wallet asli yang sedang Njenengan pakai di browser
-                        const backupWalletUtama = localStorage.getItem('tof_wallet');
-                        
-                        // SUNTIK IDENTITAS: Paksa browser menyamar jadi Dompet Mbah Eko dalam sekejap!
-                        localStorage.setItem('tof_wallet', WALLET_ASLI_MBAH); 
-                        
-                        try {
-                            // Eksekusi fungsi kirim bawaan app.js agar masuk database secara riil
-                            await window.sendComment(postId, tanggapanAI);
-                            console.log(`🎯 [Operator] Perintah kirim dieksekusi untuk Post ID: ${postId}`);
-                        } catch (err) {
-                            console.error("❌ Gagal saat mengeksekusi sendComment bawaan web:", err);
-                        }
+    console.log(`👴 [Operator] Menembak langsung ke Supabase (Tabel comments)...`);
+    
+    const databaseToFarmer = window.supabaseClient || window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
 
-                        // Beri jeda aman 800 milidetik biar query Supabase kelar, lalu kembalikan login akun Njenengan
-                        setTimeout(() => {
-                            if (backupWalletUtama) {
-                                localStorage.setItem('tof_wallet', backupWalletUtama);
-                            } else {
-                                localStorage.removeItem('tof_wallet');
-                            }
-                            console.log(`🔒 [Operator] Penyamaran selesai. Login dikembalikan aman ke akun utama.`);
-                        }, 800);
+    if (databaseToFarmer) {
+        // 🔥 SESUAI STRUKTUR TABEL Njenengan:
+        const dataKomentarMbah = {
+            post_id: parseInt(postId), // Pastikan bigint
+            user_id: "mbah_eko",       // Menggunakan username resmi
+            comment: tanggapanAI       // Sesuai nama kolom tabel
+        };
 
-                    } else {
-                        console.error("❌ Fungsi sendComment tidak ditemukan di app.js!");
-                    }
-                }
+        const { data, error } = await databaseToFarmer
+            .from("comments") 
+            .insert([dataKomentarMbah]);
+
+        if (error) {
+            console.error("❌ Supabase menolak petuah Mbah Eko:", error.message);
+        } else {
+            console.log(`🎯 [Operator] Sukses! Komentar @mbah_eko sah masuk database.`);
+            
+            // Reload feed agar komentar muncul di layar user
+            if (typeof window.loadFeed === "function") window.loadFeed();
+            else location.reload(); 
+        }
+    } else {
+        console.error("❌ Supabase client tidak terdeteksi!");
+    }
+}
 
                 post.removeAttribute("data-operator-lock");
                 setTimeout(() => { sedangMemproses = false; }, 4000); 
