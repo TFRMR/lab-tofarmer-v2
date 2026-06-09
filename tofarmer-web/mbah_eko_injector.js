@@ -117,17 +117,20 @@
                 // Ambil wejangan dari Cloudflare Worker
                 const tanggapanAI = await panggilOtakAI(promptMatang);
 
-               if (tanggapanAI && tanggapanAI.trim() !== "") {
-    console.log(`👴 [Operator] Mencari jalur koneksi Supabase...`);
+            // GANTI BLOK EKSEKUSI DI mbah_eko_injector.js DENGAN INI:
+if (tanggapanAI && tanggapanAI.trim() !== "") {
+    console.log(`👴 [Operator] Mencari jalur koneksi Supabase yang aktif...`);
 
-    // 🕵️ DETEKTIF OBJEK: Kita cari variabel global yang punya method .from()
+    // Mencari objek yang memiliki method .from() di dalam window (global)
     let databaseToFarmer = null;
-    const kandidat = ['supabase', 'supabaseClient', 'db', 'client', 'app']; 
+    
+    // Daftar kandidat variabel yang mungkin memegang akses Supabase
+    const kandidat = ['supabaseClient', 'supabase', 'db', 'client']; 
     
     for (let nama of kandidat) {
         if (window[nama] && typeof window[nama].from === 'function') {
             databaseToFarmer = window[nama];
-            console.log(`✅ [Operator] Supabase ditemukan di: window.${nama}`);
+            console.log(`✅ [Operator] Supabase ditemukan pada: window.${nama}`);
             break;
         }
     }
@@ -149,17 +152,14 @@
             } else {
                 console.log(`🎯 [Operator] Sukses! Komentar @mbah_eko sah masuk database.`);
                 if (typeof window.loadFeed === "function") window.loadFeed();
-                else location.reload();
             }
         } catch (e) {
-            console.error("❌ Eror saat insert ke database:", e);
+            console.error("❌ Eror saat eksekusi:", e);
         }
     } else {
-        console.error("❌ Gagal menemukan objek Supabase di window! Coba cek variabel apa yang dipakai di app.js");
-        // TIPS: Ketik 'window' di console browser Njenengan untuk melihat daftar variabel global
+        console.error("❌ Gagal menemukan akses Supabase di halaman ini.");
     }
 }
-
                 post.removeAttribute("data-operator-lock");
                 setTimeout(() => { sedangMemproses = false; }, 4000); 
                 break;
