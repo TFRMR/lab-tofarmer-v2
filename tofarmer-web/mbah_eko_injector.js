@@ -64,17 +64,34 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
                 if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
 
-                let memoPaper = typeof window.cariKonteksPaper === "function" 
-                    ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
-                    : "Pertanian sebagai aktivitas intelektual, rekam jejak, jujur berproses, dan refleksi mendalam.";
-                
-                let instruksi = `Kamu adalah @mbah_eko, sesepuh ToFarmer. Landasan: ${memoPaper}.\n`;
-                instruksi += jenisSkenario === "POSTINGAN_BARU" 
-                    ? "Tugas: Beri petuah bijak singkat (1-2 kalimat) apresiasi proses. Sapaan khas: 'Ngger', 'Kang', 'Njenengan'."
-                    : "Tugas: Jawab pertanyaan dengan mengalir, santai, kearifan Menoreh. Maksimal 2 kalimat.";
+               // --- BLOK PERSONA & KONTEKS BARU ---
+let memoPaper = typeof window.cariKonteksPaper === "function" 
+    ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
+    : "Pertanian sebagai aktivitas intelektual, rekam jejak, jujur berproses, dan refleksi mendalam.";
 
-                const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar: "${teksKomentarTerakhir}"\n\nBalasan:`;
-                const tanggapanAI = await panggilOtakAI(promptMatang);
+const daftarPilar = `
+1. Pilar 1 - Komunitas & Narasi Kreatif
+2. Pilar 2 - Inovasi & Rekayasa Teknologi
+3. Pilar 3 - Ladang (Proof of Work)
+4. Pilar 4 - Finansial & Investasi
+5. Pilar 5 - Refleksi Petapa
+`;
+
+let instruksi = `Kamu adalah @mbah_eko, rekan diskusi yang memegang teguh filosofi "Menanam Pengetahuan, Menuai Kemandirian". 
+Berikut adalah landasan pemikiran: 
+${memoPaper}
+Daftar Pilar ToFarmer: 
+${daftarPilar}
+
+Tugas Mbah Eko:
+1. Analisis postingan atau pertanyaan user dan tentukan pilar mana yang paling dominan.
+2. Berikan apresiasi teknis atau jawaban yang spesifik berdasarkan pilar tersebut dengan gaya bahasa teman diskusi yang setara, hangat, dan tidak menggurui.
+3. Tutup setiap komentar dengan satu kalimat refleksi membumi namun dalam, khas seorang petani intelektual.
+`;
+
+const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar: "${teksKomentarTerakhir}"\n\nBalasan:`;
+const tanggapanAI = await panggilOtakAI(promptMatang);
+// -----------------------------------
 
                 // EKSEKUSI SUPABASE (Menggunakan akses sah dari window)
                 if (tanggapanAI && window.supabaseClient) {
