@@ -117,34 +117,46 @@
                 // Ambil wejangan dari Cloudflare Worker
                 const tanggapanAI = await panggilOtakAI(promptMatang);
 
-                if (tanggapanAI && tanggapanAI.trim() !== "") {
-    console.log(`👴 [Operator] Menembak langsung ke Supabase (Tabel comments)...`);
+               if (tanggapanAI && tanggapanAI.trim() !== "") {
+    console.log(`👴 [Operator] Mencari jalur koneksi Supabase...`);
+
+    // 🕵️ DETEKTIF OBJEK: Kita cari variabel global yang punya method .from()
+    let databaseToFarmer = null;
+    const kandidat = ['supabase', 'supabaseClient', 'db', 'client', 'app']; 
     
-    const databaseToFarmer = window.supabaseClient || window.supabase || (typeof supabase !== 'undefined' ? supabase : null);
+    for (let nama of kandidat) {
+        if (window[nama] && typeof window[nama].from === 'function') {
+            databaseToFarmer = window[nama];
+            console.log(`✅ [Operator] Supabase ditemukan di: window.${nama}`);
+            break;
+        }
+    }
 
     if (databaseToFarmer) {
-        // 🔥 SESUAI STRUKTUR TABEL Njenengan:
         const dataKomentarMbah = {
-            post_id: parseInt(postId), // Pastikan bigint
-            user_id: "mbah_eko",       // Menggunakan username resmi
-            comment: tanggapanAI       // Sesuai nama kolom tabel
+            post_id: parseInt(postId),
+            user_id: "mbah_eko",
+            comment: tanggapanAI
         };
 
-        const { data, error } = await databaseToFarmer
-            .from("comments") 
-            .insert([dataKomentarMbah]);
+        try {
+            const { data, error } = await databaseToFarmer
+                .from("comments") 
+                .insert([dataKomentarMbah]);
 
-        if (error) {
-            console.error("❌ Supabase menolak petuah Mbah Eko:", error.message);
-        } else {
-            console.log(`🎯 [Operator] Sukses! Komentar @mbah_eko sah masuk database.`);
-            
-            // Reload feed agar komentar muncul di layar user
-            if (typeof window.loadFeed === "function") window.loadFeed();
-            else location.reload(); 
+            if (error) {
+                console.error("❌ Supabase menolak:", error.message);
+            } else {
+                console.log(`🎯 [Operator] Sukses! Komentar @mbah_eko sah masuk database.`);
+                if (typeof window.loadFeed === "function") window.loadFeed();
+                else location.reload();
+            }
+        } catch (e) {
+            console.error("❌ Eror saat insert ke database:", e);
         }
     } else {
-        console.error("❌ Supabase client tidak terdeteksi!");
+        console.error("❌ Gagal menemukan objek Supabase di window! Coba cek variabel apa yang dipakai di app.js");
+        // TIPS: Ketik 'window' di console browser Njenengan untuk melihat daftar variabel global
     }
 }
 
