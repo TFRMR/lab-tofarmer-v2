@@ -136,12 +136,10 @@
         }
     }
 
-    function suntikKomentarKeHTML(elemenPost, teksBalasanMbah) {
-        // Cari kontainer list komentar bawaan web Njenengan secara fleksibel
-        let wadahKomentar = elemenPost.querySelector(".comments-box-list, .comments-section, .post-actions") || elemenPost;
-        
+  function suntikKomentarKeHTML(elemenPost, teksBalasanMbah) {
+        // KONTEN HTML WEJANGAN MBAH EKO
         const htmlMbah = `
-            <div class="comment-item" data-comment-author="${BOT_USERNAME}" style="display: flex; gap: 10px; margin-top: 12px; padding: 12px; background: #fdf6e2; border-left: 4px solid #2f6f4e; border-radius: 10px; text-align: left;">
+            <div class="comment-item" data-comment-author="${BOT_USERNAME}" style="display: flex; gap: 10px; margin-top: 12px; padding: 12px; background: #fdf6e2; border-left: 4px solid #2f6f4e; border-radius: 10px; text-align: left; animation: fadeIn 0.5s ease;">
                 <div style="font-size: 18px; margin-top: 2px;">👴</div>
                 <div style="font-size: 12px; font-family: sans-serif; color: #1c2b22; width: 100%;">
                     <a href="profile.html?user=mbah_eko" style="text-decoration: none; color: #2f6f4e; display: block; margin-bottom: 2px; font-weight: bold;">
@@ -152,8 +150,34 @@
             </div>
         `;
 
-        wadahKomentar.insertAdjacentHTML("beforeend", htmlMbah);
-        console.log("👴 [Mbah Eko] Berhasil menyuntikkan komentar balasan ke layar!");
+        // 🕵️‍♂️ TAKTIK BERBURU PAPAN TULIS (DARI SPESIFIK SAMPAI SAPU JAGAT)
+        
+        // Opsi 1: Cari kotak list komentar bawaan (jika ada)
+        let wadahKomentar = elemenPost.querySelector(".comments-box-list, .comments-section, [id^='comments-'], .comments");
+        
+        // Opsi 2: Kalau Opsi 1 gagal, cari elemen input tempat mengetik komentar Anda,
+        // lalu kita selipkan komentar Mbah Eko tepat di ATAS kotak input tersebut!
+        if (!wadahKomentar) {
+            const kotakInputKomentar = elemenPost.querySelector("input[type='text'], input.comment-input, .comment-form, textarea");
+            if (kotakInputKomentar) {
+                // Cari pembungkus terluar dari input (biasanya div form atau div baris input)
+                wadahKomentar = kotakInputKomentar.parentElement;
+                if (wadahKomentar) {
+                    wadahKomentar.insertAdjacentHTML("beforebegin", htmlMbah);
+                    console.log("👴 [Mbah Eko] Papan tulis ketemu! Menyisipkan komentar di atas kotak input ketikan.");
+                    return;
+                }
+            }
+        }
+
+        // Opsi 3: Jalan pintas terakhir kalau semua opsi di atas buntu, tempel di paling bawah postingan
+        if (wadahKomentar) {
+            wadahKomentar.insertAdjacentHTML("beforeend", htmlMbah);
+            console.log("👴 [Mbah Eko] Berhasil menulis wejangan di dalam wadah komentar.");
+        } else {
+            elemenPost.insertAdjacentHTML("beforeend", htmlMbah);
+            console.log("👴 [Mbah Eko] Wadah buntu, memaksa menulis di paling bawah elemen postingan utama.");
+        }
     }
 
     // Mengamati perubahan dokumen secara agresif demi menangkap ketikan lokal
