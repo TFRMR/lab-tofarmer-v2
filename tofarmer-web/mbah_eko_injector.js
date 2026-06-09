@@ -81,9 +81,9 @@
                         .from("comments") 
                         .insert([{
                             post_id: parseInt(postId),
-                            user_id: "mbah_eko",
+                            user_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
                             comment: tanggapanAI
-sender_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY"
+
                         }]);
 
                     if (!error) {
