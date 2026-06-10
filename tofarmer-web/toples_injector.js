@@ -104,23 +104,25 @@
                                 if (window.supabaseClient) {
                                     let profileData = null;
 
-                                    // Langkah A: Coba cari berdasarkan username dulu
-                                    if (inputUsername) {
-                                        const { data } = await window.supabaseClient
-                                            .from("profiles")
-                                            .eq("username", inputUsername)
-                                            .maybeSingle(); 
-                                        profileData = data;
-                                    }
+                                   // Langkah A: Coba cari berdasarkan username dulu
+if (inputUsername) {
+    const { data } = await window.supabaseClient
+        .from("profiles")
+        .select("*") // <--- HARUS ADA .select("*") SEBELUM .eq()
+        .eq("username", inputUsername)
+        .maybeSingle(); 
+    profileData = data;
+}
 
-                                    // Langkah B: Jaring Pengaman! Jika username tidak ketemu, cari berdasarkan alamat dompet (id)
-                                    if (!profileData && inputWallet) {
-                                        const { data } = await window.supabaseClient
-                                            .from("profiles")
-                                            .eq("id", inputWallet)
-                                            .maybeSingle();
-                                        profileData = data;
-                                    }
+// Langkah B: Jaring Pengaman! Cari berdasarkan alamat dompet (id)
+if (!profileData && inputWallet) {
+    const { data } = await window.supabaseClient
+        .from("profiles")
+        .select("*") // <--- HARUS ADA .select("*") DI SINI JUGA
+        .eq("id", inputWallet)
+        .maybeSingle();
+    profileData = data;
+}
 
                                     // Jika salah satu pencarian di atas berhasil menemukan user
                                     if (profileData && profileData.username) {
