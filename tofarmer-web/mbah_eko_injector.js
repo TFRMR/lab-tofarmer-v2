@@ -11,13 +11,14 @@
         const semuaPostingan = document.querySelectorAll("#feed-container .post, #posts .post, .post, [id^='post-card-']"); 
         if (!semuaPostingan.length) return;
 
-       for (const post of semuaPostingan) {
-            // TAMBAHAN: Cek stempel unik. Jika ada, lewati.
-            if (post.hasAttribute("data-mbah-eko-processed")) continue;
+      for (const post of semuaPostingan) {
+            const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
+            if (!postId) continue;
+
+            // --- CEK BUKU CATATAN PERMANEN (LocalStorage) ---
+            if (localStorage.getItem(`mbah_processed_${postId}`) === "true") continue;
             
             if (post.getAttribute("data-operator-lock") === "true") continue;
-
-            const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
             if (!postId) continue;
 
             const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
@@ -61,8 +62,8 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
             }
 
           if (terpicu) {
-                // TAMBAHAN: Langsung stempel agar tidak diproses lagi
-                post.setAttribute("data-mbah-eko-processed", "true");
+                // STAMPEL PERMANEN: Catat di buku memori browser
+                localStorage.setItem(`mbah_processed_${postId}`, "true");
                 
                 post.setAttribute("data-operator-lock", "true");
                 sedangMemproses = true;
