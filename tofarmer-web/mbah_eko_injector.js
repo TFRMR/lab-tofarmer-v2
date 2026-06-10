@@ -62,7 +62,7 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 }
             }
 
-          if (terpicu) {
+     
              if (terpicu) {
     // Tidak pakai localStorage lagi, kita pakai database
     
