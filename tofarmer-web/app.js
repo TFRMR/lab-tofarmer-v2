@@ -88,7 +88,7 @@ async function connectWallet() {
               xp: 0,
               saldo_tof: 0,
               level: 1,
-              avatar_url: "https://www.tofarmer.xyz/images/logo-tofarmer.png"
+              avatar_url: "https://www.tofarmer.xyz/aset/favicon.png"
             }
           ])
 
@@ -633,7 +633,7 @@ const { data: rawComments, error: qErr } = await supabaseClient
         const pencocok = allProfiles ? allProfiles.find(p => String(p.id).trim() === String(c.user_id).trim()) : null;
         return {
           ...c,
-          profiles: pencocok || { username: "Petani_Misterius", avatar_url: "https://www.tofarmer.xyz/images/logo-tofarmer.png", id: "" }
+          profiles: pencocok || { username: "Petani_Misterius", avatar_url: "https://www.tofarmer.xyz/aset/favicon.png", id: "" }
         };
       });
     }
@@ -703,7 +703,7 @@ const { data: rawComments, error: qErr } = await supabaseClient
             if (!c) return '';
             // Ambil data profile dari objek gabungan Supabase
             const cUser = (c.profiles && c.profiles.username) ? c.profiles.username : "Petani_Misterius";
-            const cAvatar = (c.profiles && c.profiles.avatar_url) ? c.profiles.avatar_url : "https://www.tofarmer.xyz/images/logo-tofarmer.png";
+            const cAvatar = (c.profiles && c.profiles.avatar_url) ? c.profiles.avatar_url : "https://www.tofarmer.xyz/aset/favicon.png";
             const cUserId = (c.profiles && c.profiles.id) ? c.profiles.id : "";
             const isiKomentar = c.comment || "";
             
@@ -986,7 +986,7 @@ async function sendComment(postId) {
 
   // 3. Siapkan data profil lokal untuk langsung dirender secara instan
   const currentUsername = currentProfile ? currentProfile.username : "Petani";
-  const currentAvatar = currentProfile ? currentProfile.avatar_url : "https://www.tofarmer.xyz/images/logo-tofarmer.png";
+  const currentAvatar = currentProfile ? currentProfile.avatar_url : "https://www.tofarmer.xyz/aset/favicon.png";
 
   // 4. Struktur HTML untuk komentar baru Anda
   const newCommentHtml = `
