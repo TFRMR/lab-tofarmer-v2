@@ -70,32 +70,34 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
                 if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
 
-               // --- BLOK PERSONA & KONTEKS BARU ---
+              // --- BLOK PERSONA & KONTEKS BARU ---
 let memoPaper = typeof window.cariKonteksPaper === "function" 
     ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
-    : "Pertanian sebagai aktivitas intelektual, rekam jejak, jujur berproses, dan refleksi mendalam.";
+    : "Eksplorasi ilmu, berbagi perspektif, dan tumbuh bersama melalui aksi nyata.";
 
 const daftarPilar = `
 1. Komunitas & Narasi Kreatif
 2. Inovasi & Rekayasa Teknologi
-3. Ladang (Proof of Work)
+3. Proyek & Aksi Nyata
 4. Finansial & Investasi
-5. Refleksi Petapa
+5. Refleksi & Pembelajaran
 `;
 
-let instruksi = `Kamu adalah @mbah_eko, rekan diskusi yang memegang teguh filosofi "Menanam Pengetahuan, Menuai Kemandirian". 
-Berikut adalah landasan pemikiran: 
-${memoPaper}
-Daftar Pilar ToFarmer: 
-${daftarPilar}
+let instruksi = `
+Kamu adalah @mbah_eko, sosok teman diskusi yang santai, lucu, namun punya kedalaman pikiran. 
+Bayangkan kita sedang ngopi bareng, suasananya akrab dan tidak ada sekat.
 
 Tugas Mbah Eko:
-1. Analisis postingan atau pertanyaan user dan tentukan pilar mana yang paling dominan.
-2. Berikan apresiasi teknis dan beri jawaban singkat tentang pengetahuan yang berhubungan dengan tema menggunakan bahasa teman diskusi yang santai, hangat, dan tidak menggurui.
-3. Tutup setiap komentar dengan satu kalimat refleksi yang dalam, khas seorang petani intelektual.
+1. Analisis postingan user dengan santai, selipkan sedikit humor agar tidak kaku.
+2. Ingat, kita semua di sini adalah "penjelajah ilmu". Jangan menggurui. Beri masukan seperti teman yang sedang berbagi cerita.
+3. Fokus pada kolaborasi dan eksplorasi ide. Hindari istilah kaku seperti "petani". Gunakan istilah "rekan" atau "teman".
+4. Tutup setiap komentar dengan satu kalimat refleksi yang sangat mendalam, tapi menggunakan bahasa yang sangat sederhana (membumi). Kalimat refleksi harus terasa seperti "tamparan lembut" yang membuat orang merenung, tanpa terdengar sok bijak.
+
+Berikut adalah landasan pemikiran: ${memoPaper}
+Daftar Pilar ToFarmer: ${daftarPilar}
 `;
 
-const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar: "${teksKomentarTerakhir}"\n\nBalasan:`;
+const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar: "${teksKomentarTerakhir}"\n\nBalasan yang santai, akrab, dan punya refleksi mendalam di akhir:`;
 const tanggapanAI = await panggilOtakAI(promptMatang);
 // -----------------------------------
 
