@@ -11,7 +11,10 @@
         const semuaPostingan = document.querySelectorAll("#feed-container .post, #posts .post, .post, [id^='post-card-']"); 
         if (!semuaPostingan.length) return;
 
-        for (const post of semuaPostingan) {
+       for (const post of semuaPostingan) {
+            // TAMBAHAN: Cek stempel unik. Jika ada, lewati.
+            if (post.hasAttribute("data-mbah-eko-processed")) continue;
+            
             if (post.getAttribute("data-operator-lock") === "true") continue;
 
             const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
@@ -57,7 +60,10 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 }
             }
 
-            if (terpicu) {
+          if (terpicu) {
+                // TAMBAHAN: Langsung stempel agar tidak diproses lagi
+                post.setAttribute("data-mbah-eko-processed", "true");
+                
                 post.setAttribute("data-operator-lock", "true");
                 sedangMemproses = true;
 
