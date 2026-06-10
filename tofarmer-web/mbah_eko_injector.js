@@ -162,8 +162,18 @@ async function cekApakahSudahKomentar(postId) {
     }
 
     const targetMading = document.body;
+// --- PENGATURAN OBSERVER ---
+    // Menggunakan document.body agar Mbah Eko bisa melihat perubahan di mana saja
     const observer = new MutationObserver(periksaSkenarioMading);
-    observer.observe(targetMading, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     
-    setTimeout(periksaSkenarioMading, 4000);
-})();
+    // --- PEMICU AWAL ---
+    // Cek setelah 4 detik (memberi waktu agar elemen ter-render)
+    setTimeout(periksaSkenarioMading, 4000); 
+
+    // --- PEMICU JIKA HALAMAN BARU SELESAI LOAD ---
+    window.addEventListener('load', () => {
+        setTimeout(periksaSkenarioMading, 2000); 
+    });
+
+})(); // <--- Tanda tutup kurung dan eksekusi fungsi yang benar
