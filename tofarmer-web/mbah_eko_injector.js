@@ -9,7 +9,8 @@
         if (sedangMemproses) return;
 
        // Mengambil semua elemen yang memiliki class .post atau ID post-card-... di halaman mana saja
-const semuaPostingan = document.querySelectorAll(".post, [id^='post-card-']");
+// Menangkap postingan di beranda (feed) DAN di profil (userPosts)
+const semuaPostingan = document.querySelectorAll("#feed .post, #userPosts .post, .post, [id^='post-card-']");
         if (!semuaPostingan.length) return;
 
       for (const post of semuaPostingan) {
