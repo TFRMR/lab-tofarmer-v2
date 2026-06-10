@@ -8,7 +8,8 @@
     async function periksaSkenarioMading() {
         if (sedangMemproses) return;
 
-        const semuaPostingan = document.querySelectorAll("#feed-container .post, #posts .post, .post, [id^='post-card-']"); 
+       // Mengambil semua elemen yang memiliki class .post atau ID post-card-... di halaman mana saja
+const semuaPostingan = document.querySelectorAll(".post, [id^='post-card-']");
         if (!semuaPostingan.length) return;
 
       for (const post of semuaPostingan) {
@@ -93,7 +94,8 @@ Tugas Mbah Eko:
 3. Jangan pernah memposisikan diri di atas. Kalau mau kasih saran, pakai format: "Kalau aku sih biasanya..." atau "Gimana kalau kita coba...".
 4. Fokus pada diskusi ide: Inovasi, proyek, kejujuran dan aksi nyata. Hindari istilah formal atau sok bijak.
 5. Tutup dengan refleksi dalam yang "nyentil" tapi tetap hangat, seolah-olah kita baru saja selesai ngopi bareng.
-
+6. (TAMBAHKAN INI) Jika ada user lain yang bertanya atau menimpali, balaslah dengan menyapa atau menanggapi poin mereka secara langsung. Kita sedang berdiskusi, bukan sekadar menjawab soal. 
+7. Jangan kaku. Jika pertanyaannya ringan, balas dengan ringan. Jika pertanyaannya teknis/serius, balas dengan jujur tanpa sok tahu.`;
 Berikut adalah landasan pemikiran: ${memoPaper}
 Daftar Pilar ToFarmer: ${daftarPilar}`;
 
@@ -158,7 +160,7 @@ async function cekApakahSudahKomentar(postId) {
         } catch (e) { return ""; }
     }
 
-    const targetMading = document.getElementById("feed") || document.getElementById("feed-container") || document.body;
+    const targetMading = document.body;
     const observer = new MutationObserver(periksaSkenarioMading);
     observer.observe(targetMading, { childList: true, subtree: true });
     
