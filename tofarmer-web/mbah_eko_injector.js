@@ -15,10 +15,11 @@
             const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
             if (!postId) continue;
 
-            // --- CEK BUKU CATATAN PERMANEN (LocalStorage) ---
-            if (localStorage.getItem(`mbah_processed_${postId}`) === "true") continue;
-            
-            if (post.getAttribute("data-operator-lock") === "true") continue;
+            // --- CEK KE DATABASE SUPABASE (OTAK UTAMA) ---
+const sudahKomen = await cekApakahSudahKomentar(postId);
+if (sudahKomen) continue;
+
+if (post.getAttribute("data-operator-lock") === "true") continue;
             if (!postId) continue;
 
             const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
@@ -62,10 +63,10 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
             }
 
           if (terpicu) {
-                // STAMPEL PERMANEN: Catat di buku memori browser
-                localStorage.setItem(`mbah_processed_${postId}`, "true");
-                
-                post.setAttribute("data-operator-lock", "true");
+             if (terpicu) {
+    // Tidak pakai localStorage lagi, kita pakai database
+    
+    post.setAttribute("data-operator-lock", "true");
                 sedangMemproses = true;
 
                 if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
@@ -133,7 +134,18 @@ const tanggapanAI = await panggilOtakAI(promptMatang);
             }
         }
     }
+// TAMBAHKAN FUNGSI INI DI ATAS panggilOtakAI
+async function cekApakahSudahKomentar(postId) {
+    if (!window.supabaseClient) return false;
+    const { data, error } = await window.supabaseClient
+        .from("comments")
+        .select("id")
+        .eq("post_id", parseInt(postId))
+        .eq("user_id", "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY")
+        .limit(1);
 
+    return error ? false : (data.length > 0);
+}
     async function panggilOtakAI(promptTeks) {
         try {
             const res = await fetch(URL_RESMI, {
