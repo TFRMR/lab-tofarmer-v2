@@ -98,34 +98,57 @@ async function saveTx(tx, wallet, username) {
 
 
 // ============================
-// 6. SYNC SEMUA WALLET
-// ============================
 async function syncData() {
+  const btn = document.getElementById("syncBtn");
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.innerText = "🔄 Mengambil data murni dari Blockchain...";
 
-  statusEl.innerText = "🔄 Mengambil semua transaksi wallet...";
+  try {
+    const wallets = await getAllWallets();
 
-  const wallets = await getAllWallets();
+    for (let user of wallets) {
+      const txs = await getWalletTx(user.id);
 
-  for (let user of wallets) {
+      // Filter hanya transaksi TOF yang valid
+      const tofTxs = txs.filter(tx => 
+        tx['asset-transfer-transaction']?.['asset-id'] === TOF_ASSET_ID
+      );
 
-    const txs = await getWalletTx(user.id);
-
-    for (let tx of txs) {
-
-      const asset =
-        tx["asset-transfer-transaction"]?.["asset-id"];
-
-      if (asset !== TOF_ASSET_ID) continue;
-
-      await saveTx(tx, user.id, user.username);
+      for (let tx of tofTxs) {
+        // AMBIL DATA MURNI ON-CHAIN
+        const transfer = tx['asset-transfer-transaction'];
+        const amountRaw = transfer.amount;
+        const amount = Number(amountRaw) / 1e6; // Pastikan desimal tepat
+        
+        // Tentukan siapa pengirim dan penerima berdasarkan struktur On-Chain
+        const sender = tx.sender;
+        const receiver = transfer.receiver;
+        
+        // Simpan ke Supabase sebagai "Source of Truth"
+        await supabaseClient.from("tof_history").upsert([{
+          wallet: user.id,
+          username: user.username,
+          tx_id: tx.id,
+          amount: amount, 
+          note: decodeNote(tx.note),
+          category: categorize(decodeNote(tx.note)),
+          sender: sender,
+          receiver: receiver,
+          created_at: new Date(tx["round-time"] * 1000)
+        }], {
+          onConflict: "tx_id"
+        });
+      }
     }
+    statusEl.innerText = "✅ Data berhasil disinkronisasi dengan Blockchain";
+  } catch (error) {
+    console.error("Sync Error:", error);
+    statusEl.innerText = "❌ Gagal sync: " + error.message;
+  } finally {
+    if (btn) btn.disabled = false;
+    loadReport(); // Update tampilan setelah sync selesai
   }
-
-  statusEl.innerText = "✅ Update selesai";
-
-  loadReport();
 }
-
 
 // ============================
 // 7. GROUPING USER (tetap untuk histori)
@@ -200,90 +223,99 @@ async function getWalletBalance(wallet) {
 
 
 // ============================
-// 10. LOAD REPORT FINAL (FULL FIX)
+// 10. LOAD REPORT FINAL (ON-CHAIN & TABEL ACCORDION)
 // ============================
 async function loadReport() {
-
-  const { data } = await supabaseClient
-    .from("tof_history")
-    .select("*")
-    .order("created_at", { ascending: true });
-
-  if (!data) return;
-
-  const grouped = groupByUser(data);
-
+  if (statusEl) statusEl.innerText = "🔍 Mengambil data langsung dari Blockchain...";
+  
   const wallets = await getAllWallets();
-
   let totalAll = 0;
+  
+  // Kosongkan container sebelum memuat
+  if (summaryEl) summaryEl.innerHTML = "";
+  feedEl.innerHTML = "";
 
-  // ============================
-  // GLOBAL REAL BALANCE
-  // ============================
-  for (let w of wallets) {
-    const bal = await getWalletBalance(w.id);
-    totalAll += Number(bal || 0);
-  }
+  let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
 
-  let html = `
-    <h1>🌿 Riwayat Transaksi & Transparansi Aset</h1>
-    <p>Diposting pada: ${new Date().toLocaleDateString()}</p>
+  for (let user of wallets) {
+    const txs = await getWalletTx(user.id);
+    const balance = await getWalletBalance(user.id);
+    totalAll += balance;
 
-    <h2>🧮 REKAP TRANSAKSI TOF FASE 3</h2>
-    <p>
-      Sistem ToFarmer beroperasi dengan prinsip transparansi total.
-      Semua transaksi tercatat otomatis dari wallet.
-    </p>
+    // Filter transaksi TOF
+    const tofTxs = txs.filter(tx => tx['asset-transfer-transaction']?.['asset-id'] === TOF_ASSET_ID);
 
-    <h3>📊 RINGKASAN EKOSISTEM</h3>
+    html += `
+      <details class="card" style="margin-bottom:15px; border-left: 3px solid #22c55e;">
+        <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
+          👤 ${user.username} 
+          <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(Klik lihat detail)</span>
+        </summary>
+        <div style="margin-top:15px;">
+          <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+              <tr style="color: #64748b; border-bottom: 1px solid #334155;">
+                <th style="padding:5px;">Tanggal</th>
+                <th style="padding:5px; text-align:right;">Jumlah</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
 
-    <p>Total Transaksi: ${data.length}</p>
-    <p>Total Dana (REAL BALANCE): TOF ${totalAll}</p>
-    <p>Status: ✅ ALL DATA VERIFIED (BLOCKCHAIN SOURCE)</p>
-
-    <hr/>
-  `;
-
-  html += `<h3>👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
-
-  // ============================
-  // PER USER REAL BALANCE (FIX CYBER & QUANTUM)
-  // ============================
-  for (let user in grouped) {
-
-    const wallet = grouped[user].wallet;
-
-    let realBalance = await getWalletBalance(wallet);
-
-    html += `<h4>[ ${user} ]</h4><pre>`;
-
-    html += `Tanggal | Waktu | Jumlah | Keterangan\n`;
-
-    grouped[user].txs.forEach(tx => {
-      html += formatRow(tx) + "\n";
-    });
-
-    html += `\nTOTAL (REAL): TOF ${realBalance}\n</pre>`;
-  }
+  // Ganti bagian di dalam forEach pada loadReport dengan ini:
+tofTxs.forEach(tx => {
+  const transfer = tx['asset-transfer-transaction'];
+  const amount = (transfer ? transfer.amount : 0) / 1000000;
+  
+  // LOGIKA AKURAT:
+  // Jika wallet user adalah RECEIVER, maka itu MASUK (+)
+  // Jika wallet user adalah SENDER, maka itu KELUAR (-)
+  const isReceiver = transfer?.receiver === user.id;
+  const isSender = tx.sender === user.id;
+  
+  // Kita tentukan tanda berdasarkan role wallet dalam transaksi
+  const sign = isReceiver ? "+" : (isSender ? "-" : "");
+  const color = isReceiver ? "#4ade80" : (isSender ? "#f87171" : "#64748b");
 
   html += `
-    <h3>🛡️ VERIFIKASI AKHIR</h3>
-    <p>TOTAL SISTEM (ON-CHAIN): TOF ${totalAll} (VERIFIED)</p>
+    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+      <td style="padding:8px 5px;">
+        ${new Date(tx['round-time'] * 1000).toLocaleDateString()}
+        <div style="font-size:0.7rem; color:#64748b;">${decodeNote(tx.note) || "-"}</div>
+      </td>
+      <td style="text-align:right; color:${color}; font-weight:bold;">
+        ${sign} ${amount.toLocaleString(undefined, {minimumFractionDigits: 0})}
+      </td>
+    </tr>
+  `;
+});
 
-    <br/>
-    <i>"Kemandirian ekonomi dimulai dari pencatatan yang jujur."</i>
+    html += `
+            </tbody>
+            <tfoot>
+              <tr style="border-top: 2px solid #22c55e;">
+                <td style="padding:10px 5px; font-weight:bold;">SALDO</td>
+                <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${balance.toLocaleString()}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </details>
+    `;
+  }
 
-    <br/><br/>
-    <button onclick="window.location.href='/'"
-      style="padding:10px 16px; border-radius:8px; cursor:pointer;">
-      ⬅ Kembali ke Beranda
-    </button>
+  // Tampilkan Summary di bagian atas
+  summaryEl.innerHTML = `
+    <div class="card" style="text-align:center;">
+      <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
+      <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">TOTAL: TOF ${totalAll.toLocaleString()}</p>
+      <p style="font-size:0.8rem; color:#64748b;">STATUS: ✅ ON-CHAIN VERIFIED</p>
+    </div>
   `;
 
   feedEl.innerHTML = html;
-  summaryEl.innerHTML = "";
+  if (statusEl) statusEl.innerText = "✅ Data On-Chain Berhasil Dimuat";
 }
-
 
 // ============================
 // 11. EVENT BUTTON
