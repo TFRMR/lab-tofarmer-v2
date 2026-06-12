@@ -156,6 +156,13 @@ async function updateAdvice(mode, trigger, text) {
     aiText.textContent = "Sedang menyeduh ide..."; 
 
     try {
+       // Ambil kedua identitas dari localStorage
+        const wallet = localStorage.getItem('tof_wallet');
+        const userId = localStorage.getItem('tof_user_id');
+        
+        // Gabungkan jadi satu identitas unik (Composite ID)
+        const compositeId = (wallet && userId) ? `${wallet}|${userId}` : "guest_user";
+
         const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -163,7 +170,7 @@ async function updateAdvice(mode, trigger, text) {
                 mode: mode, 
                 teks: text,       
                 trigger: trigger,
-user_id: window.user_id || "guest",
+                user_id: compositeId, // Kirim identitas gabungan ke API
                 konteks_dokumen: typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : ""
             })
         });
