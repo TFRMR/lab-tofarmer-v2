@@ -146,16 +146,41 @@ export default {
     // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
     // =====================================================
     if (url.pathname === "/ai-saran" && request.method === "POST") {
-      const body = await request.json();
-      
-      // Penyesuaian: Menentukan teks pemrosesan apakah dari teks biasa atau dari objek data
-      const textToProcess = body.teks || JSON.stringify(body.data);
+  const body = await request.json();
+  const textToProcess = body.teks || JSON.stringify(body.data);
 
-      // 1. UBAH TEKS JADI VEKTOR (BGE-M3)
+  // 1. ANALISIS KOGNITIF (Profiling) - Merekam perkembangan user
+  try {
+    const profilingResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+      messages: [
+        { role: "system", content: "Anda adalah analis kognitif. Output HARUS berupa JSON murni: {category, topic, summary}. Kategori: 'bercanda', 'terarah', 'spesifik', atau 'ilmu_pending'." },
+        { role: "user", content: `Analisis konten dari user ${body.user_id}: "${textToProcess}"` }
+      ]
+    });
+
+   // --- SISIPKAN DI SINI ---
+    const profileDataRaw = profilingResponse.response;
+    // Bersihkan teks jika ada sampah di luar JSON
+    const jsonString = profileDataRaw.match(/\{.*\}/s)[0]; 
+    const profileData = JSON.parse(jsonString);
+    // ------------------------
+    
+    // Simpan ke database cognitive map
+    await adminSupabase.from('user_cognitive_maps').insert([{
+      user_id: body.user_id,
+      context_category: profileData.category,
+      topic_tag: profileData.topic,
+      content_summary: profileData.summary
+    }]);
+  } catch (e) {
+    console.error("Profiling skipped:", e);
+  }
+
+      // 2. UBAH TEKS JADI VEKTOR (BGE-M3)
       const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [textToProcess] });
       const vector = embeddings.data[0];
 
-      // 2. CARI DATA TERKAIT DI KNOWLEDGE_BASE (RAG)
+      // 3. CARI DATA TERKAIT DI KNOWLEDGE_BASE (RAG)
 // Kita gunakan fungsi match_knowledge yang sudah kita buat sebelumnya
 const { data: ilmu } = await supabase.rpc('match_knowledge', {
   query_embedding: vector,
@@ -163,13 +188,13 @@ const { data: ilmu } = await supabase.rpc('match_knowledge', {
   match_count: 5        // Ambil 5 potongan pengetahuan agar AI punya banyak konteks
 });
 
-// 3. SUSUN KONTEKS
+// 4. SUSUN KONTEKS
 // Mengambil 'content' dari hasil knowledge_base
 const context = (ilmu && ilmu.length > 0) 
   ? ilmu.map(i => i.content).join("\n---\n") 
   : "Tidak ada referensi khusus di database.";
 
-      // 4. KIRIM KE AI
+      // 5. KIRIM KE AI
       const modes = {
         "humor": "Anda adalah petani senior yang suka melawak. banyak guyonan, dan suka tertawa.",
         "Gate1": "Mandor Galak tapi Lucu: Fokus ke pengisian formulir. Sedikit cerewet kalau ada kolom yang kosong.",
