@@ -79,7 +79,11 @@ if (!mbahPernahKomentar && !sudahKomen) {
 }
 
 // MENTION LANGSUNG
+const komentarDariBot =
+    penulisKomentarTerakhir.toLowerCase().includes("mbah_eko");
+
 else if (
+    !komentarDariBot &&
     teksKomentarTerakhir
         .toLowerCase()
         .includes(BOT_USERNAME.toLowerCase())
