@@ -191,7 +191,7 @@ async function updateAdvice(mode, trigger, text) {
 // =========================================================================
 //let aiBerandaChatCounter = 0;//
 
-//async function kirimChatAI() {
+async function kirimChatAI() {
     if (aiBerandaChatCounter >= 5) {
         const aiText = document.getElementById('ai-text');
         if (aiText) {
@@ -242,7 +242,7 @@ ${konteksTambahan}
             if (aiText) aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
         }, 1000);
     }
-}//
+}
 
 // ===================== UI & PROFILE SYNC =====================
 function updateWalletUI() {
