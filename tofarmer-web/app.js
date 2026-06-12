@@ -445,13 +445,13 @@ async function sendPost() {
       const konteksBeranda = generateFeedContext(posTetangga);
       const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
 
-      //updateAdvice(
+      updateAdvice(
           "komentar", 
           `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat aturan ekosistem, latar belakang profil user, dan aktivitas kebun lainnya.\n\n[DOKUMEN INTEGRASI "tentang.html"]:\n${referensiKamus}\n\n[LINIMASA LALU]:\n${konteksBeranda}`,
           text
       );
   }, 1500);
-}//
+}
 
 // ===================== ECONOMY & ALGORAND INFRA =====================
 const TOF_ASSET_ID = 3558306283
