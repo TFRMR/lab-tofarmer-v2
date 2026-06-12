@@ -45,25 +45,52 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
             });
 
-            const komentarTerakhir = daftarKomentar[daftarKomentar.length - 1] || null;
-            const teksKomentarTerakhir = komentarTerakhir ? komentarTerakhir.text : "";
-            const penulisKomentarTerakhir = komentarTerakhir ? komentarTerakhir.author : "";
-            const hashKomentar = btoa(unescape(encodeURIComponent(teksKomentarTerakhir + penulisKomentarTerakhir))).substring(0, 12);
+         const komentarTerakhir = daftarKomentar[daftarKomentar.length - 1] || null;
+const teksKomentarTerakhir = komentarTerakhir ? komentarTerakhir.text : "";
+const penulisKomentarTerakhir = komentarTerakhir ? komentarTerakhir.author : "";
 
-            let terpicu = false;
-            let jenisSkenario = "";
+// DEBUG MENTION
+console.log("=== DEBUG MENTION ===");
+console.log("Post:", postId);
+console.log("Komentar terakhir:", teksKomentarTerakhir);
+console.log("Author:", penulisKomentarTerakhir);
+console.log(
+    "Ada mention?",
+    teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase())
+);
+
+const hashKomentar = btoa(
+    unescape(
+        encodeURIComponent(
+            teksKomentarTerakhir + penulisKomentarTerakhir
+        )
+    )
+).substring(0, 12);
+
+let terpicu = false;
+let jenisSkenario = "";
+
 const sudahKomen = await cekApakahSudahKomentar(postId);
 
-            if (!mbahPernahKomentar && !localStorage.getItem(`op_sapa_${postId}`)) {
-                terpicu = true;
-                jenisSkenario = "POSTINGAN_BARU";
-            } else if (teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase())) {
-                if (localStorage.getItem(`op_mention_${postId}`) !== hashKomentar) {
-                    terpicu = true;
-                    jenisSkenario = "MENTION_LANGSUNG";
-                }
-            }
+// POSTINGAN BARU
+if (!mbahPernahKomentar && !sudahKomen) {
+    terpicu = true;
+    jenisSkenario = "POSTINGAN_BARU";
+}
 
+// MENTION LANGSUNG
+else if (
+    teksKomentarTerakhir
+        .toLowerCase()
+        .includes(BOT_USERNAME.toLowerCase())
+) {
+    if (
+        localStorage.getItem(`op_mention_${postId}`) !== hashKomentar
+    ) {
+        terpicu = true;
+        jenisSkenario = "MENTION_LANGSUNG";
+    }
+}
      
              if (terpicu) {
     // Tidak pakai localStorage lagi, kita pakai database
