@@ -25,12 +25,20 @@ if (post.getAttribute("data-operator-lock") === "true") continue;
 
             const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
             // Tambahkan .tof-mention ke daftar selector
-const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention");
+const elemenKomentar = post.querySelectorAll(
+    "[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention"
+);
+
+console.log("POST", postId);
+console.log("Jumlah elemen komentar:", elemenKomentar.length);
+console.log(elemenKomentar);
             
             let daftarKomentar = [];
             let mbahPernahKomentar = false;
 
             elemenKomentar.forEach((el) => {
+console.log("EL:", el);
+console.log("TEXT:", el.innerText);
                 if (el.id === 'advice-box' || el.id === 'ai-text' || el.closest('#advice-container')) return;
 
                 const penulis = el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "";
@@ -38,9 +46,14 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 
                 if (teks === "" || teks.startsWith("Kirim") || teks.startsWith("Sruput")) return;
 
-                if (penulis.includes("mbah_eko") || teks.includes("@mbah_eko") || teks.includes("Petapa Menoreh")) {
-                    mbahPernahKomentar = true;
-                }
+             const nama = (penulis || "").toLowerCase().trim();
+
+if (
+    nama.includes("mbah_eko") ||
+    nama.includes("petapa menoreh")
+) {
+    mbahPernahKomentar = true;
+}
 
                 daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
             });
@@ -71,11 +84,16 @@ let terpicu = false;
 let jenisSkenario = "";
 
 const sudahKomen = await cekApakahSudahKomentar(postId);
+console.log("POST:", postId);
+console.log("sudahKomen:", sudahKomen);
+console.log("mbahPernahKomentar:", mbahPernahKomentar);
+console.log("author terakhir:", penulisKomentarTerakhir);
 
 // POSTINGAN BARU
-const komentarDariBot =
-    penulisKomentarTerakhir.toLowerCase().includes("mbah_eko");
-
+const komentarDariBot = (() => {
+    const a = (penulisKomentarTerakhir || "").toLowerCase().trim();
+    return a.includes("mbah_eko");
+})();
 if (!mbahPernahKomentar && !sudahKomen) {
     terpicu = true;
     jenisSkenario = "POSTINGAN_BARU";
