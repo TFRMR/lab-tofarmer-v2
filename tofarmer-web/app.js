@@ -163,6 +163,7 @@ async function updateAdvice(mode, trigger, text) {
                 mode: mode, 
                 teks: text,       
                 trigger: trigger,
+user_id: window.user_id || "guest",
                 konteks_dokumen: typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : ""
             })
         });
