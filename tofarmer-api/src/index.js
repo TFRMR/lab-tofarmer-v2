@@ -142,15 +142,14 @@ export default {
       return json({ success: true, data }, corsHeaders);
     }
 
-    // =====================================================
-    // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
-    // =====================================================
-    if (url.pathname === "/ai-saran" && request.method === "POST") {
+ // =====================================================
+// ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
+// =====================================================
+if (url.pathname === "/ai-saran" && request.method === "POST") {
   const body = await request.json();
   const textToProcess = body.teks || JSON.stringify(body.data);
 
-
- // 1. ANALISIS KOGNITIF (Profiling)
+  // 1. ANALISIS KOGNITIF (Profiling)
   try {
     const profilingResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
       messages: [
@@ -180,24 +179,21 @@ export default {
     console.log("Profiling Error Detail:", e.message);
   }
 
-      // 2. UBAH TEKS JADI VEKTOR (BGE-M3)
-      const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [textToProcess] });
-      const vector = embeddings.data[0];
+  // 2. UBAH TEKS JADI VEKTOR (BGE-M3)
+  const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [textToProcess] });
+  const vector = embeddings.data[0];
 
-      // 3. CARI DATA TERKAIT DI KNOWLEDGE_BASE (RAG)
-// Kita gunakan fungsi match_knowledge yang sudah kita buat sebelumnya
-const { data: ilmu } = await supabase.rpc('match_knowledge', {
-  query_embedding: vector,
-  match_threshold: 0.3, // Turunkan sedikit agar lebih fleksibel
-  match_count: 5        // Ambil 5 potongan pengetahuan agar AI punya banyak konteks
-});
+  // 3. CARI DATA TERKAIT DI KNOWLEDGE_BASE (RAG)
+  const { data: ilmu } = await supabase.rpc('match_knowledge', {
+    query_embedding: vector,
+    match_threshold: 0.3,
+    match_count: 5
+  });
 
-// 4. SUSUN KONTEKS
-// Mengambil 'content' dari hasil knowledge_base
-const context = (ilmu && ilmu.length > 0) 
-  ? ilmu.map(i => i.content).join("\n---\n") 
-  : "Tidak ada referensi khusus di database.";
-
+  // 4. SUSUN KONTEKS
+  const context = (ilmu && ilmu.length > 0) 
+    ? ilmu.map(i => i.content).join("\n---\n") 
+    : "Tidak ada referensi khusus di database.";
       // 5. KIRIM KE AI
       const modes = {
         "humor": "Anda adalah petani senior yang suka melawak. banyak guyonan, dan suka tertawa.",
