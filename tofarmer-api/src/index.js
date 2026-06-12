@@ -175,15 +175,21 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     const match = profileDataRaw.match(/\{.*\}/s);
     const profileData = JSON.parse(match ? match[0] : profileDataRaw);
     
-    // GANTI BLOK LAMA DENGAN INI (BLOK DETEKTIF):
+ // GANTI BLOK DETEKTIF DENGAN INI (JARING PENGAMAN):
+    const targetUserId = body.user_id || body.userId || "guest_user"; // Coba cek kedua nama variabel
+
     const payload = {
-      user_id: body.user_id,
+      user_id: targetUserId,
       context_category: profileData.category,
       topic_tag: profileData.topic,
       content_summary: profileData.summary
     };
 
     console.log("DEBUG: Payload yang akan di-insert:", payload);
+
+    if (targetUserId === "guest_user") {
+      console.log("DEBUG: WARNING! user_id kosong, data masuk sebagai guest_user");
+    }
 
     const { data, error } = await adminSupabase
       .from('user_cognitive_maps')
@@ -194,7 +200,7 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     } else {
       console.log("DEBUG: Insert Berhasil! Data:", data);
     }
-    // AKHIR BLOK DETEKTIF
+    // AKHIR JARING PENGAMAN
 
   } catch (e) {
     console.log("Profiling Error Detail:", e.message);
