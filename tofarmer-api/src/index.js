@@ -145,67 +145,66 @@ export default {
  // =====================================================
 // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
 // =====================================================
-if (url.pathname === "/ai-saran" && request.method === "POST") {
-  const body = await request.json();
-  const textToProcess = body.teks || JSON.stringify(body.data);
+if (url.pathname === "/refresh-profil" && request.method === "POST") {
+    const { user_id } = await request.json(); 
+    
+    const [contrib, comments, reactions] = await Promise.all([
+        adminSupabase.from('contributions').select('*').eq('user_id', user_id),
+        adminSupabase.from('comments').select('*').eq('user_id', user_id),
+        adminSupabase.from('reactions').select('*').eq('user_id', user_id)
+    ]);
 
-  // 1. ANALISIS KOGNITIF (Profiling)
-  try {
-    const profilingResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
-      messages: [
-        { 
-          role: "system", 
-          content: `Anda adalah mesin analis JSON. 
-          ATURAN: 
-          1. JANGAN berikan kalimat pembuka atau penutup. 
-          2. JANGAN gunakan markdown. 
-          3. Output HARUS BERUPA JSON MURNI: {"category": "bercanda", "topic": "...", "summary": "..."}.
-          4. Kategori wajib salah satu: 'bercanda', 'terarah', 'spesifik', atau 'ilmu_pending'.` 
-        },
-        { role: "user", content: `Analisis konten dari user ${body.user_id}: "${textToProcess}"` }
-      ]
+    const summary = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+        messages: [
+            { role: "system", content: "Ringkas aktivitas ini menjadi profil kognitif petani." },
+            { role: "user", content: JSON.stringify({ contrib, comments, reactions }) }
+        ]
     });
 
-    // PASTIKAN respons AI jadi string dulu, baru diparse
-    let profileDataRaw = typeof profilingResponse.response === 'string' 
-      ? profilingResponse.response 
-      : JSON.stringify(profilingResponse.response);
-
-    // Ambil bagian JSON-nya saja
-    const match = profileDataRaw.match(/\{.*\}/s);
-    const profileData = JSON.parse(match ? match[0] : profileDataRaw);
+    await adminSupabase.from('user_cognitive_maps').upsert({ user_id, summary: summary.response });
     
- // GANTI BLOK DETEKTIF DENGAN INI (JARING PENGAMAN):
-    const targetUserId = body.user_id || body.userId || "guest_user"; // Coba cek kedua nama variabel
+    return json({ status: "Profil diperbarui!" }, corsHeaders);
+}
 
-    const payload = {
-      user_id: targetUserId,
-      context_category: profileData.category,
-      topic_tag: profileData.topic,
-      content_summary: profileData.summary
-    };
+// =====================================================
+// ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
+// =====================================================
+if (url.pathname === "/ai-saran" && request.method === "POST") {
+    const body = await request.json();
+    const textToProcess = body.teks || JSON.stringify(body.data);
 
-    console.log("DEBUG: Payload yang akan di-insert:", payload);
+    // 1. ANALISIS KOGNITIF (Profiling)
+    try {
+        const profilingResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+            messages: [
+                { 
+                    role: "system", 
+                    content: "Anda adalah mesin analis JSON. Output HARUS BERUPA JSON MURNI: {'category': 'bercanda', 'topic': '...', 'summary': '...'}. Kategori wajib salah satu: 'bercanda', 'terarah', 'spesifik', atau 'ilmu_pending'." 
+                },
+                { role: "user", content: `Analisis konten dari user ${body.user_id}: "${textToProcess}"` }
+            ]
+        });
 
-    if (targetUserId === "guest_user") {
-      console.log("DEBUG: WARNING! user_id kosong, data masuk sebagai guest_user");
+        let profileDataRaw = typeof profilingResponse.response === 'string' ? profilingResponse.response : JSON.stringify(profilingResponse.response);
+        const match = profileDataRaw.match(/\{.*\}/s);
+        const profileData = JSON.parse(match ? match[0] : profileDataRaw);
+        
+        // JARING PENGAMAN: Menggunakan ID gabungan (wallet|user_id)
+        const targetUserId = body.user_id || "guest_user"; 
+
+        const payload = {
+            user_id: targetUserId,
+            context_category: profileData.category,
+            topic_tag: profileData.topic,
+            content_summary: profileData.summary
+        };
+
+        console.log("DEBUG: Memproses user:", targetUserId);
+        await adminSupabase.from('user_cognitive_maps').insert([payload]);
+
+    } catch (e) {
+        console.log("Profiling Error Detail:", e.message);
     }
-
-    const { data, error } = await adminSupabase
-      .from('user_cognitive_maps')
-      .insert([payload]);
-
-    if (error) {
-      console.log("DEBUG: Supabase INSERT Error:", error);
-    } else {
-      console.log("DEBUG: Insert Berhasil! Data:", data);
-    }
-    // AKHIR JARING PENGAMAN
-
-  } catch (e) {
-    console.log("Profiling Error Detail:", e.message);
-  }
-
   // 2. UBAH TEKS JADI VEKTOR (BGE-M3)
   const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [textToProcess] });
   const vector = embeddings.data[0];
