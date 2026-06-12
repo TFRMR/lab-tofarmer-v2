@@ -146,9 +146,103 @@ function logoutWallet() {
   window.location.href = 'index.html'; 
 }
 
+// ===================== CORE ENGINE AI =====================
+//async function updateAdvice(mode, trigger, text) {
+    const aiWhisperer = document.getElementById('ai-whisperer');
+    const aiText = document.getElementById('ai-text');
+    if (!aiWhisperer || !aiText) return;
 
+    aiWhisperer.style.display = 'block';
+    aiText.textContent = "Sedang menyeduh ide..."; 
 
+    try {
+        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mode: mode, 
+                teks: text,       
+                trigger: trigger,
+                konteks_dokumen: typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : ""
+            })
+        });
+        const result = await response.json();
+        const saran = result.saran || "Mari berkarya hari ini!";
 
+        let i = 0;
+        aiText.textContent = ""; 
+        if (window.typingInterval) clearInterval(window.typingInterval);
+        
+        window.typingInterval = setInterval(() => {
+            if (i < saran.length) {
+                aiText.textContent += saran.charAt(i);
+                i++;
+            } else {
+                clearInterval(window.typingInterval);
+            }
+        }, 20);
+    } catch (err) {
+        aiText.textContent = "Mentor lagi di ladang, lanjut tulis saja!";
+    }
+}//
+
+// =========================================================================
+// 🟢 KODE FIX: Fungsi Obrolan Tunggal Berbasis Rag Dokumen Lokal
+// =========================================================================
+//let aiBerandaChatCounter = 0;//
+
+//async function kirimChatAI() {
+    if (aiBerandaChatCounter >= 5) {
+        const aiText = document.getElementById('ai-text');
+        if (aiText) {
+            aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
+        }
+        return;
+    }
+
+    const input = document.getElementById('ai-chat-input');
+    if (!input) return;
+    const pertanyaan = input.value.trim();
+    
+    if (!pertanyaan) {
+        alert("Tulis sesuatu dulu ya 🌱");
+        return;
+    }
+    
+    const btn = document.querySelector('[onclick="kirimChatAI()"]');
+    if (btn) btn.disabled = true; 
+    
+    aiBerandaChatCounter++;
+    
+    const sisaEl = document.getElementById("sisa-chat-beranda");
+    if (sisaEl) {
+        sisaEl.innerText = 5 - aiBerandaChatCounter;
+    }
+    
+    let konteksTambahan = "";
+    if (typeof cariKonteksPaper === "function") {
+        konteksTambahan = cariKonteksPaper(pertanyaan);
+    }
+    
+    const instruksiPrompt = `
+Pertanyaan User: "${pertanyaan}"
+
+Gunakan potongan dokumen internal dari "tentang.html" berikut sebagai acuan utama Anda untuk menjawab:
+${konteksTambahan}
+    `.trim();
+    
+    await updateAdvice("tanya", "chat_user", instruksiPrompt);
+    
+    if (btn) btn.disabled = false;
+    input.value = "";
+
+    if (aiBerandaChatCounter >= 5) {
+        setTimeout(() => {
+            const aiText = document.getElementById('ai-text');
+            if (aiText) aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
+        }, 1000);
+    }
+}//
 
 // ===================== UI & PROFILE SYNC =====================
 function updateWalletUI() {
@@ -351,7 +445,14 @@ async function sendPost() {
       const konteksBeranda = generateFeedContext(posTetangga);
       const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
 
-   
+      //updateAdvice(
+          "komentar", 
+          `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat aturan ekosistem, latar belakang profil user, dan aktivitas kebun lainnya.\n\n[DOKUMEN INTEGRASI "tentang.html"]:\n${referensiKamus}\n\n[LINIMASA LALU]:\n${konteksBeranda}`,
+          text
+      );
+  }, 1500);
+}//
+
 // ===================== ECONOMY & ALGORAND INFRA =====================
 const TOF_ASSET_ID = 3558306283
 const ALGONODE_URL = "https://mainnet-api.algonode.cloud"
@@ -827,7 +928,14 @@ loadFeed().then(() => {
     // 🌟 AMBIL USERNAME SECARA DINAMIS (Jika belum login, pakai 'Petani')
     const namaUserAktif = currentProfile ? currentProfile.username : "Petani";
 
-   
+    //updateAdvice(
+      "sapaan", 
+      `Kamu adalah asisten/mentor petani di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan esensi nilai visi-misi ekosistem serta rekam data berikut.\n\n[NILAI AGRAREIS FONDASI]:\n${pondasiDasar}\n\n[KONDISI TERKINI]:\n${konteksBeranda}`, 
+      // 🌟 KUNCI PERBAIKAN: Masukkan nama user aktif ke dalam teks input utama AI
+      `User bernama @${namaUserAktif} baru saja membuka beranda utama ToFarmer. Sapa dia langsung dengan nama akunnya tersebut!`
+    );
+  }, 2000);
+});//
 // --- FUNGSI ALA FACEBOOK UNTUK KONTROL BUKA/TUTUP KOTAK KOMENTAR ---
 function toggleKomentarBox(postId) {
   const box = document.getElementById(`box-komentar-${postId}`);
