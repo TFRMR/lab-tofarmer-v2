@@ -153,7 +153,15 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
   try {
     const profilingResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
       messages: [
-        { role: "system", content: "Anda adalah analis kognitif. Output HARUS berupa JSON murni tanpa markdown: {'category': '...', 'topic': '...', 'summary': '...'}. Kategori wajib salah satu dari: 'bercanda', 'terarah', 'spesifik', atau 'ilmu_pending'." },
+        { 
+          role: "system", 
+          content: `Anda adalah mesin analis JSON. 
+          ATURAN: 
+          1. JANGAN berikan kalimat pembuka atau penutup. 
+          2. JANGAN gunakan markdown. 
+          3. Output HARUS BERUPA JSON MURNI: {"category": "bercanda", "topic": "...", "summary": "..."}.
+          4. Kategori wajib salah satu: 'bercanda', 'terarah', 'spesifik', atau 'ilmu_pending'.` 
+        },
         { role: "user", content: `Analisis konten dari user ${body.user_id}: "${textToProcess}"` }
       ]
     });
