@@ -175,15 +175,28 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     const match = profileDataRaw.match(/\{.*\}/s);
     const profileData = JSON.parse(match ? match[0] : profileDataRaw);
     
-    // Simpan ke database
-    await adminSupabase.from('user_cognitive_maps').insert([{
+    // GANTI BLOK LAMA DENGAN INI (BLOK DETEKTIF):
+    const payload = {
       user_id: body.user_id,
       context_category: profileData.category,
       topic_tag: profileData.topic,
       content_summary: profileData.summary
-    }]);
+    };
+
+    console.log("DEBUG: Payload yang akan di-insert:", payload);
+
+    const { data, error } = await adminSupabase
+      .from('user_cognitive_maps')
+      .insert([payload]);
+
+    if (error) {
+      console.log("DEBUG: Supabase INSERT Error:", error);
+    } else {
+      console.log("DEBUG: Insert Berhasil! Data:", data);
+    }
+    // AKHIR BLOK DETEKTIF
+
   } catch (e) {
-    // Kita log errornya agar tahu di mana salahnya
     console.log("Profiling Error Detail:", e.message);
   }
 
