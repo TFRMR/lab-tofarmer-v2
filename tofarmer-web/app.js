@@ -147,7 +147,7 @@ function logoutWallet() {
 }
 
 // ===================== CORE ENGINE AI =====================
-async function updateAdvice(mode, trigger, text) {
+//async function updateAdvice(mode, trigger, text) {
     const aiWhisperer = document.getElementById('ai-whisperer');
     const aiText = document.getElementById('ai-text');
     if (!aiWhisperer || !aiText) return;
@@ -184,14 +184,14 @@ async function updateAdvice(mode, trigger, text) {
     } catch (err) {
         aiText.textContent = "Mentor lagi di ladang, lanjut tulis saja!";
     }
-}
+}//
 
 // =========================================================================
 // 🟢 KODE FIX: Fungsi Obrolan Tunggal Berbasis Rag Dokumen Lokal
 // =========================================================================
-let aiBerandaChatCounter = 0;
+//let aiBerandaChatCounter = 0;//
 
-async function kirimChatAI() {
+//async function kirimChatAI() {
     if (aiBerandaChatCounter >= 5) {
         const aiText = document.getElementById('ai-text');
         if (aiText) {
@@ -242,7 +242,7 @@ ${konteksTambahan}
             if (aiText) aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
         }, 1000);
     }
-}
+}//
 
 // ===================== UI & PROFILE SYNC =====================
 function updateWalletUI() {
@@ -445,13 +445,13 @@ async function sendPost() {
       const konteksBeranda = generateFeedContext(posTetangga);
       const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
 
-      updateAdvice(
+      //updateAdvice(
           "komentar", 
           `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat aturan ekosistem, latar belakang profil user, dan aktivitas kebun lainnya.\n\n[DOKUMEN INTEGRASI "tentang.html"]:\n${referensiKamus}\n\n[LINIMASA LALU]:\n${konteksBeranda}`,
           text
       );
   }, 1500);
-}
+}//
 
 // ===================== ECONOMY & ALGORAND INFRA =====================
 const TOF_ASSET_ID = 3558306283
@@ -928,14 +928,14 @@ loadFeed().then(() => {
     // 🌟 AMBIL USERNAME SECARA DINAMIS (Jika belum login, pakai 'Petani')
     const namaUserAktif = currentProfile ? currentProfile.username : "Petani";
 
-    updateAdvice(
+    //updateAdvice(
       "sapaan", 
       `Kamu adalah asisten/mentor petani di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan esensi nilai visi-misi ekosistem serta rekam data berikut.\n\n[NILAI AGRAREIS FONDASI]:\n${pondasiDasar}\n\n[KONDISI TERKINI]:\n${konteksBeranda}`, 
       // 🌟 KUNCI PERBAIKAN: Masukkan nama user aktif ke dalam teks input utama AI
       `User bernama @${namaUserAktif} baru saja membuka beranda utama ToFarmer. Sapa dia langsung dengan nama akunnya tersebut!`
     );
   }, 2000);
-});
+});//
 // --- FUNGSI ALA FACEBOOK UNTUK KONTROL BUKA/TUTUP KOTAK KOMENTAR ---
 function toggleKomentarBox(postId) {
   const box = document.getElementById(`box-komentar-${postId}`);
