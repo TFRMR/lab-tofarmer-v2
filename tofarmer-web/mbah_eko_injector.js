@@ -53,7 +53,7 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
             let terpicu = false;
             let jenisSkenario = "";
 const sudahKomen = await cekApakahSudahKomentar(postId);
-if (sudahKomen) continue;
+
             if (!mbahPernahKomentar && !localStorage.getItem(`op_sapa_${postId}`)) {
                 terpicu = true;
                 jenisSkenario = "POSTINGAN_BARU";
