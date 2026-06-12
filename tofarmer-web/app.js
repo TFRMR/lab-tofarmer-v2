@@ -189,7 +189,7 @@ async function updateAdvice(mode, trigger, text) {
 // =========================================================================
 // 🟢 KODE FIX: Fungsi Obrolan Tunggal Berbasis Rag Dokumen Lokal
 // =========================================================================
-//let aiBerandaChatCounter = 0;//
+//let aiBerandaChatCounter = 0;
 
 async function kirimChatAI() {
     if (aiBerandaChatCounter >= 5) {

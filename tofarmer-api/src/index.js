@@ -2,27 +2,19 @@ import { createClient } from "@supabase/supabase-js";
 
 export default {
   async fetch(request, env, ctx) {
-
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     };
 
-    // =========================
-    // CORS PRE-FLIGHT
-    // =========================
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
     }
 
     const url = new URL(request.url);
-
-    const supabase = createClient(
-      env.SUPABASE_URL,
-      env.SUPABASE_ANON_KEY
-    );
-
+    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
+    const adminSupabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
     // =====================================================
     // ROUTE: PROFILES (LEGACY USER DATA)
     // =====================================================
@@ -163,17 +155,19 @@ export default {
       const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [textToProcess] });
       const vector = embeddings.data[0];
 
-      // 2. CARI DATA TERKAIT DI SUPABASE
-      const { data: ilmu } = await supabase.rpc('match_ilmu', {
-        query_embedding: vector,
-        match_threshold: 0.5,
-        match_count: 2
-      });
+      // 2. CARI DATA TERKAIT DI KNOWLEDGE_BASE (RAG)
+// Kita gunakan fungsi match_knowledge yang sudah kita buat sebelumnya
+const { data: ilmu } = await supabase.rpc('match_knowledge', {
+  query_embedding: vector,
+  match_threshold: 0.3, // Turunkan sedikit agar lebih fleksibel
+  match_count: 5        // Ambil 5 potongan pengetahuan agar AI punya banyak konteks
+});
 
-      // 3. SUSUN KONTEKS
-      const context = (ilmu && ilmu.length > 0) 
-        ? ilmu.map(i => i.isi_ilmu).join("\n") 
-        : "Tidak ada referensi khusus di database.";
+// 3. SUSUN KONTEKS
+// Mengambil 'content' dari hasil knowledge_base
+const context = (ilmu && ilmu.length > 0) 
+  ? ilmu.map(i => i.content).join("\n---\n") 
+  : "Tidak ada referensi khusus di database.";
 
       // 4. KIRIM KE AI
       const modes = {
@@ -201,21 +195,27 @@ export default {
           { 
             // Ganti bagian system content di index.js Anda menjadi ini:
 role: "system", 
-            content: `Anda adalah Mentor ToFarmer dengan mode: ${activeMode}.
-            DATA PROFIL USER: ${context}
-            
-            ${body.trigger === "Gate3-Compile" 
-              ? `WAJIB Gunakan format SOP berikut:
-                 - JUDUL: [Nama]
-                 - KONSEP DASAR: [Penjelasan]
-                 - PERSIAPAN: [Alat/Bahan]
-                 - SOP TEKNIS: [Langkah-langkah]
-                 - PARAMETER KEBERHASILAN: [Indikator]
-                 - MITIGASI RISIKO: [Mitigasi]` 
-              : `WAJIB Jawab dengan singkat (maksimal 3 kalimat saja).`}
-            
-            1. Wajib gunakan Bahasa Indonesia.
-            2. JANGAN berikan tutorial teknis yang membosankan jika bukan di Gate 3.` 
+content: `Anda adalah Mentor ToFarmer dengan mode: ${activeMode}.
+
+--- REFERENSI DATA (Gunakan ini sebagai sumber kebenaran):
+${context}
+---
+
+${body.trigger === "Gate3-Compile" 
+  ? `INSTRUKSI TUGAS: Anda sedang merakit SOP Ilmu Baku. WAJIB Gunakan format berikut:
+     - JUDUL: [Nama]
+     - KONSEP DASAR: [Penjelasan]
+     - PERSIAPAN: [Alat/Bahan]
+     - SOP TEKNIS: [Langkah-langkah]
+     - PARAMETER KEBERHASILAN: [Indikator]
+     - MITIGASI RISIKO: [Mitigasi]
+     Gunakan informasi dari REFERENSI DATA di atas untuk mengisi poin-poin tersebut.` 
+  : `INSTRUKSI TUGAS: Jawab dengan singkat (maksimal 3 kalimat saja). Fokuslah pada percakapan yang santai dan inspiratif.`}
+
+ATURAN WAJIB:
+1. Wajib gunakan Bahasa Indonesia.
+2. Jika REFERENSI DATA tersedia, gunakan fakta dari situ. Jika tidak ada, gunakan kebijaksanaan seorang petani senior.
+3. JANGAN berikan tutorial teknis yang membosankan kecuali diminta dalam mode Gate3-Compile.`
           },
           { 
             role: "user", 
@@ -231,45 +231,53 @@ role: "system",
         ilmuBaku: aiChat.response 
       }, corsHeaders);
     }
+if (url.pathname === "/trigger-sync") {
+      const { data: items } = await adminSupabase
+        .from('knowledge_base')
+        .select('id, content')
+        .is('embedding', null)
+        .limit(10);
 
-    // =====================================================
-    // DEFAULT
-    // =====================================================
-    return json({
-      status: "ToFarmer API V2 🚀",
-      features: [
-        "/profiles",
-        "/feed",
-        "/post",
-        "/like",
-        "/comment",
-        "/ai-saran"
-      ]
-    }, corsHeaders);
+      if (items) {
+        for (const item of items) {
+          const response = await env.AI.run('@cf/baai/bge-m3', { text: [item.content] });
+          await adminSupabase.from('knowledge_base').update({ embedding: response.data[0] }).eq('id', item.id);
+        }
+      }
+      return json({ status: "Sync 10 data berhasil!" }, corsHeaders);
+    }
+
+    return json({ status: "ToFarmer API V2 🚀" }, corsHeaders);
   }
 };
 
 // =========================
-// HELPERS
+// HELPERS (Hanya satu set saja)
 // =========================
 function json(data, headers) {
   return new Response(JSON.stringify(data), {
-    headers: {
-      ...headers,
-      "Content-Type": "application/json"
-    }
+    headers: { ...headers, "Content-Type": "application/json" }
   });
 }
 
 function jsonError(error, headers) {
-  return new Response(JSON.stringify({
-    error: true,
-    detail: error
-  }), {
+  return new Response(JSON.stringify({ error: true, detail: error }), {
     status: 500,
-    headers: {
-      ...headers,
-      "Content-Type": "application/json"
-    }
+    headers: { ...headers, "Content-Type": "application/json" }
   });
 }
+
+// =========================
+// CRON TASK
+// =========================
+export const scheduled = async (event, env, ctx) => {
+  const adminSupabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+  const { data: items } = await adminSupabase.from('knowledge_base').select('id, content').is('embedding', null).limit(20);
+  
+  if (items && items.length > 0) {
+    for (const item of items) {
+      const response = await env.AI.run('@cf/baai/bge-m3', { text: [item.content] });
+      await adminSupabase.from('knowledge_base').update({ embedding: response.data[0] }).eq('id', item.id);
+    }
+  }
+};
