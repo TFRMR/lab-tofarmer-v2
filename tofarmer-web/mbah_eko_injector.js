@@ -29,7 +29,7 @@ if (post.getAttribute("data-operator-lock") === "true") continue;
 
             const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
             // Tambahkan .tof-mention ke daftar selector
-const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention");
+const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention, .comment, .message, .text-content, .post-comment");
             
             let daftarKomentar = [];
             let mbahPernahKomentar = false;
@@ -57,25 +57,24 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
             let terpicu = false;
             let jenisSkenario = "";
 
-            if (!mbahPernahKomentar && !localStorage.getItem(`op_sapa_${postId}`)) {
+            if (!mbahPernahKomentar) {
                 terpicu = true;
                 jenisSkenario = "POSTINGAN_BARU";
             } else if (teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase())) {
-                if (localStorage.getItem(`op_mention_${postId}`) !== hashKomentar) {
-                    terpicu = true;
-                    jenisSkenario = "MENTION_LANGSUNG";
-                }
+                terpicu = true;
+                jenisSkenario = "MENTION_LANGSUNG";
             }
 
-     const mbahPernahKomentarTerakhir = (penulisKomentarTerakhir.includes("mbah_eko"));
+            const mbahPernahKomentarTerakhir = (penulisKomentarTerakhir.includes("mbah_eko"));
 
-// Jika komentar terakhir adalah Mbah Eko, kita batalkan pemicu (agar tidak looping)
-if (mbahPernahKomentarTerakhir) {
-    terpicu = false;
-}
-             if (terpicu) {
-    // Tidak pakai localStorage lagi, kita pakai database
-    
+            // Jika komentar terakhir adalah Mbah Eko, batalkan pemicu agar tidak looping
+            if (mbahPernahKomentarTerakhir) {
+                terpicu = false;
+            }
+
+            if (terpicu) {
+                // Tidak pakai localStorage lagi, kita pakai database
+
     post.setAttribute("data-operator-lock", "true");
                 sedangMemproses = true;
 
