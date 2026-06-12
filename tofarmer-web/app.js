@@ -147,7 +147,7 @@ function logoutWallet() {
 }
 
 // ===================== CORE ENGINE AI =====================
-//async function updateAdvice(mode, trigger, text) {
+async function updateAdvice(mode, trigger, text) {
     const aiWhisperer = document.getElementById('ai-whisperer');
     const aiText = document.getElementById('ai-text');
     if (!aiWhisperer || !aiText) return;
@@ -184,7 +184,7 @@ function logoutWallet() {
     } catch (err) {
         aiText.textContent = "Mentor lagi di ladang, lanjut tulis saja!";
     }
-}//
+}
 
 // =========================================================================
 // 🟢 KODE FIX: Fungsi Obrolan Tunggal Berbasis Rag Dokumen Lokal
