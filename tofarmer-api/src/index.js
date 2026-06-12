@@ -149,23 +149,26 @@ export default {
   const body = await request.json();
   const textToProcess = body.teks || JSON.stringify(body.data);
 
-  // 1. ANALISIS KOGNITIF (Profiling) - Merekam perkembangan user
+
+ // 1. ANALISIS KOGNITIF (Profiling)
   try {
     const profilingResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
       messages: [
-        { role: "system", content: "Anda adalah analis kognitif. Output HARUS berupa JSON murni: {category, topic, summary}. Kategori: 'bercanda', 'terarah', 'spesifik', atau 'ilmu_pending'." },
+        { role: "system", content: "Anda adalah analis kognitif. Output HARUS berupa JSON murni tanpa markdown: {'category': '...', 'topic': '...', 'summary': '...'}. Kategori wajib salah satu dari: 'bercanda', 'terarah', 'spesifik', atau 'ilmu_pending'." },
         { role: "user", content: `Analisis konten dari user ${body.user_id}: "${textToProcess}"` }
       ]
     });
 
-   // --- SISIPKAN DI SINI ---
-    const profileDataRaw = profilingResponse.response;
-    // Bersihkan teks jika ada sampah di luar JSON
-    const jsonString = profileDataRaw.match(/\{.*\}/s)[0]; 
-    const profileData = JSON.parse(jsonString);
-    // ------------------------
+    // PASTIKAN respons AI jadi string dulu, baru diparse
+    let profileDataRaw = typeof profilingResponse.response === 'string' 
+      ? profilingResponse.response 
+      : JSON.stringify(profilingResponse.response);
+
+    // Ambil bagian JSON-nya saja
+    const match = profileDataRaw.match(/\{.*\}/s);
+    const profileData = JSON.parse(match ? match[0] : profileDataRaw);
     
-    // Simpan ke database cognitive map
+    // Simpan ke database
     await adminSupabase.from('user_cognitive_maps').insert([{
       user_id: body.user_id,
       context_category: profileData.category,
@@ -173,7 +176,8 @@ export default {
       content_summary: profileData.summary
     }]);
   } catch (e) {
-    console.error("Profiling skipped:", e);
+    // Kita log errornya agar tahu di mana salahnya
+    console.log("Profiling Error Detail:", e.message);
   }
 
       // 2. UBAH TEKS JADI VEKTOR (BGE-M3)
