@@ -73,17 +73,16 @@ let jenisSkenario = "";
 const sudahKomen = await cekApakahSudahKomentar(postId);
 
 // POSTINGAN BARU
+const komentarDariBot =
+    penulisKomentarTerakhir.toLowerCase().includes("mbah_eko");
+
 if (!mbahPernahKomentar && !sudahKomen) {
     terpicu = true;
     jenisSkenario = "POSTINGAN_BARU";
 }
-
-// MENTION LANGSUNG
 else if (
-    penulisKomentarTerakhir.toLowerCase() !== "mbah_eko" &&
-    teksKomentarTerakhir
-        .toLowerCase()
-        .includes(BOT_USERNAME.toLowerCase())
+    !komentarDariBot &&
+    teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase())
 ) {
     if (
         localStorage.getItem(`op_mention_${postId}`) !== hashKomentar
@@ -92,7 +91,6 @@ else if (
         jenisSkenario = "MENTION_LANGSUNG";
     }
 }
-     
              if (terpicu) {
     // Tidak pakai localStorage lagi, kita pakai database
     
