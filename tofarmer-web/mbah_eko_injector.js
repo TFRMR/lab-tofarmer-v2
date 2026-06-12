@@ -19,8 +19,11 @@ const semuaPostingan = document.querySelectorAll("#feed .post, #userPosts .post,
 
             // --- CEK KE DATABASE SUPABASE (OTAK UTAMA) ---
 const sudahKomen = await cekApakahSudahKomentar(postId);
-if (sudahKomen) continue;
 
+// Tambahkan logika: Kalau ini mention, JANGAN di-stop meski sudah pernah komen
+if (sudahKomen && jenisSkenario !== "MENTION_LANGSUNG") {
+    continue;
+}
 if (post.getAttribute("data-operator-lock") === "true") continue;
             if (!postId) continue;
 
@@ -64,7 +67,12 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 }
             }
 
-     
+     const mbahPernahKomentarTerakhir = (penulisKomentarTerakhir.includes("mbah_eko"));
+
+// Jika komentar terakhir adalah Mbah Eko, kita batalkan pemicu (agar tidak looping)
+if (mbahPernahKomentarTerakhir) {
+    terpicu = false;
+}
              if (terpicu) {
     // Tidak pakai localStorage lagi, kita pakai database
     
