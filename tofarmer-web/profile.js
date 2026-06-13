@@ -1939,12 +1939,6 @@ async function cariDanKirim() {
 }
 
 async function loadDaftarPesan() {
-console.log("Fungsi loadDaftarPesan dipanggil!"); // Tanda bahwa fungsi jalan
-    const daftarPesan = document.getElementById("daftarPesan");
-    if (!daftarPesan) {
-        console.error("Elemen daftarPesan tidak ditemukan di HTML!");
-        return;
-    }
     const daftarPesan = document.getElementById("daftarPesan");
     daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat percakapan...</p>";
 
