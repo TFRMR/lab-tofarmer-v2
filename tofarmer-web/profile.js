@@ -197,7 +197,15 @@ async function loadProfile() {
   setTimeout(() => {
     loadProfilIlmu();
   }, 800);
-
+// --- TAMBAHKAN KODE INI SESUDAHNYA ---
+// INISIALISASI KOMPONEN NOTIFIKASI & PESAN
+setTimeout(() => {
+  // Hanya jalankan jika profil yang dibuka adalah milik kita
+  if (currentWallet && targetProfileId && currentWallet === targetProfileId) {
+    inisialisasiKomponenNotif();
+    inisialisasiKomponenPesan(); 
+  }
+}, 1000);
 // ==========================================
  setTimeout(async () => {
     const responseBox = document.getElementById("ai-response");
@@ -1261,9 +1269,11 @@ function convertMentions(text) {
 
 function inisialisasiKomponenNotif() {
   if (!currentWallet) return; 
+if (currentWallet !== targetProfileId) return;
 
   const wrapperLama = document.getElementById("tof-notif-wrapper");
   if (wrapperLama) wrapperLama.remove();
+ 
 
   const styleNotif = document.createElement("style");
   styleNotif.id = "tof-notif-style";
