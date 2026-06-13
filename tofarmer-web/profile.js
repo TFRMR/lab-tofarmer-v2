@@ -1839,26 +1839,35 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
             z-index: 9999;
         `;
         
-        // Fungsi klik: Mengirim pesan ke user yang sedang dibuka
-        btnPesan.onclick = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const penerima = urlParams.get("user") || urlParams.get("u");
-            
-            if (!penerima) {
-                alert("Tidak ada user yang dituju.");
-                return;
-            }
-            
-            // Panggil fungsi dari pesan-warga.js
-            const teks = "Halo Kang, saya mampir ke profilmu!";
-            const link = window.location.href;
-            
-            if (typeof kirimPesanPribadi === "function") {
-                kirimPesanPribadi(penerima, teks, link, "Lihat Profil");
-            } else {
-                alert("Fungsi kirim pesan belum dimuat.");
-            }
-        };
+    btnPesan.onclick = async () => {
+    // Ambil ID dari localStorage yang sudah kita kunci tadi
+    const myId = localStorage.getItem("tof_user_id"); 
+
+    if (!myId) {
+        alert("Anda belum login.");
+        return;
+    }
+
+    const { data } = await supabaseClient
+        .from('pesan_warga')
+        .select('*')
+        .eq('penerima_id', myId)
+        .order('created_at', { ascending: false });
+
+    if (data && data.length > 0) {
+        // Tampilkan pesan
+        let listPesan = "✉️ PESAN MASUK:\n\n";
+        data.forEach(p => {
+            listPesan += `Dari: ${p.pengirim_id}\nIsi: ${p.isi_pesan}\n----------\n`;
+        });
+        alert(listPesan);
+        
+        // OPSIONAL: Tandai semua pesan sudah dibaca setelah dibuka
+        // await supabaseClient.from('pesan_warga').update({is_read: true}).eq('penerima_id', myId);
+    } else {
+        alert("Kotak pesan masih kosong.");
+    }
+};
         // Memastikan container notif menjadi kolom agar tombol turun ke bawah
         notifWrapper.style.display = "flex";
         notifWrapper.style.flexDirection = "column";

@@ -46,3 +46,33 @@ async function updateBadgePesan() {
 document.addEventListener("DOMContentLoaded", () => {
   setTimeout(updateBadgePesan, 2000);
 });
+async function cekPesanMasuk() {
+    // Pastikan kedua kunci ada sebelum lanjut
+    const myWallet = localStorage.getItem("tof_wallet");
+    const myUserId = localStorage.getItem("tof_user_id");
+
+    // Jika salah satu saja tidak ada, fungsi berhenti (return)
+    if (!myWallet || !myUserId) {
+        console.log("Sistem Pesan: User belum login atau data wallet/ID tidak lengkap.");
+        return; 
+    }
+
+    // Gunakan myUserId sebagai ID penerima untuk query
+    const { data, error } = await supabaseClient
+        .from('pesan_warga')
+        .select('*')
+        .eq('penerima_id', myUserId) // Atau gunakan myWallet, tergantung sistem Anda
+        .eq('is_read', false);
+
+    if (data) {
+        const badge = document.getElementById("badge-pesan-tof");
+        if (badge) {
+            badge.style.display = data.length > 0 ? "flex" : "none";
+            badge.innerText = data.length;
+        }
+    }
+}
+
+// Jalankan sistem "Kurir"
+setInterval(cekPesanMasuk, 30000);
+cekPesanMasuk();
