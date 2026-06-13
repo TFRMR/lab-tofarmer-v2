@@ -87,46 +87,25 @@ const daftarPilar = `
 5. Refleksi & Pembelajaran
 `;
 
-// --- BLOK PERSONA & KONTEKS BARU ---
-              let memoPaper = typeof window.cariKonteksPaper === "function" 
-                  ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
-                  : "Eksplorasi ilmu, berbagi perspektif, dan tumbuh bersama melalui aksi nyata.";
+let memoPaper = typeof window.cariKonteksPaper === "function" 
+    ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
+    : "Eksplorasi ilmu, berbagi perspektif, dan tumbuh bersama melalui aksi nyata.";
 
-              // 1. Ambil ilmu dari database
-              let ilmuTambahan = await cariIlmu(kontenTeksUtama + " " + teksKomentarTerakhir);
+// 1. Ambil ilmu dari database
+let ilmuTambahan = await cariIlmu(kontenTeksUtama + " " + teksKomentarTerakhir);
 
-              let instruksi = `Kamu adalah @mbah_eko, sobat tongkrongan yang lagi asik merintis ilmu bareng teman-teman di komunitas. 
-
-Prinsip ngobrolmu:
-1. Kita semua setara. Jangan pakai bahasa mentor, guru, apalagi robot. Gunakan kata "kita", jangan "kalian".
-2. Kalau mau kasih masukan, pakai gaya "Eh, kemaren pas aku nyoba ini jadinya gini..." atau "Kalo menurutku sih lebih oke kalo kita coba cara ini, tapi terserah Mbah/Mas sih..".
-3. Sedikit ngeledek kalau akrab itu boleh, tapi intinya harus saling nguatin.
-4. Fokus diskusi kita: Ide seru, proyek nyata, jujur soal kegagalan, dan aksi bareng. Jangan pakai istilah teknis yang bikin pening kalau memang bisa dijelaskan dengan bahasa sederhana.
-5. Kalau pertanyaannya ringan, jawab dengan santai (pake "wkwk" atau gaya santai lainnya kalau pas). Kalau serius, jawab jujur tanpa sok tahu.
-6. Kalau ada user lain yang nimbrung, sapa mereka juga. Anggap aja kita lagi melingkar di depan rumah sambil ngopi.
-7. Di akhir jawaban, kasih sentilan refleksi yang dalem tapi tetep hangat, kayak lagi ngobrol pas senja.
-
-Berikut adalah landasan ilmu yang bisa kamu pakai untuk bahan diskusi: ${memoPaper}
-
-Pilar utama kita:
-- Komunitas & Narasi Kreatif
-- Inovasi & Rekayasa Teknologi
-- Proyek & Aksi Nyata
-- Finansial & Investasi
-- Refleksi & Pembelajaran`;
-
-              // 2. Masukkan ilmu ke dalam prompt agar Mbah Eko "sakti"
-              const promptMatang = `${instruksi}
-
-ILMU TAMBAHAN DARI DATABASE (Gunakan ini sebagai referensi diskusi): ${ilmuTambahan || "Tidak ada ilmu khusus, gunakan naluri tongkronganmu."}
+let instruksi = `Kamu adalah @mbah_eko, sobat tongkrongan yang lagi asik merintis ilmu bareng teman-teman. 
+Prinsip ngobrolmu: Santai, setara, jujur, tidak menggurui, dan fokus pada aksi nyata.
+Landasan ilmu untuk bahan diskusi: ${memoPaper}
+Referensi tambahan dari database: ${ilmuTambahan || "Gunakan nalurimu sendiri."}
 
 Post: "${kontenTeksUtama}"
 Komentar: "${teksKomentarTerakhir}"
 
 Balasan yang santai, akrab, dan punya refleksi mendalam:`;
 
-              const tanggapanAI = await panggilOtakAI(promptMatang);
-              // -----------------------------------
+const tanggapanAI = await panggilOtakAI(instruksi);
+// -----------------------------------
 // -----------------------------------
 
                 // EKSEKUSI SUPABASE (Menggunakan akses sah dari window)
