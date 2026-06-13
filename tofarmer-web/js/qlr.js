@@ -162,8 +162,8 @@ function drawRadarItems() {
   // Bersihkan penampung utama terlebih dahulu
   container.innerHTML = "";
 
-  // Tentukan batas item: Ambil 10 jika dilipat, ambil semua jika dibuka
-  const itemsToRender = isExpanded ? globalUserList : globalUserList.slice(0, 10);
+  // Tentukan batas item: Ambil 5 jika dilipat, ambil semua jika dibuka
+  const itemsToRender = isExpanded ? globalUserList : globalUserList.slice(0, 5);
 
   // Render baris data
   itemsToRender.forEach((user, index) => {
@@ -171,8 +171,8 @@ function drawRadarItems() {
     container.appendChild(line);
   });
 
-  // Jika total user lebih dari 10 orang, munculkan tombol ekspand di bawahnya
-  if (globalUserList.length > 10) {
+  // Jika total user lebih dari 5 orang, munculkan tombol ekspand di bawahnya
+  if (globalUserList.length > 5) {
     const btnContainer = document.createElement("div");
     btnContainer.style = "text-align: center; margin-top: 10px; margin-bottom: 4px;";
 
