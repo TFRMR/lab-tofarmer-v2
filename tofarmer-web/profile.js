@@ -1962,6 +1962,11 @@ async function loadDaftarPesan() {
     daftarPesan.innerHTML = "";
     pesan.forEach(p => {
         const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
+// --- TAMBAHKAN BARIS INI UNTUK DEBUGGING ---
+console.log("Mengecek Pesan:", p.isi_pesan);
+console.log("Pengirim ID di Pesan:", p.pengirim_id);
+console.log("Apakah ada di profileMap?", profileMap[p.pengirim_id]);
+// -----------------------
         const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id] || "Warga");
 
         const div = document.createElement("div");
