@@ -1839,33 +1839,30 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
             z-index: 9999;
         `;
         
-    btnPesan.onclick = async () => {
-    // Ambil ID dari localStorage yang sudah kita kunci tadi
+   btnPesan.onclick = async () => {
     const myId = localStorage.getItem("tof_user_id"); 
+    
+    // DEBUG: Tambahkan ini untuk melihat ID apa yang dicari
+    console.log("Mencari pesan untuk ID:", myId);
 
     if (!myId) {
-        alert("Anda belum login.");
+        alert("ID User tidak ditemukan di LocalStorage!");
         return;
     }
 
-    const { data } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from('pesan_warga')
         .select('*')
-        .eq('penerima_id', myId)
-        .order('created_at', { ascending: false });
+        .eq('penerima_id', myId);
+
+    // DEBUG: Lihat apa error-nya
+    if (error) console.error("Error Supabase:", error);
+    console.log("Data ditemukan:", data);
 
     if (data && data.length > 0) {
-        // Tampilkan pesan
-        let listPesan = "✉️ PESAN MASUK:\n\n";
-        data.forEach(p => {
-            listPesan += `Dari: ${p.pengirim_id}\nIsi: ${p.isi_pesan}\n----------\n`;
-        });
-        alert(listPesan);
-        
-        // OPSIONAL: Tandai semua pesan sudah dibaca setelah dibuka
-        // await supabaseClient.from('pesan_warga').update({is_read: true}).eq('penerima_id', myId);
+        // ... tampilkan pesan ...
     } else {
-        alert("Kotak pesan masih kosong.");
+        alert("Kotak pesan masih kosong untuk ID: " + myId);
     }
 };
         // Memastikan container notif menjadi kolom agar tombol turun ke bawah
