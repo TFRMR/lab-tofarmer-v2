@@ -1870,7 +1870,12 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
         notifWrapper.style.flexDirection = "column";
         notifWrapper.style.alignItems = "center"; 
         
-        notifWrapper.appendChild(btnPesan);
+       notifWrapper.appendChild(btnPesan);
+        }
+    } else {
+        // Hapus tombol jika bukan profil sendiri
+        const btnPesan = document.getElementById("btn-pesan-tof");
+        if (btnPesan) btnPesan.remove();
        
     }
 });
