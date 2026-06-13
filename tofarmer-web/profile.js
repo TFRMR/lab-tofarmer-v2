@@ -1988,10 +1988,7 @@ async function loadDaftarPesan() {
     });
     
     daftarPesan.scrollTop = daftarPesan.scrollHeight;
-} else {
-        daftarPesan.innerHTML = "<p style='text-align:center;'>Belum ada pesan.</p>";
-    }
-}
+} 
 // ========================================================
 // INISIALISASI OTOMATIS SAAT HALAMAN DIMUAT
 // ========================================================
