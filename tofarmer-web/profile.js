@@ -1940,50 +1940,58 @@ async function cariDanKirim() {
 
 async function loadDaftarPesan() {
     const daftarPesan = document.getElementById("daftarPesan");
-    daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat pesan...</p>";
+    daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat percakapan...</p>";
 
-    // 1. Ambil pesan (tanpa join agar tidak error jika relasi belum diset)
+    // 1. Ambil data pesan dari 'pesan_warga'
     const { data: pesan, error } = await supabaseClient
         .from("pesan_warga")
         .select("*")
         .or(`penerima_id.eq.${localStorage.getItem("tof_wallet")},pengirim_id.eq.${localStorage.getItem("tof_wallet")}`)
         .order("created_at", { ascending: true });
 
-    if (error || !pesan) return;
+    if (error) {
+        console.error("Error ambil pesan:", error);
+        return;
+    }
 
-    // 2. Ambil semua profil agar bisa kita "peta-kan" (mapping)
+    // 2. Ambil semua profil dari 'profiles'
     const { data: profiles } = await supabaseClient.from("profiles").select("id, username");
     
-    // Buat kamus (dictionary) supaya cepat mencari nama berdasarkan ID
+    // 3. Buat kamus (Mapping)
     const profileMap = {};
-    profiles.forEach(p => profileMap[p.id] = p.username);
+    if (profiles) {
+        profiles.forEach(p => {
+            // Kita gunakan ID sebagai kunci (key) untuk mencari username
+            profileMap[p.id.trim()] = p.username;
+        });
+    }
 
-    // 3. Tampilkan ke layar
+    // 4. Render ke layar
     daftarPesan.innerHTML = "";
-    pesan.forEach(p => {
-        
-       const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
-const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id] || "Warga");
+    if (pesan && pesan.length > 0) {
+        pesan.forEach(p => {
+            const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
+            
+            // Cari nama di kamus menggunakan pengirim_id
+            const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id.trim()] || "Warga");
 
-const div = document.createElement("div");
-div.style.cssText = `margin-bottom: 15px; text-align: ${isMe ? 'right' : 'left'}; width: 100%;`;
-
-div.innerHTML = `
-    <div style="font-size: 12px; color: #2f6f4e; font-weight: bold; margin-bottom: 4px; display: block;">
-        ${isMe ? '' : '@' + namaPengirim}
-    </div>
-    
-    <div style="display:inline-block; padding: 10px 15px; border-radius: 18px; 
-                background: ${isMe ? '#22c55e' : '#e0e0e0'}; 
-                color: ${isMe ? 'white' : 'black'}; 
-                max-width: 85%; word-wrap: break-word;">
-         ${p.isi_pesan}
-    </div>
-`;
-daftarPesan.appendChild(div);
-    });
-    
-    daftarPesan.scrollTop = daftarPesan.scrollHeight;
+            const div = document.createElement("div");
+            div.style.cssText = `margin-bottom: 12px; text-align: ${isMe ? 'right' : 'left'};`;
+            div.innerHTML = `
+                <div style="font-size: 11px; color: #2f6f4e; font-weight: bold; margin-bottom: 2px;">
+                    ${isMe ? '' : '@' + namaPengirim}
+                </div>
+                <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
+                            background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
+                    ${p.isi_pesan}
+                </div>
+            `;
+            daftarPesan.appendChild(div);
+        });
+        daftarPesan.scrollTop = daftarPesan.scrollHeight;
+    } else {
+        daftarPesan.innerHTML = "<p style='text-align:center;'>Belum ada pesan.</p>";
+    }
 }
 // ========================================================
 // INISIALISASI OTOMATIS SAAT HALAMAN DIMUAT
