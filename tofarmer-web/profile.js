@@ -1861,3 +1861,24 @@ setTimeout(() => {
         notifWrapper.appendChild(btnPesan);
     }
 }, 1500);
+// [SISIPKAN DI PALING BAWAH profil.js]
+
+// Logika klik kirim (pastikan fungsi kirimPesanPribadi ada di pesan-warga.js)
+setTimeout(() => {
+    const tombolKirim = document.getElementById("tombol-kirim-pesan"); // ID yang akan ada di modal Anda nanti
+    if (tombolKirim) {
+        tombolKirim.addEventListener("click", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const penerima = urlParams.get("user") || urlParams.get("u"); 
+            
+            // Contoh isi pesan (Nanti ganti dengan .value dari input modal Anda)
+            const teks = "Halo Kang, saya mampir ke profilmu!";
+            const link = window.location.href;
+            const label = "Lihat Profil";
+            
+            if (typeof kirimPesanPribadi === "function") {
+                kirimPesanPribadi(penerima, teks, link, label);
+            }
+        });
+    }
+}, 2000);
