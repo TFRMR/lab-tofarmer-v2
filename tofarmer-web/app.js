@@ -147,7 +147,50 @@ function logoutWallet() {
 }
 
 
+// ===================== UI & PROFILE SYNC =====================
+function updateWalletUI() {
+  const btn = document.querySelector("button[onclick='connectWallet()']")
+  const editBtn = document.getElementById("editAvatarBtn")
 
+  if (!btn) return
+
+  if (currentWallet) {
+    // 1. Teks jika petani SUDAH LOGIN / CONNECT
+    btn.innerText = "🚪 LOGOUT"
+    btn.style.background = "#4caf7a"
+    btn.onclick = logoutWallet
+    if (editBtn) editBtn.style.visibility = "visible"
+  } else {
+    // 2. Teks jika petani BELUM LOGIN (Ini yang Anda tanyakan 😎)
+    btn.innerText = "🔑 MASUK / DAFTAR 🌿"
+    btn.style.background = ""
+    btn.onclick = connectWallet
+    if (editBtn) editBtn.style.visibility = "hidden"
+  }
+}
+
+async function syncProfile(wallet) {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", wallet)
+    .maybeSingle()
+
+  if (error) {
+    console.log(error)
+    return
+  }
+
+  if (!data) {
+    alert("Wallet belum terdaftar 🌱\nSilakan daftar dulu.")
+    logoutWallet()
+    return
+  } else {
+    currentProfile = data
+  }
+
+  await refreshUserBalance()
+}
 
 // ===================== POSTING SYSTEM =====================
 const PILAR_MAP = {
@@ -305,7 +348,11 @@ async function sendPost() {
       const konteksBeranda = generateFeedContext(posTetangga);
       const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
 
-      
+      updateAdvice(
+          "komentar", 
+          `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat aturan ekosistem, latar belakang profil user, dan aktivitas kebun lainnya.\n\n[DOKUMEN INTEGRASI "tentang.html"]:\n${referensiKamus}\n\n[LINIMASA LALU]:\n${konteksBeranda}`,
+          text
+      );
   }, 1500);
 }
 
