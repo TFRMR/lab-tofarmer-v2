@@ -1804,3 +1804,60 @@ setTimeout(() => {
   handleTargetPostFromNotification();
   checkUnreadNotifications();
 }, 1000);
+// Misal Anda punya modal (jendela kecil) dengan ID "tombol-kirim-pesan"
+document.getElementById("tombol-kirim-pesan").addEventListener("click", () => {
+   const penerima = "ID_WALLET_TARGET"; // Ambil dari URL atau data profil
+   const isi = "Halo, saya suka karya kamu!";
+   const link = "profile.html?u=target"; // Link yang ingin dikirim
+   const label = "Lihat Profil";
+   
+   kirimPesanPribadi(penerima, isi, link, label);
+});
+// [SISIPKAN DI PALING BAWAH FILE profil.js]
+
+setTimeout(() => {
+  const tombolKirim = document.getElementById("tombol-kirim-pesan");
+  
+  if (tombolKirim) {
+    tombolKirim.addEventListener("click", () => {
+      // Mengambil ID user yang sedang dikunjungi dari URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const penerima = urlParams.get("u"); 
+      
+      // Catatan: Di masa depan, ganti 'isi' ini dengan .value dari input modal
+      const isi = "Halo, saya suka karya kamu!";
+      const link = window.location.href; // Mengirim link halaman ini sebagai konteks
+      const label = "Lihat Karya";
+      
+      // Fungsi ini berasal dari pesan-warga.js
+      if (typeof kirimPesanPribadi === "function") {
+          kirimPesanPribadi(penerima, isi, link, label);
+      } else {
+          console.error("Fungsi kirimPesanPribadi tidak ditemukan!");
+      }
+    });
+  }
+}, 1000);
+// [SISIPKAN DI PALING BAWAH profil.js]
+
+setTimeout(() => {
+    // Cari container notifikasi (sesuaikan ID dengan yang ada di injector Anda)
+    const notifWrapper = document.getElementById("notif-wrapper"); 
+    
+    if (notifWrapper) {
+        // Pastikan wrapper notif jadi flex column agar tombol pesan bisa di bawahnya
+        notifWrapper.style.flexDirection = "column";
+        
+        // Buat tombol pesan
+        const btnPesan = document.createElement("button");
+        btnPesan.id = "btn-pesan-tof";
+        btnPesan.innerHTML = "✉️<span id='badge-pesan-tof' style='display:none; position:absolute; top:0; right:0; background:red; color:white; border-radius:50%; font-size:9px; padding:2px 4px;'>0</span>";
+        btnPesan.style.cssText = "background: #3b82f6; border-radius: 50%; width: 46px; height: 46px; border: none; cursor: pointer; color: white; margin-top: 10px; position: relative; display: flex; align-items: center; justify-content: center;";
+        
+        btnPesan.onclick = () => {
+            alert("Fitur chat segera hadir! Sekarang sedang disiapkan pintunya.");
+        };
+        
+        notifWrapper.appendChild(btnPesan);
+    }
+}, 1500);
