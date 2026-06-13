@@ -1840,29 +1840,28 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
         `;
         
    btnPesan.onclick = async () => {
-    const myId = localStorage.getItem("tof_user_id"); 
-    
-    // DEBUG: Tambahkan ini untuk melihat ID apa yang dicari
-    console.log("Mencari pesan untuk ID:", myId);
+    const myWallet = localStorage.getItem("tof_wallet");
+    const myUserId = localStorage.getItem("tof_user_id");
 
-    if (!myId) {
-        alert("ID User tidak ditemukan di LocalStorage!");
+    if (!myWallet || !myUserId) {
+        alert("Silakan login terlebih dahulu.");
         return;
     }
 
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
         .from('pesan_warga')
         .select('*')
-        .eq('penerima_id', myId);
-
-    // DEBUG: Lihat apa error-nya
-    if (error) console.error("Error Supabase:", error);
-    console.log("Data ditemukan:", data);
+        .eq('penerima_id', myWallet)
+        .order('created_at', { ascending: false });
 
     if (data && data.length > 0) {
-        // ... tampilkan pesan ...
+        let listPesan = "✉️ PESAN MASUK:\n\n";
+        data.forEach(p => {
+            listPesan += `Dari: ${p.pengirim_id}\nIsi: ${p.isi_pesan}\n----------\n`;
+        });
+        alert(listPesan);
     } else {
-        alert("Kotak pesan masih kosong untuk ID: " + myId);
+        alert("Kotak pesan masih kosong.");
     }
 };
         // Memastikan container notif menjadi kolom agar tombol turun ke bawah
