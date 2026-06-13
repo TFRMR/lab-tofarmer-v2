@@ -1830,28 +1830,24 @@ setTimeout(() => {
 }, 1000);
 
 
-// ==========================================================
-// PENYUSUPAN TOMBOL PESAN (Tepat di sebelah/bawah Lonceng)
-// ==========================================================
-const monitorNotifikasi = new MutationObserver((mutations, obs) => {
+
+
+// Mulai mengawasi
+monitorNotifikasi.observe(document.body, { childList: true, subtree: true });
+// 1. TULIS DULU FUNGSINYA (Taruh di bagian bawah file)
+function inisialisasiKomponenPesan() {
+    if (!currentWallet) return;
+    if (currentWallet !== targetProfileId) return;
+
     const notifWrapper = document.getElementById("tof-notif-wrapper");
-    if (!notifWrapper) return; // Jika container notif belum ada, jangan lakukan apa-apa
+    if (!notifWrapper) return; 
 
-    const myWallet = localStorage.getItem("tof_wallet");
-    const profilWallet = window.currentProfileWallet; 
+    if (document.getElementById("btn-pesan-tof")) return;
 
-    // Cek apakah kita di profil sendiri
-    const isMyProfile = (myWallet && profilWallet && myWallet === profilWallet);
-    const existingBtn = document.getElementById("btn-pesan-tof");
-
-    if (isMyProfile) {
-        // Jika di profil sendiri DAN tombol belum ada, maka buat
-        if (!existingBtn) {
-            const btnPesan = document.createElement("button");
-            btnPesan.id = "btn-pesan-tof";
-            btnPesan.innerHTML = "✉️";
-        
-            btnPesan.style.cssText = `
+    const btnPesan = document.createElement("button");
+    btnPesan.id = "btn-pesan-tof";
+    btnPesan.innerHTML = "✉️";
+     btnPesan.style.cssText = `
                 background: #3b82f6; 
                 border-radius: 50%; 
                 width: 40px; 
@@ -1874,16 +1870,16 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
             notifWrapper.style.display = "flex";
             notifWrapper.style.flexDirection = "column";
             notifWrapper.style.alignItems = "center"; 
-            
-            notifWrapper.appendChild(btnPesan);
-        }
-    } else {
-        // Jika bukan profil sendiri, pastikan tombol DIBUANG
-        if (existingBtn) {
-            existingBtn.remove();
-        }
-    }
-});
 
-// Mulai mengawasi
-monitorNotifikasi.observe(document.body, { childList: true, subtree: true });
+    notifWrapper.appendChild(btnPesan);
+
+    updateBadgePesan();
+}
+
+// 2. KEMUDIAN PANGGIL FUNGSINYA (Di dalam setTimeout)
+setTimeout(() => {
+  if (currentWallet && targetProfileId && currentWallet === targetProfileId) {
+    inisialisasiKomponenNotif();
+    inisialisasiKomponenPesan(); // Sekarang sudah aman karena fungsi di atas sudah terbaca
+  }
+}, 1000);
