@@ -333,27 +333,7 @@ async function sendPost() {
 
   loadFeed()
 
-  setTimeout(async () => {
-      aiBerandaChatCounter = 0; 
-      const sisaEl = document.getElementById("sisa-chat-beranda");
-      if (sisaEl) sisaEl.innerText = 5; 
-
-      const { data: updatedFeedPosts } = await supabaseClient
-        .from("contributions")
-        .select("deskripsi_proses, profiles(username)")
-        .eq("is_private", false)
-        .order("created_at", { ascending: false });
-
-      const posTetangga = updatedFeedPosts ? updatedFeedPosts.slice(1) : [];
-      const konteksBeranda = generateFeedContext(posTetangga);
-      const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
-
-      updateAdvice(
-          "komentar", 
-          `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat aturan ekosistem, latar belakang profil user, dan aktivitas kebun lainnya.\n\n[DOKUMEN INTEGRASI "tentang.html"]:\n${referensiKamus}\n\n[LINIMASA LALU]:\n${konteksBeranda}`,
-          text
-      );
-  }, 1500);
+  
 }
 
 // ===================== ECONOMY & ALGORAND INFRA =====================
