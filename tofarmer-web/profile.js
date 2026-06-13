@@ -1,5 +1,7 @@
 const currentWallet = localStorage.getItem("tof_wallet")
-
+// Contoh cara mengambil wallet dari URL (misal: website.com/profile?wallet=0x123...)
+const urlParams = new URLSearchParams(window.location.search);
+window.currentProfileWallet = urlParams.get("wallet");
 // =====================
 // TOF LIVE CONFIG
 // =====================
@@ -1826,13 +1828,21 @@ setTimeout(() => {
 const monitorNotifikasi = new MutationObserver((mutations, obs) => {
     const notifWrapper = document.getElementById("tof-notif-wrapper");
     
-    // Jika wrapper ketemu DAN tombol belum pernah dibuat
-    if (notifWrapper && !document.getElementById("btn-pesan-tof")) {
+    // 1. Ambil wallet yang login dan wallet pemilik profil
+    const myWallet = localStorage.getItem("tof_wallet");
+    const profilWallet = window.currentProfileWallet; 
+
+    // 2. CEK: Hanya jalankan jika pemilik profil ADALAH user yang login
+    // Pastikan variabel 'profilWallet' sudah ada di halaman profil Anda
+    if (myWallet && profilWallet && myWallet === profilWallet) {
         
-        // Buat Tombol Pesan
-        const btnPesan = document.createElement("button");
-        btnPesan.id = "btn-pesan-tof";
-        btnPesan.innerHTML = "✉️";
+        // 3. Jika wrapper ketemu DAN tombol belum pernah dibuat
+        if (notifWrapper && !document.getElementById("btn-pesan-tof")) {
+            
+            // Buat Tombol Pesan
+            const btnPesan = document.createElement("button");
+            btnPesan.id = "btn-pesan-tof";
+            btnPesan.innerHTML = "✉️";
         
         // Styling untuk posisi tepat DI BAWAH lonceng
         btnPesan.style.cssText = `
