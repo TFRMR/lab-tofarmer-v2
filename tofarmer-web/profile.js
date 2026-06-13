@@ -1961,24 +1961,26 @@ async function loadDaftarPesan() {
     // 3. Tampilkan ke layar
     daftarPesan.innerHTML = "";
     pesan.forEach(p => {
-        const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
-// --- TAMBAHKAN BARIS INI UNTUK DEBUGGING ---
-console.log("Mengecek Pesan:", p.isi_pesan);
-console.log("Pengirim ID di Pesan:", p.pengirim_id);
-console.log("Apakah ada di profileMap?", profileMap[p.pengirim_id]);
-// -----------------------
-        const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id] || "Warga");
+        
+       const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
+const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id] || "Warga");
 
-        const div = document.createElement("div");
-        div.style.cssText = `margin-bottom: 12px; text-align: ${isMe ? 'right' : 'left'};`;
-        div.innerHTML = `
-            <div style="font-size: 10px; color: #555; margin-bottom: 2px;">${isMe ? '' : '@' + namaPengirim}</div>
-            <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
-                        background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
-                 ${p.isi_pesan}
-            </div>
-        `;
-        daftarPesan.appendChild(div);
+const div = document.createElement("div");
+div.style.cssText = `margin-bottom: 15px; text-align: ${isMe ? 'right' : 'left'}; width: 100%;`;
+
+div.innerHTML = `
+    <div style="font-size: 12px; color: #2f6f4e; font-weight: bold; margin-bottom: 4px; display: block;">
+        ${isMe ? '' : '@' + namaPengirim}
+    </div>
+    
+    <div style="display:inline-block; padding: 10px 15px; border-radius: 18px; 
+                background: ${isMe ? '#22c55e' : '#e0e0e0'}; 
+                color: ${isMe ? 'white' : 'black'}; 
+                max-width: 85%; word-wrap: break-word;">
+         ${p.isi_pesan}
+    </div>
+`;
+daftarPesan.appendChild(div);
     });
     
     daftarPesan.scrollTop = daftarPesan.scrollHeight;
