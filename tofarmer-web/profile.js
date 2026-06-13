@@ -1940,33 +1940,43 @@ async function cariDanKirim() {
 
 async function loadDaftarPesan() {
     const daftarPesan = document.getElementById("daftarPesan");
-    
-    // Ambil pesan dan "gabungkan" (join) dengan username pengirim
-    const { data, error } = await supabaseClient
+    daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat pesan...</p>";
+
+    // 1. Ambil pesan (tanpa join agar tidak error jika relasi belum diset)
+    const { data: pesan, error } = await supabaseClient
         .from("pesan_warga")
-        .select(`
-            isi_pesan, 
-            profiles:pengirim_id (username) 
-        `) // Kita ganti ke 'profiles' karena itulah nama tabel pengirimnya
-        .eq("penerima_id", currentWallet)
-        .order("created_at", { ascending: false });
+        .select("*")
+        .or(`penerima_id.eq.${localStorage.getItem("tof_wallet")},pengirim_id.eq.${localStorage.getItem("tof_wallet")}`)
+        .order("created_at", { ascending: true });
 
-    if (error) return;
+    if (error || !pesan) return;
 
-    daftarPesan.innerHTML = ""; // Bersihkan list lama
+    // 2. Ambil semua profil agar bisa kita "peta-kan" (mapping)
+    const { data: profiles } = await supabaseClient.from("profiles").select("id, username");
+    
+    // Buat kamus (dictionary) supaya cepat mencari nama berdasarkan ID
+    const profileMap = {};
+    profiles.forEach(p => profileMap[p.id] = p.username);
 
-    data.forEach(msg => {
-        const username = msg.users ? msg.users.username : "Warga";
-        
-       // ... di dalam data.forEach(msg => { ...
-daftarPesan.innerHTML += `
-    <div class="pesan-card" style="margin-bottom:12px; padding:12px; border-radius:15px; background:#f9f9f9; border-left: 4px solid #2f6f4e;">
-        <div style="font-size:11px; color:#2f6f4e; font-weight:bold; margin-bottom:4px;">@${username}</div>
-        <div style="font-size:14px; color:#333;">${msg.isi_pesan}</div>
-    </div>
-`;
+    // 3. Tampilkan ke layar
+    daftarPesan.innerHTML = "";
+    pesan.forEach(p => {
+        const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
+        const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id] || "Warga");
 
+        const div = document.createElement("div");
+        div.style.cssText = `margin-bottom: 12px; text-align: ${isMe ? 'right' : 'left'};`;
+        div.innerHTML = `
+            <div style="font-size: 10px; color: #555; margin-bottom: 2px;">${isMe ? '' : '@' + namaPengirim}</div>
+            <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
+                        background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
+                 ${p.isi_pesan}
+            </div>
+        `;
+        daftarPesan.appendChild(div);
     });
+    
+    daftarPesan.scrollTop = daftarPesan.scrollHeight;
 }
 // ========================================================
 // INISIALISASI OTOMATIS SAAT HALAMAN DIMUAT
