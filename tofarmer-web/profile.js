@@ -1,7 +1,5 @@
 const currentWallet = localStorage.getItem("tof_wallet")
-// Contoh cara mengambil wallet dari URL (misal: website.com/profile?wallet=0x123...)
-const urlParams = new URLSearchParams(window.location.search);
-window.currentProfileWallet = urlParams.get("wallet");
+
 // =====================
 // TOF LIVE CONFIG
 // =====================
