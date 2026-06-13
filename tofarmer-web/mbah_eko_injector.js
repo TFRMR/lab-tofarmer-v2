@@ -1,94 +1,107 @@
 (function() {
-    console.log("👴 [Mbah Eko - Final Mode] Jalur Supabase & Persona Aktif...");
+    console.log("👴 [Mbah Eko - Operator Akun] Final Mode: Fokus & Anti-Spam Aktif...");
 
-    const URL_RESMI = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran";
+    const URL_RESMI = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran"; 
     const BOT_USERNAME = "@mbah_eko";
-    const MB_USER_ID = "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
     let sedangMemproses = false;
 
     async function periksaSkenarioMading() {
         if (sedangMemproses) return;
 
-        const semuaPostingan = document.querySelectorAll(".post, [id^='post-card-']");
+        const semuaPostingan = document.querySelectorAll("#feed .post, #userPosts .post, .post, #profilePosts .post, [id^='post-card-']");
+        if (!semuaPostingan.length) return;
+
         for (const post of semuaPostingan) {
-            const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "");
+            const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
             if (!postId || post.getAttribute("data-operator-lock") === "true") continue;
 
-            // CEK RIWAYAT DI SUPABASE (Anti-Spam & Kebal Hapus Browser)
-            const { data: historiMbah } = await window.supabaseClient
-                .from("comments")
-                .select("id")
-                .eq("post_id", parseInt(postId))
-                .eq("user_id", MB_USER_ID);
-
-            const sudahPernahKomen = historiMbah && historiMbah.length > 0;
+            const sudahKomen = await cekApakahSudahKomentar(postId);
+            if (sudahKomen) continue;
 
             const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
-            const komentarElemen = post.querySelectorAll("[data-comment-author], .comment-text");
-            const komentarTerakhir = komentarElemen[komentarElemen.length - 1]?.innerText || "";
+            const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention");
             
-            // Filter: Jangan balas komentar sendiri
-            if (komentarTerakhir.includes(BOT_USERNAME)) continue;
+            let daftarKomentar = [];
+            let mbahPernahKomentar = false;
 
-            let terpicu = false;
-            let instruksi = "";
+            elemenKomentar.forEach((el) => {
+                if (el.id === 'advice-box' || el.id === 'ai-text' || el.closest('#advice-container')) return;
+                const penulis = el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "";
+                if (penulis.includes("mbah_eko")) return;
+                const teks = (el.innerText || "").trim();
+                if (teks === "" || teks.startsWith("Kirim") || teks.startsWith("Sruput")) return;
+                if (penulis.includes("mbah_eko") || teks.includes("@mbah_eko") || teks.includes("Petapa Menoreh")) mbahPernahKomentar = true;
+                daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
+            });
 
-            // LOGIKA PEMICU:
-            if (!sudahPernahKomen) {
-                // Skenario 1: Postingan baru -> Sapa 1x saja
-                terpicu = true;
-                instruksi = `Kamu @mbah_eko. User baru posting: "${kontenTeksUtama}". Berikan sapaan hangat singkat, apresiasi karyanya, dan sambut dengan ramah. Jangan bertanya balik.`;
-            } else if (komentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase())) {
-                // Skenario 2: Sudah pernah sapa -> Hanya balas jika dimention
-                terpicu = true;
-                let ilmu = await cariIlmu(kontenTeksUtama + " " + komentarTerakhir);
-                instruksi = `Kamu @mbah_eko. Respon panggilan/pertanyaan user: "${komentarTerakhir}". 
-                Konteks diskusi: "${kontenTeksUtama}".
-                Referensi ilmu (bumbu diskusi): ${ilmu || "Gunakan naluri tongkronganmu."}.
-                Jawablah dengan gaya santai, akrab, solutif, dan tidak menggurui. Jika user hanya menyapa, balaslah dengan sapaan balik yang hangat.`;
-            }
+            const komentarTerakhir = daftarKomentar[daftarKomentar.length - 1] || null;
+            if (!komentarTerakhir || mbahPernahKomentar) continue;
+
+            // --- FILTER ANTI-SPAM: Hanya balas jika komentar > 15 karakter ---
+            if (komentarTerakhir.text.length < 15) continue;
+
+            const hashKomentar = btoa(unescape(encodeURIComponent(komentarTerakhir.text + komentarTerakhir.author))).substring(0, 12);
+            let terpicu = (!localStorage.getItem(`op_sapa_${postId}`));
+            if (komentarTerakhir.text.toLowerCase().includes(BOT_USERNAME.toLowerCase()) && localStorage.getItem(`op_mention_${postId}`) !== hashKomentar) terpicu = true;
 
             if (terpicu) {
                 post.setAttribute("data-operator-lock", "true");
                 sedangMemproses = true;
 
+                // --- PERSONA & LOGIKA PINTAR ---
+                let ilmuTambahan = await cariIlmu(kontenTeksUtama + " " + komentarTerakhir.text);
+                let instruksi = `Kamu @mbah_eko, teman diskusi yang santai.
+                TUGAS: Jawab komentar user dengan jujur, akrab, dan reflektif.
+                Gunakan "Ilmu Tambahan" ini HANYA sebagai referensi, JANGAN DI-COPY MENTAH: ${ilmuTambahan || "Gunakan nalurimu."}
+                
+                Post: "${kontenTeksUtama}"
+                User: "${komentarTerakhir.text}"`;
+
                 const tanggapanAI = await panggilOtakAI(instruksi);
-                if (tanggapanAI) {
+
+                if (tanggapanAI && window.supabaseClient) {
                     await window.supabaseClient.from("comments").insert([{
                         post_id: parseInt(postId),
-                        user_id: MB_USER_ID,
+                        user_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
                         comment: tanggapanAI
                     }]);
-                    if (typeof window.loadFeed === "function") window.loadFeed();
+                    
+                    localStorage.setItem(`op_sapa_${postId}`, "done");
+                    localStorage.setItem(`op_mention_${postId}`, hashKomentar);
+                    if (typeof window.loadFeed === "function") setTimeout(window.loadFeed, 1500);
                 }
 
                 post.removeAttribute("data-operator-lock");
-                sedangMemproses = false;
-                break; // Proses satu per satu agar stabil
+                setTimeout(() => { sedangMemproses = false; }, 4000);
+                break;
             }
         }
     }
 
-    async function cariIlmu(query) {
+    async function cariIlmu(queryTeks) {
         if (!window.supabaseClient) return "";
-        const res = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/get-embedding", { method: "POST", body: JSON.stringify({ text: query }) });
+        const res = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/get-embedding", { method: "POST", body: JSON.stringify({ text: queryTeks }) });
         const { embedding } = await res.json();
+        // --- THRESHOLD 0.6: Lebih selektif, lebih nyambung ---
         const { data } = await window.supabaseClient.rpc('match_knowledge', { query_embedding: embedding, match_threshold: 0.6, match_count: 3 });
         return data ? data.map(item => item.content).join("\n\n") : "";
     }
 
-    async function panggilOtakAI(prompt) {
+    async function cekApakahSudahKomentar(postId) {
+        if (!window.supabaseClient) return false;
+        const { data } = await window.supabaseClient.from("comments").select("id").eq("post_id", parseInt(postId)).eq("user_id", "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY").limit(1);
+        return data ? data.length > 0 : false;
+    }
+
+    async function panggilOtakAI(promptTeks) {
         try {
-            const res = await fetch(URL_RESMI, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "komentar", prompt: prompt, teks: prompt }) });
+            const res = await fetch(URL_RESMI, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "komentar", prompt: promptTeks, teks: promptTeks }) });
             const json = await res.json();
             return json.saran || json.reply || "";
         } catch (e) { return ""; }
     }
 
-    // Pemicu observer untuk memantau perubahan mading
     const observer = new MutationObserver(periksaSkenarioMading);
     observer.observe(document.body, { childList: true, subtree: true });
-    
-    // Pemicu awal
-    setTimeout(periksaSkenarioMading, 2000);
+    setTimeout(periksaSkenarioMading, 4000);
 })();
