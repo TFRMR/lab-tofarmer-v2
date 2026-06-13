@@ -1829,7 +1829,7 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
             border: 2px solid white; 
             cursor: pointer; 
             color: white; 
-            margin-left: 60px; /* Geser ke kanan supaya tidak menutupi lonceng */
+            margin-left: 80px; /* Geser ke kanan supaya tidak menutupi lonceng */
             display: flex; 
             align-items: center; 
             justify-content: center;
