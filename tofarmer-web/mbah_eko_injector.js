@@ -176,4 +176,4 @@ async function cekApakahSudahKomentar(postId) {
         setTimeout(periksaSkenarioMading, 2000); 
     });
 
-})(); // <--- Tanda tutup kurung dan eksekusi fungsi yang benar
+})();
