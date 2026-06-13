@@ -66,31 +66,39 @@ async function cekPesanMasuk() {
 }
 async function bukaInbox() {
     const myWallet = localStorage.getItem("tof_wallet");
+const myUserId = localStorage.getItem("tof_user_id");
     const modal = document.getElementById("inboxModal");
     const daftarPesan = document.getElementById("daftarPesan");
-
+    
     modal.style.display = "block";
-    daftarPesan.innerHTML = "<p>Memuat pesan...</p>";
+    daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat percakapan...</p>";
 
+    // Ambil data pesan
     const { data } = await supabaseClient
         .from('pesan_warga')
         .select('*')
-        .eq('penerima_id', myWallet)
-        .order('created_at', { ascending: false });
+        .or(`penerima_id.eq.${localStorage.getItem("tof_wallet")},pengirim_id.eq.${localStorage.getItem("tof_wallet")}`)
+        .order('created_at', { ascending: true }); // ascending agar chat terbaru di bawah
 
     if (data && data.length > 0) {
         daftarPesan.innerHTML = "";
         data.forEach(p => {
-            const item = document.createElement("div");
-            item.className = "pesan-card";
-            item.innerHTML = `
-                <strong style="color:var(--tw-purple)">Dari: ${p.pengirim_id.substring(0, 10)}...</strong>
-                <p style="margin:8px 0 0; font-size:14px; color:#444;">${p.isi_pesan}</p>
+            const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
+            const div = document.createElement("div");
+            div.style.cssText = `margin-bottom: 10px; text-align: ${isMe ? 'right' : 'left'};`;
+            div.innerHTML = `
+                <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
+                     background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
+                    ${p.isi_pesan}
+                </div>
             `;
-            daftarPesan.appendChild(item);
+            daftarPesan.appendChild(div);
         });
+        
+        // Auto scroll ke pesan paling bawah
+        daftarPesan.scrollTop = daftarPesan.scrollHeight;
     } else {
-        daftarPesan.innerHTML = "<p style='text-align:center;'>Tidak ada pesan baru.</p>";
+        daftarPesan.innerHTML = "<p style='text-align:center;'>Belum ada pesan.</p>";
     }
 }
 

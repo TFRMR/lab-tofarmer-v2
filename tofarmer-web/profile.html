@@ -191,22 +191,26 @@
 }
 
 .modal-card {
-    background: #fff;
-    margin: 10vh auto; padding: 0;
-    width: 90%; max-width: 450px;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-    animation: slideUp 0.4s ease;
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh; /* Modal tidak menutupi seluruh layar */
+}
+
+.pesan-list {
+    flex: 1; /* Daftar pesan akan mengisi sisa ruang */
+    overflow-y: auto; /* Scroll hanya pada daftar pesan */
+    padding: 15px;
 }
 
 .modal-header {
-    background: linear-gradient(90deg, var(--tw-purple), #8a6fb0);
-    color: white; padding: 20px;
-    display: flex; justify-content: space-between; align-items: center;
+    background: #22c55e; /* Hijau Notifikasi */
+    color: white;
+    padding: 15px 20px;
 }
 
-.pesan-list { padding: 20px; max-height: 400px; overflow-y: auto; }
+.pesan-list {
+    padding-top: 20px; /* Biar chat tidak mepet ke header */
+}
 
 .pesan-card {
     background: #fdfdfd;
@@ -296,11 +300,17 @@
 <div id="inboxModal" class="modal-overlay">
     <div class="modal-card">
         <div class="modal-header">
-            <h3>✉️ Pesan Masuk</h3>
+            <h3>✉️ Pesan Warga</h3>
             <button class="btn-close" onclick="closeInbox()">✕</button>
         </div>
+
         <div id="daftarPesan" class="pesan-list">
             <p style="text-align:center; color:#888;">Memuat pesan...</p>
+        </div>
+
+        <div class="input-pesan-area" style="padding: 15px; border-top: 1px solid #eee; background: #f9f9f9;">
+            <textarea id="pesanBaruText" placeholder="Tulis pesan untuk warga..." style="width: 100%; border-radius: 8px; padding: 10px; border: 1px solid #ddd; resize: none;"></textarea>
+            <button onclick="kirimPesanDariModal()" style="width: 100%; background:#22c55e; color:white; border:none; padding:10px; border-radius:8px; margin-top:8px; cursor:pointer; font-weight:bold;">Kirim Pesan</button>
         </div>
     </div>
 </div>
