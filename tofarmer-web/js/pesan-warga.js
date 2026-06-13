@@ -42,21 +42,15 @@ async function updateBadgePesan() {
   }
 }
 
-// 3. INISIALISASI OTOMATIS
-document.addEventListener("DOMContentLoaded", () => {
-  setTimeout(updateBadgePesan, 2000);
-});
+// 3. INISIALISASI OTOMATIS (Satukan saja agar lebih hemat resource)
+
 async function cekPesanMasuk() {
     const myWallet = localStorage.getItem("tof_wallet");
-    const myUserId = localStorage.getItem("tof_user_id");
 
-    // Validasi: Harus ada keduanya
-    if (!myWallet || !myUserId) {
-        return; 
-    }
+    if (!myWallet) return; 
 
-    // Gunakan myWallet sebagai acuan penerima_id (sesuai kesepakatan kita)
-    const { data } = await supabaseClient
+    // Mencari pesan di mana penerima_id sama dengan wallet user
+    const { data, error } = await supabaseClient
         .from('pesan_warga')
         .select('*')
         .eq('penerima_id', myWallet) 
@@ -70,7 +64,39 @@ async function cekPesanMasuk() {
         }
     }
 }
+async function bukaInbox() {
+    const myWallet = localStorage.getItem("tof_wallet");
+    const modal = document.getElementById("inboxModal");
+    const daftarPesan = document.getElementById("daftarPesan");
 
+    modal.style.display = "block";
+    daftarPesan.innerHTML = "<p>Memuat pesan...</p>";
+
+    const { data } = await supabaseClient
+        .from('pesan_warga')
+        .select('*')
+        .eq('penerima_id', myWallet)
+        .order('created_at', { ascending: false });
+
+    if (data && data.length > 0) {
+        daftarPesan.innerHTML = "";
+        data.forEach(p => {
+            const item = document.createElement("div");
+            item.className = "pesan-card";
+            item.innerHTML = `
+                <strong style="color:var(--tw-purple)">Dari: ${p.pengirim_id.substring(0, 10)}...</strong>
+                <p style="margin:8px 0 0; font-size:14px; color:#444;">${p.isi_pesan}</p>
+            `;
+            daftarPesan.appendChild(item);
+        });
+    } else {
+        daftarPesan.innerHTML = "<p style='text-align:center;'>Tidak ada pesan baru.</p>";
+    }
+}
+
+function closeInbox() {
+    document.getElementById("inboxModal").style.display = "none";
+}
 // Jalankan sistem "Kurir"
 setInterval(cekPesanMasuk, 30000);
 cekPesanMasuk();

@@ -1656,15 +1656,29 @@ async function loadNotifikasiUser() {
     console.log("Gagal memuat sistem notifikasi hybrid:", err.message);
   }
 }
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
+
+ // Cukup satu event listener ini saja untuk menghandle semuanya
+document.addEventListener("DOMContentLoaded", () => {
+    
+    // 1. Inisialisasi Notifikasi
     inisialisasiKomponenNotif();
     setTimeout(loadNotifikasiUser, 2000); 
-  });
-} else {
-  inisialisasiKomponenNotif();
-  setTimeout(loadNotifikasiUser, 2000);
-}
+
+    // 2. Inisialisasi Sistem Pesan
+    cekPesanMasuk();
+    setInterval(cekPesanMasuk, 30000); 
+
+    // 3. Inisialisasi Tombol Kirim Pesan
+    const tombolKirim = document.getElementById("tombol-kirim-di-profil");
+    if (tombolKirim) {
+        tombolKirim.onclick = () => {
+            const isi = prompt("Tulis pesan Anda untuk warga ini:");
+            if(isi) kirimPesanPribadi(window.currentProfileWallet, isi);
+        };
+    }
+});
+
+// Fungsi-fungsi tetap ditaruh di bawahnya (di luar event listener)
 async function panggilAiSaran(mode, payload) {
     try {
         const response = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/ai-saran", {
@@ -1839,39 +1853,17 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
             z-index: 9999;
         `;
         
-   btnPesan.onclick = async () => {
-    const myWallet = localStorage.getItem("tof_wallet");
-    const myUserId = localStorage.getItem("tof_user_id");
-
-    if (!myWallet || !myUserId) {
-        alert("Silakan login terlebih dahulu.");
-        return;
-    }
-
-    const { data } = await supabaseClient
-        .from('pesan_warga')
-        .select('*')
-        .eq('penerima_id', myWallet)
-        .order('created_at', { ascending: false });
-
-    if (data && data.length > 0) {
-        let listPesan = "✉️ PESAN MASUK:\n\n";
-        data.forEach(p => {
-            listPesan += `Dari: ${p.pengirim_id}\nIsi: ${p.isi_pesan}\n----------\n`;
-        });
-        alert(listPesan);
-    } else {
-        alert("Kotak pesan masih kosong.");
-    }
-};
+   // --- AWAL BAGIAN YANG DIPERBAIKI ---
+        btnPesan.onclick = () => {
+            bukaInbox(); // Sekarang memanggil fungsi modal cantik Anda
+        };
         // Memastikan container notif menjadi kolom agar tombol turun ke bawah
         notifWrapper.style.display = "flex";
         notifWrapper.style.flexDirection = "column";
         notifWrapper.style.alignItems = "center"; 
         
         notifWrapper.appendChild(btnPesan);
-        // Tambahkan ke dalam wrapper agar ikut tata letak notifikasi
-        notifWrapper.appendChild(btnPesan);
+       
     }
 });
 
