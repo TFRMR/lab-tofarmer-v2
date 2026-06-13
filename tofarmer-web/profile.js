@@ -1939,6 +1939,12 @@ async function cariDanKirim() {
 }
 
 async function loadDaftarPesan() {
+console.log("Fungsi loadDaftarPesan dipanggil!"); // Tanda bahwa fungsi jalan
+    const daftarPesan = document.getElementById("daftarPesan");
+    if (!daftarPesan) {
+        console.error("Elemen daftarPesan tidak ditemukan di HTML!");
+        return;
+    }
     const daftarPesan = document.getElementById("daftarPesan");
     daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat percakapan...</p>";
 
@@ -1961,13 +1967,13 @@ async function loadDaftarPesan() {
     const profileMap = {};
     if (profiles) {
         profiles.forEach(p => {
-            // Kita gunakan ID sebagai kunci (key) untuk mencari username
+           
             profileMap[p.id.trim()] = p.username;
         });
     }
 
-    console.log("Isi ProfileMap:", profileMap); 
-    // --
+    
+ 
     // 4. Render ke layar
     daftarPesan.innerHTML = "";
     if (pesan && pesan.length > 0) {
