@@ -743,7 +743,21 @@ loadFeed().then(() => {
     loadRankSummary()
   }
 
-  
+  setTimeout(async () => {
+    const { data: currentFeedPosts } = await supabaseClient
+      .from("contributions")
+      .select("deskripsi_proses, profiles(username)")
+      .eq("is_private", false)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const konteksBeranda = generateFeedContext(currentFeedPosts || []);
+    const pondasiDasar = typeof cariKonteksPaper === "function" ? cariKonteksPaper("filosofi pilar") : "";
+
+    // 🌟 AMBIL USERNAME SECARA DINAMIS (Jika belum login, pakai 'Petani')
+    const namaUserAktif = currentProfile ? currentProfile.username : "Petani";
+
+    
 });
 // --- FUNGSI ALA FACEBOOK UNTUK KONTROL BUKA/TUTUP KOTAK KOMENTAR ---
 function toggleKomentarBox(postId) {
