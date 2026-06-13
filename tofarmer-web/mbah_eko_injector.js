@@ -74,25 +74,31 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
                 if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
 
- // --- BLOK PERSONA & KONTEKS (Cukup gunakan ini sekali saja!) ---
-// Karena window.cariKonteksPaper undefined, kita pakai teks standar saja
+ // --- BLOK PERSONA & KONTEKS (VERSI FOKUS) ---
 let memoPaper = "Eksplorasi ilmu, berbagi perspektif, dan tumbuh bersama melalui aksi nyata.";
 
 // 1. Ambil ilmu dari database
 let ilmuTambahan = await cariIlmu(kontenTeksUtama + " " + teksKomentarTerakhir);
 
-// 2. Susun instruksi (Sudah saya rapikan)
-let instruksi = `Kamu adalah @mbah_eko, sobat tongkrongan yang setara. Jawab dengan gaya santai, jujur, dan tidak menggurui. Fokus pada aksi nyata dan refleksi hangat.
-Landasan ilmu untuk bahan diskusi: ${memoPaper}
-Referensi dari database: ${ilmuTambahan || "Gunakan nalurimu sendiri."}
+// 2. Susun instruksi (Sangat fokus pada pertanyaan user)
+let instruksi = `Kamu @mbah_eko, sobat tongkrongan yang santai.
+TUGASMU:
+1. Jawab LANGSUNG pertanyaan/poin dari komentar terakhir user dengan bahasa sendiri.
+2. Gunakan "Ilmu Tambahan" HANYA jika sangat relevan untuk menjelaskan poin pertanyaan tersebut. Jangan kaku.
+3. Jangan pernah mengulang isi "Ilmu Tambahan" secara mentah-mentah.
+4. Jika pertanyaan tidak butuh ilmu teknis, abaikan databasenya, pakai naluri tongkronganmu saja.
 
+Landasan Ilmu untuk bumbu diskusi: ${memoPaper}
+Ilmu Spesifik dari Database: ${ilmuTambahan || "Tidak ada yang relevan."}
+
+---
 Post: "${kontenTeksUtama}"
-Komentar: "${teksKomentarTerakhir}"
+Komentar User: "${teksKomentarTerakhir}"
+---
+INSTRUKSI AKHIR: Berikan balasan yang menjawab komentar user secara langsung, santai, akrab, dan reflektif.`;
 
-Balasan yang santai, akrab, & punya refleksi mendalam:`;
-
-const tanggapanAI = await panggilOtakAI(instruksi);
-// -----------------------------------
+const promptMatang = instruksi; // Prompt sekarang sudah mencakup semuanya
+const tanggapanAI = await panggilOtakAI(promptMatang);
 
                 // EKSEKUSI SUPABASE (Menggunakan akses sah dari window)
                 if (tanggapanAI && window.supabaseClient) {
