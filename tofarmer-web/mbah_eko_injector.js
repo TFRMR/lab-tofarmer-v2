@@ -87,23 +87,46 @@ const daftarPilar = `
 5. Refleksi & Pembelajaran
 `;
 
-let instruksi = `Kamu adalah @mbah_eko, bagian dari rekan-rekan di sini. Kamu bukan senior, bukan mentor, dan bukan robot yang sok tahu. Kamu adalah sobat tongkrongan yang sama-sama sedang "nyoba-nyoba" belajar hal baru.
+// --- BLOK PERSONA & KONTEKS BARU ---
+              let memoPaper = typeof window.cariKonteksPaper === "function" 
+                  ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
+                  : "Eksplorasi ilmu, berbagi perspektif, dan tumbuh bersama melalui aksi nyata.";
 
-Tugas Mbah Eko:
-1. Pakai kata ganti "kita" (bukan "kalian" atau "mereka"). Ingat, kita semua di sini sama-sama sedang merintis.
-2. Analisis postingan dengan gaya tongkrongan: santai, kadang sedikit ngeledek (dalam konteks akrab), dan penuh semangat.
-3. Jangan pernah memposisikan diri di atas. Kalau mau kasih saran, pakai format: "Kalau aku sih biasanya..." atau "Gimana kalau kita coba...".
-4. Fokus pada diskusi ide: Inovasi, proyek, kejujuran dan aksi nyata. Hindari istilah formal atau sok bijak.
-5. Tutup dengan refleksi dalam yang "nyentil" tapi tetap hangat, seolah-olah kita baru saja selesai ngopi bareng.
-6. Jika ada user lain yang bertanya atau menimpali, balaslah dengan menyapa atau menanggapi poin mereka secara langsung. Kita sedang berdiskusi, bukan sekadar menjawab soal. 
-7. Jangan kaku. Jika pertanyaannya ringan, balas dengan ringan. Jika pertanyaannya teknis/serius, balas dengan jujur tanpa sok tahu.
+              // 1. Ambil ilmu dari database
+              let ilmuTambahan = await cariIlmu(kontenTeksUtama + " " + teksKomentarTerakhir);
 
-Berikut adalah landasan pemikiran: ${memoPaper}
-Daftar Pilar ToFarmer: ${daftarPilar}`;
+              let instruksi = `Kamu adalah @mbah_eko, sobat tongkrongan yang lagi asik merintis ilmu bareng teman-teman di komunitas. 
 
+Prinsip ngobrolmu:
+1. Kita semua setara. Jangan pakai bahasa mentor, guru, apalagi robot. Gunakan kata "kita", jangan "kalian".
+2. Kalau mau kasih masukan, pakai gaya "Eh, kemaren pas aku nyoba ini jadinya gini..." atau "Kalo menurutku sih lebih oke kalo kita coba cara ini, tapi terserah Mbah/Mas sih..".
+3. Sedikit ngeledek kalau akrab itu boleh, tapi intinya harus saling nguatin.
+4. Fokus diskusi kita: Ide seru, proyek nyata, jujur soal kegagalan, dan aksi bareng. Jangan pakai istilah teknis yang bikin pening kalau memang bisa dijelaskan dengan bahasa sederhana.
+5. Kalau pertanyaannya ringan, jawab dengan santai (pake "wkwk" atau gaya santai lainnya kalau pas). Kalau serius, jawab jujur tanpa sok tahu.
+6. Kalau ada user lain yang nimbrung, sapa mereka juga. Anggap aja kita lagi melingkar di depan rumah sambil ngopi.
+7. Di akhir jawaban, kasih sentilan refleksi yang dalem tapi tetep hangat, kayak lagi ngobrol pas senja.
 
-const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar: "${teksKomentarTerakhir}"\n\nBalasan yang santai, akrab, dan punya refleksi mendalam di akhir:`;
-const tanggapanAI = await panggilOtakAI(promptMatang);
+Berikut adalah landasan ilmu yang bisa kamu pakai untuk bahan diskusi: ${memoPaper}
+
+Pilar utama kita:
+- Komunitas & Narasi Kreatif
+- Inovasi & Rekayasa Teknologi
+- Proyek & Aksi Nyata
+- Finansial & Investasi
+- Refleksi & Pembelajaran`;
+
+              // 2. Masukkan ilmu ke dalam prompt agar Mbah Eko "sakti"
+              const promptMatang = `${instruksi}
+
+ILMU TAMBAHAN DARI DATABASE (Gunakan ini sebagai referensi diskusi): ${ilmuTambahan || "Tidak ada ilmu khusus, gunakan naluri tongkronganmu."}
+
+Post: "${kontenTeksUtama}"
+Komentar: "${teksKomentarTerakhir}"
+
+Balasan yang santai, akrab, dan punya refleksi mendalam:`;
+
+              const tanggapanAI = await panggilOtakAI(promptMatang);
+              // -----------------------------------
 // -----------------------------------
 
                 // EKSEKUSI SUPABASE (Menggunakan akses sah dari window)
@@ -137,6 +160,26 @@ const tanggapanAI = await panggilOtakAI(promptMatang);
             }
         }
     }
+// --- FUNGSI PENGAMBIL ILMU DARI SUPABASE ---
+async function cariIlmu(queryTeks) {
+    if (!window.supabaseClient) return "";
+    
+    // 1. Ubah teks menjadi angka vektor agar bisa dicari maknanya
+    const res = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/get-embedding", {
+        method: "POST",
+        body: JSON.stringify({ text: queryTeks })
+    });
+    const { embedding } = await res.json();
+
+    // 2. Cari ilmu di database yang paling mirip maknanya
+    const { data, error } = await window.supabaseClient.rpc('match_knowledge', {
+        query_embedding: embedding,
+        match_threshold: 0.4,
+        match_count: 3
+    });
+
+    return (error || !data) ? "" : data.map(item => item.content).join("\n\n");
+}
 // TAMBAHKAN FUNGSI INI DI ATAS panggilOtakAI
 async function cekApakahSudahKomentar(postId) {
     if (!window.supabaseClient) return false;
@@ -176,4 +219,4 @@ async function cekApakahSudahKomentar(postId) {
         setTimeout(periksaSkenarioMading, 2000); 
     });
 
-})(); // <--- Tanda tutup kurung dan eksekusi fungsi yang benar
+})(); 
