@@ -1,28 +1,35 @@
 // 1. FUNGSI KIRIM PESAN (Panggil fungsi ini saat tombol 'Kirim' ditekan)
-async function kirimPesanPribadi(targetPenerimaId, teks, linkUrl = null, labelTombol = null) {
-  if (!currentWallet) {
-    alert("Silakan login terlebih dahulu untuk berkirim pesan!");
-    return;
-  }
+// GANTI FUNGSI LAMA INI DENGAN INI:
+async function kirimPesanKeSiapaSaja() {
+    const target = document.getElementById("targetWalletInput").value.trim();
+    const isi = document.getElementById("pesanBaruText").value.trim();
+    const myWallet = localStorage.getItem("tof_wallet");
 
-  try {
-    const { error } = await supabaseClient
-      .from("pesan_warga")
-      .insert([{
-        pengirim_id: currentWallet, // Mengambil ID dari session/wallet yang sedang aktif
-        penerima_id: targetPenerimaId,
-        isi_pesan: teks,
-        link_aksi: linkUrl,
-        label_aksi: labelTombol,
-        is_read: false
-      }]);
+    if (!target || !isi) {
+        alert("Harap isi alamat tujuan (Wallet) dan isi pesan!");
+        return;
+    }
 
-    if (error) throw error;
-    alert("Pesan berhasil dikirim ke warga!");
-  } catch (err) {
-    console.error("Gagal mengirim pesan:", err.message);
-    alert("Yah, cangkul pesan lagi patah. Coba lagi ya!");
-  }
+    try {
+        const { error } = await supabaseClient
+            .from("pesan_warga")
+            .insert([{
+                pengirim_id: myWallet,
+                penerima_id: target,
+                isi_pesan: isi,
+                is_read: false
+            }]);
+
+        if (error) throw error;
+
+        alert("Pesan berhasil dikirim!");
+        document.getElementById("pesanBaruText").value = ""; // Bersihkan kolom isi
+        // Refresh modal agar pesan yang baru dikirim langsung muncul di daftar
+        bukaInbox(); 
+    } catch (err) {
+        console.error("Gagal mengirim:", err.message);
+        alert("Yah, cangkul pesan lagi patah. Coba lagi ya!");
+    }
 }
 
 // 2. FUNGSI UNTUK MENGAMBIL PESAN MASUK (Untuk badge)
