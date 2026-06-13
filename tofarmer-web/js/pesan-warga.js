@@ -47,21 +47,19 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(updateBadgePesan, 2000);
 });
 async function cekPesanMasuk() {
-    // Pastikan kedua kunci ada sebelum lanjut
     const myWallet = localStorage.getItem("tof_wallet");
     const myUserId = localStorage.getItem("tof_user_id");
 
-    // Jika salah satu saja tidak ada, fungsi berhenti (return)
+    // Validasi: Harus ada keduanya
     if (!myWallet || !myUserId) {
-        console.log("Sistem Pesan: User belum login atau data wallet/ID tidak lengkap.");
         return; 
     }
 
-    // Gunakan myUserId sebagai ID penerima untuk query
-    const { data, error } = await supabaseClient
+    // Gunakan myWallet sebagai acuan penerima_id (sesuai kesepakatan kita)
+    const { data } = await supabaseClient
         .from('pesan_warga')
         .select('*')
-        .eq('penerima_id', myUserId) // Atau gunakan myWallet, tergantung sistem Anda
+        .eq('penerima_id', myWallet) 
         .eq('is_read', false);
 
     if (data) {
