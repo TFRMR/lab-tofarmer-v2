@@ -1829,12 +1829,9 @@ setTimeout(() => {
   checkUnreadNotifications();
 }, 1000);
 
-
-
-
-// Mulai mengawasi
-monitorNotifikasi.observe(document.body, { childList: true, subtree: true });
-// 1. TULIS DULU FUNGSINYA (Taruh di bagian bawah file)
+// ========================================================
+// INISIALISASI TOMBOL PESAN (Mailbox)
+// ========================================================
 function inisialisasiKomponenPesan() {
     if (!currentWallet) return;
     if (currentWallet !== targetProfileId) return;
@@ -1847,39 +1844,87 @@ function inisialisasiKomponenPesan() {
     const btnPesan = document.createElement("button");
     btnPesan.id = "btn-pesan-tof";
     btnPesan.innerHTML = "✉️";
-     btnPesan.style.cssText = `
-                background: #3b82f6; 
-                border-radius: 50%; 
-                width: 40px; 
-                height: 40px; 
-                border: 2px solid white; 
-                cursor: pointer; 
-                color: white; 
-                margin-top: 10px; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center;
-                font-size: 18px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                z-index: 9999;
-            `;
-            
-            btnPesan.onclick = bukaInbox;
+    btnPesan.style.cssText = `
+        background: #3b82f6; 
+        border-radius: 50%; 
+        width: 40px; 
+        height: 40px; 
+        border: 2px solid white; 
+        cursor: pointer; 
+        color: white; 
+        margin-top: 10px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 9999;
+    `;
+    
+    btnPesan.onclick = bukaInbox;
 
-            // Pastikan wrapper fleksibel
-            notifWrapper.style.display = "flex";
-            notifWrapper.style.flexDirection = "column";
-            notifWrapper.style.alignItems = "center"; 
+    // Pastikan wrapper notifikasi fleksibel untuk menampung tombol di bawah lonceng
+    notifWrapper.style.display = "flex";
+    notifWrapper.style.flexDirection = "column";
+    notifWrapper.style.alignItems = "center"; 
 
     notifWrapper.appendChild(btnPesan);
-
     updateBadgePesan();
 }
 
-// 2. KEMUDIAN PANGGIL FUNGSINYA (Di dalam setTimeout)
+// ========================================================
+// LOGIKA KIRIM PESAN BY USERNAME
+// ========================================================
+async function cariDanKirim() {
+    const username = document.getElementById("targetUsernameInput").value.trim();
+    const isiPesan = document.getElementById("pesanBaruText").value.trim();
+    
+    if (!username || !isiPesan) {
+        alert("Harap isi username dan pesan!");
+        return;
+    }
+
+    // 1. Cari User di Database berdasarkan username
+    const { data: user, error } = await supabaseClient
+        .from('users') 
+        .select('wallet_address')
+        .eq('username', username)
+        .single();
+
+    if (error || !user) {
+        alert("Wah, username '" + username + "' tidak ditemukan di ladang!");
+        return;
+    }
+
+    // 2. Kirim Pesan ke wallet tujuan
+    const { error: kirimError } = await supabaseClient
+        .from("pesan_warga")
+        .insert([{
+            pengirim_id: localStorage.getItem("tof_wallet"),
+            penerima_id: user.wallet_address,
+            isi_pesan: isiPesan,
+            is_read: false
+        }]);
+
+    if (kirimError) {
+        console.error(kirimError);
+        alert("Gagal mengirim pesan.");
+    } else {
+        alert("Pesan berhasil dikirim ke @" + username);
+        document.getElementById("pesanBaruText").value = ""; 
+        document.getElementById("targetUsernameInput").value = "";
+        
+        // Refresh daftar pesan (jika fungsi ini ada)
+        if (typeof loadDaftarPesan === 'function') loadDaftarPesan();
+    }
+}
+
+// ========================================================
+// INISIALISASI OTOMATIS SAAT HALAMAN DIMUAT
+// ========================================================
 setTimeout(() => {
   if (currentWallet && targetProfileId && currentWallet === targetProfileId) {
     inisialisasiKomponenNotif();
-    inisialisasiKomponenPesan(); // Sekarang sudah aman karena fungsi di atas sudah terbaca
+    inisialisasiKomponenPesan();
   }
 }, 1000);
