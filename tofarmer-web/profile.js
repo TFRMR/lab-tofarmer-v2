@@ -1895,32 +1895,33 @@ async function updateBadgePesan() {
 // LOGIKA KIRIM PESAN BY USERNAME
 // ========================================================
 async function cariDanKirim() {
-    const username = document.getElementById("targetUsernameInput").value.trim();
+    const inputUsername = document.getElementById("targetUsernameInput").value.trim();
     const isiPesan = document.getElementById("pesanBaruText").value.trim();
     
-    if (!username || !isiPesan) {
-        alert("Harap isi username dan pesan!");
+    if (!inputUsername || !isiPesan) {
+        alert("Username dan pesan jangan dikosongkan ya!");
         return;
     }
 
-    // 1. Cari User di Database berdasarkan username
+    // 1. Cari User di tabel 'profiles' berdasarkan 'username'
+    // Kita ambil 'id' karena itu adalah alamat wallet (sesuai tabel Anda)
     const { data: user, error } = await supabaseClient
-        .from('users') 
-        .select('wallet_address')
-        .eq('username', username)
+        .from('profiles') 
+        .select('id, username')
+        .ilike('username', inputUsername) // ilike supaya tidak sensitif huruf besar/kecil
         .single();
 
     if (error || !user) {
-        alert("Wah, username '" + username + "' tidak ditemukan di ladang!");
+        alert("Wah, username '" + inputUsername + "' tidak ditemukan di ladang!");
         return;
     }
 
-    // 2. Kirim Pesan ke wallet tujuan
+    // 2. Kirim Pesan ke wallet tujuan (user.id adalah walletnya)
     const { error: kirimError } = await supabaseClient
         .from("pesan_warga")
         .insert([{
             pengirim_id: localStorage.getItem("tof_wallet"),
-            penerima_id: user.wallet_address,
+            penerima_id: user.id, // Pakai user.id dari tabel profiles
             isi_pesan: isiPesan,
             is_read: false
         }]);
@@ -1929,14 +1930,14 @@ async function cariDanKirim() {
         console.error(kirimError);
         alert("Gagal mengirim pesan.");
     } else {
-        alert("Pesan berhasil dikirim ke @" + username);
+        alert("Pesan berhasil dikirim ke @" + user.username);
         document.getElementById("pesanBaruText").value = ""; 
         document.getElementById("targetUsernameInput").value = "";
         
-        // Refresh daftar pesan (jika fungsi ini ada)
         if (typeof loadDaftarPesan === 'function') loadDaftarPesan();
     }
 }
+
 async function loadDaftarPesan() {
     const daftarPesan = document.getElementById("daftarPesan");
     
