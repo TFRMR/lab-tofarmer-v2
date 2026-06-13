@@ -1942,53 +1942,73 @@ async function loadDaftarPesan() {
     const daftarPesan = document.getElementById("daftarPesan");
     daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat percakapan...</p>";
 
-    // 1. Ambil semua pesan
+    const myWallet = localStorage.getItem("tof_wallet");
+
     const { data: pesan, error } = await supabaseClient
         .from("pesan_warga")
         .select("*")
-        .or(`penerima_id.eq.${localStorage.getItem("tof_wallet")},pengirim_id.eq.${localStorage.getItem("tof_wallet")}`)
+        .or(`penerima_id.eq.${myWallet},pengirim_id.eq.${myWallet}`)
         .order("created_at", { ascending: true });
 
-    if (error || !pesan || pesan.length === 0) {
-        daftarPesan.innerHTML = "<p style='text-align:center;'>Belum ada pesan.</p>";
+    if (error) {
+        console.error("Error ambil pesan:", error);
         return;
     }
 
-    // 2. Optimasi: Ambil hanya profil yang muncul di chat saja
+    // ===== DEBUG =====
+    console.log("Total pesan:", pesan?.length);
+    console.log("Contoh pengirim_id:", pesan?.[0]?.pengirim_id);
+    console.log("myWallet:", myWallet);
+    // =================
+
+    // Kumpulkan semua ID unik dari pesan (lebih efisien)
     const semuaId = [...new Set(pesan.map(p => p.pengirim_id))];
-    const { data: profiles } = await supabaseClient
+    console.log("semuaId yang dicari:", semuaId);
+
+    const { data: profiles, error: errProfiles } = await supabaseClient
         .from("profiles")
         .select("id, username")
         .in("id", semuaId);
 
-    // 3. Mapping data
+    console.log("Profiles ditemukan:", profiles);
+    console.log("Error profiles:", errProfiles);
+
     const profileMap = {};
     if (profiles) {
-        profiles.forEach(p => profileMap[p.id.trim()] = p.username);
+        profiles.forEach(p => {
+            profileMap[p.id.trim()] = p.username;
+        });
     }
 
-    // 4. Render ke layar
-    daftarPesan.innerHTML = "";
-    pesan.forEach(p => {
-        const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
-        const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id.trim()] || "Warga");
+    console.log("profileMap:", profileMap);
 
-        const div = document.createElement("div");
-        div.style.cssText = `margin-bottom: 12px; text-align: ${isMe ? 'right' : 'left'};`;
-        div.innerHTML = `
-            <div style="font-size: 11px; color: #2f6f4e; font-weight: bold; margin-bottom: 2px;">
-                ${isMe ? '' : '@' + namaPengirim}
-            </div>
-            <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
-                        background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
-                ${p.isi_pesan}
-            </div>
-        `;
-        daftarPesan.appendChild(div);
-    });
-    
-    daftarPesan.scrollTop = daftarPesan.scrollHeight;
-} 
+    // Render
+    daftarPesan.innerHTML = "";
+    if (pesan && pesan.length > 0) {
+        pesan.forEach(p => {
+            const isMe = p.pengirim_id === myWallet;
+            const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id?.trim()] || "Warga");
+
+            console.log(`pesan dari: ${p.pengirim_id} → nama: ${namaPengirim}`);
+
+            const div = document.createElement("div");
+            div.style.cssText = `margin-bottom: 12px; text-align: ${isMe ? 'right' : 'left'};`;
+            div.innerHTML = `
+                <div style="font-size: 11px; color: #2f6f4e; font-weight: bold; margin-bottom: 2px;">
+                    ${isMe ? '' : '@' + namaPengirim}
+                </div>
+                <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
+                            background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
+                    ${p.isi_pesan}
+                </div>
+            `;
+            daftarPesan.appendChild(div);
+        });
+        daftarPesan.scrollTop = daftarPesan.scrollHeight;
+    } else {
+        daftarPesan.innerHTML = "<p style='text-align:center;'>Belum ada pesan.</p>";
+    }
+}
 // ========================================================
 // INISIALISASI OTOMATIS SAAT HALAMAN DIMUAT
 // ========================================================
