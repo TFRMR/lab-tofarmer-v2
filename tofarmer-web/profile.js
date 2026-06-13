@@ -237,6 +237,7 @@ async function loadProfile() {
   } catch (err) {
     console.log("LIVE BALANCE ERROR:", err)
   }
+checkUnreadNotifications();
 }
 
 loadProfile()
@@ -1743,7 +1744,7 @@ async function kirimChatAI() {
     responseBox.innerText = "🤖 Teman Kebun: Cangkul saya agak patah barusan, coba ketik lagi Kang!";
   }
 }
-// =====================================================
+/// =====================================================
 // 🎯 AUTO FOCUS TARGET POST DARI NOTIFIKASI
 // =====================================================
 function handleTargetPostFromNotification() {
@@ -1766,8 +1767,40 @@ function handleTargetPostFromNotification() {
       el.style.background = "#f0fdf4";
       el.style.transition = "0.3s ease";
     }
-  }, 800); // sedikit lebih aman dari 500ms
+  }, 800);
 }
 
-// jalankan setelah semua script jalan
-handleTargetPostFromNotification();
+// Fungsi untuk mengecek jumlah notifikasi belum dibaca ke Supabase
+async function checkUnreadNotifications() {
+  if (!currentWallet) return;
+
+  const { count, error } = await supabaseClient
+    .from("notifications")
+    .select("id", { count: 'exact', head: true })
+    .eq("user_id", currentWallet)
+    .eq("is_read", false);
+
+  if (!error) {
+    updateNotificationUI(count);
+  }
+}
+
+async function updateNotificationUI(count) {
+  const badge = document.getElementById("badge-notif-tof");
+  if (!badge) return;
+
+  if (count > 0) {
+    badge.style.display = "flex"; 
+    badge.innerText = count > 9 ? "9+" : count; 
+  } else {
+    badge.style.display = "none"; 
+  }
+}
+
+// =====================================================
+// JALANKAN SATU KALI SAJA DI SINI:
+// =====================================================
+setTimeout(() => {
+  handleTargetPostFromNotification();
+  checkUnreadNotifications();
+}, 1000);
