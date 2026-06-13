@@ -1376,9 +1376,7 @@ if (currentWallet !== targetProfileId) return;
 // =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER & FIX BUG LINK ALTERNATIF
 // =========================================================================
-const NOTIF_LIMIT = 5;
-let notifPage = 0;
-let notifHabis = false;
+
 async function loadNotifikasiUser() {
   if (!currentWallet) return;
 
@@ -1391,7 +1389,7 @@ async function loadNotifikasiUser() {
       .select("*")
       .eq("user_id", currentWallet)
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(5);
 
     if (error) throw error;
 
@@ -1409,7 +1407,7 @@ async function loadNotifikasiUser() {
       .select("id, post_id, user_id, comment, created_at")
       .neq("user_id", currentWallet) // Abaikan komentar kita sendiri
       .order("created_at", { ascending: false })
-      .limit(15);
+      .limit(5);
 
     if (errorComments) console.log("Gagal memuat data tabel comments:", errorComments.message);
 
@@ -1419,7 +1417,7 @@ async function loadNotifikasiUser() {
       .select("id, user_id, judul_aksi, created_at")
       .neq("user_id", currentWallet) // Abaikan karya sendiri
       .order("created_at", { ascending: false })
-      .limit(15);
+      .limit(5);
 
     if (errorContributions) console.log("Gagal memuat data tabel contributions:", errorContributions.message);
 
@@ -1429,7 +1427,7 @@ async function loadNotifikasiUser() {
       .select("id, user_id, judul_aksi, approved_at")
       .neq("user_id", currentWallet)
       .order("approved_at", { ascending: false })
-      .limit(15);
+      .limit(5);
 
     if (errorIlmuBaku) console.log("Gagal memuat data tabel ilmu_baku:", errorIlmuBaku.message);
 
@@ -1439,7 +1437,7 @@ async function loadNotifikasiUser() {
       .select("id, user_id, judul_aksi, created_at")
       .neq("user_id", currentWallet)
       .order("created_at", { ascending: false })
-      .limit(15);
+      .limit(5);
 
     if (errorIlmuPending) console.log("Gagal memuat data tabel ilmu_pending:", errorIlmuPending.message);
 
@@ -1449,7 +1447,7 @@ async function loadNotifikasiUser() {
       .select("id, post_id, user_id, type, created_at")
       .neq("user_id", currentWallet) // Abaikan reaksi dari diri kita sendiri
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(5);
 
     if (errorReactions) console.log("Gagal memuat data tabel reactions:", errorReactions.message);
 
@@ -1571,7 +1569,7 @@ async function loadNotifikasiUser() {
     semuaNotifGabungan.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     // Batasi total tayangan maksimal 20 baris teratas saja
-    const finalNotifications = semuaNotifGabungan.slice(0, 20);
+    const finalNotifications = semuaNotifGabungan.slice(0, 10);
 
     // -----------------------------------------------------------------
     // 4. AMBIL DATA USERNAME (TABEL PROFILES) - FORMAT ASLI AKANG
