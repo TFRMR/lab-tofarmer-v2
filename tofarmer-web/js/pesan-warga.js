@@ -77,9 +77,8 @@ async function bukaInbox() {
     const daftarPesan = document.getElementById("daftarPesan");
     
     modal.style.display = "block";
-    daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat percakapan...</p>";
+    daftarPesan.innerHTML = "<p style='text-align:center; color: var(--color-text-secondary);'>Memuat percakapan...</p>";
 
-    // Ambil data pesan
     const { data: pesan } = await supabaseClient
         .from('pesan_warga')
         .select('*')
@@ -87,44 +86,68 @@ async function bukaInbox() {
         .order('created_at', { ascending: true });
 
     if (!pesan || pesan.length === 0) {
-        daftarPesan.innerHTML = "<p style='text-align:center;'>Belum ada pesan.</p>";
+        daftarPesan.innerHTML = "<p style='text-align:center; color: #888;'>Belum ada pesan.</p>";
         return;
     }
 
-    // Ambil semua ID pengirim unik, lalu cari username-nya
-    const semuaId = [...new Set(pesan.map(p => p.pengirim_id))];
+    // Ambil semua ID unik (pengirim + penerima) untuk dapat avatar & username
+    const semuaId = [...new Set([
+        ...pesan.map(p => p.pengirim_id),
+        ...pesan.map(p => p.penerima_id)
+    ])];
+
     const { data: profiles } = await supabaseClient
         .from("profiles")
-        .select("id, username")
+        .select("id, username, avatar_url")
         .in("id", semuaId);
 
     const profileMap = {};
     if (profiles) {
-        profiles.forEach(p => { profileMap[p.id] = p.username; });
+        profiles.forEach(p => { profileMap[p.id] = p; });
     }
 
-    // Render pesan
     daftarPesan.innerHTML = "";
     pesan.forEach(p => {
         const isMe = p.pengirim_id === myWallet;
-        const namaPengirim = isMe ? "" : `<div style="font-size:11px; color:#2f6f4e; font-weight:bold; margin-bottom:2px;">@${profileMap[p.pengirim_id] || "Warga"}</div>`;
-        
+        const profil = profileMap[p.pengirim_id];
+        const username = profil?.username || "Warga";
+        const avatarUrl = profil?.avatar_url;
+
+        const avatarHtml = avatarUrl
+            ? `<img src="${avatarUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;">`
+            : `<div style="width:32px;height:32px;border-radius:50%;background:#9FE1CB;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#085041;flex-shrink:0;">${username[0].toUpperCase()}</div>`;
+
         const div = document.createElement("div");
-        div.style.cssText = `margin-bottom: 10px; text-align: ${isMe ? 'right' : 'left'};`;
+        div.style.cssText = `
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            margin-bottom: 14px;
+            flex-direction: ${isMe ? 'row-reverse' : 'row'};
+        `;
+
         div.innerHTML = `
-            ${namaPengirim}
-            <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
-                 background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
-                ${p.isi_pesan}
+            ${avatarHtml}
+            <div style="display:flex;flex-direction:column;align-items:${isMe ? 'flex-end' : 'flex-start'};">
+                ${!isMe ? `<div style="font-size:11px;color:#2f6f4e;font-weight:500;margin-bottom:3px;">@${username}</div>` : ''}
+                <div style="
+                    display: inline-block;
+                    padding: 8px 12px;
+                    border-radius: ${isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};
+                    background: ${isMe ? '#22c55e' : '#f0f0f0'};
+                    color: ${isMe ? 'white' : '#1a1a1a'};
+                    font-size: 14px;
+                    max-width: 220px;
+                    line-height: 1.4;
+                ">${p.isi_pesan}</div>
             </div>
         `;
         daftarPesan.appendChild(div);
     });
-    
-    daftarPesan.scrollTop = daftarPesan.scrollHeight;
-    updateBadgePesan(); 
-}
 
+    daftarPesan.scrollTop = daftarPesan.scrollHeight;
+    updateBadgePesan();
+}
 function closeInbox() {
     document.getElementById("inboxModal").style.display = "none";
 }
