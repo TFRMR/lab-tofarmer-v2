@@ -146,156 +146,8 @@ function logoutWallet() {
   window.location.href = 'index.html'; 
 }
 
-// ===================== CORE ENGINE AI =====================
-async function updateAdvice(mode, trigger, text) {
-    const aiWhisperer = document.getElementById('ai-whisperer');
-    const aiText = document.getElementById('ai-text');
-    if (!aiWhisperer || !aiText) return;
 
-    aiWhisperer.style.display = 'block';
-    aiText.textContent = "Sedang menyeduh ide..."; 
 
-    try {
-       // Ambil kedua identitas dari localStorage
-        const wallet = localStorage.getItem('tof_wallet');
-        const userId = localStorage.getItem('tof_user_id');
-        
-        // Gabungkan jadi satu identitas unik (Composite ID)
-        const compositeId = (wallet && userId) ? `${wallet}|${userId}` : "guest_user";
-
-        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                mode: mode, 
-                teks: text,       
-                trigger: trigger,
-                user_id: compositeId, // Kirim identitas gabungan ke API
-                konteks_dokumen: typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : ""
-            })
-        });
-        const result = await response.json();
-        const saran = result.saran || "Mari berkarya hari ini!";
-
-        let i = 0;
-        aiText.textContent = ""; 
-        if (window.typingInterval) clearInterval(window.typingInterval);
-        
-        window.typingInterval = setInterval(() => {
-            if (i < saran.length) {
-                aiText.textContent += saran.charAt(i);
-                i++;
-            } else {
-                clearInterval(window.typingInterval);
-            }
-        }, 20);
-    } catch (err) {
-        aiText.textContent = "Mentor lagi di ladang, lanjut tulis saja!";
-    }
-}
-
-// =========================================================================
-// 🟢 KODE FIX: Fungsi Obrolan Tunggal Berbasis Rag Dokumen Lokal
-// =========================================================================
-let aiBerandaChatCounter = 0;
-
-async function kirimChatAI() {
-    if (aiBerandaChatCounter >= 5) {
-        const aiText = document.getElementById('ai-text');
-        if (aiText) {
-            aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
-        }
-        return;
-    }
-
-    const input = document.getElementById('ai-chat-input');
-    if (!input) return;
-    const pertanyaan = input.value.trim();
-    
-    if (!pertanyaan) {
-        alert("Tulis sesuatu dulu ya 🌱");
-        return;
-    }
-    
-    const btn = document.querySelector('[onclick="kirimChatAI()"]');
-    if (btn) btn.disabled = true; 
-    
-    aiBerandaChatCounter++;
-    
-    const sisaEl = document.getElementById("sisa-chat-beranda");
-    if (sisaEl) {
-        sisaEl.innerText = 5 - aiBerandaChatCounter;
-    }
-    
-    let konteksTambahan = "";
-    if (typeof cariKonteksPaper === "function") {
-        konteksTambahan = cariKonteksPaper(pertanyaan);
-    }
-    
-    const instruksiPrompt = `
-Pertanyaan User: "${pertanyaan}"
-
-Gunakan potongan dokumen internal dari "tentang.html" berikut sebagai acuan utama Anda untuk menjawab:
-${konteksTambahan}
-    `.trim();
-    
-    await updateAdvice("tanya", "chat_user", instruksiPrompt);
-    
-    if (btn) btn.disabled = false;
-    input.value = "";
-
-    if (aiBerandaChatCounter >= 5) {
-        setTimeout(() => {
-            const aiText = document.getElementById('ai-text');
-            if (aiText) aiText.innerHTML = "<em>Sudah 5 ronde! Saya balik nyangkul dulu ya... Tanam progres baru lagi jika ingin berdiskusi kembali.</em>";
-        }, 1000);
-    }
-}
-
-// ===================== UI & PROFILE SYNC =====================
-function updateWalletUI() {
-  const btn = document.querySelector("button[onclick='connectWallet()']")
-  const editBtn = document.getElementById("editAvatarBtn")
-
-  if (!btn) return
-
-  if (currentWallet) {
-    // 1. Teks jika petani SUDAH LOGIN / CONNECT
-    btn.innerText = "🚪 LOGOUT"
-    btn.style.background = "#4caf7a"
-    btn.onclick = logoutWallet
-    if (editBtn) editBtn.style.visibility = "visible"
-  } else {
-    // 2. Teks jika petani BELUM LOGIN (Ini yang Anda tanyakan 😎)
-    btn.innerText = "🔑 MASUK / DAFTAR 🌿"
-    btn.style.background = ""
-    btn.onclick = connectWallet
-    if (editBtn) editBtn.style.visibility = "hidden"
-  }
-}
-
-async function syncProfile(wallet) {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", wallet)
-    .maybeSingle()
-
-  if (error) {
-    console.log(error)
-    return
-  }
-
-  if (!data) {
-    alert("Wallet belum terdaftar 🌱\nSilakan daftar dulu.")
-    logoutWallet()
-    return
-  } else {
-    currentProfile = data
-  }
-
-  await refreshUserBalance()
-}
 
 // ===================== POSTING SYSTEM =====================
 const PILAR_MAP = {
@@ -438,27 +290,7 @@ async function sendPost() {
 
   loadFeed()
 
-  setTimeout(async () => {
-      aiBerandaChatCounter = 0; 
-      const sisaEl = document.getElementById("sisa-chat-beranda");
-      if (sisaEl) sisaEl.innerText = 5; 
-
-      const { data: updatedFeedPosts } = await supabaseClient
-        .from("contributions")
-        .select("deskripsi_proses, profiles(username)")
-        .eq("is_private", false)
-        .order("created_at", { ascending: false });
-
-      const posTetangga = updatedFeedPosts ? updatedFeedPosts.slice(1) : [];
-      const konteksBeranda = generateFeedContext(posTetangga);
-      const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
-
-      updateAdvice(
-          "komentar", 
-          `User baru saja memposting karya baru di beranda umum: "${text}". Hubungkan opini/komentar evaluasimu dengan melihat aturan ekosistem, latar belakang profil user, dan aktivitas kebun lainnya.\n\n[DOKUMEN INTEGRASI "tentang.html"]:\n${referensiKamus}\n\n[LINIMASA LALU]:\n${konteksBeranda}`,
-          text
-      );
-  }, 1500);
+  
 }
 
 // ===================== ECONOMY & ALGORAND INFRA =====================
@@ -487,18 +319,7 @@ async function refreshUserBalance() {
   renderProfile()
 }
 
-function generateFeedContext(posts = []) {
-  let ringkasanUser = "PENGUNJUNG: Sedang melihat sebagai Guest (Belum login dompet).\n";
-  if (currentProfile) {
-    ringkasanUser = `PENGUNJUNG UTAMA (LOGGED IN):\n- Username: @${currentProfile.username}\n- Level: ${currentProfile.level || 1}\n- Tabungan: ${currentProfile.saldo_tof || 0} TOF / ${currentProfile.xp || 0} XP\n`;
-  }
 
-  const trenLadang = posts.slice(0, 5).map((p, index) => {
-    return `[Karya ${index + 1} oleh @${p.profiles?.username || 'Petani'}]: "${p.deskripsi_proses || ''}"`;
-  }).join("\n");
-
-  return `${ringkasanUser}\nTREN & AKTIVITAS DI LADANG SAAT INI:\n${trenLadang || "- Belum ada aktivitas baru."}`;
-}
 
 async function loadEconomy() {
   try {
@@ -922,27 +743,7 @@ loadFeed().then(() => {
     loadRankSummary()
   }
 
-  setTimeout(async () => {
-    const { data: currentFeedPosts } = await supabaseClient
-      .from("contributions")
-      .select("deskripsi_proses, profiles(username)")
-      .eq("is_private", false)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    const konteksBeranda = generateFeedContext(currentFeedPosts || []);
-    const pondasiDasar = typeof cariKonteksPaper === "function" ? cariKonteksPaper("filosofi pilar") : "";
-
-    // 🌟 AMBIL USERNAME SECARA DINAMIS (Jika belum login, pakai 'Petani')
-    const namaUserAktif = currentProfile ? currentProfile.username : "Petani";
-
-    updateAdvice(
-      "sapaan", 
-      `Kamu adalah asisten/mentor petani di beranda komunitas ToFarmer. Sapa pengguna dengan akrab berdasarkan esensi nilai visi-misi ekosistem serta rekam data berikut.\n\n[NILAI AGRAREIS FONDASI]:\n${pondasiDasar}\n\n[KONDISI TERKINI]:\n${konteksBeranda}`, 
-      // 🌟 KUNCI PERBAIKAN: Masukkan nama user aktif ke dalam teks input utama AI
-      `User bernama @${namaUserAktif} baru saja membuka beranda utama ToFarmer. Sapa dia langsung dengan nama akunnya tersebut!`
-    );
-  }, 2000);
+  
 });
 // --- FUNGSI ALA FACEBOOK UNTUK KONTROL BUKA/TUTUP KOTAK KOMENTAR ---
 function toggleKomentarBox(postId) {
