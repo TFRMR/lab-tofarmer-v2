@@ -73,7 +73,6 @@ async function cekPesanMasuk() {
 }
 async function bukaInbox() {
     const myWallet = localStorage.getItem("tof_wallet");
-const myUserId = localStorage.getItem("tof_user_id");
     const modal = document.getElementById("inboxModal");
     const daftarPesan = document.getElementById("daftarPesan");
     
@@ -81,35 +80,49 @@ const myUserId = localStorage.getItem("tof_user_id");
     daftarPesan.innerHTML = "<p style='text-align:center;'>Memuat percakapan...</p>";
 
     // Ambil data pesan
-    const { data } = await supabaseClient
+    const { data: pesan } = await supabaseClient
         .from('pesan_warga')
         .select('*')
-        .or(`penerima_id.eq.${localStorage.getItem("tof_wallet")},pengirim_id.eq.${localStorage.getItem("tof_wallet")}`)
-        .order('created_at', { ascending: true }); // ascending agar chat terbaru di bawah
+        .or(`penerima_id.eq.${myWallet},pengirim_id.eq.${myWallet}`)
+        .order('created_at', { ascending: true });
 
-    if (data && data.length > 0) {
-        daftarPesan.innerHTML = "";
-        data.forEach(p => {
-            const isMe = p.pengirim_id === localStorage.getItem("tof_wallet");
-            const div = document.createElement("div");
-            div.style.cssText = `margin-bottom: 10px; text-align: ${isMe ? 'right' : 'left'};`;
-            div.innerHTML = `
-                <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
-                     background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
-                    ${p.isi_pesan}
-                </div>
-            `;
-            daftarPesan.appendChild(div);
-        });
-        
-        // Auto scroll ke pesan paling bawah
-        daftarPesan.scrollTop = daftarPesan.scrollHeight;
-    } else {
+    if (!pesan || pesan.length === 0) {
         daftarPesan.innerHTML = "<p style='text-align:center;'>Belum ada pesan.</p>";
+        return;
     }
 
+    // Ambil semua ID pengirim unik, lalu cari username-nya
+    const semuaId = [...new Set(pesan.map(p => p.pengirim_id))];
+    const { data: profiles } = await supabaseClient
+        .from("profiles")
+        .select("id, username")
+        .in("id", semuaId);
+
+    const profileMap = {};
+    if (profiles) {
+        profiles.forEach(p => { profileMap[p.id] = p.username; });
+    }
+
+    // Render pesan
+    daftarPesan.innerHTML = "";
+    pesan.forEach(p => {
+        const isMe = p.pengirim_id === myWallet;
+        const namaPengirim = isMe ? "" : `<div style="font-size:11px; color:#2f6f4e; font-weight:bold; margin-bottom:2px;">@${profileMap[p.pengirim_id] || "Warga"}</div>`;
+        
+        const div = document.createElement("div");
+        div.style.cssText = `margin-bottom: 10px; text-align: ${isMe ? 'right' : 'left'};`;
+        div.innerHTML = `
+            ${namaPengirim}
+            <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
+                 background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
+                ${p.isi_pesan}
+            </div>
+        `;
+        daftarPesan.appendChild(div);
+    });
+    
+    daftarPesan.scrollTop = daftarPesan.scrollHeight;
     updateBadgePesan(); 
-   
 }
 
 function closeInbox() {
