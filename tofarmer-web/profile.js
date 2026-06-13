@@ -1871,7 +1871,26 @@ function inisialisasiKomponenPesan() {
     notifWrapper.appendChild(btnPesan);
     updateBadgePesan();
 }
+// --- TARUH updateBadgePesan DI SINI ---
+async function updateBadgePesan() {
+    if (!currentWallet) return;
 
+    const { count, error } = await supabaseClient
+        .from("pesan_warga")
+        .select("id", { count: 'exact', head: true })
+        .eq("penerima_id", currentWallet)
+        .eq("is_read", false);
+
+    const badge = document.getElementById("badge-pesan-tof");
+    if (badge) {
+        if (!error && count > 0) {
+            badge.style.display = "flex"; 
+            badge.innerText = count > 9 ? "9+" : count;
+        } else {
+            badge.style.display = "none";
+        }
+    }
+}
 // ========================================================
 // LOGIKA KIRIM PESAN BY USERNAME
 // ========================================================
@@ -1918,7 +1937,36 @@ async function cariDanKirim() {
         if (typeof loadDaftarPesan === 'function') loadDaftarPesan();
     }
 }
+async function loadDaftarPesan() {
+    const daftarPesan = document.getElementById("daftarPesan");
+    
+    // Ambil pesan dan "gabungkan" (join) dengan username pengirim
+    const { data, error } = await supabaseClient
+        .from("pesan_warga")
+        .select(`
+            isi_pesan, 
+            users:pengirim_id (username) 
+        `)
+        .eq("penerima_id", currentWallet)
+        .order("created_at", { ascending: false });
 
+    if (error) return;
+
+    daftarPesan.innerHTML = ""; // Bersihkan list lama
+
+    data.forEach(msg => {
+        const username = msg.users ? msg.users.username : "Warga";
+        
+       // ... di dalam data.forEach(msg => { ...
+daftarPesan.innerHTML += `
+    <div class="pesan-card" style="margin-bottom:12px; padding:12px; border-radius:15px; background:#f9f9f9; border-left: 4px solid #2f6f4e;">
+        <div style="font-size:11px; color:#2f6f4e; font-weight:bold; margin-bottom:4px;">@${username}</div>
+        <div style="font-size:14px; color:#333;">${msg.isi_pesan}</div>
+    </div>
+`;
+
+    });
+}
 // ========================================================
 // INISIALISASI OTOMATIS SAAT HALAMAN DIMUAT
 // ========================================================
