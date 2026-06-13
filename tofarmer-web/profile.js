@@ -1804,81 +1804,58 @@ setTimeout(() => {
   handleTargetPostFromNotification();
   checkUnreadNotifications();
 }, 1000);
-// Misal Anda punya modal (jendela kecil) dengan ID "tombol-kirim-pesan"
-document.getElementById("tombol-kirim-pesan").addEventListener("click", () => {
-   const penerima = "ID_WALLET_TARGET"; // Ambil dari URL atau data profil
-   const isi = "Halo, saya suka karya kamu!";
-   const link = "profile.html?u=target"; // Link yang ingin dikirim
-   const label = "Lihat Profil";
-   
-   kirimPesanPribadi(penerima, isi, link, label);
-});
-// [SISIPKAN DI PALING BAWAH FILE profil.js]
 
-setTimeout(() => {
-  const tombolKirim = document.getElementById("tombol-kirim-pesan");
-  
-  if (tombolKirim) {
-    tombolKirim.addEventListener("click", () => {
-      // Mengambil ID user yang sedang dikunjungi dari URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const penerima = urlParams.get("u"); 
-      
-      // Catatan: Di masa depan, ganti 'isi' ini dengan .value dari input modal
-      const isi = "Halo, saya suka karya kamu!";
-      const link = window.location.href; // Mengirim link halaman ini sebagai konteks
-      const label = "Lihat Karya";
-      
-      // Fungsi ini berasal dari pesan-warga.js
-      if (typeof kirimPesanPribadi === "function") {
-          kirimPesanPribadi(penerima, isi, link, label);
-      } else {
-          console.error("Fungsi kirimPesanPribadi tidak ditemukan!");
-      }
-    });
-  }
-}, 1000);
-// [SISIPKAN DI PALING BAWAH profil.js]
 
+// =====================================================
+// 1. INISIALISASI TOMBOL PESAN (✉️) DI BAWAH LONCENG
+// =====================================================
 setTimeout(() => {
-    // Cari container notifikasi (sesuaikan ID dengan yang ada di injector Anda)
     const notifWrapper = document.getElementById("notif-wrapper"); 
-    
     if (notifWrapper) {
-        // Pastikan wrapper notif jadi flex column agar tombol pesan bisa di bawahnya
         notifWrapper.style.flexDirection = "column";
         
-        // Buat tombol pesan
-        const btnPesan = document.createElement("button");
-        btnPesan.id = "btn-pesan-tof";
-        btnPesan.innerHTML = "✉️<span id='badge-pesan-tof' style='display:none; position:absolute; top:0; right:0; background:red; color:white; border-radius:50%; font-size:9px; padding:2px 4px;'>0</span>";
-        btnPesan.style.cssText = "background: #3b82f6; border-radius: 50%; width: 46px; height: 46px; border: none; cursor: pointer; color: white; margin-top: 10px; position: relative; display: flex; align-items: center; justify-content: center;";
-        
-        btnPesan.onclick = () => {
-            alert("Fitur chat segera hadir! Sekarang sedang disiapkan pintunya.");
-        };
-        
-        notifWrapper.appendChild(btnPesan);
+        // Cek apakah tombol sudah ada agar tidak ganda
+        if (!document.getElementById("btn-pesan-tof")) {
+            const btnPesan = document.createElement("button");
+            btnPesan.id = "btn-pesan-tof";
+            btnPesan.innerHTML = "✉️<span id='badge-pesan-tof' style='display:none; position:absolute; top:0; right:0; background:red; color:white; border-radius:50%; font-size:9px; padding:2px 4px;'>0</span>";
+            btnPesan.style.cssText = "background: #3b82f6; border-radius: 50%; width: 46px; height: 46px; border: none; cursor: pointer; color: white; margin-top: 10px; position: relative; display: flex; align-items: center; justify-content: center;";
+            
+            btnPesan.onclick = () => {
+                alert("Fitur chat segera hadir! Sekarang sedang disiapkan pintunya.");
+            };
+            notifWrapper.appendChild(btnPesan);
+        }
     }
 }, 1500);
-// [SISIPKAN DI PALING BAWAH profil.js]
 
-// Logika klik kirim (pastikan fungsi kirimPesanPribadi ada di pesan-warga.js)
-setTimeout(() => {
-    const tombolKirim = document.getElementById("tombol-kirim-pesan"); // ID yang akan ada di modal Anda nanti
+// =====================================================
+// 2. OBSERVER UNTUK TOMBOL "tombol-kirim-pesan"
+// =====================================================
+const observer = new MutationObserver((mutations, obs) => {
+    const tombolKirim = document.getElementById("tombol-kirim-pesan");
     if (tombolKirim) {
-        tombolKirim.addEventListener("click", () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const penerima = urlParams.get("user") || urlParams.get("u"); 
-            
-            // Contoh isi pesan (Nanti ganti dengan .value dari input modal Anda)
-            const teks = "Halo Kang, saya mampir ke profilmu!";
-            const link = window.location.href;
-            const label = "Lihat Profil";
-            
-            if (typeof kirimPesanPribadi === "function") {
-                kirimPesanPribadi(penerima, teks, link, label);
-            }
-        });
+        // Hapus listener lama jika ada (mencegah double-click)
+        tombolKirim.removeEventListener("click", kirimHandler); 
+        tombolKirim.addEventListener("click", kirimHandler);
+        // Kita tidak perlu obs.disconnect() jika tombol bisa muncul/hilang, 
+        // tapi jika tombol statis, ini boleh dibuka kembali untuk optimasi
     }
-}, 2000);
+});
+
+function kirimHandler() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const penerima = urlParams.get("user") || urlParams.get("u"); 
+    const teks = "Halo Kang, saya mampir ke profilmu!";
+    const link = window.location.href;
+    const label = "Lihat Profil";
+    
+    if (typeof kirimPesanPribadi === "function") {
+        kirimPesanPribadi(penerima, teks, link, label);
+    } else {
+        console.error("Fungsi kirimPesanPribadi tidak ditemukan!");
+    }
+}
+
+// Mulai memantau seluruh perubahan di halaman
+observer.observe(document.body, { childList: true, subtree: true });
