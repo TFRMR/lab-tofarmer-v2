@@ -107,6 +107,9 @@ const myUserId = localStorage.getItem("tof_user_id");
     } else {
         daftarPesan.innerHTML = "<p style='text-align:center;'>Belum ada pesan.</p>";
     }
+
+    updateBadgePesan(); 
+   
 }
 
 function closeInbox() {

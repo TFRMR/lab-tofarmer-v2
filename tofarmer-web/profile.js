@@ -1946,8 +1946,8 @@ async function loadDaftarPesan() {
         .from("pesan_warga")
         .select(`
             isi_pesan, 
-            users:pengirim_id (username) 
-        `)
+            profiles:pengirim_id (username) 
+        `) // Kita ganti ke 'profiles' karena itulah nama tabel pengirimnya
         .eq("penerima_id", currentWallet)
         .order("created_at", { ascending: false });
 
