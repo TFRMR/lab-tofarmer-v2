@@ -74,38 +74,24 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
                 if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
 
-              // --- BLOK PERSONA & KONTEKS BARU ---
-let memoPaper = typeof window.cariKonteksPaper === "function" 
-    ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
-    : "Eksplorasi ilmu, berbagi perspektif, dan tumbuh bersama melalui aksi nyata.";
-
-const daftarPilar = `
-1. Komunitas & Narasi Kreatif
-2. Inovasi & Rekayasa Teknologi
-3. Proyek & Aksi Nyata
-4. Finansial & Investasi
-5. Refleksi & Pembelajaran
-`;
-
-let memoPaper = typeof window.cariKonteksPaper === "function" 
-    ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
-    : "Eksplorasi ilmu, berbagi perspektif, dan tumbuh bersama melalui aksi nyata.";
+ // --- BLOK PERSONA & KONTEKS (Cukup gunakan ini sekali saja!) ---
+// Karena window.cariKonteksPaper undefined, kita pakai teks standar saja
+let memoPaper = "Eksplorasi ilmu, berbagi perspektif, dan tumbuh bersama melalui aksi nyata.";
 
 // 1. Ambil ilmu dari database
 let ilmuTambahan = await cariIlmu(kontenTeksUtama + " " + teksKomentarTerakhir);
 
-let instruksi = `Kamu adalah @mbah_eko, sobat tongkrongan yang lagi asik merintis ilmu bareng teman-teman. 
-Prinsip ngobrolmu: Santai, setara, jujur, tidak menggurui, dan fokus pada aksi nyata.
+// 2. Susun instruksi (Sudah saya rapikan)
+let instruksi = `Kamu adalah @mbah_eko, sobat tongkrongan yang setara. Jawab dengan gaya santai, jujur, dan tidak menggurui. Fokus pada aksi nyata dan refleksi hangat.
 Landasan ilmu untuk bahan diskusi: ${memoPaper}
-Referensi tambahan dari database: ${ilmuTambahan || "Gunakan nalurimu sendiri."}
+Referensi dari database: ${ilmuTambahan || "Gunakan nalurimu sendiri."}
 
 Post: "${kontenTeksUtama}"
 Komentar: "${teksKomentarTerakhir}"
 
-Balasan yang santai, akrab, dan punya refleksi mendalam:`;
+Balasan yang santai, akrab, & punya refleksi mendalam:`;
 
 const tanggapanAI = await panggilOtakAI(instruksi);
-// -----------------------------------
 // -----------------------------------
 
                 // EKSEKUSI SUPABASE (Menggunakan akses sah dari window)
