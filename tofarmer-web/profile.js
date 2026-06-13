@@ -237,7 +237,6 @@ async function loadProfile() {
   } catch (err) {
     console.log("LIVE BALANCE ERROR:", err)
   }
-checkUnreadNotifications();
 }
 
 loadProfile()
@@ -1656,29 +1655,15 @@ async function loadNotifikasiUser() {
     console.log("Gagal memuat sistem notifikasi hybrid:", err.message);
   }
 }
-
- // Cukup satu event listener ini saja untuk menghandle semuanya
-document.addEventListener("DOMContentLoaded", () => {
-    
-    // 1. Inisialisasi Notifikasi
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
     inisialisasiKomponenNotif();
     setTimeout(loadNotifikasiUser, 2000); 
-
-    // 2. Inisialisasi Sistem Pesan
-    cekPesanMasuk();
-    setInterval(cekPesanMasuk, 30000); 
-
-    // 3. Inisialisasi Tombol Kirim Pesan
-    const tombolKirim = document.getElementById("tombol-kirim-di-profil");
-    if (tombolKirim) {
-        tombolKirim.onclick = () => {
-            const isi = prompt("Tulis pesan Anda untuk warga ini:");
-            if(isi) kirimPesanPribadi(window.currentProfileWallet, isi);
-        };
-    }
-});
-
-// Fungsi-fungsi tetap ditaruh di bawahnya (di luar event listener)
+  });
+} else {
+  inisialisasiKomponenNotif();
+  setTimeout(loadNotifikasiUser, 2000);
+}
 async function panggilAiSaran(mode, payload) {
     try {
         const response = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/ai-saran", {
@@ -1758,7 +1743,7 @@ async function kirimChatAI() {
     responseBox.innerText = "🤖 Teman Kebun: Cangkul saya agak patah barusan, coba ketik lagi Kang!";
   }
 }
-/// =====================================================
+// =====================================================
 // 🎯 AUTO FOCUS TARGET POST DARI NOTIFIKASI
 // =====================================================
 function handleTargetPostFromNotification() {
@@ -1781,99 +1766,8 @@ function handleTargetPostFromNotification() {
       el.style.background = "#f0fdf4";
       el.style.transition = "0.3s ease";
     }
-  }, 800);
+  }, 800); // sedikit lebih aman dari 500ms
 }
 
-// Fungsi untuk mengecek jumlah notifikasi belum dibaca ke Supabase
-async function checkUnreadNotifications() {
-  if (!currentWallet) return;
-
-  const { count, error } = await supabaseClient
-    .from("notifications")
-    .select("id", { count: 'exact', head: true })
-    .eq("user_id", currentWallet)
-    .eq("is_read", false);
-
-  if (!error) {
-    updateNotificationUI(count);
-  }
-}
-
-async function updateNotificationUI(count) {
-  const badge = document.getElementById("badge-notif-tof");
-  if (!badge) return;
-
-  if (count > 0) {
-    badge.style.display = "flex"; 
-    badge.innerText = count > 9 ? "9+" : count; 
-  } else {
-    badge.style.display = "none"; 
-  }
-}
-
-// =====================================================
-// JALANKAN SATU KALI SAJA DI SINI:
-// =====================================================
-setTimeout(() => {
-  handleTargetPostFromNotification();
-  checkUnreadNotifications();
-}, 1000);
-
-
-// ==========================================================
-// PENYUSUPAN TOMBOL PESAN (Tepat di sebelah/bawah Lonceng)
-// ==========================================================
-const monitorNotifikasi = new MutationObserver((mutations, obs) => {
-    const notifWrapper = document.getElementById("tof-notif-wrapper");
-    if (!notifWrapper) return; // Jika container notif belum ada, jangan lakukan apa-apa
-
-    const myWallet = localStorage.getItem("tof_wallet");
-    const profilWallet = window.currentProfileWallet; 
-
-    // Cek apakah kita di profil sendiri
-    const isMyProfile = (myWallet && profilWallet && myWallet === profilWallet);
-    const existingBtn = document.getElementById("btn-pesan-tof");
-
-    if (isMyProfile) {
-        // Jika di profil sendiri DAN tombol belum ada, maka buat
-        if (!existingBtn) {
-            const btnPesan = document.createElement("button");
-            btnPesan.id = "btn-pesan-tof";
-            btnPesan.innerHTML = "✉️";
-        
-            btnPesan.style.cssText = `
-                background: #3b82f6; 
-                border-radius: 50%; 
-                width: 40px; 
-                height: 40px; 
-                border: 2px solid white; 
-                cursor: pointer; 
-                color: white; 
-                margin-top: 10px; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center;
-                font-size: 18px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-                z-index: 9999;
-            `;
-            
-            btnPesan.onclick = bukaInbox;
-
-            // Pastikan wrapper fleksibel
-            notifWrapper.style.display = "flex";
-            notifWrapper.style.flexDirection = "column";
-            notifWrapper.style.alignItems = "center"; 
-            
-            notifWrapper.appendChild(btnPesan);
-        }
-    } else {
-        // Jika bukan profil sendiri, pastikan tombol DIBUANG
-        if (existingBtn) {
-            existingBtn.remove();
-        }
-    }
-});
-
-// Mulai mengawasi
-monitorNotifikasi.observe(document.body, { childList: true, subtree: true });
+// jalankan setelah semua script jalan
+handleTargetPostFromNotification();
