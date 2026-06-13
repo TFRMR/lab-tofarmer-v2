@@ -1825,61 +1825,55 @@ setTimeout(() => {
 // ==========================================================
 const monitorNotifikasi = new MutationObserver((mutations, obs) => {
     const notifWrapper = document.getElementById("tof-notif-wrapper");
-    
-    // 1. Ambil wallet yang login dan wallet pemilik profil
+    if (!notifWrapper) return; // Jika container notif belum ada, jangan lakukan apa-apa
+
     const myWallet = localStorage.getItem("tof_wallet");
     const profilWallet = window.currentProfileWallet; 
 
-    // 2. CEK: Hanya jalankan jika pemilik profil ADALAH user yang login
-    // Pastikan variabel 'profilWallet' sudah ada di halaman profil Anda
-    if (myWallet && profilWallet && myWallet === profilWallet) {
-        
-        // 3. Jika wrapper ketemu DAN tombol belum pernah dibuat
-        if (notifWrapper && !document.getElementById("btn-pesan-tof")) {
-            
-            // Buat Tombol Pesan
+    // Cek apakah kita di profil sendiri
+    const isMyProfile = (myWallet && profilWallet && myWallet === profilWallet);
+    const existingBtn = document.getElementById("btn-pesan-tof");
+
+    if (isMyProfile) {
+        // Jika di profil sendiri DAN tombol belum ada, maka buat
+        if (!existingBtn) {
             const btnPesan = document.createElement("button");
             btnPesan.id = "btn-pesan-tof";
             btnPesan.innerHTML = "✉️";
         
-        // Styling untuk posisi tepat DI BAWAH lonceng
-        btnPesan.style.cssText = `
-            background: #3b82f6; 
-            border-radius: 50%; 
-            width: 40px; 
-            height: 40px; 
-            border: 2px solid white; 
-            cursor: pointer; 
-            color: white; 
-            margin-top: 10px; /* Memberi jarak ke bawah lonceng */
-            margin-left: 0;   /* Dihapus agar sejajar center */
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            font-size: 18px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            z-index: 9999;
-        `;
-        
-   // --- AWAL BAGIAN YANG DIPERBAIKI ---
-        btnPesan.onclick = () => {
-            bukaInbox(); // Sekarang memanggil fungsi modal cantik Anda
-        };
-        // Memastikan container notif menjadi kolom agar tombol turun ke bawah
-        notifWrapper.style.display = "flex";
-        notifWrapper.style.flexDirection = "column";
-        notifWrapper.style.alignItems = "center"; 
-        
-       notifWrapper.appendChild(btnPesan);
+            btnPesan.style.cssText = `
+                background: #3b82f6; 
+                border-radius: 50%; 
+                width: 40px; 
+                height: 40px; 
+                border: 2px solid white; 
+                cursor: pointer; 
+                color: white; 
+                margin-top: 10px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center;
+                font-size: 18px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                z-index: 9999;
+            `;
+            
+            btnPesan.onclick = bukaInbox;
+
+            // Pastikan wrapper fleksibel
+            notifWrapper.style.display = "flex";
+            notifWrapper.style.flexDirection = "column";
+            notifWrapper.style.alignItems = "center"; 
+            
+            notifWrapper.appendChild(btnPesan);
         }
     } else {
-        // Hapus tombol jika bukan profil sendiri
-        const btnPesan = document.getElementById("btn-pesan-tof");
-        if (btnPesan) btnPesan.remove();
-       
+        // Jika bukan profil sendiri, pastikan tombol DIBUANG
+        if (existingBtn) {
+            existingBtn.remove();
+        }
     }
 });
 
 // Mulai mengawasi
 monitorNotifikasi.observe(document.body, { childList: true, subtree: true });
-
