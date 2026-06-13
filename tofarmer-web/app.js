@@ -319,7 +319,18 @@ async function refreshUserBalance() {
   renderProfile()
 }
 
+function generateFeedContext(posts = []) {
+  let ringkasanUser = "PENGUNJUNG: Sedang melihat sebagai Guest (Belum login dompet).\n";
+  if (currentProfile) {
+    ringkasanUser = `PENGUNJUNG UTAMA (LOGGED IN):\n- Username: @${currentProfile.username}\n- Level: ${currentProfile.level || 1}\n- Tabungan: ${currentProfile.saldo_tof || 0} TOF / ${currentProfile.xp || 0} XP\n`;
+  }
 
+  const trenLadang = posts.slice(0, 5).map((p, index) => {
+    return `[Karya ${index + 1} oleh @${p.profiles?.username || 'Petani'}]: "${p.deskripsi_proses || ''}"`;
+  }).join("\n");
+
+  return `${ringkasanUser}\nTREN & AKTIVITAS DI LADANG SAAT INI:\n${trenLadang || "- Belum ada aktivitas baru."}`;
+}
 
 async function loadEconomy() {
   try {
