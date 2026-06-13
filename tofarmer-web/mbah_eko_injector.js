@@ -35,6 +35,7 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
                 if (el.id === 'advice-box' || el.id === 'ai-text' || el.closest('#advice-container')) return;
 
                 const penulis = el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "";
+if (penulis.includes("mbah_eko")) return;
                 const teks = (el.innerText || "").trim();
                 
                 if (teks === "" || teks.startsWith("Kirim") || teks.startsWith("Sruput")) return;
