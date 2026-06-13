@@ -290,7 +290,23 @@ async function sendPost() {
 
   loadFeed()
 
-  
+  setTimeout(async () => {
+      aiBerandaChatCounter = 0; 
+      const sisaEl = document.getElementById("sisa-chat-beranda");
+      if (sisaEl) sisaEl.innerText = 5; 
+
+      const { data: updatedFeedPosts } = await supabaseClient
+        .from("contributions")
+        .select("deskripsi_proses, profiles(username)")
+        .eq("is_private", false)
+        .order("created_at", { ascending: false });
+
+      const posTetangga = updatedFeedPosts ? updatedFeedPosts.slice(1) : [];
+      const konteksBeranda = generateFeedContext(posTetangga);
+      const referensiKamus = typeof cariKonteksPaper === "function" ? cariKonteksPaper(text) : "";
+
+      
+  }, 1500);
 }
 
 // ===================== ECONOMY & ALGORAND INFRA =====================
