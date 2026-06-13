@@ -1965,7 +1965,9 @@ async function loadDaftarPesan() {
             profileMap[p.id.trim()] = p.username;
         });
     }
-
+/ --- TAMBAHKAN INI DI DALAM FUNGSI ---
+    console.log("Isi ProfileMap:", profileMap); 
+    // --
     // 4. Render ke layar
     daftarPesan.innerHTML = "";
     if (pesan && pesan.length > 0) {
