@@ -1950,52 +1950,39 @@ async function loadDaftarPesan() {
         .or(`penerima_id.eq.${myWallet},pengirim_id.eq.${myWallet}`)
         .order("created_at", { ascending: true });
 
-    if (error) {
+    if (error || !pesan) {
         console.error("Error ambil pesan:", error);
         return;
     }
 
-    // ===== DEBUG =====
-    console.log("Total pesan:", pesan?.length);
-    console.log("Contoh pengirim_id:", pesan?.[0]?.pengirim_id);
-    console.log("myWallet:", myWallet);
-    // =================
-
-    // Kumpulkan semua ID unik dari pesan (lebih efisien)
+    // Ambil semua ID pengirim yang unik
     const semuaId = [...new Set(pesan.map(p => p.pengirim_id))];
-    console.log("semuaId yang dicari:", semuaId);
 
-    const { data: profiles, error: errProfiles } = await supabaseClient
+    // Ambil profil hanya yang dibutuhkan
+    const { data: profiles } = await supabaseClient
         .from("profiles")
         .select("id, username")
         .in("id", semuaId);
 
-    console.log("Profiles ditemukan:", profiles);
-    console.log("Error profiles:", errProfiles);
-
+    // Buat map ID → username
     const profileMap = {};
     if (profiles) {
         profiles.forEach(p => {
-            profileMap[p.id.trim()] = p.username;
+            profileMap[p.id] = p.username; // hapus .trim() agar tidak ada manipulasi
         });
     }
 
-    console.log("profileMap:", profileMap);
-
-    // Render
     daftarPesan.innerHTML = "";
-    if (pesan && pesan.length > 0) {
+    if (pesan.length > 0) {
         pesan.forEach(p => {
             const isMe = p.pengirim_id === myWallet;
-            const namaPengirim = isMe ? "Saya" : (profileMap[p.pengirim_id?.trim()] || "Warga");
-
-            console.log(`pesan dari: ${p.pengirim_id} → nama: ${namaPengirim}`);
+            const namaPengirim = isMe ? "Saya" : ("@" + (profileMap[p.pengirim_id] || "Warga"));
 
             const div = document.createElement("div");
             div.style.cssText = `margin-bottom: 12px; text-align: ${isMe ? 'right' : 'left'};`;
             div.innerHTML = `
                 <div style="font-size: 11px; color: #2f6f4e; font-weight: bold; margin-bottom: 2px;">
-                    ${isMe ? '' : '@' + namaPengirim}
+                    ${isMe ? '' : namaPengirim}
                 </div>
                 <div style="display:inline-block; padding: 8px 12px; border-radius: 15px; 
                             background: ${isMe ? '#22c55e' : '#e0e0e0'}; color: ${isMe ? 'white' : 'black'}; max-width: 80%;">
