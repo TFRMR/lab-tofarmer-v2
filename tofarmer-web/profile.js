@@ -1820,7 +1820,7 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
         btnPesan.id = "btn-pesan-tof";
         btnPesan.innerHTML = "✉️";
         
-        // Styling: Kita posisikan relatif terhadap wrapper notif
+        // Styling untuk posisi tepat DI BAWAH lonceng
         btnPesan.style.cssText = `
             background: #3b82f6; 
             border-radius: 50%; 
@@ -1829,12 +1829,14 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
             border: 2px solid white; 
             cursor: pointer; 
             color: white; 
-            margin-left: 80px; /* Geser ke kanan supaya tidak menutupi lonceng */
+            margin-top: 10px; /* Memberi jarak ke bawah lonceng */
+            margin-left: 0;   /* Dihapus agar sejajar center */
             display: flex; 
             align-items: center; 
             justify-content: center;
             font-size: 18px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 9999;
         `;
         
         // Fungsi klik: Mengirim pesan ke user yang sedang dibuka
@@ -1857,7 +1859,12 @@ const monitorNotifikasi = new MutationObserver((mutations, obs) => {
                 alert("Fungsi kirim pesan belum dimuat.");
             }
         };
+        // Memastikan container notif menjadi kolom agar tombol turun ke bawah
+        notifWrapper.style.display = "flex";
+        notifWrapper.style.flexDirection = "column";
+        notifWrapper.style.alignItems = "center"; 
         
+        notifWrapper.appendChild(btnPesan);
         // Tambahkan ke dalam wrapper agar ikut tata letak notifikasi
         notifWrapper.appendChild(btnPesan);
     }
