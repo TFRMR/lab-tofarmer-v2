@@ -283,20 +283,25 @@ ATURAN WAJIB:
       }, corsHeaders);
     }
 if (url.pathname === "/trigger-sync") {
-      const { data: items } = await adminSupabase
-        .from('knowledge_base')
-        .select('id, content')
-        .is('embedding', null)
-        .limit(10);
+  // 1. Ambil payload yang dikirim dari konsol/webhook
+  const body = await request.json();
+  const record = body.record; // Ini adalah data yang kita kirim via fetch({record: {...}})
 
-      if (items) {
-        for (const item of items) {
-          const response = await env.AI.run('@cf/baai/bge-m3', { text: [item.content] });
-          await adminSupabase.from('knowledge_base').update({ embedding: response.data[0] }).eq('id', item.id);
-        }
-      }
-      return json({ status: "Sync 10 data berhasil!" }, corsHeaders);
-    }
+  if (record && record.id && record.message) {
+    // 2. Jika ada ID spesifik yang dikirim, proses ID itu saja
+    const response = await env.AI.run('@cf/baai/bge-m3', { text: [record.message] });
+    await adminSupabase
+      .from('ai_chat_history') // <--- TABEL YANG BENAR
+      .update({ embedding: response.data[0] })
+      .eq('id', record.id);
+      
+    return json({ status: "Success", id: record.id }, corsHeaders);
+  } else {
+    // 3. Fallback: Jika tidak ada ID dikirim, baru lakukan sync 10 data (opsional)
+    // Sebaiknya hapus bagian ini atau arahkan ke tabel yang benar jika ingin sync massal
+    return json({ status: "Tidak ada data untuk diproses" }, corsHeaders);
+  }
+}
 
     return json({ status: "ToFarmer API V2 🚀" }, corsHeaders);
   }
