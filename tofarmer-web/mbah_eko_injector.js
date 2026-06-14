@@ -261,8 +261,8 @@ Landasan logika ToFarmer: ${memoPaper}`;
             break;
         }
 
-// ... penutup periksaSkenarioMading }
-
+}
+}
 async function adaMentionBelumDibalas(postId) {
     if (!window.supabaseClient) return false;
     const { data, error } = await window.supabaseClient
@@ -310,5 +310,5 @@ observer.observe(document.body, { childList: true, subtree: true });
 
 setTimeout(periksaSkenarioMading, 2000);
 window.addEventListener('load', () => setTimeout(periksaSkenarioMading, 2000));
-);
+});
 }
