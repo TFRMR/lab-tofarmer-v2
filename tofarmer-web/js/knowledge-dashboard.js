@@ -23,7 +23,7 @@ function cariKonteksDashboard(pertanyaan) {
     let konteks = DASHBOARD_RULES.alur_pemandu + "\n\n";
 
     if (kueri.includes("buat") || kueri.includes("ilmu baru") || kueri.includes("gate") || kueri.includes("tahap") || kueri.includes("simpan") || kueri.includes("edit")) {
-        contek += DASHBOARD_RULES.mekanisme_gate_pembuatan;
+        konteks += DASHBOARD_RULES.mekanisme_gate_pembuatan;
     }
     return konteks;
 }
