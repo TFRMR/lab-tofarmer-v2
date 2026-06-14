@@ -499,30 +499,25 @@ async function aksiVoteDariProfil(item) {
 // 🌿 FUNGSI UTAMA: SEND PROFILE POST (INTEGRASI DATABASE, AI & LOADING)
 // =========================================================================
 async function sendProfilePost() {
-  let imageUrl = null
-  const input = document.getElementById("profilePostBox")
-  const imageInput = document.getElementById("profileImage")
-  
-  // Ambil elemen tombol untuk dipasangi efek loading
-  // Pastikan di HTML Anda tombol ini memiliki onclick="sendProfilePost()"
-  // Kita cari berdasarkan teks tombol atau Anda bisa menambahkan id="btnTanamKarya" pada tag button HTML-nya
+  let imageUrl = null;
+  const input = document.getElementById("profilePostBox");
+  const imageInput = document.getElementById("profileImage");
   const btnTanam = document.querySelector("button[onclick='sendProfilePost()']");
-  
-  if (!input) return
 
-  const text = input.value.trim()
+  if (!input) return;
+
+  const text = input.value.trim();
   if (!text) {
     alert("Deskripsi karya tidak boleh kosong, Kang! ☕");
     return;
   }
 
-  // --- START LOADING EFFECT ---
   let teksTombolAsli = "🌱 TANAM KARYA";
   if (btnTanam) {
     teksTombolAsli = btnTanam.innerHTML;
-    btnTanam.disabled = true; // Kunci tombol agar tidak bisa diklik dua kali
+    btnTanam.disabled = true;
     btnTanam.style.opacity = "0.7";
-    btnTanam.innerHTML = "⏳ Sedang Menanam Karya ke Ladang..."; 
+    btnTanam.innerHTML = "⏳ Sedang Menanam Karya ke Ladang...";
   }
 
   try {
@@ -538,87 +533,68 @@ async function sendProfilePost() {
       console.log("Fungsi pencarian pilar dilewati:", errPilar.message);
     }
 
-    const file = imageInput?.files?.[0] || null
+    const file = imageInput?.files?.[0] || null;
 
     if (file instanceof File) {
-      // Update teks loading khusus jika sedang upload file gambar yang berat
       if (btnTanam) btnTanam.innerHTML = "📸 Sedang Mengompres & Mengunggah Gambar...";
-      
-      const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
-      
+      const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`;
       const { error: uploadError } = await supabaseClient.storage
         .from("post-images")
-        .upload(fileName, file, { cacheControl: "3600", upsert: false })
-
+        .upload(fileName, file, { cacheControl: "3600", upsert: false });
       if (uploadError) throw uploadError;
-
-      const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
-      if (!data?.publicUrl) {
-        throw new Error("Gagal mengambil public URL gambar.");
-      }
-      imageUrl = data.publicUrl
+      const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName);
+      if (!data?.publicUrl) throw new Error("Gagal mengambil public URL gambar.");
+      imageUrl = data.publicUrl;
     }
 
     if (btnTanam) btnTanam.innerHTML = "📝 Mencatat di Buku Ladang Supabase...";
 
-    const isSelfPost = true
-    const xpBonus = 20
+    const xpBonus = 20;
 
     const { data: dataBaru, error } = await supabaseClient
       .from("contributions")
-      .insert([
-        {
-          user_id: currentWallet,
-          pilar_aksi: pilarAksiFinal,
-          judul_aksi: imageUrl ? "Berbagi Karya Foto" : "Feed Post",
-          deskripsi_proses: text,
-          image_url: imageUrl,             
-          status_validasi: "PENDING",       
-          xp_reward: xpBonus,
-          is_self_post: isSelfPost,
-          is_private: false 
-        }
-      ])
+      .insert([{
+        user_id: currentWallet,
+        pilar_aksi: pilarAksiFinal,
+        judul_aksi: imageUrl ? "Berbagi Karya Foto" : "Feed Post",
+        deskripsi_proses: text,
+        image_url: imageUrl,
+        status_validasi: "PENDING",
+        xp_reward: xpBonus,
+        is_self_post: true,
+        is_private: false
+      }])
       .select();
 
     if (error) throw error;
 
     alert("Karya berhasil ditanam di ladang! 🌱🎨");
 
-    // --- AMANKAN UPDATE XP ---
     try {
       const { data: dbProfile } = await supabaseClient
-        .from("profiles")
-        .select("xp")
-        .eq("id", currentWallet)
-        .single();
-
+        .from("profiles").select("xp").eq("id", currentWallet).single();
       const currentXp = dbProfile?.xp || 0;
-      await supabaseClient
-        .from("profiles")
-        .update({ xp: currentXp + xpBonus })
-        .eq("id", currentWallet);
+      await supabaseClient.from("profiles")
+        .update({ xp: currentXp + xpBonus }).eq("id", currentWallet);
     } catch (xpErr) {
       console.log("Gagal sinkronisasi bonus XP:", xpErr);
     }
 
-    // --- KIRIM NOTIFIKASI MASSAL ---
     try {
       const { data: semuaUser } = await supabaseClient.from("profiles").select("id");
-      if (semuaUser && semuaUser.length > 0 && dataBaru && dataBaru[0]) {
+      if (semuaUser && dataBaru?.[0]) {
         const daftarNotif = semuaUser
-          .filter(u => u.id !== currentWallet) 
+          .filter(u => u.id !== currentWallet)
           .map(u => ({
-            user_id: u.id,                       
-            sender_id: currentWallet,             
-            type: 'mention', 
-            message: imageUrl 
-              ? `baru saja membagikan foto karya baru di profilnya! 🎨` 
-              : `baru saja membagikan catatan perkembangan baru di profilnya! 📝`,
-            related_id: dataBaru[0].id,               
+            user_id: u.id,
+            sender_id: currentWallet,
+            type: "mention",
+            message: imageUrl
+              ? "baru saja membagikan foto karya baru di profilnya! 🎨"
+              : "baru saja membagikan catatan perkembangan baru di profilnya! 📝",
+            related_id: dataBaru[0].id,
             is_read: false
           }));
-
         if (daftarNotif.length > 0) {
           await supabaseClient.from("notifications").insert(daftarNotif);
         }
@@ -627,62 +603,69 @@ async function sendProfilePost() {
       console.log("Notifikasi massal dilewati:", errNotif.message);
     }
 
-    // Bereskan form input
-    input.value = ""
-    if (imageInput) imageInput.value = ""
+    input.value = "";
+    if (imageInput) imageInput.value = "";
+    await loadUserPosts();
 
-    await loadUserPosts(); 
-
-    // --- ANTARMUKA INTERAKSI AI TEMAN KEBUN ---
+    // --- AI TEMAN KEBUN (DENGAN MEMORI BARU) ---
     const responseBox = document.getElementById("ai-response");
-    const aiChatArea = document.getElementById("ai-chat-area");
-    
-    if (responseBox && aiChatArea) {
+    if (responseBox) {
       responseBox.innerText = "Teman Kebun sedang menganalisis karya barumu...";
-      
-      window.aiChatCounter = 0; 
-      window.lastAiContext = text; 
 
+      window.aiChatCounter = 0;
+      window.lastAiContext = text;
+
+      // Ambil profil terbaru
       const { data: latestProfile } = await supabaseClient
-          .from("profiles")
-          .select("*")
-          .eq("id", currentWallet)
-          .single();
+        .from("profiles").select("*").eq("id", currentWallet).single();
 
+      // Ambil karya terakhir (kecuali yang baru saja ditanam)
       const { data: allPosts } = await supabaseClient
-          .from("contributions")
-          .select("deskripsi_proses, created_at")
-          .eq("user_id", currentWallet)
-          .order("created_at", { ascending: false });
+        .from("contributions")
+        .select("deskripsi_proses, created_at")
+        .eq("user_id", currentWallet)
+        .order("created_at", { ascending: false });
 
-      const riwayatLama = allPosts ? allPosts.slice(1) : []; 
-      
-      if (typeof generateProfileContext === "function" && typeof panggilAiSaran === "function") {
-        const konteksRAG = generateProfileContext(latestProfile, riwayatLama);
+      const riwayatLama = allPosts ? allPosts.slice(1) : [];
 
-        const komentarLucu = await panggilAiSaran("Evaluasi", { 
-            teks: text, 
-            trigger: `User baru saja menanam karya baru: "${text}". Berikan evaluasi singkat, jujur, humoris, khas petani Indonesia. Hubungkan analisis/pujian/kritikmu dengan rekam jejak masa lalunya:\n${konteksRAG}` 
-        });
-        
-        if (typeof typeWriterEffect === "function") {
-          typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarLucu}`);
-        } else {
-          responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
-        }
+      // ✅ BARU: Bangun konteks lengkap (profil + karya + memori chat + knowledge base)
+      const konteksLengkap = await window.AI_MEMORY.bangunKonteksLengkap(
+        latestProfile,
+        riwayatLama,
+        text  // <-- dipakai untuk mencari knowledge base yang relevan
+      );
 
-        window.aiChatCounter = 0;
-const sisa = document.getElementById("sisa-chat");
-if (sisa) sisa.innerText = 5;
- 
+      // ✅ BARU: Simpan pesan user ke Supabase
+      await window.AI_MEMORY.simpan(currentWallet, "user", text);
+
+      const komentarAI = await panggilAiSaran("Evaluasi", {
+        teks: text,
+        trigger: `Kamu asisten petani jujur, humoris, khas Indonesia. 
+User baru saja menanam karya: "${text}".
+Berikan evaluasi singkat dan solutif berdasarkan seluruh konteks berikut:
+
+${konteksLengkap}`
+      });
+
+      // ✅ BARU: Simpan balasan AI ke Supabase
+      await window.AI_MEMORY.simpan(currentWallet, "assistant", komentarAI);
+
+      if (typeof typeWriterEffect === "function") {
+        typeWriterEffect(responseBox, `🤖 Teman Kebun: ${komentarAI}`);
+      } else {
+        responseBox.innerText = `🤖 Teman Kebun: ${komentarAI}`;
       }
+
+      // Reset counter, tombol tetap tampil
+      window.aiChatCounter = 0;
+      const sisa = document.getElementById("sisa-chat");
+      if (sisa) sisa.innerText = 3;
     }
 
   } catch (globalError) {
     console.error("Proses menanam gagal:", globalError);
     alert("Gagal menanam karya: " + globalError.message);
   } finally {
-    // --- STOP LOADING EFFECT (KEMBALIKAN TOMBOL KE SEMULA) ---
     if (btnTanam) {
       btnTanam.disabled = false;
       btnTanam.style.opacity = "1";
@@ -1712,60 +1695,83 @@ async function kirimChatAI() {
   const chatInput = document.getElementById("ai-input");
   const responseBox = document.getElementById("ai-response");
   const sisaLabel = document.getElementById("sisa-chat");
-  const aiChatArea = document.getElementById("ai-chat-area");
 
   if (!chatInput || !responseBox) return;
 
   const userReply = chatInput.value.trim();
   if (!userReply) return;
 
-  // Cek inisialisasi counter jatah chat (Maksimal 3 kali)
-  if (typeof window.aiChatCounter === "undefined") {
-    window.aiChatCounter = 0;
-  }
+  if (typeof window.aiChatCounter === "undefined") window.aiChatCounter = 0;
 
-  if (window.aiChatCounter >= 5) {
-    alert("Jatah diskusi ronde ini sudah habis, Kang! Teman Kebun mau lanjut nyangkul di ladang dulu. 🚜");
-    if (aiChatArea) aiChatArea.style.display = "none";
+  if (window.aiChatCounter >= 3) {
+    // Reset otomatis setelah habis
+    window.aiChatCounter = 0;
+    if (sisaLabel) sisaLabel.innerText = 3;
+    responseBox.innerHTML += "<br><br><em>🤖 Counter direset, silakan lanjut ngobrol!</em>";
     return;
   }
 
-  // Naikkan counter & update UI sisa chat
   window.aiChatCounter++;
-  const sisaKuota = 5 - window.aiChatCounter;
+  const sisaKuota = 3 - window.aiChatCounter;
   if (sisaLabel) sisaLabel.innerText = sisaKuota;
 
-  // Kosongkan kolom ketik balasan langsung
   chatInput.value = "";
-  responseBox.innerText = "Teman Kebun sedang mendengarkan curhatanmu...";
+  responseBox.innerText = "Teman Kebun sedang mendengarkan...";
 
   try {
-    // Panggil Cloudflare Workers untuk membalas chat secara kontekstual
-    const balasanAi = await panggilAiSaran("Diskusi", {
+    // ✅ BARU: Ambil profil untuk konteks lengkap
+    const { data: latestProfile } = await supabaseClient
+      .from("profiles").select("*").eq("id", currentWallet).single();
+
+    // ✅ BARU: Ambil karya terakhir
+    const { data: allPosts } = await supabaseClient
+      .from("contributions")
+      .select("deskripsi_proses, created_at")
+      .eq("user_id", currentWallet)
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    // ✅ BARU: Bangun konteks lengkap termasuk riwayat chat lintas sesi
+    const konteksLengkap = await window.AI_MEMORY.bangunKonteksLengkap(
+      latestProfile,
+      allPosts || [],
+      userReply
+    );
+
+    // ✅ BARU: Simpan pesan user ke Supabase
+    await window.AI_MEMORY.simpan(currentWallet, "user", userReply);
+
+    const balasanAI = await panggilAiSaran("Diskusi", {
       teks: userReply,
-      trigger: `User membalas obrolanmu tentang karyanya. Karyanya tadi: "${window.lastAiContext || 'Baru menanam'}". User berkata: "${userReply}". Jawab dia dengan gaya asisten petani lokal yang akrab, singkat, solutif, serta beri sentuhan humor!`
+      trigger: `Kamu asisten petani lokal yang akrab, singkat, solutif, dan humoris.
+User berkata: "${userReply}".
+Karya terakhir mereka: "${window.lastAiContext || 'belum ada'}".
+
+Berdasarkan seluruh riwayat dan konteks berikut, jawab dengan hangat:
+
+${konteksLengkap}`
     });
 
+    // ✅ BARU: Simpan balasan AI ke Supabase
+    await window.AI_MEMORY.simpan(currentWallet, "assistant", balasanAI);
+
     if (typeof typeWriterEffect === "function") {
-      typeWriterEffect(responseBox, `🤖 Teman Kebun: ${balasanAi}`);
+      typeWriterEffect(responseBox, `🤖 Teman Kebun: ${balasanAI}`);
     } else {
-      responseBox.innerText = `🤖 Teman Kebun: ${balasanAi}`;
+      responseBox.innerText = `🤖 Teman Kebun: ${balasanAI}`;
     }
 
-    // Jika jatah sudah habis setelah chat ini, tutup form inputnya otomatis
     if (sisaKuota <= 0) {
       setTimeout(() => {
-        // Tombol tetap tampil, hanya reset counter
-    window.aiChatCounter = 0;
-    const sisa = document.getElementById("sisa-chat");
-    if (sisa) sisa.innerText = 5;
-        responseBox.innerHTML += "<br><br><em>🤖 Teman Kebun: Sudah 5 ronde obrolan nih Kang, saya balik nyangkul dulu ya! Sampai jumpa di karya berikutnya!</em>";
+        window.aiChatCounter = 0;
+        if (sisaLabel) sisaLabel.innerText = 3;
+        responseBox.innerHTML += "<br><br><em>🤖 Counter direset, lanjut ngobrol Kang!</em>";
       }, 5000);
     }
 
   } catch (err) {
-    console.error("Gagal melanjutkan diskusi AI:", err);
-    responseBox.innerText = "🤖 Teman Kebun: Cangkul saya agak patah barusan, coba ketik lagi Kang!";
+    console.error("Gagal chat AI:", err);
+    responseBox.innerText = "🤖 Teman Kebun: Cangkul saya patah, coba lagi Kang!";
   }
 }
 /// =====================================================
