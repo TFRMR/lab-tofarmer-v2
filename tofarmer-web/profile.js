@@ -1,3 +1,83 @@
+// ============================================================
+// FUNGSI KOMPRESI GAMBAR OTOMATIS KE WEBP
+// Taruh di bagian PALING ATAS profile.js (sebelum fungsi lain)
+// ============================================================
+
+/**
+ * Kompres gambar ke format WebP sebelum upload
+ * @param {File} file        - File gambar asli dari input
+ * @param {number} maxWidth  - Lebar maksimal (default 1200px)
+ * @param {number} kualitas  - Kualitas 0-1 (default 0.82 = 82%)
+ * @returns {File} File baru hasil kompresi dalam format WebP
+ */
+async function kompresGambar(file, maxWidth = 1200, kualitas = 0.82) {
+  return new Promise((resolve, reject) => {
+
+    // Baca file asli sebagai URL gambar
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target.result;
+
+      img.onload = () => {
+        // Hitung ukuran baru (proportional, tidak distorsi)
+        let lebar = img.width;
+        let tinggi = img.height;
+
+        if (lebar > maxWidth) {
+          tinggi = Math.round((tinggi * maxWidth) / lebar);
+          lebar = maxWidth;
+        }
+
+        // Gambar di canvas dengan ukuran baru
+        const canvas = document.createElement("canvas");
+        canvas.width = lebar;
+        canvas.height = tinggi;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, lebar, tinggi);
+
+        // Konversi canvas ke WebP
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              // Kalau browser tidak support WebP, fallback ke JPEG
+              canvas.toBlob(
+                (blobJpeg) => {
+                  const fileJpeg = new File(
+                    [blobJpeg],
+                    file.name.replace(/\.[^.]+$/, ".jpg"),
+                    { type: "image/jpeg" }
+                  );
+                  console.log(`📸 Kompresi JPEG: ${(file.size/1024).toFixed(0)}KB → ${(blobJpeg.size/1024).toFixed(0)}KB`);
+                  resolve(fileJpeg);
+                },
+                "image/jpeg",
+                kualitas
+              );
+              return;
+            }
+
+            // Buat File baru dari blob WebP
+            const namaWebP = file.name.replace(/\.[^.]+$/, ".webp");
+            const fileWebP = new File([blob], namaWebP, { type: "image/webp" });
+
+            console.log(`✅ Kompresi WebP: ${(file.size/1024).toFixed(0)}KB → ${(fileWebP.size/1024).toFixed(0)}KB`);
+            resolve(fileWebP);
+          },
+          "image/webp",
+          kualitas
+        );
+      };
+
+      img.onerror = () => reject(new Error("Gagal memuat gambar"));
+    };
+
+    reader.onerror = () => reject(new Error("Gagal membaca file"));
+  });
+}
 const currentWallet = localStorage.getItem("tof_wallet")
 
 // =====================
@@ -343,7 +423,7 @@ function renderWorkspace() {
         </div>
         <div id="ai-chat-area" style="display:block;">
           <input id="ai-input" placeholder="Tanya Teman Kebun..." style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; margin-bottom:5px;">
-          <button class="btn-glow" onclick="kirimChatAI()" style="width:100%; margin:0; font-size:11px;">Tanya (Sisa: <span id="sisa-chat">3</span>)</button>
+          <button class="btn-glow" onclick="kirimChatAI()" style="width:100%; margin:0; font-size:11px;">Tanya Teman Kebun 🤖</button>
         </div>
       </div>
       
@@ -536,16 +616,29 @@ async function sendProfilePost() {
     const file = imageInput?.files?.[0] || null;
 
     if (file instanceof File) {
-      if (btnTanam) btnTanam.innerHTML = "📸 Sedang Mengompres & Mengunggah Gambar...";
-      const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`;
-      const { error: uploadError } = await supabaseClient.storage
-        .from("post-images")
-        .upload(fileName, file, { cacheControl: "3600", upsert: false });
-      if (uploadError) throw uploadError;
-      const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName);
-      if (!data?.publicUrl) throw new Error("Gagal mengambil public URL gambar.");
-      imageUrl = data.publicUrl;
-    }
+  if (btnTanam) btnTanam.innerHTML = "📸 Mengompres gambar ke WebP...";
+
+  // ✅ Kompres dulu sebelum upload
+  // maxWidth: 800px, kualitas: 65%
+  // Ganti angkanya kalau mau lebih kecil/besar
+  const fileKompres = await kompresGambar(file, 800, 0.65);
+
+  if (btnTanam) btnTanam.innerHTML = "☁️ Mengunggah ke server...";
+
+  // Nama file pakai .webp agar konsisten
+  const fileName = `${currentWallet}-${Date.now()}-${fileKompres.name}`;
+
+  const { error: uploadError } = await supabaseClient.storage
+    .from("post-images")
+    .upload(fileName, fileKompres, { cacheControl: "86400", upsert: false });
+  //                                          ↑ cache 24 jam karena WebP lebih stabil
+
+  if (uploadError) throw uploadError;
+
+  const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName);
+  if (!data?.publicUrl) throw new Error("Gagal mengambil public URL gambar.");
+  imageUrl = data.publicUrl;
+}
 
     if (btnTanam) btnTanam.innerHTML = "📝 Mencatat di Buku Ladang Supabase...";
 
@@ -656,10 +749,7 @@ ${konteksLengkap}`
         responseBox.innerText = `🤖 Teman Kebun: ${komentarAI}`;
       }
 
-      // Reset counter, tombol tetap tampil
-      window.aiChatCounter = 0;
-      const sisa = document.getElementById("sisa-chat");
-      if (sisa) sisa.innerText = 3;
+     
     }
 
   } catch (globalError) {
@@ -1651,7 +1741,7 @@ async function loadNotifikasiUser() {
 document.addEventListener("DOMContentLoaded", () => {
     
     // 1. Inisialisasi Notifikasi
-    inisialisasiKomponenNotif();
+   
     setTimeout(loadNotifikasiUser, 2000); 
 
     // 2. Inisialisasi Sistem Pesan
@@ -1703,17 +1793,7 @@ async function kirimChatAI() {
 
   if (typeof window.aiChatCounter === "undefined") window.aiChatCounter = 0;
 
-  if (window.aiChatCounter >= 3) {
-    // Reset otomatis setelah habis
-    window.aiChatCounter = 0;
-    if (sisaLabel) sisaLabel.innerText = 3;
-    responseBox.innerHTML += "<br><br><em>🤖 Counter direset, silakan lanjut ngobrol!</em>";
-    return;
-  }
-
-  window.aiChatCounter++;
-  const sisaKuota = 3 - window.aiChatCounter;
-  if (sisaLabel) sisaLabel.innerText = sisaKuota;
+  
 
   chatInput.value = "";
   responseBox.innerText = "Teman Kebun sedang mendengarkan...";
@@ -1761,13 +1841,7 @@ ${konteksLengkap}`
       responseBox.innerText = `🤖 Teman Kebun: ${balasanAI}`;
     }
 
-    if (sisaKuota <= 0) {
-      setTimeout(() => {
-        window.aiChatCounter = 0;
-        if (sisaLabel) sisaLabel.innerText = 3;
-        responseBox.innerHTML += "<br><br><em>🤖 Counter direset, lanjut ngobrol Kang!</em>";
-      }, 5000);
-    }
+    
 
   } catch (err) {
     console.error("Gagal chat AI:", err);

@@ -324,10 +324,13 @@ async function cekApakahSudahKomentar(postId) {
     }
 
     const targetMading = document.body;
-// --- PENGATURAN OBSERVER ---
-    // Menggunakan document.body agar Mbah Eko bisa melihat perubahan di mana saja
-    const observer = new MutationObserver(periksaSkenarioMading);
-    observer.observe(document.body, { childList: true, subtree: true });
+// SESUDAH — bungkus observer dengan debounce
+let debounceObserver;
+const observer = new MutationObserver(() => {
+  clearTimeout(debounceObserver);
+  debounceObserver = setTimeout(periksaSkenarioMading, 800); // tunggu 0.8 detik
+});
+observer.observe(document.body, { childList: true, subtree: true });
     
     // --- PEMICU AWAL ---
     // Cek setelah 4 detik (memberi waktu agar elemen ter-render)
