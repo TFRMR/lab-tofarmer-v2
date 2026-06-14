@@ -255,10 +255,10 @@ async function adaMentionBelumDibalas(postId) {
     if (!window.supabaseClient) return false;
 
     const { data, error } = await window.supabaseClient
-        .from("comments")
-        .select("*")
-        .eq("post_id", parseInt(postId))
-        .order("created_at", { ascending: true });
+    .from("comments")
+    .select("user_id, comment, created_at")
+    .eq("post_id", parseInt(postId))
+    .order("created_at", { ascending: true });
 
     if (error || !data) return false;
 
