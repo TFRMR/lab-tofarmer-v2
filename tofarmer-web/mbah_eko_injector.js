@@ -310,4 +310,4 @@ observer.observe(document.body, { childList: true, subtree: true });
 
 setTimeout(periksaSkenarioMading, 2000);
 window.addEventListener('load', () => setTimeout(periksaSkenarioMading, 2000));
-
+});
