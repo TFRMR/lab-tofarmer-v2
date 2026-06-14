@@ -190,7 +190,7 @@ let memoPaper = typeof window.cariKonteksPaper === "function"
     ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
     : "Fokus pada aksi nyata, eksperimen teknis, dan kemandirian komunitas.";
 
-let instruksi = `Kamu adalah @mbah_eko, sobat tongkrongan yang santai, ceplas-ceplos, dan tidak sok bijak. Kamu adalah bagian dari komunitas, bukan mentor.
+let instruksi = `Kamu adalah mbah_eko, sobat tongkrongan yang santai, ceplas-ceplos, dan tidak sok bijak. Kamu adalah bagian dari komunitas, bukan mentor.
 
 ATURAN BALASAN (WAJIB DIIKUTI):
 1. SINGKAT & PADAT: Maksimal 1-2 kalimat saja. Langsung tembak inti masalah/poin pembicaraan.
