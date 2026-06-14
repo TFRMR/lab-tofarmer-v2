@@ -53,9 +53,10 @@ const AI_MEMORY = {
       return "- Belum ada riwayat percakapan sebelumnya.";
     }
 
-    return riwayat.map((item, i) => {
+    return riwayat.map((item) => {
       const tgl = new Date(item.created_at).toLocaleDateString("id-ID");
-      const label = item.role === "user" ? "Petani" : "Teman Kebun";
+      // Jika role-nya assistant, kita sebut Mbah Eko
+      const label = item.role === "user" ? "Petani" : "Mbah Eko"; 
       return `[${tgl}] ${label}: "${item.message}"`;
     }).join("\n");
   },

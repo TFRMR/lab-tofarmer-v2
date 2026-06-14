@@ -195,8 +195,7 @@ async function periksaSkenarioMading() {
             }
         }
 
-        // --- EKSEKUSI JIKA TERPICU ---
-        if (terpicu) {
+       if (terpicu) {
             post.setAttribute("data-operator-lock", "true");
             sedangMemproses = true;
 
@@ -204,15 +203,20 @@ async function periksaSkenarioMading() {
             if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
 
             const userId = post.getAttribute("data-user-id") || null;
+            
+            // --- BAGIAN YANG DISISIPKAN ---
             let teksRiwayat = "- Belum ada riwayat percakapan.";
             let infoProfil = "";
 
-            if (userId && window.MBAH_EKO_MEMORY && jenisSkenario === "MENTION_LANGSUNG") {
-                const [riwayat, profil] = await Promise.all([
-                    window.MBAH_EKO_MEMORY.ambilRiwayatLengkap(userId, 10),
-                    window.MBAH_EKO_MEMORY.ambilProfil(userId)
-                ]);
-                teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayat(riwayat);
+            if (userId && window.MBAH_EKO_MEMORY) {
+                // 1. Ambil riwayat dari fungsi memori konsisten
+                const riwayat = await window.MBAH_EKO_MEMORY.ambilRiwayat(userId, 10);
+                
+                // 2. Format riwayat untuk AI (pastikan fungsi ini ada di ai-memory.js)
+                teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayatUntukAI(riwayat);
+                
+                // 3. Ambil profil untuk info tambahan
+                const profil = await window.MBAH_EKO_MEMORY.ambilProfil(userId);
                 if (profil) {
                     infoProfil = `Petani ini username-nya @${profil.username}, punya ${profil.xp || 0} XP dan ${profil.saldo_tof || 0} TOF.`;
                 }
@@ -259,15 +263,19 @@ PERINTAH:
             }
 
             if (tanggapanAI && window.supabaseClient) {
-                const { error } = await window.supabaseClient.from("comments").insert([{
-                    post_id: parseInt(postId),
-                    user_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
-                    comment: tanggapanAI
-                }]);
-                if (!error && typeof window.loadFeed === "function") {
-                    setTimeout(() => window.loadFeed(), 1500);
-                }
-            }
+    // 1. Simpan ke tabel comments (agar muncul di Mading/Feed)
+    const { error: err1 } = await window.supabaseClient.from("comments").insert([{
+        post_id: parseInt(postId),
+        user_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
+        comment: tanggapanAI
+    }]);
+
+    // 2. Simpan ke ai_chat_history (agar Mbah Eko "ingat" bahwa dia baru saja bicara soal ini)
+    if (!err1) {
+        await window.MBAH_EKO_MEMORY.simpan(userId, "assistant", tanggapanAI);
+        await window.MBAH_EKO_MEMORY.simpan(userId, "user", teksKomentarTerakhir || kontenTeksUtama);
+    }
+}
 
             post.removeAttribute("data-operator-lock");
             sedangMemproses = false; // Reset lock
