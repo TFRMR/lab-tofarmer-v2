@@ -143,6 +143,12 @@ window.MBAH_EKO_MEMORY = MBAH_EKO_MEMORY;
     let sedangMemproses = false;
 
 async function periksaSkenarioMading() {
+if (!window.MBAH_EKO_MEMORY || typeof window.MBAH_EKO_MEMORY.ambilRiwayatLengkap !== 'function') {
+        console.warn("Mbah Eko: Memori belum siap, menunggu sebentar...");
+        return; 
+    }
+
+ 
     if (sedangMemproses) return;
 
     const semuaPostingan = document.querySelectorAll("#feed .post, #userPosts .post, .post, #profilePosts .post, [id^='post-card-']");
