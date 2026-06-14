@@ -191,13 +191,19 @@ const elemenKomentar = post.querySelectorAll(".comment-text, .comment-item, .tof
         let terpicu = false;
         let jenisSkenario = "";
 
+        // 1. Skenario Postingan Baru (tetap)
         if (!mbahPernahKomentar && !localStorage.getItem(`op_sapa_${postId}`)) {
             terpicu = true;
             jenisSkenario = "POSTINGAN_BARU";
-        } else if (teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase())) {
+        } 
+        // 2. Skenario Balasan (Disederhanakan)
+        // Bot terpicu jika ada mention ATAU jika komentar terakhir adalah dari User
+        else if (teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase()) || 
+                (await cekApakahSudahKomentar(postId) && await adaMentionBelumDibalas(postId))) {
+            
             if (localStorage.getItem(`op_mention_${postId}`) !== hashKomentar) {
                 terpicu = true;
-                jenisSkenario = "MENTION_LANGSUNG";
+                jenisSkenario = "DISKUSI_LANJUTAN";
             }
         }
 
