@@ -341,9 +341,9 @@ function renderWorkspace() {
         <div id="ai-response" style="font-size:13px; color:#444; margin-bottom:10px; font-style: italic;">
           <em>Tanam karya dulu, nanti saya temani ngobrol...</em>
         </div>
-        <div id="ai-chat-area" style="display:none;">
-          <input id="ai-input" placeholder="Balas teman..." style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; margin-bottom:5px;">
-          <button class="btn-glow" onclick="kirimChatAI()" style="width:100%; margin:0; font-size:11px;">Balas (Sisa: <span id="sisa-chat">3</span>)</button>
+        <div id="ai-chat-area" style="display:block;">
+          <input id="ai-input" placeholder="Tanya Teman Kebun..." style="width:100%; padding:8px; border-radius:8px; border:1px solid #ddd; margin-bottom:5px;">
+          <button class="btn-glow" onclick="kirimChatAI()" style="width:100%; margin:0; font-size:11px;">Tanya (Sisa: <span id="sisa-chat">3</span>)</button>
         </div>
       </div>
       
@@ -671,10 +671,9 @@ async function sendProfilePost() {
           responseBox.innerText = `🤖 Teman Kebun: ${komentarLucu}`;
         }
 
-        setTimeout(() => {
-          aiChatArea.style.display = "block";
-          const sisa = document.getElementById("sisa-chat");
-          if (sisa) sisa.innerText = 3;
+        window.aiChatCounter = 0;
+const sisa = document.getElementById("sisa-chat");
+if (sisa) sisa.innerText = 5;
         }, 2000);
       }
     }
@@ -1725,7 +1724,7 @@ async function kirimChatAI() {
     window.aiChatCounter = 0;
   }
 
-  if (window.aiChatCounter >= 3) {
+  if (window.aiChatCounter >= 5) {
     alert("Jatah diskusi ronde ini sudah habis, Kang! Teman Kebun mau lanjut nyangkul di ladang dulu. 🚜");
     if (aiChatArea) aiChatArea.style.display = "none";
     return;
@@ -1733,7 +1732,7 @@ async function kirimChatAI() {
 
   // Naikkan counter & update UI sisa chat
   window.aiChatCounter++;
-  const sisaKuota = 3 - window.aiChatCounter;
+  const sisaKuota = 5 - window.aiChatCounter;
   if (sisaLabel) sisaLabel.innerText = sisaKuota;
 
   // Kosongkan kolom ketik balasan langsung
@@ -1756,8 +1755,11 @@ async function kirimChatAI() {
     // Jika jatah sudah habis setelah chat ini, tutup form inputnya otomatis
     if (sisaKuota <= 0) {
       setTimeout(() => {
-        if (aiChatArea) aiChatArea.style.display = "none";
-        responseBox.innerHTML += "<br><br><em>🤖 Teman Kebun: Sudah 3 ronde obrolan nih Kang, saya balik nyangkul dulu ya! Sampai jumpa di karya berikutnya!</em>";
+        // Tombol tetap tampil, hanya reset counter
+    window.aiChatCounter = 0;
+    const sisa = document.getElementById("sisa-chat");
+    if (sisa) sisa.innerText = 5;
+        responseBox.innerHTML += "<br><br><em>🤖 Teman Kebun: Sudah 5 ronde obrolan nih Kang, saya balik nyangkul dulu ya! Sampai jumpa di karya berikutnya!</em>";
       }, 5000);
     }
 
