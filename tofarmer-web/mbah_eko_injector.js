@@ -131,7 +131,14 @@ const semuaPostingan = document.querySelectorAll("#feed .post, #userPosts .post,
 
             // --- CEK KE DATABASE SUPABASE (OTAK UTAMA) ---
 const sudahKomen = await cekApakahSudahKomentar(postId);
-if (sudahKomen) continue;
+
+const mentionBelumDibalas =
+    await adaMentionBelumDibalas(postId);
+
+if (sudahKomen && !mentionBelumDibalas)
+    continue;
+
+if (post.getAttribute("data-operator-lock") === "true") continue;
 
 if (post.getAttribute("data-operator-lock") === "true") continue;
             if (!postId) continue;
@@ -200,6 +207,7 @@ ATURAN BALASAN (WAJIB DIIKUTI):
 5. FOKUS KONTEKS: Tanggapi spesifik postingan/komentar user. Guyon balik kalau mereka guyon, bantu teknis kalau mereka serius.
 6. JANGAN MENGGURUI: Dilarang memakai kata-kata "kamu salah", "seharusnya", atau "jangan begini". Gunakan pendekatan "Gimana kalau...", "Menurutku mending...", atau "Lha, bukannya lebih asik kalau...". Jadilah kawan ngopi, bukan guru.
 
+
 Landasan logika: ${memoPaper}`;
 
 const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar: "${teksKomentarTerakhir}"\n\nBalasan santai dan akrab:`;
@@ -239,6 +247,47 @@ const tanggapanAI = await panggilOtakAI(promptMatang);
             }
         }
     }
+
+async function adaMentionBelumDibalas(postId) {
+
+    if (!window.supabaseClient) return false;
+
+    const { data, error } = await window.supabaseClient
+        .from("comments")
+        .select("*")
+        .eq("post_id", parseInt(postId))
+        .order("created_at", { ascending: true });
+
+    if (error || !data) return false;
+
+    const ID_MBAH =
+        "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
+
+    let indexKomentarTerakhirMbah = -1;
+
+    for (let i = 0; i < data.length; i++) {
+
+        if (data[i].user_id === ID_MBAH) {
+            indexKomentarTerakhirMbah = i;
+        }
+
+    }
+
+    for (let i = indexKomentarTerakhirMbah + 1; i < data.length; i++) {
+
+        const teks = (data[i].comment || "").toLowerCase();
+
+        if (
+            teks.includes("@mbah_eko") &&
+            data[i].user_id !== ID_MBAH
+        ) {
+            return true;
+        }
+
+    }
+
+    return false;
+}
 // TAMBAHKAN FUNGSI INI DI ATAS panggilOtakAI
 async function cekApakahSudahKomentar(postId) {
     if (!window.supabaseClient) return false;
