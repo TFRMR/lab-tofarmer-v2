@@ -239,7 +239,18 @@ ATURAN BALASAN (WAJIB):
 
 Landasan logika ToFarmer: ${memoPaper}`;
 
-   const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar terakhir: "${teksKomentarTerakhir}"\n\nBalas santai dan akrab (1-2 kalimat):`;
+   const promptMatang = `
+${instruksi}
+
+KONTEKS DISKUSI:
+1. Isi Postingan: "${kontenTeksUtama}"
+2. PERTANYAAN/KOMENTAR BARU YANG PERLU DIJAWAB: "${teksKomentarTerakhir}"
+
+PERINTAH:
+- Jika "KOMENTAR BARU" berisi pertanyaan teknis, JAWAB PERTANYAAN TERSEBUT secara langsung.
+- Abaikan isi postingan jika sudah dibahas sebelumnya.
+- Jangan mengulang informasi yang sudah ada di komentar tersebut.
+- BALASAN (Langsung jawab teknis, 1-2 kalimat saja):`;
             const tanggapanAI = await panggilOtakAI(promptMatang);
 
             if (tanggapanAI && userId && window.MBAH_EKO_MEMORY) {
