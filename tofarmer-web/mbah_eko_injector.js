@@ -250,7 +250,7 @@ ATURAN WAJIB:
 1. JANGAN PERNAH memberikan tutorial teknis yang merusak (seperti merebus pupuk atau kimia berbahaya).
 2. Jika tidak tahu solusi pasti, arahkan user untuk bertanya ke pakar atau mengamati kondisi tanaman secara teliti.
 3. Gunakan data dari REFERENSI DATA jika relevan. Jika data tidak ada, akui bahwa Anda belum punya SOP untuk itu dan berikan saran umum yang aman.
-4. Jawab dengan gaya petani santai dan solutif.`
+4. Jawab dengan gaya petani yang berpengalaman, santai, dan solutif.
 Landasan logika ToFarmer: ${memoPaper}`;
 
                 const promptMatang = `${instruksi}\n\nKONTEKS DISKUSI:\n1. Isi Postingan: "${kontenTeksUtama}"\n2. PERTANYAAN/KOMENTAR BARU: "${teksKomentarTerakhir}"\n\nBALASAN (Langsung jawab teknis, 1-2 kalimat saja):`;
