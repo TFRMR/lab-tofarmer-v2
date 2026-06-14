@@ -1,116 +1,111 @@
 // ============================================================
-// ai-memory.js
-// Sistem Memori AI Teman Kebun - Lintas Sesi Per User
-// Simpan di: js/ai-memory.js
-// Load di profile.html SEBELUM profile.js:
-//   <script src="js/ai-memory.js"></script>
+// ai-memory.js - Sistem Memori AI (RAG Ready)
 // ============================================================
 
 const AI_MEMORY = {
 
-  // ============================================================
-  // 1. SIMPAN PESAN KE SUPABASE
-  // ============================================================
-  async simpan(userId, role, message) {
+  // FUNGSI BARU: Generate Embedding (Dimensi 1024)
+  async generateEmbedding(text) {
+    try {
+      const res = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/embed", {
+        method: "POST",
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      return data.embedding; // Mengembalikan array 1024
+    } catch (e) {
+      console.error("Gagal generate embedding:", e);
+      return null;
+    }
+  },
+
+  // 1. SIMPAN PESAN (Ditambah Embedding)
+  async simpan(userId, role, message, agent = "mbah_eko") {
     if (!userId || !message) return;
+    
+    const embedding = await this.generateEmbedding(message);
+
     try {
       await window.supabaseClient
         .from("ai_chat_history")
-        .insert([{ user_id: userId, role, message }]);
+        .insert([{ 
+          user_id: userId, 
+          role, 
+          message, 
+          agent,
+          embedding // Menyimpan vektor untuk pencarian makna
+        }]);
     } catch (e) {
       console.log("Gagal simpan memori AI:", e.message);
     }
   },
 
-  // ============================================================
-  // 2. AMBIL RIWAYAT CHAT DARI SUPABASE (maks 10 pesan terakhir)
-  // ============================================================
-  async ambilRiwayat(userId, limit = 10) {
+  // 2. CARI KONTEKS (RAG - Menggantikan/Melengkapi ambilRiwayat)
+  async cariKonteksSerupa(userId, queryTeks, match_threshold = 0.7, limit = 5) {
     if (!userId) return [];
+    
+    const queryEmbedding = await this.generateEmbedding(queryTeks);
+    if (!queryEmbedding) return [];
+
     try {
+      // Menggunakan fungsi RPC "match_chat_history" yang sudah dibuat di SQL
       const { data, error } = await window.supabaseClient
-        .from("ai_chat_history")
-        .select("role, message, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(limit);
+        .rpc('match_chat_history', {
+          query_embedding: queryEmbedding,
+          match_threshold: match_threshold,
+          match_count: limit,
+          filter_user_id: userId
+        });
 
       if (error || !data) return [];
-
-      // Balik urutan: terlama dulu, terbaru terakhir
-      return data.reverse();
+      return data.reverse(); // Urutan kronologis
     } catch (e) {
-      console.log("Gagal ambil riwayat AI:", e.message);
+      console.log("Gagal RAG AI:", e.message);
       return [];
     }
   },
 
-  // ============================================================
-  // 3. FORMAT RIWAYAT JADI TEKS KONTEKS UNTUK AI
-  // ============================================================
+  // 3. FORMAT RIWAYAT
   formatRiwayatUntukAI(riwayat) {
     if (!riwayat || riwayat.length === 0) {
       return "- Belum ada riwayat percakapan sebelumnya.";
     }
-
     return riwayat.map((item) => {
-      const tgl = new Date(item.created_at).toLocaleDateString("id-ID");
-      // Jika role-nya assistant, kita sebut Mbah Eko
+      const tgl = new Date(item.created_at || new Date()).toLocaleDateString("id-ID");
       const label = item.role === "user" ? "Petani" : "Mbah Eko"; 
       return `[${tgl}] ${label}: "${item.message}"`;
     }).join("\n");
   },
 
-  // ============================================================
-  // 4. CARI KONTEKS DARI KNOWLEDGE BASE (dari mbah_eko_injector)
-  // ============================================================
+  // 4. CARI KNOWLEDGE BASE
   cariKnowledgeBase(pertanyaan) {
-    // Gunakan fungsi RAG dari mbah_eko_injector jika tersedia
     if (typeof window.cariKonteksPaper === "function") {
       return window.cariKonteksPaper(pertanyaan);
     }
-
-    // Fallback: cari manual dari TOFARMER_PAPER jika tersedia
     if (typeof TOFARMER_PAPER !== "undefined") {
       const q = pertanyaan.toLowerCase();
       let konteks = "";
-
-      if (q.includes("pilar") || q.includes("aksi") || q.includes("teknologi")) {
-        konteks += TOFARMER_PAPER.lima_pilar + "\n\n";
-      }
-      if (q.includes("xp") || q.includes("level") || q.includes("pangkat")) {
-        konteks += TOFARMER_PAPER.protokol_xp_level_exit + "\n\n";
-      }
-      if (q.includes("nabung") || q.includes("aset") || q.includes("compounding")) {
-        konteks += TOFARMER_PAPER.strategi_ekonomi_compounding + "\n\n";
-      }
-      if (q.includes("ilmu") || q.includes("baku") || q.includes("validasi")) {
-        konteks += TOFARMER_PAPER.epistemologi_ilmu_baku + "\n\n";
-      }
-      if (konteks === "") {
-        konteks = TOFARMER_PAPER.latar_belakang_filosofi;
-      }
-      return konteks;
+      if (q.includes("pilar") || q.includes("aksi") || q.includes("teknologi")) konteks += TOFARMER_PAPER.lima_pilar + "\n\n";
+      if (q.includes("xp") || q.includes("level") || q.includes("pangkat")) konteks += TOFARMER_PAPER.protokol_xp_level_exit + "\n\n";
+      if (q.includes("nabung") || q.includes("aset") || q.includes("compounding")) konteks += TOFARMER_PAPER.strategi_ekonomi_compounding + "\n\n";
+      if (q.includes("ilmu") || q.includes("baku") || q.includes("validasi")) konteks += TOFARMER_PAPER.epistemologi_ilmu_baku + "\n\n";
+      return konteks === "" ? TOFARMER_PAPER.latar_belakang_filosofi : konteks;
     }
-
     return "Fokus pada aksi nyata, eksperimen teknis, dan kemandirian komunitas ToFarmer.";
   },
 
-  // ============================================================
-  // 5. BANGUN KONTEKS LENGKAP UNTUK AI
-  //    (profil + karya + riwayat chat + knowledge base)
-  // ============================================================
+  // 5. BANGUN KONTEKS LENGKAP
   async bangunKonteksLengkap(profileData, recentPosts, pertanyaanUser) {
     const userId = profileData?.id || window.currentWallet;
 
-    // A. Ambil riwayat chat dari Supabase
-    const riwayat = await this.ambilRiwayat(userId, 10);
+    // A. Mengambil memori relevan via RAG (Bukan lagi sekadar 10 pesan terakhir)
+    const riwayat = await this.cariKonteksSerupa(userId, pertanyaanUser, 0.7, 5);
     const teksRiwayat = this.formatRiwayatUntukAI(riwayat);
 
-    // B. Cari knowledge base yang relevan
+    // B. Cari knowledge base
     const knowledgeBase = this.cariKnowledgeBase(pertanyaanUser);
 
-    // C. Format karya terakhir
+    // C. Format karya
     const teksKarya = recentPosts && recentPosts.length > 0
       ? recentPosts.slice(0, 5).map((post, i) => {
           const tgl = new Date(post.created_at).toLocaleDateString("id-ID");
@@ -118,14 +113,12 @@ const AI_MEMORY = {
         }).join("\n")
       : "- Belum ada karya tercatat.";
 
-    // D. Gabungkan semua konteks
     return `
 ========================================
 DATA PROFIL PETANI:
 ========================================
 - Username: @${profileData?.username || "Petani"}
 - Level: ${typeof getTofLevel === "function" ? getTofLevel(profileData?.xp || 0) : "?"} 
-- Rank: ${typeof getRank === "function" ? getRank(profileData?.xp || 0) : "?"}
 - XP: ${profileData?.xp || 0} | TOF: ${profileData?.saldo_tof || 0}
 
 ========================================
@@ -134,19 +127,17 @@ KARYA TERAKHIR DI LADANG:
 ${teksKarya}
 
 ========================================
-RIWAYAT PERCAKAPAN SEBELUMNYA (MEMORI):
+MEMORI RELEVAN (Pencarian Semantik):
 ========================================
 ${teksRiwayat}
 
 ========================================
-PENGETAHUAN TOFARMER YANG RELEVAN:
+PENGETAHUAN TOFARMER:
 ========================================
 ${knowledgeBase}
     `.trim();
   }
 };
 
-// Expose ke window agar bisa dipakai di file lain
 window.AI_MEMORY = AI_MEMORY;
-// Daftarkan ke window agar bisa diakses di file lain
 window.MBAH_EKO_MEMORY = AI_MEMORY;
