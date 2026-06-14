@@ -167,13 +167,19 @@ const elemenKomentar = post.querySelectorAll(".comment-text, .comment-item, .tof
 
         elemenKomentar.forEach((el) => {
             if (el.id === 'advice-box' || el.id === 'ai-text' || el.closest('#advice-container')) return;
-            const penulis = el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "";
+            
+            // Ambil nama penulis dengan lebih aman
+            const penulis = (el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "").toLowerCase();
             const teks = (el.innerText || "").trim();
+            
             if (teks === "" || teks.startsWith("Kirim") || teks.startsWith("Sruput")) return;
 
-            if (penulis.includes("mbah_eko") || teks.includes("@mbah_eko") || teks.includes("Petapa Menoreh")) {
+            // UBAH LOGIKA DI SINI:
+            // Hanya tandai mbahPernahKomentar jika penulisnya memang "mbah_eko"
+            if (penulis.includes("mbah_eko")) {
                 mbahPernahKomentar = true;
             }
+            
             daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
         });
 
