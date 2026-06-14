@@ -11,7 +11,7 @@ export default {
 
     for (const item of items) {
       // 2. Gunakan model yang SAMA persis dengan yang dipakai knowledge_base
-      const response = await env.AI.run('@cf/baai/bge-m3-en', { text: [item.message] });
+      const response = await env.AI.run('@cf/baai/bge-m3', { text: [item.message] });
       const embedding = response.data[0];
 
       // 3. Simpan ke tabel ai_chat_history
