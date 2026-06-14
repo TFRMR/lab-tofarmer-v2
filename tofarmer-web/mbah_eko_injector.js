@@ -200,7 +200,19 @@ async function periksaSkenarioMading() {
 
             if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
             if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
+// --- SISIPKAN DI SINI ---
+            // 1. Prioritaskan ID dari postingan (jika ada)
+            let userId = post.getAttribute("data-user-id");
 
+            // 2. Jika postingan tidak punya ID, gunakan identitas user yang sedang login
+            if (!userId) {
+                userId = localStorage.getItem("tof_user_id");
+            }
+
+            // 3. (OPSIONAL) Jika masih kosong, gunakan wallet sebagai fallback
+            if (!userId) {
+                userId = localStorage.getItem("tof_wallet");
+            }
             // 1. AMBIL KONTEKS DARI MEMORI (Bukan dari DOM)
             const userId = post.getAttribute("data-user-id");
             
