@@ -276,11 +276,16 @@ async function adaMentionBelumDibalas(postId) {
         .select("user_id, comment")
         .eq("post_id", parseInt(postId))
         .order("created_at", { ascending: true });
-    if (error || !data) return false;
+    
+    if (error || !data || data.length === 0) return false;
 
     const ID_MBAH = "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
-    let indexMbah = data.map(c => c.user_id).lastIndexOf(ID_MBAH);
-    return data.slice(indexMbah + 1).some(c => c.comment.toLowerCase().includes("@mbah_eko"));
+    const komentarTerakhir = data[data.length - 1];
+
+    // LOGIKA BARU: 
+    // Bot akan membalas jika komentar terakhir BUKAN milik Mbah Eko
+    // Dan komentar tersebut memang ditujukan untuk Mbah Eko (atau diskusi lanjut)
+    return komentarTerakhir.user_id !== ID_MBAH;
 }
 
 async function cekApakahSudahKomentar(postId) {
