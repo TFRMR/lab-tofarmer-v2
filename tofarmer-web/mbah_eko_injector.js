@@ -136,7 +136,7 @@ const MBAH_EKO_MEMORY = {
 };
 
 // Expose ke window agar bisa dipakai di dalam IIFE mbah_eko
-window.MBAH_EKO_MEMORY = AI_MEMORY;
+window.MBAH_EKO_MEMORY = MBAH_EKO_MEMORY;
 
     const URL_RESMI = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran"; 
     const BOT_USERNAME = "@mbah_eko";
