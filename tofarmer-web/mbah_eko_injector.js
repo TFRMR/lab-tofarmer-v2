@@ -112,6 +112,81 @@ function cariKonteksPaper(pertanyaan) {
 
 (function() {
     console.log("👴 [Mbah Eko - Operator Akun] Aktif...");
+============================================================
+// MEMORI MBAH EKO - Terhubung ke tabel ai_chat_history
+// Beda agent, tapi bisa baca memori Teman Kebun juga
+// ============================================================
+const MBAH_EKO_MEMORY = {
+
+  // Simpan percakapan Mbah Eko ke tabel yang sama
+  async simpan(userId, role, message) {
+    if (!userId || !message || !window.supabaseClient) return;
+    try {
+      await window.supabaseClient
+        .from("ai_chat_history")
+        .insert([{
+          user_id: userId,
+          role,
+          message,
+          agent: "mbah_eko"   // <-- pembeda dari teman_kebun
+        }]);
+    } catch (e) {
+      console.log("Mbah Eko gagal simpan memori:", e.message);
+    }
+  },
+
+  // Ambil riwayat SEMUA agent (mbah_eko + teman_kebun) milik user ini
+  // Tujuan: agar Mbah Eko tahu apa yang sudah diobrolkan dengan Teman Kebun
+  async ambilRiwayatLengkap(userId, limit = 12) {
+    if (!userId || !window.supabaseClient) return [];
+    try {
+      const { data, error } = await window.supabaseClient
+        .from("ai_chat_history")
+        .select("role, message, agent, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(limit);
+
+      if (error || !data) return [];
+      return data.reverse(); // terlama dulu
+    } catch (e) {
+      return [];
+    }
+  },
+
+  // Format riwayat gabungan jadi teks konteks untuk Mbah Eko
+  formatRiwayat(riwayat) {
+    if (!riwayat || riwayat.length === 0) {
+      return "- Belum ada riwayat percakapan.";
+    }
+
+    return riwayat.map(item => {
+      const tgl = new Date(item.created_at).toLocaleDateString("id-ID");
+      const siapa = item.role === "user"
+        ? "Petani"
+        : item.agent === "mbah_eko" ? "Mbah Eko" : "Teman Kebun";
+      return `[${tgl}] ${siapa}: "${item.message}"`;
+    }).join("\n");
+  },
+
+  // Ambil profil user dari Supabase (untuk konteks nama & level)
+  async ambilProfil(userId) {
+    if (!userId || !window.supabaseClient) return null;
+    try {
+      const { data } = await window.supabaseClient
+        .from("profiles")
+        .select("username, xp, saldo_tof")
+        .eq("id", userId)
+        .single();
+      return data || null;
+    } catch (e) {
+      return null;
+    }
+  }
+};
+
+// Expose ke window agar bisa dipakai di dalam IIFE mbah_eko
+window.MBAH_EKO_MEMORY = MBAH_EKO_MEMORY;
 
     const URL_RESMI = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran"; 
     const BOT_USERNAME = "@mbah_eko";
@@ -185,46 +260,72 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
 
      
              if (terpicu) {
-    // Tidak pakai localStorage lagi, kita pakai database
-    
     post.setAttribute("data-operator-lock", "true");
-                sedangMemproses = true;
+    sedangMemproses = true;
 
-                if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
-                if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
-// --- BLOK PERSONA & KONTEKS BARU ---
-let memoPaper = typeof window.cariKonteksPaper === "function" 
-    ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
-    : "Fokus pada aksi nyata, eksperimen teknis, dan kemandirian komunitas.";
+    if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
+    if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
 
-let instruksi = `Kamu adalah mbah_eko, sobat tongkrongan yang santai, hangat, suka bercanda, dan menghargai semua anggota. Kamu boleh menggoda ringan, tetapi tidak boleh merendahkan atau menyerang orang.Kamu adalah bagian dari komunitas, bukan mentor.
+    // ✅ BARU: Cari user_id pemilik post untuk ambil memori
+    // Post element biasanya ada data-user-id, atau kita ambil dari DOM
+    const postElement = post;
+    const userId = postElement.getAttribute("data-user-id") || null;
+
+    // ✅ BARU: Ambil riwayat chat gabungan (teman_kebun + mbah_eko) milik user ini
+    let teksRiwayat = "- Belum ada riwayat percakapan.";
+    let infoProfil = "";
+
+    if (userId && window.MBAH_EKO_MEMORY) {
+        const [riwayat, profil] = await Promise.all([
+            window.MBAH_EKO_MEMORY.ambilRiwayatLengkap(userId, 10),
+            window.MBAH_EKO_MEMORY.ambilProfil(userId)
+        ]);
+
+        teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayat(riwayat);
+
+        if (profil) {
+            infoProfil = `Petani ini username-nya @${profil.username}, punya ${profil.xp || 0} XP dan ${profil.saldo_tof || 0} TOF.`;
+        }
+    }
+
+    // ✅ BARU: Knowledge base ToFarmer yang relevan
+    let memoPaper = typeof window.cariKonteksPaper === "function"
+        ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
+        : "Fokus pada aksi nyata, eksperimen teknis, dan kemandirian komunitas.";
+
+    // ✅ BARU: Instruksi + konteks lengkap termasuk memori lintas agent
+    let instruksi = `Kamu adalah mbah_eko, sobat tongkrongan yang santai, hangat, suka bercanda, dan menghargai semua anggota. Kamu boleh menggoda ringan, tetapi tidak boleh merendahkan atau menyerang orang. Kamu adalah bagian dari komunitas, bukan mentor.
+
+${infoProfil ? `DATA PETANI INI:\n${infoProfil}\n` : ""}
+
+RIWAYAT PERCAKAPAN SEBELUMNYA (dari kamu DAN Teman Kebun — baca ini agar nyambung):
+${teksRiwayat}
 
 ATURAN BALASAN (WAJIB DIIKUTI):
-1. SINGKAT & PADAT: Maksimal 1-2 kalimat saja. Langsung tembak inti masalah/poin pembicaraan.
-2. GAYA BAHASA: Gunakan bahasa obrolan harian dan analogi sederhana, lucu tapi sesuai konteks.
-3. TEKNIS & APLIKATIF: Jika bahas teknis, langsung bahas teknisnya. Jika bahas ide, langsung beri masukan praktis.
-4. JANGAN FORMAL: Dilarang keras memakai struktur poin-poin atau daftar pilar.
-5. FOKUS KONTEKS: Tanggapi spesifik postingan/komentar user. Humor balik kalau mereka humor, bantu teknis kalau mereka serius.
-6. JANGAN MENGGURUI: Dilarang memakai kata-kata "kamu salah", "seharusnya", atau "jangan begini". Gunakan pendekatan "Gimana kalau...", "Menurutku mending...", atau "Lha, bukannya lebih asik kalau...". Jadilah kawan ngopi, bukan guru.
-7. JANGAN MENYERANG ORANG: Dilarang mengejek, merendahkan, menghakimi, menuduh, atau memberi label negatif kepada anggota. Jika ada perbedaan pendapat, fokus pada ide atau topiknya, bukan orangnya.
-8. GUYON AMAN: Selalu ada humor, tetapi harus terasa seperti teman ngopi. Hindari kalimat yang terkesan menyuruh menyerang, menekan, mempermalukan, atau menjatuhkan orang lain.
-9. ASUMSI BAIK: Anggap anggota sedang belajar, bercanda, atau menyampaikan pendapat. Jika ragu, balas dengan rasa penasaran atau ajakan diskusi.
-10. BACA SUASANA DULU:
-   Jika anggota sedang bercanda, saling menggoda,
-   atau sedang ngobrol santai, ikut suasananya.
-   Tidak perlu menghubungkan semuanya ke filosofi,
-   visi komunitas, teknologi, blockchain, atau ToFarmer.
+1. SINGKAT & PADAT: Maksimal 1-2 kalimat saja.
+2. GAYA BAHASA: Obrolan harian, lucu tapi sesuai konteks.
+3. TEKNIS & APLIKATIF: Kalau bahas teknis, langsung ke intinya.
+4. JANGAN FORMAL: Dilarang poin-poin atau daftar pilar.
+5. FOKUS KONTEKS: Tanggapi spesifik postingan/komentar.
+6. JANGAN MENGGURUI: Gunakan "Gimana kalau...", bukan "kamu salah".
+7. JANGAN MENYERANG ORANG: Fokus pada ide, bukan orangnya.
+8. GUYON AMAN: Humor seperti teman ngopi, bukan menjatuhkan.
+9. ASUMSI BAIK: Anggap anggota sedang belajar atau bercanda.
+10. BACA SUASANA: Kalau obrolan santai, ikut santai saja.
+11. MANFAATKAN RIWAYAT: Kalau ada topik yang pernah dibahas di riwayat, kamu boleh menyinggungnya secara natural agar terasa makin kenal.
 
-11. JIKA TIDAK ADA PERTANYAAN:
-   Jangan memberi nasihat.
-   Cukup menanggapi suasana obrolan.
+Landasan logika ToFarmer: ${memoPaper}`;
 
-Landasan logika: ${memoPaper}`;
+    const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar terakhir: "${teksKomentarTerakhir}"\n\nBalas santai dan akrab (1-2 kalimat):`;
+    const tanggapanAI = await panggilOtakAI(promptMatang);
 
-const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar: "${teksKomentarTerakhir}"\n\nBalasan santai dan akrab:`;
-const tanggapanAI = await panggilOtakAI(promptMatang);
-// -----------------------------------
-// -----------------------------------
+    // ✅ BARU: Simpan tanggapan Mbah Eko ke tabel ai_chat_history
+    if (tanggapanAI && userId && window.MBAH_EKO_MEMORY) {
+        // Simpan konteks post sebagai "user message"
+        const pesanUser = teksKomentarTerakhir || kontenTeksUtama;
+        await window.MBAH_EKO_MEMORY.simpan(userId, "user", pesanUser);
+        await window.MBAH_EKO_MEMORY.simpan(userId, "assistant", tanggapanAI);
+    }
 // -----------------------------------
 
                 // EKSEKUSI SUPABASE (Menggunakan akses sah dari window)

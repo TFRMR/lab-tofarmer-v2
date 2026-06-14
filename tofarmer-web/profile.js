@@ -828,9 +828,10 @@ async function loadUserPosts() {
     const safeText = (post.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
     const currentUsername = profileUsername || "Petani";
     const isMyPost = currentWallet === targetProfileId;
-
-    return `
-      <div id="post-card-${post.id}" class="card" style="margin-bottom:14px;">
+ 
+return `
+  <div id="post-card-${post.id}" class="card" style="margin-bottom:14px;"
+       data-user-id="${post.user_id}">
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px;">
           <div style="font-size:11px;color:#6f7f76;">
             🌿 ${date}
