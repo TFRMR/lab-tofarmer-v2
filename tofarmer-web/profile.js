@@ -674,7 +674,7 @@ async function sendProfilePost() {
         window.aiChatCounter = 0;
 const sisa = document.getElementById("sisa-chat");
 if (sisa) sisa.innerText = 5;
-        }, 2000);
+ 
       }
     }
 
