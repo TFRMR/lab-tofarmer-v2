@@ -159,7 +159,8 @@ async function periksaSkenarioMading() {
         if (post.getAttribute("data-operator-lock") === "true") continue;
 
         const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
-        const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention");
+        // Ganti selector-nya jadi lebih spesifik ke area komentar
+const elemenKomentar = post.querySelectorAll(".comment-text, .comment-item, .tof-mention, p");
         
         let daftarKomentar = [];
         let mbahPernahKomentar = false;
