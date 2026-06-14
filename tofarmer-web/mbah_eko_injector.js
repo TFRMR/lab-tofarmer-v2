@@ -152,7 +152,6 @@ async function periksaSkenarioMading() {
         const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
         if (!postId) continue;
 
-        // --- CEK KE DATABASE SUPABASE ---
         const sudahKomen = await cekApakahSudahKomentar(postId);
         const mentionBelumDibalas = await adaMentionBelumDibalas(postId);
 
@@ -195,94 +194,88 @@ async function periksaSkenarioMading() {
             }
         }
 
-       if (terpicu) {
+        if (terpicu) {
             post.setAttribute("data-operator-lock", "true");
             sedangMemproses = true;
 
             if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
             if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
 
-            const userId = post.getAttribute("data-user-id") || null;
+            // 1. AMBIL KONTEKS DARI MEMORI (Bukan dari DOM)
+            const userId = post.getAttribute("data-user-id");
             
-            // --- BAGIAN YANG DISISIPKAN ---
-            let teksRiwayat = "- Belum ada riwayat percakapan.";
-            let infoProfil = "";
+            // Inisialisasi: Jika postingan baru, rekam konten postingan ke memori sebagai konteks awal
+            if (jenisSkenario === "POSTINGAN_BARU" && userId && kontenTeksUtama) {
+                await window.MBAH_EKO_MEMORY.simpan(userId, "user", `[POSTINGAN]: ${kontenTeksUtama}`);
+            }
 
-            if (userId && window.MBAH_EKO_MEMORY) {
-                // 1. Ambil riwayat dari fungsi memori konsisten
-                const riwayat = await window.MBAH_EKO_MEMORY.ambilRiwayat(userId, 10);
-                
-                // 2. Format riwayat untuk AI (pastikan fungsi ini ada di ai-memory.js)
-                teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayatUntukAI(riwayat);
-                
-                // 3. Ambil profil untuk info tambahan
-                const profil = await window.MBAH_EKO_MEMORY.ambilProfil(userId);
-                if (profil) {
-                    infoProfil = `Petani ini username-nya @${profil.username}, punya ${profil.xp || 0} XP dan ${profil.saldo_tof || 0} TOF.`;
-                }
+            // PENTING: Rekam komentar user ke memori sebagai bagian dari percakapan
+            if (userId && teksKomentarTerakhir) {
+                await window.MBAH_EKO_MEMORY.simpan(userId, "user", teksKomentarTerakhir);
+            }
+
+            // 2. Sekarang ambil riwayat yang sudah TERMASUK konten postingan & komentar user
+            const riwayat = await window.MBAH_EKO_MEMORY.ambilRiwayat(userId, 10);
+            const teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayatUntukAI(riwayat);
+            
+            // Tambahan: Ambil info profil
+            let infoProfil = "";
+            const profil = userId ? await window.MBAH_EKO_MEMORY.ambilProfil(userId) : null;
+            if (profil) {
+                infoProfil = `Petani ini username-nya @${profil.username}, punya ${profil.xp || 0} XP dan ${profil.saldo_tof || 0} TOF.`;
             }
 
             let memoPaper = typeof window.cariKonteksPaper === "function"
                 ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
                 : "Fokus pada aksi nyata, eksperimen teknis, dan kemandirian komunitas.";
 
-            let instruksi = `Kamu adalah mbah_eko, seorang petani di komunitas ToFarmer.
+            let instruksi = `Kamu adalah mbah_eko, petani di komunitas ToFarmer.
 Tugasmu: Memberikan panduan teknis yang jujur, singkat, dan solutif.
 
 ${infoProfil ? `DATA PETANI INI:\n${infoProfil}\n` : ""}
 
-RIWAYAT PERCAKAPAN SEBELUMNYA (dari kamu DAN Teman Kebun — baca ini agar nyambung):
+RIWAYAT PERCAKAPAN (BACA INI AGAR NYAMBUNG):
 ${teksRiwayat}
 
 ATURAN BALASAN (WAJIB):
-1. DILARANG KERAS menyapa (Halo, Hai, Wah, Bro). Mulailah langsung dengan jawaban teknis.
-2. JIKA ADA PERTANYAAN: Berikan panduan langkah-demi-langkah atau tips praktis (1 kalimat saja).
-3. JIKA HANYA CERITA: Berikan apresiasi singkat terhadap prosesnya, lalu tutup dengan penyemangat teknis.
-4. GAYA BAHASA: Santai, hangat, seperti teman diskusi di ladang.
-5. FOKUS: Gunakan riwayat hanya jika relevan untuk menyambung bahasan teknis sebelumnya. Jangan gunakan untuk basa-basi.
+1. JANGAN MENYAPA (Halo, Hai, Bro). Langsung ke jawaban teknis.
+2. JIKA ADA PERTANYAAN: Berikan panduan praktis (maks 2 kalimat).
+3. GAYA BAHASA: Santai, hangat, seperti teman diskusi di ladang.
+4. JANGAN MENGULANG: Jangan memberikan saran yang sudah ada di RIWAYAT PERCAKAPAN.
+5. FOKUS: Gunakan riwayat untuk menyambung diskusi, bukan basa-basi.
 
 Landasan logika ToFarmer: ${memoPaper}`;
 
-   const promptMatang = `
-${instruksi}
+            const promptMatang = `${instruksi}
 
 KONTEKS DISKUSI:
 1. Isi Postingan: "${kontenTeksUtama}"
-2. PERTANYAAN/KOMENTAR BARU YANG PERLU DIJAWAB: "${teksKomentarTerakhir}"
+2. PERTANYAAN/KOMENTAR BARU: "${teksKomentarTerakhir}"
 
-PERINTAH:
-- Jika "KOMENTAR BARU" berisi pertanyaan teknis, JAWAB PERTANYAAN TERSEBUT secara langsung.
-- Abaikan isi postingan jika sudah dibahas sebelumnya.
-- Jangan mengulang informasi yang sudah ada di komentar tersebut.
-- BALASAN (Langsung jawab teknis, 1-2 kalimat saja):`;
+BALASAN (Langsung jawab teknis, 1-2 kalimat saja):`;
+
             const tanggapanAI = await panggilOtakAI(promptMatang);
 
+            // SIMPAN JAWABAN KE MEMORI
             if (tanggapanAI && userId && window.MBAH_EKO_MEMORY) {
-                await window.MBAH_EKO_MEMORY.simpan(userId, "user", teksKomentarTerakhir || kontenTeksUtama);
                 await window.MBAH_EKO_MEMORY.simpan(userId, "assistant", tanggapanAI);
             }
 
+            // Tampilkan di Mading (Supabase Comments)
             if (tanggapanAI && window.supabaseClient) {
-    // 1. Simpan ke tabel comments (agar muncul di Mading/Feed)
-    const { error: err1 } = await window.supabaseClient.from("comments").insert([{
-        post_id: parseInt(postId),
-        user_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
-        comment: tanggapanAI
-    }]);
-
-    // 2. Simpan ke ai_chat_history (agar Mbah Eko "ingat" bahwa dia baru saja bicara soal ini)
-    if (!err1) {
-        await window.MBAH_EKO_MEMORY.simpan(userId, "assistant", tanggapanAI);
-        await window.MBAH_EKO_MEMORY.simpan(userId, "user", teksKomentarTerakhir || kontenTeksUtama);
-    }
-}
+                await window.supabaseClient.from("comments").insert([{
+                    post_id: parseInt(postId),
+                    user_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
+                    comment: tanggapanAI
+                }]);
+            }
 
             post.removeAttribute("data-operator-lock");
-            sedangMemproses = false; // Reset lock
-            break; // Keluar dari loop setelah memproses satu post
+            sedangMemproses = false;
+            break;
         }
-    } 
-} 
+    }
+}
 
 async function adaMentionBelumDibalas(postId) {
 
