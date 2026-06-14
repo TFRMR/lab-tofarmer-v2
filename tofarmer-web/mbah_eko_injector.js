@@ -63,54 +63,7 @@ Ketentuan Exit Komunitas:
     `.trim()
 };
 
-/**
- * Fungsi cerdas pencari potongan bab paper berdasarkan kedekatan kata kunci (RAG)
- * @param {string} pertanyaan - Input teks dari chat user
- * @returns {string} Potongan bab paper yang relevan
- */
-function cariKonteksPaper(pertanyaan) {
-    const kueri = pertanyaan.toLowerCase();
-    let konteksDitemukan = "";
 
-    // 1. Deteksi Kata Kunci Bab Latar Belakang & Filosofi
-    if (kueri.includes("filosofi") || kueri.includes("latar belakang") || kueri.includes("sejarah") || kueri.includes("tujuan") || kueri.includes("berproses") || kueri.includes("mengapa")) {
-        konteksDitemukan += TOFARMER_PAPER.latar_belakang_filosofi + "\n\n";
-    }
-
-    // 2. Deteksi Kata Kunci Bab 5 Pilar
-    if (kueri.includes("pilar") || kueri.includes("aksi") || kueri.includes("rekayasa") || kueri.includes("teknologi") || kueri.includes("komunitas") || kueri.includes("ladang belajar") || kueri.includes("petapa") || kueri.includes("finansial")) {
-        konteksDitemukan += TOFARMER_PAPER.lima_pilar + "\n\n";
-    }
-
-    // 3. Deteksi Kata Kunci Bab Aturan Main
-    if (kueri.includes("fase") || kueri.includes("alur") || kueri.includes("obrolan") || kueri.includes("integrasi") || kueri.includes("cara masuk") || kueri.includes("gabung")) {
-        konteksDitemukan += TOFARMER_PAPER.aturan_main_fase + "\n\n";
-    }
-
-    // 4. Deteksi Kata Kunci Bab Ilmu Baku
-    if (kueri.includes("ilmu") || kueri.includes("baku") || kueri.includes("validasi") || kueri.includes("gagal") || kueri.includes("catatan") || kueri.includes("database") || kueri.includes("rujukan")) {
-        konteksDitemukan += TOFARMER_PAPER.epistemologi_ilmu_baku + "\n\n";
-    }
-
-    // 5. Deteksi Kata Kunci Bab Ekonomi & Compounding
-    if (kueri.includes("receh") || kueri.includes("nabung") || kueri.includes("compounding") || kueri.includes("aset") || kueri.includes("gaji") || kueri.includes("rupiah") || kueri.includes("bunga") || kueri.includes("investasi")) {
-        konteksDitemukan += TOFARMER_PAPER.strategi_ekonomi_compounding + "\n\n";
-    }
-
-    // 6. Deteksi Kata Kunci Bab XP, Level, dan Exit
-    if (kueri.includes("xp") || kueri.includes("level") || kueri.includes("pangkat") || kueri.includes("grower") || kueri.includes("specialist") || kueri.includes("elite") || kueri.includes("tarik") || kueri.includes("exit") || kueri.includes("keluar") || kueri.includes("sbp")) {
-        konteksDitemukan += TOFARMER_PAPER.protokol_xp_level_exit + "\n\n";
-    }
-
-    // Jika pencarian kosong/tidak ada keyword yang menyenggol, berikan Bab 1 & 2 sebagai pondasi dasar
-    if (konteksDitemukan === "") {
-        konteksDitemukan = TOFARMER_PAPER.latar_belakang_filosofi + "\n\n" + TOFARMER_PAPER.lima_pilar;
-    }
-
-    return konteksDitemukan;
-}
-
-(function() {
     console.log("👴 [Mbah Eko - Operator Akun] Aktif...");
 
 const MBAH_EKO_MEMORY = {
@@ -272,18 +225,21 @@ const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-it
     let teksRiwayat = "- Belum ada riwayat percakapan.";
     let infoProfil = "";
 
-    if (userId && window.MBAH_EKO_MEMORY) {
-        const [riwayat, profil] = await Promise.all([
-            window.MBAH_EKO_MEMORY.ambilRiwayatLengkap(userId, 10),
-            window.MBAH_EKO_MEMORY.ambilProfil(userId)
-        ]);
-
-        teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayat(riwayat);
-
-        if (profil) {
-            infoProfil = `Petani ini username-nya @${profil.username}, punya ${profil.xp || 0} XP dan ${profil.saldo_tof || 0} TOF.`;
-        }
+   if (userId && window.MBAH_EKO_MEMORY && jenisSkenario === "MENTION_LANGSUNG") {
+    console.log("Mbah Eko sedang membuka buku memori..."); // Opsional: untuk debug
+    const [riwayat, profil] = await Promise.all([
+        window.MBAH_EKO_MEMORY.ambilRiwayatLengkap(userId, 10),
+        window.MBAH_EKO_MEMORY.ambilProfil(userId)
+    ]);
+    teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayat(riwayat);
+    
+    if (profil) {
+        infoProfil = `Petani ini username-nya @${profil.username}, punya ${profil.xp || 0} XP dan ${profil.saldo_tof || 0} TOF.`;
     }
+} else {
+    // Jika hanya postingan baru, lewati memori agar tidak berat & tetap santai
+    console.log("Mbah Eko hanya menyapa postingan baru.");
+}
 
     // ✅ BARU: Knowledge base ToFarmer yang relevan
     let memoPaper = typeof window.cariKonteksPaper === "function"
@@ -299,17 +255,12 @@ RIWAYAT PERCAKAPAN SEBELUMNYA (dari kamu DAN Teman Kebun — baca ini agar nyamb
 ${teksRiwayat}
 
 ATURAN BALASAN (WAJIB DIIKUTI):
-1. SINGKAT & PADAT: Maksimal 1-2 kalimat saja.
-2. GAYA BAHASA: Obrolan harian, lucu tapi sesuai konteks.
-3. TEKNIS & APLIKATIF: Kalau bahas teknis, langsung ke intinya.
-4. JANGAN FORMAL: Dilarang poin-poin atau daftar pilar.
-5. FOKUS KONTEKS: Tanggapi spesifik postingan/komentar.
-6. JANGAN MENGGURUI: Gunakan "Gimana kalau...", bukan "kamu salah".
-7. JANGAN MENYERANG ORANG: Fokus pada ide, bukan orangnya.
-8. GUYON AMAN: Humor seperti teman ngopi, bukan menjatuhkan.
-9. ASUMSI BAIK: Anggap anggota sedang belajar atau bercanda.
-10. BACA SUASANA: Kalau obrolan santai, ikut santai saja.
-11. MANFAATKAN RIWAYAT: Kalau ada topik yang pernah dibahas di riwayat, kamu boleh menyinggungnya secara natural agar terasa makin kenal.
+// ... di dalam instruksi
+1. LANGSUNG KE POIN: Jangan ada sapaan (seperti "Halo", "Hai", "Wah menarik"). Langsung tanggapi isi postingan.
+2. FOKUS KONTEKS: Analisis konten postingan secara spesifik dan berikan opini atau pertanyaan teknis yang relevan.
+3. TETAP SANTAI: Gunakan gaya obrolan tongkrongan tanpa basa-basi formal.
+4. JANGAN GUNAKAN MEMORI: Jika tidak ada riwayat, fokuslah 100% pada teks postingan saat ini.
+5. MANFAATKAN RIWAYAT: Kalau ada topik yang pernah dibahas di riwayat, kamu boleh menyinggungnya secara natural agar terasa makin kenal.
 
 Landasan logika ToFarmer: ${memoPaper}`;
 
