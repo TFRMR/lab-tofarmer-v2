@@ -112,10 +112,7 @@ function cariKonteksPaper(pertanyaan) {
 
 (function() {
     console.log("👴 [Mbah Eko - Operator Akun] Aktif...");
-============================================================
-// MEMORI MBAH EKO - Terhubung ke tabel ai_chat_history
-// Beda agent, tapi bisa baca memori Teman Kebun juga
-// ============================================================
+
 const MBAH_EKO_MEMORY = {
 
   // Simpan percakapan Mbah Eko ke tabel yang sama
