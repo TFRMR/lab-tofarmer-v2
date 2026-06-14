@@ -195,42 +195,33 @@ const elemenKomentar = post.querySelectorAll(".comment-text, .comment-item, .tof
             }
         }
 
-        if (terpicu) {
+     if (terpicu) {
             post.setAttribute("data-operator-lock", "true");
             sedangMemproses = true;
 
             if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
             if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
-// --- SISIPKAN DI SINI ---
-            // 1. Prioritaskan ID dari postingan (jika ada)
-            userId = post.getAttribute("data-user-id"); // Hapus 'let' di sini
 
-            // 2. Jika postingan tidak punya ID, gunakan identitas user yang sedang login
-            if (!userId) {
-                userId = localStorage.getItem("tof_user_id");
-            }
+            // 1. Ambil ID dengan aman (Tanpa deklarasi ganda)
+            let userId = post.getAttribute("data-user-id");
+            if (!userId) userId = localStorage.getItem("tof_user_id");
+            if (!userId) userId = localStorage.getItem("tof_wallet");
 
-            // 3. (OPSIONAL) Jika masih kosong, gunakan wallet sebagai fallback
-            if (!userId) {
-                userId = localStorage.getItem("tof_wallet");
-            }
-            // Sekarang userId sudah pasti berisi nilai
-            // 1. AMBIL KONTEKS DARI MEMORI (Bukan dari DOM)
-            const userId = post.getAttribute("data-user-id");
+            // Sekarang userId sudah punya nilai, gunakan ini untuk semuanya.
             
-            // Inisialisasi: Jika postingan baru, rekam konten postingan ke memori sebagai konteks awal
+            // Inisialisasi: Jika postingan baru, rekam konten ke memori
             if (jenisSkenario === "POSTINGAN_BARU" && userId && kontenTeksUtama) {
                 await window.MBAH_EKO_MEMORY.simpan(userId, "user", `[POSTINGAN]: ${kontenTeksUtama}`);
             }
 
-            // PENTING: Rekam komentar user ke memori sebagai bagian dari percakapan
+            // PENTING: Rekam komentar user ke memori
             if (userId && teksKomentarTerakhir) {
                 await window.MBAH_EKO_MEMORY.simpan(userId, "user", teksKomentarTerakhir);
             }
 
-            // 2. Sekarang ambil riwayat yang sudah TERMASUK konten postingan & komentar user
-            const riwayat = await window.MBAH_EKO_MEMORY.ambilRiwayat(userId, 10);
-            const teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayatUntukAI(riwayat);
+            // 2. Ambil riwayat yang sudah TERMASUK konten postingan & komentar user
+            const riwayat = await window.MBAH_EKO_MEMORY.ambilRiwayatLengkap(userId, 10);
+            const teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayat(riwayat);
             
             // Tambahan: Ambil info profil
             let infoProfil = "";
