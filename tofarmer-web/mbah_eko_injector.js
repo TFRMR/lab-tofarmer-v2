@@ -262,8 +262,8 @@ Landasan logika ToFarmer: ${memoPaper}`;
             sedangMemproses = false; // Reset lock
             break; // Keluar dari loop setelah memproses satu post
         }
-    } // <-- Penutup loop for
-} // <-- Penutu
+    } 
+} 
 
 async function adaMentionBelumDibalas(postId) {
 
@@ -347,4 +347,3 @@ async function cekApakahSudahKomentar(postId) {
         setTimeout(periksaSkenarioMading, 2000); 
     });
 
-})();
