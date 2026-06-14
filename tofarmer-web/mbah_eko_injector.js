@@ -372,20 +372,20 @@ async function cekApakahSudahKomentar(postId) {
         } catch (e) { return ""; }
     }
 
-    const targetMading = document.body;
-// SESUDAH — bungkus observer dengan debounce
-let debounceObserver;
-const observer = new MutationObserver(() => {
-  clearTimeout(debounceObserver);
-  debounceObserver = setTimeout(periksaSkenarioMading, 800); // tunggu 0.8 detik
-});
-observer.observe(document.body, { childList: true, subtree: true });
+   const targetMading = document.body;
+
+    // OBSERVER untuk memantau perubahan halaman
+    let debounceObserver;
+    const observer = new MutationObserver(() => {
+        clearTimeout(debounceObserver);
+        debounceObserver = setTimeout(periksaSkenarioMading, 800);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
     
-    // --- PEMICU AWAL ---
-    // Cek setelah 4 detik (memberi waktu agar elemen ter-render)
+    // PEMICU AWAL
     setTimeout(periksaSkenarioMading, 4000); 
 
-    // --- PEMICU JIKA HALAMAN BARU SELESAI LOAD ---
+    // PEMICU JIKA HALAMAN BARU SELESAI LOAD
     window.addEventListener('load', () => {
         setTimeout(periksaSkenarioMading, 2000); 
     });
