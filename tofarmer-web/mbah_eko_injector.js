@@ -202,7 +202,7 @@ async function periksaSkenarioMading() {
             if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
 // --- SISIPKAN DI SINI ---
             // 1. Prioritaskan ID dari postingan (jika ada)
-            let userId = post.getAttribute("data-user-id");
+            userId = post.getAttribute("data-user-id"); // Hapus 'let' di sini
 
             // 2. Jika postingan tidak punya ID, gunakan identitas user yang sedang login
             if (!userId) {
@@ -213,6 +213,7 @@ async function periksaSkenarioMading() {
             if (!userId) {
                 userId = localStorage.getItem("tof_wallet");
             }
+            // Sekarang userId sudah pasti berisi nilai
             // 1. AMBIL KONTEKS DARI MEMORI (Bukan dari DOM)
             const userId = post.getAttribute("data-user-id");
             
