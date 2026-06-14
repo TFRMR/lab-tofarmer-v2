@@ -148,3 +148,5 @@ ${knowledgeBase}
 
 // Expose ke window agar bisa dipakai di file lain
 window.AI_MEMORY = AI_MEMORY;
+// Daftarkan ke window agar bisa diakses di file lain
+window.MBAH_EKO_MEMORY = AI_MEMORY;
