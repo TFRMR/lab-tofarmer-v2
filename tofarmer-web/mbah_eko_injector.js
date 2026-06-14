@@ -142,112 +142,87 @@ window.MBAH_EKO_MEMORY = MBAH_EKO_MEMORY;
     const BOT_USERNAME = "@mbah_eko";
     let sedangMemproses = false;
 
-    async function periksaSkenarioMading() {
-        if (sedangMemproses) return;
+async function periksaSkenarioMading() {
+    if (sedangMemproses) return;
 
-       // Mengambil semua elemen yang memiliki class .post atau ID post-card-... di halaman mana saja
-// Menangkap postingan di beranda (feed) DAN di profil (userPosts)
-const semuaPostingan = document.querySelectorAll("#feed .post, #userPosts .post, .post, #profilePosts .post, .post, [id^='post-card-']");
-        if (!semuaPostingan.length) return;
+    const semuaPostingan = document.querySelectorAll("#feed .post, #userPosts .post, .post, #profilePosts .post, [id^='post-card-']");
+    if (!semuaPostingan.length) return;
 
-      for (const post of semuaPostingan) {
-            const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
-            if (!postId) continue;
+    for (const post of semuaPostingan) {
+        const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
+        if (!postId) continue;
 
-            // --- CEK KE DATABASE SUPABASE (OTAK UTAMA) ---
-const sudahKomen = await cekApakahSudahKomentar(postId);
+        // --- CEK KE DATABASE SUPABASE ---
+        const sudahKomen = await cekApakahSudahKomentar(postId);
+        const mentionBelumDibalas = await adaMentionBelumDibalas(postId);
 
-const mentionBelumDibalas =
-    await adaMentionBelumDibalas(postId);
+        if (sudahKomen && !mentionBelumDibalas) continue;
+        if (post.getAttribute("data-operator-lock") === "true") continue;
 
-if (sudahKomen && !mentionBelumDibalas)
-    continue;
+        const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
+        const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention");
+        
+        let daftarKomentar = [];
+        let mbahPernahKomentar = false;
 
-if (post.getAttribute("data-operator-lock") === "true") continue;
+        elemenKomentar.forEach((el) => {
+            if (el.id === 'advice-box' || el.id === 'ai-text' || el.closest('#advice-container')) return;
+            const penulis = el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "";
+            const teks = (el.innerText || "").trim();
+            if (teks === "" || teks.startsWith("Kirim") || teks.startsWith("Sruput")) return;
 
-if (post.getAttribute("data-operator-lock") === "true") continue;
-            if (!postId) continue;
+            if (penulis.includes("mbah_eko") || teks.includes("@mbah_eko") || teks.includes("Petapa Menoreh")) {
+                mbahPernahKomentar = true;
+            }
+            daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
+        });
 
-            const kontenTeksUtama = post.querySelector(".text, .deskripsi-proses")?.innerText || "";
-            // Tambahkan .tof-mention ke daftar selector
-const elemenKomentar = post.querySelectorAll("[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention");
-            
-            let daftarKomentar = [];
-            let mbahPernahKomentar = false;
+        const komentarTerakhir = daftarKomentar[daftarKomentar.length - 1] || null;
+        const teksKomentarTerakhir = komentarTerakhir ? komentarTerakhir.text : "";
+        const penulisKomentarTerakhir = komentarTerakhir ? komentarTerakhir.author : "";
+        const hashKomentar = btoa(unescape(encodeURIComponent(teksKomentarTerakhir + penulisKomentarTerakhir))).substring(0, 12);
 
-            elemenKomentar.forEach((el) => {
-                if (el.id === 'advice-box' || el.id === 'ai-text' || el.closest('#advice-container')) return;
+        let terpicu = false;
+        let jenisSkenario = "";
 
-                const penulis = el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "";
-                const teks = (el.innerText || "").trim();
-                
-                if (teks === "" || teks.startsWith("Kirim") || teks.startsWith("Sruput")) return;
-
-                if (penulis.includes("mbah_eko") || teks.includes("@mbah_eko") || teks.includes("Petapa Menoreh")) {
-                    mbahPernahKomentar = true;
-                }
-
-                daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
-            });
-
-            const komentarTerakhir = daftarKomentar[daftarKomentar.length - 1] || null;
-            const teksKomentarTerakhir = komentarTerakhir ? komentarTerakhir.text : "";
-            const penulisKomentarTerakhir = komentarTerakhir ? komentarTerakhir.author : "";
-            const hashKomentar = btoa(unescape(encodeURIComponent(teksKomentarTerakhir + penulisKomentarTerakhir))).substring(0, 12);
-
-            let terpicu = false;
-            let jenisSkenario = "";
-
-            if (!mbahPernahKomentar && !localStorage.getItem(`op_sapa_${postId}`)) {
+        if (!mbahPernahKomentar && !localStorage.getItem(`op_sapa_${postId}`)) {
+            terpicu = true;
+            jenisSkenario = "POSTINGAN_BARU";
+        } else if (teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase())) {
+            if (localStorage.getItem(`op_mention_${postId}`) !== hashKomentar) {
                 terpicu = true;
-                jenisSkenario = "POSTINGAN_BARU";
-            } else if (teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase())) {
-                if (localStorage.getItem(`op_mention_${postId}`) !== hashKomentar) {
-                    terpicu = true;
-                    jenisSkenario = "MENTION_LANGSUNG";
+                jenisSkenario = "MENTION_LANGSUNG";
+            }
+        }
+
+        // --- EKSEKUSI JIKA TERPICU ---
+        if (terpicu) {
+            post.setAttribute("data-operator-lock", "true");
+            sedangMemproses = true;
+
+            if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
+            if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
+
+            const userId = post.getAttribute("data-user-id") || null;
+            let teksRiwayat = "- Belum ada riwayat percakapan.";
+            let infoProfil = "";
+
+            if (userId && window.MBAH_EKO_MEMORY && jenisSkenario === "MENTION_LANGSUNG") {
+                const [riwayat, profil] = await Promise.all([
+                    window.MBAH_EKO_MEMORY.ambilRiwayatLengkap(userId, 10),
+                    window.MBAH_EKO_MEMORY.ambilProfil(userId)
+                ]);
+                teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayat(riwayat);
+                if (profil) {
+                    infoProfil = `Petani ini username-nya @${profil.username}, punya ${profil.xp || 0} XP dan ${profil.saldo_tof || 0} TOF.`;
                 }
             }
 
-     
-             if (terpicu) {
-    post.setAttribute("data-operator-lock", "true");
-    sedangMemproses = true;
+            let memoPaper = typeof window.cariKonteksPaper === "function"
+                ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
+                : "Fokus pada aksi nyata, eksperimen teknis, dan kemandirian komunitas.";
 
-    if (jenisSkenario === "POSTINGAN_BARU") localStorage.setItem(`op_sapa_${postId}`, "done");
-    if (jenisSkenario === "MENTION_LANGSUNG") localStorage.setItem(`op_mention_${postId}`, hashKomentar);
-
-    // ✅ BARU: Cari user_id pemilik post untuk ambil memori
-    // Post element biasanya ada data-user-id, atau kita ambil dari DOM
-    const postElement = post;
-    const userId = postElement.getAttribute("data-user-id") || null;
-
-    // ✅ BARU: Ambil riwayat chat gabungan (teman_kebun + mbah_eko) milik user ini
-    let teksRiwayat = "- Belum ada riwayat percakapan.";
-    let infoProfil = "";
-
-   if (userId && window.MBAH_EKO_MEMORY && jenisSkenario === "MENTION_LANGSUNG") {
-    console.log("Mbah Eko sedang membuka buku memori..."); // Opsional: untuk debug
-    const [riwayat, profil] = await Promise.all([
-        window.MBAH_EKO_MEMORY.ambilRiwayatLengkap(userId, 10),
-        window.MBAH_EKO_MEMORY.ambilProfil(userId)
-    ]);
-    teksRiwayat = window.MBAH_EKO_MEMORY.formatRiwayat(riwayat);
-    
-    if (profil) {
-        infoProfil = `Petani ini username-nya @${profil.username}, punya ${profil.xp || 0} XP dan ${profil.saldo_tof || 0} TOF.`;
-    }
-} else {
-    // Jika hanya postingan baru, lewati memori agar tidak berat & tetap santai
-    console.log("Mbah Eko hanya menyapa postingan baru.");
-}
-
-    // ✅ BARU: Knowledge base ToFarmer yang relevan
-    let memoPaper = typeof window.cariKonteksPaper === "function"
-        ? window.cariKonteksPaper(teksKomentarTerakhir + " " + kontenTeksUtama)
-        : "Fokus pada aksi nyata, eksperimen teknis, dan kemandirian komunitas.";
-
-    // ✅ BARU: Instruksi + konteks lengkap termasuk memori lintas agent
-    let instruksi = `Kamu adalah mbah_eko, sobat tongkrongan yang santai, hangat, suka bercanda, dan menghargai semua anggota. Kamu boleh menggoda ringan, tetapi tidak boleh merendahkan atau menyerang orang. Kamu adalah bagian dari komunitas, bukan mentor.
+            let instruksi = `Kamu adalah mbah_eko, sobat tongkrongan yang santai, hangat, suka bercanda, dan menghargai semua anggota. Kamu boleh menggoda ringan, tetapi tidak boleh merendahkan atau menyerang orang. Kamu adalah bagian dari komunitas, bukan mentor.
 
 ${infoProfil ? `DATA PETANI INI:\n${infoProfil}\n` : ""}
 
@@ -264,49 +239,31 @@ ATURAN BALASAN (WAJIB DIIKUTI):
 
 Landasan logika ToFarmer: ${memoPaper}`;
 
-    const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar terakhir: "${teksKomentarTerakhir}"\n\nBalas santai dan akrab (1-2 kalimat):`;
-    const tanggapanAI = await panggilOtakAI(promptMatang);
+   const promptMatang = `${instruksi}\n\nPost: "${kontenTeksUtama}"\nKomentar terakhir: "${teksKomentarTerakhir}"\n\nBalas santai dan akrab (1-2 kalimat):`;
+            const tanggapanAI = await panggilOtakAI(promptMatang);
 
-    // ✅ BARU: Simpan tanggapan Mbah Eko ke tabel ai_chat_history
-    if (tanggapanAI && userId && window.MBAH_EKO_MEMORY) {
-        // Simpan konteks post sebagai "user message"
-        const pesanUser = teksKomentarTerakhir || kontenTeksUtama;
-        await window.MBAH_EKO_MEMORY.simpan(userId, "user", pesanUser);
-        await window.MBAH_EKO_MEMORY.simpan(userId, "assistant", tanggapanAI);
-    }
-// -----------------------------------
-
-                // EKSEKUSI SUPABASE (Menggunakan akses sah dari window)
-                if (tanggapanAI && window.supabaseClient) {
-                    const { error } = await window.supabaseClient
-                        .from("comments") 
-                        .insert([{
-                            post_id: parseInt(postId),
-                            user_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
-                            comment: tanggapanAI
-
-                        }]);
-
-                    if (!error) {
-                        console.log(`🎯 [Operator] Sukses! Komentar @mbah_eko sah masuk database.`);
-                       if (typeof window.loadFeed === "function") {
-    console.log("⏳ Menunggu database sinkronisasi...");
-    setTimeout(() => {
-        window.loadFeed();
-        console.log("🔄 Feed berhasil di-refresh otomatis oleh Mbah Eko.");
-    }, 1500); // Tunggu 1,5 detik agar data tersimpan sempurna
-}
-                    } else {
-                        console.error("❌ Supabase menolak:", error.message);
-                    }
-                }
-
-                post.removeAttribute("data-operator-lock");
-                setTimeout(() => { sedangMemproses = false; }, 4000);
-                break;
+            if (tanggapanAI && userId && window.MBAH_EKO_MEMORY) {
+                await window.MBAH_EKO_MEMORY.simpan(userId, "user", teksKomentarTerakhir || kontenTeksUtama);
+                await window.MBAH_EKO_MEMORY.simpan(userId, "assistant", tanggapanAI);
             }
+
+            if (tanggapanAI && window.supabaseClient) {
+                const { error } = await window.supabaseClient.from("comments").insert([{
+                    post_id: parseInt(postId),
+                    user_id: "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
+                    comment: tanggapanAI
+                }]);
+                if (!error && typeof window.loadFeed === "function") {
+                    setTimeout(() => window.loadFeed(), 1500);
+                }
+            }
+
+            post.removeAttribute("data-operator-lock");
+            sedangMemproses = false; // Reset lock
+            break; // Keluar dari loop setelah memproses satu post
         }
-    }
+    } // <-- Penutup loop for
+} // <-- Penutu
 
 async function adaMentionBelumDibalas(postId) {
 
