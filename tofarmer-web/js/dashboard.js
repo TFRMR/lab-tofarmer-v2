@@ -264,7 +264,37 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
         }
 
       // 3. RENDER DATA
-      ilmuData.forEach(item
+        ilmuData.forEach(item => {
+            const username = profileMap[item.user_id] || 'Petani';
+            const itemWithUser = { ...item, username };
+
+            // Buat kontainer pembungkus agar tombol judul & tombol share bisa berjejer rapi
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = "display: flex; gap: 8px; margin: 5px 0; align-items: stretch; width: 100%;";
+
+            const btn = document.createElement('button');
+            btn.style.cssText = "flex: 1; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left;";
+            btn.innerHTML = `<strong>${item.judul_aksi}</strong><br><span style="font-size:0.7rem; color:#f59e0b;">● ${badgeText}</span>`;
+            btn.onclick = () => showPopup(itemWithUser);
+
+            // Tombol Share Baru 🔗
+            const shareBtn = document.createElement('button');
+            shareBtn.style.cssText = "background: #16a34a; border: none; padding: 0 15px; color: white; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;";
+            shareBtn.innerHTML = "🔗";
+            shareBtn.onclick = (e) => {
+                e.stopPropagation(); // Biar popup utama di tombol sebelah gak ikutan ketembak terbuka
+                bagikanLinkIlmu(item.id, tableName);
+            };
+
+            // Masukkan kedua tombol ke dalam pembungkus, lalu tempel ke kontainer utama
+            wrapper.appendChild(btn);
+            wrapper.appendChild(shareBtn);
+            container.appendChild(wrapper);
+        });
+    } else {
+        container.innerHTML += `<p style="color:#64748b; padding:10px;">Belum ada data.</p>`;
+    }
+}
 async function handleVote(item) {
     const userId = localStorage.getItem('tof_user_id');
 
