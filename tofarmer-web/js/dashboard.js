@@ -280,7 +280,7 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
             // Tombol Share Baru 🔗
             const shareBtn = document.createElement('button');
             shareBtn.style.cssText = "background: #16a34a; border: none; padding: 0 15px; color: white; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;";
-            shareBtn.innerHTML = "Bagikan🔗";
+            shareBtn.innerHTML = "Share🔗";
             shareBtn.onclick = (e) => {
                 e.stopPropagation(); // Biar popup utama di tombol sebelah gak ikutan ketembak terbuka
                 bagikanLinkIlmu(item.id, tableName);
