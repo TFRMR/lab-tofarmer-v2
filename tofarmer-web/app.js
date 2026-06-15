@@ -1034,3 +1034,7 @@ async function aksiSembunyikanKeProfil(postId) {
     if (typeof loadFeed === "function") loadFeed();
   }
 }
+// Pastikan radar langsung muncul saat halaman dibuka
+document.addEventListener("DOMContentLoaded", () => {
+  loadRadarPeringkat();
+});
