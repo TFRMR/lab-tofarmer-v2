@@ -108,25 +108,27 @@
         /* =========================================================================
            ✍️ AREA INPUT & KOTAK BISIKAN AI MENTOR
            ========================================================================= */
-        input { 
-            width: 100%; 
-            background: rgba(5, 10, 7, 0.6); 
-            border: 1px solid rgba(255, 255, 255, 0.08); 
-            padding: 1.1rem; 
-            border-radius: 12px; 
-            color: #fef08a; /* Warna Teks Input Emas Kalem */
-            font-size: 0.98rem;
-            margin-top: 0.25rem; 
-            outline: none; 
-            box-sizing: border-box;
-            transition: all 0.3s ease;
-        }
+       input, textarea { 
+    width: 100%; 
+    background: rgba(5, 10, 7, 0.6); 
+    border: 1px solid rgba(255, 255, 255, 0.08); 
+    padding: 1.1rem; 
+    border-radius: 12px; 
+    color: #fef08a; 
+    font-size: 0.98rem;
+    margin-top: 0.25rem; 
+    outline: none; 
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    resize: vertical; /* <--- Sudah diselipkan di sini */
+}
 
-        input:focus { 
-            border-color: #4ade80;
-            background: rgba(14, 28, 19, 0.85);
-            box-shadow: 0 0 15px rgba(34, 197, 94, 0.15);
-        }
+       /* Cari bagian ini di kodemu, lalu sesuaikan menjadi: */
+input:focus, textarea:focus { 
+    border-color: #4ade80;
+    background: rgba(14, 28, 19, 0.85);
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.15);
+}
 
         /* Kotak Rekomendasi/Bisikan AI Mentor */
         .ai-hint { 
@@ -245,23 +247,26 @@
         </div>
         
         <div id="gate-2-form">
-            
-            <label>Langkah-langkahnya apa saja , ini yang paling banyak nulisnya hehe</label>
-            <input type="text" id="taktik" class="gate2-input" placeholder="Contoh: Mengasah pisau dengan sudut 20 derajat...">
-            <div id="ai-taktik" class="ai-hint">Mentor siap membantu...</div>
-            <button class="btn-refresh" onclick="refreshAi('taktik')">🔄 Cek/Refresh</button>
+    
+    <!-- KOLOM 1: LANGKAH-LANGKAH -->
+    <label>Bagaimana langkah-langkah mengerjakannya?</label>
+    <textarea id="taktik" class="gate2-input" rows="5" placeholder="Tuliskan urutan caranya di sini (bisa tekan Enter untuk baris baru)..."></textarea>
+    <div id="ai-taktik" class="ai-hint">Asisten siap bantu merapikan urutanmu...</div>
+    <button class="btn-refresh" onclick="refreshAi('taktik')">🔄 Cek/Refresh</button>
 
-            <label style="margin-top: 1.5rem; display: block;">Mitigasi resiko/Langkah Jaga-Jaga?</label>
-            <input type="text" id="baseline" class="gate2-input" placeholder="Contoh: Biasanya jadi cepat tumpul...">
-            <div id="ai-baseline" class="ai-hint">Mentor siap membantu...</div>
-            <button class="btn-refresh" onclick="refreshAi('baseline')">🔄 Cek/Refresh</button>
+    <!-- KOLOM 2: JAGA-JAGA -->
+    <label style="margin-top: 1.5rem; display: block;">Langkah jaga-jaga kalau ada masalah?</label>
+    <textarea id="baseline" class="gate2-input" rows="3" placeholder="Contoh: Kalau mendadak kemarau, disiram sore hari..."></textarea>
+    <div id="ai-baseline" class="ai-hint">Asisten siap bantu cari solusi cadangan...</div>
+    <button class="btn-refresh" onclick="refreshAi('baseline')">🔄 Cek/Refresh</button>
 
-            <label style="margin-top: 1.5rem; display: block;">Parameter Keberhasilan? Tandanya berhasil</label>
-            <input type="text" id="target" class="gate2-input" placeholder="Contoh: Jadi awet tajam sampai 3 hari...">
-            <div id="ai-target" class="ai-hint">Mentor siap membantu...</div>
-            <button class="btn-refresh" onclick="refreshAi('target')">🔄 Cek/Refresh</button>
-            
-        </div>
+    <!-- KOLOM 3: TANDA BERHASIL -->
+    <label style="margin-top: 1.5rem; display: block;">Tanda kalau berhasil apa?</label>
+    <textarea id="target" class="gate2-input" rows="3" placeholder="Contoh: Dalam 2 minggu keluar tunas baru..."></textarea>
+    <div id="ai-target" class="ai-hint">Asisten siap bantu perjelas tandanya...</div>
+    <button class="btn-refresh" onclick="refreshAi('target')">🔄 Cek/Refresh</button>
+    
+</div>
 
         <button id="btn-lanjut" class="btn-lanjut" disabled style="opacity: 0.5; cursor: not-allowed;">
             🔒 KUNCI & MAJU KE GATE 3
