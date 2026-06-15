@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load dari tabel baru
     loadDataIlmu('ilmu_baku', 'card-galeri', 'Ilmu Baku Sah');
     loadDataIlmu('ilmu_pending', 'card-approve', 'Menunggu konsensus bersama');
+cekDeepLinkShared();
 });
 async function sapaUser() {
     const aiText = document.getElementById('ai-text');
@@ -262,17 +263,33 @@ async function loadDataIlmu(tableName, elementId, badgeText) {
             }
         }
 
-        // 3. RENDER DATA
+      // 3. RENDER DATA
         ilmuData.forEach(item => {
             const username = profileMap[item.user_id] || 'Petani';
             const itemWithUser = { ...item, username };
 
+            // Buat kontainer pembungkus agar tombol judul & tombol share bisa berjejer rapi
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = "display: flex; gap: 8px; margin: 5px 0; align-items: stretch; width: 100%;";
+
             const btn = document.createElement('button');
-            btn.style.cssText = "width:100%; margin:5px 0; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left;";
+            btn.style.cssText = "flex: 1; padding:12px; background:#1e293b; border:1px solid #334155; color:#e2e8f0; border-radius:10px; cursor:pointer; text-align:left;";
             btn.innerHTML = `<strong>${item.judul_aksi}</strong><br><span style="font-size:0.7rem; color:#f59e0b;">● ${badgeText}</span>`;
-            
             btn.onclick = () => showPopup(itemWithUser);
-            container.appendChild(btn);
+
+            // Tombol Share Baru 🔗
+            const shareBtn = document.createElement('button');
+            shareBtn.style.cssText = "background: #16a34a; border: none; padding: 0 15px; color: white; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;";
+            shareBtn.innerHTML = "🔗";
+            shareBtn.onclick = (e) => {
+                e.stopPropagation(); // Biar popup utama di tombol sebelah gak ikutan ketembak terbuka
+                bagikanLinkIlmu(item.id, tableName);
+            };
+
+            // Masukkan kedua tombol ke dalam pembungkus, lalu tempel ke kontainer utama
+            wrapper.appendChild(btn);
+            wrapper.appendChild(shareBtn);
+            container.appendChild(wrapper);
         });
     } else {
         container.innerHTML += `<p style="color:#64748b; padding:10px;">Belum ada data.</p>`;
@@ -331,5 +348,47 @@ async function handleVote(item) {
     } else {
         alert(`Dukungan berhasil! (Total: ${newVoteCount}/7)`);
         location.reload();
+    }
+}
+// ==========================================
+// 🔗 FITUR TAMBAHAN: DEEP LINK & SHARE BUTTON
+// ==========================================
+
+function bagikanLinkIlmu(id, type) {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?ilmu=${id}&type=${type}`;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            alert("Tautan berhasil disalin! Siap dibagikan.");
+        }).catch(() => bakuSalinManual(shareUrl));
+    } else {
+        bakuSalinManual(shareUrl);
+    }
+}
+
+function bakuSalinManual(text) {
+    const input = document.createElement('input');
+    input.value = text;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    alert("Tautan berhasil disalin!");
+}
+
+async function cekDeepLinkShared() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ilmuId = urlParams.get('ilmu');
+    const tableType = urlParams.get('type') || 'ilmu_pending';
+
+    if (ilmuId) {
+        const { data, error } = await supabase.from(tableType).select('*').eq('id', ilmuId).single();
+        if (error || !data) return;
+
+        let username = 'Petani';
+        const { data: profile } = await supabase.from('profiles').select('username').eq('id', data.user_id).single();
+        if (profile) username = profile.username;
+
+        // Buka popup otomatis saat link diakses
+        showPopup({ ...data, username });
     }
 }
