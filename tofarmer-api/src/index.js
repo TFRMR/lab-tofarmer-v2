@@ -253,13 +253,16 @@ ${context}
 ---
 
 ${body.trigger === "Gate3-Compile" 
-  ? `INSTRUKSI TUGAS: Anda sedang merakit SOP Ilmu Baku. WAJIB Gunakan format berikut:
-     - JUDUL: [Nama]
-     - KONSEP DASAR: [Penjelasan]
-     - PERSIAPAN: [Alat/Bahan]
-     - SOP TEKNIS: [Langkah-langkah]
-     - PARAMETER KEBERHASILAN: [Indikator]
-     - MITIGASI RISIKO: [Mitigasi]
+  ? `INSTRUKSI TUGAS: Anda sedang merakit SOP Ilmu Baku. 
+    ⚠️ PERINGATAN KERAS: WAJIB pertahankan gaya bahasa asli, istilah lokal, kosakata unik, dan karakter mengetik dari REFERENSI DATA pengguna. JANGAN ubah menjadi bahasa formal/kaku jika data aslinya santai atau memakai bahasa daerah/praktik lapangan. Anda hanya boleh merapikan typo parah, tanda baca, atau menyelaraskan sedikit struktur kalimat agar mudah dibaca tanpa menghilangkan keunikan kata aslinya.
+
+    WAJIB Gunakan format berikut:
+    - JUDUL: [Gunakan nama/judul asli dari data]
+    - KONSEP DASAR: [Penjelasan inti sesuai bahasa pengguna]
+    - PERSIAPAN: [Alat/Bahan yang disebutkan pengguna]
+    - SOP TEKNIS: [Urutan langkah-langkah, pertahankan kalimat unik aslinya]
+    - PARAMETER KEBERHASILAN: [Indikator keberhasilan sesuai input]
+    - MITIGASI RISIKO: [Langkah jaga-jaga sesuai input]
      Gunakan informasi dari REFERENSI DATA di atas untuk mengisi poin-poin tersebut.` 
   : `INSTRUKSI TUGAS: Jawab dengan singkat (maksimal 3 kalimat saja). Fokuslah pada percakapan yang santai dan inspiratif.`}
 
