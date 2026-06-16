@@ -444,63 +444,97 @@ function updateFaseProgress(totalTof) {
 }
 
 // ===================== RENDERING LINI MASA (FEED) =====================
-async function loadFeed() {
-  const feed = document.getElementById("feed")
-  if (!feed) return
-  feed.innerHTML = ""
+// --- INFINITE SCROLL SETUP ---
+let feedPage = 0;
+const FEED_PAGE_SIZE = 5;
+let feedLoading = false;
+let feedAllLoaded = false;
+
+function initFeedScroll() {
+  const feed = document.getElementById("feed");
+  if (!feed) return;
+  feed.addEventListener("scroll", () => {
+    if (feedLoading || feedAllLoaded) return;
+    const nearBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 80;
+    if (nearBottom) loadMoreFeed();
+  });
+}
+
+async function loadMoreFeed() {
+  if (feedLoading || feedAllLoaded) return;
+  feedLoading = true;
+
+  const feed = document.getElementById("feed");
+  const loadingEl = document.getElementById("feedLoadingMore");
+  if (loadingEl) loadingEl.style.display = "block";
+
+  const from = feedPage * FEED_PAGE_SIZE;
+  const to = from + FEED_PAGE_SIZE - 1;
 
   const { data: posts, error: postError } = await supabaseClient
     .from("contributions")
     .select(`id, created_at, deskripsi_proses, image_url, sruput_count, cangkul_count, profiles!inner(id, username, avatar_url)`)
     .eq("is_private", false)
     .order("created_at", { ascending: false })
+    .range(from, to);
 
-  if (postError || !posts) {
-    feed.innerHTML = "<div>Gagal load post</div>"
-    return
+  if (loadingEl) loadingEl.style.display = "none";
+
+  if (postError || !posts || posts.length === 0) {
+    feedAllLoaded = true;
+    feedLoading = false;
+    if (feed && feedPage > 0) {
+      const endMsg = document.createElement("div");
+      endMsg.style.cssText = "text-align:center;padding:12px;font-size:11px;color:#aaa;";
+      endMsg.innerText = "🌾 Semua postingan sudah dimuat";
+      feed.appendChild(endMsg);
+    }
+    return;
   }
 
+  if (posts.length < FEED_PAGE_SIZE) feedAllLoaded = true;
+  feedPage++;
+
+  await renderPostsBatch(posts, feed);
+  feedLoading = false;
+}
+
+async function loadFeed() {
+  const feed = document.getElementById("feed")
+  if (!feed) return
+  feed.innerHTML = ""
+  feedPage = 0;
+  feedLoading = false;
+  feedAllLoaded = false;
+
+  // Tambahkan elemen loading di bawah
+  const loadingMore = document.createElement("div");
+  loadingMore.id = "feedLoadingMore";
+  loadingMore.style.cssText = "text-align:center;padding:12px;font-size:11px;color:#aaa;display:none;";
+  loadingMore.innerText = "⏳ Memuat lebih banyak...";
+  feed.appendChild(loadingMore);
+
+  await loadMoreFeed();
+  initFeedScroll();
+}
+
+async function renderPostsBatch(posts, feed) {
+  const loadingMore = document.getElementById("feedLoadingMore");
+
+  // Ambil komentar untuk batch ini saja
+  const postIds = posts.map(p => String(p.id));
+  let comments = [];
   try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const postIdParam = urlParams.get("post");
-    if (postIdParam) {
-      const matchedPost = posts.find(p => String(p.id) === String(postIdParam));
-      if (matchedPost) {
-        const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres karya di ToFarmer.";
-        const namaPetani = matchedPost.profiles?.username || "Petani";
-        document.title = `Catatan Karya @${namaPetani} | ToFarmer`;
-        
-        const metaDesc = document.getElementById("postDesc");
-        const ogTitle = document.getElementById("ogTitle");
-        const ogDesc = document.getElementById("ogDesc");
-        const ogImage = document.getElementById("ogImage");
+    const { data: rawComments } = await supabaseClient
+      .from("comments")
+      .select("*")
+      .in("post_id", postIds);
 
-        if (metaDesc) metaDesc.setAttribute("content", petikTeks);
-        if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
-        if (ogDesc) ogDesc.setAttribute("content", petikTeks);
-        if (matchedPost.image_url && ogImage) ogImage.setAttribute("content", matchedPost.image_url);
-      }
-    }
-  } catch (metaErr) { console.log(metaErr); }
-
-let comments = [];
-  try {
-    const postIds = posts.map(p => String(p.id));
-
-const { data: rawComments, error: qErr } = await supabaseClient
-  .from("comments")
-  .select("*")
-  .in("post_id", postIds);
-    
-    if (qErr) console.log("Gagal ambil data komentar:", qErr);
-    
     if (rawComments && rawComments.length > 0) {
-      // 2. Ambil data profil secara mandiri tanpa join database
       const { data: allProfiles } = await supabaseClient
         .from("profiles")
         .select("id, username, avatar_url");
 
-      // 3. Jodohkan user_id komentar dengan id profil di memori browser (100% Anti-Gagal!)
       comments = rawComments.map(c => {
         const pencocok = allProfiles ? allProfiles.find(p => String(p.id).trim() === String(c.user_id).trim()) : null;
         return {
@@ -509,11 +543,30 @@ const { data: rawComments, error: qErr } = await supabaseClient
         };
       });
     }
-  } catch (e) { 
-    console.log("Sistem komentar bermasalah:", e);
-    comments = []; 
+  } catch (e) { comments = []; }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const postIdParam = urlParams.get("post");
+  if (postIdParam && feedPage === 1) {
+    try {
+      const matchedPost = posts.find(p => String(p.id) === String(postIdParam));
+      if (matchedPost) {
+        const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres karya di ToFarmer.";
+        const namaPetani = matchedPost.profiles?.username || "Petani";
+        document.title = `Catatan Karya @${namaPetani} | ToFarmer`;
+        const metaDesc = document.getElementById("postDesc");
+        const ogTitle = document.getElementById("ogTitle");
+        const ogDesc = document.getElementById("ogDesc");
+        const ogImage = document.getElementById("ogImage");
+        if (metaDesc) metaDesc.setAttribute("content", petikTeks);
+        if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
+        if (ogDesc) ogDesc.setAttribute("content", petikTeks);
+        if (matchedPost.image_url && ogImage) ogImage.setAttribute("content", matchedPost.image_url);
+      }
+    } catch (metaErr) { console.log(metaErr); }
   }
- posts.forEach(item => {
+
+  posts.forEach(item => {
     const div = document.createElement("div")
     div.className = "post"
     div.id = `post-card-${item.id}` // 🟢 Tambahkan ini sebagai jangkar koordinat
@@ -599,8 +652,13 @@ const { data: rawComments, error: qErr } = await supabaseClient
 
       </div>
     `
-    feed.appendChild(div)
-  })
+    // Insert before the "loading more" indicator at bottom
+    if (loadingMore && loadingMore.parentNode === feed) {
+      feed.insertBefore(div, loadingMore);
+    } else {
+      feed.appendChild(div);
+    }
+  });
 }
 
 // ===================== MANAGEMENT PROFIL =====================
@@ -612,13 +670,15 @@ function renderProfile() {
   if (!currentProfile) {
     if (avatar) avatar.style.display = "none"
     userBox.innerHTML = `
-      <div style="font-weight:700;font-size:15px;color:#2f6f4e;">@guest</div>
-      <button onclick="alert('Login dulu ya 🌱')" style="margin-top:10px;width:100%;padding:8px;border:none;border-radius:12px;background:#ddd;font-size:12px;">👤 Masuk Profil</button>
-      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">XP</div><div style="font-weight:700;font-size:12px;">0</div></div>
-        <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">TOF</div><div style="font-weight:700;color:#c9a227;font-size:12px;">0</div></div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@guest</div>
+        <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">🌱 BELUM LOGIN</div>
       </div>
-      <div style="margin-top:8px;background:#eef7f1;border-radius:999px;padding:6px 12px;display:inline-block;color:#2f6f4e;font-size:11px;font-weight:600;">🌱 BELUM LOGIN</div>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+        <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#888;">XP: <b>0</b></div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>0</b></div>
+      </div>
+      <button onclick="alert('Login dulu ya 🌱')" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:#ddd;font-size:11px;">👤 Masuk Profil</button>
     `
     return
   }
@@ -628,26 +688,24 @@ function renderProfile() {
     avatar.src = currentProfile.avatar_url || "https://via.placeholder.com/100"
   }
 
-  // Hitung Level dan Rank dinamis berdasarkan formula Tangga Pangkat progresif
   const calculatedLevel = typeof getTofLevel === "function" ? getTofLevel(currentProfile.xp || 0) : 1;
   const calculatedRank = typeof getRank === "function" ? getRank(currentProfile.xp || 0) : "GROWER";
 
-  // Pasang badge emoji visual pendamping pangkat tangga beranda
-  let rankEmoji = "🌱 GROWER";
-  if (calculatedRank === "PRO") rankEmoji = "🥉 PRO";
-  if (calculatedRank === "SPECIALIST") rankEmoji = "🥈 SPECIALIST";
-  if (calculatedRank === "ELITE") rankEmoji = "🥇 ELITE";
+  let rankEmoji = "🌱";
+  if (calculatedRank === "PRO") rankEmoji = "🥉";
+  if (calculatedRank === "SPECIALIST") rankEmoji = "🥈";
+  if (calculatedRank === "ELITE") rankEmoji = "🥇";
 
   userBox.innerHTML = `
-    <div style="font-weight:700;font-size:15px;color:#2f6f4e;">@${currentProfile.username}</div>
-    <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:10px;width:60%;padding:8px;border:none;border-radius:12px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:12px;font-weight:600;cursor:pointer;">☕ Masuk Profil </button>
-    <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">XP</div><div style="font-weight:700;font-size:12px;">${Math.floor(currentProfile.xp || 0)}</div></div>
-      <div class="card" style="padding:8px;margin:0;"><div style="font-size:10px;color:#888;">TOF</div><div style="font-weight:700;color:#c9a227;font-size:12px;">${Number(currentProfile.saldo_tof || 0).toLocaleString("id-ID")}</div></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@${currentProfile.username}</div>
+      <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">${rankEmoji} Lv${calculatedLevel}</div>
     </div>
-    <div style="margin-top:8px;background:#eef7f1;border-radius:999px;padding:6px 12px;display:inline-block;color:#2f6f4e;font-size:11px;font-weight:600;">
-      ${rankEmoji} • Level ${calculatedLevel}
+    <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
+      <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#555;">XP: <b>${Math.floor(currentProfile.xp || 0)}</b></div>
+      <div style="background:#fff8e1;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>${Number(currentProfile.saldo_tof || 0).toLocaleString("id-ID")}</b></div>
     </div>
+    <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:11px;font-weight:600;cursor:pointer;">☕ Lihat Profil</button>
   `
 }
 
