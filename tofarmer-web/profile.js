@@ -946,22 +946,6 @@ function renderUserPostsBatch(data, box) {
 }
 
 // =====================
-// (LAMA) loadUserPosts — DIGANTI DI ATAS, bagian ini kosong sebagai penanda
-// =====================
-async function _DEPRECATED_loadUserPostsFull() {
-  const box = document.getElementById("userPosts")
-  if (!targetProfileId || !box) return
-
-  const { data, error } = await supabaseClient
-    .from("contributions")
-    .select(`
-      *,
-      profiles(username)
-    `)
-    .eq("user_id", targetProfileId) 
-    .order("created_at", { ascending: false })
-
-// =====================
 // REACTION
 // =====================
 
