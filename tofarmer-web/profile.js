@@ -1177,19 +1177,41 @@ setInterval(async () => {
 // =====================
 
 function openQrisPopup() {
+  const QRIS_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg"
+
   const modal = document.createElement("div")
   modal.innerHTML = `
-  <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;justify-content:center;align-items:center;z-index:99999;">
-    <div style="background:white;padding:20px;border-radius:166px;width:300px;text-align:center;">
-      <div style="font-size:20px;font-weight:700;">💰 QRIS Nabung</div>
-      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg" />
-      <p style="font-size:12px;color:#666;">Transfer manual lalu klik konfirmasi</p>
-       <button class="btn-glow" onclick="submitQrisPayment()">✅ Saya Sudah Transfer</button>
-       <button class="btn-glow" onclick="this.parentElement.parentElement.remove()">❌ Tutup</button>
+  <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;justify-content:center;align-items:center;z-index:99999;padding:16px;">
+    <div style="background:white;padding:20px;border-radius:24px;width:100%;max-width:300px;text-align:center;box-sizing:border-box;">
+      <div style="font-size:20px;font-weight:700;margin-bottom:12px;">💰 QRIS Nabung</div>
+      <img id="qris-img" src="${QRIS_URL}" style="width:100%;max-width:240px;border-radius:12px;border:1px solid #eee;" crossorigin="anonymous" />
+      <p style="font-size:12px;color:#666;margin:10px 0;">Transfer manual lalu klik konfirmasi</p>
+      <button class="btn-glow" onclick="downloadQris()" style="width:100%;margin:4px 0;font-size:12px;padding:10px;">📥 Download QRIS</button>
+      <button class="btn-glow" onclick="submitQrisPayment()" style="width:100%;margin:4px 0;font-size:12px;padding:10px;">✅ Saya Sudah Transfer</button>
+      <button onclick="this.closest('div').parentElement.parentElement.remove()" style="width:100%;margin:4px 0;padding:10px;border:none;border-radius:12px;background:#eee;color:#555;font-weight:600;cursor:pointer;font-size:12px;">❌ Tutup</button>
     </div>
   </div>
   `
   document.body.appendChild(modal)
+}
+
+async function downloadQris() {
+  const QRIS_URL = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg"
+  try {
+    const res = await fetch(QRIS_URL)
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "QRIS-ToFarmer.jpg"
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    // Fallback: buka di tab baru kalau fetch diblokir CORS
+    window.open(QRIS_URL, "_blank")
+  }
 }
 
 // =====================
