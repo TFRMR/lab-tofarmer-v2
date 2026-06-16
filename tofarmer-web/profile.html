@@ -32,12 +32,15 @@
       font-family:Inter,sans-serif;
       color:#1c2b22;
       margin:0;
+      padding:0;
     }
 
     .container{
       max-width:760px;
-      margin:auto;
-      padding:20px;
+      margin:0 auto;
+      padding:16px;
+      box-sizing:border-box;
+      width:100%;
     }
 
     .topbar{
@@ -45,23 +48,20 @@
       align-items:center;
       gap:10px;
       margin-bottom:18px;
+      flex-wrap:wrap;
     }
 
     .back-btn{
       text-decoration:none;
       color:#2f6f4e;
       background:white;
-      border:
-        1px solid
-        rgba(47,111,78,.12);
-
+      border:1px solid rgba(47,111,78,.12);
       border-radius:12px;
       padding:10px 14px;
-
       font-size:13px;
       font-weight:600;
-
       transition:.2s;
+      white-space:nowrap;
     }
 
     .back-btn:hover{
@@ -69,56 +69,62 @@
     }
 
     .page-title{
-      font-size:20px;
+      font-size:18px;
       font-weight:700;
       color:#2f6f4e;
     }
 
     .card{
       background:#fff;
-
-      border:
-        1px solid
-        rgba(0,0,0,.05);
-
+      border:1px solid rgba(0,0,0,.05);
       border-radius:22px;
-
-      padding:22px;
-
-      box-shadow:
-        0 10px 28px
-        rgba(0,0,0,.04);
+      padding:18px;
+      box-shadow:0 10px 28px rgba(0,0,0,.04);
+      width:100%;
+      box-sizing:border-box;
     }
+
+    /* Profil foto + info responsif */
+    #profile .card {
+      text-align:center;
+    }
+
+    #profile img {
+      max-width:100%;
+    }
+
+    /* Grid XP/TOF tidak pecah di HP kecil */
+    .grid-stats {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:14px;
+    }
+
+    @media(max-width:400px) {
+      .grid-stats {
+        grid-template-columns:1fr;
+      }
+    }
+
 .btn-glow {
   width: 50%;
   margin-top: 14px;
   padding: 14px;
   border: none;
   border-radius: 16px;
-
   font-weight: 700;
   font-size: 14px;
   color: white;
-
   cursor: pointer;
-
-  background: linear-gradient(
-    90deg,
-    #4caf7a,
-    #c9a227
-  );
-
-  box-shadow:
-    0 8px 18px rgba(76,175,122,.25),
-    0 6px 20px rgba(201,162,39,.18);
-
+  background: linear-gradient(90deg, #4caf7a, #c9a227);
+  box-shadow: 0 8px 18px rgba(76,175,122,.25), 0 6px 20px rgba(201,162,39,.18);
   transition: all 0.25s ease;
-
   position: relative;
   overflow: hidden;
+  box-sizing:border-box;
 }
 
-/* shimmer light effect */
 .btn-glow::before {
   content: "";
   position: absolute;
@@ -131,36 +137,38 @@
   transition: 0.5s;
 }
 
-.btn-glow:hover::before {
-  left: 140%;
-}
+.btn-glow:hover::before { left: 140%; }
 
 .btn-glow:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 12px 28px rgba(76,175,122,.35),
-    0 10px 30px rgba(201,162,39,.25);
+  box-shadow: 0 12px 28px rgba(76,175,122,.35), 0 10px 30px rgba(201,162,39,.25);
 }
 
 .btn-glow:active {
   transform: scale(0.98);
-  box-shadow:
-    0 6px 14px rgba(76,175,122,.25);
+  box-shadow: 0 6px 14px rgba(76,175,122,.25);
 }
 
-/* 🟢 DI SINI TEMPAT KODE CSS TOMBOL SHARE KECIL ALA FB */
+@media(max-width:480px) {
+  .btn-glow {
+    width: 100%;
+    font-size: 13px;
+    padding: 12px;
+  }
+}
+
     .post-actions {
       margin-top: 8px;
       margin-bottom: 8px;
       padding-top: 4px;
-      border-top: 1px solid rgba(0, 0, 0, 0.04); /* Garis pembatas tipis */
+      border-top: 1px solid rgba(0, 0, 0, 0.04);
     }
 
     .share-btn {
       background: transparent;
       border: none;
-      color: #6f7f76; /* Warna abu-abu daun teduh */
-      font-size: 11px; /* Ukuran kecil minimalis */
+      color: #6f7f76;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       padding: 4px 8px;
@@ -172,17 +180,15 @@
     }
 
     .share-btn:hover {
-      background: rgba(76, 175, 122, 0.08); /* Highlight hijau lembut saat disentuh */
-      color: #2f6f4e; /* Berubah jadi hijau tua ToFarmer */
+      background: rgba(76, 175, 122, 0.08);
+      color: #2f6f4e;
     }
 
-/* Branding Colors */
 :root {
     --tw-purple: #6A4C93;
     --tw-gold: #FFB703;
 }
 
-/* 1. Overlay (Background gelap blur) */
 .modal-overlay {
     display: none;
     position: fixed; 
@@ -193,23 +199,21 @@
     z-index: 9999;
 }
 
-/* 2. Card Modal (Melayang di tengah & Sudut melengkung) */
 .modal-card {
     position: fixed;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 90%;
+    width: 92%;
     max-width: 400px;
     background: white;
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.2);
     display: flex;
     flex-direction: column;
-    max-height: 80vh;
+    max-height: 85vh;
     overflow: hidden;
 }
 
-/* 3. Header (Warna Hijau ToFarmer) */
 .modal-header {
     background: #2f6f4e; 
     color: white;
@@ -221,17 +225,15 @@
     align-items: center;
 }
 
-/* 4. Daftar Pesan (Area Scroll) */
 .pesan-list {
     flex: 1; 
     overflow-y: auto; 
-    padding: 20px;
+    padding: 16px;
 }
 
-/* 5. Kartu Pesan Individu (Elegan) */
 .pesan-card {
     background: #fdfdfd;
-    padding: 15px; 
+    padding: 12px; 
     border-radius: 12px;
     margin-bottom: 12px; 
     border: 1px solid #eee;
@@ -243,13 +245,85 @@
     box-shadow: 0 5px 15px rgba(0,0,0,0.05); 
 }
 
-/* 6. Tombol Tutup */
 .btn-close { 
     background: none; 
     border: none; 
     color: white; 
     cursor: pointer; 
     font-size: 20px; 
+}
+
+/* Tombol workspace side-by-side tidak pecah di HP */
+.workspace-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.workspace-actions .btn-glow,
+.workspace-actions a.btn-glow {
+  flex: 1;
+  min-width: 120px;
+  width: auto;
+  margin: 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 12px;
+  padding: 10px 8px;
+}
+
+/* Tombol notifikasi & pesan tidak nempel ke pojok di HP */
+#tof-notif-wrapper {
+  position: fixed !important;
+  top: 14px !important;
+  left: 14px !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+#box-notif-tof {
+  position: fixed !important;
+  top: 70px !important;
+  left: 14px !important;
+  width: calc(100vw - 28px) !important;
+  max-width: 320px !important;
+  max-height: 70vh !important;
+  background: white !important;
+  border: 2px solid #2f6f4e !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25) !important;
+  overflow-y: auto !important;
+  z-index: 999998 !important;
+}
+
+/* Input dan textarea tidak meluber di HP */
+input, textarea {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+textarea#profilePostBox {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 2px solid rgba(76,175,122,.18);
+  resize: none;
+  outline: none;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+/* Card karya profil penuh di HP */
+.card {
+  word-break: break-word;
 }
 
 @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

@@ -353,7 +353,7 @@ function renderProfileData(data) {
         @${data.username}
       </h2>
 
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">
+      <div class="grid-stats">
         <div class="card" style="margin:0;padding:12px;">
           <div style="font-size:11px;color:#888;">XP</div>
           <div style="font-weight:700;">${data.xp || 0}</div>
@@ -411,9 +411,9 @@ function renderWorkspace() {
 
   box.innerHTML = `
     <div class="card">
-      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-        <button class="btn-glow" onclick="openQrisPopup()" style="padding:10px; font-size:11px; width:50%; margin:0; background:linear-gradient(90deg, #4caf7a, #c9a227); border:none; border-radius:12px; color:white; cursor:pointer;">💰 Nabung Ladang</button>
-        <a href="https://www.tofarmer.xyz/html/dashboard.html" class="btn-glow" style="text-decoration:none; padding:10px; font-size:11px; width:50%; margin:0; background:linear-gradient(90deg, #4caf7a, #c9a227); border:none; border-radius:12px; color:white; text-align:center; display:flex; align-items:center; justify-content:center;">💡 Sumbang Ilmu</a>
+      <div class="workspace-actions">
+        <button class="btn-glow" onclick="openQrisPopup()" style="padding:10px; font-size:11px; margin:0; background:linear-gradient(90deg, #4caf7a, #c9a227); border:none; border-radius:12px; color:white; cursor:pointer;">💰 Nabung Ladang</button>
+        <a href="https://www.tofarmer.xyz/html/dashboard.html" class="btn-glow" style="text-decoration:none; padding:10px; font-size:11px; margin:0; background:linear-gradient(90deg, #4caf7a, #c9a227); border:none; border-radius:12px; color:white; text-align:center; display:flex; align-items:center; justify-content:center;">💡 Sumbang Ilmu</a>
       </div>
 
       <div id="ai-card-wrapper" style="margin-bottom:20px; border-top:1px solid #eee; padding-top:15px;">
@@ -765,10 +765,190 @@ ${konteksLengkap}`
 }
 
 // =====================
-// USER POSTS (FIXED META TAG SYNC)
+// USER POSTS — INFINITE SCROLL (5 PER BATCH)
 // =====================
+let userPostPage = 0;
+const USER_POST_PAGE_SIZE = 5;
+let userPostLoading = false;
+let userPostAllLoaded = false;
+
+function initUserPostScroll() {
+  window.addEventListener("scroll", () => {
+    if (userPostLoading || userPostAllLoaded) return;
+    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 200;
+    if (nearBottom) loadMoreUserPosts();
+  });
+}
+
+async function loadMoreUserPosts() {
+  if (userPostLoading || userPostAllLoaded || !targetProfileId) return;
+  userPostLoading = true;
+
+  const box = document.getElementById("userPosts");
+  let loadingEl = document.getElementById("userPostLoadingMore");
+  if (loadingEl) loadingEl.style.display = "block";
+
+  const from = userPostPage * USER_POST_PAGE_SIZE;
+  const to = from + USER_POST_PAGE_SIZE - 1;
+
+  const { data, error } = await supabaseClient
+    .from("contributions")
+    .select(`*, profiles(username)`)
+    .eq("user_id", targetProfileId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (loadingEl) loadingEl.style.display = "none";
+
+  if (error || !data || data.length === 0) {
+    userPostAllLoaded = true;
+    userPostLoading = false;
+    if (box && userPostPage > 0) {
+      const endMsg = document.createElement("div");
+      endMsg.style.cssText = "text-align:center;padding:10px;font-size:11px;color:#aaa;";
+      endMsg.innerText = "🌾 Semua karya sudah ditampilkan";
+      box.appendChild(endMsg);
+    } else if (box && userPostPage === 0) {
+      box.innerHTML = `<div class="card" style="text-align:center;color:#888;">Belum ada karya 🌱</div>`;
+    }
+    return;
+  }
+
+  if (data.length < USER_POST_PAGE_SIZE) userPostAllLoaded = true;
+  userPostPage++;
+
+  // Meta tag sync hanya untuk batch pertama
+  if (userPostPage === 1) {
+    try {
+      const postIdParam = urlParams.get("post");
+      if (postIdParam) {
+        const matchedPost = data.find(p => String(p.id) === String(postIdParam));
+        if (matchedPost) {
+          const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres kebun karya di ToFarmer.";
+          const namaPetani = matchedPost.profiles?.username || "Petani";
+          document.title = `Karya @${namaPetani} | ToFarmer`;
+          const metaDesc = document.getElementById("postDesc");
+          const ogTitle = document.getElementById("ogTitle");
+          const ogDesc = document.getElementById("ogDesc");
+          const ogImage = document.getElementById("ogImage");
+          if (metaDesc) metaDesc.setAttribute("content", petikTeks);
+          if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
+          if (ogDesc) ogDesc.setAttribute("content", petikTeks);
+          if (matchedPost.image_url && ogImage) ogImage.setAttribute("content", matchedPost.image_url);
+        }
+      }
+    } catch (metaErr) { console.log("Gagal memperbarui Meta Tag di Profil:", metaErr); }
+  }
+
+  renderUserPostsBatch(data, box);
+  userPostLoading = false;
+
+  // Auto-scroll ke post target (hanya batch pertama)
+  if (userPostPage === 1) {
+    setTimeout(async () => {
+      const postIdParam = urlParams.get("post");
+      if (postIdParam) {
+        const targetCard = document.getElementById(`post-card-${postIdParam}`);
+        if (targetCard) {
+          await toggleCommentBox(postIdParam);
+          targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+          targetCard.style.transition = "all 0.5s ease";
+          targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
+          targetCard.style.borderColor = "#2f6f4e";
+        }
+      }
+    }, 300);
+  }
+}
 
 async function loadUserPosts() {
+  const box = document.getElementById("userPosts");
+  if (!targetProfileId || !box) return;
+
+  box.innerHTML = "";
+  userPostPage = 0;
+  userPostLoading = false;
+  userPostAllLoaded = false;
+
+  const loadingMore = document.createElement("div");
+  loadingMore.id = "userPostLoadingMore";
+  loadingMore.style.cssText = "text-align:center;padding:10px;font-size:11px;color:#aaa;display:none;";
+  loadingMore.innerText = "⏳ Memuat karya berikutnya...";
+  box.appendChild(loadingMore);
+
+  await loadMoreUserPosts();
+  initUserPostScroll();
+}
+
+function renderUserPostsBatch(data, box) {
+  const loadingMore = document.getElementById("userPostLoadingMore");
+
+  data.forEach(post => {
+    const date = new Date(post.created_at).toLocaleString("id-ID", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
+    const safeText = (post.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
+    const currentUsername = profileUsername || "Petani";
+    const isMyPost = currentWallet === targetProfileId;
+
+    const div = document.createElement("div");
+    div.id = `post-card-${post.id}`;
+    div.className = "card";
+    div.style.marginBottom = "14px";
+    div.dataset.userId = post.user_id;
+
+    div.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px;">
+        <div style="font-size:11px;color:#6f7f76;">🌿 ${date}</div>
+        ${isMyPost ? `
+        <div class="post-menu-container" style="position: relative; display: inline-block;">
+          <button class="btn-dot-menu" onclick="toggleDotMenu('${post.id}')" style="background:none; border:none; color:#65676b; font-size:16px; cursor:pointer; padding:2px 6px;">•••</button>
+          <div class="dot-dropdown" id="dropdown-${post.id}" style="display:none; position:absolute; right:0; top:20px; background:white; box-shadow:0 2px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:160px; border:1px solid #e4e6eb; padding:4px 0;">
+            <button onclick="aksiEditPostingan('${post.id}', \`${safeText}\`)" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
+            <button onclick="aksiKembalikanKeBeranda('${post.id}')" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">🌍 Tampilkan di Beranda</button>
+          </div>
+        </div>
+        ` : ''}
+      </div>
+      <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">${convertMentions(post.deskripsi_proses || "")}</div>
+      ${post.image_url ? `
+        <div style="width:100%;display:flex;justify-content:center;margin-bottom:12px;">
+          <img src="${post.image_url}" style="max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain;border-radius:16px;border:1px solid rgba(0,0,0,.06);box-shadow:0 4px 12px rgba(0,0,0,.08);" />
+        </div>
+      ` : ""}
+      <div style="display:flex;gap:14px;font-size:12px;color:#666;margin-bottom:10px;">
+        <span onclick="reactPost('${post.id}','sruput')" style="cursor:pointer;">☕ ${post.sruput_count || 0} Sruput</span>
+        <span onclick="reactPost('${post.id}','cangkul')" style="cursor:pointer;">⛏️ ${post.cangkul_count || 0} Cangkul</span>
+      </div>
+      <div class="post-actions">
+        <button class="share-btn" onclick="sharePost('${post.id}', '${currentUsername}', '${encodeURIComponent(safeText)}')">📢 Bagikan Karya</button>
+      </div>
+      <div style="margin-top:10px;margin-bottom:10px;font-size:12px;">
+        <span id="comment-count-${post.id}" onclick="toggleCommentBox('${post.id}')" style="cursor:pointer;color:#2f6f4e;font-weight:600;user-select:none;">💬 Memuat jumlah komentar...</span>
+      </div>
+      <div id="commentWrapper-${post.id}" style="display:none;border-top:1px dashed #ddd;padding-top:10px;margin-top:5px;">
+        <div id="commentBox-${post.id}" style="font-size:12px;color:#444;margin-bottom:12px;display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="display:flex;gap:6px;">
+          <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="flex:1;padding:8px;border-radius:10px;border:1px solid #ddd;font-size:12px;box-sizing:border-box;" />
+          <button type="button" class="btn-glow" onclick="sendComment('${post.id}')" style="margin:0;padding:8px 14px;font-size:12px;width:auto;">Kirim</button>
+        </div>
+      </div>
+    `;
+
+    if (loadingMore && loadingMore.parentNode === box) {
+      box.insertBefore(div, loadingMore);
+    } else {
+      box.appendChild(div);
+    }
+
+    updateCommentCount(post.id);
+  });
+}
+
+// =====================
+// (LAMA) loadUserPosts — DIGANTI DI ATAS, bagian ini kosong sebagai penanda
+// =====================
+async function _DEPRECATED_loadUserPostsFull() {
   const box = document.getElementById("userPosts")
   if (!targetProfileId || !box) return
 
@@ -780,148 +960,6 @@ async function loadUserPosts() {
     `)
     .eq("user_id", targetProfileId) 
     .order("created_at", { ascending: false })
-
-  if (!data?.length) {
-    box.innerHTML = `<div class="card" style="text-align:center;color:#888;">Belum ada karya 🌱</div>`
-    return
-  }
-
-  try {
-    const postIdParam = urlParams.get("post");
-
-    if (postIdParam) {
-      const matchedPost = data.find(p => p.id === postIdParam || String(p.id) === String(postIdParam));
-      
-      if (matchedPost) {
-        const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres kebun karya di ToFarmer.";
-        const namaPetani = matchedPost.profiles?.username || "Petani";
-
-        document.title = `Karya @${namaPetani} | ToFarmer`;
-        
-        const metaDesc = document.getElementById("postDesc");
-        const ogTitle = document.getElementById("ogTitle");
-        const ogDesc = document.getElementById("ogDesc");
-        const ogImage = document.getElementById("ogImage");
-
-        if (metaDesc) metaDesc.setAttribute("content", petikTeks);
-        if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
-        if (ogDesc) ogDesc.setAttribute("content", petikTeks);
-        
-        if (matchedPost.image_url && ogImage) {
-          ogImage.setAttribute("content", matchedPost.image_url);
-        }
-      }
-    }
-  } catch (metaErr) {
-    console.log("Gagal memperbarui Meta Tag di Profil:", metaErr);
-  }
-
-  box.innerHTML = data.map(post => {
-    const date = new Date(post.created_at).toLocaleString("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    })
-
-    const safeText = (post.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
-    const currentUsername = profileUsername || "Petani";
-    const isMyPost = currentWallet === targetProfileId;
- 
-return `
-  <div id="post-card-${post.id}" class="card" style="margin-bottom:14px;"
-       data-user-id="${post.user_id}">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; margin-bottom:6px;">
-          <div style="font-size:11px;color:#6f7f76;">
-            🌿 ${date}
-          </div>
-
-          ${isMyPost ? `
-          <div class="post-menu-container" style="position: relative; display: inline-block;">
-            <button class="btn-dot-menu" onclick="toggleDotMenu('${post.id}')" style="background:none; border:none; color:#65676b; font-size:16px; cursor:pointer; padding:2px 6px;">•••</button>
-            <div class="dot-dropdown" id="dropdown-${post.id}" style="display:none; position:absolute; right:0; top:20px; background:white; box-shadow:0 2px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:160px; border:1px solid #e4e6eb; padding:4px 0;">
-              <button onclick="aksiEditPostingan('${post.id}', \`${safeText}\`)" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
-              <button onclick="aksiKembalikanKeBeranda('${post.id}')" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">🌍 Tampilkan di Beranda</button>
-            </div>
-          </div>
-          ` : ''}
-        </div>
-
-        <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">
-          ${convertMentions(post.deskripsi_proses || "")}
-        </div>
-
-        ${
-          post.image_url
-            ? `
-              <div style="width:100%;display:flex;justify-content:center;margin-bottom:12px;">
-                <img
-                  src="${post.image_url}"
-                  style="
-                    max-width:100%;
-                    max-height:420px;
-                    width:auto;
-                    height:auto;
-                    object-fit:contain;
-                    border-radius:16px;
-                    border:1px solid rgba(0,0,0,.06);
-                    box-shadow:0 4px 12px rgba(0,0,0,.08);
-                  "
-                />
-              </div>
-            `
-            : ""
-        }
-
-        <div style="display:flex;gap:14px;font-size:12px;color:#666;margin-bottom:10px;">
-          <span onclick="reactPost('${post.id}','sruput')" style="cursor:pointer;">
-            ☕ ${post.sruput_count || 0} Sruput
-          </span>
-          <span onclick="reactPost('${post.id}','cangkul')" style="cursor:pointer;">
-            ⛏️ ${post.cangkul_count || 0} Cangkul
-          </span>
-        </div>
-
-        <div class="post-actions">
-          <button class="share-btn" onclick="sharePost('${post.id}', '${currentUsername}', '${encodeURIComponent(safeText)}')">
-            📢 Bagikan Karya
-          </button>
-        </div>
-
-        <div style="margin-top: 10px; margin-bottom: 10px; font-size: 12px;">
-          <span id="comment-count-${post.id}" onclick="toggleCommentBox('${post.id}')" style="cursor:pointer; color:#2f6f4e; font-weight:600; user-select:none;">
-            💬 Memuat jumlah komentar...
-          </span>
-        </div>
-
-        <div id="commentWrapper-${post.id}" style="display: none; border-top: 1px dashed #ddd; padding-top: 10px; margin-top: 5px;">
-          <div id="commentBox-${post.id}" style="font-size:12px; color:#444; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;"></div>
-          <div style="display:flex; gap:6px;">
-            <input id="cmt-${post.id}" placeholder="Tulis komentar..." style="flex:1; padding:8px; border-radius:10px; border:1px solid #ddd; font-size:12px; box-sizing:border-box;" />
-            <button type="button" class="btn-glow" onclick="sendComment('${post.id}')" style="margin:0; padding:8px 14px; font-size:12px; width:auto;">Kirim</button>
-          </div>
-        </div>
-      </div>
-    `
-  }).join("")
-
-  setTimeout(() => data.forEach(p => updateCommentCount(p.id)), 0)
-
-  setTimeout(async () => {
-    const postIdParam = urlParams.get("post");
-    if (postIdParam) {
-      const targetCard = document.getElementById(`post-card-${postIdParam}`);
-      if (targetCard) {
-        await toggleCommentBox(postIdParam);
-        targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        targetCard.style.transition = "all 0.5s ease";
-        targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
-        targetCard.style.borderColor = "#2f6f4e";
-      }
-    }
-  }, 300); 
-}
 
 // =====================
 // REACTION
@@ -1455,6 +1493,18 @@ async function loadNotifikasiUser() {
 
   try {
     // -----------------------------------------------------------------
+    // AUTO MARK AS READ: Notifikasi yang sudah lebih dari 3 hari otomatis ditandai dibaca
+    // -----------------------------------------------------------------
+    const tigaHariLalu = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    await supabaseClient
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", currentWallet)
+      .eq("is_read", false)
+      .lt("created_at", tigaHariLalu);
+    // -----------------------------------------------------------------
+
+    // -----------------------------------------------------------------
     // 1. PANGGIL TABEL UTAMA (NOTIFICATIONS) - FORMAT ASLI AKANG
     // -----------------------------------------------------------------
     const { data: notifications, error } = await supabaseClient
@@ -1641,8 +1691,8 @@ async function loadNotifikasiUser() {
     // Urutkan segalanya secara kronologis murni (Terbaru berada di paling atas)
     semuaNotifGabungan.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    // Batasi total tayangan maksimal 20 baris teratas saja
-    const finalNotifications = semuaNotifGabungan.slice(0, 10);
+    // Batasi total tayangan maksimal 5 baris teratas saja
+    const finalNotifications = semuaNotifGabungan.slice(0, 5);
 
     // -----------------------------------------------------------------
     // 4. AMBIL DATA USERNAME (TABEL PROFILES) - FORMAT ASLI AKANG
@@ -2025,11 +2075,21 @@ async function loadDaftarPesan() {
 
     const myWallet = localStorage.getItem("tof_wallet");
 
+    // AUTO MARK AS READ: Pesan masuk lebih dari 3 hari otomatis ditandai dibaca
+    const tigaHariLalu = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString();
+    await supabaseClient
+      .from("pesan_warga")
+      .update({ is_read: true })
+      .eq("penerima_id", myWallet)
+      .eq("is_read", false)
+      .lt("created_at", tigaHariLalu);
+
     const { data: pesan, error } = await supabaseClient
         .from("pesan_warga")
         .select("*")
         .or(`penerima_id.eq.${myWallet},pengirim_id.eq.${myWallet}`)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true })
+        .limit(5);
 
     if (error || !pesan) {
         console.error("Error ambil pesan:", error);
