@@ -1,16 +1,19 @@
-(function() {
+(function () {
     console.log("👴 [Mbah Eko] Aktif...");
 
-    const URL_RESMI = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran";
+    const URL_TEKS   = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran";
+    const URL_GAMBAR = "https://tofarmer-api.tofarmer-api.workers.dev/ai-gambar";
     const BOT_USERNAME = "@mbah_eko";
-    const BOT_USER_ID = "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
+    const BOT_USER_ID  = "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
+
     let sedangMemproses = false;
+
+    // ─── UTILITAS ────────────────────────────────────────────────────────
 
     function buatHash(str) {
         return btoa(unescape(encodeURIComponent(str))).substring(0, 16);
     }
 
-    // ─── Cek apakah teks/penulis adalah bot sendiri ──────────────────────
     function adalahDiriSendiri(penulis, teks) {
         return (
             penulis.includes("mbah_eko") ||
@@ -19,7 +22,6 @@
         );
     }
 
-    // ─── Bersihkan sebutan diri sendiri dari teks sebelum ke AI ─────────
     function bersihkanTeks(teks) {
         return teks
             .replace(/@mbah_eko/gi, "")
@@ -28,8 +30,26 @@
             .trim();
     }
 
+    // Ambil URL gambar dari elemen postingan
+    // Sesuaikan selector jika struktur HTML ToFarmer berbeda
+    function ambilUrlGambar(post) {
+        const elGambar = post.querySelector(
+            "img.post-image, .post-media img, .post-content img, " +
+            ".post-foto img, img[src*='supabase'], img[src*='storage']"
+        );
+        if (!elGambar) return null;
+
+        // Abaikan gambar avatar kecil
+        if (elGambar.naturalWidth > 0 && elGambar.naturalWidth < 120) return null;
+
+        return elGambar.src || elGambar.getAttribute("src") || null;
+    }
+
+    // ─── BACA KONTEKS POSTINGAN DARI DOM ─────────────────────────────────
+
     function ambilKonteksPost(post) {
         const kontenUtama = post.querySelector(".text, .deskripsi-proses")?.innerText?.trim() || "";
+
         const elemenKomentar = post.querySelectorAll(
             "[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention"
         );
@@ -38,23 +58,28 @@
         let mbahPernahKomentar = false;
 
         elemenKomentar.forEach((el) => {
-            if (el.id === 'advice-box' || el.id === 'ai-text' || el.closest('#advice-container')) return;
-            const penulis = el.getAttribute("data-comment-author") || el.querySelector(".comment-author")?.innerText || "";
+            if (el.id === "advice-box" || el.id === "ai-text" || el.closest("#advice-container")) return;
+
+            const penulis = el.getAttribute("data-comment-author")
+                || el.querySelector(".comment-author")?.innerText
+                || "";
             const teks = (el.innerText || "").trim();
+
             if (!teks || teks.startsWith("Kirim") || teks.startsWith("Sruput")) return;
 
             if (adalahDiriSendiri(penulis, teks)) {
                 mbahPernahKomentar = true;
-                return; // Komentar bot sendiri tidak masuk daftarKomentar
+                return; // Komentar bot sendiri tidak masuk daftar
             }
 
             daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
         });
 
-        // Komentar terakhir yang valid = bukan dari bot sendiri
         const komentarTerakhir = daftarKomentar[daftarKomentar.length - 1] || null;
         return { kontenUtama, daftarKomentar, komentarTerakhir, mbahPernahKomentar };
     }
+
+    // ─── CEK DATABASE SUPABASE ────────────────────────────────────────────
 
     async function cekSudahKomentarBiasa(postId) {
         if (!window.supabaseClient) return false;
@@ -91,6 +116,8 @@
             }]);
     }
 
+    // ─── MAIN LOOP ────────────────────────────────────────────────────────
+
     async function periksaSkenarioMading() {
         if (sedangMemproses) return;
 
@@ -100,43 +127,55 @@
         if (!semuaPostingan.length) return;
 
         for (const post of semuaPostingan) {
-            const postId = post.getAttribute("data-id") || post.id?.replace("post-card-", "") || post.id;
+            const postId = post.getAttribute("data-id")
+                || post.id?.replace("post-card-", "")
+                || post.id;
+
             if (!postId || post.getAttribute("data-operator-lock") === "true") continue;
 
-            const { kontenUtama, daftarKomentar, komentarTerakhir, mbahPernahKomentar } = ambilKonteksPost(post);
+            const { kontenUtama, daftarKomentar, komentarTerakhir, mbahPernahKomentar }
+                = ambilKonteksPost(post);
 
-            const teksKomentarTerakhir = komentarTerakhir?.text || "";
+            const teksKomentarTerakhir  = komentarTerakhir?.text   || "";
             const penulisKomentarTerakhir = komentarTerakhir?.author || "";
 
-            // Komentar terakhir dari bot sendiri → skip total, tidak perlu cek apapun
+            // Komentar terakhir dari bot sendiri → skip
             if (adalahDiriSendiri(penulisKomentarTerakhir, teksKomentarTerakhir)) continue;
 
-            // ── SKENARIO MENTION ─────────────────────────────────────────
-            const adaMention = teksKomentarTerakhir.toLowerCase().includes(BOT_USERNAME.toLowerCase());
+            // ── SKENARIO MENTION (prioritas utama) ───────────────────────
+            const adaMention = teksKomentarTerakhir.toLowerCase()
+                .includes(BOT_USERNAME.toLowerCase());
 
             if (adaMention) {
-                const hashMention = buatHash(teksKomentarTerakhir + penulisKomentarTerakhir + postId);
+                const hashMention = buatHash(
+                    teksKomentarTerakhir + penulisKomentarTerakhir + postId
+                );
                 const sudahDitangani = await cekSudahTanganiMention(postId, hashMention);
                 if (sudahDitangani) continue;
 
                 await eksekusi(post, postId, "MENTION_LANGSUNG", {
-                    kontenUtama, daftarKomentar, teksKomentarTerakhir, penulisKomentarTerakhir, hashMention
+                    kontenUtama, daftarKomentar,
+                    teksKomentarTerakhir, penulisKomentarTerakhir,
+                    hashMention
                 });
                 break;
             }
 
-            // ── SKENARIO POSTING BARU ────────────────────────────────────
+            // ── SKENARIO POSTING BARU ─────────────────────────────────────
             if (mbahPernahKomentar) continue;
 
             const sudahKomenDB = await cekSudahKomentarBiasa(postId);
             if (sudahKomenDB) continue;
 
             await eksekusi(post, postId, "POSTINGAN_BARU", {
-                kontenUtama, daftarKomentar, teksKomentarTerakhir, penulisKomentarTerakhir
+                kontenUtama, daftarKomentar,
+                teksKomentarTerakhir, penulisKomentarTerakhir
             });
             break;
         }
     }
+
+    // ─── EKSEKUSI: RAKIT PROMPT + PANGGIL AI + SIMPAN ────────────────────
 
     async function eksekusi(post, postId, skenario, ctx) {
         post.setAttribute("data-operator-lock", "true");
@@ -144,6 +183,11 @@
 
         console.log(`🎯 [Mbah Eko] Skenario: ${skenario} | Post: ${postId}`);
 
+        // Tambahkan delay untuk menghindari spam komentar
+        // Hanya proses 1 komentar per kali, lalu delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Kumpulkan 5 komentar terakhir sebagai konteks diskusi
         const threadRingkas = ctx.daftarKomentar
             .slice(-5)
             .map(k => `${k.author || "Anonim"}: ${bersihkanTeks(k.text)}`)
@@ -189,14 +233,40 @@ Komentar yang perlu dibalas:
 Balas komentar itu dengan nyambung ke konteks diskusi:`;
         }
 
-        const tanggapanAI = await panggilOtakAI(promptMatang);
+        // ── Deteksi gambar → pilih jalur AI yang sesuai ──────────────────
+        const urlGambar = ambilUrlGambar(post);
+        let tanggapanAI = "";
+
+        if (urlGambar) {
+            console.log(`🖼️ [Mbah Eko] Gambar ditemukan, analisa visual aktif...`);
+
+            const promptDenganGambar = `${promptMatang}
+
+(Ada gambar di postingan ini. Amati gambarnya dan sertakan pengamatanmu secara natural — seperti teman yang ikut melihat, bukan laporan formal. Jangan mulai dengan "dalam gambar ini terdapat...".)`;
+
+            tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
+
+            // Fallback ke teks jika gambar gagal
+            if (!tanggapanAI) {
+                console.warn("⚠️ Gambar gagal diproses, fallback ke teks...");
+                tanggapanAI = await panggilAIteks(promptMatang);
+            }
+        } else {
+            tanggapanAI = await panggilAIteks(promptMatang);
+        }
 
         // Bersihkan output AI jika masih menyebut diri sendiri
         const tanggapanBersih = tanggapanAI
-            ? tanggapanAI.replace(/@mbah_eko/gi, "").replace(/mbah_eko/gi, "").replace(/mbah eko/gi, "").trim()
+            ? tanggapanAI
+                .replace(/@mbah_eko/gi, "")
+                .replace(/mbah_eko/gi, "")
+                .replace(/mbah eko/gi, "")
+                .trim()
             : "";
 
+        // ── Simpan ke Supabase ────────────────────────────────────────────
         if (tanggapanBersih && window.supabaseClient) {
+            // Untuk MENTION: tandai dulu agar tidak double jawab
             if (skenario === "MENTION_LANGSUNG") {
                 await tandaiMentionSudahDitangani(postId, ctx.hashMention);
             }
@@ -210,7 +280,7 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
                 }]);
 
             if (!error) {
-                console.log(`✅ Komentar masuk DB | ${skenario}`);
+                console.log(`✅ Komentar masuk DB | ${skenario}${urlGambar ? " + gambar" : ""}`);
                 if (typeof window.loadFeed === "function") {
                     setTimeout(() => window.loadFeed(), 1500);
                 }
@@ -223,25 +293,46 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
         setTimeout(() => { sedangMemproses = false; }, 4000);
     }
 
-    async function panggilOtakAI(promptTeks) {
+    // ─── PANGGIL WORKER: TEKS ─────────────────────────────────────────────
+
+    async function panggilAIteks(promptTeks) {
         try {
-            const res = await fetch(URL_RESMI, {
+            const res = await fetch(URL_TEKS, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ mode: "komentar", prompt: promptTeks, teks: promptTeks })
+                body: JSON.stringify({ prompt: promptTeks, teks: promptTeks })
             });
             const json = await res.json();
-            return json.saran || json.reply || "";
+            return json.reply || json.saran || "";
         } catch (e) {
-            console.error("❌ AI error:", e);
+            console.error("❌ AI teks error:", e);
             return "";
         }
     }
+
+    // ─── PANGGIL WORKER: GAMBAR ───────────────────────────────────────────
+
+    async function panggilAIdenganGambar(promptTeks, imageUrl) {
+        try {
+            const res = await fetch(URL_GAMBAR, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: promptTeks, imageUrl })
+            });
+            const json = await res.json();
+            return json.reply || json.saran || "";
+        } catch (e) {
+            console.error("❌ AI gambar error:", e);
+            return "";
+        }
+    }
+
+    // ─── OBSERVER + PEMICU ────────────────────────────────────────────────
 
     const observer = new MutationObserver(periksaSkenarioMading);
     observer.observe(document.body, { childList: true, subtree: true });
 
     setTimeout(periksaSkenarioMading, 4000);
-    window.addEventListener('load', () => setTimeout(periksaSkenarioMading, 2000));
+    window.addEventListener("load", () => setTimeout(periksaSkenarioMading, 2000));
 
 })();
