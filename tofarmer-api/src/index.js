@@ -179,11 +179,13 @@ if (url.pathname === "/refresh-profil" && request.method === "POST") {
         // 1. Konversi array nomor standar menjadi Uint8Array yang valid
         const imageUint8Array = new Uint8Array(body.image);
 
-        // 2. Gunakan format input Workers AI yang tepat untuk model multimodal
-        const response = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', {
-          prompt: body.prompt || "Analisis gambar ini secara santai sebagai teman tongkrongan.",
-          image: Array.from(imageUint8Array) // Pastikan dikirim sebagai format array flat byte murni
-        });
+       const response = await env.AI.run(
+  '@cf/meta/llama-3.2-11b-vision-instruct',
+  {
+      prompt: body.prompt,
+      image: imageUint8Array
+  }
+);
 
         return json({ success: true, response: response.response }, corsHeaders);
 
