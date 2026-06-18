@@ -293,34 +293,68 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
         }
     }
 
-// ─── PANGGIL WORKER: GAMBAR (PERBAIKAN GENERASI VEKTOR BYTE) ───────────
+// ─── PANGGIL WORKER: GAMBAR (DENGAN DOWN-SCALE / KOMPRESI LOGIS) ──────
 
     async function panggilAIdenganGambar(promptTeks, imageUrl) {
         try {
-            // 1. Ambil file gambar dari URL menggunakan session browser aktif
-            const responGambar = await fetch(imageUrl);
-            if (!responGambar.ok) throw new Error("Gagal mengambil file gambar dari URL.");
+            // 1. Ambil gambar asli
+            const img = new Image();
+            img.crossOrigin = "anonymous"; // Hindari isu CORS mading
             
-            const blob = await responGambar.blob();
+            const p = new Promise((resolve, reject) => {
+                img.onload = () => resolve(img);
+                img.onerror = (e) => reject(e);
+                img.src = imageUrl;
+            });
+            await p;
+
+            // 2. Down-scale gambar menggunakan Canvas agar payload ringan (maksimal lebar/tinggi 500px)
+            const canvas = document.createElement("canvas");
+            const ctxCanvas = canvas.getContext("2d");
             
-            // 2. Konversi Blob menjadi ArrayBuffer, lalu ke Array Angka standar (Byte Array)
+            let width = img.width;
+            let height = img.height;
+            const max_size = 500; 
+
+            if (width > height) {
+                if (width > max_size) {
+                    height *= max_size / width;
+                    width = max_size;
+                }
+            } else {
+                if (height > max_size) {
+                    width *= max_size / height;
+                    height = max_size;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            ctxCanvas.drawImage(img, 0, 0, width, height);
+
+            // 3. Ubah hasil canvas menjadi Blob JPEG dengan kualitas rendah (0.5 atau 50%)
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.5));
             const arrayBuffer = await blob.arrayBuffer();
             const byteArray = Array.from(new Uint8Array(arrayBuffer));
 
-            // 3. Kirimkan array byte tersebut ke Cloudflare Worker
+            // 4. Kirim ke Worker dengan payload ukuran minimalis (~20-50 KB saja)
             const res = await fetch(URL_GAMBAR, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     prompt: promptTeks, 
-                    image: byteArray // Kita ganti key-nya menjadi 'image' berisi array byte
+                    image: byteArray 
                 })
             });
             
+            if (!res.ok) {
+                const errData = await res.json();
+                console.error("Worker menolak gambar:", errData);
+                return "";
+            }
+
             const json = await res.json();
-            
-            // Menyesuaikan penangkapan properti respons dari route baru
-            return json.response || json.saran || json.reply || "";
+            return json.response || json.saran || "";
         } catch (e) {
             console.error("❌ AI gambar error di injector:", e);
             return "";
