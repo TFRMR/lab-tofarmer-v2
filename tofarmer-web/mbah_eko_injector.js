@@ -229,7 +229,7 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
             console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
            const promptDenganGambar = `${promptMatang}
 
-(Konteks: Anggap kamu sedang nongkrong dan melihat gambar pelengkap di postingan ini. Jaga respons tetap fokus pada esensi teks utama, gunakan detail gambar secara tipis-tipis saja agar obrolan terasa hidup.)`;
+(Konteks visual: Postingan ini menyertakan gambar. JANGAN menganalisis atau mendeskripsikan isi gambar secara panjang lebar. Prioritaskan 100% respons teks di atas, dan cukup selipkan maksimal 1-2 kata saja yang merujuk ke elemen gambar secara sekilas agar terasa natural—misalnya jika ada gambar kopi cukup sebut "kopi itu" atau "ngopi", jika gambar pemandangan cukup sebut "suasananya", dll.)`;
             tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
             if (!tanggapanAI) {
                 console.warn("⚠️ Gambar gagal, fallback ke teks...");
