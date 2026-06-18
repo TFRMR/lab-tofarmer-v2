@@ -165,7 +165,34 @@ if (url.pathname === "/refresh-profil" && request.method === "POST") {
     
     return json({ status: "Profil diperbarui!" }, corsHeaders);
 }
+// =====================================================
+    // ROUTE: AI GAMBAR (ANALISIS VISUAL DENGAN LLAMA 3.2 VISION)
+    // =====================================================
+    if (url.pathname === "/ai-gambar" && request.method === "POST") {
+      try {
+        const body = await request.json();
+        
+        if (!body.image || !Array.isArray(body.image)) {
+          return jsonError({ message: "Payload 'image' wajib berupa array byte data." }, corsHeaders);
+        }
 
+        // Konversi balik array angka dari injector menjadi format Uint8Array dasar Cloudflare
+        const imageUint8Array = new Uint8Array(body.image);
+
+        // Panggil Llama 3.2 Vision Instruct (Pengganti Llava yang mati)
+        const response = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', {
+          prompt: body.prompt || "Analisis gambar ini secara santai.",
+          image: [...imageUint8Array] 
+        });
+
+        // Mengembalikan struktur respons yang rapi
+        return json({ success: true, response: response.response }, corsHeaders);
+
+      } catch (error) {
+        console.log("AI Gambar Worker Error:", error.message);
+        return jsonError({ message: "Gagal memproses gambar di Workers AI", detail: error.message }, corsHeaders);
+      }
+    }
 // =====================================================
 // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
 // =====================================================

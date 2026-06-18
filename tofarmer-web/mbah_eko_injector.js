@@ -7,6 +7,7 @@
     const BOT_USER_ID  = "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
 
     let sedangMemproses = false;
+    let debounceTimer   = null;
 
     // ─── UTILITAS ────────────────────────────────────────────────────────
 
@@ -30,22 +31,17 @@
             .trim();
     }
 
-    // Ambil URL gambar dari elemen postingan
-    // Sesuaikan selector jika struktur HTML ToFarmer berbeda
     function ambilUrlGambar(post) {
         const elGambar = post.querySelector(
             "img.post-image, .post-media img, .post-content img, " +
             ".post-foto img, img[src*='supabase'], img[src*='storage']"
         );
         if (!elGambar) return null;
-
-        // Abaikan gambar avatar kecil
         if (elGambar.naturalWidth > 0 && elGambar.naturalWidth < 120) return null;
-
         return elGambar.src || elGambar.getAttribute("src") || null;
     }
 
-    // ─── BACA KONTEKS POSTINGAN DARI DOM ─────────────────────────────────
+    // ─── BACA KONTEKS POSTINGAN ───────────────────────────────────────────
 
     function ambilKonteksPost(post) {
         const kontenUtama = post.querySelector(".text, .deskripsi-proses")?.innerText?.trim() || "";
@@ -69,7 +65,7 @@
 
             if (adalahDiriSendiri(penulis, teks)) {
                 mbahPernahKomentar = true;
-                return; // Komentar bot sendiri tidak masuk daftar
+                return;
             }
 
             daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
@@ -79,7 +75,27 @@
         return { kontenUtama, daftarKomentar, komentarTerakhir, mbahPernahKomentar };
     }
 
-    // ─── CEK DATABASE SUPABASE ────────────────────────────────────────────
+    // ─── PENANDA MENTION — pakai localStorage, BUKAN database ────────────
+
+    function sudahTanganiMention(hash) {
+        const data = JSON.parse(localStorage.getItem("mbah_eko_handled") || "{}");
+        return !!data[hash];
+    }
+
+    function tandaiMentionSelesai(hash) {
+        const data = JSON.parse(localStorage.getItem("mbah_eko_handled") || "{}");
+        data[hash] = Date.now();
+
+        // Bersihkan entri lama (lebih dari 3 hari) supaya tidak menumpuk
+        const batasTiga = Date.now() - 3 * 24 * 60 * 60 * 1000;
+        for (const k in data) {
+            if (data[k] < batasTiga) delete data[k];
+        }
+
+        localStorage.setItem("mbah_eko_handled", JSON.stringify(data));
+    }
+
+    // ─── CEK KOMENTAR BIASA DI SUPABASE ──────────────────────────────────
 
     async function cekSudahKomentarBiasa(postId) {
         if (!window.supabaseClient) return false;
@@ -88,32 +104,8 @@
             .select("id")
             .eq("post_id", parseInt(postId))
             .eq("user_id", BOT_USER_ID)
-            .not("comment", "like", "[MENTION_HANDLED:]%")
             .limit(1);
         return error ? false : data.length > 0;
-    }
-
-    async function cekSudahTanganiMention(postId, hash) {
-        if (!window.supabaseClient) return false;
-        const { data, error } = await window.supabaseClient
-            .from("comments")
-            .select("id")
-            .eq("post_id", parseInt(postId))
-            .eq("user_id", BOT_USER_ID)
-            .eq("comment", `[MENTION_HANDLED:${hash}]`)
-            .limit(1);
-        return error ? false : data.length > 0;
-    }
-
-    async function tandaiMentionSudahDitangani(postId, hash) {
-        if (!window.supabaseClient) return;
-        await window.supabaseClient
-            .from("comments")
-            .insert([{
-                post_id: parseInt(postId),
-                user_id: BOT_USER_ID,
-                comment: `[MENTION_HANDLED:${hash}]`
-            }]);
     }
 
     // ─── MAIN LOOP ────────────────────────────────────────────────────────
@@ -136,13 +128,12 @@
             const { kontenUtama, daftarKomentar, komentarTerakhir, mbahPernahKomentar }
                 = ambilKonteksPost(post);
 
-            const teksKomentarTerakhir  = komentarTerakhir?.text   || "";
+            const teksKomentarTerakhir    = komentarTerakhir?.text   || "";
             const penulisKomentarTerakhir = komentarTerakhir?.author || "";
 
-            // Komentar terakhir dari bot sendiri → skip
             if (adalahDiriSendiri(penulisKomentarTerakhir, teksKomentarTerakhir)) continue;
 
-            // ── SKENARIO MENTION (prioritas utama) ───────────────────────
+            // ── SKENARIO MENTION ─────────────────────────────────────────
             const adaMention = teksKomentarTerakhir.toLowerCase()
                 .includes(BOT_USERNAME.toLowerCase());
 
@@ -150,8 +141,9 @@
                 const hashMention = buatHash(
                     teksKomentarTerakhir + penulisKomentarTerakhir + postId
                 );
-                const sudahDitangani = await cekSudahTanganiMention(postId, hashMention);
-                if (sudahDitangani) continue;
+
+                // Cek localStorage dulu (cepat, tanpa DB)
+                if (sudahTanganiMention(hashMention)) continue;
 
                 await eksekusi(post, postId, "MENTION_LANGSUNG", {
                     kontenUtama, daftarKomentar,
@@ -175,7 +167,7 @@
         }
     }
 
-    // ─── EKSEKUSI: RAKIT PROMPT + PANGGIL AI + SIMPAN ────────────────────
+    // ─── EKSEKUSI ─────────────────────────────────────────────────────────
 
     async function eksekusi(post, postId, skenario, ctx) {
         post.setAttribute("data-operator-lock", "true");
@@ -183,11 +175,8 @@
 
         console.log(`🎯 [Mbah Eko] Skenario: ${skenario} | Post: ${postId}`);
 
-        // Tambahkan delay untuk menghindari spam komentar
-        // Hanya proses 1 komentar per kali, lalu delay
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Kumpulkan 5 komentar terakhir sebagai konteks diskusi
         const threadRingkas = ctx.daftarKomentar
             .slice(-5)
             .map(k => `${k.author || "Anonim"}: ${bersihkanTeks(k.text)}`)
@@ -233,29 +222,24 @@ Komentar yang perlu dibalas:
 Balas komentar itu dengan nyambung ke konteks diskusi:`;
         }
 
-        // ── Deteksi gambar → pilih jalur AI yang sesuai ──────────────────
         const urlGambar = ambilUrlGambar(post);
         let tanggapanAI = "";
 
         if (urlGambar) {
-            console.log(`🖼️ [Mbah Eko] Gambar ditemukan, analisa visual aktif...`);
-
+            console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
             const promptDenganGambar = `${promptMatang}
 
 (Ada gambar di postingan ini. Amati gambarnya dan sertakan pengamatanmu secara natural — seperti teman yang ikut melihat, bukan laporan formal. Jangan mulai dengan "dalam gambar ini terdapat...".)`;
 
             tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
-
-            // Fallback ke teks jika gambar gagal
             if (!tanggapanAI) {
-                console.warn("⚠️ Gambar gagal diproses, fallback ke teks...");
+                console.warn("⚠️ Gambar gagal, fallback ke teks...");
                 tanggapanAI = await panggilAIteks(promptMatang);
             }
         } else {
             tanggapanAI = await panggilAIteks(promptMatang);
         }
 
-        // Bersihkan output AI jika masih menyebut diri sendiri
         const tanggapanBersih = tanggapanAI
             ? tanggapanAI
                 .replace(/@mbah_eko/gi, "")
@@ -264,11 +248,10 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
                 .trim()
             : "";
 
-        // ── Simpan ke Supabase ────────────────────────────────────────────
         if (tanggapanBersih && window.supabaseClient) {
-            // Untuk MENTION: tandai dulu agar tidak double jawab
+            // Untuk MENTION: tandai di localStorage SEBELUM insert
             if (skenario === "MENTION_LANGSUNG") {
-                await tandaiMentionSudahDitangani(postId, ctx.hashMention);
+                tandaiMentionSelesai(ctx.hashMention);
             }
 
             const { error } = await window.supabaseClient
@@ -280,7 +263,7 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
                 }]);
 
             if (!error) {
-                console.log(`✅ Komentar masuk DB | ${skenario}${urlGambar ? " + gambar" : ""}`);
+                console.log(`✅ Komentar masuk | ${skenario}${urlGambar ? " + gambar" : ""}`);
                 if (typeof window.loadFeed === "function") {
                     setTimeout(() => window.loadFeed(), 1500);
                 }
@@ -290,7 +273,7 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
         }
 
         post.removeAttribute("data-operator-lock");
-        setTimeout(() => { sedangMemproses = false; }, 4000);
+        setTimeout(() => { sedangMemproses = false; }, 8000); // cooldown 8 detik
     }
 
     // ─── PANGGIL WORKER: TEKS ─────────────────────────────────────────────
@@ -310,29 +293,52 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
         }
     }
 
-    // ─── PANGGIL WORKER: GAMBAR ───────────────────────────────────────────
+  // ─── PANGGIL WORKER: GAMBAR (PERBAIKAN GENERASI VEKTOR BYTE) ───────────
 
     async function panggilAIdenganGambar(promptTeks, imageUrl) {
         try {
+            // 1. Ambil file gambar dari URL menggunakan session browser aktif
+            const responGambar = await fetch(imageUrl);
+            if (!responGambar.ok) throw new Error("Gagal mengambil file gambar dari URL.");
+            
+            const blob = await responGambar.blob();
+            
+            // 2. Konversi Blob menjadi ArrayBuffer, lalu ke Array Angka standar (Byte Array)
+            const arrayBuffer = await blob.arrayBuffer();
+            const byteArray = Array.from(new Uint8Array(arrayBuffer));
+
+            // 3. Kirimkan array byte tersebut ke Cloudflare Worker
             const res = await fetch(URL_GAMBAR, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: promptTeks, imageUrl })
+                body: JSON.stringify({ 
+                    prompt: promptTeks, 
+                    image: byteArray // Kita ganti key-nya menjadi 'image' berisi array byte
+                })
             });
+            
             const json = await res.json();
-            return json.reply || json.saran || "";
+            
+            // Menyesuaikan penangkapan properti respons dari route baru
+            return json.response || json.saran || json.reply || "";
         } catch (e) {
-            console.error("❌ AI gambar error:", e);
+            console.error("❌ AI gambar error di injector:", e);
             return "";
         }
     }
 
-    // ─── OBSERVER + PEMICU ────────────────────────────────────────────────
+    // ─── OBSERVER + PEMICU (dengan debounce 8 detik) ─────────────────────
 
-    const observer = new MutationObserver(periksaSkenarioMading);
+    function jadwalkanPemeriksa() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(periksaSkenarioMading, 8000);
+    }
+
+    const observer = new MutationObserver(jadwalkanPemeriksa);
     observer.observe(document.body, { childList: true, subtree: true });
 
-    setTimeout(periksaSkenarioMading, 4000);
-    window.addEventListener("load", () => setTimeout(periksaSkenarioMading, 2000));
+    // Cek awal setelah halaman siap
+    setTimeout(periksaSkenarioMading, 5000);
+    window.addEventListener("load", () => setTimeout(periksaSkenarioMading, 3000));
 
 })();
