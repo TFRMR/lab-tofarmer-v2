@@ -166,34 +166,55 @@ if (url.pathname === "/refresh-profil" && request.method === "POST") {
     return json({ status: "Profil diperbarui!" }, corsHeaders);
 }
 // =====================================================
-    // ROUTE: AI GAMBAR (FIXED FOR LLAMA 3.2 VISION)
-    // =====================================================
-    if (url.pathname === "/ai-gambar" && request.method === "POST") {
-      try {
-        const body = await request.json();
-        
-        if (!body.image || !Array.isArray(body.image)) {
-          return jsonError({ message: "Payload 'image' wajib berupa array byte data." }, corsHeaders);
-        }
+// TEST AGREEMENT VISION
+// =====================================================
+if (url.pathname === "/agree-vision") {
 
-        // 1. Konversi array nomor standar menjadi Uint8Array yang valid
-        const imageUint8Array = new Uint8Array(body.image);
-
-       const response = await env.AI.run(
-  '@cf/meta/llama-3.2-11b-vision-instruct',
-  {
-      prompt: body.prompt,
-      image: imageUint8Array
-  }
-);
-
-        return json({ success: true, response: response.response }, corsHeaders);
-
-      } catch (error) {
-        console.log("AI Gambar Worker Error:", error.message);
-        return jsonError({ message: "Gagal memproses gambar di Workers AI", detail: error.message }, corsHeaders);
-      }
+  const response = await env.AI.run(
+    "@cf/meta/llama-3.2-11b-vision-instruct",
+    {
+      prompt: "agree"
     }
+  );
+
+  return json(response, corsHeaders);
+}
+// =====================================================
+// ROUTE: AI GAMBAR (OPTIMIZED FOR LLAMA 3.2 VISION)
+// =====================================================
+if (url.pathname === "/ai-gambar" && request.method === "POST") {
+  try {
+    const body = await request.json();
+    
+    if (!body.image || !Array.isArray(body.image)) {
+      return jsonError({ message: "Payload 'image' wajib berupa array byte data." }, corsHeaders);
+    }
+
+    const imageUint8Array = new Uint8Array(body.image);
+
+    // Rekayasa prompt agar model tidak kaku dan tetap menjaga persona/konteks
+    const systemInstruction = 
+      "Kamu adalah Mbak Eko. Integrasikan analisis gambar di bawah ini ke dalam gaya bahasamu yang natural dan kontekstual. " +
+      "JANGAN hanya mendeskripsikan isi gambar secara kaku (seperti robot/analis foto). " +
+      "Gunakan gambar HANYA sebagai referensi visual tambahan untuk menjawab respons/permintaan ini: ";
+
+    const finalPrompt = systemInstruction + (body.prompt || "Berikan respons atau komentarmu terkait gambar ini.");
+
+    const response = await env.AI.run(
+      '@cf/meta/llama-3.2-11b-vision-instruct',
+      {
+        prompt: finalPrompt,
+        image: imageUint8Array
+      }
+    );
+
+    return json({ success: true, response: response.response }, corsHeaders);
+
+  } catch (error) {
+    console.log("AI Gambar Worker Error:", error.message);
+    return jsonError({ message: "Gagal memproses gambar di Workers AI", detail: error.message }, corsHeaders);
+  }
+}
 // =====================================================
 // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
 // =====================================================

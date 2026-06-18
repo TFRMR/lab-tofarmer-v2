@@ -227,10 +227,9 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
 
         if (urlGambar) {
             console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
-            const promptDenganGambar = `${promptMatang}
+           const promptDenganGambar = `${promptMatang}
 
-(Ada gambar di postingan ini. Amati gambarnya dan sertakan pengamatanmu secara natural — seperti teman yang ikut melihat, bukan laporan formal. Jangan mulai dengan "dalam gambar ini terdapat...".)`;
-
+(Konteks: Anggap kamu sedang nongkrong dan melihat gambar pelengkap di postingan ini. Jaga respons tetap fokus pada esensi teks utama, gunakan detail gambar secara tipis-tipis saja agar obrolan terasa hidup.)`;
             tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
             if (!tanggapanAI) {
                 console.warn("⚠️ Gambar gagal, fallback ke teks...");
@@ -308,34 +307,34 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
             });
             await p;
 
-            // 2. Down-scale gambar menggunakan Canvas agar payload ringan (maksimal lebar/tinggi 500px)
-            const canvas = document.createElement("canvas");
-            const ctxCanvas = canvas.getContext("2d");
-            
-            let width = img.width;
-            let height = img.height;
-            const max_size = 500; 
+           // 2. Down-scale gambar menggunakan Canvas (Dioptimalkan ke 800px agar detail tidak hilang)
+const canvas = document.createElement("canvas");
+const ctxCanvas = canvas.getContext("2d");
 
-            if (width > height) {
-                if (width > max_size) {
-                    height *= max_size / width;
-                    width = max_size;
-                }
-            } else {
-                if (height > max_size) {
-                    width *= max_size / height;
-                    height = max_size;
-                }
-            }
+let width = img.width;
+let height = img.height;
+const max_size = 800; // Naik ke 800px agar model tidak 'kebingungan' melihat objek buram
 
-            canvas.width = width;
-            canvas.height = height;
-            ctxCanvas.drawImage(img, 0, 0, width, height);
+if (width > height) {
+    if (width > max_size) {
+        height *= max_size / width;
+        width = max_size;
+    }
+} else {
+    if (height > max_size) {
+        width *= max_size / height;
+        height = max_size;
+    }
+}
 
-            // 3. Ubah hasil canvas menjadi Blob JPEG dengan kualitas rendah (0.5 atau 50%)
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.5));
-            const arrayBuffer = await blob.arrayBuffer();
-            const byteArray = Array.from(new Uint8Array(arrayBuffer));
+canvas.width = width;
+canvas.height = height;
+ctxCanvas.drawImage(img, 0, 0, width, height);
+
+// 3. Ubah menjadi JPEG dengan kualitas 0.7 (70%)
+const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.7));
+const arrayBuffer = await blob.arrayBuffer();
+const byteArray = Array.from(new Uint8Array(arrayBuffer));
 
             // 4. Kirim ke Worker dengan payload ukuran minimalis (~20-50 KB saja)
             const res = await fetch(URL_GAMBAR, {
