@@ -293,7 +293,7 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
         }
     }
 
-  // ─── PANGGIL WORKER: GAMBAR (PERBAIKAN GENERASI VEKTOR BYTE) ───────────
+// ─── PANGGIL WORKER: GAMBAR (PERBAIKAN GENERASI VEKTOR BYTE) ───────────
 
     async function panggilAIdenganGambar(promptTeks, imageUrl) {
         try {
