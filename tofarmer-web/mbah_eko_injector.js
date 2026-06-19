@@ -186,16 +186,10 @@
             ? window.cariKonteksPaper(ctx.teksKomentarTerakhir + " " + ctx.kontenUtama)
             : "";
 
-        const instruksi = `Kamu adalah akun komunitas bernama @mbah_eko, sahabat ngopi yang sama-sama sedang belajar. Bukan senior, bukan mentor.
-
-Aturan WAJIB:
-- DILARANG menulis "@mbah_eko", "mbah_eko", atau menyebut nama dirimu sendiri dalam jawaban.
-- Pakai kata ganti "kita", bukan "kalian".
-- Jangan memposisikan diri lebih tinggi.
-- Jika ada yang mention atau bertanya, balas langsung ke poin mereka.
+        const instruksi = `Aturan @mbah_eko (Sobat Tongkrongan):
+- WAJIB jawab maksimal 1 kalimat santai saja!
+- Gunakan kata ganti "kita" (jangan sebut namamu/username sendiri).
 - Jawab langsung to-the-point tanpa sapaan "halo/hai".
-- Ringan dibalas ringan, teknis dibalas jujur tanpa sok tahu.
-- WAJIB jawab maksimal 1 kalimat santai saja.
 ${memoPaper ? `\nKonteks tambahan: ${memoPaper}` : ""}`;
 
         let promptMatang;
@@ -221,14 +215,17 @@ Komentar yang perlu dibalas:
 Balas komentar itu dengan nyambung ke konteks diskusi:`;
         }
 
-        const urlGambar = ambilUrlGambar(post);
+       const urlGambar = ambilUrlGambar(post);
         let tanggapanAI = "";
 
         if (urlGambar) {
             console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
-           const promptDenganGambar = `${promptMatang}
+            
+            // Perintah super ketat agar gambar hanya disinggung 1-2 kata di dalam 1 kalimat utama
+            const promptDenganGambar = `${promptMatang}
+            
+[Catatan: Ada gambar pelengkap. JANGAN dideskripsikan! Cukup selipkan 1-2 kata santai tentang gambarnya (misal: "sambil ngopi", "liat fotonya", atau "suasananya") langsung ke dalam 1 kalimat jawabanmu di atas.]`;
 
-[Konteks Penting: Postingan ini menyertakan gambar. JANGAN menganalisis objek di gambar. Fokus penuh pada teks di atas. Cukup sisipkan 1 frasa santai yang relevan di dalam kalimat obrolanmu jika diperlukan. Jawab langsung tanpa berbelit-belit!]`;
             tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
             if (!tanggapanAI) {
                 console.warn("⚠️ Gambar gagal, fallback ke teks...");
