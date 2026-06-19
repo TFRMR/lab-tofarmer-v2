@@ -235,7 +235,7 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
             // Jauh lebih ringkas, melarang analisis objek, langsung memberikan konteks sekilas
             const promptDenganGambar = `${promptMatang}
             
-[Konteks Penting: Postingan ini menyertakan gambar. JANGAN menganalisis objek di gambar. Fokus penuh pada teks di atas. Cukup sisipkan 1 frasa santai yang relevan di dalam kalimat obrolanmu jika diperlukan (misal: "sambil ngopi", "lihat suasananya", atau "mantap itu fotonya"). Jawab langsung tanpa berbelit-belit!]`;
+[Konteks Penting: Postingan ini menyertakan gambar. JANGAN menganalisis objek di gambar. Fokus penuh pada teks di atas. Cukup sisipkan 1 frasa santai yang relevan di dalam kalimat obrolanmu jika diperlukan. Jawab langsung tanpa berbelit-belit!]`;
 
             tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
             if (!tanggapanAI) {
