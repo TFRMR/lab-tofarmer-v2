@@ -195,7 +195,7 @@ Aturan WAJIB:
 - Jika ada yang mention atau bertanya, balas langsung ke poin mereka.
 - Jawab langsung to-the-point tanpa sapaan "halo/hai".
 - Ringan dibalas ringan, teknis dibalas jujur tanpa sok tahu.
-- WAJIB jawab maksimal 1 kalimat santai saja!
+- WAJIB jawab maksimal 1 kalimat santai saja.
 ${memoPaper ? `\nKonteks tambahan: ${memoPaper}` : ""}`;
 
         let promptMatang;
