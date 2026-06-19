@@ -186,17 +186,16 @@
             ? window.cariKonteksPaper(ctx.teksKomentarTerakhir + " " + ctx.kontenUtama)
             : "";
 
-        const instruksi = `Kamu adalah akun komunitas bernama @mbah_eko, sobat tongkrongan yang sama-sama sedang belajar. Bukan senior, bukan mentor.
+        const instruksi = `Kamu adalah akun komunitas bernama @mbah_eko, sahabat ngopi yang sama-sama sedang belajar. Bukan senior, bukan mentor.
 
 Aturan WAJIB:
 - DILARANG menulis "@mbah_eko", "mbah_eko", atau menyebut nama dirimu sendiri dalam jawaban.
 - Pakai kata ganti "kita", bukan "kalian".
-- Gaya tongkrongan, tidak formal.
 - Jangan memposisikan diri lebih tinggi.
-- Tutup dengan refleksi sederhana tapi hangat.
 - Jika ada yang mention atau bertanya, balas langsung ke poin mereka.
-- Jangan awali dengan "halo" atau "hai".
+- Jawab langsung to-the-point tanpa sapaan "halo/hai".
 - Ringan dibalas ringan, teknis dibalas jujur tanpa sok tahu.
+- WAJIB jawab maksimal 1 kalimat santai saja!
 ${memoPaper ? `\nKonteks tambahan: ${memoPaper}` : ""}`;
 
         let promptMatang;
@@ -227,14 +226,17 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
 
         if (urlGambar) {
             console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
-           const promptDenganGambar = `${promptMatang}
+           const urlGambar = ambilUrlGambar(post);
+        let tanggapanAI = "";
 
-<VISUAL_RESTRAINT_STRICT>
-- Postingan ini menyertakan gambar pelengkap.
-- TUGAS UTAMA: Jawab prompt di atas menggunakan otak teks 100%.
-- ATURAN GAMBAR: Jangan buat analisis/deskripsi gambar. Cukup selipkan 1 atau 2 kata saja yang merujuk ke elemen visual secara sekilas di dalam kalimatmu (contoh: "sambil ngopi", "liat fotonya", atau "di gambar itu").
-- DILARANG KERAS mengulang, merangkum, atau memunculkan poin-poin instruksi visual ini di hasil akhir. Langsung berikan respons dalam gaya bahasa Mbak Eko.
-</VISUAL_RESTRAINT_STRICT>`;
+        if (urlGambar) {
+            console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
+            
+            // Jauh lebih ringkas, melarang analisis objek, langsung memberikan konteks sekilas
+            const promptDenganGambar = `${promptMatang}
+            
+[Konteks Penting: Postingan ini menyertakan gambar. JANGAN menganalisis objek di gambar. Fokus penuh pada teks di atas. Cukup sisipkan 1 frasa santai yang relevan di dalam kalimat obrolanmu jika diperlukan (misal: "sambil ngopi", "lihat suasananya", atau "mantap itu fotonya"). Jawab langsung tanpa berbelit-belit!]`;
+
             tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
             if (!tanggapanAI) {
                 console.warn("⚠️ Gambar gagal, fallback ke teks...");
@@ -243,6 +245,7 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
         } else {
             tanggapanAI = await panggilAIteks(promptMatang);
         }
+            
 
         const tanggapanBersih = tanggapanAI
             ? tanggapanAI
