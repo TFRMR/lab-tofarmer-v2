@@ -226,17 +226,9 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
 
         if (urlGambar) {
             console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
-           const urlGambar = ambilUrlGambar(post);
-        let tanggapanAI = "";
+           const promptDenganGambar = `${promptMatang}
 
-        if (urlGambar) {
-            console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
-            
-            // Jauh lebih ringkas, melarang analisis objek, langsung memberikan konteks sekilas
-            const promptDenganGambar = `${promptMatang}
-            
 [Konteks Penting: Postingan ini menyertakan gambar. JANGAN menganalisis objek di gambar. Fokus penuh pada teks di atas. Cukup sisipkan 1 frasa santai yang relevan di dalam kalimat obrolanmu jika diperlukan. Jawab langsung tanpa berbelit-belit!]`;
-
             tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
             if (!tanggapanAI) {
                 console.warn("⚠️ Gambar gagal, fallback ke teks...");
@@ -245,7 +237,6 @@ Balas komentar itu dengan nyambung ke konteks diskusi:`;
         } else {
             tanggapanAI = await panggilAIteks(promptMatang);
         }
-            
 
         const tanggapanBersih = tanggapanAI
             ? tanggapanAI
