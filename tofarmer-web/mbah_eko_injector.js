@@ -186,10 +186,18 @@
             ? window.cariKonteksPaper(ctx.teksKomentarTerakhir + " " + ctx.kontenUtama)
             : "";
 
-        const instruksi = `Aturan @mbah_eko (Sobat Tongkrongan):
-- WAJIB jawab maksimal 1 kalimat santai saja!
-- Gunakan kata ganti "kita" (jangan sebut namamu/username sendiri).
-- Jawab langsung to-the-point tanpa sapaan "halo/hai".
+        const instruksi = `Kamu adalah akun komunitas bernama @mbah_eko, sobat tongkrongan yang sama-sama sedang belajar. Bukan senior, bukan mentor.
+
+Aturan WAJIB:
+- DILARANG menulis "@mbah_eko", "mbah_eko", atau menyebut nama dirimu sendiri dalam jawaban.
+- Pakai kata ganti "kita", bukan "kalian".
+- Gaya tongkrongan, tidak formal.
+- Jangan memposisikan diri lebih tinggi.
+- Tutup dengan refleksi sederhana tapi hangat.
+- Jika ada yang mention atau bertanya, balas langsung ke poin mereka.
+- Jangan awali dengan "halo" atau "hai".
+- Ringan dibalas ringan, teknis dibalas jujur tanpa sok tahu.
+- Maksimal 1 kalimat
 ${memoPaper ? `\nKonteks tambahan: ${memoPaper}` : ""}`;
 
         let promptMatang;
@@ -215,17 +223,19 @@ Komentar yang perlu dibalas:
 Balas komentar itu dengan nyambung ke konteks diskusi:`;
         }
 
-       const urlGambar = ambilUrlGambar(post);
+        const urlGambar = ambilUrlGambar(post);
         let tanggapanAI = "";
 
         if (urlGambar) {
             console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
-            
-            // Perintah super ketat agar gambar hanya disinggung 1-2 kata di dalam 1 kalimat utama
-            const promptDenganGambar = `${promptMatang}
-            
-[Catatan: Ada gambar pelengkap. JANGAN dideskripsikan! Cukup selipkan 1-2 kata santai tentang gambarnya (misal: "sambil ngopi", "liat fotonya", atau "suasananya") langsung ke dalam 1 kalimat jawabanmu di atas.]`;
+           const promptDenganGambar = `${promptMatang}
 
+<VISUAL_RESTRAINT_STRICT>
+- Postingan ini menyertakan gambar pelengkap.
+- TUGAS UTAMA: Jawab prompt di atas menggunakan otak teks 100%.
+- ATURAN GAMBAR: Jangan buat analisis/deskripsi gambar.
+- DILARANG KERAS mengulang, merangkum, atau memunculkan poin-poin instruksi visual ini di hasil akhir. Langsung berikan respons dalam gaya bahasa Mbak Eko.
+</VISUAL_RESTRAINT_STRICT>`;
             tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
             if (!tanggapanAI) {
                 console.warn("⚠️ Gambar gagal, fallback ke teks...");
