@@ -27,10 +27,13 @@
        - JANGAN mengarang angka/sintaks ekstrem yang bisa mematikan komoditas atau merusak sistem (Contoh sesat: menanam ubi/benih kecil sedalam 20 cm itu SALAH, harusnya cukup kedalaman dangkal 2-5 cm atau sebatas tertutup tanah).
        - Jika Anda ragu dengan angka pastinya, gunakan kalimat aman seperti: "secukupnya", "sesuai kondisi lahan", "sesuai kebutuhan sistem", atau "setinggi pangkal batang". Jangan sok tahu menentukan angka mati jika model pengetahuan Anda terbatas.
     
-    Langkah Kerja:
-    1. Filter KETAT — Jawab hanya dengan kata TIDAK jika kumpulan data ini sama sekali tidak mengandung panduan teknis yang relevan dengan 5 Pilar Resmi ToFarmer. 
-       - JANGAN PERNAH memproses konten yang sifatnya candaan fiktif, metafora gaib, curhat kosong, atau spam tanpa substansi ilmu terapan (Contoh nyata yang WAJIB DITOLAK dengan kata TIDAK: Tutorial membuat candi, ilmu klenik, atau obrolan politik praktis).
-    2. Jika lolos, rakit menjadi SATU SOP Baku yang fokus dengan format:
+   Langkah Kerja:
+    1. UJI VALIDITAS PILAR (WAJIB): Periksa apakah teks ini benar-benar panduan praktis nyata. Uji dengan pertanyaan berikut:
+       - Apakah ini pilar 2? (Apakah ada kode/skrip/alat fisik riil yang berfungsi?)
+       - Apakah ini pilar 3? (Apakah ada tanaman/hewan/tanah biologis riil yang ditanam/diternak?)
+       - Apakah ini pilar 4? (Apakah ada hitungan aset/strategi trading finansial riil?)
+       - Jika subjeknya fiktif, khayalan, metafora, benda mati yang tidak bisa ditanam (Contoh: candi, naga, awan, hantu, atau curhat kosong), maka derajat validitasnya adalah NOL. Anda WAJIB langsung menjawab dengan satu kata: TIDAK.
+    2. Jika dan hanya jika lolos uji validitas di atas, rakit menjadi SATU SOP Baku yang fokus dengan format:
        - JUDUL: [Nama SOP asli/relevan - Harus spesifik ke satu bidang pilar]
        - KONSEP DASAR: [Penjelasan inti dari topik utama yang dipilih]
        - PERSIAPAN: [Alat/Bahan/Software/Sintaks yang relevan saja, lengkapi takaran standarnya jika user tidak menulisnya]
