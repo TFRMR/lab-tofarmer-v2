@@ -97,18 +97,23 @@
                 grupUser[post.user_id].push(post);
             }
 
-            // 4. 🎲 PROSES ARISAN (ACAK USER)
-            // Ambil semua daftar KEY user_id yang aktif di pool
-            const semuaDaftarUser = Object.keys(grupUser);
+           // 4. 🎰 PROSES KOCOK ARISAN MODEL TOGEL (ACAK MURNI)
+            // Ambil semua daftar key user_id yang terjaring
+            let semuaDaftarUser = Object.keys(grupUser);
             
-            // Algoritma Fisher-Yates untuk mengacak urutan User secara murni & adil
-            for (let i = semuaDaftarUser.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [semuaDaftarUser[i], semuaDaftarUser[j]] = [semuaDaftarUser[j], semuaDaftarUser[i]];
-            }
+            // Kita petakan user ke dalam bentuk objek yang diberi "Skor Keberuntungan" acak murni.
+            // Rumus: Menggabungkan angka acak pecahan pecahan terkecil dengan sisa pembagian waktu mili-detik saat ini.
+            semuaDaftarUser = semuaDaftarUser
+                .map(userId => ({
+                    id: userId,
+                    skorTogel: Math.random() * (Date.now() % 1000)
+                }))
+                // Urutkan dari skor yang paling besar ke kecil (seperti bola togel yang menggelinding keluar)
+                .sort((a, b) => b.skorTogel - a.skorTogel)
+                // Kembalikan lagi ke format array string user_id
+                .map(user => user.id);
 
-            console.log(`🎲 [Mbah Eko] Urutan antrean kurasi hari ini berhasil diacak:`, semuaDaftarUser);
-
+            console.log(`🎰 [Mbah Eko] Hasil kocokan bola togel antrean hari ini:`, semuaDaftarUser);
             // 5. Analisis target berdasarkan antrean yang sudah DIACAK
             for (const targetUserId of semuaDaftarUser) {
                 const koleksiPost = grupUser[targetUserId];
