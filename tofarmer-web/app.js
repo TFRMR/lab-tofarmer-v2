@@ -594,7 +594,7 @@ async function renderPostsBatch(posts, feed) {
         <div class="post-menu-container" style="position: relative; display: inline-block;">
           <button class="btn-dot-menu" onclick="toggleDotMenu('${item.id}')" style="background:none; border:none; color:#65676b; font-size:16px; cursor:pointer; padding:4px 8px;">•••</button>
           <div class="dot-dropdown" id="dropdown-${item.id}" style="display:none; position:absolute; right:0; top:24px; background:white; box-shadow:0 2px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:150px; border:1px solid #e4e6eb; padding:4px 0;">
-            <button onclick="aksiEditPostingan('${item.id}', \`${safeText}\`)" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
+            <button class="btn-edit-post" data-post-id="${item.id}" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
             <button onclick="aksiSembunyikanKeProfil('${item.id}')" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">🔒 Sembunyikan ke Profil</button>
           </div>
         </div>
@@ -1056,9 +1056,26 @@ window.addEventListener('click', function(e) {
   if (!e.target.matches('.btn-dot-menu')) {
     document.querySelectorAll('.dot-dropdown').forEach(el => el.style.display = 'none');
   }
+
+  // Handler untuk tombol Edit Postingan - ambil teks dari DOM secara aman
+  if (e.target.matches('.btn-edit-post')) {
+    const postId = e.target.dataset.postId;
+    if (!postId) return;
+    const card = document.getElementById(`post-card-${postId}`);
+    if (!card) return;
+    // Ambil teks asli dari elemen .text di dalam card
+    const tekstEl = card.querySelector('.text');
+    const teksLama = tekstEl ? (tekstEl.innerText || tekstEl.textContent || "") : "";
+    aksiEditPostingan(postId, teksLama);
+  }
 });
 
 async function aksiEditPostingan(postId, teksLama) {
+  if (!currentWallet) {
+    alert("Login dulu ya 🌱");
+    return;
+  }
+
   const teksBaru = prompt("Edit postingan Anda:", teksLama);
   if (teksBaru === null) return;
   if (!teksBaru.trim()) return alert("Teks tidak boleh kosong!");
@@ -1066,7 +1083,8 @@ async function aksiEditPostingan(postId, teksLama) {
   const { error } = await supabaseClient
     .from("contributions")
     .update({ deskripsi_proses: teksBaru.trim() })
-    .eq("id", postId);
+    .eq("id", postId)
+    .eq("user_id", currentWallet);
 
   if (error) {
     alert("Gagal mengedit: " + error.message);
