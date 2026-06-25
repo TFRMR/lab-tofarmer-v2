@@ -11,21 +11,23 @@
     ];
 
     const GATE3_INSTRUCTION = `INSTRUKSI TUGAS: Anda adalah ahli kurasi ilmu mikro petani senior. 
-    Tugas Anda adalah menganalisis KUMPULAN catatan/postingan dari SATU USER tertentu untuk ditarik kesimpulan besarnya menjadi sebuah SOP Baku.
+    Tugas Anda adalah menganalisis KUMPULAN catatan/postingan dari SATU USER tertentu untuk ditarik kesimpulan menjadi sebuah SOP Baku yang FOKUS.
     
     ⚠️ PERINGATAN GAYA BAHASA: WAJIB pertahankan gaya bahasa asli, istilah lokal, kosakata unik, dan karakter mengetik dominan dari data asli. Rapikan hanya typo yang parah.
     
-    ⚠️ ATURAN KELENGKAPAN DATA: Jika di dalam tulisan user terdapat langkah atau parameter yang kurang spesifik (misal: tidak menyebut durasi waktu, takaran pasti, atau suhu), Anda WAJIB melengkapinya secara mandiri menggunakan pemahaman umum agrikultur atau standar rekomendasi teknis yang paling aman dan logis.
+    ⚠️ ATURAN RELEVANSI TOPIK (ANTI-GADO-GADO): Jika kumpulan data user berisi beberapa topik yang berbeda jauh (misal: bahas ubi jalar DAN bahas cara seduh kopi/curhat), Anda WAJIB MEMILIH SATU TOPIK AGRIKULTUR UTAMA yang paling berbobot. JANGAN PERNAH MENCAMPURADUKKAN dua aktivitas yang berbeda ke dalam satu SOP yang sama!
     
-    Tugas Anda:
-    1. Filter KETAT — jawab hanya dengan kata TIDAK jika kumpulan data ini sama sekali tidak mengandung panduan teknis agrikultur (pertanian, peternakan, perikanan, pupuk, hama, dll).
-    2. Jika lolos kedua filter di atas, gabungkan pemikiran-pemikiran user tersebut menjadi satu SOP Baku terintegrasi dengan format:
-       - JUDUL: [Nama SOP asli/relevan dengan keahlian user]
-       - KONSEP DASAR: [Penjelasan inti dari gabungan ide tulisan mereka]
-       - PERSIAPAN: [Alat/Bahan yang disebut, lengkapi takaran standarnya jika user tidak menulisnya]
+    ⚠️ ATURAN KELENGKAPAN DATA: Jika di dalam tulisan user terdapat langkah atau parameter yang kurang spesifik (misal: tidak menyebut durasi waktu atau takaran pasti), Anda WAJIB melengkapinya secara mandiri menggunakan pemahaman umum agrikultur atau standar rekomendasi teknis yang paling aman dan logis.
+    
+    Langkah Kerja:
+    1. Filter KETAT — Jawab hanya dengan kata TIDAK jika kumpulan data ini sama sekali tidak mengandung panduan teknis agrikultur.
+    2. Jika lolos, rakit menjadi SATU SOP Baku yang fokus dengan format:
+       - JUDUL: [Nama SOP asli/relevan - Harus spesifik ke satu bidang]
+       - KONSEP DASAR: [Penjelasan inti dari topik utama yang dipilih]
+       - PERSIAPAN: [Alat/Bahan yang relevan saja, lengkapi takaran standarnya jika user tidak menulisnya]
        - SOP TEKNIS: [Urutan langkah kumulatif yang logis & lengkap]
        - PARAMETER KEBERHASILAN: [Indikator keberhasilan yang jelas/terukur]
-       - MITIGASI RISIKO: [Hal-hal yang harus diwaspadai berdasarkan catatan atau risiko umum dari praktik tersebut]`;
+       - MITIGASI RISIKO: [Hal-hal yang harus diwaspadai berdasarkan risiko umum dari praktik tersebut]`;
 
     const VOTING_INSTRUCTION = `Anda adalah analis sentimen komunitas petani.
     Baca kumpulan komentar berikut dan tentukan apakah komunitas SETUJU atau TIDAK SETUJU bahwa konten ini adalah ilmu bermanfaat.
