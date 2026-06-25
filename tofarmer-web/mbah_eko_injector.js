@@ -38,13 +38,15 @@
     Jawab HANYA dengan JSON valid tanpa teks lain, tanpa markdown, tanpa penjelasan apapun.
     Format wajib: {"ya": NUMBER, "tidak": NUMBER}`;
 
-    // ─── FUNGSI UTAMA: KURATOR (Detection & Drafting - User Based) ────────
+
+
+   // ─── FUNGSI UTAMA: KURATOR (Dengan Fitur Pengocok Acak / Adil) ────────
 
     async function jalankanKurator() {
         try {
             const hariIni = new Date().toISOString().split('T')[0];
 
-            // 1. Cek limit: 1 postingan per hari oleh Mbah Eko
+            // 1. Cek limit harian bot Mbah Eko sendiri
             const { data: logHariIni, error: errLog } = await DB
                 .from("contributions")
                 .select("id")
@@ -62,13 +64,13 @@
                 return;
             }
 
-            // 2. Ambil pool postingan terbaru yang lebih besar untuk dikelompokkan per user
+            // 2. Ambil pool data mentah LEBIH BANYAK (Limit dinaikkan ke 100 agar user pasif ikut ketarik)
             const { data: posts, error: errPosts } = await DB
                 .from("contributions")
                 .select("id, deskripsi_proses, user_id, judul_aksi")
                 .or("deskripsi_proses.ilike.%cara %,deskripsi_proses.ilike.%bikin %,deskripsi_proses.ilike.%trik %,deskripsi_proses.ilike.%langkah %,deskripsi_proses.ilike.%tutorial %")
                 .order("created_at", { ascending: false })
-                .limit(20);
+                .limit(100); 
 
             if (errPosts) {
                 console.error("❌ [Mbah Eko] Gagal ambil postingan:", errPosts.message);
@@ -84,69 +86,109 @@
             const grupUser = {};
             for (const post of posts) {
                 if (BLACKLIST_USER_IDS.includes(post.user_id)) continue;
-                
+                if (post.judul_aksi && (post.judul_aksi.includes("SOP Baku") || post.judul_aksi.includes("Hasil Telaah"))) continue;
+
                 if (!grupUser[post.user_id]) {
                     grupUser[post.user_id] = [];
                 }
                 grupUser[post.user_id].push(post);
             }
 
-            // 4. Analisis target rekam jejak user per user
-            for (const targetUserId in grupUser) {
+            // 4. 🎲 PROSES ARISAN (ACAK USER)
+            // Ambil semua daftar KEY user_id yang aktif di pool
+            const semuaDaftarUser = Object.keys(grupUser);
+            
+            // Algoritma Fisher-Yates untuk mengacak urutan User secara murni & adil
+            for (let i = semuaDaftarUser.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [semuaDaftarUser[i], semuaDaftarUser[j]] = [semuaDaftarUser[j], semuaDaftarUser[i]];
+            }
+
+            console.log(`🎲 [Mbah Eko] Urutan antrean kurasi hari ini berhasil diacak:`, semuaDaftarUser);
+
+            // 5. Analisis target berdasarkan antrean yang sudah DIACAK
+            for (const targetUserId of semuaDaftarUser) {
                 const koleksiPost = grupUser[targetUserId];
-                
-                // Gunakan postingan terbaru user ini sebagai jangkar (anchor) referensi database
                 const postJangkar = koleksiPost[0];
 
-                // Cek apakah post jangkar sudah pernah diproses agar tidak duplikat
-                const { data: cekProses, error: errCek } = await DB
+                // PROTEKSI GERBANG A: Cek tabel log kurasi internal
+                const { data: cekKurasi, error: errCekKurasi } = await DB
                     .from("mbah_eko_kurasi")
-                    .select("id")
+                    .select("id, status_kurasi")
                     .eq("post_id", postJangkar.id)
                     .maybeSingle();
 
-                if (errCek) {
-                    console.error(`❌ [Mbah Eko] Gagal cek duplikat post ${postJangkar.id}:`, errCek.message);
+                if (errCekKurasi) {
+                    console.error(`❌ [Mbah Eko] Gagal cek tabel mbah_eko_kurasi:`, errCekKurasi.message);
                     continue;
                 }
 
-                if (cekProses) {
-                    console.log(`ℹ️ [Mbah Eko] Rekam jejak user ${targetUserId} pada post ${postJangkar.id} sudah diproses, skip.`);
+                if (cekKurasi) {
+                    console.log(`ℹ️ [Mbah Eko] Post ${postJangkar.id} sudah tercatat, skip ke user lain.`);
                     continue;
                 }
 
-                // 5. Gabungkan isi deskripsi proses dari seluruh tulisan user ini ke dalam satu payload
+                // PROTEKSI GERBANG B: Cek tabel ilmu_pending
+                const { data: cekPending, error: errCekPending } = await DB
+                    .from("ilmu_pending")
+                    .select("id")
+                    .eq("user_id", targetUserId)
+                    .maybeSingle();
+
+                if (errCekPending) {
+                    console.error(`❌ [Mbah Eko] Gagal cek tabel ilmu_pending:`, errCekPending.message);
+                    continue;
+                }
+
+                if (cekPending) {
+                    console.log(`ℹ️ [Mbah Eko] User ${targetUserId} punya draf menggantung di ilmu_pending, skip ke user lain.`);
+                    continue;
+                }
+
+                // PROTEKSI GERBANG C: Cek tabel ilmu_baku
+                const { data: cekBaku, error: errCekBaku } = await DB
+                    .from("ilmu_baku")
+                    .select("id")
+                    .eq("user_id", targetUserId)
+                    .maybeSingle();
+
+                if (errCekBaku) {
+                    console.error(`❌ [Mbah Eko] Gagal cek tabel ilmu_baku:`, errCekBaku.message);
+                    continue;
+                }
+
+                if (cekBaku) {
+                    console.log(`ℹ️ [Mbah Eko] User ${targetUserId} ilmunya sudah berstatus BAKU, skip ke user lain.`);
+                    continue;
+                }
+
+                // 6. Jika lolos semua gerbang proteksi, gabungkan rekam jejak teksnya
                 let gabunganTeks = "";
                 koleksiPost.forEach((p, index) => {
                     gabunganTeks += `[Tulisan #${index + 1} - Judul: ${p.judul_aksi || 'Tanpa Judul'}]:\n${p.deskripsi_proses}\n\n`;
                 });
 
-                console.log(`🧠 [Mbah Eko] Menganalisis ${koleksiPost.length} catatan kumulatif dari user: ${targetUserId}`);
+                console.log(`🧠 [Mbah Eko] Memulai telaah kumulatif AMAN & ADIL untuk user: ${targetUserId}`);
 
-                // 6. AI Validasi, Drafting, dan Autocomplete Parameter Umum
+                // 7. Tembak ke AI
                 const draftSOP = await fetchAI(gabunganTeks);
 
-                // Abaikan jika kesimpulan gabungan bukan ilmu mikro agrikultur
                 if (!draftSOP || draftSOP.trim().toUpperCase() === "TIDAK") {
-                    console.log(`ℹ️ [Mbah Eko] Hasil telaah user ${targetUserId} bukan ilmu mikro, dilewati.`);
-                    continue;
+                    console.log(`ℹ️ [Mbah Eko] Hasil telaah untuk user ${targetUserId} ditolak sistem AI (bukan ilmu mikro). Mencoba user berikutnya di antrean acak...`);
+                    continue; // Jika AI bilang TIDAK, perulangan lanjut mencari kandidat user acak berikutnya
                 }
 
-                // 7. Ambil username untuk keperluan narasi feed
+                // 8. Ambil nama profil asli
                 const { data: userProfile, error: errProfile } = await DB
                     .from("profiles")
                     .select("username")
                     .eq("id", targetUserId)
                     .maybeSingle();
 
-                if (errProfile) {
-                    console.error(`❌ [Mbah Eko] Gagal ambil profil user ${targetUserId}:`, errProfile.message);
-                }
-
                 const username = userProfile?.username || "kawan";
 
-                // 8. Simpan ke database kurasi menggunakan data jangkar
-                const { error: errKurasi } = await DB
+                // 9. Kunci data ke log kurasi internal
+                const { error: errInsertKurasi } = await DB
                     .from("mbah_eko_kurasi")
                     .insert([{
                         post_id: postJangkar.id,
@@ -155,15 +197,15 @@
                         status_kurasi: 'DRAFT'
                     }]);
 
-                if (errKurasi) {
-                    console.error(`❌ [Mbah Eko] Gagal simpan kurasi ke DB:`, errKurasi.message);
+                if (errInsertKurasi) {
+                    console.error(`❌ [Mbah Eko] Gagal mengunci log kurasi internal:`, errInsertKurasi.message);
                     continue;
                 }
 
-                // 9. Posting hasil kesimpulan besar ke Feed (Tabel contributions)
+                // 10. Terbitkan ke feed utama
                 const kontenFinal = `Setelah mengamati beberapa catatan penting dari @${username}, saya kumpulkan intisari ilmu berjalannya menjadi satu SOP terintegrasi. Matur nuwun konsistensinya, mari kita bedah bersama:\n\n${draftSOP}`;
 
-                const { error: errPost } = await DB
+                const { error: errPostFeed } = await DB
                     .from("contributions")
                     .insert([{
                         user_id: BOT_USER_ID,
@@ -171,17 +213,17 @@
                         deskripsi_proses: kontenFinal
                     }]);
 
-                if (errPost) {
-                    console.error("❌ [Mbah Eko] Gagal posting hasil telaah ke feed:", errPost.message);
+                if (errPostFeed) {
+                    console.error("❌ [Mbah Eko] Gagal menerbitkan hasil kurasi ke feed:", errPostFeed.message);
                     continue;
                 }
 
-                console.log(`✅ [Mbah Eko] Berhasil menerbitkan hasil analisa mendalam untuk user @${username}`);
-                break; // Hanya memproses 1 kesimpulan besar per hari agar tidak spamming
+                console.log(`✅ [Mbah Eko] Sukses merilis SOP tunggal secara acak & adil untuk user @${username}`);
+                break; // Selesai! Cukup 1 karya sukses per sesi harian.
             }
 
         } catch (err) {
-            console.error("❌ [Mbah Eko] Error tidak terduga di jalankanKurator:", err);
+            console.error("❌ [Mbah Eko] Crash tidak terduga di jalankanKurator:", err);
         }
     }
 
