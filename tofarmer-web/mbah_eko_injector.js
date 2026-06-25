@@ -1,383 +1,327 @@
 (function () {
-    console.log("👴 [Mbah Eko] Aktif...");
+    console.log("👴 [Mbah Eko] Kurator Ilmu Mikro Aktif...");
 
-    const URL_TEKS   = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran";
-    const URL_GAMBAR = "https://tofarmer-api.tofarmer-api.workers.dev/ai-gambar";
-    const BOT_USERNAME = "@mbah_eko";
-    const BOT_USER_ID  = "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
+    const BOT_USER_ID = "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
+    const DB = window.supabaseClient;
 
-    let sedangMemproses = false;
-    let debounceTimer   = null;
+    // Daftar user_id yang tidak boleh dikurasi (akun bot / sistem)
+    const BLACKLIST_USER_IDS = [
+        BOT_USER_ID,                                                              // Mbah Eko sendiri
+        "HVYBLWO7XBPO76SP7KBBYZ5ZVTCPWA5Z4RTVCYBH4IBL3GJFV5DBZTWNMI"           // TOPLES_ECOSYSTEM (bot akuntansi)
+    ];
 
-    // ─── UTILITAS ────────────────────────────────────────────────────────
+    const GATE3_INSTRUCTION = `INSTRUKSI TUGAS: Anda adalah ahli kurasi ilmu mikro petani. 
+    ⚠️ PERINGATAN: WAJIB pertahankan gaya bahasa asli, istilah lokal, kosakata unik, dan karakter mengetik dari data. Rapikan hanya typo parah.
+    
+    Tugas Anda:
+    1. Filter KETAT — jawab hanya dengan kata TIDAK jika salah satu kondisi ini terpenuhi:
+       - Data BUKAN panduan teknis langkah-demi-langkah (how-to)
+       - Data TIDAK ADA hubungannya sama sekali dengan pertanian, berkebun, bercocok tanam, peternakan, perikanan, alat pertanian, pupuk, pestisida, benih, panen, irigasi, tanah, hama, penyakit tanaman, atau kegiatan agrikultur lainnya
+    2. Jika lolos kedua filter di atas, rakit menjadi SOP Baku dengan format:
+       - JUDUL: [Nama asli]
+       - KONSEP DASAR: [Penjelasan inti]
+       - PERSIAPAN: [Alat/Bahan]
+       - SOP TEKNIS: [Urutan langkah asli]
+       - PARAMETER KEBERHASILAN: [Indikator]
+       - MITIGASI RISIKO: [Jaga-jaga]`;
 
-    function buatHash(str) {
-        return btoa(unescape(encodeURIComponent(str))).substring(0, 16);
-    }
+    const VOTING_INSTRUCTION = `Anda adalah analis sentimen komunitas petani.
+    Baca kumpulan komentar berikut dan tentukan apakah komunitas SETUJU atau TIDAK SETUJU bahwa konten ini adalah ilmu bermanfaat.
+    Komentar yang menunjukkan SETUJU: kata seperti "bagus", "bermanfaat", "mantap", "setuju", "cocok", "benar", "oke", "yes", "👍", dll.
+    Komentar yang menunjukkan TIDAK SETUJU: kata seperti "tidak", "salah", "kurang", "jelek", "nggak", "beda", "keliru", "👎", dll.
+    Jawab HANYA dengan JSON valid tanpa teks lain, tanpa markdown, tanpa penjelasan apapun.
+    Format wajib: {"ya": NUMBER, "tidak": NUMBER}`;
 
-    function adalahDiriSendiri(penulis, teks) {
-        return (
-            penulis.includes("mbah_eko") ||
-            teks.includes("Petapa Menoreh") ||
-            teks.startsWith("[MENTION_HANDLED:")
-        );
-    }
+    // ─── FUNGSI UTAMA: KURATOR (Detection & Drafting) ────────────────────
 
-    function bersihkanTeks(teks) {
-        return teks
-            .replace(/@mbah_eko/gi, "")
-            .replace(/mbah eko/gi, "")
-            .replace(/Petapa Menoreh/gi, "")
-            .trim();
-    }
+    async function jalankanKurator() {
+        try {
+            const hariIni = new Date().toISOString().split('T')[0];
 
-    function ambilUrlGambar(post) {
-        const elGambar = post.querySelector(
-            "img.post-image, .post-media img, .post-content img, " +
-            ".post-foto img, img[src*='supabase'], img[src*='storage']"
-        );
-        if (!elGambar) return null;
-        if (elGambar.naturalWidth > 0 && elGambar.naturalWidth < 120) return null;
-        return elGambar.src || elGambar.getAttribute("src") || null;
-    }
+            // 1. Cek limit: 1 postingan per hari oleh Mbah Eko
+            const { data: logHariIni, error: errLog } = await DB
+                .from("contributions")
+                .select("id")
+                .eq("user_id", BOT_USER_ID)
+                .gte("created_at", hariIni)
+                .limit(1);
 
-    // ─── BACA KONTEKS POSTINGAN ───────────────────────────────────────────
-
-    function ambilKonteksPost(post) {
-        const kontenUtama = post.querySelector(".text, .deskripsi-proses")?.innerText?.trim() || "";
-
-        const elemenKomentar = post.querySelectorAll(
-            "[data-comment-author], .comment-item, .comment-box p, .comment-text, .tof-mention"
-        );
-
-        let daftarKomentar = [];
-        let mbahPernahKomentar = false;
-
-        elemenKomentar.forEach((el) => {
-            if (el.id === "advice-box" || el.id === "ai-text" || el.closest("#advice-container")) return;
-
-            const penulis = el.getAttribute("data-comment-author")
-                || el.querySelector(".comment-author")?.innerText
-                || "";
-            const teks = (el.innerText || "").trim();
-
-            if (!teks || teks.startsWith("Kirim") || teks.startsWith("Sruput")) return;
-
-            if (adalahDiriSendiri(penulis, teks)) {
-                mbahPernahKomentar = true;
+            if (errLog) {
+                console.error("❌ [Mbah Eko] Gagal cek log harian:", errLog.message);
                 return;
             }
 
-            daftarKomentar.push({ author: penulis.replace("@", "").trim(), text: teks });
-        });
-
-        const komentarTerakhir = daftarKomentar[daftarKomentar.length - 1] || null;
-        return { kontenUtama, daftarKomentar, komentarTerakhir, mbahPernahKomentar };
-    }
-
-    // ─── PENANDA MENTION — pakai localStorage, BUKAN database ────────────
-
-    function sudahTanganiMention(hash) {
-        const data = JSON.parse(localStorage.getItem("mbah_eko_handled") || "{}");
-        return !!data[hash];
-    }
-
-    function tandaiMentionSelesai(hash) {
-        const data = JSON.parse(localStorage.getItem("mbah_eko_handled") || "{}");
-        data[hash] = Date.now();
-
-        // Bersihkan entri lama (lebih dari 3 hari) supaya tidak menumpuk
-        const batasTiga = Date.now() - 3 * 24 * 60 * 60 * 1000;
-        for (const k in data) {
-            if (data[k] < batasTiga) delete data[k];
-        }
-
-        localStorage.setItem("mbah_eko_handled", JSON.stringify(data));
-    }
-
-    // ─── CEK KOMENTAR BIASA DI SUPABASE ──────────────────────────────────
-
-    async function cekSudahKomentarBiasa(postId) {
-        if (!window.supabaseClient) return false;
-        const { data, error } = await window.supabaseClient
-            .from("comments")
-            .select("id")
-            .eq("post_id", parseInt(postId))
-            .eq("user_id", BOT_USER_ID)
-            .limit(1);
-        return error ? false : data.length > 0;
-    }
-
-    // ─── MAIN LOOP ────────────────────────────────────────────────────────
-
-    async function periksaSkenarioMading() {
-        if (sedangMemproses) return;
-
-        const semuaPostingan = document.querySelectorAll(
-            "#feed .post, #userPosts .post, #profilePosts .post, .post, [id^='post-card-']"
-        );
-        if (!semuaPostingan.length) return;
-
-        for (const post of semuaPostingan) {
-            const postId = post.getAttribute("data-id")
-                || post.id?.replace("post-card-", "")
-                || post.id;
-
-            if (!postId || post.getAttribute("data-operator-lock") === "true") continue;
-
-            const { kontenUtama, daftarKomentar, komentarTerakhir, mbahPernahKomentar }
-                = ambilKonteksPost(post);
-
-            const teksKomentarTerakhir    = komentarTerakhir?.text   || "";
-            const penulisKomentarTerakhir = komentarTerakhir?.author || "";
-
-            if (adalahDiriSendiri(penulisKomentarTerakhir, teksKomentarTerakhir)) continue;
-
-            // ── SKENARIO MENTION ─────────────────────────────────────────
-            const adaMention = teksKomentarTerakhir.toLowerCase()
-                .includes(BOT_USERNAME.toLowerCase());
-
-            if (adaMention) {
-                const hashMention = buatHash(
-                    teksKomentarTerakhir + penulisKomentarTerakhir + postId
-                );
-
-                // Cek localStorage dulu (cepat, tanpa DB)
-                if (sudahTanganiMention(hashMention)) continue;
-
-                await eksekusi(post, postId, "MENTION_LANGSUNG", {
-                    kontenUtama, daftarKomentar,
-                    teksKomentarTerakhir, penulisKomentarTerakhir,
-                    hashMention
-                });
-                break;
+            if (logHariIni && logHariIni.length > 0) {
+                console.log("ℹ️ [Mbah Eko] Sudah posting hari ini, skip.");
+                return;
             }
 
-            // ── SKENARIO POSTING BARU ─────────────────────────────────────
-            if (mbahPernahKomentar) continue;
+            // 2. Ambil postingan terbaru yang mengandung kata kunci instruksi mikro
+            const { data: posts, error: errPosts } = await DB
+                .from("contributions")
+                .select("id, deskripsi_proses, user_id, judul_aksi")
+                .or("deskripsi_proses.ilike.%cara %,deskripsi_proses.ilike.%bikin %,deskripsi_proses.ilike.%trik %,deskripsi_proses.ilike.%langkah %,deskripsi_proses.ilike.%tutorial %")
+                .order("created_at", { ascending: false })
+                .limit(5);
 
-            const sudahKomenDB = await cekSudahKomentarBiasa(postId);
-            if (sudahKomenDB) continue;
-
-            await eksekusi(post, postId, "POSTINGAN_BARU", {
-                kontenUtama, daftarKomentar,
-                teksKomentarTerakhir, penulisKomentarTerakhir
-            });
-            break;
-        }
-    }
-
-    // ─── EKSEKUSI ─────────────────────────────────────────────────────────
-
-    async function eksekusi(post, postId, skenario, ctx) {
-        post.setAttribute("data-operator-lock", "true");
-        sedangMemproses = true;
-
-        console.log(`🎯 [Mbah Eko] Skenario: ${skenario} | Post: ${postId}`);
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const threadRingkas = ctx.daftarKomentar
-            .slice(-5)
-            .map(k => `${k.author || "Anonim"}: ${bersihkanTeks(k.text)}`)
-            .join("\n");
-
-        const memoPaper = typeof window.cariKonteksPaper === "function"
-            ? window.cariKonteksPaper(ctx.teksKomentarTerakhir + " " + ctx.kontenUtama)
-            : "";
-
-        const instruksi = `Kamu adalah akun komunitas bernama @mbah_eko, sobat tongkrongan yang sama-sama sedang belajar. Bukan senior, bukan mentor.
-
-Aturan WAJIB:
-- DILARANG menulis "@mbah_eko", "mbah_eko", atau menyebut nama dirimu sendiri dalam jawaban.
-- Jawab singkat, maksimal 1 kalimat
-- Pakai kata ganti "kita", bukan "kalian".
-- Gaya santai, tidak formal.
-- Jangan memposisikan diri lebih tinggi.
-- Jika ada yang mention atau bertanya, balas langsung ke poin mereka.
-- Jangan awali dengan "halo" atau "hai".
-- Ringan dibalas ringan, teknis dibalas jujur tanpa sok tahu.
-
-${memoPaper ? `\nKonteks tambahan: ${memoPaper}` : ""}`;
-
-        let promptMatang;
-        if (skenario === "POSTINGAN_BARU") {
-            promptMatang = `${instruksi}
-
-Postingan baru:
-"${bersihkanTeks(ctx.kontenUtama)}"
-
-Beri komentar pembuka yang santai dan relevan:`;
-        } else {
-            promptMatang = `${instruksi}
-
-Postingan asli:
-"${bersihkanTeks(ctx.kontenUtama)}"
-
-Thread diskusi (5 terakhir):
-${threadRingkas}
-
-Komentar yang perlu dibalas:
-"${bersihkanTeks(ctx.teksKomentarTerakhir)}"
-
-Balas komentar itu dengan nyambung ke konteks diskusi:`;
-        }
-
-        const urlGambar = ambilUrlGambar(post);
-        let tanggapanAI = "";
-
-        if (urlGambar) {
-            console.log(`🖼️ [Mbah Eko] Gambar ditemukan...`);
-           const promptDenganGambar = `${promptMatang}
-
-<VISUAL_RESTRAINT_STRICT>
-- Postingan ini menyertakan gambar pelengkap.
-- TUGAS UTAMA: Jawab prompt di atas menggunakan otak teks 100%.
-- ATURAN GAMBAR: Jangan buat analisis/deskripsi gambar. Cukup sisipkan 1 frasa yang relevan di dalam kalimat obrolanmu jika diperlukan
-- DILARANG KERAS mengulang, merangkum, atau memunculkan poin-poin instruksi visual ini di hasil akhir. Langsung berikan respons dalam gaya bahasa Mbak Eko.
-</VISUAL_RESTRAINT_STRICT>`;
-            tanggapanAI = await panggilAIdenganGambar(promptDenganGambar, urlGambar);
-            if (!tanggapanAI) {
-                console.warn("⚠️ Gambar gagal, fallback ke teks...");
-                tanggapanAI = await panggilAIteks(promptMatang);
-            }
-        } else {
-            tanggapanAI = await panggilAIteks(promptMatang);
-        }
-
-        const tanggapanBersih = tanggapanAI
-            ? tanggapanAI
-                .replace(/@mbah_eko/gi, "")
-                .replace(/mbah_eko/gi, "")
-                .replace(/mbah eko/gi, "")
-                .trim()
-            : "";
-
-        if (tanggapanBersih && window.supabaseClient) {
-            // Untuk MENTION: tandai di localStorage SEBELUM insert
-            if (skenario === "MENTION_LANGSUNG") {
-                tandaiMentionSelesai(ctx.hashMention);
+            if (errPosts) {
+                console.error("❌ [Mbah Eko] Gagal ambil postingan:", errPosts.message);
+                return;
             }
 
-            const { error } = await window.supabaseClient
-                .from("comments")
-                .insert([{
-                    post_id: parseInt(postId),
-                    user_id: BOT_USER_ID,
-                    comment: tanggapanBersih
-                }]);
+            if (!posts || posts.length === 0) {
+                console.log("ℹ️ [Mbah Eko] Tidak ada postingan relevan ditemukan.");
+                return;
+            }
 
-            if (!error) {
-                console.log(`✅ Komentar masuk | ${skenario}${urlGambar ? " + gambar" : ""}`);
-                if (typeof window.loadFeed === "function") {
-                    setTimeout(() => window.loadFeed(), 1500);
+            for (const post of posts) {
+                // Cek blacklist: jangan kurasi postingan dari bot lain atau diri sendiri
+                if (BLACKLIST_USER_IDS.includes(post.user_id)) {
+                    console.log(`🚫 [Mbah Eko] Post ${post.id} dari akun terlarang (${post.user_id}), skip.`);
+                    continue;
                 }
-            } else {
-                console.error("❌ Supabase error:", error.message);
+
+                // Cek apakah sudah diproses — pakai maybeSingle() agar tidak throw error saat data kosong
+                const { data: cekProses, error: errCek } = await DB
+                    .from("mbah_eko_kurasi")
+                    .select("id")
+                    .eq("post_id", post.id)
+                    .maybeSingle();
+
+                if (errCek) {
+                    console.error(`❌ [Mbah Eko] Gagal cek duplikat post ${post.id}:`, errCek.message);
+                    continue;
+                }
+
+                if (cekProses) {
+                    console.log(`ℹ️ [Mbah Eko] Post ${post.id} sudah pernah diproses, skip.`);
+                    continue;
+                }
+
+                // 3. AI Validasi & Drafting
+                const draftSOP = await fetchAI(post.deskripsi_proses);
+
+                // Abaikan jika bukan ilmu mikro
+                if (!draftSOP || draftSOP.trim().toUpperCase() === "TIDAK") {
+                    console.log(`ℹ️ [Mbah Eko] Post ${post.id} bukan ilmu mikro, dilewati.`);
+                    continue;
+                }
+
+                // 4. Ambil username untuk mention
+                const { data: userProfile, error: errProfile } = await DB
+                    .from("profiles")
+                    .select("username")
+                    .eq("id", post.user_id)
+                    .maybeSingle();
+
+                if (errProfile) {
+                    console.error(`❌ [Mbah Eko] Gagal ambil profil user ${post.user_id}:`, errProfile.message);
+                }
+
+                const username = userProfile?.username || "kawan";
+
+                // 5. Simpan ke database kurasi
+                const { error: errKurasi } = await DB
+                    .from("mbah_eko_kurasi")
+                    .insert([{
+                        post_id: post.id,
+                        pencetus_user_id: post.user_id,
+                        draft_content: draftSOP,
+                        status_kurasi: 'DRAFT'
+                    }]);
+
+                if (errKurasi) {
+                    console.error(`❌ [Mbah Eko] Gagal simpan kurasi post ${post.id}:`, errKurasi.message);
+                    continue;
+                }
+
+                // 6. Posting ke Feed (Tabel contributions)
+                const kontenFinal = `Sari ilmu dari @${username}, matur nuwun idenya! Mari kita bedah SOP-nya:\n\n${draftSOP}`;
+
+                const { error: errPost } = await DB
+                    .from("contributions")
+                    .insert([{
+                        user_id: BOT_USER_ID,
+                        judul_aksi: `SOP Baku: ${post.judul_aksi || "Ilmu Mikro"}`,
+                        deskripsi_proses: kontenFinal
+                    }]);
+
+                if (errPost) {
+                    console.error("❌ [Mbah Eko] Gagal posting ke feed:", errPost.message);
+                    continue;
+                }
+
+                console.log(`✅ [Mbah Eko] Berhasil kurasi dan posting SOP dari post ${post.id}`);
+                break; // Hanya proses 1 ilmu per hari
             }
-        }
 
-        post.removeAttribute("data-operator-lock");
-        setTimeout(() => { sedangMemproses = false; }, 8000); // cooldown 8 detik
-    }
-
-    // ─── PANGGIL WORKER: TEKS ─────────────────────────────────────────────
-
-    async function panggilAIteks(promptTeks) {
-        try {
-            const res = await fetch(URL_TEKS, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: promptTeks, teks: promptTeks })
-            });
-            const json = await res.json();
-            return json.reply || json.saran || "";
-        } catch (e) {
-            console.error("❌ AI teks error:", e);
-            return "";
+        } catch (err) {
+            console.error("❌ [Mbah Eko] Error tidak terduga di jalankanKurator:", err);
         }
     }
 
-// ─── PANGGIL WORKER: GAMBAR (DENGAN DOWN-SCALE / KOMPRESI LOGIS) ──────
+    // ─── ANALISA VOTING & INTEGRASI KE ILMU PENDING ──────────────────────
 
-    async function panggilAIdenganGambar(promptTeks, imageUrl) {
+    async function prosesVoting() {
         try {
-            // 1. Ambil gambar asli
-            const img = new Image();
-            img.crossOrigin = "anonymous"; // Hindari isu CORS mading
-            
-            const p = new Promise((resolve, reject) => {
-                img.onload = () => resolve(img);
-                img.onerror = (e) => reject(e);
-                img.src = imageUrl;
-            });
-            await p;
+            const { data: drafs, error: errDrafs } = await DB
+                .from("mbah_eko_kurasi")
+                .select("id, post_id, pencetus_user_id, draft_content")
+                .eq("status_kurasi", 'DRAFT');
 
-           // 2. Down-scale gambar menggunakan Canvas (Dioptimalkan ke 800px agar detail tidak hilang)
-const canvas = document.createElement("canvas");
-const ctxCanvas = canvas.getContext("2d");
+            if (errDrafs) {
+                console.error("❌ [Mbah Eko] Gagal ambil draf kurasi:", errDrafs.message);
+                return;
+            }
 
-let width = img.width;
-let height = img.height;
-const max_size = 800; // Naik ke 800px agar model tidak 'kebingungan' melihat objek buram
+            if (!drafs || drafs.length === 0) {
+                console.log("ℹ️ [Mbah Eko] Tidak ada draf yang menunggu voting.");
+                return;
+            }
 
-if (width > height) {
-    if (width > max_size) {
-        height *= max_size / width;
-        width = max_size;
+            for (const draf of drafs) {
+                const { data: comments, error: errComments } = await DB
+                    .from("comments")
+                    .select("comment")
+                    .eq("post_id", draf.post_id);
+
+                if (errComments) {
+                    console.error(`❌ [Mbah Eko] Gagal ambil komentar post ${draf.post_id}:`, errComments.message);
+                    continue;
+                }
+
+                if (!comments || comments.length < 5) {
+                    console.log(`ℹ️ [Mbah Eko] Post ${draf.post_id} baru ${comments?.length || 0} komentar, belum cukup untuk voting.`);
+                    continue;
+                }
+
+                const hasil = await fetchVoting(comments);
+
+                if (hasil === null) {
+                    console.error(`❌ [Mbah Eko] Gagal parse hasil voting untuk draf ${draf.id}, skip.`);
+                    continue;
+                }
+
+                console.log(`📊 [Mbah Eko] Hasil voting draf ${draf.id}: YA=${hasil.ya}, TIDAK=${hasil.tidak}`);
+
+                if (hasil.ya >= hasil.tidak) {
+                    // Masukkan ke ilmu_pending agar muncul di dashboard manual
+                    const { error: errPending } = await DB
+                        .from("ilmu_pending")
+                        .insert([{
+                            user_id: draf.pencetus_user_id,
+                            judul_aksi: "Kurasi Mbah Eko",
+                            deskripsi_proses: draf.draft_content,
+                            pilar_aksi: 0,
+                            total_vote: hasil.ya
+                        }]);
+
+                    if (errPending) {
+                        console.error(`❌ [Mbah Eko] Gagal insert ilmu_pending draf ${draf.id}:`, errPending.message);
+                        continue;
+                    }
+
+                    const { error: errUpdate } = await DB
+                        .from("mbah_eko_kurasi")
+                        .update({ status_kurasi: 'BAKU' })
+                        .eq("id", draf.id);
+
+                    if (errUpdate) {
+                        console.error(`❌ [Mbah Eko] Gagal update status BAKU draf ${draf.id}:`, errUpdate.message);
+                        continue;
+                    }
+
+                    console.log(`✅ [Mbah Eko] Draf ${draf.id} disetujui komunitas → status BAKU`);
+                } else {
+                    const { error: errReject } = await DB
+                        .from("mbah_eko_kurasi")
+                        .update({ status_kurasi: 'REJECTED' })
+                        .eq("id", draf.id);
+
+                    if (errReject) {
+                        console.error(`❌ [Mbah Eko] Gagal update status REJECTED draf ${draf.id}:`, errReject.message);
+                        continue;
+                    }
+
+                    console.log(`🚫 [Mbah Eko] Draf ${draf.id} ditolak komunitas → status REJECTED`);
+                }
+            }
+
+        } catch (err) {
+            console.error("❌ [Mbah Eko] Error tidak terduga di prosesVoting:", err);
+        }
     }
-} else {
-    if (height > max_size) {
-        width *= max_size / height;
-        height = max_size;
-    }
-}
 
-canvas.width = width;
-canvas.height = height;
-ctxCanvas.drawImage(img, 0, 0, width, height);
+    // ─── AI HELPERS ──────────────────────────────────────────────────────
 
-// 3. Ubah menjadi JPEG dengan kualitas 0.7 (70%)
-const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.7));
-const arrayBuffer = await blob.arrayBuffer();
-const byteArray = Array.from(new Uint8Array(arrayBuffer));
-
-            // 4. Kirim ke Worker dengan payload ukuran minimalis (~20-50 KB saja)
-            const res = await fetch(URL_GAMBAR, {
+    async function fetchAI(data) {
+        try {
+            const res = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/ai-saran", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    prompt: promptTeks, 
-                    image: byteArray 
+                body: JSON.stringify({
+                    prompt: `${GATE3_INSTRUCTION}\n\nREFERENSI DATA: ${data}`,
+                    trigger: "Gate3-Compile"
                 })
             });
-            
+
             if (!res.ok) {
-                const errData = await res.json();
-                console.error("Worker menolak gambar:", errData);
-                return "";
+                console.error(`❌ [Mbah Eko] fetchAI HTTP error: ${res.status}`);
+                return "TIDAK";
             }
 
             const json = await res.json();
-            return json.response || json.saran || "";
-        } catch (e) {
-            console.error("❌ AI gambar error di injector:", e);
-            return "";
+            return json.reply || "TIDAK";
+
+        } catch (err) {
+            console.error("❌ [Mbah Eko] fetchAI gagal:", err);
+            return "TIDAK";
         }
     }
 
-    // ─── OBSERVER + PEMICU (dengan debounce 8 detik) ─────────────────────
+    async function fetchVoting(comments) {
+        try {
+            const text = comments.map(c => c.comment).join(" | ");
 
-    function jadwalkanPemeriksa() {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(periksaSkenarioMading, 8000);
+            const res = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/ai-saran", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    prompt: `${VOTING_INSTRUCTION}\n\nKOMENTAR: "${text}"`,
+                    trigger: "Gate3-Voting"
+                })
+            });
+
+            if (!res.ok) {
+                console.error(`❌ [Mbah Eko] fetchVoting HTTP error: ${res.status}`);
+                return null;
+            }
+
+            const raw = await res.text();
+
+            // Bersihkan markdown fence jika ada (```json ... ```)
+            const clean = raw.replace(/```json|```/gi, "").trim();
+
+            const parsed = JSON.parse(clean);
+
+            // Validasi struktur hasil
+            if (typeof parsed.ya !== "number" || typeof parsed.tidak !== "number") {
+                console.error("❌ [Mbah Eko] Struktur JSON voting tidak valid:", parsed);
+                return null;
+            }
+
+            return parsed;
+
+        } catch (err) {
+            console.error("❌ [Mbah Eko] fetchVoting gagal parse JSON:", err);
+            return null;
+        }
     }
 
-    const observer = new MutationObserver(jadwalkanPemeriksa);
-    observer.observe(document.body, { childList: true, subtree: true });
-
-    // Cek awal setelah halaman siap
-    setTimeout(periksaSkenarioMading, 5000);
-    window.addEventListener("load", () => setTimeout(periksaSkenarioMading, 3000));
+    // ─── RUNNER ──────────────────────────────────────────────────────────
+    setInterval(jalankanKurator, 3600000);
+    setInterval(prosesVoting, 3600000);
+    jalankanKurator();
+    prosesVoting();
 
 })();
