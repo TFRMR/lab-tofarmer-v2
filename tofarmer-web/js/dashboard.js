@@ -230,7 +230,6 @@ window.buatIlmuBaru = async () => {
         window.location.href = 'gate-1.html';
     }, 2000);
 };
-window.buatIlmuBaru = eksekusiBuatIlmuBaru;
 // --- LOAD TABEL BARU ---
 async function loadDataIlmu(tableName, elementId, badgeText) {
     const container = document.getElementById(elementId);
