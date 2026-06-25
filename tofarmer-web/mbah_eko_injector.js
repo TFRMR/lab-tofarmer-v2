@@ -10,32 +10,29 @@
         "HVYBLWO7XBPO76SP7KBBYZ5ZVTCPWA5Z4RTVCYBH4IBL3GJFV5DBZTWNMI"           // TOPLES_ECOSYSTEM (bot akuntansi)
     ];
 
-   const GATE3_INSTRUCTION = `INSTRUKSI TUGAS: Anda adalah sistem penyaring data ketat untuk ekosistem ToFarmer.
-    TUGAS: Menganalisis KUMPULAN catatan/postingan dari SATU USER untuk ditarik kesimpulan menjadi sebuah SOP Baku jika dan hanya jika isinya adalah ILMU PRAKTIS RIIL.
+   const GATE3_INSTRUCTION = `INSTRUKSI TUGAS: Anda adalah sistem kurator ilmu mikro untuk ekosistem multidisplin ToFarmer.
+    TUGAS: Menganalisis KUMPULAN catatan/postingan dari SATU USER untuk ditarik kesimpulan menjadi sebuah SOP yang FOKUS dan LOGIS.
     
     ⚠️ PERINGATAN GAYA BAHASA: WAJIB pertahankan gaya bahasa asli, istilah lokal, kosakata unik, dan karakter mengetik dominan dari data asli. Rapikan hanya typo yang parah.
     
-    ⚠️ ATURAN RELEVANSI TOPIK: Pilih SATU TOPIK UTAMA yang paling dominan, riil, dan masuk akal dari 5 Pilar Resmi ToFarmer:
-       - Pilar 1: Komunitas & Narasi Kreatif (Dokumentasi perjuangan hidup, solidaritas warga)
-       - Pilar 2: Inovasi & Rekayasa Teknologi (Alat fisik tepat guna, mekanisasi, robotika, coding/software, server Linux)
-       - Pilar 3: Ladang Belajar (Praktik nyata pertanian, peternakan, perikanan, kompos, tanah)
-       - Pilar 4: Finansial & Investasi (Manajemen modal ekosistem, micro-asset, analisa trading/Forex, indikator EA)
-       - Pilar 5: Refleksi Petapa (Filsafat hidup, etika, hubungan manusia dengan alam, kearifan lokal Javanese philosophy)
-    JANGAN PERNAH MENCAMPURADUKKAN dua aktivitas berbeda ke dalam satu SOP!
+    ⚠️ SISTEM DETEKSI DUA JALUR (WAJIB):
+    Sebelum menulis, analisis dengan jeli apakah kumpulan data user ini berisi "Ilmu Serius" atau "Candaan/Metafora Fiktif":
     
-    ⚠️ PAGAR PARAMETER TEKNIS: Saat melengkapi data yang kurang spesifik (seperti takaran, jarak, kedalaman tanam, instruksi baris kode, atau settingan trading), gunakan logika standar yang AMAN. 
-       - JANGAN MENGARANG angka atau analogi ekstrem yang tidak masuk akal di dunia nyata.
-       - Jika ragu dengan angka pastinya, gunakan kalimat aman seperti: "secukupnya", "sesuai kondisi lahan", "sesuai kebutuhan sistem". Jangan sok tahu menentukan angka mati jika model pengetahuan Anda terbatas.
+    1. JALUR SERIUS (Jika isinya panduan riil dari 5 Pilar ToFarmer):
+       Rakit menjadi SOP Baku formal yang aman, masuk akal, dan aplikatif di dunia nyata.
+       
+    2. JALUR PARODI / GUYOAN (Jika isinya banyolan, khayalan, atau metafora konyol seperti membuat candi semalam, ternak naga, dll):
+       JANGAN DITOLAK! Tetap rakit menjadi SOP, tetapi dengan format "SOP PARODI / GUYOAN WARUNG KOPI". Gunakan sudut pandang komedi, sarkasme halus, atau humor lokal yang menghibur komunitas Pilar 1 (Narasi Kreatif), tetapi langkah-langkahnya tetap harus tersusun runtut mengikuti logika banyolan tersebut (Jangan dicocoklogikan sok serius ke blockchain atau pertanian biologis!).
     
     Langkah Kerja:
-    1. FILTER MUTLAK — Saring konten mentah dengan sangat skeptis dan dingin. Jika isi tulisan user murni hanya berupa candaan, metafora konyol, khayalan, fiksi, curhat kosong, banyolan, atau tidak mengandung panduan instruksional yang bisa dipraktikkan manusia normal di dunia nyata, Anda WAJIB MENOLAKNYA. Jangan mencoba mencocokkannya ke pilar mana pun. Jawab HANYA dengan satu kata: TIDAK
-    2. Jika lolos validasi riil tersebut, rakit menjadi SATU SOP Baku yang fokus dengan format:
-       - JUDUL: [Nama SOP asli/relevan - Harus spesifik ke satu bidang pilar]
-       - KONSEP DASAR: [Penjelasan inti dari topik utama yang dipilih]
-       - PERSIAPAN: [Alat/Bahan/Software/Sintaks yang relevan saja, lengkapi takaran standarnya jika user tidak menulisnya]
-       - SOP TEKNIS: [Urutan langkah kumulatif yang logis, aman, & sesuai akal sehat]
-       - PARAMETER KEBERHASILAN: [Indikator keberhasilan yang jelas/terukur]
-       - MITIGASI RISIKO: [Hal-hal yang harus diwaspadai berdasarkan risiko umum dari praktik tersebut]`;
+    1. Filter Awal: Jika teks murni spam satu kata, curhat kosong tanpa alur, atau tidak bisa dibikin SOP sama sekali, jawab HANYA dengan satu kata: TIDAK
+    2. Jika lolos (baik serius maupun guyon), rakit menggunakan format:
+       - JUDUL: [Nama SOP - Jika guyon, wajib tambahkan teks "(SOP PARODI)" di judulnya]
+       - KONSEP DASAR: [Penjelasan inti dari pilar atau latar belakang guyonan tersebut dibuat]
+       - PERSIAPAN: [Alat/Bahan yang disebutkan di tulisan user, atau pelengkap yang lucu/relevan]
+       - SOP TEKNIS: [Urutan langkah kumulatif yang runtut dan berurutan sesuai jalur yang dipilih]
+       - PARAMETER KEBERHASILAN: [Indikator keberhasilan yang jelas, terukur, atau menggelitik jika itu parodi]
+       - MITIGASI RISIKO: [Hal-hal yang harus diwaspadai dari praktik tersebut]`;
 
     const VOTING_INSTRUCTION = `Anda adalah analis sentimen komunitas petani.
     Baca kumpulan komentar berikut dan tentukan apakah komunitas SETUJU atau TIDAK SETUJU bahwa konten ini adalah ilmu bermanfaat.
