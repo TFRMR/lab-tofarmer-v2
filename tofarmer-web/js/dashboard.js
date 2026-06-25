@@ -72,7 +72,16 @@ async function sapaUser() {
 // --- EFEK KETIK (TYPING EFFECT) ---
 function typeWriter(element, text, speed = 30) {
     let i = 0;
-    element.innerHTML = "";
+
+    // Tulis teks penuh dulu (invisible) untuk "booking" tinggi,
+    // lalu hapus dan ketik ulang — layout tidak akan lompat
+    element.style.visibility = 'hidden';
+    element.textContent = text;
+    const lockedHeight = element.offsetHeight;
+    element.style.minHeight = lockedHeight + 'px';
+    element.style.visibility = 'visible';
+    element.textContent = '';
+
     if (window.typingInterval) clearInterval(window.typingInterval);
     window.typingInterval = setInterval(() => {
         if (i < text.length) {
@@ -80,6 +89,8 @@ function typeWriter(element, text, speed = 30) {
             i++;
         } else {
             clearInterval(window.typingInterval);
+            // Reset minHeight setelah selesai supaya tidak ada sisa ruang kosong
+            element.style.minHeight = '';
         }
     }, speed);
 }
