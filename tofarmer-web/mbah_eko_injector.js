@@ -256,26 +256,26 @@
 
     async function fetchAI(data) {
         try {
+            // Ringkas data jika terlalu panjang agar tidak 500
+            const teksRingkas = (data || "").substring(0, 1000);
+            
             const res = await fetch("https://tofarmer-api.tofarmer-api.workers.dev/ai-saran", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    prompt: `${GATE3_INSTRUCTION}\n\nREFERENSI DATA: ${data}`,
-                    trigger: "Gate3-Compile"
+                body: JSON.stringify({ 
+                    teks: `${GATE3_INSTRUCTION}\n\nDATA: ${teksRingkas}`,
+                    trigger: "Gate3-Compile" 
                 })
             });
 
-            if (!res.ok) {
-                console.error(`❌ [Mbah Eko] fetchAI HTTP error: ${res.status}`);
-                return "TIDAK";
-            }
-
+            if (!res.ok) throw new Error("Server Worker Error");
+            
             const json = await res.json();
-            return json.reply || "TIDAK";
-
+            // Worker mengirim { reply: "..." } atau { saran: "..." }
+            return json.reply || json.saran || "TIDAK";
         } catch (err) {
-            console.error("❌ [Mbah Eko] fetchAI gagal:", err);
-            return "TIDAK";
+            console.error("⚠️ [Mbah Eko] Gagal hubungi Worker, skip sementara.");
+            return "TIDAK"; 
         }
     }
 
