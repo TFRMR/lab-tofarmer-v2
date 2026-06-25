@@ -209,34 +209,110 @@ function arahkankeGate(data) {
     }
 }
 
-// 🔥 CARI DAN GANTI FUNSI window.buatIlmuBaru YANG LAMA DENGAN BARIS INI:
-window.buatIlmuBaru = async () => {
-    localStorage.removeItem('tofarmer_draft');
-    
-    const aiText = document.getElementById('ai-text');
-    const petunjukGate = typeof window.cariKonteksDashboard === "function" ? window.cariKonteksDashboard("buat ilmu baru") : "";
-    
-    if (aiText) {
-        aiText.innerText = "...";
-        try {
-            // Tembak AI untuk memberikan wejangan ringkas tentang Gate 1-3 sebelum user pindah halaman
-            const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    mode: "Dashboard", 
-                    trigger: "klik_buat_ilmu", 
-                    teks: `User mau buat ilmu baru. Berikan pengingat super singkat tentang alur Gate 1 sampai Gate 3 (di mana mereka harus review tulisan AI): ${petunjukGate}` 
-                })
-            });
-            const result = await response.json();
-            typeWriter(aiText, result.saran || "Menyiapkan lembar kerja baru...");
-        } catch (e) {
-            aiText.innerText = "Menyiapkan lembar kerja...";
-        }
+// --- POPUP LOADING BUAT ILMU BARU ---
+function tampilkanLoadingBuatIlmu() {
+    const overlay = document.createElement('div');
+    overlay.id = 'loading-buat-ilmu';
+    overlay.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(3, 8, 5, 0.88);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 99999;
+    `;
+    overlay.innerHTML = `
+        <div style="
+            background: rgba(14, 28, 19, 0.95);
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            width: 88%;
+            max-width: 360px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        ">
+            <div style="font-size: 2.5rem; margin-bottom: 1rem; animation: spin-daun 1.2s linear infinite; display: inline-block;">🌱</div>
+            <h3 style="
+                font-family: 'Playfair Display', serif;
+                color: #4ade80;
+                font-size: 1.15rem;
+                margin-bottom: 0.5rem;
+            ">Menyiapkan Lembar Kerja...</h3>
+            <p id="loading-pesan" style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5; min-height: 40px;">
+                Sebentar ya, AI sedang menyiapkan panduan untuk kamu 🌿
+            </p>
+            <div style="margin-top: 1.2rem; display: flex; gap: 6px; justify-content: center;">
+                <span class="dot-loading" style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:dot-bounce 1.2s ease-in-out infinite;"></span>
+                <span class="dot-loading" style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:dot-bounce 1.2s ease-in-out 0.2s infinite;"></span>
+                <span class="dot-loading" style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;animation:dot-bounce 1.2s ease-in-out 0.4s infinite;"></span>
+            </div>
+        </div>
+    `;
+
+    // Injeksi keyframe animasi jika belum ada
+    if (!document.getElementById('style-loading-anim')) {
+        const styleTag = document.createElement('style');
+        styleTag.id = 'style-loading-anim';
+        styleTag.textContent = `
+            @keyframes spin-daun {
+                0%   { transform: rotate(0deg) scale(1); }
+                50%  { transform: rotate(180deg) scale(1.15); }
+                100% { transform: rotate(360deg) scale(1); }
+            }
+            @keyframes dot-bounce {
+                0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+                40%           { transform: translateY(-8px); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(styleTag);
     }
 
-    // Beri jeda 2 detik agar user sempat membaca wejangan AI sebelum mental ke gate-1.html
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
+// 🔥 CARI DAN GANTI FUNSI window.buatIlmuBaru YANG LAMA DENGAN BARIS INI:
+window.buatIlmuBaru = async () => {
+    // Cegah double-klik: jika popup sudah ada, abaikan
+    if (document.getElementById('loading-buat-ilmu')) return;
+
+    localStorage.removeItem('tofarmer_draft');
+
+    // Tampilkan popup loading segera sebelum fetch
+    const loadingOverlay = tampilkanLoadingBuatIlmu();
+    const pesanEl = document.getElementById('loading-pesan');
+
+    const aiText = document.getElementById('ai-text');
+    const petunjukGate = typeof window.cariKonteksDashboard === "function" ? window.cariKonteksDashboard("buat ilmu baru") : "";
+
+    let pesanAI = "Menyiapkan lembar kerja baru...";
+
+    try {
+        const response = await fetch('https://tofarmer-api.tofarmer-api.workers.dev/ai-saran', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                mode: "Dashboard",
+                trigger: "klik_buat_ilmu",
+                teks: `User mau buat ilmu baru. Berikan pengingat super singkat tentang alur Gate 1 sampai Gate 3 (di mana mereka harus review tulisan AI): ${petunjukGate}`
+            })
+        });
+        const result = await response.json();
+        pesanAI = result.saran || pesanAI;
+
+        // Tampilkan pesan AI di dalam popup loading
+        if (pesanEl) pesanEl.innerText = pesanAI;
+
+        // Juga update ai-text di belakang popup
+        if (aiText) typeWriter(aiText, pesanAI);
+
+    } catch (e) {
+        if (pesanEl) pesanEl.innerText = "Siap! Menuju Gate 1...";
+        if (aiText) aiText.innerText = "Menyiapkan lembar kerja...";
+    }
+
+    // Jeda singkat agar pesan AI sempat terbaca, lalu redirect
     setTimeout(() => {
         window.location.href = 'gate-1.html';
     }, 2000);
