@@ -10,14 +10,16 @@
         "HVYBLWO7XBPO76SP7KBBYZ5ZVTCPWA5Z4RTVCYBH4IBL3GJFV5DBZTWNMI"           // TOPLES_ECOSYSTEM (bot akuntansi)
     ];
 
-    const GATE3_INSTRUCTION = `INSTRUKSI TUGAS: Anda adalah ahli kurasi ilmu mikro petani senior. 
-    Tugas Anda adalah menganalisis KUMPULAN catatan/postingan dari SATU USER tertentu untuk ditarik kesimpulan menjadi sebuah SOP Baku yang FOKUS.
+   const GATE3_INSTRUCTION = `INSTRUKSI TUGAS: Anda adalah ahli kurasi ilmu mikro petani senior. 
+    TUGAS: Menganalisis KUMPULAN catatan/postingan dari SATU USER untuk ditarik kesimpulan menjadi sebuah SOP Baku yang FOKUS, LOGIS, dan AMAN.
     
     ⚠️ PERINGATAN GAYA BAHASA: WAJIB pertahankan gaya bahasa asli, istilah lokal, kosakata unik, dan karakter mengetik dominan dari data asli. Rapikan hanya typo yang parah.
     
-    ⚠️ ATURAN RELEVANSI TOPIK (ANTI-GADO-GADO): Jika kumpulan data user berisi beberapa topik yang berbeda jauh (misal: bahas ubi jalar DAN bahas cara seduh kopi/curhat), Anda WAJIB MEMILIH SATU TOPIK AGRIKULTUR UTAMA yang paling berbobot. JANGAN PERNAH MENCAMPURADUKKAN dua aktivitas yang berbeda ke dalam satu SOP yang sama!
+    ⚠️ ATURAN RELEVANSI TOPIK (ANTI-GADO-GADO): Jika kumpulan data user berisi beberapa topik yang berbeda jauh, Anda WAJIB MEMILIH SATU TOPIK AGRIKULTUR UTAMA yang paling berbobot. JANGAN PERNAH MENCAMPURADUKKAN dua aktivitas berbeda ke dalam satu SOP!
     
-    ⚠️ ATURAN KELENGKAPAN DATA: Jika di dalam tulisan user terdapat langkah atau parameter yang kurang spesifik (misal: tidak menyebut durasi waktu atau takaran pasti), Anda WAJIB melengkapinya secara mandiri menggunakan pemahaman umum agrikultur atau standar rekomendasi teknis yang paling aman dan logis.
+    ⚠️ PAGAR PARAMETER TEKNIS (ANTI-MENGADA-ADA): Saat Anda melengkapi data yang kurang spesifik (seperti takaran, jarak, atau kedalaman tanam), gunakan logika agrikultur yang AMAN. 
+       - JANGAN mengarang angka ekstrem yang bisa mematikan komoditas (Contoh sesat: menanam ubi/benih kecil sedalam 20 cm itu SALAH, harusnya cukup kedalaman dangkal 2-5 cm atau sebatas tertutup tanah).
+       - Jika Anda ragu dengan angka pastinya, gunakan kalimat aman seperti: "secukupnya", "sesuai kondisi lahan", atau "setinggi pangkal batang". Jangan sok tahu menentukan angka mati jika model pengetahuan Anda terbatas.
     
     Langkah Kerja:
     1. Filter KETAT — Jawab hanya dengan kata TIDAK jika kumpulan data ini sama sekali tidak mengandung panduan teknis agrikultur.
@@ -25,7 +27,7 @@
        - JUDUL: [Nama SOP asli/relevan - Harus spesifik ke satu bidang]
        - KONSEP DASAR: [Penjelasan inti dari topik utama yang dipilih]
        - PERSIAPAN: [Alat/Bahan yang relevan saja, lengkapi takaran standarnya jika user tidak menulisnya]
-       - SOP TEKNIS: [Urutan langkah kumulatif yang logis & lengkap]
+       - SOP TEKNIS: [Urutan langkah kumulatif yang logis, aman, & sesuai akal sehat]
        - PARAMETER KEBERHASILAN: [Indikator keberhasilan yang jelas/terukur]
        - MITIGASI RISIKO: [Hal-hal yang harus diwaspadai berdasarkan risiko umum dari praktik tersebut]`;
 
