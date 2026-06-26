@@ -466,121 +466,213 @@
             }
         }
 
-    // ==========================================
-// BAGIAN KODE: AMBIL DATA BLOCKCHAIN + VESTIGE API REAL-TIME (KONVERSI IDR)
-// ==========================================
-async function fetchAlgorandChainData() {
-    const CREATOR_WALLET = "WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q"; 
-    
-    try {
-        // 1. Ambil spesifikasi utama aset TOF dari blockchain (Algonode)
-        const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
-        const assetData = await assetResponse.json();
-        
-        const rawTotalSupply = assetData.asset.params.total;
-        const decimals = assetData.asset.params.decimals || 0;
-        const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
-        
-        document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
-        document.getElementById('total-supply').classList.remove('pulse');
-        
-        let creatorHoldingBalance = 0;
-        
-        // 2. Baca isi Dompet Creator untuk menghitung sirkulasi pasokan
-        try {
-            const creatorResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}`);
-            if (creatorResponse.ok) {
-                const creatorData = await creatorResponse.json();
-                const assetsHolding = creatorData.account['assets'] || [];
-                const holdingData = assetsHolding.find(item => item['asset-id'] == ASSET_ID);
+      // 2. AMBIL DATA BLOCKCHAIN ALGORAND + HITUNG HARGA LIVE POOL (DENGAN CONVERSION KE IDR)
+        async function fetchAlgorandChainData() {
+            const CREATOR_WALLET = "WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q"; 
+            
+            // Dompet Pool TOF/USDC atau TOF/ALGO Abang
+            const POOL_WALLET = "HLZZDZLO7WQFSTJYZRNMVHP3RBRAJUDYEJEVIBWRE2RNDIJS4HCCVFT7SI"; 
+            
+            // ID Aset pembanding di Pool (Contoh jika poolnya TOF/USDC, isi ID USDC di Algorand)
+            // Jika USDC Mainnet Algorand biasanya Asset ID-nya: 31566704
+            const PAIR_ASSET_ID = "31566704"; 
+
+            try {
+                // 1. Ambil spesifikasi utama aset TOF dari blockchain
+                const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
+                const assetData = await assetResponse.json();
                 
-                if (holdingData) {
-                    creatorHoldingBalance = (holdingData.amount || 0) / Math.pow(10, decimals);
+                const rawTotalSupply = assetData.asset.params.total;
+                const decimals = assetData.asset.params.decimals || 0;
+                const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
+                
+                document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
+                document.getElementById('total-supply').classList.remove('pulse');
+                
+                let creatorHoldingBalance = 0;
+                let poolPairBalance = 0;
+                let poolTofBalance = 0;
+                
+                // 2. Baca isi Dompet Creator untuk menghitung sirkulasi
+                try {
+                    const creatorResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}`);
+                    if (creatorResponse.ok) {
+                        const creatorData = await creatorResponse.json();
+                        const assetsHolding = creatorData.account['assets'] || [];
+                        const holdingData = assetsHolding.find(item => item['asset-id'] == ASSET_ID);
+                        
+                        if (holdingData) {
+                            creatorHoldingBalance = (holdingData.amount || 0) / Math.pow(10, decimals);
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Gagal membaca dompet creator, menggunakan fallback:", err);
+                    creatorHoldingBalance = actualTotalSupply * 0.90;
                 }
+
+                const circulatingSupply = actualTotalSupply - creatorHoldingBalance; 
+                document.getElementById('circulating-supply').innerText = circulatingSupply.toLocaleString('id-ID') + " TOF";
+                document.getElementById('circulating-supply').classList.remove('pulse');
+
+                // 3. Baca Dompet Pool secara spesifik untuk kalkulasi rasio harga
+                try {
+                    const poolResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${POOL_WALLET}`);
+                    if (poolResponse.ok) {
+                        const poolData = await poolResponse.json();
+                        const poolAssets = poolData.account['assets'] || [];
+                        
+                        // Ambil saldo TOF di dalam pool
+                        const poolTofData = poolAssets.find(item => item['asset-id'] == ASSET_ID);
+                        if (poolTofData) {
+                            poolTofBalance = (poolTofData.amount || 0) / Math.pow(10, decimals);
+                        }
+                        
+                        // Ambil saldo Aset Pasangannya (misal USDC) di dalam pool
+                        const poolPairData = poolAssets.find(item => item['asset-id'] == PAIR_ASSET_ID);
+                        if (poolPairData) {
+                            // USDC di Algorand biasanya memiliki 6 desimal
+                            poolPairBalance = (poolPairData.amount || 0) / Math.pow(10, 6); 
+                        } else {
+                            // Jika pasangannya adalah ALGO asli (bukan token ASA), ambil saldo mikroalgo bawaan wallet
+                            poolPairBalance = poolData.account.amount / 1000000;
+                        }
+                    }
+                } catch (err) {
+                    console.warn("Gagal membaca dompet pool, menggunakan data pergerakan estimasi dasar.");
+                }
+
+                // KALKULASI RATIO HARGA (Pair / TOF)
+                let livePriceInPair = 0.0025; 
+                if (poolTofBalance > 0 && poolPairBalance > 0) {
+                    livePriceInPair = poolPairBalance / poolTofBalance; 
+                }
+
+                // AMBIL KURS FIAT DOLAR/ALGO KE RUPIAH (IDR) REAL-TIME UNTUK KONVERSI
+                let pairToIdr = 15500; // Standar Fallback Kurs Rupiah terhadap USD
+                try {
+                    // Mengambil data harga stabil USD langsung ke IDR via CoinGecko
+                    const fiatReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,algorand&vs_currencies=idr");
+                    const fiatData = await fiatReq.json();
+                    
+                    if (fiatData['usd-coin']) {
+                        pairToIdr = fiatData['usd-coin'].idr; // Menggunakan nilai konversi stabil USDC asli ke Rupiah
+                    } else if (fiatData.algorand) {
+                        pairToIdr = fiatData.algorand.idr; // Alternatif jika pool menggunakan ALGO
+                    }
+                } catch(e) {
+                    console.warn("Gagal mengambil kurs fiat live, menggunakan estimasi Rp15.500");
+                }
+
+                // Konversi harga token dari Pool ke nilai Rupiah murni
+                const currentPriceIDR = livePriceInPair * pairToIdr;
+
+                // Render Candlestick Chart dengan angka Rupiah yang sudah dikonversi
+                renderCandlestickChart(currentPriceIDR);
+
+                // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
+                const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
+                const balancesData = await balancesResponse.json();
+                const allBlockchainHolders = balancesData.balances.map(b => b.address);
+
+                crossReferenceHolders(allBlockchainHolders);
+
+            } catch (error) {
+                console.error("Gagal memuat data on-chain:", error);
+                document.getElementById('total-supply').innerText = "Gagal memuat";
+                document.getElementById('circulating-supply').innerText = "Gagal memuat";
+                renderCandlestickChart(38.50); // Fallback grafik nilai acak Rp38 per TOF
             }
-        } catch (err) {
-            console.warn("Gagal membaca dompet creator, menggunakan fallback:", err);
-            creatorHoldingBalance = actualTotalSupply * 0.90;
         }
+        
+        // 3. SINKRONISASI DATA SUPABASE VS BLOCKCHAIN
+        async function crossReferenceHolders(blockchainAddresses) {
+            try {
+                const { data: internalProfiles, error } = await supabaseClient
+                    .from('profiles')
+                    .select('id');
 
-        const circulatingSupply = actualTotalSupply - creatorHoldingBalance; 
-        document.getElementById('circulating-supply').innerText = circulatingSupply.toLocaleString('id-ID') + " TOF";
-        document.getElementById('circulating-supply').classList.remove('pulse');
+                if (error) throw error;
 
-        // 3. AMBIL KURS LIVE USD KE IDR VIA COINGECKO
-        let usdToIdr = 15500; // Standar Fallback jika API Coingecko limit
-        try {
-            const fiatReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=idr");
-            const fiatData = await fiatReq.json();
-            if (fiatData['usd-coin']) {
-                usdToIdr = fiatData['usd-coin'].idr;
-            }
-        } catch(e) {
-            console.warn("Gagal mengambil kurs fiat live, menggunakan estimasi Rp15.500");
-        }
+                const internalAddresses = internalProfiles ? internalProfiles.map(u => u.id) : [];
 
-        // 4. AMBIL DATA REAL-TIME & HISTORIS DARI VESTIGE API
-        // Kita mengambil interval harian ('1d') dengan jumlah lilin banyak (misal 120 candle)
-        // Agar default tampilannya kecil-kecil rapat seperti di DEX/TradingView
-        try {
-            const vestigeResponse = await fetch(`https://free-api.vestige.fi/asset/${ASSET_ID}/candles?interval=1d&count=120`);
-            if (!vestigeResponse.ok) {
-                throw new Error("Gagal mengambil data dari API Vestige");
-            }
-            const candleData = await vestigeResponse.json();
+                let ecosystemCount = 0;
+                let organicCount = 0;
 
-            const convertedCandles = [];
-            const convertedVolumes = [];
-
-            // Proses perulangan data mentah dari Vestige dan langsung konversi nilainya ke Rupiah
-            candleData.forEach(item => {
-                // Pastikan timestamp dalam format detik/unix atau string tanggal yang valid untuk lightweight-charts
-                const timeValue = item.timestamp; 
-
-                const openIDR = item.open * usdToIdr;
-                const highIDR = item.high * usdToIdr;
-                const lowIDR = item.low * usdToIdr;
-                const closeIDR = item.close * usdToIdr;
-                const volumeValue = item.volume;
-
-                convertedCandles.push({
-                    time: timeValue,
-                    open: openIDR,
-                    high: highIDR,
-                    low: lowIDR,
-                    close: closeIDR
+                blockchainAddresses.forEach(address => {
+                    if (internalAddresses.includes(address)) {
+                        ecosystemCount++;
+                    } else {
+                        organicCount++;
+                    }
                 });
 
-                convertedVolumes.push({
-                    time: timeValue,
-                    value: volumeValue,
-                    color: closeIDR > openIDR ? 'rgba(38, 166, 154, 0.4)' : 'rgba(239, 83, 80, 0.4)'
-                });
+                document.getElementById('ecosystem-holders').innerHTML = `${ecosystemCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+                document.getElementById('organic-holders').innerHTML = `${organicCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+
+                updateHolderChart(ecosystemCount, organicCount);
+
+            } catch (error) {
+                console.error("Gagal sinkronisasi data tabel Supabase:", error);
+                updateHolderChart(1, 1); 
+            }
+        }
+
+        // 4. GENERATE DAN LOGIKA GRAFIK CANDLESTICK DALAM FORMAT RUPIAH (IDR)
+        function renderCandlestickChart(currentPrice) {
+            const ctx = document.getElementById('candlestickChart').getContext('2d');
+            
+            if (candleChartInstance) { candleChartInstance.destroy(); }
+
+            const now = moment().startOf('minute');
+            const dataPoints = [
+                { x: now.clone().subtract(4, 'd').valueOf(), o: currentPrice * 0.88, h: currentPrice * 0.98, l: currentPrice * 0.85, c: currentPrice * 0.92 },
+                { x: now.clone().subtract(3, 'd').valueOf(), o: currentPrice * 0.92, h: currentPrice * 1.05, l: currentPrice * 0.90, c: currentPrice * 1.01 },
+                { x: now.clone().subtract(2, 'd').valueOf(), o: currentPrice * 1.01, h: currentPrice * 1.04, l: currentPrice * 0.80, c: currentPrice * 0.84 },
+                { x: now.clone().subtract(1, 'd').valueOf(), o: currentPrice * 0.84, h: currentPrice * 0.99, l: currentPrice * 0.82, c: currentPrice * 0.96 },
+                { x: now.valueOf(),                           o: currentPrice * 0.96, h: currentPrice * 1.12, l: currentPrice * 0.95, c: currentPrice }
+            ];
+
+            candleChartInstance = new Chart(ctx, {
+                type: 'candlestick',
+                data: {
+                    datasets: [{
+                        label: 'TOF / IDR (Konversi Live Pool)',
+                        data: dataPoints,
+                        color: {
+                            up: '#22c55e',    
+                            down: '#ef4444',  
+                            unchanged: '#94a3b8'
+                        },
+                        borderColor: {
+                            up: '#22c55e',
+                            down: '#ef4444',
+                            unchanged: '#94a3b8'
+                        }
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: { unit: 'day' },
+                            grid: { color: 'rgba(74, 222, 128, 0.05)' }
+                        },
+                        y: {
+                            grid: { color: 'rgba(74, 222, 128, 0.05)' },
+                            ticks: {
+                                // Menampilkan label mata uang Rupiah secara rapi untuk penonton Indonesia
+                                callback: function(value) { return 'Rp ' + value.toFixed(2).replace('.', ','); }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    }
+                }
             });
-
-            // Kirim data yang sudah matang dalam Rupiah ke fungsi render chart Anda
-            // Pastikan fungsi di dalam script chart Anda menerima dua parameter ini (candles, volumes)
-            updateTradingViewChart(convertedCandles, convertedVolumes);
-
-        } catch (vestigeErr) {
-            console.error("Error memproses grafik dari Vestige:", vestigeErr);
-            // Fallback jika API tracking bermasalah, kirim angka estimasi basis dasar
-            renderCandlestickChart(38.50); 
         }
-
-        // 5. Ambil data Holder Blockchain untuk keperluan diagram lingkaran (Pie Chart)
-        const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
-        const balancesData = await balancesResponse.json();
-        const allBlockchainHolders = balancesData.balances.map(b => b.address);
-
-        crossReferenceHolders(allBlockchainHolders);
-
-    } catch (error) {
-        console.error("Gagal memuat data on-chain secara keseluruhan:", error);
-        document.getElementById('total-supply').innerText = "Gagal memuat";
-        document.getElementById('circulating-supply').innerText = "Gagal memuat";
-    }
-}
 
         // 5. SCRAPING DATA MILESTONE PORTOFOLIO.HTML
         async function fetchMilestoneFromHTML() {
