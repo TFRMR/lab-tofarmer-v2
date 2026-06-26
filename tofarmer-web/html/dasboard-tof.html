@@ -541,10 +541,14 @@
                     console.warn("Gagal membaca dompet pool, menggunakan data pergerakan estimasi dasar.");
                 }
 
-                // KALKULASI RATIO HARGA (Pair / TOF)
-                let livePriceInPair = 0.0025; 
+              // --- PERBAIKAN KALKULASI HARGA ---
+                let livePriceInPair = 0; // Ubah dari 0.0025 menjadi 0
+                
                 if (poolTofBalance > 0 && poolPairBalance > 0) {
                     livePriceInPair = poolPairBalance / poolTofBalance; 
+                } else {
+                    console.error("Data Pool tidak valid untuk kalkulasi harga.");
+                    // Opsional: berikan notifikasi ke UI bahwa data harga gagal dimuat
                 }
 
                 // AMBIL KURS FIAT DOLAR/ALGO KE RUPIAH (IDR) REAL-TIME UNTUK KONVERSI
