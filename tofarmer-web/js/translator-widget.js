@@ -1,4 +1,4 @@
-// /tofarmer-web/public/js/translator-widget.js
+
 (function () {
 
     // ─── KAMUS UI STATIS ───────────────────────────────────────────────────────
@@ -43,26 +43,13 @@
         "⚠️ Gagal memuat peringkat": "⚠️ Failed to load leaderboard"
     };
 
-    // ─── CACHE TERJEMAHAN ──────────────────────────────────────────────────────
-    // Supaya teks yang sama tidak di-request dua kali ke MyMemory
-    const cacheMyMemory = {};
-
-    // ─── SELECTOR KONTEN POSTINGAN ─────────────────────────────────────────────
-    // Sesuaikan dengan class/selector elemen postingan di web kamu
-    const SELECTOR_POSTINGAN = [
-        '.post-content',
-        '.post-body',
-        '.card-text',
-        '.feed-text',
-        '.comment-text',
-        '[data-post-content]',
-        '[data-content]'
-    ].join(', ');
+    // ─── CACHE TERJEMAHAN (hemat quota MyMemory) ──────────────────────────────
+    const cache = {};
 
     // ─── SKIP TAG ──────────────────────────────────────────────────────────────
-    const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'NOSCRIPT', 'TEXTAREA']);
+    const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'NOSCRIPT']);
 
-    // ─── TERJEMAH UI STATIS ────────────────────────────────────────────────────
+    // ─── TERJEMAH UI STATIS (kamus lokal, instan) ─────────────────────────────
     function terjemahUINode(node) {
         if (!node) return;
         if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") return;
@@ -89,75 +76,79 @@
         }
     }
 
-    // ─── TERJEMAH KONTEN DINAMIS DENGAN MYMEMORY ──────────────────────────────
-    async function terjemahDenganMyMemory(teks) {
-        if (!teks || !teks.trim()) return teks;
-
-        // Cek cache dulu
-        if (cacheMyMemory[teks]) return cacheMyMemory[teks];
+    // ─── TERJEMAH KONTEN POSTINGAN VIA MYMEMORY ───────────────────────────────
+    async function terjemahMyMemory(teks) {
+        const bersih = teks.trim();
+        if (!bersih) return teks;
+        if (cache[bersih]) return cache[bersih];
 
         try {
-            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(teks)}&langpair=id|en`;
-            const res = await fetch(url);
+            const res = await fetch(
+                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(bersih)}&langpair=id|en`
+            );
             const data = await res.json();
-
-            if (data.responseStatus === 200 && data.responseData && data.responseData.translatedText) {
-                const hasil = data.responseData.translatedText;
-                cacheMyMemory[teks] = hasil; // simpan ke cache
-                return hasil;
+            if (data.responseStatus === 200 && data.responseData?.translatedText) {
+                cache[bersih] = data.responseData.translatedText;
+                return cache[bersih];
             }
-        } catch (err) {
-            console.warn('[TOF Translator] MyMemory gagal:', err);
+        } catch (e) {
+            console.warn('[TOF Translator] MyMemory error:', e);
         }
-
-        return teks; // fallback ke teks asli kalau gagal
+        return teks; // fallback ke teks asli
     }
 
-    // Ambil semua elemen postingan yang belum diterjemahkan dan terjemahkan
+    // Terjemahkan semua elemen .text (isi postingan) dan .comment (isi komentar)
+    // Selector ini sesuai class yang dipakai di app.js dan profile.js
     async function terjemahSemuaPostingan() {
-        const elemen = document.querySelectorAll(SELECTOR_POSTINGAN);
+        // .text   → isi postingan utama (div.text di renderPostsBatch app.js baris 604)
+        // span[style*="white-space:pre-wrap"] → isi komentar (app.js baris 646)
+        const elemen = document.querySelectorAll(
+            '.text:not([data-tof-done]), span[style*="white-space:pre-wrap"]:not([data-tof-done])'
+        );
+
         for (const el of elemen) {
-            // Tandai supaya tidak diterjemahkan dua kali
-            if (el.dataset.tofTranslated === 'true') continue;
-            el.dataset.tofTranslated = 'true';
+            el.setAttribute('data-tof-done', '1'); // tandai agar tidak diproses dua kali
 
-            const teksAsli = el.innerText.trim();
-            if (!teksAsli) continue;
+            const teksAsli = el.innerText?.trim();
+            if (!teksAsli || teksAsli.length < 3) continue;
 
-            // Tampilkan loading sementara
-            el.style.opacity = '0.5';
-            const hasil = await terjemahDenganMyMemory(teksAsli);
+            // Tanda loading: redup sementara
+            el.style.opacity = '0.45';
+            const hasil = await terjemahMyMemory(teksAsli);
             el.style.opacity = '1';
 
-            // Ganti hanya text node langsung, bukan innerHTML (aman dari XSS)
-            gantiTextNodeSaja(el, teksAsli, hasil);
+            if (hasil && hasil !== teksAsli) {
+                // Ganti hanya konten teks, pertahankan innerHTML (ada mention/@user di dalamnya)
+                // Cara aman: cari semua text node di dalamnya dan ganti
+                gantiTextNodes(el, teksAsli, hasil);
+            }
         }
     }
 
-    // Ganti teks di dalam elemen tanpa merusak struktur HTML
-    function gantiTextNodeSaja(el, teksAsli, teksHasil) {
-        if (teksAsli === teksHasil) return;
+    // Ganti text node di dalam elemen tanpa merusak child element (misal <span> mention)
+    function gantiTextNodes(el, teksAsli, teksHasil) {
+        // Jika elemennya hanya berisi plain text (tidak ada child element)
+        const punyaChildElement = Array.from(el.childNodes).some(n => n.nodeType === Node.ELEMENT_NODE);
 
-        // Jika elemennya hanya punya 1 text node langsung, ganti langsung
-        const childNodes = Array.from(el.childNodes);
-        const hanyaTextNode = childNodes.every(n => n.nodeType === Node.TEXT_NODE);
-
-        if (hanyaTextNode) {
+        if (!punyaChildElement) {
+            // Aman langsung ganti textContent
             el.textContent = teksHasil;
         } else {
-            // Kalau ada elemen campuran (span, a, dll), ganti per text node
-            for (const node of childNodes) {
+            // Ada child element (misal <span> mention) — hanya ganti text node paling luar
+            for (const node of el.childNodes) {
                 if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
-                    // Terjemahkan masing-masing text node kecil
-                    terjemahDenganMyMemory(node.nodeValue.trim()).then(hasil => {
-                        node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), hasil);
+                    // Terjemahkan per fragment teks
+                    terjemahMyMemory(node.nodeValue.trim()).then(hasil => {
+                        if (hasil && hasil !== node.nodeValue.trim()) {
+                            node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), hasil);
+                        }
                     });
                 }
             }
         }
     }
 
-    // ─── TOMBOL TRANSLATOR ─────────────────────────────────────────────────────
+    // ─── TOMBOL ────────────────────────────────────────────────────────────────
     const btnTranslate = document.createElement('button');
     btnTranslate.id = "tof-translator-trigger";
     btnTranslate.style.cssText = `
@@ -179,38 +170,33 @@
     `;
     document.body.appendChild(btnTranslate);
 
-    btnTranslate.onmouseover = () => {
-        btnTranslate.style.backgroundColor = '#fff';
-        btnTranslate.style.color = '#2f6f4e';
-    };
-    btnTranslate.onmouseout = () => {
-        btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-        btnTranslate.style.color = '#666';
-    };
+    btnTranslate.onmouseover = () => { btnTranslate.style.backgroundColor = '#fff'; btnTranslate.style.color = '#2f6f4e'; };
+    btnTranslate.onmouseout  = () => { btnTranslate.style.backgroundColor = 'rgba(255,255,255,0.9)'; btnTranslate.style.color = '#666'; };
 
     // ─── OBSERVER ──────────────────────────────────────────────────────────────
     let observer = null;
 
     function mulaiSistemLoop() {
-        // 1. Terjemah UI statis dulu (kamus, instan)
+        // 1. Terjemah UI statis dulu (kamus lokal, instan)
         terjemahUINode(document.body);
 
-        // 2. Terjemah postingan yang sudah ada
+        // 2. Terjemah postingan yang sudah ada di DOM
         terjemahSemuaPostingan();
 
-        // 3. Pantau postingan baru yang masuk (lazy load / infinite scroll)
+        // 3. Pantau postingan baru (infinite scroll / Supabase realtime)
         if (observer) observer.disconnect();
+
         observer = new MutationObserver((mutations) => {
-            let adaNodeBaru = false;
+            let adaBaru = false;
             for (const mutation of mutations) {
                 for (const node of mutation.addedNodes) {
-                    if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") continue;
+                    if (node.nodeType !== Node.ELEMENT_NODE) continue;
+                    if (node.id === "tof-translator-trigger") continue;
                     terjemahUINode(node);
-                    adaNodeBaru = true;
+                    adaBaru = true;
                 }
             }
-            // Terjemah postingan baru kalau ada node baru
-            if (adaNodeBaru) terjemahSemuaPostingan();
+            if (adaBaru) terjemahSemuaPostingan();
         });
 
         observer.observe(document.body, {
@@ -222,10 +208,7 @@
     }
 
     function hentikanSistemLoop() {
-        if (observer) {
-            observer.disconnect();
-            observer = null;
-        }
+        if (observer) { observer.disconnect(); observer = null; }
     }
 
     // ─── INISIALISASI ──────────────────────────────────────────────────────────
@@ -233,7 +216,8 @@
 
     if (statusBahasa === 'en') {
         btnTranslate.innerHTML = '🌐 ID';
-        setTimeout(mulaiSistemLoop, 1500);
+        // Tunggu 2 detik agar Supabase selesai inject postingan ke DOM
+        setTimeout(mulaiSistemLoop, 2000);
     } else {
         btnTranslate.innerHTML = '🌐 EN';
     }
@@ -252,3 +236,5 @@
     });
 
 })();
+
+
