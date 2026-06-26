@@ -41,9 +41,9 @@
         "⚠️ Gagal memuat peringkat": "⚠️ Failed to load leaderboard"
     };
 
-    // Tombol kecil minimalis
+    // Tombol kecil minimalis & tipis
     const btnTranslate = document.createElement('button');
-    btnTranslate.id = "tof-translator-trigger"; // Beri ID khusus agar tidak ikut terproses
+    btnTranslate.id = "tof-translator-trigger";
     btnTranslate.style.position = 'fixed';
     btnTranslate.style.bottom = '15px';
     btnTranslate.style.right = '15px';
@@ -54,7 +54,7 @@
     btnTranslate.style.fontSize = '11px';
     btnTranslate.style.fontFamily = 'sans-serif';
     btnTranslate.style.color = '#666';
-    btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.85)';
+    btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
     btnTranslate.style.backdropFilter = 'blur(4px)';
     btnTranslate.style.cursor = 'pointer';
     btnTranslate.style.boxShadow = '0px 2px 8px rgba(0,0,0,0.05)';
@@ -62,61 +62,47 @@
     document.body.appendChild(btnTranslate);
 
     btnTranslate.onmouseover = () => { btnTranslate.style.backgroundColor = '#fff'; btnTranslate.style.color = '#2f6f4e'; };
-    btnTranslate.onmouseout = () => { btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.85)'; btnTranslate.style.color = '#666'; };
+    btnTranslate.onmouseout = () => { btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; btnTranslate.style.color = '#666'; };
 
-    let pengintaiHalaman = null;
+    let intervalPenerjemah = null;
 
-    // Fungsi translasi super aman yang tidak merusak fungsi tombol (event listener)
-    function terjemahkanAman(node) {
+    // Fungsi translasi berbasis text node (Aman dari merusak onclick tombol)
+    function saringDanTerjemahkan(node) {
+        if (!node) return;
         if (node.id === "tof-translator-trigger") return;
 
-        // Jika tipe node adalah TEXT (Bukan elemen HTML penuh)
         if (node.nodeType === Node.TEXT_NODE) {
             let teksAsli = node.nodeValue.trim();
             for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
-                if (teksAsli.includes(kunci)) {
+                if (teksAsli === kunci || (teksAsli.includes(kunci) && !teksAsli.includes(nilai))) {
                     node.nodeValue = node.nodeValue.replace(kunci, nilai);
                 }
             }
         } else {
-            // Cek placeholder input
             if (node.tagName === 'INPUT' && node.placeholder && kamusToFarmer[node.placeholder]) {
                 node.placeholder = kamusToFarmer[node.placeholder];
             }
-            // Sisir semua anak cucu text node di dalamnya secara rekursif
             for (let i = 0; i < node.childNodes.length; i++) {
-                terjemahkanAman(node.childNodes[i]);
+                saringDanTerjemahkan(node.childNodes[i]);
             }
         }
     }
 
-    function mulaiMengintaiPostingan() {
-        if (pengintaiHalaman) return;
-        pengintaiHalaman = new MutationObserver((mutations) => {
-            mutations.forEach(mutation => {
-                mutation.addedNodes.forEach(node => {
-                    terjemahkanAman(node);
-                });
-            });
-        });
-        pengintaiHalaman.observe(document.body, { childList: true, subtree: true });
-    }
-
-    function hentikanPengintai() {
-        if (pengintaiHalaman) {
-            pengintaiHalaman.disconnect();
-            pengintaiHalaman = null;
-        }
+    // Interval santai setiap 2 detik untuk memeriksa postingan baru (Supabase data)
+    function mulaiSistemLoop() {
+        if (intervalPenerjemah) clearInterval(intervalPenerjemah);
+        saringDanTerjemahkan(document.body); // Jalankan instan sekali
+        intervalPenerjemah = setInterval(() => {
+            saringDanTerjemahkan(document.body);
+        }, 2000); 
     }
 
     let statusBahasa = localStorage.getItem('tof_bahasa_pilihan') || 'id';
 
     if (statusBahasa === 'en') {
-        setTimeout(() => {
-            terjemahkanAman(document.body);
-            mulaiMengintaiPostingan();
-        }, 1200); 
         btnTranslate.innerHTML = '🌐 ID';
+        // Beri jeda 1.5 detik di awal agar loading Supabase selesai dulu
+        setTimeout(mulaiSistemLoop, 1500);
     } else {
         btnTranslate.innerHTML = '🌐 EN';
     }
@@ -124,13 +110,12 @@
     btnTranslate.addEventListener('click', function() {
         if (statusBahasa === 'id') {
             localStorage.setItem('tof_bahasa_pilihan', 'en');
-            terjemahkanAman(document.body);
-            mulaiMengintaiPostingan();
             btnTranslate.innerHTML = '🌐 ID';
             statusBahasa = 'en';
+            mulaiSistemLoop();
         } else {
             localStorage.setItem('tof_bahasa_pilihan', 'id');
-            hentikanPengintai();
+            if (intervalPenerjemah) clearInterval(intervalPenerjemah);
             window.location.reload(); 
         }
     });
