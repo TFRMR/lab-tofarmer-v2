@@ -12,6 +12,9 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // ✅ SATU TITIK KONTROL MODEL — ganti di sini saja atau via env variable
+    const LLM_MODEL = env.CF_AI_MODEL || "@cf/meta/llama-3.1-8b-instruct";
+
     const url = new URL(request.url);
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
     const adminSupabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
@@ -143,7 +146,7 @@ export default {
     }
 
  // =====================================================
-// ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
+// ROUTE: REFRESH PROFIL (COGNITIVE MAP)
 // =====================================================
 if (url.pathname === "/refresh-profil" && request.method === "POST") {
     const { user_id } = await request.json(); 
@@ -154,7 +157,8 @@ if (url.pathname === "/refresh-profil" && request.method === "POST") {
         adminSupabase.from('reactions').select('*').eq('user_id', user_id)
     ]);
 
-    const summary = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+    // ✅ PAKAI LLM_MODEL (titik kontrol terpusat)
+    const summary = await env.AI.run(LLM_MODEL, {
         messages: [
             { role: "system", content: "Ringkas aktivitas ini menjadi profil kognitif petani." },
             { role: "user", content: JSON.stringify({ contrib, comments, reactions }) }
@@ -163,7 +167,7 @@ if (url.pathname === "/refresh-profil" && request.method === "POST") {
 
     await adminSupabase.from('user_cognitive_maps').upsert({ user_id, summary: summary.response });
     
-    return json({ status: "Profil diperbarui!" }, corsHeaders);
+    return json({ status: "Profil diperbarui!", model_used: LLM_MODEL }, corsHeaders);
 }
 // =====================================================
 // TEST AGREEMENT VISION
@@ -171,7 +175,7 @@ if (url.pathname === "/refresh-profil" && request.method === "POST") {
 if (url.pathname === "/agree-vision") {
 
   const response = await env.AI.run(
-    "@cf/meta/llama-3.2-11b-vision-instruct",
+    "@cf/meta/llama-3.2-11b-vision-instruct", // ← Vision model, jangan diganti
     {
       prompt: "agree"
     }
@@ -192,7 +196,6 @@ if (url.pathname === "/ai-gambar" && request.method === "POST") {
 
     const imageUint8Array = new Uint8Array(body.image);
 
-    // Rekayasa prompt agar model tidak kaku dan tetap menjaga persona/konteks
     const systemInstruction = 
       "Kamu adalah Mbak Eko. Integrasikan analisis gambar di bawah ini ke dalam gaya bahasamu yang natural dan kontekstual. " +
       "JANGAN hanya mendeskripsikan isi gambar secara kaku (seperti robot/analis foto). " +
@@ -201,7 +204,7 @@ if (url.pathname === "/ai-gambar" && request.method === "POST") {
     const finalPrompt = systemInstruction + (body.prompt || "Berikan respons atau komentarmu terkait gambar ini.");
 
     const response = await env.AI.run(
-      '@cf/meta/llama-3.2-11b-vision-instruct',
+      '@cf/meta/llama-3.2-11b-vision-instruct', // ← Vision model, jangan diganti
       {
         prompt: finalPrompt,
         image: imageUint8Array
@@ -223,8 +226,9 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     const textToProcess = body.teks || JSON.stringify(body.data);
 
     // 1. ANALISIS KOGNITIF (Profiling)
+    // ✅ PAKAI LLM_MODEL (titik kontrol terpusat)
     try {
-        const profilingResponse = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+        const profilingResponse = await env.AI.run(LLM_MODEL, {
             messages: [
                 { 
                     role: "system", 
@@ -238,7 +242,6 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
         const match = profileDataRaw.match(/\{.*\}/s);
         const profileData = JSON.parse(match ? match[0] : profileDataRaw);
         
-        // JARING PENGAMAN: Menggunakan ID gabungan (wallet|user_id)
         const targetUserId = body.user_id || "guest_user"; 
 
         const payload = {
@@ -254,6 +257,7 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     } catch (e) {
         console.log("Profiling Error Detail:", e.message);
     }
+
   // 2. UBAH TEKS JADI VEKTOR (BGE-M3)
   const embeddings = await env.AI.run('@cf/baai/bge-m3', { text: [textToProcess] });
   const vector = embeddings.data[0];
@@ -269,7 +273,7 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
   const context = (ilmu && ilmu.length > 0) 
     ? ilmu.map(i => i.content).join("\n---\n") 
     : "Tidak ada referensi khusus di database.";
-      // 5. KIRIM KE AI
+
       const modes = {
         "humor": "Anda adalah petani senior yang suka melawak. banyak guyonan, dan suka tertawa.",
         "Gate1": "Mandor Galak tapi Lucu: Fokus ke pengisian formulir. Sedikit cerewet kalau ada kolom yang kosong.",
@@ -290,10 +294,10 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
 
       const activeMode = modes[body.trigger] || modes["humor"];
 
-      const aiChat = await env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+      // ✅ PAKAI LLM_MODEL (titik kontrol terpusat)
+      const aiChat = await env.AI.run(LLM_MODEL, {
         messages: [
           { 
-            // Ganti bagian system content di index.js Anda menjadi ini:
 role: "system", 
 content: `Anda adalah Mentor ToFarmer dengan mode: ${activeMode}.
 
@@ -325,42 +329,39 @@ ATURAN WAJIB:
             content: `Konteks Situasi: ${body.trigger || "Umum"}. Input user: "${textToProcess}".` 
           }
         ],
-        // 🌟 DI SINI KUNCI PERBAIKANNYA: Kita buka batas maksimal karakter keluaran hingga 1500 token
         max_tokens: 1500
       });
 
       return json({ 
         saran: aiChat.response,
-        ilmuBaku: aiChat.response 
+        ilmuBaku: aiChat.response,
+        model_used: LLM_MODEL  // ✅ Info debug: model apa yang aktif
       }, corsHeaders);
     }
+
 if (url.pathname === "/trigger-sync") {
-  // 1. Ambil payload yang dikirim dari konsol/webhook
   const body = await request.json();
-  const record = body.record; // Ini adalah data yang kita kirim via fetch({record: {...}})
+  const record = body.record;
 
   if (record && record.id && record.message) {
-    // 2. Jika ada ID spesifik yang dikirim, proses ID itu saja
     const response = await env.AI.run('@cf/baai/bge-m3', { text: [record.message] });
     await adminSupabase
-      .from('ai_chat_history') // <--- TABEL YANG BENAR
+      .from('ai_chat_history')
       .update({ embedding: response.data[0] })
       .eq('id', record.id);
       
     return json({ status: "Success", id: record.id }, corsHeaders);
   } else {
-    // 3. Fallback: Jika tidak ada ID dikirim, baru lakukan sync 10 data (opsional)
-    // Sebaiknya hapus bagian ini atau arahkan ke tabel yang benar jika ingin sync massal
     return json({ status: "Tidak ada data untuk diproses" }, corsHeaders);
   }
 }
 
-    return json({ status: "ToFarmer API V2 🚀" }, corsHeaders);
+    return json({ status: "ToFarmer API V2 🚀", model_aktif: LLM_MODEL }, corsHeaders);
   }
 };
 
 // =========================
-// HELPERS (Hanya satu set saja)
+// HELPERS
 // =========================
 function json(data, headers) {
   return new Response(JSON.stringify(data), {
