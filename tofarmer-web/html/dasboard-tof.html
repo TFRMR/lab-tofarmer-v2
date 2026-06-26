@@ -336,6 +336,25 @@
             margin-top: 48px;
             font-family: monospace;
         }
+.harga-live {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #f59e0b;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 0 40px rgba(245, 158, 11, 0.4);
+    letter-spacing: 2px;
+    animation: blink-harga 1.2s ease-in-out infinite;
+    z-index: 10;
+    pointer-events: none;
+}
+
+@keyframes blink-harga {
+    0%, 100% { opacity: 1; text-shadow: 0 0 20px rgba(245, 158, 11, 0.9), 0 0 40px rgba(245, 158, 11, 0.5); }
+    50%       { opacity: 0.3; text-shadow: none; }
+}
     </style>
 </head>
 <body>
@@ -393,7 +412,8 @@
                     Pergerakan Pasar TOF (Konversi IDR Berbasis Pool USDC)
                 </div>
                 <div class="chart-wrapper">
-                    <canvas id="candlestickChart"></canvas>
+                   <div class="harga-live" id="harga-live-display">Memuat...</div>
+<canvas id="candlestickChart"></canvas>
                 </div>
             </div>
 
@@ -535,6 +555,10 @@ try {
 
 // Ambil harga (tanpa decimals — Vestige sudah adjusted)
 const currentPriceIDR = await getMarketPrice(ASSET_ID, decimals);
+// Update tampilan harga live besar
+const el = document.getElementById('harga-live-display');
+if (el) el.textContent = `Rp ${currentPriceIDR.toFixed(4).replace('.', ',')}`;
+
 renderCandlestickChart(currentPriceIDR);
 
                 // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
