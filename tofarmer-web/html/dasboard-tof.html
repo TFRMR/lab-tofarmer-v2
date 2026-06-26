@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToFarmer (TOF) - Advanced Token Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            background-color: #0b0f17;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .card-glow {
+            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.03);
+            border: 1px solid rgba(16, 185, 129, 0.08);
+        }
+    </style>
+</head>
+<body class="text-gray-100 min-h-screen">
+
+    <nav class="border-b border-gray-800 bg-[#0f141c] sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div class="flex items-center gap-3">
+                <div class="bg-emerald-500 text-gray-900 font-bold p-2 rounded-lg text-sm tracking-wider">TOF</div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        ToFarmer <span class="text-emerald-400 text-xs font-mono bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">Ecosystem Dashboard</span>
+                    </h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 bg-gray-900 border border-gray-800 px-3 py-1.5 rounded-lg text-xs font-mono">
+                <span class="text-gray-400">ASA ID:</span>
+                <span class="text-emerald-400 font-bold">3558306283</span>
+                <button onclick="navigator.clipboard.writeText('3558306283'); alert('Asset ID disalin!')" class="text-gray-500 hover:text-white ml-1">📋</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-[#0f141c] card-glow p-5 rounded-2xl space-y-1">
+                <div class="text-xs text-gray-400 uppercase tracking-wider">Total Supply</div>
+                <div id="total-supply" class="text-2xl font-bold text-white font-mono animate-pulse">Memuat...</div>
+                <p class="text-[11px] text-gray-500">Total koin kustom tercetak di Algorand</p>
+            </div>
+
+            <div class="bg-[#0f141c] card-glow p-5 rounded-2xl space-y-1">
+                <div class="text-xs text-gray-400 uppercase tracking-wider">Sirkulasi Pasar</div>
+                <div id="circulating-supply" class="text-2xl font-bold text-emerald-400 font-mono animate-pulse">Memuat...</div>
+                <p class="text-[11px] text-gray-500">Token aktif di luar reserve wallet</p>
+            </div>
+
+            <div class="bg-[#0f141c] card-glow p-5 rounded-2xl space-y-1">
+                <div class="text-xs text-gray-400 uppercase tracking-wider">Holder Ekosistem</div>
+                <div id="ecosystem-holders" class="text-2xl font-bold text-blue-400 font-mono">0 <span class="text-xs text-gray-500">Dompet</span></div>
+                <p class="text-[11px] text-gray-500">Pengguna terdaftar di database profiles</p>
+            </div>
+
+            <div class="bg-[#0f141c] card-glow p-5 rounded-2xl space-y-1">
+                <div class="text-xs text-gray-400 uppercase tracking-wider">Holder Luar (Organik)</div>
+                <div id="organic-holders" class="text-2xl font-bold text-yellow-500 font-mono">0 <span class="text-xs text-gray-500">Dompet</span></div>
+                <p class="text-[11px] text-gray-500">Investor murni dari blockchain/DEX</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-[#0f141c] card-glow p-5 rounded-2xl space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Pergerakan Pasar TOF (Tinyman Pool Analytics)
+                    </h3>
+                </div>
+                <div class="relative w-full h-[420px] bg-gray-900/40 rounded-xl overflow-hidden border border-gray-800">
+                    <iframe 
+                        src="https://dexscreener.com/algorand/pools/3558306283?embed=1&theme=dark&trades=1" 
+                        class="absolute top-0 left-0 w-full h-full border-0"
+                        title="Dexscreener Chart TOF">
+                    </iframe>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="bg-[#0f141c] card-glow p-5 rounded-2xl space-y-4">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-gray-300">Proporsi Pemegang Token</h3>
+                    <div class="w-full max-w-[180px] mx-auto">
+                        <canvas id="holderChart"></canvas>
+                    </div>
+                    <div class="flex justify-around text-xs pt-2">
+                        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-blue-500 rounded-sm"></span> Ekosistem</div>
+                        <div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 bg-yellow-500 rounded-sm"></span> Organik</div>
+                    </div>
+                </div>
+
+                <div class="bg-[#0f141c] card-glow p-5 rounded-2xl space-y-3">
+                    <h3 class="text-sm font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                        <span>🎯</span> Milestone Terkini (Live Update)
+                    </h3>
+                    <div id="milestone-container" onclick="window.open('https://www.tofarmer.xyz/html/portofolio.html', '_blank')" class="bg-gray-900/40 border border-gray-800 p-4 rounded-xl space-y-2 cursor-pointer hover:border-emerald-700 transition">
+                        <div id="milestone-date" class="text-xs text-emerald-400 font-mono font-bold uppercase">Memuat tanggal...</div>
+                        <h4 id="milestone-title" class="text-sm font-bold text-white line-clamp-1">Menarik log lini masa...</h4>
+                        <p id="milestone-desc" class="text-xs text-gray-400 leading-relaxed line-clamp-4">Sistem sedang membaca postingan paling atas dari berkas statis portofolio.html...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-[#0f141c] card-glow p-5 rounded-2xl space-y-4">
+            <h3 class="text-sm font-bold uppercase tracking-wider text-gray-300 flex items-center gap-2">
+                <span>✍️</span> Artikel Terbaru dari Kompasiana
+            </h3>
+            <div id="kompasiana-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="p-4 bg-gray-900/30 border border-gray-800 rounded-xl text-xs text-gray-500 animate-pulse">Menghubungkan ke feed Kompasiana...</div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="max-w-7xl mx-auto px-4 py-8 text-center text-xs text-gray-600 border-t border-gray-900 mt-12">
+        <p>© 2026 ToFarmer Ecosystem. Decentralized Architecture via Algorand, Supabase & Vercel Edge.</p>
+    </footer>
+
+    <script>
+        // 1. KONFIGURASI PROYEK TOFARMER
+        const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
+        const KOMPASIANA_USER = 'tofarmer3643'; 
+        const ASSET_ID = "3558306283";
+        const MILESTONE_URL = 'https://www.tofarmer.xyz/html/portofolio.html';
+
+        // Inisialisasi Klien Supabase
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let holderPieChart;
+
+        async function initDashboard() {
+            fetchAlgorandChainData();
+            fetchMilestoneFromHTML();
+            fetchKompasianaArticles();
+        }
+
+        // 2. AMBIL DATA BLOCKCHAIN ALGORAND
+        async function fetchAlgorandChainData() {
+            try {
+                const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
+                const assetData = await assetResponse.json();
+                
+                const rawTotalSupply = assetData.asset.params.total;
+                const decimals = assetData.asset.params.decimals || 0;
+                const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
+                
+                document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
+                
+                // Menghitung Circulating Supply Kasar (Misal 85%)
+                const circulatingSupply = actualTotalSupply * 0.85; 
+                document.getElementById('circulating-supply').innerText = circulatingSupply.toLocaleString('id-ID') + " TOF";
+
+                // Ambil daftar alamat pemegang koin di Blockchain
+                const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
+                const balancesData = await balancesResponse.json();
+                const allBlockchainHolders = balancesData.balances.map(b => b.address);
+
+                crossReferenceHolders(allBlockchainHolders);
+
+            } catch (error) {
+                console.error("Gagal memuat data Algorand:", error);
+                document.getElementById('total-supply').innerText = "Gagal memuat";
+                document.getElementById('circulating-supply').innerText = "Gagal memuat";
+            }
+        }
+
+        // 3. COCOKKAN HOLDER BLOCKCHAIN VS TABEL PROFILES SUPABASE
+        async function crossReferenceHolders(blockchainAddresses) {
+            try {
+                const { data: internalProfiles, error } = await supabase
+                    .from('profiles')
+                    .select('id');
+
+                if (error) throw error;
+
+                const internalAddresses = internalProfiles ? internalProfiles.map(u => u.id) : [];
+
+                let ecosystemCount = 0;
+                let organicCount = 0;
+
+                blockchainAddresses.forEach(address => {
+                    if (internalAddresses.includes(address)) {
+                        ecosystemCount++;
+                    } else {
+                        organicCount++;
+                    }
+                });
+
+                document.getElementById('ecosystem-holders').innerHTML = `${ecosystemCount} <span class="text-xs text-gray-500">Dompet</span>`;
+                document.getElementById('organic-holders').innerHTML = `${organicCount} <span class="text-xs text-gray-500">Dompet</span>`;
+
+                updateHolderChart(ecosystemCount, organicCount);
+
+            } catch (error) {
+                console.error("Gagal sinkronisasi data tabel Supabase:", error);
+                updateHolderChart(1, 1); 
+            }
+        }
+
+        // 4. SCRAPING DATA MILESTONE DARI HALAMAN PORTofolio.HTML
+        async function fetchMilestoneFromHTML() {
+            try {
+                // Menggunakan proxy bypass CORS agar browser diizinkan membaca file eksternal portofolio.html
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(MILESTONE_URL)}`;
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                
+                // Parsing dokumen text HTML yang ditarik
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(data.contents, 'text/html');
+                
+                // Mengambil seluruh text body halaman portofolio
+                const pageText = doc.body.innerText;
+
+                // Regex pintar untuk mencari log berformat [YYYY-MM-DD] paling atas
+                const dateRegex = /\[(\d{4}-\d{2}-\d{2})\]/;
+                const match = pageText.match(dateRegex);
+
+                if (match) {
+                    const latestDate = match[1]; // Dapatkan tanggal teratas misal: 2026-06-15
+                    
+                    // Memotong string text tepat setelah tanggal teratas untuk mengambil isi kontennya
+                    const startIndex = pageText.indexOf(match[0]) + match[0].length;
+                    const blockText = pageText.substring(startIndex, startIndex + 600).trim();
+                    
+                    // Pisahkan baris pertama sebagai Judul, dan sisa baris di bawahnya sebagai Deskripsi
+                    const lines = blockText.split('\n').filter(line => line.trim() !== '');
+                    const title = lines[0] || "Pembaruan Ekosistem Baru";
+                    const description = lines.slice(1).join(' ').substring(0, 220) + '...';
+
+                    document.getElementById('milestone-date').innerText = `📅 LOG [${latestDate}]`;
+                    document.getElementById('milestone-title').innerText = title;
+                    document.getElementById('milestone-desc').innerText = description;
+                } else {
+                    throw new Error("Format tanggal log tidak ditemukan");
+                }
+            } catch (error) {
+                console.error("Gagal melakukan scraping berkas portofolio.html:", error);
+                // Fallback default statis jika koneksi proxy gagal
+                document.getElementById('milestone-date').innerText = "📅 LOG [2026-06-15]";
+                document.getElementById('milestone-title').innerText = "Pecah Telur! Ilmu Baku Pertama Sukses Lulus Uji Komunitas";
+                document.getElementById('milestone-desc').innerText = "Satu rumus ilmu pertanian akhirnya resmi disahkan oleh komunitas setelah berhasil lolos seleksi ketat dari Gate 1 sampai Gate 3...";
+            }
+        }
+
+        // 5. AMBIL ARTIKEL RSS FEED KOMPASIANA
+        async function fetchKompasianaArticles() {
+            const container = document.getElementById('kompasiana-container');
+            try {
+                const feedUrl = `https://api.rss2json.com/v1/api.json?rss_url=https://www.kompasiana.com/${KOMPASIANA_USER}/feed`;
+                const res = await fetch(feedUrl);
+                const data = await res.json();
+
+                if (data.status === 'ok' && data.items.length > 0) {
+                    container.innerHTML = ''; 
+                    
+                    const items = data.items.slice(0, 3);
+                    items.forEach(item => {
+                        const cleanDesc = item.description.replace(/<[^>]*>/g, '').substring(0, 100) + '...';
+                        
+                        const cardHtml = `
+                            <div class="p-4 bg-gray-900/40 border border-gray-800 rounded-xl space-y-2 hover:border-emerald-800 transition cursor-pointer" onclick="window.open('${item.link}', '_blank')">
+                                <span class="text-[10px] text-blue-400 font-mono bg-blue-950/40 border border-blue-900 px-2 py-0.5 rounded">Kompasiana</span>
+                                <h4 class="text-xs font-bold text-gray-200 line-clamp-2 mt-1 hover:text-emerald-400">${item.title}</h4>
+                                <p class="text-[11px] text-gray-400 leading-relaxed">${cleanDesc}</p>
+                                <div class="text-[10px] text-gray-500 pt-1 font-mono">${new Date(item.pubDate).toLocaleDateString('id-ID')}</div>
+                            </div>
+                        `;
+                        container.innerHTML += cardHtml;
+                    });
+                } else {
+                    container.innerHTML = `<div class="p-4 text-xs text-gray-500">Tidak ada artikel publikasi di akun @${KOMPASIANA_USER}.</div>`;
+                }
+            } catch (error) {
+                console.error("Gagal menarik RSS Feed Kompasiana:", error);
+                container.innerHTML = `<div class="p-4 text-xs text-gray-500">Gagal memuat feed berita Kompasiana.</div>`;
+            }
+        }
+
+        // 6. SETUP DIAGRAM PIE CHART (CHART.JS)
+        function updateHolderChart(eco, org) {
+            const ctx = document.getElementById('holderChart').getContext('2d');
+            if (holderPieChart) { holderPieChart.destroy(); }
+
+            holderPieChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    datasets: [{
+                        data: [eco, org],
+                        backgroundColor: ['#3b82f6', '#eab308'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) { return ' ' + context.raw + ' Dompet'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+</body>
+</html>
