@@ -554,7 +554,12 @@ const currentPriceIDR = await getMarketPrice(ASSET_ID, decimals);
 const el = document.getElementById('harga-live-display');
 if (el) el.textContent = `Rp ${currentPriceIDR.toFixed(4).replace('.', ',')}`;
 
-renderCandlestickChart(currentPriceIDR);
+const algoReq2 = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
+const algoData2 = await algoReq2.json();
+const algoToIdr = algoData2.algorand?.idr || 0;
+
+const realOHLC = await buildRealOHLC(decimals, algoToIdr);
+renderCandlestickChart(currentPriceIDR, realOHLC);
 
                 // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
                 const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
@@ -603,24 +608,90 @@ renderCandlestickChart(currentPriceIDR);
                 updateHolderChart(1, 1); 
             }
         }
+// Ambil data OHLC real dari riwayat transaksi pool
+async function buildRealOHLC(decimals, algoToIdr) {
+    const POOL_ADDRESS = "XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM";
+    // Key base64 dari local-state-delta Tinyman v2
+    const KEY_RESERVE1 = "YXNzZXRfMV9yZXNlcnZlcw=="; // asset_1_reserves (TOF)
+    const KEY_RESERVE2 = "YXNzZXRfMl9yZXNlcnZlcw=="; // asset_2_reserves (ALGO)
 
+    let pricePoints = [];
+    let nextToken = null;
+    let page = 0;
+
+    try {
+        do {
+            let url = `https://mainnet-idx.algonode.cloud/v2/accounts/${POOL_ADDRESS}/transactions?limit=100`;
+            if (nextToken) url += `&next=${encodeURIComponent(nextToken)}`;
+            const res  = await fetch(url);
+            const data = await res.json();
+
+            for (const tx of (data.transactions || [])) {
+                const poolDelta = (tx['local-state-delta'] || [])
+                    .find(d => d.address === POOL_ADDRESS);
+                if (!poolDelta) continue;
+
+                const r1 = poolDelta.delta.find(d => d.key === KEY_RESERVE1);
+                const r2 = poolDelta.delta.find(d => d.key === KEY_RESERVE2);
+                if (!r1 || !r2) continue;
+
+                const tofReserve  = r1.value.uint / Math.pow(10, decimals);
+                const algoReserve = r2.value.uint / 1e6;
+                if (tofReserve === 0) continue;
+
+                pricePoints.push({
+                    ts:    tx['round-time'] * 1000,
+                    price: (algoReserve / tofReserve) * algoToIdr
+                });
+            }
+
+            nextToken = data['next-token'];
+            page++;
+        } while (nextToken && page < 3); // maks 300 transaksi
+
+    } catch (e) {
+        console.warn("Gagal fetch OHLC real:", e);
+    }
+
+    // Urutkan dari yang terlama
+    pricePoints.sort((a, b) => a.ts - b.ts);
+
+    // Kelompokkan per hari → OHLC
+    const dayMap = {};
+    for (const p of pricePoints) {
+        const day = moment(p.ts).startOf('day').valueOf();
+        if (!dayMap[day]) dayMap[day] = [];
+        dayMap[day].push(p.price);
+    }
+
+    return Object.entries(dayMap).map(([day, prices]) => ({
+        x: parseInt(day),
+        o: prices[0],
+        h: Math.max(...prices),
+        l: Math.min(...prices),
+        c: prices[prices.length - 1]
+    }));
+}
         // 4. GENERATE DAN LOGIKA GRAFIK CANDLESTICK DALAM FORMAT RUPIAH (IDR)
         // Disesuaikan untuk tampilan 30 hari ke belakang (Daily / D1)
-       function renderCandlestickChart(currentPrice) {
+      function renderCandlestickChart(currentPrice, dataPoints) {
     const ctx = document.getElementById('candlestickChart').getContext('2d');
     if (candleChartInstance) { candleChartInstance.destroy(); }
 
-    const now = moment().startOf('day');
-    const dataPoints = [];
-    for (let i = 30; i >= 0; i--) {
-        const date = now.clone().subtract(i, 'd');
-        const volatility = 0.05;
-        const open  = currentPrice * (1 + (Math.random() - 0.5) * volatility);
-        const close = currentPrice * (1 + (Math.random() - 0.5) * volatility);
-        const high  = Math.max(open, close) * (1 + Math.random() * 0.02);
-        const low   = Math.min(open, close) * (1 - Math.random() * 0.02);
-        dataPoints.push({ x: date.valueOf(), o: open, h: high, l: low, c: close });
+    // Fallback ke simulasi jika data real kosong
+    if (!dataPoints || dataPoints.length === 0) {
+        console.warn("OHLC real kosong, pakai simulasi");
+        dataPoints = [];
+        const now = moment().startOf('day');
+        for (let i = 30; i >= 0; i--) {
+            const date = now.clone().subtract(i, 'd');
+            const v = 0.05;
+            const o = currentPrice * (1 + (Math.random() - 0.5) * v);
+            const c = currentPrice * (1 + (Math.random() - 0.5) * v);
+            dataPoints.push({ x: date.valueOf(), o, h: Math.max(o,c)*(1+Math.random()*0.02), l: Math.min(o,c)*(1-Math.random()*0.02), c });
+        }
     }
+
 
     candleChartInstance = new Chart(ctx, {
         type: 'candlestick',
