@@ -467,12 +467,11 @@
         }
 async function getMarketPrice(assetId) {
     try {
-        // Mengambil data harga langsung dari API Vestige (sumber data yang digunakan chart Vestige)
-        const response = await fetch(`https://api.vestige.fi/asset/${assetId}`);
+        // Menambahkan proxy cors-anywhere di depan URL Vestige
+        const url = `https://corsproxy.io/?https://api.vestige.fi/asset/${assetId}`;
+        const response = await fetch(url);
         const data = await response.json();
-        
-        // Return harga dalam USD jika ada, atau fallback ke 0
-        return data && data.priceUsd ? parseFloat(data.priceUsd) : 0;
+        return data?.priceUsd ? parseFloat(data.priceUsd) : 0;
     } catch (e) {
         console.error("Gagal ambil harga pasar:", e);
         return 0;
