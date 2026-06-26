@@ -434,14 +434,19 @@
     </footer>
 
  <script>
-// --- 1. KONFIGURASI ---
+// 1. KONFIGURASI
 const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
 const ASSET_ID = "3558306283";
 const RESERVED_WALLET = "HLZZDZLO7WQFSTJYZRNMVHP3RBRAJUDYEJEVIBWRE2RNDIJS4HCCVFT7SI";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const MILESTONE_URL = 'portofolio.html';
+const KOMPASIANA_USER = 'tofarmer3643';
 
-// --- 2. FUNGSI UTILITAS (Didefinisikan duluan agar tidak undefined) ---
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let holderPieChart;
+let candleChartInstance;
+
+// 2. FUNGSI UTILITAS
 function sinkronkanUserParamKeNavigasi() {
     const params = new URLSearchParams(window.location.search);
     const userKey = params.get('user');
@@ -466,41 +471,32 @@ async function getMarketPrice(assetId) {
     } catch (e) { return 38.50; }
 }
 
-// --- 3. LOGIKA UTAMA ---
+// 3. LOGIKA UTAMA CHAIN
 async function fetchAlgorandChainData() {
     try {
-        // Ambil info aset (Total Supply)
         const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
         const assetData = await assetResponse.json();
         const params = assetData.asset.params;
         const total = params.total / Math.pow(10, params.decimals);
         document.getElementById('total-supply').innerText = total.toLocaleString('id-ID') + " TOF";
 
-        // Perbaikan: Hindari 404 dengan mengambil data dari list balances saja
         const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
         const balancesData = await balancesResponse.json();
         
-        // Cari sisa supply dengan mencari reserve wallet di dalam list holder (jika ada)
         const reserveEntry = balancesData.balances.find(b => b.address === RESERVED_WALLET);
         const reserveAmount = reserveEntry ? (reserveEntry.amount / Math.pow(10, params.decimals)) : 0;
         
-        const circulating = total - reserveAmount;
-        document.getElementById('circulating-supply').innerText = circulating.toLocaleString('id-ID') + " TOF";
+        document.getElementById('circulating-supply').innerText = (total - reserveAmount).toLocaleString('id-ID') + " TOF";
         
-        // Render Grafik
         const currentPrice = await getMarketPrice(ASSET_ID);
         renderCandlestickChart(currentPrice);
-        
-        // Sinkronisasi User
         crossReferenceHolders(balancesData.balances.map(b => b.address));
-
     } catch (error) {
-        console.error("Chain Error:", error);
         document.getElementById('circulating-supply').innerText = "Data tidak tersedia";
     }
 }
 
-// --- 4. GRAFIK ---
+// 4. GRAFIK (Gabungan logika candlestick dengan annotation)
 function renderCandlestickChart(currentPrice) {
     const ctx = document.getElementById('candlestickChart').getContext('2d');
     if (candleChartInstance) candleChartInstance.destroy();
@@ -513,145 +509,59 @@ function renderCandlestickChart(currentPrice) {
 
     candleChartInstance = new Chart(ctx, {
         type: 'candlestick',
-        data: {
-            datasets: [{
-                label: 'Harga TOF (IDR)',
-                data: dataPoints
-            }]
-        },
+        data: { datasets: [{ label: 'Harga TOF (IDR)', data: dataPoints }] },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                annotation: { // Garis horizontal harga saat ini
+                annotation: {
                     annotations: {
                         line1: {
-                            type: 'line',
-                            yMin: currentPrice,
-                            yMax: currentPrice,
-                            borderColor: '#fde047',
-                            borderWidth: 1,
-                            borderDash: [5, 5],
-                            label: { content: 'Harga Saat Ini: Rp ' + currentPrice.toFixed(2), enabled: true }
+                            type: 'line', yMin: currentPrice, yMax: currentPrice,
+                            borderColor: '#fde047', borderWidth: 1, borderDash: [5, 5],
+                            label: { content: 'Harga: Rp ' + currentPrice.toFixed(2), enabled: true }
                         }
                     }
                 }
             },
-            scales: {
-                y: { ticks: { callback: (val) => 'Rp ' + val.toLocaleString('id-ID', {minimumFractionDigits: 2}) } }
-            }
+            scales: { y: { ticks: { callback: (val) => 'Rp ' + val.toLocaleString('id-ID') } } }
         }
     });
 }
 
-// 3. SINKRONISASI DATA SUPABASE VS BLOCKCHAIN
+// 5. FUNGSI SINKRONISASI
 async function crossReferenceHolders(blockchainAddresses) {
     try {
-        const { data: internalProfiles, error } = await supabaseClient
-            .from('profiles')
-            .select('id');
-
-        if (error) throw error;
-
+        const { data: internalProfiles } = await supabaseClient.from('profiles').select('id');
         const internalAddresses = internalProfiles ? internalProfiles.map(u => u.id) : [];
-        let ecosystemCount = 0;
-        let organicCount = 0;
+        let eco = 0, org = 0;
 
-        blockchainAddresses.forEach(address => {
-            if (internalAddresses.includes(address)) {
-                ecosystemCount++;
-            } else {
-                organicCount++;
-            }
-        });
-
-        document.getElementById('ecosystem-holders').innerHTML = `${ecosystemCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
-        document.getElementById('organic-holders').innerHTML = `${organicCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
-
-        updateHolderChart(ecosystemCount, organicCount);
-    } catch (error) {
-        console.error("Gagal sinkronisasi data tabel Supabase:", error);
-        updateHolderChart(1, 1);
-    }
+        blockchainAddresses.forEach(addr => internalAddresses.includes(addr) ? eco++ : org++);
+        document.getElementById('ecosystem-holders').innerHTML = `${eco} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+        document.getElementById('organic-holders').innerHTML = `${org} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+        updateHolderChart(eco, org);
+    } catch (e) { updateHolderChart(1, 1); }
 }
 
-// 4. GENERATE GRAFIK CANDLESTICK
-function renderCandlestickChart(currentPrice) {
-    const ctx = document.getElementById('candlestickChart').getContext('2d');
-    if (candleChartInstance) { candleChartInstance.destroy(); }
-
-    const now = moment().startOf('day');
-    const dataPoints = [];
-
-    for (let i = 30; i >= 0; i--) {
-        const date = now.clone().subtract(i, 'd');
-        const volatility = 0.05;
-        const open = currentPrice * (1 + (Math.random() - 0.5) * volatility);
-        const close = currentPrice * (1 + (Math.random() - 0.5) * volatility);
-        const high = Math.max(open, close) * (1 + Math.random() * 0.02);
-        const low = Math.min(open, close) * (1 - Math.random() * 0.02);
-
-        dataPoints.push({ x: date.valueOf(), o: open, h: high, l: low, c: close });
-    }
-
-    candleChartInstance = new Chart(ctx, {
-        type: 'candlestick',
-        data: {
-            datasets: [{
-                label: 'TOF / IDR (30 Hari Terakhir - D1)',
-                data: dataPoints,
-                color: { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' },
-                borderColor: { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' }
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MMM DD' } }, grid: { color: 'rgba(74, 222, 128, 0.05)' } },
-                y: { grid: { color: 'rgba(74, 222, 128, 0.05)' }, ticks: { callback: (val) => 'Rp ' + val.toFixed(5).replace('.', ',') } }
-            },
-            plugins: { legend: { labels: { color: '#e2e8f0' } } }
-        }
+function updateHolderChart(eco, org) {
+    const ctx = document.getElementById('holderChart').getContext('2d');
+    if (holderPieChart) holderPieChart.destroy();
+    holderPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: { datasets: [{ data: [eco, org], backgroundColor: ['#3b82f6', '#eab308'] }] },
+        options: { responsive: true }
     });
 }
 
-// 5. SCRAPING DATA MILESTONE
-async function fetchMilestoneFromHTML() {
-    try {
-        const response = await fetch(MILESTONE_URL);
-        const htmlText = await response.text();
-        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
-        const pageText = doc.body.innerText;
-        const match = pageText.match(/\[(\d{4}-\d{2}-\d{2})\]/);
-
-        if (match) {
-            const startIndex = pageText.indexOf(match[0]) + match[0].length;
-            const lines = pageText.substring(startIndex, startIndex + 600).trim().split('\n').filter(l => l.trim());
-            document.getElementById('milestone-date').innerText = `📅 LOG [${match[1]}]`;
-            document.getElementById('milestone-title').innerText = lines[0] || "Pembaruan Ekosistem";
-            document.getElementById('milestone-desc').innerText = lines.slice(1).join(' ').substring(0, 180) + '...';
-        } else throw new Error();
-    } catch (e) {
-        document.getElementById('milestone-date').innerText = "📅 LOG [2026-06-15]";
-        document.getElementById('milestone-title').innerText = "Pecah Telur! Ilmu Baku Pertama Lulus Uji";
-        document.getElementById('milestone-desc').innerText = "Sistem sedang memuat log terbaru dari arsip...";
-    }
+// 6. INITIALIZATION
+async function initDashboard() {
+    sinkronkanUserParamKeNavigasi();
+    fetchAlgorandChainData();
+    fetchMilestoneFromHTML();
+    fetchKompasianaArticles();
 }
-
-// 6. FEED KOMPASIANA
-async function fetchKompasianaArticles() {
-    const container = document.getElementById('kompasiana-container');
-    if (!container) return;
-    container.innerHTML = `<div class="article-card" onclick="window.open('https://www.kompasiana.com/${KOMPASIANA_USER}', '_blank')" style="grid-column: 1 / -1; text-align: center; padding: 28px; border: 1px dashed #34d399; background: rgba(52, 211, 153, 0.02); border-radius: 12px; cursor: pointer;">
-        <span class="tag">Kanal Publikasi</span>
-        <div class="article-title" style="font-size: 15px; color: #34d399; margin: 10px 0;">Baca Catatan Pemikiran ToFarmer di Kompasiana ↗</div>
-    </div>`;
-}
-
-
 
 window.addEventListener('DOMContentLoaded', initDashboard);
-    </script>
+</script>
 </body>
 </html>
