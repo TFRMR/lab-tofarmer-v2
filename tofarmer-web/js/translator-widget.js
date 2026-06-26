@@ -1,7 +1,6 @@
-
+// /tofarmer-web/public/js/translator-widget.js
 (function () {
-
-    // ─── KAMUS UI STATIS ───────────────────────────────────────────────────────
+    // ─── 1. KAMUS UI STATIS (Instan tanpa API) ──────────────────────────────────
     const kamusUI = {
         "🔑 MASUK / DAFTAR 🌿": "🔑 LOGIN / REGISTER 🌿",
         "🚪 LOGOUT": "🚪 LOGOUT",
@@ -14,7 +13,7 @@
         "🤝 Titik Kumpul": "🤝 Gathering Point",
         "Ngopi, ide, ngobrol, santai ,ngonten": "Coffee, ideas, chat, relax, content",
         "🤖 Ladang Eksperimen": "🤖 Experiment Field",
-        "AI, blockchain, robot, dan ide yang kadang \u201cnggak masuk akal\u201d": "AI, blockchain, robotics, and out-of-the-box ideas",
+        "AI, blockchain, robot, dan ide yang kadang “nggak masuk akal”": "AI, blockchain, robotics, and out-of-the-box ideas",
         "🌱 Cerita Tanah & Panen": "🌱 Soil & Harvest Stories",
         "Drama masuk kebun": "Garden diaries and dramas",
         "☕ Duit...duit dan duit": "☕ Money, money, and money",
@@ -43,32 +42,28 @@
         "⚠️ Gagal memuat peringkat": "⚠️ Failed to load leaderboard"
     };
 
-    // ─── CACHE TERJEMAHAN (hemat quota MyMemory) ──────────────────────────────
-    const cache = {};
-
-    // ─── SKIP TAG ──────────────────────────────────────────────────────────────
+    const cacheTerjemahan = {};
     const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'NOSCRIPT']);
+    let statusBahasa = localStorage.getItem('tof_bahasa_pilihan') || 'id';
+    let intervalUI = null;
 
-    // ─── TERJEMAH UI STATIS (kamus lokal, instan) ─────────────────────────────
+    // ─── 2. SELEKTOR TERJEMAH UI AMAN ─────────────────────────────────────────
     function terjemahUINode(node) {
         if (!node) return;
         if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") return;
 
         if (node.nodeType === Node.TEXT_NODE) {
-            if (!node.nodeValue || !node.nodeValue.trim()) return;
+            let teksAsli = node.nodeValue.trim();
+            if (!teksAsli) return;
             for (const [kunci, nilai] of Object.entries(kamusUI)) {
-                if (node.nodeValue.includes(kunci) && !node.nodeValue.includes(nilai)) {
+                if (teksAsli === kunci || (teksAsli.includes(kunci) && !teksAsli.includes(nilai))) {
                     node.nodeValue = node.nodeValue.replace(kunci, nilai);
                 }
             }
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             if (SKIP_TAGS.has(node.tagName)) return;
             if ((node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') && node.placeholder) {
-                for (const [kunci, nilai] of Object.entries(kamusUI)) {
-                    if (node.placeholder.includes(kunci) && !node.placeholder.includes(nilai)) {
-                        node.placeholder = node.placeholder.replace(kunci, nilai);
-                    }
-                }
+                if (kamusUI[node.placeholder]) node.placeholder = kamusUI[node.placeholder];
             }
             for (let i = 0; i < node.childNodes.length; i++) {
                 terjemahUINode(node.childNodes[i]);
@@ -76,165 +71,135 @@
         }
     }
 
-    // ─── TERJEMAH KONTEN POSTINGAN VIA MYMEMORY ───────────────────────────────
-    async function terjemahMyMemory(teks) {
+    // ─── 3. ENGINE FETCH MYMEMORY (DENGAN EMAIL BIAR KUOTA LUAS) ───────────────
+    async function panggilAPIKueri(teks) {
         const bersih = teks.trim();
-        if (!bersih) return teks;
-        if (cache[bersih]) return cache[bersih];
+        if (!bersih || bersih.length < 2) return teks;
+        if (cacheTerjemahan[bersih]) return cacheTerjemahan[bersih];
 
         try {
+            // Menggunakan email anonim bawaan publik untuk membuka kuota gratis hingga 30.000 kata/hari
             const res = await fetch(
-                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(bersih)}&langpair=id|en`
+                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(bersih)}&langpair=id|en&de=tofarmer_xyz@gmail.com`
             );
             const data = await res.json();
             if (data.responseStatus === 200 && data.responseData?.translatedText) {
-                cache[bersih] = data.responseData.translatedText;
-                return cache[bersih];
+                cacheTerjemahan[bersih] = data.responseData.translatedText;
+                return cacheTerjemahan[bersih];
             }
         } catch (e) {
-            console.warn('[TOF Translator] MyMemory error:', e);
+            console.warn('[TOF] API error:', e);
         }
-        return teks; // fallback ke teks asli
+        return teks;
     }
 
-    // Terjemahkan semua elemen .text (isi postingan) dan .comment (isi komentar)
-    // Selector ini sesuai class yang dipakai di app.js dan profile.js
-    async function terjemahSemuaPostingan() {
-        // .text   → isi postingan utama (div.text di renderPostsBatch app.js baris 604)
-        // span[style*="white-space:pre-wrap"] → isi komentar (app.js baris 646)
-        const elemen = document.querySelectorAll(
-            '.text:not([data-tof-done]), span[style*="white-space:pre-wrap"]:not([data-tof-done])'
-        );
+    // ─── 4. SUNTIK TOMBOL TRANSLATE TIPIS DI BAWAH POSTINGAN/KOMENTAR ──────────
+    function pasangTombolPerPostingan() {
+        if (statusBahasa !== 'en') return;
 
-        for (const el of elemen) {
-            el.setAttribute('data-tof-done', '1'); // tandai agar tidak diproses dua kali
+        // Cari div teks postingan (.text) dan teks komentar (span pre-wrap) yang belum dipasangi tombol
+        const targetPost = document.querySelectorAll('.text:not([data-tof-btn]), span[style*="white-space:pre-wrap"]:not([data-tof-btn])');
 
+        targetPost.forEach(el => {
+            el.setAttribute('data-tof-btn', '1'); 
             const teksAsli = el.innerText?.trim();
-            if (!teksAsli || teksAsli.length < 3) continue;
+            if (!teksAsli || teksAsli.length < 5 || Object.values(kamusUI).includes(teksAsli)) return;
 
-            // Tanda loading: redup sementara
-            el.style.opacity = '0.45';
-            const hasil = await terjemahMyMemory(teksAsli);
-            el.style.opacity = '1';
-
-            if (hasil && hasil !== teksAsli) {
-                // Ganti hanya konten teks, pertahankan innerHTML (ada mention/@user di dalamnya)
-                // Cara aman: cari semua text node di dalamnya dan ganti
-                gantiTextNodes(el, teksAsli, hasil);
-            }
-        }
-    }
-
-    // Ganti text node di dalam elemen tanpa merusak child element (misal <span> mention)
-    function gantiTextNodes(el, teksAsli, teksHasil) {
-        // Jika elemennya hanya berisi plain text (tidak ada child element)
-        const punyaChildElement = Array.from(el.childNodes).some(n => n.nodeType === Node.ELEMENT_NODE);
-
-        if (!punyaChildElement) {
-            // Aman langsung ganti textContent
-            el.textContent = teksHasil;
-        } else {
-            // Ada child element (misal <span> mention) — hanya ganti text node paling luar
-            for (const node of el.childNodes) {
-                if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
-                    // Terjemahkan per fragment teks
-                    terjemahMyMemory(node.nodeValue.trim()).then(hasil => {
-                        if (hasil && hasil !== node.nodeValue.trim()) {
-                            node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), hasil);
-                        }
-                    });
+            // Buat element tautan klik super tipis ala Facebook
+            const btnLink = document.createElement('small');
+            btnLink.innerText = ' See Translation';
+            btnLink.style.cssText = 'color: #888; cursor: pointer; font-size: 10px; margin-left: 8px; text-decoration: underline; display: inline-block;';
+            
+            btnLink.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                if (btnLink.innerText === ' See Translation') {
+                    btnLink.innerText = ' Translating...';
+                    el.style.opacity = '0.5';
+                    const hasil = await panggilAPIKueri(teksAsli);
+                    el.style.opacity = '1';
+                    
+                    // Ganti teks terdalam tanpa merusak elemen HTML luar
+                    if (el.childNodes.length > 0 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
+                        el.childNodes[0].nodeValue = hasil + " ";
+                    } else {
+                        el.textContent = hasil + " ";
+                        el.appendChild(btnLink); // pasang ulang tombolnya di dalam
+                    }
+                    btnLink.innerText = ' Show Original';
+                } else {
+                    // Balik ke teks asal
+                    if (el.childNodes.length > 0 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
+                        el.childNodes[0].nodeValue = teksAsli + " ";
+                    } else {
+                        el.textContent = teksAsli + " ";
+                        el.appendChild(btnLink);
+                    }
+                    btnLink.innerText = ' See Translation';
                 }
-            }
-        }
+            });
+
+            // Selipkan tombol tepat di dalam ujung element teks profil/post
+            el.appendChild(btnLink);
+        });
     }
 
-    // ─── TOMBOL ────────────────────────────────────────────────────────────────
+    // ─── 5. LOOP MONITORING RINGAN (ANTI-STUCK) ──────────────────────────────
+    function jalankanSistemPenerjemah() {
+        terjemahUINode(document.body);
+        pasangTombolPerPostingan();
+
+        if (intervalUI) clearInterval(intervalUI);
+        intervalUI = setInterval(() => {
+            terjemahUINode(document.body);
+            pasangTombolPerPostingan();
+        }, 1500); // Mengecek elemen baru setiap 1.5 detik dengan santai
+    }
+
+    // ─── 6. TOMBOL FLOATING UTAMA (DESAIN SUPER TIPIS & TRANSPARAN) ────────────
     const btnTranslate = document.createElement('button');
     btnTranslate.id = "tof-translator-trigger";
     btnTranslate.style.cssText = `
         position: fixed;
-        bottom: 15px;
-        right: 15px;
+        bottom: 12px;
+        right: 12px;
         z-index: 999999;
-        padding: 6px 12px;
-        border-radius: 6px;
-        border: 1px solid #ddd;
-        font-size: 11px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        font-size: 10px;
         font-family: sans-serif;
-        color: #666;
-        background-color: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(4px);
+        color: #999;
+        background-color: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(2px);
         cursor: pointer;
-        box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
+        box-shadow: none;
         transition: all 0.2s ease;
     `;
     document.body.appendChild(btnTranslate);
 
-    btnTranslate.onmouseover = () => { btnTranslate.style.backgroundColor = '#fff'; btnTranslate.style.color = '#2f6f4e'; };
-    btnTranslate.onmouseout  = () => { btnTranslate.style.backgroundColor = 'rgba(255,255,255,0.9)'; btnTranslate.style.color = '#666'; };
+    btnTranslate.onmouseover = () => { btnTranslate.style.backgroundColor = '#fff'; btnTranslate.style.color = '#2f6f4e'; btnTranslate.style.border = '1px solid #ccc'; };
+    btnTranslate.onmouseout  = () => { btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.6)'; btnTranslate.style.color = '#999'; btnTranslate.style.border = '1px solid rgba(0, 0, 0, 0.08)'; };
 
-    // ─── OBSERVER ──────────────────────────────────────────────────────────────
-    let observer = null;
-
-    function mulaiSistemLoop() {
-        // 1. Terjemah UI statis dulu (kamus lokal, instan)
-        terjemahUINode(document.body);
-
-        // 2. Terjemah postingan yang sudah ada di DOM
-        terjemahSemuaPostingan();
-
-        // 3. Pantau postingan baru (infinite scroll / Supabase realtime)
-        if (observer) observer.disconnect();
-
-        observer = new MutationObserver((mutations) => {
-            let adaBaru = false;
-            for (const mutation of mutations) {
-                for (const node of mutation.addedNodes) {
-                    if (node.nodeType !== Node.ELEMENT_NODE) continue;
-                    if (node.id === "tof-translator-trigger") continue;
-                    terjemahUINode(node);
-                    adaBaru = true;
-                }
-            }
-            if (adaBaru) terjemahSemuaPostingan();
-        });
-
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            characterData: false,
-            attributes: false
-        });
-    }
-
-    function hentikanSistemLoop() {
-        if (observer) { observer.disconnect(); observer = null; }
-    }
-
-    // ─── INISIALISASI ──────────────────────────────────────────────────────────
-    let statusBahasa = localStorage.getItem('tof_bahasa_pilihan') || 'id';
-
+    // Inisialisasi awal halaman dimuat
     if (statusBahasa === 'en') {
         btnTranslate.innerHTML = '🌐 ID';
-        // Tunggu 2 detik agar Supabase selesai inject postingan ke DOM
-        setTimeout(mulaiSistemLoop, 2000);
+        setTimeout(jalankanSistemPenerjemah, 1500); // Beri waktu supabase merender layout
     } else {
         btnTranslate.innerHTML = '🌐 EN';
     }
 
+    // Event handler klik tombol utama
     btnTranslate.addEventListener('click', function () {
         if (statusBahasa === 'id') {
             localStorage.setItem('tof_bahasa_pilihan', 'en');
             btnTranslate.innerHTML = '🌐 ID';
             statusBahasa = 'en';
-            mulaiSistemLoop();
+            jalankanSistemPenerjemah();
         } else {
             localStorage.setItem('tof_bahasa_pilihan', 'id');
-            hentikanSistemLoop();
-            window.location.reload();
+            if (intervalUI) clearInterval(intervalUI);
+            window.location.reload(); // Reload adalah jalan paling bersih mengembalikan instalan state medsos semula
         }
     });
 
 })();
-
-
