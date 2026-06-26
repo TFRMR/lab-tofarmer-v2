@@ -445,26 +445,40 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let holderPieChart;
 let candleChartInstance;
 
-// FUNGSI HARGA GLOBAL (Ditempatkan di luar agar tidak tabrakan)
-async function getMarketPrice(assetId) {
+// Harga dihitung langsung dari rasio ALGO/TOF di pool Tinyman
+async function getMarketPrice(assetId, decimals) {
+    const TINYMAN_POOL = "XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM";
     try {
-        // Vestige API mengembalikan harga real TOF per ALGO (sudah adjusted)
-        const vestigeRes = await fetch(`https://free-api.vestige.fi/asset/${assetId}/price?currency=algo`);
-        const vestigeData = await vestigeRes.json();
-        const priceAlgo = vestigeData.price || 0;
+        // 1. Ambil saldo pool langsung dari node Algorand
+        const poolRes = await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${TINYMAN_POOL}`);
+        const poolData = await poolRes.json();
 
+        // 2. ALGO di pool (ALGO punya 6 desimal)
+        const algoInPool = (poolData.amount || 0) / 1e6;
+
+        // 3. TOF di pool (sesuai desimal aset)
+        const tofAsset = (poolData.assets || []).find(a => a['asset-id'] === parseInt(assetId));
+        const tofInPool = (tofAsset?.amount || 0) / Math.pow(10, decimals);
+
+        if (tofInPool === 0) throw new Error("TOF tidak ditemukan di pool");
+
+        // 4. Harga spot: 1 TOF = berapa ALGO
+        const priceAlgo = algoInPool / tofInPool;
+
+        // 5. Konversi ALGO → IDR
         const algoReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
         const algoData = await algoReq.json();
         const algoToIdr = algoData.algorand?.idr || 0;
 
         const priceIDR = priceAlgo * algoToIdr;
-        console.log(`Harga TOF: ${priceAlgo} ALGO = Rp ${priceIDR.toFixed(4)}`);
+        console.log(`Pool: ${algoInPool.toFixed(2)} ALGO / ${tofInPool.toFixed(2)} TOF = ${priceAlgo.toFixed(8)} ALGO/TOF = Rp ${priceIDR.toFixed(4)}`);
         return priceIDR;
     } catch (e) {
-        console.error("Gagal ambil harga:", e);
-        return 1.40; // Fallback ~1.4 IDR
+        console.error("Gagal ambil harga dari pool:", e);
+        return 1.40;
     }
 }
+
 async function initDashboard() {
     fetchAlgorandChainData();
     fetchMilestoneFromHTML();
@@ -521,7 +535,7 @@ try {
 }
 
 // Ambil harga (tanpa decimals — Vestige sudah adjusted)
-const currentPriceIDR = await getMarketPrice(ASSET_ID);
+const currentPriceIDR = await getMarketPrice(ASSET_ID, decimals);
 renderCandlestickChart(currentPriceIDR);
 
                 // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
