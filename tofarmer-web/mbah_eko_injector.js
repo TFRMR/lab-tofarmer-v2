@@ -141,14 +141,14 @@
                     .from("ilmu_pending")
                     .select("id")
                     .eq("user_id", targetUserId)
-                    .maybeSingle();
+                    .limit(1);
 
                 if (errCekPending) {
                     console.error(`❌ [Mbah Eko] Gagal cek tabel ilmu_pending:`, errCekPending.message);
                     continue;
                 }
 
-                if (cekPending) {
+                if (cekPending && cekPending.length > 0) {
                     console.log(`ℹ️ [Mbah Eko] User ${targetUserId} punya draf menggantung di ilmu_pending, skip ke user lain.`);
                     continue;
                 }
@@ -158,14 +158,14 @@
                     .from("ilmu_baku")
                     .select("id")
                     .eq("user_id", targetUserId)
-                    .maybeSingle();
+                    .limit(1);
 
                 if (errCekBaku) {
                     console.error(`❌ [Mbah Eko] Gagal cek tabel ilmu_baku:`, errCekBaku.message);
                     continue;
                 }
 
-                if (cekBaku) {
+                if (cekBaku && cekBaku.length > 0) {
                     console.log(`ℹ️ [Mbah Eko] User ${targetUserId} ilmunya sudah berstatus BAKU, skip ke user lain.`);
                     continue;
                 }
