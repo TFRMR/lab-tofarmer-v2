@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1"></script>
-    
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
@@ -588,79 +588,78 @@ renderCandlestickChart(currentPriceIDR);
 
         // 4. GENERATE DAN LOGIKA GRAFIK CANDLESTICK DALAM FORMAT RUPIAH (IDR)
         // Disesuaikan untuk tampilan 30 hari ke belakang (Daily / D1)
-        function renderCandlestickChart(currentPrice) {
-            const ctx = document.getElementById('candlestickChart').getContext('2d');
-            
-            if (candleChartInstance) { candleChartInstance.destroy(); }
+       function renderCandlestickChart(currentPrice) {
+    const ctx = document.getElementById('candlestickChart').getContext('2d');
+    if (candleChartInstance) { candleChartInstance.destroy(); }
 
-            const now = moment().startOf('day');
-            const dataPoints = [];
-
-            // Membuat 30 hari data historis
-            for (let i = 30; i >= 0; i--) {
-                const date = now.clone().subtract(i, 'd');
-                // Simulasi pergerakan harga acak di sekitar currentPrice
-                const volatility = 0.05; // 5% volatilitas harian
-                const open = currentPrice * (1 + (Math.random() - 0.5) * volatility);
-                const close = currentPrice * (1 + (Math.random() - 0.5) * volatility);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.02);
-                const low = Math.min(open, close) * (1 - Math.random() * 0.02);
-
-                dataPoints.push({
-                    x: date.valueOf(),
-                    o: open,
-                    h: high,
-                    l: low,
-                    c: close
-                });
-            }
-
-            candleChartInstance = new Chart(ctx, {
-                type: 'candlestick',
-                data: {
-                    datasets: [{
-                        label: 'TOF / IDR (30 Hari Terakhir - D1)',
-                        data: dataPoints,
-                        color: {
-                            up: '#22c55e',    
-                            down: '#ef4444',  
-                            unchanged: '#94a3b8'
-                        },
-
-                        borderColor: {
-                            up: '#22c55e',
-                            down: '#ef4444',
-                            unchanged: '#94a3b8'
-                        }
-                    }]
-                },
-
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: { unit: 'day', displayFormats: { day: 'MMM DD' } },
-                            grid: { color: 'rgba(74, 222, 128, 0.05)' }
-                        },
-                        y: {
-    grid: { color: 'rgba(74, 222, 128, 0.05)' },
-    ticks: {
-        // Menampilkan hingga 5 angka di belakang koma untuk akurasi harga sub-Rupiah
-        callback: function(value) { 
-            return 'Rp ' + value.toFixed(5).replace('.', ','); 
-        }
+    const now = moment().startOf('day');
+    const dataPoints = [];
+    for (let i = 30; i >= 0; i--) {
+        const date = now.clone().subtract(i, 'd');
+        const volatility = 0.05;
+        const open  = currentPrice * (1 + (Math.random() - 0.5) * volatility);
+        const close = currentPrice * (1 + (Math.random() - 0.5) * volatility);
+        const high  = Math.max(open, close) * (1 + Math.random() * 0.02);
+        const low   = Math.min(open, close) * (1 - Math.random() * 0.02);
+        dataPoints.push({ x: date.valueOf(), o: open, h: high, l: low, c: close });
     }
-}
-                    },
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
+
+    candleChartInstance = new Chart(ctx, {
+        type: 'candlestick',
+        data: {
+            datasets: [{
+                label: 'TOF / IDR (30 Hari Terakhir - D1)',
+                data: dataPoints,
+                color:       { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' },
+                borderColor: { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' }
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: { unit: 'day', displayFormats: { day: 'MMM DD' } },
+                    grid: { color: 'rgba(74, 222, 128, 0.05)' }
+                },
+                y: {
+                    grid: { color: 'rgba(74, 222, 128, 0.05)' },
+                    ticks: {
+                        callback: function(value) {
+                            return 'Rp ' + value.toFixed(4).replace('.', ',');
+                        }
                     }
                 }
-            });
-        }
-
+            },
+            plugins: {
+                legend: { labels: { color: '#e2e8f0' } },
+                annotation: {
+                    annotations: {
+                        hargaSekarang: {
+                            type: 'line',
+                            yMin: currentPrice,
+                            yMax: currentPrice,
+                            borderColor: '#f59e0b',
+                            borderWidth: 2,
+                            borderDash: [8, 4],
+                            label: {
+                                display: true,
+                                content: `Harga Sekarang: Rp ${currentPrice.toFixed(4).replace('.', ',')}`,
+                                position: 'end',
+                                backgroundColor: 'rgba(245, 158, 11, 0.92)',
+                                color: '#1e293b',
+                                font: { size: 11, weight: 'bold' },
+                                padding: { x: 8, y: 4 },
+                                borderRadius: 4
+                            }        // tutup label
+                        }            // tutup hargaSekarang
+                    }                // tutup annotations
+                }                    // tutup annotation
+            }                        // tutup plugins
+        }                            // tutup options
+    });                              // tutup new Chart()
+}                                    // tutup function
         // 5. SCRAPING DATA MILESTONE PORTOFOLIO.HTML
         async function fetchMilestoneFromHTML() {
             try {
