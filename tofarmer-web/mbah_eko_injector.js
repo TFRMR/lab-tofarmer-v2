@@ -117,26 +117,8 @@
             // 5. Analisis target berdasarkan antrean yang sudah DIACAK
             for (const targetUserId of semuaDaftarUser) {
                 const koleksiPost = grupUser[targetUserId];
-                const postJangkar = koleksiPost[0];
 
-                // PROTEKSI GERBANG A: Cek tabel log kurasi internal
-                const { data: cekKurasi, error: errCekKurasi } = await DB
-                    .from("mbah_eko_kurasi")
-                    .select("id, status_kurasi")
-                    .eq("post_id", postJangkar.id)
-                    .maybeSingle();
-
-                if (errCekKurasi) {
-                    console.error(`❌ [Mbah Eko] Gagal cek tabel mbah_eko_kurasi:`, errCekKurasi.message);
-                    continue;
-                }
-
-                if (cekKurasi) {
-                    console.log(`ℹ️ [Mbah Eko] Post ${postJangkar.id} sudah tercatat, skip ke user lain.`);
-                    continue;
-                }
-
-                // PROTEKSI GERBANG B: Cek tabel ilmu_pending
+                // PROTEKSI GERBANG B: Cek tabel ilmu_pending (level USER, bukan per-post)
                 const { data: cekPending, error: errCekPending } = await DB
                     .from("ilmu_pending")
                     .select("id")
@@ -153,7 +135,7 @@
                     continue;
                 }
 
-                // PROTEKSI GERBANG C: Cek tabel ilmu_baku
+                // PROTEKSI GERBANG C: Cek tabel ilmu_baku (level USER, bukan per-post)
                 const { data: cekBaku, error: errCekBaku } = await DB
                     .from("ilmu_baku")
                     .select("id")
@@ -167,6 +149,33 @@
 
                 if (cekBaku && cekBaku.length > 0) {
                     console.log(`ℹ️ [Mbah Eko] User ${targetUserId} ilmunya sudah berstatus BAKU, skip ke user lain.`);
+                    continue;
+                }
+
+                // PROTEKSI GERBANG A: Cari post jangkar yang BELUM pernah dikurasi
+                // Loop semua post milik user ini, pakai yang pertama belum tercatat
+                let postJangkar = null;
+                for (const kandidatPost of koleksiPost) {
+                    const { data: cekKurasi, error: errCekKurasi } = await DB
+                        .from("mbah_eko_kurasi")
+                        .select("id")
+                        .eq("post_id", kandidatPost.id)
+                        .limit(1);
+
+                    if (errCekKurasi) {
+                        console.error(`❌ [Mbah Eko] Gagal cek tabel mbah_eko_kurasi:`, errCekKurasi.message);
+                        break;
+                    }
+
+                    if (!cekKurasi || cekKurasi.length === 0) {
+                        postJangkar = kandidatPost; // Ketemu post yang belum dikurasi!
+                        break;
+                    }
+                    console.log(`ℹ️ [Mbah Eko] Post ${kandidatPost.id} sudah tercatat, coba post lain milik user yang sama...`);
+                }
+
+                if (!postJangkar) {
+                    console.log(`ℹ️ [Mbah Eko] Semua post user ${targetUserId} sudah pernah dikurasi, skip ke user lain.`);
                     continue;
                 }
 
