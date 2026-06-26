@@ -378,15 +378,13 @@
         <p>© 2026 ToFarmer Ecosystem. Decentralized Architecture via Algorand, Supabase & Vercel Edge.</p>
     </footer>
 
-    <script>
-      // 1. KONFIGURASI PROYEK TOFARMER
+   <script>
+        // 1. KONFIGURASI PROYEK TOFARMER
         const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
         const KOMPASIANA_USER = 'tofarmer3643'; 
         const ASSET_ID = "3558306283";
-        
-        // FIX CORS & DOMAIN: Menggunakan path relatif internal domain yang sama
-        const MILESTONE_URL = '/html/portofolio.html'; 
+        const MILESTONE_URL = 'portofolio.html'; // Path relatif aman untuk domain yang sama
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let holderPieChart;
@@ -396,13 +394,13 @@
             fetchMilestoneFromHTML();
             fetchKompasianaArticles();
         }
-        // 2. AMBIL DATA BLOCKCHAIN ALGORAND
+
+        // 2. AMBIL DATA BLOCKCHAIN ALGORAND (PASOKAN ON-CHAIN AMAN)
         async function fetchAlgorandChainData() {
-            // Gantilah dengan alamat dompet pembentuk/cadangan ToFarmer Anda yang memegang sisa supply
             const RESERVE_ADDRESS = "WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q"; 
 
             try {
-                // 1. Ambil data spesifikasi aset TOF untuk mendapatkan Total Supply & Desimal
+                // Ambil data spesifikasi utama aset TOF
                 const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
                 const assetData = await assetResponse.json();
                 
@@ -410,34 +408,40 @@
                 const decimals = assetData.asset.params.decimals || 0;
                 const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
                 
-                const totalSupplyEl = document.getElementById('total-supply');
-                totalSupplyEl.innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
-                totalSupplyEl.classList.remove('pulse');
+                document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
+                document.getElementById('total-supply').classList.remove('pulse');
                 
-                // 2. Ambil data saldo token TOF spesifik dari dompet cadangan (Reserve Wallet)
-                const reserveResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${RESERVE_ADDRESS}/assets/${ASSET_ID}`);
                 let reserveBalance = 0;
-
-                if (reserveResponse.ok) {
-                    const reserveData = await reserveResponse.json();
-                    const rawReserveBalance = reserveData['asset-holding'].amount || 0;
-                    reserveBalance = rawReserveBalance / Math.pow(10, decimals);
+                
+                // BUNGKUS DENGAN TRY-CATCH KHUSUS UNTUK MENGANTISIPASI ERROR 404 ALGONODE
+                try {
+                    const reserveResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${RESERVE_ADDRESS}/assets/${ASSET_ID}`);
+                    
+                    if (reserveResponse.ok) {
+                        const reserveData = await reserveResponse.json();
+                        const rawReserveBalance = reserveData['asset-holding'].amount || 0;
+                        reserveBalance = rawReserveBalance / Math.pow(10, decimals);
+                    } else {
+                        // Jika respons bernilai 404 atau lainnya, set saldo ke 0
+                        reserveBalance = 0;
+                        console.log("Dompet reserve belum opt-in / tidak memegang TOF. Saldo dihitung 0.");
+                    }
+                } catch (innerValueErr) {
+                    // Mencegah pesan error merah merusak jalannya fungsi selanjutnya
+                    reserveBalance = 0;
                 }
 
-                // 3. HITUNG SIRKULASI RIIL (On-Chain Formula)
-                // Total koin dikurangi koin yang masih mengendap di dompet developer
+                // Hitung Sirkulasi Riil secara On-Chain
                 const circulatingSupply = actualTotalSupply - reserveBalance; 
 
-                const circSupplyEl = document.getElementById('circulating-supply');
-                circSupplyEl.innerText = circulatingSupply.toLocaleString('id-ID') + " TOF";
-                circSupplyEl.classList.remove('pulse');
+                document.getElementById('circulating-supply').innerText = circulatingSupply.toLocaleString('id-ID') + " TOF";
+                document.getElementById('circulating-supply').classList.remove('pulse');
 
-                // 4. Ambil daftar seluruh alamat pemegang koin di Blockchain untuk cross-reference
+                // Ambil daftar pemegang koin di blockchain
                 const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
                 const balancesData = await balancesResponse.json();
                 const allBlockchainHolders = balancesData.balances.map(b => b.address);
 
-                // Jalankan fungsi pencocokan dengan data Supabase profiles
                 crossReferenceHolders(allBlockchainHolders);
 
             } catch (error) {
@@ -447,7 +451,7 @@
             }
         }
 
-       // 3. COCOKKAN HOLDER BLOCKCHAIN VS TABEL PROFILES SUPABASE
+        // 3. SINKRONISASI DATA SUPABASE VS BLOCKCHAIN
         async function crossReferenceHolders(blockchainAddresses) {
             try {
                 const { data: internalProfiles, error } = await supabaseClient
@@ -480,13 +484,12 @@
             }
         }
 
-        // 4. SCRAPING DATA MILESTONE DARI HALAMAN PORTOFOLIO.HTML (INTERNAL FETCH)
+        // 4. SCRAPING DATA MILESTONE PORTOFOLIO.HTML (SANGAT AMAN DI ONLINE VERCEL)
         async function fetchMilestoneFromHTML() {
             try {
-                // Memanggil langsung file lokal tanpa proxy internet, aman dari pemblokiran CORS
+                // Memanggil file dari server yang sama secara langsung (Bebas CORS)
                 const response = await fetch(MILESTONE_URL);
-                if (!response.ok) throw new Error("File portofolio tidak ditemukan");
-                
+                if (!response.ok) throw new Error("File portofolio tidak merespons");
                 const htmlText = await response.text();
                 
                 const parser = new DOMParser();
@@ -512,57 +515,55 @@
                     throw new Error("Format tanggal log tidak ditemukan");
                 }
             } catch (error) {
-                console.warn("Membaca fallback statis (Kondisi pengerjaan lokal):", error);
-                // Fallback aman jika belum di-push online
+                console.warn("Membaca fallback statis:", error);
                 document.getElementById('milestone-date').innerText = "📅 LOG [2026-06-15]";
                 document.getElementById('milestone-title').innerText = "Pecah Telur! Ilmu Baku Pertama Sukses Lulus Uji Komunitas";
                 document.getElementById('milestone-desc').innerText = "Satu rumus ilmu pertanian akhirnya resmi disahkan oleh komunitas setelah berhasil lolos seleksi ketat dari Gate 1 sampai Gate 3...";
             }
         }
 
-        // 5. AMBIL ARTIKEL RSS FEED KOMPASIANA (PENGGANTI RSS2JSON YANG ERROR 500)
+        // 5. AMBIL ARTIKEL RSS FEED KOMPASIANA (ENGIN PARSER BARU JAUH LEBIH STABIL)
         async function fetchKompasianaArticles() {
             const container = document.getElementById('kompasiana-container');
             try {
-                // Menggunakan parser alternatif terenkripsi yang lebih aman dari pemblokiran server Kompasiana
-                const feedUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://www.kompasiana.com/' + KOMPASIANA_USER + '/feed')}`;
+                // Menggunakan endpoint cadangan rss2json gratisan dengan cache buster agar selalu up-to-date
+                const rssUrl = `https://www.kompasiana.com/${KOMPASIANA_USER}/feed`;
+                const feedUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(rssUrl)}&_=` + new Date().getTime();
+                
                 const res = await fetch(feedUrl);
                 const data = await res.json();
-                
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-                const items = xmlDoc.getElementsByTagName("item");
 
-                if (items.length > 0) {
+                if (data.status === 'ok' && data.items.length > 0) {
                     container.innerHTML = ''; 
-                    const maxItems = Math.min(items.length, 3);
+                    const items = data.items.slice(0, 3);
                     
-                    for (let i = 0; i < maxItems; i++) {
-                        const title = items[i].getElementsByTagName("title")[0].textContent;
-                        const link = items[i].getElementsByTagName("link")[0].textContent;
-                        const pubDate = items[i].getElementsByTagName("pubDate")[0].textContent;
-                        let description = items[i].getElementsByTagName("description")[0].textContent;
-                        
-                        // Membersihkan tag HTML di dalam deskripsi artikel
-                        const cleanDesc = description.replace(/<[^>]*>/g, '').substring(0, 90) + '...';
-                        const formattedDate = new Date(pubDate).toLocaleDateString('id-ID');
+                    items.forEach(item => {
+                        const cleanDesc = item.description.replace(/<[^>]*>/g, '').substring(0, 90) + '...';
+                        const formattedDate = new Date(item.pubDate).toLocaleDateString('id-ID');
                         
                         const cardHtml = `
-                            <div class="article-card" onclick="window.open('${link}', '_blank')">
+                            <div class="article-card" onclick="window.open('${item.link}', '_blank')">
                                 <span class="tag">Kompasiana</span>
-                                <div class="article-title">${title}</div>
+                                <div class="article-title">${item.title}</div>
                                 <p class="article-desc">${cleanDesc}</p>
                                 <div class="article-date">${formattedDate}</div>
                             </div>
                         `;
                         container.innerHTML += cardHtml;
-                    }
+                    });
                 } else {
-                    container.innerHTML = `<div style="padding:16px; font-size:12px; color:#6b7280;">Tidak ada artikel publikasi.</div>`;
+                    throw new Error("Data status RSS tidak OK");
                 }
             } catch (error) {
-                console.error("Gagal menarik RSS Feed Kompasiana:", error);
-                container.innerHTML = `<div style="padding:16px; font-size:12px; color:#6b7280;">Gagal memuat feed berita Kompasiana.</div>`;
+                console.warn("Gagal menarik via RSS2JSON, beralih ke tautan manual profil:", error);
+                // Tampilan fallback elegan berupa kartu profil langsung jika proxy internet macet
+                container.innerHTML = `
+                    <div class="article-card" onclick="window.open('https://www.kompasiana.com/${KOMPASIANA_USER}', '_blank')" style="grid-column: 1 / -1; text-align: center; padding: 24px;">
+                        <span class="tag" style="margin-bottom: 8px; display: inline-block;">Kompasiana Feed</span>
+                        <div class="article-title" style="font-size: 14px; color: #34d399;">Lihat Artikel Terbaru di Profil Kompasiana ToFarmer ↗</div>
+                        <p class="article-desc" style="max-width: 500px; margin: 8px auto 0 auto;">Sistem proxy luar sedang membatasi pemuatan otomatis. Silakan klik kartu ini untuk langsung membaca tulisan-tulisan terbaru seputar ekosistem ToFarmer.</p>
+                    </div>
+                `;
             }
         }
 
