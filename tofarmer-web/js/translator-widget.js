@@ -1,6 +1,8 @@
 // /tofarmer-web/public/js/translator-widget.js
-(function() {
-    const kamusToFarmer = {
+(function () {
+
+    // ─── KAMUS UI STATIS ───────────────────────────────────────────────────────
+    const kamusUI = {
         "🔑 MASUK / DAFTAR 🌿": "🔑 LOGIN / REGISTER 🌿",
         "🚪 LOGOUT": "🚪 LOGOUT",
         "👤 Masuk Profil": "👤 View Profile",
@@ -41,47 +43,121 @@
         "⚠️ Gagal memuat peringkat": "⚠️ Failed to load leaderboard"
     };
 
-    // Elemen interaktif yang TIDAK boleh disentuh child node-nya
+    // ─── CACHE TERJEMAHAN ──────────────────────────────────────────────────────
+    // Supaya teks yang sama tidak di-request dua kali ke MyMemory
+    const cacheMyMemory = {};
+
+    // ─── SELECTOR KONTEN POSTINGAN ─────────────────────────────────────────────
+    // Sesuaikan dengan class/selector elemen postingan di web kamu
+    const SELECTOR_POSTINGAN = [
+        '.post-content',
+        '.post-body',
+        '.card-text',
+        '.feed-text',
+        '.comment-text',
+        '[data-post-content]',
+        '[data-content]'
+    ].join(', ');
+
+    // ─── SKIP TAG ──────────────────────────────────────────────────────────────
     const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'NOSCRIPT', 'TEXTAREA']);
 
-    // Terjemahkan hanya TEXT NODE langsung, tidak traverse ke dalam elemen interaktif
-    function terjemahkanNode(node) {
+    // ─── TERJEMAH UI STATIS ────────────────────────────────────────────────────
+    function terjemahUINode(node) {
         if (!node) return;
-
-        // Skip elemen translator itu sendiri
         if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") return;
 
         if (node.nodeType === Node.TEXT_NODE) {
-            // Hanya proses jika ada teks nyata
             if (!node.nodeValue || !node.nodeValue.trim()) return;
-
-            for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
+            for (const [kunci, nilai] of Object.entries(kamusUI)) {
                 if (node.nodeValue.includes(kunci) && !node.nodeValue.includes(nilai)) {
                     node.nodeValue = node.nodeValue.replace(kunci, nilai);
                 }
             }
-
         } else if (node.nodeType === Node.ELEMENT_NODE) {
-            // Skip tag yang tidak boleh disentuh
             if (SKIP_TAGS.has(node.tagName)) return;
-
-            // Terjemahkan placeholder input tanpa menyentuh event listener
             if ((node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') && node.placeholder) {
-                for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
+                for (const [kunci, nilai] of Object.entries(kamusUI)) {
                     if (node.placeholder.includes(kunci) && !node.placeholder.includes(nilai)) {
                         node.placeholder = node.placeholder.replace(kunci, nilai);
                     }
                 }
             }
-
-            // Traverse hanya TEXT NODE children langsung — tidak rekursif masuk ke elemen interaktif
             for (let i = 0; i < node.childNodes.length; i++) {
-                terjemahkanNode(node.childNodes[i]);
+                terjemahUINode(node.childNodes[i]);
             }
         }
     }
 
-    // Tombol kecil minimalis & tipis
+    // ─── TERJEMAH KONTEN DINAMIS DENGAN MYMEMORY ──────────────────────────────
+    async function terjemahDenganMyMemory(teks) {
+        if (!teks || !teks.trim()) return teks;
+
+        // Cek cache dulu
+        if (cacheMyMemory[teks]) return cacheMyMemory[teks];
+
+        try {
+            const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(teks)}&langpair=id|en`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data.responseStatus === 200 && data.responseData && data.responseData.translatedText) {
+                const hasil = data.responseData.translatedText;
+                cacheMyMemory[teks] = hasil; // simpan ke cache
+                return hasil;
+            }
+        } catch (err) {
+            console.warn('[TOF Translator] MyMemory gagal:', err);
+        }
+
+        return teks; // fallback ke teks asli kalau gagal
+    }
+
+    // Ambil semua elemen postingan yang belum diterjemahkan dan terjemahkan
+    async function terjemahSemuaPostingan() {
+        const elemen = document.querySelectorAll(SELECTOR_POSTINGAN);
+        for (const el of elemen) {
+            // Tandai supaya tidak diterjemahkan dua kali
+            if (el.dataset.tofTranslated === 'true') continue;
+            el.dataset.tofTranslated = 'true';
+
+            const teksAsli = el.innerText.trim();
+            if (!teksAsli) continue;
+
+            // Tampilkan loading sementara
+            el.style.opacity = '0.5';
+            const hasil = await terjemahDenganMyMemory(teksAsli);
+            el.style.opacity = '1';
+
+            // Ganti hanya text node langsung, bukan innerHTML (aman dari XSS)
+            gantiTextNodeSaja(el, teksAsli, hasil);
+        }
+    }
+
+    // Ganti teks di dalam elemen tanpa merusak struktur HTML
+    function gantiTextNodeSaja(el, teksAsli, teksHasil) {
+        if (teksAsli === teksHasil) return;
+
+        // Jika elemennya hanya punya 1 text node langsung, ganti langsung
+        const childNodes = Array.from(el.childNodes);
+        const hanyaTextNode = childNodes.every(n => n.nodeType === Node.TEXT_NODE);
+
+        if (hanyaTextNode) {
+            el.textContent = teksHasil;
+        } else {
+            // Kalau ada elemen campuran (span, a, dll), ganti per text node
+            for (const node of childNodes) {
+                if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim()) {
+                    // Terjemahkan masing-masing text node kecil
+                    terjemahDenganMyMemory(node.nodeValue.trim()).then(hasil => {
+                        node.nodeValue = node.nodeValue.replace(node.nodeValue.trim(), hasil);
+                    });
+                }
+            }
+        }
+    }
+
+    // ─── TOMBOL TRANSLATOR ─────────────────────────────────────────────────────
     const btnTranslate = document.createElement('button');
     btnTranslate.id = "tof-translator-trigger";
     btnTranslate.style.cssText = `
@@ -112,30 +188,36 @@
         btnTranslate.style.color = '#666';
     };
 
+    // ─── OBSERVER ──────────────────────────────────────────────────────────────
     let observer = null;
 
     function mulaiSistemLoop() {
-        // Terjemahkan seluruh halaman sekali di awal
-        terjemahkanNode(document.body);
+        // 1. Terjemah UI statis dulu (kamus, instan)
+        terjemahUINode(document.body);
 
-        // Hentikan observer lama kalau masih jalan
+        // 2. Terjemah postingan yang sudah ada
+        terjemahSemuaPostingan();
+
+        // 3. Pantau postingan baru yang masuk (lazy load / infinite scroll)
         if (observer) observer.disconnect();
-
         observer = new MutationObserver((mutations) => {
+            let adaNodeBaru = false;
             for (const mutation of mutations) {
-                // Hanya proses node yang BARU ditambahkan ke DOM
                 for (const node of mutation.addedNodes) {
                     if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") continue;
-                    terjemahkanNode(node);
+                    terjemahUINode(node);
+                    adaNodeBaru = true;
                 }
             }
+            // Terjemah postingan baru kalau ada node baru
+            if (adaNodeBaru) terjemahSemuaPostingan();
         });
 
         observer.observe(document.body, {
-            childList: true,       // pantau elemen baru
-            subtree: true,         // termasuk nested
-            characterData: false,  // JANGAN pantau perubahan teks (mencegah loop)
-            attributes: false      // JANGAN pantau perubahan atribut
+            childList: true,
+            subtree: true,
+            characterData: false,
+            attributes: false
         });
     }
 
@@ -146,17 +228,17 @@
         }
     }
 
+    // ─── INISIALISASI ──────────────────────────────────────────────────────────
     let statusBahasa = localStorage.getItem('tof_bahasa_pilihan') || 'id';
 
     if (statusBahasa === 'en') {
         btnTranslate.innerHTML = '🌐 ID';
-        // Beri jeda 1.5 detik agar konten Supabase selesai dimuat dulu
         setTimeout(mulaiSistemLoop, 1500);
     } else {
         btnTranslate.innerHTML = '🌐 EN';
     }
 
-    btnTranslate.addEventListener('click', function() {
+    btnTranslate.addEventListener('click', function () {
         if (statusBahasa === 'id') {
             localStorage.setItem('tof_bahasa_pilihan', 'en');
             btnTranslate.innerHTML = '🌐 ID';
