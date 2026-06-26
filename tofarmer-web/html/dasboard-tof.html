@@ -465,7 +465,19 @@
                 });
             }
         }
-
+async function getMarketPrice(assetId) {
+    try {
+        // Mengambil data harga langsung dari API Vestige (sumber data yang digunakan chart Vestige)
+        const response = await fetch(`https://api.vestige.fi/asset/${assetId}`);
+        const data = await response.json();
+        
+        // Return harga dalam USD jika ada, atau fallback ke 0
+        return data && data.priceUsd ? parseFloat(data.priceUsd) : 0;
+    } catch (e) {
+        console.error("Gagal ambil harga pasar:", e);
+        return 0;
+    }
+}
       // 2. AMBIL DATA BLOCKCHAIN ALGORAND + HITUNG HARGA LIVE POOL (DENGAN CONVERSION KE IDR)
         async function fetchAlgorandChainData() {
             const CREATOR_WALLET = "WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q"; 
@@ -541,39 +553,36 @@
                     console.warn("Gagal membaca dompet pool, menggunakan data pergerakan estimasi dasar.");
                 }
 
-              // --- PERBAIKAN KALKULASI HARGA ---
-                let livePriceInPair = 0; // Ubah dari 0.0025 menjadi 0
-                
-                if (poolTofBalance > 0 && poolPairBalance > 0) {
-                    livePriceInPair = poolPairBalance / poolTofBalance; 
-                } else {
-                    console.error("Data Pool tidak valid untuk kalkulasi harga.");
-                    // Opsional: berikan notifikasi ke UI bahwa data harga gagal dimuat
-                }
+            // A. Fungsi Helper (Letakkan di luar fetchAlgorandChainData, tapi saya tulis di sini agar mudah dilihat)
+async function getMarketPrice(assetId) {
+    try {
+        const response = await fetch(`https://api.vestige.fi/asset/${assetId}`);
+        const data = await response.json();
+        return data?.priceUsd ? parseFloat(data.priceUsd) : 0;
+    } catch (e) {
+        return 0;
+    }
+}
 
-                // AMBIL KURS FIAT DOLAR/ALGO KE RUPIAH (IDR) REAL-TIME UNTUK KONVERSI
-                let pairToIdr = 15500; // Standar Fallback Kurs Rupiah terhadap USD
-                try {
-                    // Mengambil data harga stabil USD langsung ke IDR via CoinGecko
-                    const fiatReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=usd-coin,algorand&vs_currencies=idr");
-                    const fiatData = await fiatReq.json();
-                    
-                    if (fiatData['usd-coin']) {
-                        pairToIdr = fiatData['usd-coin'].idr; // Menggunakan nilai konversi stabil USDC asli ke Rupiah
-                    } else if (fiatData.algorand) {
-                        pairToIdr = fiatData.algorand.idr; // Alternatif jika pool menggunakan ALGO
-                    }
-                } catch(e) {
-                    console.warn("Gagal mengambil kurs fiat live, menggunakan estimasi Rp15.500");
-                }
+// B. Kalkulasi Harga (Ganti bagian kalkulasi lama dengan blok ini)
+let currentPriceIDR = 0;
+const priceUsd = await getMarketPrice(ASSET_ID); 
 
-                // Konversi harga token dari Pool ke nilai Rupiah murni
-                const currentPriceIDR = livePriceInPair * pairToIdr;
-console.log("Raw Ratio:", livePriceInPair);
-console.log("Kurs IDR:", pairToIdr);
-console.log("Harga Hasil Kalkulasi (IDR):", currentPriceIDR);
-                // Render Candlestick Chart dengan angka Rupiah yang sudah dikonversi
-                renderCandlestickChart(currentPriceIDR);
+if (priceUsd > 0) {
+    // Ambil kurs IDR terbaru
+    const fiatReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=idr");
+    const fiatData = await fiatReq.json();
+    const pairToIdr = fiatData['usd-coin']?.idr || 17841;
+    currentPriceIDR = priceUsd * pairToIdr;
+} else {
+    // Fallback jika API Vestige tidak merespon
+    currentPriceIDR = 0.25; 
+}
+
+console.log("Harga Real-time (IDR):", currentPriceIDR);
+
+// C. Render Chart (Panggil fungsi ini dengan harga yang sudah akurat)
+renderCandlestickChart(currentPriceIDR);
 
                 // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
                 const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
