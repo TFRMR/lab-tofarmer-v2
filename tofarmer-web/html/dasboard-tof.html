@@ -434,346 +434,204 @@
     </footer>
 
    <script>
-        // 1. KONFIGURASI PROYEK TOFARMER
-        const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
-        const KOMPASIANA_USER = 'tofarmer3643'; 
-        const ASSET_ID = "3558306283";
-        const MILESTONE_URL = 'portofolio.html';
+     // 1. KONFIGURASI PROYEK TOFARMER
+const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
+const KOMPASIANA_USER = 'tofarmer3643';
+const ASSET_ID = "3558306283";
+const MILESTONE_URL = 'portofolio.html';
 
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let holderPieChart;
-        let candleChartInstance;
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let holderPieChart;
+let candleChartInstance;
 
-        async function initDashboard() {
-            fetchAlgorandChainData();
-            fetchMilestoneFromHTML();
-            fetchKompasianaArticles();
-            sinkronkanUserParamKeNavigasi();
-        }
-
-        function sinkronkanUserParamKeNavigasi() {
-            const params = new URLSearchParams(window.location.search);
-            const userKey = params.get('user');
-            if (userKey) {
-                document.querySelectorAll('.nav-actions a.btn-nav-link').forEach(link => {
-                    try {
-                        let url = new URL(link.href);
-                        url.searchParams.set('user', userKey);
-                        link.href = url.toString();
-                    } catch(e){}
-                });
-            }
-        }
-async function getMarketPrice
-      // 2. AMBIL DATA BLOCKCHAIN ALGORAND + HITUNG HARGA LIVE POOL (DENGAN CONVERSION KE IDR)
-        async function fetchAlgorandChainData() {
-            const CREATOR_WALLET = "WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q"; 
-            
-            // Dompet Pool TOF/USDC atau TOF/ALGO Abang
-            const POOL_WALLET = "HLZZDZLO7WQFSTJYZRNMVHP3RBRAJUDYEJEVIBWRE2RNDIJS4HCCVFT7SI"; 
-            
-            // ID Aset pembanding di Pool (Contoh jika poolnya TOF/USDC, isi ID USDC di Algorand)
-            // Jika USDC Mainnet Algorand biasanya Asset ID-nya: 31566704
-            const PAIR_ASSET_ID = "31566704"; 
-
-            try {
-                // 1. Ambil spesifikasi utama aset TOF dari blockchain
-                const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
-                const assetData = await assetResponse.json();
-                
-                const rawTotalSupply = assetData.asset.params.total;
-                const decimals = assetData.asset.params.decimals || 0;
-                const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
-                
-                document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
-                document.getElementById('total-supply').classList.remove('pulse');
-                
-                let creatorHoldingBalance = 0;
-                let poolPairBalance = 0;
-                let poolTofBalance = 0;
-                
-                // 2. Baca isi Dompet Creator untuk menghitung sirkulasi
-                try {
-                    const creatorResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}`);
-                    if (creatorResponse.ok) {
-                        const creatorData = await creatorResponse.json();
-                        const assetsHolding = creatorData.account['assets'] || [];
-                        const holdingData = assetsHolding.find(item => item['asset-id'] == ASSET_ID);
-                        
-                        if (holdingData) {
-                            creatorHoldingBalance = (holdingData.amount || 0) / Math.pow(10, decimals);
-                        }
-                    }
-                } catch (err) {
-                    console.warn("Gagal membaca dompet creator, menggunakan fallback:", err);
-                    creatorHoldingBalance = actualTotalSupply * 0.90;
-                }
-
-                const circulatingSupply = actualTotalSupply - creatorHoldingBalance; 
-                document.getElementById('circulating-supply').innerText = circulatingSupply.toLocaleString('id-ID') + " TOF";
-                document.getElementById('circulating-supply').classList.remove('pulse');
-
-                // 3. Baca Dompet Pool secara spesifik untuk kalkulasi rasio harga
-                try {
-                    const poolResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${POOL_WALLET}`);
-                    if (poolResponse.ok) {
-                        const poolData = await poolResponse.json();
-                        const poolAssets = poolData.account['assets'] || [];
-                        
-                        // Ambil saldo TOF di dalam pool
-                        const poolTofData = poolAssets.find(item => item['asset-id'] == ASSET_ID);
-                        if (poolTofData) {
-                            poolTofBalance = (poolTofData.amount || 0) / Math.pow(10, decimals);
-                        }
-                        
-                        // Ambil saldo Aset Pasangannya (misal USDC) di dalam pool
-                        const poolPairData = poolAssets.find(item => item['asset-id'] == PAIR_ASSET_ID);
-                        if (poolPairData) {
-                            // USDC di Algorand biasanya memiliki 6 desimal
-                            poolPairBalance = (poolPairData.amount || 0) / Math.pow(10, 6); 
-                        } else {
-                            // Jika pasangannya adalah ALGO asli (bukan token ASA), ambil saldo mikroalgo bawaan wallet
-                            poolPairBalance = poolData.account.amount / 1000000;
-                        }
-                    }
-                } catch (err) {
-                    console.warn("Gagal membaca dompet pool, menggunakan data pergerakan estimasi dasar.");
-                }
-
-            // A. Fungsi Helper (Letakkan di luar fetchAlgorandChainData, tapi saya tulis di sini agar mudah dilihat)
+// FUNGSI HARGA GLOBAL
 async function getMarketPrice(assetId) {
     try {
-        const url = "https://[KODE-PROYEK].supabase.co/functions/v1/get-price?id=" + assetId;
+        const url = `https://afpzddwuikvwsedzgsee.supabase.co/functions/v1/get-price?id=${assetId}`;
         const response = await fetch(url);
         const data = await response.json();
-        
-        // Harga dalam ALGO
-        const priceAlgo = data.priceAlgo || 0;
 
-        // Ambil harga ALGO dalam IDR dari API CoinGecko
+        const priceAlgo = data.priceAlgo || 0;
         const algoReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
         const algoData = await algoReq.json();
-        const algoToIdr = algoData.algorand.idr;
+        const algoToIdr = algoData.algorand?.idr || 0;
 
-        // Hasil akhir: Harga TOF dalam IDR
         return priceAlgo * algoToIdr;
     } catch (e) {
-        return 0.25; // Fallback
+        console.error("Gagal ambil harga:", e);
+        return 0.25;
     }
 }
 
-// B. Kalkulasi Harga (Ganti bagian di fetchAlgorandChainData dengan ini)
-const currentPriceIDR = await getMarketPrice(ASSET_ID); 
-console.log("Harga Real-time (IDR):", currentPriceIDR);
+async function initDashboard() {
+    fetchAlgorandChainData();
+    fetchMilestoneFromHTML();
+    fetchKompasianaArticles();
+    sinkronkanUserParamKeNavigasi();
+}
 
-// C. Render Chart
-renderCandlestickChart(currentPriceIDR);
-
-                // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
-                const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
-                const balancesData = await balancesResponse.json();
-                const allBlockchainHolders = balancesData.balances.map(b => b.address);
-
-                crossReferenceHolders(allBlockchainHolders);
-
-            } catch (error) {
-                console.error("Gagal memuat data on-chain:", error);
-                document.getElementById('total-supply').innerText = "Gagal memuat";
-                document.getElementById('circulating-supply').innerText = "Gagal memuat";
-                renderCandlestickChart(38.50); // Fallback grafik nilai acak Rp38 per TOF
-            }
-        }
-        
-        // 3. SINKRONISASI DATA SUPABASE VS BLOCKCHAIN
-        async function crossReferenceHolders(blockchainAddresses) {
+function sinkronkanUserParamKeNavigasi() {
+    const params = new URLSearchParams(window.location.search);
+    const userKey = params.get('user');
+    if (userKey) {
+        document.querySelectorAll('.nav-actions a.btn-nav-link').forEach(link => {
             try {
-                const { data: internalProfiles, error } = await supabaseClient
-                    .from('profiles')
-                    .select('id');
-
-                if (error) throw error;
-
-                const internalAddresses = internalProfiles ? internalProfiles.map(u => u.id) : [];
-
-                let ecosystemCount = 0;
-                let organicCount = 0;
-
-                blockchainAddresses.forEach(address => {
-                    if (internalAddresses.includes(address)) {
-                        ecosystemCount++;
-                    } else {
-                        organicCount++;
-                    }
-                });
-
-                document.getElementById('ecosystem-holders').innerHTML = `${ecosystemCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
-                document.getElementById('organic-holders').innerHTML = `${organicCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
-
-                updateHolderChart(ecosystemCount, organicCount);
-
-            } catch (error) {
-                console.error("Gagal sinkronisasi data tabel Supabase:", error);
-                updateHolderChart(1, 1); 
-            }
-        }
-
-        // 4. GENERATE DAN LOGIKA GRAFIK CANDLESTICK DALAM FORMAT RUPIAH (IDR)
-        // Disesuaikan untuk tampilan 30 hari ke belakang (Daily / D1)
-        function renderCandlestickChart(currentPrice) {
-            const ctx = document.getElementById('candlestickChart').getContext('2d');
-            
-            if (candleChartInstance) { candleChartInstance.destroy(); }
-
-            const now = moment().startOf('day');
-            const dataPoints = [];
-
-            // Membuat 30 hari data historis
-            for (let i = 30; i >= 0; i--) {
-                const date = now.clone().subtract(i, 'd');
-                // Simulasi pergerakan harga acak di sekitar currentPrice
-                const volatility = 0.05; // 5% volatilitas harian
-                const open = currentPrice * (1 + (Math.random() - 0.5) * volatility);
-                const close = currentPrice * (1 + (Math.random() - 0.5) * volatility);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.02);
-                const low = Math.min(open, close) * (1 - Math.random() * 0.02);
-
-                dataPoints.push({
-                    x: date.valueOf(),
-                    o: open,
-                    h: high,
-                    l: low,
-                    c: close
-                });
-            }
-
-            candleChartInstance = new Chart(ctx, {
-                type: 'candlestick',
-                data: {
-                    datasets: [{
-                        label: 'TOF / IDR (30 Hari Terakhir - D1)',
-                        data: dataPoints,
-                        color: {
-                            up: '#22c55e',    
-                            down: '#ef4444',  
-                            unchanged: '#94a3b8'
-                        },
-                        borderColor: {
-                            up: '#22c55e',
-                            down: '#ef4444',
-                            unchanged: '#94a3b8'
-                        }
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: { unit: 'day', displayFormats: { day: 'MMM DD' } },
-                            grid: { color: 'rgba(74, 222, 128, 0.05)' }
-                        },
-                        y: {
-    grid: { color: 'rgba(74, 222, 128, 0.05)' },
-    ticks: {
-        // Menampilkan hingga 5 angka di belakang koma untuk akurasi harga sub-Rupiah
-        callback: function(value) { 
-            return 'Rp ' + value.toFixed(5).replace('.', ','); 
-        }
+                let url = new URL(link.href);
+                url.searchParams.set('user', userKey);
+                link.href = url.toString();
+            } catch (e) {}
+        });
     }
 }
-                    },
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } }
-                    }
-                }
-            });
-        }
 
-        // 5. SCRAPING DATA MILESTONE PORTOFOLIO.HTML
-        async function fetchMilestoneFromHTML() {
-            try {
-                const response = await fetch(MILESTONE_URL);
-                if (!response.ok) throw new Error("File portofolio tidak merespons");
-                const htmlText = await response.text();
-                
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlText, 'text/html');
-                const pageText = doc.body.innerText;
+// 2. AMBIL DATA BLOCKCHAIN + HITUNG HARGA
+async function fetchAlgorandChainData() {
+    try {
+        const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
+        const assetData = await assetResponse.json();
 
-                const dateRegex = /\[(\d{4}-\d{2}-\d{2})\]/;
-                const match = pageText.match(dateRegex);
+        const rawTotalSupply = assetData.asset.params.total;
+        const decimals = assetData.asset.params.decimals || 0;
+        const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
 
-                if (match) {
-                    const latestDate = match[1]; 
-                    const startIndex = pageText.indexOf(match[0]) + match[0].length;
-                    const blockText = pageText.substring(startIndex, startIndex + 600).trim();
-                    
-                    const lines = blockText.split('\n').filter(line => line.trim() !== '');
-                    const title = lines[0] || "Pembaruan Ekosistem Baru";
-                    const description = lines.slice(1).join(' ').substring(0, 180) + '...';
+        document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
 
-                    document.getElementById('milestone-date').innerText = `📅 LOG [${latestDate}]`;
-                    document.getElementById('milestone-title').innerText = title;
-                    document.getElementById('milestone-desc').innerText = description;
-                } else {
-                    throw new Error("Format tanggal log tidak ditemukan");
-                }
-            } catch (error) {
-                console.warn("Membaca fallback statis:", error);
-                document.getElementById('milestone-date').innerText = "📅 LOG [2026-06-15]";
-                document.getElementById('milestone-title').innerText = "Pecah Telur! Ilmu Baku Pertama Sukses Lulus Uji Komunitas";
-                document.getElementById('milestone-desc').innerText = "Satu rumus ilmu pertanian akhirnya resmi disahkan oleh komunitas setelah berhasil lolos seleksi ketat dari Gate 1 sampai Gate 3...";
+        const currentPriceIDR = await getMarketPrice(ASSET_ID);
+        renderCandlestickChart(currentPriceIDR);
+
+        // Ambil data pemegang
+        const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
+        const balancesData = await balancesResponse.json();
+        const allBlockchainHolders = balancesData.balances.map(b => b.address);
+
+        crossReferenceHolders(allBlockchainHolders);
+
+    } catch (error) {
+        console.error("Gagal memuat data on-chain:", error);
+        document.getElementById('total-supply').innerText = "Gagal memuat";
+        document.getElementById('circulating-supply').innerText = "Gagal memuat";
+        renderCandlestickChart(38.50); // Fallback
+    }
+}
+
+// 3. SINKRONISASI DATA SUPABASE VS BLOCKCHAIN
+async function crossReferenceHolders(blockchainAddresses) {
+    try {
+        const { data: internalProfiles, error } = await supabaseClient
+            .from('profiles')
+            .select('id');
+
+        if (error) throw error;
+
+        const internalAddresses = internalProfiles ? internalProfiles.map(u => u.id) : [];
+        let ecosystemCount = 0;
+        let organicCount = 0;
+
+        blockchainAddresses.forEach(address => {
+            if (internalAddresses.includes(address)) {
+                ecosystemCount++;
+            } else {
+                organicCount++;
             }
+        });
+
+        document.getElementById('ecosystem-holders').innerHTML = `${ecosystemCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+        document.getElementById('organic-holders').innerHTML = `${organicCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+
+        updateHolderChart(ecosystemCount, organicCount);
+    } catch (error) {
+        console.error("Gagal sinkronisasi data tabel Supabase:", error);
+        updateHolderChart(1, 1);
+    }
+}
+
+// 4. GENERATE GRAFIK CANDLESTICK
+function renderCandlestickChart(currentPrice) {
+    const ctx = document.getElementById('candlestickChart').getContext('2d');
+    if (candleChartInstance) { candleChartInstance.destroy(); }
+
+    const now = moment().startOf('day');
+    const dataPoints = [];
+
+    for (let i = 30; i >= 0; i--) {
+        const date = now.clone().subtract(i, 'd');
+        const volatility = 0.05;
+        const open = currentPrice * (1 + (Math.random() - 0.5) * volatility);
+        const close = currentPrice * (1 + (Math.random() - 0.5) * volatility);
+        const high = Math.max(open, close) * (1 + Math.random() * 0.02);
+        const low = Math.min(open, close) * (1 - Math.random() * 0.02);
+
+        dataPoints.push({ x: date.valueOf(), o: open, h: high, l: low, c: close });
+    }
+
+    candleChartInstance = new Chart(ctx, {
+        type: 'candlestick',
+        data: {
+            datasets: [{
+                label: 'TOF / IDR (30 Hari Terakhir - D1)',
+                data: dataPoints,
+                color: { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' },
+                borderColor: { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' }
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { type: 'time', time: { unit: 'day', displayFormats: { day: 'MMM DD' } }, grid: { color: 'rgba(74, 222, 128, 0.05)' } },
+                y: { grid: { color: 'rgba(74, 222, 128, 0.05)' }, ticks: { callback: (val) => 'Rp ' + val.toFixed(5).replace('.', ',') } }
+            },
+            plugins: { legend: { labels: { color: '#e2e8f0' } } }
         }
+    });
+}
 
-        // 6. FEED KOMPASIANA
-        async function fetchKompasianaArticles() {
-            const container = document.getElementById('kompasiana-container');
-            if (!container) return;
+// 5. SCRAPING DATA MILESTONE
+async function fetchMilestoneFromHTML() {
+    try {
+        const response = await fetch(MILESTONE_URL);
+        const htmlText = await response.text();
+        const doc = new DOMParser().parseFromString(htmlText, 'text/html');
+        const pageText = doc.body.innerText;
+        const match = pageText.match(/\[(\d{4}-\d{2}-\d{2})\]/);
 
-            container.innerHTML = `
-                <div class="article-card" onclick="window.open('https://www.kompasiana.com/${KOMPASIANA_USER}', '_blank')" style="grid-column: 1 / -1; text-align: center; padding: 28px; border: 1px dashed #34d399; background: rgba(52, 211, 153, 0.02); border-radius: 12px; cursor: pointer;">
-                    <span class="tag" style="margin-bottom: 8px; display: inline-block;">Kanal Publikasi</span>
-                    <div class="article-title" style="font-size: 15px; color: #34d399; font-weight: 600;">Baca Catatan Pemikiran & Gagasan ToFarmer di Kompasiana ↗</div>
-                    <p class="article-desc" style="max-width: 580px; margin: 10px auto 0 auto; color: #94a3b8; font-size: 12px; line-height: 1.6;">
-                        Klik kartu ini untuk menjelajahi artikel terbaru, rilis blueprint ekosistem, serta esai filosofis pergerakan ToFarmer langsung di platform resmi Kompasiana.
-                    </p>
-                    <div class="article-date" style="margin-top: 12px; color: #64748b; font-size: 11px;">Buka Kompasiana Resmi tofarmer3643</div>
-                </div>
-            `;
-        }
+        if (match) {
+            const startIndex = pageText.indexOf(match[0]) + match[0].length;
+            const lines = pageText.substring(startIndex, startIndex + 600).trim().split('\n').filter(l => l.trim());
+            document.getElementById('milestone-date').innerText = `📅 LOG [${match[1]}]`;
+            document.getElementById('milestone-title').innerText = lines[0] || "Pembaruan Ekosistem";
+            document.getElementById('milestone-desc').innerText = lines.slice(1).join(' ').substring(0, 180) + '...';
+        } else throw new Error();
+    } catch (e) {
+        document.getElementById('milestone-date').innerText = "📅 LOG [2026-06-15]";
+        document.getElementById('milestone-title').innerText = "Pecah Telur! Ilmu Baku Pertama Lulus Uji";
+        document.getElementById('milestone-desc').innerText = "Sistem sedang memuat log terbaru dari arsip...";
+    }
+}
 
-        // 7. DIAGRAM PROPORSIONAL (PIE CHART)
-        function updateHolderChart(eco, org) {
-            const ctx = document.getElementById('holderChart').getContext('2d');
-            if (holderPieChart) { holderPieChart.destroy(); }
+// 6. FEED KOMPASIANA
+async function fetchKompasianaArticles() {
+    const container = document.getElementById('kompasiana-container');
+    if (!container) return;
+    container.innerHTML = `<div class="article-card" onclick="window.open('https://www.kompasiana.com/${KOMPASIANA_USER}', '_blank')" style="grid-column: 1 / -1; text-align: center; padding: 28px; border: 1px dashed #34d399; background: rgba(52, 211, 153, 0.02); border-radius: 12px; cursor: pointer;">
+        <span class="tag">Kanal Publikasi</span>
+        <div class="article-title" style="font-size: 15px; color: #34d399; margin: 10px 0;">Baca Catatan Pemikiran ToFarmer di Kompasiana ↗</div>
+    </div>`;
+}
 
-            holderPieChart = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    datasets: [{
-                        data: [eco, org],
-                        backgroundColor: ['#3b82f6', '#eab308'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) { return ' ' + context.raw + ' Dompet'; }
-                            }
-                        }
-                    }
-                }
-            });
-        }
+// 7. PIE CHART
+function updateHolderChart(eco, org) {
+    const ctx = document.getElementById('holderChart').getContext('2d');
+    if (holderPieChart) holderPieChart.destroy();
+    holderPieChart = new Chart(ctx, {
+        type: 'pie',
+        data: { datasets: [{ data: [eco, org], backgroundColor: ['#3b82f6', '#eab308'], borderWidth: 0 }] },
+        options: { responsive: true, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ' ' + ctx.raw + ' Dompet' } } } }
+    });
+}
 
-        window.addEventListener('DOMContentLoaded', initDashboard);
+window.addEventListener('DOMContentLoaded', initDashboard);
     </script>
 </body>
 </html>
