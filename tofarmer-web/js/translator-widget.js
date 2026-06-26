@@ -12,7 +12,7 @@
         "🤝 Titik Kumpul": "🤝 Gathering Point",
         "Ngopi, ide, ngobrol, santai ,ngonten": "Coffee, ideas, chat, relax, content",
         "🤖 Ladang Eksperimen": "🤖 Experiment Field",
-        "AI, blockchain, robot, dan ide yang kadang “nggak masuk akal”": "AI, blockchain, robotics, and out-of-the-box ideas",
+        "AI, blockchain, robot, dan ide yang kadang "nggak masuk akal"": "AI, blockchain, robotics, and out-of-the-box ideas",
         "🌱 Cerita Tanah & Panen": "🌱 Soil & Harvest Stories",
         "Drama masuk kebun": "Garden diaries and dramas",
         "☕ Duit...duit dan duit": "☕ Money, money, and money",
@@ -61,47 +61,84 @@
     btnTranslate.style.transition = 'all 0.2s ease';
     document.body.appendChild(btnTranslate);
 
-    btnTranslate.onmouseover = () => { btnTranslate.style.backgroundColor = '#fff'; btnTranslate.style.color = '#2f6f4e'; };
-    btnTranslate.onmouseout = () => { btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.9)'; btnTranslate.style.color = '#666'; };
+    btnTranslate.onmouseover = () => {
+        btnTranslate.style.backgroundColor = '#fff';
+        btnTranslate.style.color = '#2f6f4e';
+    };
+    btnTranslate.onmouseout = () => {
+        btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        btnTranslate.style.color = '#666';
+    };
 
-    let intervalPenerjemah = null;
-
-    // Fungsi translasi berbasis text node (Aman dari merusak onclick tombol)
-    function saringDanTerjemahkan(node) {
+    // Terjemahkan satu node saja (text node atau input placeholder)
+    function terjemahkanNode(node) {
         if (!node) return;
-        if (node.id === "tof-translator-trigger") return;
+
+        // Jangan sentuh tombol translator itu sendiri
+        if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") return;
 
         if (node.nodeType === Node.TEXT_NODE) {
-            let teksAsli = node.nodeValue.trim();
+            const teksAsli = node.nodeValue.trim();
+            if (!teksAsli) return;
             for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
-                if (teksAsli === kunci || (teksAsli.includes(kunci) && !teksAsli.includes(nilai))) {
+                if (node.nodeValue.includes(kunci) && !node.nodeValue.includes(nilai)) {
                     node.nodeValue = node.nodeValue.replace(kunci, nilai);
                 }
             }
-        } else {
-            if (node.tagName === 'INPUT' && node.placeholder && kamusToFarmer[node.placeholder]) {
-                node.placeholder = kamusToFarmer[node.placeholder];
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // Terjemahkan placeholder input
+            if (node.tagName === 'INPUT' && node.placeholder) {
+                for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
+                    if (node.placeholder.includes(kunci) && !node.placeholder.includes(nilai)) {
+                        node.placeholder = node.placeholder.replace(kunci, nilai);
+                    }
+                }
             }
+            // Traverse semua child node
             for (let i = 0; i < node.childNodes.length; i++) {
-                saringDanTerjemahkan(node.childNodes[i]);
+                terjemahkanNode(node.childNodes[i]);
             }
         }
     }
 
-    // Interval santai setiap 2 detik untuk memeriksa postingan baru (Supabase data)
+    let observer = null;
+
     function mulaiSistemLoop() {
-        if (intervalPenerjemah) clearInterval(intervalPenerjemah);
-        saringDanTerjemahkan(document.body); // Jalankan instan sekali
-        intervalPenerjemah = setInterval(() => {
-            saringDanTerjemahkan(document.body);
-        }, 2000); 
+        // Terjemahkan seluruh halaman sekali di awal
+        terjemahkanNode(document.body);
+
+        // Hentikan observer lama kalau masih jalan
+        if (observer) observer.disconnect();
+
+        // Pantau hanya node BARU yang masuk ke DOM
+        observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const node of mutation.addedNodes) {
+                    // Skip tombol translator itu sendiri
+                    if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") continue;
+                    terjemahkanNode(node);
+                }
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true, // pantau elemen baru yang ditambah
+            subtree: true    // termasuk semua level nested
+        });
+    }
+
+    function hentikanSistemLoop() {
+        if (observer) {
+            observer.disconnect();
+            observer = null;
+        }
     }
 
     let statusBahasa = localStorage.getItem('tof_bahasa_pilihan') || 'id';
 
     if (statusBahasa === 'en') {
         btnTranslate.innerHTML = '🌐 ID';
-        // Beri jeda 1.5 detik di awal agar loading Supabase selesai dulu
+        // Beri jeda 1.5 detik agar konten Supabase selesai dimuat dulu
         setTimeout(mulaiSistemLoop, 1500);
     } else {
         btnTranslate.innerHTML = '🌐 EN';
@@ -115,8 +152,9 @@
             mulaiSistemLoop();
         } else {
             localStorage.setItem('tof_bahasa_pilihan', 'id');
-            if (intervalPenerjemah) clearInterval(intervalPenerjemah);
-            window.location.reload(); 
+            hentikanSistemLoop();
+            window.location.reload();
         }
     });
+
 })();
