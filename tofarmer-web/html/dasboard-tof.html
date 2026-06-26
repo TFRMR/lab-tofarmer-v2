@@ -446,13 +446,15 @@ let holderPieChart;
 let candleChartInstance;
 
 // FUNGSI HARGA GLOBAL (Ditempatkan di luar agar tidak tabrakan)
-async function getMarketPrice(assetId) {
+async function getMarketPrice(assetId, decimals = 0) {
     try {
         const url = `https://afpzddwuikvwsedzgsee.supabase.co/functions/v1/get-price?id=${assetId}`;
         const response = await fetch(url);
         const data = await response.json();
-        
-        const priceAlgo = data.priceAlgo || 0;
+
+        // Koreksi desimal: jika edge function mengembalikan harga raw (tanpa desimal)
+        const priceAlgo = (data.priceAlgo || 0) * Math.pow(10, decimals);
+
         const algoReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
         const algoData = await algoReq.json();
         const algoToIdr = algoData.algorand?.idr || 0;
@@ -460,10 +462,9 @@ async function getMarketPrice(assetId) {
         return priceAlgo * algoToIdr;
     } catch (e) {
         console.error("Gagal ambil harga:", e);
-        return 0.25; 
+        return 1.00; // Fallback ~1 IDR
     }
 }
-
 async function initDashboard() {
     fetchAlgorandChainData();
     fetchMilestoneFromHTML();
@@ -500,11 +501,28 @@ async function fetchAlgorandChainData() {
         const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
         
         document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
-        
-        // Panggil fungsi global
-        const currentPriceIDR = await getMarketPrice(ASSET_ID);
-        console.log("Harga Real-time (IDR):", currentPriceIDR);
-        renderCandlestickChart(currentPriceIDR);
+
+// Fix Bug 1: Hitung Circulating Supply
+const creatorAccRes = await fetch(
+    `https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}/assets?asset-id=${ASSET_ID}`
+);
+const creatorAccData = await creatorAccRes.json();
+const creatorBal = (creatorAccData.assets?.[0]?.amount || 0) / Math.pow(10, decimals);
+
+const poolAccRes = await fetch(
+    `https://mainnet-idx.algonode.cloud/v2/accounts/${POOL_WALLET}/assets?asset-id=${ASSET_ID}`
+);
+const poolAccData = await poolAccRes.json();
+const poolBal = (poolAccData.assets?.[0]?.amount || 0) / Math.pow(10, decimals);
+
+const circulatingSupply = actualTotalSupply - creatorBal - poolBal;
+document.getElementById('circulating-supply').innerText =
+    circulatingSupply.toLocaleString('id-ID') + " TOF";
+
+// Fix Bug 2: Kirim decimals ke getMarketPrice agar koreksi desimal diterapkan
+const currentPriceIDR = await getMarketPrice(ASSET_ID, decimals);
+console.log("Harga Real-time (IDR):", currentPriceIDR);
+renderCandlestickChart(currentPriceIDR);
 
                 // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
                 const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
@@ -517,7 +535,7 @@ async function fetchAlgorandChainData() {
                 console.error("Gagal memuat data on-chain:", error);
                 document.getElementById('total-supply').innerText = "Gagal memuat";
                 document.getElementById('circulating-supply').innerText = "Gagal memuat";
-                renderCandlestickChart(38.50); // Fallback grafik nilai acak Rp38 per TOF
+                renderCandlestickChart(1.00); // Fallback grafik nilai acak Rp38 per TOF
             }
         }
         
