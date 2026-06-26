@@ -44,10 +44,13 @@
 
     const cacheTerjemahan = {};
     const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'NOSCRIPT']);
+    let intervalUI = null;
 
-    // ─── 2. SELEKTOR TERJEMAH UI ADAT TOFARMER (Instan Otomatis) ───────────────
+    // ─── 2. SELEKTOR TERJEMAH UI AMAN ─────────────────────────────────────────
     function terjemahUINode(node) {
         if (!node) return;
+        if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") return;
+
         if (node.nodeType === Node.TEXT_NODE) {
             let teksAsli = node.nodeValue.trim();
             if (!teksAsli) return;
@@ -67,13 +70,14 @@
         }
     }
 
-    // ─── 3. ENGINE FETCH MYMEMORY (KUOTA LUAS DENGAN EMAIL) ─────────────────────
+    // ─── 3. ENGINE FETCH MYMEMORY (DENGAN EMAIL YOANLOGIC BIAR KUOTA LUAS) ──────
     async function panggilAPIKueri(teks) {
         const bersih = teks.trim();
         if (!bersih || bersih.length < 2) return teks;
         if (cacheTerjemahan[bersih]) return cacheTerjemahan[bersih];
 
         try {
+            // Berhasil disesuaikan menggunakan email personal kamu agar limit longgar
             const res = await fetch(
                 `https://api.mymemory.translated.net/get?q=${encodeURIComponent(bersih)}&langpair=id|en&de=yoanlogic@gmail.com`
             );
@@ -88,37 +92,39 @@
         return teks;
     }
 
-    // ─── 4. SUNTIK TOMBOL TRANSLATE MANUAL DI SETIAP POSTINGAN ──────────────────
+    // ─── 4. SUNTIK TOMBOL TRANSLATE TIPIS DI BAWAH POSTINGAN/KOMENTAR ──────────
     function pasangTombolPerPostingan() {
+        // Cari div teks postingan (.text) dan teks komentar (span pre-wrap) yang belum dipasangi tombol
         const targetPost = document.querySelectorAll('.text:not([data-tof-btn]), span[style*="white-space:pre-wrap"]:not([data-tof-btn])');
 
         targetPost.forEach(el => {
             el.setAttribute('data-tof-btn', '1'); 
-            
             const teksAsli = el.innerText?.trim();
-            if (!teksAsli || teksAsli.length < 4 || Object.values(kamusUI).includes(teksAsli)) return;
+            if (!teksAsli || teksAsli.length < 5 || Object.values(kamusUI).includes(teksAsli)) return;
 
+            // Buat element tautan klik super tipis ala Facebook/X
             const btnLink = document.createElement('small');
             btnLink.innerText = ' See Translation';
             btnLink.style.cssText = 'color: #888; cursor: pointer; font-size: 10px; margin-left: 8px; text-decoration: underline; display: inline-block; font-family: sans-serif;';
             
             btnLink.addEventListener('click', async function(e) {
-                e.stopPropagation(); 
-                
+                e.stopPropagation();
                 if (btnLink.innerText === ' See Translation') {
                     btnLink.innerText = ' Translating...';
                     el.style.opacity = '0.5';
                     const hasil = await panggilAPIKueri(teksAsli);
                     el.style.opacity = '1';
                     
+                    // Ganti teks terdalam tanpa merusak elemen HTML luar
                     if (el.childNodes.length > 0 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
                         el.childNodes[0].nodeValue = hasil + " ";
                     } else {
                         el.textContent = hasil + " ";
-                        el.appendChild(btnLink);
+                        el.appendChild(btnLink); // pasang ulang tombolnya di dalam
                     }
                     btnLink.innerText = ' Show Original';
                 } else {
+                    // Balik ke teks asal
                     if (el.childNodes.length > 0 && el.childNodes[0].nodeType === Node.TEXT_NODE) {
                         el.childNodes[0].nodeValue = teksAsli + " ";
                     } else {
@@ -129,26 +135,28 @@
                 }
             });
 
+            // Selipkan tombol tepat di dalam ujung element teks profil/post
             el.appendChild(btnLink);
         });
     }
 
-    // ─── 5. MONITORING BERKALA (ANTI-STUCK & LAZY-LOADING SUPABASE) ─────────────
+    // ─── 5. LOOP MONITORING RINGAN (ANTI-STUCK) ──────────────────────────────
     function jalankanSistemPenerjemah() {
-        terjemahUINode(document.body); // Langsung ubah tombol statis bawaan
-        pasangTombolPerPostingan();    // Pasang tombol translation awal
-        
-        // Cek halaman berkala setiap 1.5 detik untuk menangani scroll/postingan baru
-        setInterval(() => {
+        terjemahUINode(document.body);
+        pasangTombolPerPostingan();
+
+        if (intervalUI) clearInterval(intervalUI);
+        intervalUI = setInterval(() => {
             terjemahUINode(document.body);
             pasangTombolPerPostingan();
-        }, 1500);
+        }, 1500); // Mengecek elemen baru (Lazy load / Infinite Scroll Supabase) secara berkala
     }
 
+    // Jalankan sistem secara otomatis begitu file skrip termuat di browser
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', jalankanSistemPenerjemah);
     } else {
         jalankanSistemPenerjemah();
     }
 
-})(); // Struktur penutup aman dan rapi
+})();
