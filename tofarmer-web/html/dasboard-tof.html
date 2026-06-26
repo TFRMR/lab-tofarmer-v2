@@ -379,14 +379,15 @@
     </footer>
 
     <script>
-        // 1. KONFIGURASI PROYEK TOFARMER
+      // 1. KONFIGURASI PROYEK TOFARMER
         const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
         const KOMPASIANA_USER = 'tofarmer3643'; 
         const ASSET_ID = "3558306283";
-        const MILESTONE_URL = 'https://www.tofarmer.xyz/html/portofolio.html';
+        
+        // FIX CORS & DOMAIN: Menggunakan path relatif internal domain yang sama
+        const MILESTONE_URL = '/html/portofolio.html'; 
 
-        // FIX ERROR: Deklarasi tunggal yang aman
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let holderPieChart;
 
@@ -395,10 +396,13 @@
             fetchMilestoneFromHTML();
             fetchKompasianaArticles();
         }
-
         // 2. AMBIL DATA BLOCKCHAIN ALGORAND
         async function fetchAlgorandChainData() {
+            // Gantilah dengan alamat dompet pembentuk/cadangan ToFarmer Anda yang memegang sisa supply
+            const RESERVE_ADDRESS = "ALAMAT_DOMPET_RESERVE_DEVELOPER_ANDA_DISINI"; 
+
             try {
+                // 1. Ambil data spesifikasi aset TOF untuk mendapatkan Total Supply & Desimal
                 const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
                 const assetData = await assetResponse.json();
                 
@@ -410,25 +414,40 @@
                 totalSupplyEl.innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
                 totalSupplyEl.classList.remove('pulse');
                 
-                const circulatingSupply = actualTotalSupply * 0.85; 
+                // 2. Ambil data saldo token TOF spesifik dari dompet cadangan (Reserve Wallet)
+                const reserveResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${RESERVE_ADDRESS}/assets/${ASSET_ID}`);
+                let reserveBalance = 0;
+
+                if (reserveResponse.ok) {
+                    const reserveData = await reserveResponse.json();
+                    const rawReserveBalance = reserveData['asset-holding'].amount || 0;
+                    reserveBalance = rawReserveBalance / Math.pow(10, decimals);
+                }
+
+                // 3. HITUNG SIRKULASI RIIL (On-Chain Formula)
+                // Total koin dikurangi koin yang masih mengendap di dompet developer
+                const circulatingSupply = actualTotalSupply - reserveBalance; 
+
                 const circSupplyEl = document.getElementById('circulating-supply');
                 circSupplyEl.innerText = circulatingSupply.toLocaleString('id-ID') + " TOF";
                 circSupplyEl.classList.remove('pulse');
 
+                // 4. Ambil daftar seluruh alamat pemegang koin di Blockchain untuk cross-reference
                 const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
                 const balancesData = await balancesResponse.json();
                 const allBlockchainHolders = balancesData.balances.map(b => b.address);
 
+                // Jalankan fungsi pencocokan dengan data Supabase profiles
                 crossReferenceHolders(allBlockchainHolders);
 
             } catch (error) {
-                console.error("Gagal memuat data Algorand:", error);
+                console.error("Gagal memuat data on-chain Algorand:", error);
                 document.getElementById('total-supply').innerText = "Gagal memuat";
                 document.getElementById('circulating-supply').innerText = "Gagal memuat";
             }
         }
 
-        // 3. COCOKKAN HOLDER BLOCKCHAIN VS TABEL PROFILES SUPABASE
+       // 3. COCOKKAN HOLDER BLOCKCHAIN VS TABEL PROFILES SUPABASE
         async function crossReferenceHolders(blockchainAddresses) {
             try {
                 const { data: internalProfiles, error } = await supabaseClient
@@ -461,15 +480,17 @@
             }
         }
 
-        // 4. SCRAPING DATA MILESTONE DARI HALAMAN PORTOFOLIO.HTML
+        // 4. SCRAPING DATA MILESTONE DARI HALAMAN PORTOFOLIO.HTML (INTERNAL FETCH)
         async function fetchMilestoneFromHTML() {
             try {
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(MILESTONE_URL)}`;
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
+                // Memanggil langsung file lokal tanpa proxy internet, aman dari pemblokiran CORS
+                const response = await fetch(MILESTONE_URL);
+                if (!response.ok) throw new Error("File portofolio tidak ditemukan");
+                
+                const htmlText = await response.text();
                 
                 const parser = new DOMParser();
-                const doc = parser.parseFromString(data.contents, 'text/html');
+                const doc = parser.parseFromString(htmlText, 'text/html');
                 const pageText = doc.body.innerText;
 
                 const dateRegex = /\[(\d{4}-\d{2}-\d{2})\]/;
@@ -491,40 +512,53 @@
                     throw new Error("Format tanggal log tidak ditemukan");
                 }
             } catch (error) {
-                console.error("Gagal melakukan scraping berkas portofolio.html:", error);
-                // Fallback aman untuk pengerjaan lokal (sebelum dipush)
+                console.warn("Membaca fallback statis (Kondisi pengerjaan lokal):", error);
+                // Fallback aman jika belum di-push online
                 document.getElementById('milestone-date').innerText = "📅 LOG [2026-06-15]";
                 document.getElementById('milestone-title').innerText = "Pecah Telur! Ilmu Baku Pertama Sukses Lulus Uji Komunitas";
                 document.getElementById('milestone-desc').innerText = "Satu rumus ilmu pertanian akhirnya resmi disahkan oleh komunitas setelah berhasil lolos seleksi ketat dari Gate 1 sampai Gate 3...";
             }
         }
 
-        // 5. AMBIL ARTIKEL RSS FEED KOMPASIANA
+        // 5. AMBIL ARTIKEL RSS FEED KOMPASIANA (PENGGANTI RSS2JSON YANG ERROR 500)
         async function fetchKompasianaArticles() {
             const container = document.getElementById('kompasiana-container');
             try {
-                const feedUrl = `https://api.rss2json.com/v1/api.json?rss_url=https://www.kompasiana.com/${KOMPASIANA_USER}/feed`;
+                // Menggunakan parser alternatif terenkripsi yang lebih aman dari pemblokiran server Kompasiana
+                const feedUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://www.kompasiana.com/' + KOMPASIANA_USER + '/feed')}`;
                 const res = await fetch(feedUrl);
                 const data = await res.json();
+                
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+                const items = xmlDoc.getElementsByTagName("item");
 
-                if (data.status === 'ok' && data.items.length > 0) {
+                if (items.length > 0) {
                     container.innerHTML = ''; 
-                    const items = data.items.slice(0, 3);
-                    items.forEach(item => {
-                        const cleanDesc = item.description.replace(/<[^>]*>/g, '').substring(0, 90) + '...';
+                    const maxItems = Math.min(items.length, 3);
+                    
+                    for (let i = 0; i < maxItems; i++) {
+                        const title = items[i].getElementsByTagName("title")[0].textContent;
+                        const link = items[i].getElementsByTagName("link")[0].textContent;
+                        const pubDate = items[i].getElementsByTagName("pubDate")[0].textContent;
+                        let description = items[i].getElementsByTagName("description")[0].textContent;
+                        
+                        // Membersihkan tag HTML di dalam deskripsi artikel
+                        const cleanDesc = description.replace(/<[^>]*>/g, '').substring(0, 90) + '...';
+                        const formattedDate = new Date(pubDate).toLocaleDateString('id-ID');
                         
                         const cardHtml = `
-                            <div class="article-card" onclick="window.open('${item.link}', '_blank')">
+                            <div class="article-card" onclick="window.open('${link}', '_blank')">
                                 <span class="tag">Kompasiana</span>
-                                <div class="article-title">${item.title}</div>
+                                <div class="article-title">${title}</div>
                                 <p class="article-desc">${cleanDesc}</p>
-                                <div class="article-date">${new Date(item.pubDate).toLocaleDateString('id-ID')}</div>
+                                <div class="article-date">${formattedDate}</div>
                             </div>
                         `;
                         container.innerHTML += cardHtml;
-                    });
+                    }
                 } else {
-                    container.innerHTML = `<div style="padding:16px; font-size:12px; color:#6b7280;">Tidak ada artikel publikasi di akun @${KOMPASIANA_USER}.</div>`;
+                    container.innerHTML = `<div style="padding:16px; font-size:12px; color:#6b7280;">Tidak ada artikel publikasi.</div>`;
                 }
             } catch (error) {
                 console.error("Gagal menarik RSS Feed Kompasiana:", error);
