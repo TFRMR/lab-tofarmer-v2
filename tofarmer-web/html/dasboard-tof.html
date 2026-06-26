@@ -541,65 +541,23 @@
             }
         }
 
-       // 5. AMBIL ARTIKEL RSS FEED KOMPASIANA (VERSI FINAL - ANTI ERROR CORS & TIMEOUT)
+     // 5. AMBIL ARTIKEL RSS FEED KOMPASIANA (VERSI AMAN & BERSIH KONSOL)
         async function fetchKompasianaArticles() {
             const container = document.getElementById('kompasiana-container');
             if (!container) return;
 
-            try {
-                // Menggunakan proxy open-source untuk bypass restriksi CORS
-                const targetRss = `https://www.kompasiana.com/${KOMPASIANA_USER}/feed`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetRss)}`;
-                
-                const res = await fetch(proxyUrl);
-                if (!res.ok) throw new Error("Respons proxy tidak optimal");
-                
-                const xmlText = await res.text();
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-                const items = xmlDoc.getElementsByTagName("item");
-
-                if (items && items.length > 0) {
-                    container.innerHTML = ''; // Bersihkan loader jika sukses
-                    const maxItems = Math.min(items.length, 3);
-                    
-                    for (let i = 0; i < maxItems; i++) {
-                        const title = items[i].getElementsByTagName("title")[0]?.textContent || "Artikel Terbaru";
-                        const link = items[i].getElementsByTagName("link")[0]?.textContent || "#";
-                        const pubDate = items[i].getElementsByTagName("pubDate")[0]?.textContent || "";
-                        let description = items[i].getElementsByTagName("description")[0]?.textContent || "";
-                        
-                        // Bersihkan tag HTML dari teks cuplikan
-                        const cleanDesc = description.replace(/<[^>]*>/g, '').substring(0, 85) + '...';
-                        let formattedDate = pubDate ? new Date(pubDate).toLocaleDateString('id-ID') : "Baru-baru ini";
-                        
-                        container.innerHTML += `
-                            <div class="article-card" onclick="window.open('${link}', '_blank')" style="cursor:pointer;">
-                                <span class="tag">Kompasiana</span>
-                                <div class="article-title">${title}</div>
-                                <p class="article-desc">${cleanDesc}</p>
-                                <div class="article-date">${formattedDate}</div>
-                            </div>
-                        `;
-                    }
-                    return; // Keluar dari fungsi jika berhasil memuat artikel dinamis
-                }
-                throw new Error("Struktur feed kosong");
-            } catch (error) {
-                console.log("Menjalankan kartu profil terintegrasi (Proteksi Kebijakan CORS Aktif).");
-                
-                // FALLBACK ELEGAN: Menampilkan etalase info yang interaktif & estetik alih-alih area kosong
-                container.innerHTML = `
-                    <div class="article-card" onclick="window.open('https://www.kompasiana.com/${KOMPASIANA_USER}', '_blank')" style="grid-column: 1 / -1; text-align: center; padding: 28px; border: 1px dashed #34d399; background: rgba(52, 211, 153, 0.02); border-radius: 12px; cursor: pointer;">
-                        <span class="tag" style="margin-bottom: 8px; display: inline-block;">Kanal Publikasi</span>
-                        <div class="article-title" style="font-size: 15px; color: #34d399; font-weight: 600;">Baca Catatan Pemikiran & Gagasan ToFarmer di Kompasiana ↗</div>
-                        <p class="article-desc" style="max-width: 580px; margin: 10px auto 0 auto; color: #9ca3af; font-size: 12px; line-height: 1.6;">
-                            Untuk mematuhi aturan keamanan CORS browser produksi, pemuatan otomatis feed langsung dialihkan. Klik kartu ini untuk menjelajahi artikel, rilis blueprint, dan esai filosofis ekosistem kami langsung di platform resmi Kompasiana.
-                        </p>
-                        <div class="article-date" style="margin-top: 12px; color: #6b7280; font-size: 11px;">Buka Kompasiana Resmi tofarmer3643</div>
-                    </div>
-                `;
-            }
+            // KARENA PROXY LUAR (ALLORIGINS) SERING TIMEOUT 522 DAN DI-BLOKIR CORS PRODUKSI,
+            // KITA LANGSUNG TARUH KARTU PROFIL INTERAKTIF AGAR KONSOL BERSIH TANPA ERROR MERAH.
+            container.innerHTML = `
+                <div class="article-card" onclick="window.open('https://www.kompasiana.com/${KOMPASIANA_USER}', '_blank')" style="grid-column: 1 / -1; text-align: center; padding: 28px; border: 1px dashed #34d399; background: rgba(52, 211, 153, 0.02); border-radius: 12px; cursor: pointer;">
+                    <span class="tag" style="margin-bottom: 8px; display: inline-block;">Kanal Publikasi</span>
+                    <div class="article-title" style="font-size: 15px; color: #34d399; font-weight: 600;">Baca Catatan Pemikiran & Gagasan ToFarmer di Kompasiana ↗</div>
+                    <p class="article-desc" style="max-width: 580px; margin: 10px auto 0 auto; color: #9ca3af; font-size: 12px; line-height: 1.6;">
+                        Klik kartu ini untuk menjelajahi artikel terbaru, rilis blueprint ekosistem, serta esai filosofis pergerakan ToFarmer langsung di platform resmi Kompasiana.
+                    </p>
+                    <div class="article-date" style="margin-top: 12px; color: #6b7280; font-size: 11px;">Buka Kompasiana Resmi tofarmer3643</div>
+                </div>
+            `;
         }
         // 6. SETUP DIAGRAM PIE CHART (CHART.JS)
         function updateHolderChart(eco, org) {
