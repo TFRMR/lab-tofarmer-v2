@@ -614,24 +614,24 @@ renderCandlestickChart(currentPriceIDR);
             }]
         },
         options: {
-animation: false,
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    type: 'time',
-                    time: { unit: 'day', displayFormats: { day: 'MMM DD' } },
-                    grid: { color: 'rgba(74, 222, 128, 0.05)' }
-                },
-                y: {
-                    grid: { color: 'rgba(74, 222, 128, 0.05)' },
-                    ticks: {
-                        callback: function(value) {
-                            return 'Rp ' + value.toFixed(4).replace('.', ',');
-                        }
-                    }
+    animation: false,          // ← TAMBAH INI — menghilangkan kedip saat chart render
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        x: {
+            type: 'time',
+            time: { unit: 'day', displayFormats: { day: 'MMM DD' } },
+            grid: { color: 'rgba(74, 222, 128, 0.05)' }
+        },
+        y: {
+            grid: { color: 'rgba(74, 222, 128, 0.05)' },
+            ticks: {
+                callback: function(value) {
+                    return 'Rp ' + value.toFixed(4).replace('.', ',');
                 }
-            },
+            }
+        }
+    },
             plugins: {
     legend: { labels: { color: '#e2e8f0' } },
     annotation: {
