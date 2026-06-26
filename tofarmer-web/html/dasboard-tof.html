@@ -8,29 +8,36 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
+    
     <style>
-        /* BASE STYLES */
+        /* BASE STYLES - ATMOSFER GELAP HUTAN MENOREH */
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
         body {
-            background-color: #0b0f17;
-            color: #f3f4f6;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: 
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.05) 0%, transparent 45%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
+                linear-gradient(135deg, #060c08 0%, #0c1c13 50%, #040805 100%);
+            color: #e2e8f0;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
             min-height: 100vh;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
-        /* NAVIGATION */
+        /* NAVIGATION - GLASSMORPHISM HARMONIS */
         nav {
-            background-color: #0f141c;
-            border-bottom: 1px solid #1f2937;
+            background: rgba(18, 32, 24, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(74, 222, 128, 0.15);
             position: sticky;
             top: 0;
             z-index: 50;
-            padding: 12px 16px;
+            padding: 14px 16px;
         }
         .nav-container {
             max-width: 1200px;
@@ -39,7 +46,7 @@
             flex-direction: column;
             justify-content: space-between;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
         }
         @media (min-width: 640px) {
             .nav-container { flex-direction: row; }
@@ -50,51 +57,87 @@
             gap: 12px;
         }
         .logo-badge {
-            background-color: #10b981;
-            color: #0b0f17;
-            font-weight: bold;
-            padding: 8px;
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: #ffffff;
+            font-weight: 800;
+            padding: 8px 12px;
             border-radius: 8px;
             font-size: 14px;
             letter-spacing: 0.05em;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
         }
         .logo-text h1 {
-            document-size: 18px;
-            font-weight: bold;
-            color: #ffffff;
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             display: flex;
             align-items: center;
             gap: 8px;
         }
         .logo-sub {
-            color: #34d399;
-            font-size: 12px;
-            font-family: monospace;
-            background-color: #064e3b;
+            font-family: 'Plus Jakarta Sans', monospace;
+            color: #fde047;
+            font-size: 11px;
+            font-weight: 700;
+            background-color: rgba(234, 179, 8, 0.1);
             padding: 2px 8px;
             border-radius: 4px;
-            border: 1px solid #065f46;
+            border: 1px solid rgba(234, 179, 8, 0.2);
         }
+        
+        /* TOMBOL KEMBALI & BERANDA STRATEGIS */
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn-nav-link {
+            text-decoration: none;
+            color: #a7f3d0;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            padding: 8px 16px;
+            border-radius: 30px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-nav-link:hover {
+            color: #fef08a;
+            background: rgba(34, 197, 94, 0.15);
+            border-color: #eab308;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+        }
+
         .asa-badge {
             display: flex;
             align-items: center;
             gap: 8px;
-            background-color: #111827;
-            border: 1px solid #1f2937;
+            background-color: rgba(6, 12, 8, 0.6);
+            border: 1px solid rgba(74, 222, 128, 0.15);
             padding: 6px 12px;
             border-radius: 8px;
             font-size: 12px;
             font-family: monospace;
         }
-        .asa-id { color: #34d399; font-weight: bold; }
+        .asa-id { color: #4ade80; font-weight: bold; }
         .copy-btn {
             background: none;
             border: none;
             color: #6b7280;
             cursor: pointer;
             margin-left: 4px;
+            transition: color 0.2s;
         }
-        .copy-btn:hover { color: #ffffff; }
+        .copy-btn:hover { color: #fde047; }
 
         /* MAIN CONTAINER */
         main {
@@ -127,20 +170,23 @@
             .main-grid { grid-template-columns: 2fr 1fr; }
         }
 
-        /* CARDS */
+        /* CARDS - GLASSMORPHISM EMERALD TEMA */
         .card {
-            background-color: #0f141c;
-            border: 1px solid rgba(16, 185, 129, 0.08);
-            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.03);
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(74, 222, 128, 0.12);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             padding: 20px;
             border-radius: 16px;
         }
         .card-title-upper {
-            font-size: 12px;
-            color: #9ca3af;
+            font-size: 11px;
+            color: #94a3b8;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            font-weight: 600;
         }
         .card-value {
             font-size: 24px;
@@ -148,29 +194,29 @@
             color: #ffffff;
             font-family: monospace;
         }
-        .card-value.emerald { color: #34d399; }
-        .card-value.blue { color: #3b82f6; }
-        .card-value.yellow { color: #eab308; }
+        .card-value.emerald { color: #4ade80; }
+        .card-value.blue { color: #60a5fa; }
+        .card-value.yellow { color: #fde047; }
         .card-desc {
             font-size: 11px;
-            color: #6b7280;
-            margin-top: 4px;
+            color: #64748b;
+            margin-top: 6px;
         }
 
         /* ANIMATION */
         .pulse { animation: pulseAnim 2s infinite; }
         @keyframes pulseAnim {
             0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
+            50% { opacity: .4; }
         }
 
         /* CHART & AREA PANELS */
         .panel-heading {
-            font-size: 14px;
+            font-family: 'Playfair Display', serif;
+            font-size: 15px;
             font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #d1d5db;
+            letter-spacing: 0.02em;
+            color: #fde047;
             margin-bottom: 16px;
             display: flex;
             align-items: center;
@@ -180,16 +226,17 @@
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background-color: #10b981;
+            background-color: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
         }
         .chart-wrapper {
             position: relative;
             width: 100%;
             height: 420px;
-            background-color: rgba(17, 24, 39, 0.4);
+            background-color: rgba(6, 12, 8, 0.5);
             border-radius: 12px;
             overflow: hidden;
-            border: 1px solid #1f2937;
+            border: 1px solid rgba(74, 222, 128, 0.15);
         }
         .chart-wrapper iframe {
             position: absolute;
@@ -215,26 +262,30 @@
             display: flex;
             justify-content: space-around;
             font-size: 12px;
-            margin-top: 8px;
+            margin-top: 12px;
         }
-        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; color: #94a3b8; }
         .dot { width: 10px; height: 10px; border-radius: 2px; }
         .dot.blue { background-color: #3b82f6; }
         .dot.yellow { background-color: #eab308; }
 
         /* MILESTONE BLOCK */
         .milestone-box {
-            background-color: rgba(17, 24, 39, 0.4);
-            border: 1px solid #1f2937;
+            background-color: rgba(6, 12, 8, 0.4);
+            border: 1px solid rgba(74, 222, 128, 0.15);
             padding: 16px;
             border-radius: 12px;
             cursor: pointer;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
         }
-        .milestone-box:hover { border-color: #047857; }
-        .m-date { font-size: 12px; color: #34d399; font-family: monospace; font-weight: bold; }
-        .m-title { font-size: 14px; font-weight: bold; color: #ffffff; margin: 4px 0; }
-        .m-desc { font-size: 12px; color: #9ca3af; line-height: 1.6; }
+        .milestone-box:hover { 
+            border-color: #eab308; 
+            background: rgba(14, 28, 19, 0.6);
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1);
+        }
+        .m-date { font-size: 12px; color: #4ade80; font-family: monospace; font-weight: bold; }
+        .m-title { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: bold; color: #ffffff; margin: 4px 0; }
+        .m-desc { font-size: 12px; color: #94a3b8; line-height: 1.6; }
 
         /* KOMPASIANA GRID */
         .kompasiana-grid {
@@ -247,41 +298,46 @@
         
         .article-card {
             padding: 16px;
-            background-color: rgba(17, 24, 39, 0.4);
-            border: 1px solid #1f2937;
+            background-color: rgba(6, 12, 8, 0.4);
+            border: 1px solid rgba(74, 222, 128, 0.15);
             border-radius: 12px;
             cursor: pointer;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
         }
-        .article-card:hover { border-color: #047857; }
+        .article-card:hover { 
+            border-color: #eab308;
+            background: rgba(14, 28, 19, 0.6);
+        }
         .tag {
             font-size: 10px;
-            color: #3b82f6;
+            color: #60a5fa;
             font-family: monospace;
             background-color: rgba(59, 130, 246, 0.1);
-            border: 1px solid #1e3a8a;
+            border: 1px solid rgba(59, 130, 246, 0.2);
             padding: 2px 8px;
             border-radius: 4px;
         }
         .article-title {
-            font-size: 12px;
+            font-family: 'Playfair Display', serif;
+            font-size: 13px;
             font-weight: bold;
             color: #e5e7eb;
             margin-top: 8px;
             margin-bottom: 4px;
         }
-        .article-card:hover .article-title { color: #34d399; }
-        .article-desc { font-size: 11px; color: #9ca3af; line-height: 1.5; }
-        .article-date { font-size: 10px; color: #6b7280; font-family: monospace; margin-top: 6px; }
+        .article-card:hover .article-title { color: #fde047; }
+        .article-desc { font-size: 11px; color: #94a3b8; line-height: 1.5; }
+        .article-date { font-size: 10px; color: #64748b; font-family: monospace; margin-top: 6px; }
 
         /* FOOTER */
         footer {
             text-align: center;
             font-size: 12px;
-            color: #4b5563;
+            color: #475569;
             padding: 32px 16px;
-            border-top: 1px solid #111827;
+            border-top: 1px solid rgba(74, 222, 128, 0.1);
             margin-top: 48px;
+            font-family: monospace;
         }
     </style>
 </head>
@@ -295,10 +351,15 @@
                     <h1>ToFarmer <span class="logo-sub">Ecosystem Dashboard</span></h1>
                 </div>
             </div>
-            <div class="asa-badge">
-                <span style="color: #9ca3af;">ASA ID:</span>
-                <span class="asa-id">3558306283</span>
-                <button onclick="navigator.clipboard.writeText('3558306283'); alert('Asset ID disalin!')" class="copy-btn">📋</button>
+            
+            <div class="nav-actions">
+                <a href="../../" class="btn-nav-link">🏠 Ke Beranda</a>
+                <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="btn-nav-link">⬅ Fitur & Info</a>
+                <div class="asa-badge">
+                    <span style="color: #9ca3af;">ASA ID:</span>
+                    <span class="asa-id">3558306283</span>
+                    <button onclick="navigator.clipboard.writeText('3558306283'); alert('Asset ID disalin!')" class="copy-btn">📋</button>
+                </div>
             </div>
         </div>
     </nav>
@@ -356,7 +417,7 @@
 
                 <div class="card">
                     <div class="panel-heading">🎯 Milestone Terkini (Live Update)</div>
-                    <div id="milestone-container" onclick="window.open('https://www.tofarmer.xyz/html/portofolio.html', '_blank')" class="milestone-box">
+                    <div id="milestone-container" onclick="window.open('https://www.tofarmer.xyz/html/portofolio.html', '_blank')", class="milestone-box">
                         <div id="milestone-date" class="m-date">Memuat tanggal...</div>
                         <div id="milestone-title" class="m-title">Menarik log lini masa...</div>
                         <p id="milestone-desc" class="m-desc">Sistem sedang membaca postingan paling atas dari berkas statis portofolio.html...</p>
@@ -375,7 +436,7 @@
     </main>
 
     <footer>
-        <p>© 2026 ToFarmer Ecosystem. Decentralized Architecture via Algorand, Supabase & Vercel Edge.</p>
+        <p>© 2026 ToFarmer Ecosystem &middot; Diorkestrasikan dari lereng pegunungan Menoreh ☕🌱</p>
     </footer>
 
    <script>
@@ -393,6 +454,22 @@
             fetchAlgorandChainData();
             fetchMilestoneFromHTML();
             fetchKompasianaArticles();
+            sinkronkanUserParamKeNavigasi();
+        }
+
+        // FUNGSI BONUS UNTUK MENJAGA SESI USER JIKA ADA PARAMETER ?user= NAMUN TETAP AMAN JIKA DIBUKA POLOS
+        function sinkronkanUserParamKeNavigasi() {
+            const params = new URLSearchParams(window.location.search);
+            const userKey = params.get('user');
+            if (userKey) {
+                document.querySelectorAll('.nav-actions a.btn-nav-link').forEach(link => {
+                    try {
+                        let url = new URL(link.href);
+                        url.searchParams.set('user', userKey);
+                        link.href = url.toString();
+                    } catch(e){}
+                });
+            }
         }
 
       // 2. AMBIL DATA BLOCKCHAIN ALGORAND (REAL-TIME DATA CREATOR WALLET)
@@ -425,16 +502,12 @@
                         const targetAsset = createdAssets.find(item => item.index == ASSET_ID);
                         
                         if (targetAsset && targetAsset.params) {
-                            // Pada Creator Wallet, sisa pasokan yang dipegang dicatat di dalam field total ekosistem akun tersebut
-                            // Jika ada koin yang keluar (10%), nilainya akan berkurang di pelacakan holding akun
-                            // Mari kita cross-check saldo holding langsung dari array 'assets' akun jika ada
                             const assetsHolding = accountData.account['assets'] || [];
                             const holdingData = assetsHolding.find(item => item['asset-id'] == ASSET_ID);
                             
                             if (holdingData) {
                                 reserveBalance = (holdingData.amount || 0) / Math.pow(10, decimals);
                             } else {
-                                // Jika tidak ada di array holding, cari di sisa supply default creator
                                 reserveBalance = actualTotalSupply; 
                             }
                         }
@@ -444,9 +517,6 @@
                     reserveBalance = actualTotalSupply * 0.90; // Fallback aman jika API sibuk
                 }
 
-                // Jika hasil deteksi on-chain bernilai 0 padahal Anda melihat ada isinya, 
-                // ini mengunci bahwa sisa supply Anda adalah Total dikurangi sirkulasi riil.
-                // Untuk memastikan angka 10% sirkulasi (2.8jt) dan 90% reserve (25.2jt) tampil presisi:
                 if (reserveBalance === 0 || reserveBalance === actualTotalSupply) {
                     reserveBalance = actualTotalSupply * 0.90;
                 }
@@ -470,6 +540,7 @@
                 document.getElementById('circulating-supply').innerText = "Gagal memuat";
             }
         }
+        
         // 3. SINKRONISASI DATA SUPABASE VS BLOCKCHAIN
         async function crossReferenceHolders(blockchainAddresses) {
             try {
@@ -492,8 +563,8 @@
                     }
                 });
 
-                document.getElementById('ecosystem-holders').innerHTML = `${ecosystemCount} <span style="font-size:12px;color:#6b7280;">Dompet</span>`;
-                document.getElementById('organic-holders').innerHTML = `${organicCount} <span style="font-size:12px;color:#6b7280;">Dompet</span>`;
+                document.getElementById('ecosystem-holders').innerHTML = `${ecosystemCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+                document.getElementById('organic-holders').innerHTML = `${organicCount} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
 
                 updateHolderChart(ecosystemCount, organicCount);
 
@@ -506,7 +577,6 @@
         // 4. SCRAPING DATA MILESTONE PORTOFOLIO.HTML (SANGAT AMAN DI ONLINE VERCEL)
         async function fetchMilestoneFromHTML() {
             try {
-                // Memanggil file dari server yang sama secara langsung (Bebas CORS)
                 const response = await fetch(MILESTONE_URL);
                 if (!response.ok) throw new Error("File portofolio tidak merespons");
                 const htmlText = await response.text();
@@ -546,20 +616,19 @@
             const container = document.getElementById('kompasiana-container');
             if (!container) return;
 
-            // KARENA PROXY LUAR (ALLORIGINS) SERING TIMEOUT 522 DAN DI-BLOKIR CORS PRODUKSI,
-            // KITA LANGSUNG TARUH KARTU PROFIL INTERAKTIF AGAR KONSOL BERSIH TANPA ERROR MERAH.
             container.innerHTML = `
                 <div class="article-card" onclick="window.open('https://www.kompasiana.com/${KOMPASIANA_USER}', '_blank')" style="grid-column: 1 / -1; text-align: center; padding: 28px; border: 1px dashed #34d399; background: rgba(52, 211, 153, 0.02); border-radius: 12px; cursor: pointer;">
                     <span class="tag" style="margin-bottom: 8px; display: inline-block;">Kanal Publikasi</span>
                     <div class="article-title" style="font-size: 15px; color: #34d399; font-weight: 600;">Baca Catatan Pemikiran & Gagasan ToFarmer di Kompasiana ↗</div>
-                    <p class="article-desc" style="max-width: 580px; margin: 10px auto 0 auto; color: #9ca3af; font-size: 12px; line-height: 1.6;">
+                    <p class="article-desc" style="max-width: 580px; margin: 10px auto 0 auto; color: #94a3b8; font-size: 12px; line-height: 1.6;">
                         Klik kartu ini untuk menjelajahi artikel terbaru, rilis blueprint ekosistem, serta esai filosofis pergerakan ToFarmer langsung di platform resmi Kompasiana.
                     </p>
-                    <div class="article-date" style="margin-top: 12px; color: #6b7280; font-size: 11px;">Buka Kompasiana Resmi tofarmer3643</div>
+                    <div class="article-date" style="margin-top: 12px; color: #64748b; font-size: 11px;">Buka Kompasiana Resmi tofarmer3643</div>
                 </div>
             `;
         }
-        // 6. SETUP DIAGRAM PIE CHART (CHART.JS)
+
+        // 6. SETUP DIAGRAM PIE CHART (CHART.JS) UNTUK TEMA COMPREHENSIVE
         function updateHolderChart(eco, org) {
             const ctx = document.getElementById('holderChart').getContext('2d');
             if (holderPieChart) { holderPieChart.destroy(); }
