@@ -433,12 +433,13 @@
         <p>© 2026 ToFarmer Ecosystem &middot; Diorkestrasikan dari lereng pegunungan Menoreh ☕🌱</p>
     </footer>
 
-   <script>
-     // 1. KONFIGURASI PROYEK TOFARMER
+ <script>
+// 1. KONFIGURASI PROYEK TOFARMER
 const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
 const KOMPASIANA_USER = 'tofarmer3643';
 const ASSET_ID = "3558306283";
+const RESERVED_WALLET = "HLZZDZLO7WQFSTJYZRNMVHP3RBRAJUDYEJEVIBWRE2RNDIJS4HCCVFT7SI";
 const MILESTONE_URL = 'portofolio.html';
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -451,16 +452,16 @@ async function getMarketPrice(assetId) {
         const url = `https://afpzddwuikvwsedzgsee.supabase.co/functions/v1/get-price?id=${assetId}`;
         const response = await fetch(url);
         const data = await response.json();
-
+        
         const priceAlgo = data.priceAlgo || 0;
         const algoReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
         const algoData = await algoReq.json();
         const algoToIdr = algoData.algorand?.idr || 0;
 
+        // Harga per unit = (priceAlgo) * (harga ALGO dalam IDR)
         return priceAlgo * algoToIdr;
     } catch (e) {
-        console.error("Gagal ambil harga:", e);
-        return 0.25;
+        return 38.50; // Fallback harga statis
     }
 }
 
@@ -471,48 +472,79 @@ async function initDashboard() {
     sinkronkanUserParamKeNavigasi();
 }
 
-function sinkronkanUserParamKeNavigasi() {
-    const params = new URLSearchParams(window.location.search);
-    const userKey = params.get('user');
-    if (userKey) {
-        document.querySelectorAll('.nav-actions a.btn-nav-link').forEach(link => {
-            try {
-                let url = new URL(link.href);
-                url.searchParams.set('user', userKey);
-                link.href = url.toString();
-            } catch (e) {}
-        });
+// 2. AMBIL DATA BLOCKCHAIN (Supply & Sirkulasi)
+async function fetchAlgorandChainData() {
+    try {
+        const response = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
+        const data = await response.json();
+        const params = data.asset.params;
+        
+        const total = params.total / Math.pow(10, params.decimals);
+        document.getElementById('total-supply').innerText = total.toLocaleString('id-ID') + " TOF";
+
+        // Ambil balance wallet reserve untuk menghitung sirkulasi
+        const reserveRes = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${RESERVED_WALLET}/assets/${ASSET_ID}`);
+        const reserveData = await reserveRes.json();
+        const reserveAmount = reserveData.asset_holding ? (reserveData.asset_holding.amount / Math.pow(10, params.decimals)) : 0;
+        
+        const circulating = total - reserveAmount;
+        document.getElementById('circulating-supply').innerText = circulating.toLocaleString('id-ID') + " TOF";
+        
+        const price = await getMarketPrice(ASSET_ID);
+        renderCandlestickChart(price);
+
+        const balancesRes = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
+        const balancesData = await balancesRes.json();
+        crossReferenceHolders(balancesData.balances.map(b => b.address));
+
+    } catch (error) {
+        document.getElementById('circulating-supply').innerText = "Data Offline";
+        renderCandlestickChart(38.50);
     }
 }
 
-// 2. AMBIL DATA BLOCKCHAIN + HITUNG HARGA
-async function fetchAlgorandChainData() {
-    try {
-        const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
-        const assetData = await assetResponse.json();
+// 3. GRAFIK DENGAN GARIS HARGA SEKARANG
+function renderCandlestickChart(currentPrice) {
+    const ctx = document.getElementById('candlestickChart').getContext('2d');
+    if (candleChartInstance) candleChartInstance.destroy();
 
-        const rawTotalSupply = assetData.asset.params.total;
-        const decimals = assetData.asset.params.decimals || 0;
-        const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
+    const dataPoints = Array.from({length: 30}, (_, i) => {
+        const date = moment().subtract(30 - i, 'd');
+        const p = currentPrice * (1 + (Math.random() - 0.5) * 0.05);
+        return { x: date.valueOf(), o: p*0.98, h: p*1.02, l: p*0.97, c: p };
+    });
 
-        document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
-
-        const currentPriceIDR = await getMarketPrice(ASSET_ID);
-        renderCandlestickChart(currentPriceIDR);
-
-        // Ambil data pemegang
-        const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
-        const balancesData = await balancesResponse.json();
-        const allBlockchainHolders = balancesData.balances.map(b => b.address);
-
-        crossReferenceHolders(allBlockchainHolders);
-
-    } catch (error) {
-        console.error("Gagal memuat data on-chain:", error);
-        document.getElementById('total-supply').innerText = "Gagal memuat";
-        document.getElementById('circulating-supply').innerText = "Gagal memuat";
-        renderCandlestickChart(38.50); // Fallback
-    }
+    candleChartInstance = new Chart(ctx, {
+        type: 'candlestick',
+        data: {
+            datasets: [{
+                label: 'Harga TOF (IDR)',
+                data: dataPoints
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                annotation: { // Garis horizontal harga saat ini
+                    annotations: {
+                        line1: {
+                            type: 'line',
+                            yMin: currentPrice,
+                            yMax: currentPrice,
+                            borderColor: '#fde047',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            label: { content: 'Harga Saat Ini: Rp ' + currentPrice.toFixed(2), enabled: true }
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { ticks: { callback: (val) => 'Rp ' + val.toLocaleString('id-ID', {minimumFractionDigits: 2}) } }
+            }
+        }
+    });
 }
 
 // 3. SINKRONISASI DATA SUPABASE VS BLOCKCHAIN
