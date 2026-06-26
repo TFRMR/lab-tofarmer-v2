@@ -555,10 +555,18 @@ async function getMarketPrice(assetId) {
             // A. Fungsi Helper (Letakkan di luar fetchAlgorandChainData, tapi saya tulis di sini agar mudah dilihat)
 async function getMarketPrice(assetId) {
     try {
-        const response = await fetch(`https://api.vestige.fi/asset/${assetId}`);
-        const data = await response.json();
+        const url = "https://afpzddwuikvwsedzgsee.supabase.co/functions/v1/get-price?id=" + assetId;
+        const response = await fetch(url);
+        
+        // --- TAMBAHKAN INI UNTUK DEBUGGING ---
+        const textResponse = await response.text(); 
+        console.log("Raw Response dari Server:", textResponse); 
+        // ------------------------------------
+
+        const data = JSON.parse(textResponse);
         return data?.priceUsd ? parseFloat(data.priceUsd) : 0;
     } catch (e) {
+        console.error("Error Detail:", e);
         return 0;
     }
 }
