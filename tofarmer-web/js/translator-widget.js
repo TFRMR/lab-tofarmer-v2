@@ -12,7 +12,7 @@
         "🤝 Titik Kumpul": "🤝 Gathering Point",
         "Ngopi, ide, ngobrol, santai ,ngonten": "Coffee, ideas, chat, relax, content",
         "🤖 Ladang Eksperimen": "🤖 Experiment Field",
-        "AI, blockchain, robot, dan ide yang kadang "nggak masuk akal"": "AI, blockchain, robotics, and out-of-the-box ideas",
+        "AI, blockchain, robot, dan ide yang kadang \u201cnggak masuk akal\u201d": "AI, blockchain, robotics, and out-of-the-box ideas",
         "🌱 Cerita Tanah & Panen": "🌱 Soil & Harvest Stories",
         "Drama masuk kebun": "Garden diaries and dramas",
         "☕ Duit...duit dan duit": "☕ Money, money, and money",
@@ -41,24 +41,66 @@
         "⚠️ Gagal memuat peringkat": "⚠️ Failed to load leaderboard"
     };
 
+    // Elemen interaktif yang TIDAK boleh disentuh child node-nya
+    const SKIP_TAGS = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'NOSCRIPT', 'TEXTAREA']);
+
+    // Terjemahkan hanya TEXT NODE langsung, tidak traverse ke dalam elemen interaktif
+    function terjemahkanNode(node) {
+        if (!node) return;
+
+        // Skip elemen translator itu sendiri
+        if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") return;
+
+        if (node.nodeType === Node.TEXT_NODE) {
+            // Hanya proses jika ada teks nyata
+            if (!node.nodeValue || !node.nodeValue.trim()) return;
+
+            for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
+                if (node.nodeValue.includes(kunci) && !node.nodeValue.includes(nilai)) {
+                    node.nodeValue = node.nodeValue.replace(kunci, nilai);
+                }
+            }
+
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // Skip tag yang tidak boleh disentuh
+            if (SKIP_TAGS.has(node.tagName)) return;
+
+            // Terjemahkan placeholder input tanpa menyentuh event listener
+            if ((node.tagName === 'INPUT' || node.tagName === 'TEXTAREA') && node.placeholder) {
+                for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
+                    if (node.placeholder.includes(kunci) && !node.placeholder.includes(nilai)) {
+                        node.placeholder = node.placeholder.replace(kunci, nilai);
+                    }
+                }
+            }
+
+            // Traverse hanya TEXT NODE children langsung — tidak rekursif masuk ke elemen interaktif
+            for (let i = 0; i < node.childNodes.length; i++) {
+                terjemahkanNode(node.childNodes[i]);
+            }
+        }
+    }
+
     // Tombol kecil minimalis & tipis
     const btnTranslate = document.createElement('button');
     btnTranslate.id = "tof-translator-trigger";
-    btnTranslate.style.position = 'fixed';
-    btnTranslate.style.bottom = '15px';
-    btnTranslate.style.right = '15px';
-    btnTranslate.style.zIndex = '999999';
-    btnTranslate.style.padding = '6px 12px';
-    btnTranslate.style.borderRadius = '6px';
-    btnTranslate.style.border = '1px solid #ddd';
-    btnTranslate.style.fontSize = '11px';
-    btnTranslate.style.fontFamily = 'sans-serif';
-    btnTranslate.style.color = '#666';
-    btnTranslate.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-    btnTranslate.style.backdropFilter = 'blur(4px)';
-    btnTranslate.style.cursor = 'pointer';
-    btnTranslate.style.boxShadow = '0px 2px 8px rgba(0,0,0,0.05)';
-    btnTranslate.style.transition = 'all 0.2s ease';
+    btnTranslate.style.cssText = `
+        position: fixed;
+        bottom: 15px;
+        right: 15px;
+        z-index: 999999;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        font-size: 11px;
+        font-family: sans-serif;
+        color: #666;
+        background-color: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(4px);
+        cursor: pointer;
+        box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
+        transition: all 0.2s ease;
+    `;
     document.body.appendChild(btnTranslate);
 
     btnTranslate.onmouseover = () => {
@@ -70,37 +112,6 @@
         btnTranslate.style.color = '#666';
     };
 
-    // Terjemahkan satu node saja (text node atau input placeholder)
-    function terjemahkanNode(node) {
-        if (!node) return;
-
-        // Jangan sentuh tombol translator itu sendiri
-        if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") return;
-
-        if (node.nodeType === Node.TEXT_NODE) {
-            const teksAsli = node.nodeValue.trim();
-            if (!teksAsli) return;
-            for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
-                if (node.nodeValue.includes(kunci) && !node.nodeValue.includes(nilai)) {
-                    node.nodeValue = node.nodeValue.replace(kunci, nilai);
-                }
-            }
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-            // Terjemahkan placeholder input
-            if (node.tagName === 'INPUT' && node.placeholder) {
-                for (const [kunci, nilai] of Object.entries(kamusToFarmer)) {
-                    if (node.placeholder.includes(kunci) && !node.placeholder.includes(nilai)) {
-                        node.placeholder = node.placeholder.replace(kunci, nilai);
-                    }
-                }
-            }
-            // Traverse semua child node
-            for (let i = 0; i < node.childNodes.length; i++) {
-                terjemahkanNode(node.childNodes[i]);
-            }
-        }
-    }
-
     let observer = null;
 
     function mulaiSistemLoop() {
@@ -110,11 +121,10 @@
         // Hentikan observer lama kalau masih jalan
         if (observer) observer.disconnect();
 
-        // Pantau hanya node BARU yang masuk ke DOM
         observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
+                // Hanya proses node yang BARU ditambahkan ke DOM
                 for (const node of mutation.addedNodes) {
-                    // Skip tombol translator itu sendiri
                     if (node.nodeType === Node.ELEMENT_NODE && node.id === "tof-translator-trigger") continue;
                     terjemahkanNode(node);
                 }
@@ -122,8 +132,10 @@
         });
 
         observer.observe(document.body, {
-            childList: true, // pantau elemen baru yang ditambah
-            subtree: true    // termasuk semua level nested
+            childList: true,       // pantau elemen baru
+            subtree: true,         // termasuk nested
+            characterData: false,  // JANGAN pantau perubahan teks (mencegah loop)
+            attributes: false      // JANGAN pantau perubahan atribut
         });
     }
 
