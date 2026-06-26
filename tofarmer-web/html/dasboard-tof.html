@@ -465,18 +465,7 @@
                 });
             }
         }
-async function getMarketPrice(assetId) {
-    try {
-        // Menambahkan proxy cors-anywhere di depan URL Vestige
-        const url = `https://corsproxy.io/?https://api.vestige.fi/asset/${assetId}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        return data?.priceUsd ? parseFloat(data.priceUsd) : 0;
-    } catch (e) {
-        console.error("Gagal ambil harga pasar:", e);
-        return 0;
-    }
-}
+async function getMarketPrice
       // 2. AMBIL DATA BLOCKCHAIN ALGORAND + HITUNG HARGA LIVE POOL (DENGAN CONVERSION KE IDR)
         async function fetchAlgorandChainData() {
             const CREATOR_WALLET = "WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q"; 
@@ -574,24 +563,11 @@ async function getMarketPrice(assetId) {
     }
 }
 
-// B. Kalkulasi Harga (Ganti bagian kalkulasi lama dengan blok ini)
-let currentPriceIDR = 0;
-const priceUsd = await getMarketPrice(ASSET_ID); 
-
-if (priceUsd > 0) {
-    // Ambil kurs IDR terbaru
-    const fiatReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=idr");
-    const fiatData = await fiatReq.json();
-    const pairToIdr = fiatData['usd-coin']?.idr || 17841;
-    currentPriceIDR = priceUsd * pairToIdr;
-} else {
-    // Fallback jika API Vestige tidak merespon
-    currentPriceIDR = 0.25; 
-}
-
+// B. Kalkulasi Harga (Ganti bagian di fetchAlgorandChainData dengan ini)
+const currentPriceIDR = await getMarketPrice(ASSET_ID); 
 console.log("Harga Real-time (IDR):", currentPriceIDR);
 
-// C. Render Chart (Panggil fungsi ini dengan harga yang sudah akurat)
+// C. Render Chart
 renderCandlestickChart(currentPriceIDR);
 
                 // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
