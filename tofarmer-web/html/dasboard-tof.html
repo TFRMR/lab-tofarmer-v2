@@ -674,12 +674,14 @@
                             grid: { color: 'rgba(74, 222, 128, 0.05)' }
                         },
                         y: {
-                            grid: { color: 'rgba(74, 222, 128, 0.05)' },
-                            ticks: {
-                                // Mengubah format menjadi Rp dengan ribuan
-                                callback: function(value) { return 'Rp ' + value.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
-                            }
-                        }
+    grid: { color: 'rgba(74, 222, 128, 0.05)' },
+    ticks: {
+        // Menampilkan hingga 5 angka di belakang koma untuk akurasi harga sub-Rupiah
+        callback: function(value) { 
+            return 'Rp ' + value.toFixed(5).replace('.', ','); 
+        }
+    }
+}
                     },
                     plugins: {
                         legend: { labels: { color: '#e2e8f0' } }
