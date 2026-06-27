@@ -207,6 +207,8 @@
             margin-top: 6px;
         }
 
+       
+
         /* CHART & AREA PANELS */
         .panel-heading {
             font-family: 'Playfair Display', serif;
@@ -329,26 +331,25 @@
             margin-top: 48px;
             font-family: monospace;
         }
+.harga-live {
+    position: absolute;
+    top: 200px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #f59e0b;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 0 40px rgba(245, 158, 11, 0.4);
+    letter-spacing: 2px;
+    animation: blink-harga 3s ease-in-out infinite;
+    z-index: 10;
+    pointer-events: none;
+}
 
-        .harga-live {
-            position: absolute;
-            top: 200px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 2.4rem;
-            font-weight: 800;
-            color: #f59e0b;
-            text-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 0 40px rgba(245, 158, 11, 0.4);
-            letter-spacing: 2px;
-            animation: blink-harga 3s ease-in-out infinite;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        @keyframes blink-harga {
-            0%, 100% { opacity: 1; text-shadow: 0 0 20px rgba(245, 158, 11, 0.9), 0 0 40px rgba(245, 158, 11, 0.5); }
-            50%       { opacity: 0.3; text-shadow: none; }
-        }
+@keyframes blink-harga {
+    0%, 100% { opacity: 1; text-shadow: 0 0 20px rgba(245, 158, 11, 0.9), 0 0 40px rgba(245, 158, 11, 0.5); }
+    50%       { opacity: 0.3; text-shadow: none; }
+}
     </style>
 </head>
 <body>
@@ -406,8 +407,8 @@
                     Pergerakan Pasar TOF
                 </div>
                 <div class="chart-wrapper">
-                    <div class="harga-live" id="harga-live-display">Memuat...</div>
-                    <canvas id="candlestickChart"></canvas>
+                   <div class="harga-live" id="harga-live-display">Memuat...</div>
+<canvas id="candlestickChart"></canvas>
                 </div>
             </div>
 
@@ -447,170 +448,118 @@
         <p>© 2026 ToFarmer Ecosystem &middot; Diorkestrasikan dari lereng pegunungan Menoreh ☕🌱</p>
     </footer>
 
-    <script>
-        // 1. KONFIGURASI PROYEK TOFARMER
-        const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
-        const KOMPASIANA_USER = 'tofarmer3643'; 
-        const ASSET_ID = "3558306283";
-        const MILESTONE_URL = 'portofolio.html';
+   <script>
+      // 1. KONFIGURASI PROYEK TOFARMER
+const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
+const KOMPASIANA_USER = 'tofarmer3643'; 
+const ASSET_ID = "3558306283";
+const MILESTONE_URL = 'portofolio.html';
 
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let holderPieChart;
-        let candleChartInstance;
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let holderPieChart;
+let candleChartInstance;
 
-        // ─── REALTIME PRICE TICKER ───────────────────────────────────────────────────
-        // Simpan rasio ALGO/TOF dari pool saat init, lalu poll CoinGecko tiap 5 detik.
-        // Hanya 1 request kecil per tick — tidak re-fetch pool Algorand yang berat.
-        window._tofAlgoRatio = null;
+// Harga dihitung langsung dari rasio ALGO/TOF di pool Tinyman
+async function getMarketPrice(assetId, decimals) {
+    const TINYMAN_POOL = "XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM";
+    try {
+        // 1. Ambil saldo pool langsung dari node Algorand
+        const poolRes = await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${TINYMAN_POOL}`);
+        const poolData = await poolRes.json();
 
-        // Patch getMarketPrice agar menyimpan rasio ke global saat pertama jalan
-        function patchGetMarketPrice() {
-            const _original = getMarketPrice;
-            getMarketPrice = async function(assetId, decimals) {
-                const TINYMAN_POOL = "XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM";
-                try {
-                    const poolRes  = await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${TINYMAN_POOL}`);
-                    const poolData = await poolRes.json();
-                    const algoInPool = (poolData.amount || 0) / 1e6;
-                    const tofAsset   = (poolData.assets || []).find(a => a['asset-id'] === parseInt(assetId));
-                    const tofInPool  = (tofAsset?.amount || 0) / Math.pow(10, decimals);
-                    if (tofInPool > 0) {
-                        window._tofAlgoRatio = algoInPool / tofInPool; // simpan rasio ALGO per TOF
-                    }
-                } catch(e) {
-                    console.warn("patch: gagal ambil rasio pool", e);
-                }
-                return _original(assetId, decimals);
-            };
-        }
+        // 2. ALGO di pool (ALGO punya 6 desimal)
+        const algoInPool = (poolData.amount || 0) / 1e6;
 
-        // Ticker: tiap 5 detik, fetch harga ALGO terbaru lalu update angka di layar
-        async function startPriceTicker() {
-            const el = document.getElementById('harga-live-display');
-            if (!el) return;
+        // 3. TOF di pool (sesuai desimal aset)
+        const tofAsset = (poolData.assets || []).find(a => a['asset-id'] === parseInt(assetId));
+        const tofInPool = (tofAsset?.amount || 0) / Math.pow(10, decimals);
 
-            async function tick() {
-                if (!window._tofAlgoRatio) return; // tunggu init selesai dulu
-                try {
-                    const res  = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
-                    const data = await res.json();
-                    const algoIdr  = data.algorand?.idr || 0;
-                    const priceNow = window._tofAlgoRatio * algoIdr;
-                    if (priceNow > 0) {
-                        el.textContent = `Rp ${priceNow.toFixed(4).replace('.', ',')}`;
-                    }
-                } catch(e) {
-                    console.warn("ticker: gagal fetch CoinGecko", e);
-                }
-            }
+        if (tofInPool === 0) throw new Error("TOF tidak ditemukan di pool");
 
-            setInterval(tick, 5000); // tiap 5 detik
-        }
-        // ─────────────────────────────────────────────────────────────────────────────
+        // 4. Harga spot: 1 TOF = berapa ALGO
+        const priceAlgo = algoInPool / tofInPool;
 
-        // Harga dihitung langsung dari rasio ALGO/TOF di pool Tinyman
-        async function getMarketPrice(assetId, decimals) {
-            const TINYMAN_POOL = "XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM";
+        // 5. Konversi ALGO → IDR
+        const algoReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
+        const algoData = await algoReq.json();
+        const algoToIdr = algoData.algorand?.idr || 0;
+
+        const priceIDR = priceAlgo * algoToIdr;
+        console.log(`Pool: ${algoInPool.toFixed(2)} ALGO / ${tofInPool.toFixed(2)} TOF = ${priceAlgo.toFixed(8)} ALGO/TOF = Rp ${priceIDR.toFixed(4)}`);
+        return priceIDR;
+    } catch (e) {
+        console.error("Gagal ambil harga dari pool:", e);
+        return 1.40;
+    }
+}
+
+async function initDashboard() {
+    fetchAlgorandChainData();
+    fetchMilestoneFromHTML();
+    fetchKompasianaArticles();
+    sinkronkanUserParamKeNavigasi();
+}
+
+function sinkronkanUserParamKeNavigasi() {
+    const params = new URLSearchParams(window.location.search);
+    const userKey = params.get('user');
+    if (userKey) {
+        document.querySelectorAll('.nav-actions a.btn-nav-link').forEach(link => {
             try {
-                // 1. Ambil saldo pool langsung dari node Algorand
-                const poolRes = await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${TINYMAN_POOL}`);
-                const poolData = await poolRes.json();
+                let url = new URL(link.href);
+                url.searchParams.set('user', userKey);
+                link.href = url.toString();
+            } catch(e){}
+        });
+    }
+}
 
-                // 2. ALGO di pool (ALGO punya 6 desimal)
-                const algoInPool = (poolData.amount || 0) / 1e6;
+// 2. AMBIL DATA BLOCKCHAIN + HITUNG HARGA
+async function fetchAlgorandChainData() {
+    const CREATOR_WALLET = "WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q"; 
+    const POOL_WALLET = "HLZZDZLO7WQFSTJYZRNMVHP3RBRAJUDYEJEVIBWRE2RNDIJS4HCCVFT7SI"; 
+    const PAIR_ASSET_ID = "31566704"; 
 
-                // 3. TOF di pool (sesuai desimal aset)
-                const tofAsset = (poolData.assets || []).find(a => a['asset-id'] === parseInt(assetId));
-                const tofInPool = (tofAsset?.amount || 0) / Math.pow(10, decimals);
+    try {
+        const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
+        const assetData = await assetResponse.json();
+        
+        const rawTotalSupply = assetData.asset.params.total;
+        const decimals = assetData.asset.params.decimals || 0;
+        const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
+        
+        
+document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
 
-                if (tofInPool === 0) throw new Error("TOF tidak ditemukan di pool");
+// Ambil saldo kreator saja — pool tidak dikurangi (pool = token beredar di pasar)
+try {
+    const creatorRes = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}`);
+    const creatorData = await creatorRes.json();
+    const creatorAssets = creatorData.account?.assets || [];
+    const tofAsset = creatorAssets.find(a => a['asset-id'] === parseInt(ASSET_ID));
+    const creatorBal = (tofAsset?.amount || 0) / Math.pow(10, decimals);
+    
+    const circulatingSupply = actualTotalSupply - creatorBal;
+    document.getElementById('circulating-supply').innerText =
+        circulatingSupply.toLocaleString('id-ID') + " TOF";
+} catch (e) {
+    console.warn("Gagal hitung sirkulasi:", e);
+    document.getElementById('circulating-supply').innerText = "Tidak tersedia";
+}
 
-                // 4. Harga spot: 1 TOF = berapa ALGO
-                const priceAlgo = algoInPool / tofInPool;
+// Ambil harga (tanpa decimals — Vestige sudah adjusted)
+const currentPriceIDR = await getMarketPrice(ASSET_ID, decimals);
+// Update tampilan harga live besar
+const el = document.getElementById('harga-live-display');
+if (el) el.textContent = `Rp ${currentPriceIDR.toFixed(4).replace('.', ',')}`;
 
-                // 5. Konversi ALGO → IDR
-                const algoReq = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
-                const algoData = await algoReq.json();
-                const algoToIdr = algoData.algorand?.idr || 0;
+const algoReq2 = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
+const algoData2 = await algoReq2.json();
+const algoToIdr = algoData2.algorand?.idr || 0;
 
-                const priceIDR = priceAlgo * algoToIdr;
-                console.log(`Pool: ${algoInPool.toFixed(2)} ALGO / ${tofInPool.toFixed(2)} TOF = ${priceAlgo.toFixed(8)} ALGO/TOF = Rp ${priceIDR.toFixed(4)}`);
-                return priceIDR;
-            } catch (e) {
-                console.error("Gagal ambil harga dari pool:", e);
-                return 1.40;
-            }
-        }
-
-        async function initDashboard() {
-            patchGetMarketPrice(); // pasang patch sebelum fetchAlgorandChainData memanggil getMarketPrice
-            fetchAlgorandChainData();
-            fetchMilestoneFromHTML();
-            fetchKompasianaArticles();
-            sinkronkanUserParamKeNavigasi();
-            setTimeout(startPriceTicker, 3000); // beri jeda 3 detik agar pool sempat di-fetch
-        }
-
-        function sinkronkanUserParamKeNavigasi() {
-            const params = new URLSearchParams(window.location.search);
-            const userKey = params.get('user');
-            if (userKey) {
-                document.querySelectorAll('.nav-actions a.btn-nav-link').forEach(link => {
-                    try {
-                        let url = new URL(link.href);
-                        url.searchParams.set('user', userKey);
-                        link.href = url.toString();
-                    } catch(e){}
-                });
-            }
-        }
-
-        // 2. AMBIL DATA BLOCKCHAIN + HITUNG HARGA
-        async function fetchAlgorandChainData() {
-            const CREATOR_WALLET = "WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q"; 
-            const POOL_WALLET = "HLZZDZLO7WQFSTJYZRNMVHP3RBRAJUDYEJEVIBWRE2RNDIJS4HCCVFT7SI"; 
-            const PAIR_ASSET_ID = "31566704"; 
-
-            try {
-                const assetResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
-                const assetData = await assetResponse.json();
-                
-                const rawTotalSupply = assetData.asset.params.total;
-                const decimals = assetData.asset.params.decimals || 0;
-                const actualTotalSupply = rawTotalSupply / Math.pow(10, decimals);
-                
-                document.getElementById('total-supply').innerText = actualTotalSupply.toLocaleString('id-ID') + " TOF";
-
-                // Ambil saldo kreator saja — pool tidak dikurangi (pool = token beredar di pasar)
-                try {
-                    const creatorRes = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}`);
-                    const creatorData = await creatorRes.json();
-                    const creatorAssets = creatorData.account?.assets || [];
-                    const tofAsset = creatorAssets.find(a => a['asset-id'] === parseInt(ASSET_ID));
-                    const creatorBal = (tofAsset?.amount || 0) / Math.pow(10, decimals);
-                    
-                    const circulatingSupply = actualTotalSupply - creatorBal;
-                    document.getElementById('circulating-supply').innerText =
-                        circulatingSupply.toLocaleString('id-ID') + " TOF";
-                } catch (e) {
-                    console.warn("Gagal hitung sirkulasi:", e);
-                    document.getElementById('circulating-supply').innerText = "Tidak tersedia";
-                }
-
-                // Ambil harga
-                const currentPriceIDR = await getMarketPrice(ASSET_ID, decimals);
-
-                // Update tampilan harga live besar
-                const el = document.getElementById('harga-live-display');
-                if (el) el.textContent = `Rp ${currentPriceIDR.toFixed(4).replace('.', ',')}`;
-
-                const algoReq2 = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr");
-                const algoData2 = await algoReq2.json();
-                const algoToIdr = algoData2.algorand?.idr || 0;
-
-                const realOHLC = await buildRealOHLC(decimals, algoToIdr);
-                renderCandlestickChart(currentPriceIDR, realOHLC);
+const realOHLC = await buildRealOHLC(decimals, algoToIdr);
+renderCandlestickChart(currentPriceIDR, realOHLC);
 
                 // 4. Ambil alamat pemegang token blockchain untuk chart lingkaran
                 const balancesResponse = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
@@ -623,7 +572,7 @@
                 console.error("Gagal memuat data on-chain:", error);
                 document.getElementById('total-supply').innerText = "Gagal memuat";
                 document.getElementById('circulating-supply').innerText = "Gagal memuat";
-                renderCandlestickChart(1.00);
+                renderCandlestickChart(1.00); // Fallback grafik nilai acak Rp38 per TOF
             }
         }
         
@@ -659,149 +608,149 @@
                 updateHolderChart(1, 1); 
             }
         }
+// Ambil data OHLC real dari riwayat transaksi pool
+async function buildRealOHLC(decimals, algoToIdr) {
+    const POOL_ADDRESS = "XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM";
+    // Key base64 dari local-state-delta Tinyman v2
+    const KEY_RESERVE1 = "YXNzZXRfMV9yZXNlcnZlcw=="; // asset_1_reserves (TOF)
+    const KEY_RESERVE2 = "YXNzZXRfMl9yZXNlcnZlcw=="; // asset_2_reserves (ALGO)
 
-        // Ambil data OHLC real dari riwayat transaksi pool
-        async function buildRealOHLC(decimals, algoToIdr) {
-            const POOL_ADDRESS = "XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM";
-            const KEY_RESERVE1 = "YXNzZXRfMV9yZXNlcnZlcw=="; // asset_1_reserves (TOF)
-            const KEY_RESERVE2 = "YXNzZXRfMl9yZXNlcnZlcw=="; // asset_2_reserves (ALGO)
+    let pricePoints = [];
+    let nextToken = null;
+    let page = 0;
 
-            let pricePoints = [];
-            let nextToken = null;
-            let page = 0;
+    try {
+        do {
+            let url = `https://mainnet-idx.algonode.cloud/v2/accounts/${POOL_ADDRESS}/transactions?limit=100`;
+            if (nextToken) url += `&next=${encodeURIComponent(nextToken)}`;
+            const res  = await fetch(url);
+            const data = await res.json();
 
-            try {
-                do {
-                    let url = `https://mainnet-idx.algonode.cloud/v2/accounts/${POOL_ADDRESS}/transactions?limit=100`;
-                    if (nextToken) url += `&next=${encodeURIComponent(nextToken)}`;
-                    const res  = await fetch(url);
-                    const data = await res.json();
+            for (const tx of (data.transactions || [])) {
+                const poolDelta = (tx['local-state-delta'] || [])
+                    .find(d => d.address === POOL_ADDRESS);
+                if (!poolDelta) continue;
 
-                    for (const tx of (data.transactions || [])) {
-                        const poolDelta = (tx['local-state-delta'] || [])
-                            .find(d => d.address === POOL_ADDRESS);
-                        if (!poolDelta) continue;
+                const r1 = poolDelta.delta.find(d => d.key === KEY_RESERVE1);
+                const r2 = poolDelta.delta.find(d => d.key === KEY_RESERVE2);
+                if (!r1 || !r2) continue;
 
-                        const r1 = poolDelta.delta.find(d => d.key === KEY_RESERVE1);
-                        const r2 = poolDelta.delta.find(d => d.key === KEY_RESERVE2);
-                        if (!r1 || !r2) continue;
+                const tofReserve  = r1.value.uint / Math.pow(10, decimals);
+                const algoReserve = r2.value.uint / 1e6;
+                if (tofReserve === 0) continue;
 
-                        const tofReserve  = r1.value.uint / Math.pow(10, decimals);
-                        const algoReserve = r2.value.uint / 1e6;
-                        if (tofReserve === 0) continue;
-
-                        pricePoints.push({
-                            ts:    tx['round-time'] * 1000,
-                            price: (algoReserve / tofReserve) * algoToIdr
-                        });
-                    }
-
-                    nextToken = data['next-token'];
-                    page++;
-                } while (nextToken && page < 3); // maks 300 transaksi
-
-            } catch (e) {
-                console.warn("Gagal fetch OHLC real:", e);
+                pricePoints.push({
+                    ts:    tx['round-time'] * 1000,
+                    price: (algoReserve / tofReserve) * algoToIdr
+                });
             }
 
-            // Urutkan dari yang terlama
-            pricePoints.sort((a, b) => a.ts - b.ts);
+            nextToken = data['next-token'];
+            page++;
+        } while (nextToken && page < 3); // maks 300 transaksi
 
-            // Kelompokkan per hari → OHLC
-            const dayMap = {};
-            for (const p of pricePoints) {
-                const day = moment(p.ts).startOf('day').valueOf();
-                if (!dayMap[day]) dayMap[day] = [];
-                dayMap[day].push(p.price);
-            }
+    } catch (e) {
+        console.warn("Gagal fetch OHLC real:", e);
+    }
 
-            return Object.entries(dayMap).map(([day, prices]) => ({
-                x: parseInt(day),
-                o: prices[0],
-                h: Math.max(...prices),
-                l: Math.min(...prices),
-                c: prices[prices.length - 1]
-            }));
-        }
+    // Urutkan dari yang terlama
+    pricePoints.sort((a, b) => a.ts - b.ts);
 
+    // Kelompokkan per hari → OHLC
+    const dayMap = {};
+    for (const p of pricePoints) {
+        const day = moment(p.ts).startOf('day').valueOf();
+        if (!dayMap[day]) dayMap[day] = [];
+        dayMap[day].push(p.price);
+    }
+
+    return Object.entries(dayMap).map(([day, prices]) => ({
+        x: parseInt(day),
+        o: prices[0],
+        h: Math.max(...prices),
+        l: Math.min(...prices),
+        c: prices[prices.length - 1]
+    }));
+}
         // 4. GENERATE DAN LOGIKA GRAFIK CANDLESTICK DALAM FORMAT RUPIAH (IDR)
-        function renderCandlestickChart(currentPrice, dataPoints) {
-            const ctx = document.getElementById('candlestickChart').getContext('2d');
-            if (candleChartInstance) { candleChartInstance.destroy(); }
+        // Disesuaikan untuk tampilan 30 hari ke belakang (Daily / D1)
+      function renderCandlestickChart(currentPrice, dataPoints) {
+    const ctx = document.getElementById('candlestickChart').getContext('2d');
+    if (candleChartInstance) { candleChartInstance.destroy(); }
 
-            // Fallback ke simulasi jika data real kosong
-            if (!dataPoints || dataPoints.length === 0) {
-                console.warn("OHLC real kosong, pakai simulasi");
-                dataPoints = [];
-                const now = moment().startOf('day');
-                for (let i = 30; i >= 0; i--) {
-                    const date = now.clone().subtract(i, 'd');
-                    const v = 0.05;
-                    const o = currentPrice * (1 + (Math.random() - 0.5) * v);
-                    const c = currentPrice * (1 + (Math.random() - 0.5) * v);
-                    dataPoints.push({ x: date.valueOf(), o, h: Math.max(o,c)*(1+Math.random()*0.02), l: Math.min(o,c)*(1-Math.random()*0.02), c });
+    // Fallback ke simulasi jika data real kosong
+    if (!dataPoints || dataPoints.length === 0) {
+        console.warn("OHLC real kosong, pakai simulasi");
+        dataPoints = [];
+        const now = moment().startOf('day');
+        for (let i = 30; i >= 0; i--) {
+            const date = now.clone().subtract(i, 'd');
+            const v = 0.05;
+            const o = currentPrice * (1 + (Math.random() - 0.5) * v);
+            const c = currentPrice * (1 + (Math.random() - 0.5) * v);
+            dataPoints.push({ x: date.valueOf(), o, h: Math.max(o,c)*(1+Math.random()*0.02), l: Math.min(o,c)*(1-Math.random()*0.02), c });
+        }
+    }
+
+
+    candleChartInstance = new Chart(ctx, {
+        type: 'candlestick',
+        data: {
+            datasets: [{
+                label: 'TOF / IDR (30 Hari Terakhir - D1)',
+                data: dataPoints,
+                color:       { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' },
+                borderColor: { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' }
+            }]
+        },
+        options: {
+    animation: false,          // ← TAMBAH INI — menghilangkan kedip saat chart render
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+        x: {
+            type: 'time',
+            time: { unit: 'day', displayFormats: { day: 'MMM DD' } },
+            grid: { color: 'rgba(74, 222, 128, 0.05)' }
+        },
+        y: {
+            grid: { color: 'rgba(74, 222, 128, 0.05)' },
+            ticks: {
+                callback: function(value) {
+                    return 'Rp ' + value.toFixed(4).replace('.', ',');
                 }
             }
-
-            candleChartInstance = new Chart(ctx, {
-                type: 'candlestick',
-                data: {
-                    datasets: [{
-                        label: 'TOF / IDR (30 Hari Terakhir - D1)',
-                        data: dataPoints,
-                        color:       { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' },
-                        borderColor: { up: '#22c55e', down: '#ef4444', unchanged: '#94a3b8' }
-                    }]
-                },
-                options: {
-                    animation: false,
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            type: 'time',
-                            time: { unit: 'day', displayFormats: { day: 'MMM DD' } },
-                            grid: { color: 'rgba(74, 222, 128, 0.05)' }
-                        },
-                        y: {
-                            grid: { color: 'rgba(74, 222, 128, 0.05)' },
-                            ticks: {
-                                callback: function(value) {
-                                    return 'Rp ' + value.toFixed(4).replace('.', ',');
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { labels: { color: '#e2e8f0' } },
-                        annotation: {
-                            annotations: [
-                                {
-                                    type: 'line',
-                                    mode: 'horizontal',
-                                    scaleID: 'y',
-                                    value: currentPrice,
-                                    borderColor: '#f59e0b',
-                                    borderWidth: 2,
-                                    borderDash: [8, 4],
-                                    label: {
-                                        enabled: true,
-                                        content: `Harga Sekarang: Rp ${currentPrice.toFixed(4).replace('.', ',')}`,
-                                        position: 'right',
-                                        backgroundColor: 'rgba(245, 158, 11, 0.92)',
-                                        fontColor: '#1e293b',
-                                        fontSize: 12,
-                                        fontStyle: 'bold',
-                                        cornerRadius: 4
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            });
         }
-
+    },
+            plugins: {
+    legend: { labels: { color: '#e2e8f0' } },
+    annotation: {
+        annotations: [
+            {
+                type: 'line',
+                mode: 'horizontal',
+                scaleID: 'y',
+                value: currentPrice,
+                borderColor: '#f59e0b',
+                borderWidth: 2,
+                borderDash: [8, 4],
+                label: {
+                    enabled: true,
+                    content: `Harga Sekarang: Rp ${currentPrice.toFixed(4).replace('.', ',')}`,
+                    position: 'right',
+                    backgroundColor: 'rgba(245, 158, 11, 0.92)',
+                    fontColor: '#1e293b',
+                    fontSize: 12,
+                    fontStyle: 'bold',
+                    cornerRadius: 4
+                }
+            }
+        ]
+    }
+}
+        }                            // tutup options
+    });                              // tutup new Chart()
+}                                    // tutup function
         // 5. SCRAPING DATA MILESTONE PORTOFOLIO.HTML
         async function fetchMilestoneFromHTML() {
             try {
