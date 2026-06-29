@@ -236,29 +236,25 @@
             font-family: monospace;
         }
 
-        /* ── ADVANCED RATIO-BOX SCALE CHART (MOBILE FRIENDLY) ── */
+        /* ── RESPONSIVE VESTIGE IFRAME COAT ── */
         .chart-container-box {
             width: 100%;
-            overflow: hidden; /* Memotong bagian sisa kompresi skala */
+            max-width: 100%;
+            overflow: hidden;
             border-radius: 12px;
             border: 1px solid rgba(74, 222, 128, 0.15);
             background: #0a0f0b;
-            position: relative;
         }
-        .chart-ratio-box {
+        .chart-wrapper {
             position: relative;
             width: 100%;
-            padding-top: 56.25%; /* Rasio aspek standar 16:9 */
-            min-height: 300px;  /* Mencegah terlalu tipis di perangkat ultra-kecil */
+            height: 500px; /* Tinggi ideal di desktop */
         }
-        .chart-ratio-box iframe {
-            position: absolute;
-            top: 0; left: 0;
-            width: 800px;      /* Memaksa resolusi asli Vestige agar UI-nya pas */
+        .chart-wrapper iframe {
+            display: block;
+            width: 100%;
             height: 100%;
             border: none;
-            transform-origin: top left;
-            /* Nilai transform: scale() akan dihitung dan disuntikkan secara dinamis oleh JavaScript */
         }
         .chart-overlay-label {
             position: absolute;
@@ -336,6 +332,17 @@
             margin-top: 48px;
             font-family: monospace;
         }
+
+        /* ── RESPONSIVE BREAKPOINT KHUSUS LAYAR HAPE ── */
+        @media (max-width: 768px) {
+            .chart-wrapper {
+                height: 440px; /* Tinggi disesuaikan agar chart lilin tidak pipih di HP */
+            }
+            .chart-overlay-label {
+                font-size: 9px;
+                padding: 2px 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -362,6 +369,7 @@
 
 <main>
 
+    <!-- ── STATS ROW ── -->
     <div class="stats-grid">
         <div class="card">
             <div class="card-title-upper">Total Supply</div>
@@ -385,14 +393,17 @@
         </div>
     </div>
 
+    <!-- ── MAIN CHART + SIDEBAR ── -->
     <div class="main-grid">
 
+        <!-- Chart Panel -->
         <div class="card">
             <div class="panel-heading">
                 <span class="live-dot"></span>
                 Pergerakan Pasar TOF
             </div>
 
+            <!-- HARGA RUPIAH BESAR — MERAKYAT -->
             <div class="harga-rupiah-panel">
                 <div class="harga-label">💰 Harga TOF Sekarang (Live)</div>
                 <div class="harga-nilai" id="harga-idr">Memuat...</div>
@@ -401,11 +412,11 @@
                 <div class="harga-update-badge" id="update-time-badge">⏱ Memperbarui...</div>
             </div>
 
-            <div class="chart-container-box" id="vestige-container">
-                <div class="chart-overlay-label">📊 Chart by Vestige.fi · ASA 3558306283</div>
-                <div class="chart-ratio-box">
+            <!-- RESPONSIVE VESTIGE CHART IFRAME -->
+            <div class="chart-container-box">
+                <div class="chart-wrapper">
+                    <div class="chart-overlay-label">📊 Chart by Vestige.fi · ASA 3558306283</div>
                     <iframe
-                        id="vestige-iframe"
                         src="https://vestige.fi/asset/3558306283?theme=dark"
                         allowtransparency="true"
                         title="TOF Token Chart — Vestige.fi"
@@ -415,6 +426,7 @@
             </div>
         </div>
 
+        <!-- Sidebar -->
         <div class="sidebar-space">
             <div class="card">
                 <div class="panel-heading">Proporsi Pemegang Token</div>
@@ -440,6 +452,7 @@
         </div>
     </div>
 
+    <!-- ── KOMPASIANA ── -->
     <div class="card">
         <div class="panel-heading">✍️ Artikel Terbaru dari Kompasiana</div>
         <div id="kompasiana-container" class="kompasiana-grid">
@@ -481,38 +494,10 @@ let holderPieChart;
 // ═══════════════════════════════════════════════════════════════════
 async function initDashboard() {
     sinkronkanUserParamKeNavigasi();
-    resizeVestigeChart(); // Hitung skala pertama kali
     fetchMilestoneFromHTML();
     fetchKompasianaArticles();
     await fetchAlgorandChainData();
     startPriceTicker();
-    
-    // Pasang event listener agar responsif saat orientasi HP diputar atau jendela di-resize
-    window.addEventListener('resize', resizeVestigeChart);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// DYNAMIC TRANSFORM SCALE ALGORITHM
-// ═══════════════════════════════════════════════════════════════════
-function resizeVestigeChart() {
-    const container = document.getElementById('vestige-container');
-    const iframe = document.getElementById('vestige-iframe');
-    if (!container || !iframe) return;
-
-    const containerWidth = container.clientWidth;
-    const nativeWidth = 800; // Lebar standar operasional widget
-
-    if (containerWidth < nativeWidth) {
-        // Jika layar di bawah 800px (Hape/Tablet), hitung rasio pengecilan
-        const scaleFactor = containerWidth / nativeWidth;
-        iframe.style.transform = `scale(${scaleFactor})`;
-        // Kompensasi tinggi container box agar tidak menyisakan ruang kosong di bawah akibat penskalaan matrix
-        container.style.height = (iframe.clientHeight * scaleFactor) + 'px';
-    } else {
-        // Jika di layar PC, reset kembali ke normal tanpa deformasi skala
-        iframe.style.transform = 'none';
-        container.style.height = 'auto';
-    }
 }
 
 function sinkronkanUserParamKeNavigasi() {
@@ -529,7 +514,7 @@ function sinkronkanUserParamKeNavigasi() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// FORMAT RUPIAH
+// FORMAT RUPIAH — tampilkan angka besar dengan rapi
 // ═══════════════════════════════════════════════════════════════════
 function formatRupiah(val) {
     if (val >= 1) {
@@ -569,6 +554,7 @@ function updateHargaDisplay(priceIdr) {
 // ═══════════════════════════════════════════════════════════════════
 async function fetchAlgorandChainData() {
     try {
+        // 1. Info aset
         const assetRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
         const assetData = await assetRes.json();
         _decimals       = assetData.asset.params.decimals || 0;
@@ -576,6 +562,7 @@ async function fetchAlgorandChainData() {
         const totalSupply = rawTotal / Math.pow(10, _decimals);
         document.getElementById('total-supply').innerText = totalSupply.toLocaleString('id-ID') + ' TOF';
 
+        // 2. Sirkulasi
         try {
             const creatorRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}`);
             const creatorData = await creatorRes.json();
@@ -588,10 +575,12 @@ async function fetchAlgorandChainData() {
             document.getElementById('circulating-supply').innerText = 'Tidak tersedia';
         }
 
+        // 3. Kurs ALGO → IDR dari CoinGecko
         const cgRes    = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr');
         const cgData   = await cgRes.json();
         _algoToIdr     = cgData.algorand?.idr || 0;
 
+        // 4. Saldo pool → rasio TOF/ALGO
         const poolRes  = await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${TINYMAN_POOL}`);
         const poolData = await poolRes.json();
         const algoInPool = (poolData.amount || 0) / 1e6;
@@ -603,8 +592,12 @@ async function fetchAlgorandChainData() {
         }
 
         const currentPriceIdr = _tofAlgoRatio * _algoToIdr;
+        console.log(`Pool: ${algoInPool.toFixed(2)} ALGO / ${tofInPool.toFixed(2)} TOF`
+            + ` = ${_tofAlgoRatio.toFixed(8)} ALGO/TOF = ${formatRupiah(currentPriceIdr)}`);
+
         updateHargaDisplay(currentPriceIdr);
 
+        // 5. Holder
         const balRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
         const balData = await balRes.json();
         crossReferenceHolders(balData.balances.map(b => b.address));
@@ -618,10 +611,11 @@ async function fetchAlgorandChainData() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// REAL-TIME PRICE TICKER
+// REAL-TIME PRICE TICKER — hanya poll CoinGecko, ringan
 // ═══════════════════════════════════════════════════════════════════
 function startPriceTicker() {
     if (_tofAlgoRatio === 0) return;
+
     async function tick() {
         try {
             const res     = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr');
@@ -634,11 +628,12 @@ function startPriceTicker() {
             console.warn('Ticker: gagal fetch CoinGecko:', e);
         }
     }
+
     setInterval(tick, TICKER_INTERVAL);
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SUPABASE — SINKRONISASI MITRA INTERNAL VS PEJUANG ORGANIK
+// SUPABASE — CROSS-REFERENCE HOLDER
 // ═══════════════════════════════════════════════════════════════════
 async function crossReferenceHolders(blockchainAddresses) {
     try {
@@ -740,7 +735,7 @@ function fetchKompasianaArticles() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// START LOAD
+// START
 // ═══════════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', initDashboard);
 </script>
