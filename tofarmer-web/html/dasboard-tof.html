@@ -516,12 +516,12 @@ function sinkronkanUserParamKeNavigasi() {
 // ═══════════════════════════════════════════════════════════════════
 // FORMAT RUPIAH — tampilkan angka besar dengan rapi
 // ═══════════════════════════════════════════════════════════════════
-ffunction formatRupiah(val) {
+function formatRupiah(val) {
     if (val >= 1) {
-        return 'Rp ' + val.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        return 'Rp ' + val.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+    
     } else if (val > 0) {
-        // Berapapun nilainya di bawah Rp 1 (selama lebih besar dari 0), dikunci tetap 4 digit di belakang koma
-        return 'Rp ' + val.toFixed(4).replace('.', ',');
+       return 'Rp ' + val.toFixed(4).replace('.', ',');
     }
     return 'Rp —';
 }
