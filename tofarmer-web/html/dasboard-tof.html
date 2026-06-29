@@ -4,17 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ToFarmer (TOF) - Advanced Token Dashboard</title>
-
+    
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+    
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
-
+    
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         body {
-            background:
+            background: 
                 radial-gradient(circle at top right, rgba(234, 179, 8, 0.05) 0%, transparent 45%),
                 radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.06) 0%, transparent 40%),
                 linear-gradient(135deg, #060c08 0%, #0c1c13 50%, #040805 100%);
@@ -23,8 +22,6 @@
             min-height: 100vh;
             line-height: 1.6;
         }
-
-        /* ── NAV ── */
         nav {
             background: rgba(18, 32, 24, 0.6);
             backdrop-filter: blur(12px);
@@ -112,28 +109,12 @@
         .asa-id { color: #4ade80; font-weight: bold; }
         .copy-btn { background: none; border: none; color: #6b7280; cursor: pointer; margin-left: 4px; transition: color 0.2s; }
         .copy-btn:hover { color: #fde047; }
-
-        /* ── MAIN LAYOUT ── */
         main { max-width: 1200px; margin: 0 auto; padding: 24px 16px; }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
+        .stats-grid { display: grid; grid-template-columns: 1fr; gap: 16px; margin-bottom: 24px; }
         @media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
-
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 24px; margin-bottom: 24px; }
         @media (min-width: 1024px) { .main-grid { grid-template-columns: 2fr 1fr; } }
-
-        /* ── CARDS ── */
         .card {
             background: rgba(14, 28, 19, 0.45);
             backdrop-filter: blur(16px);
@@ -146,10 +127,9 @@
         .card-title-upper { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; font-weight: 600; }
         .card-value { font-size: 24px; font-weight: bold; color: #ffffff; font-family: monospace; }
         .card-value.emerald { color: #4ade80; }
-        .card-value.blue    { color: #60a5fa; }
-        .card-value.yellow  { color: #fde047; }
+        .card-value.blue { color: #60a5fa; }
+        .card-value.yellow { color: #fde047; }
         .card-desc { font-size: 11px; color: #64748b; margin-top: 6px; }
-
         .panel-heading {
             font-family: 'Playfair Display', serif;
             font-size: 15px;
@@ -161,17 +141,7 @@
             align-items: center;
             gap: 8px;
         }
-        .live-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background-color: #22c55e;
-            box-shadow: 0 0 10px #22c55e;
-            animation: pulse-dot 2s ease-in-out infinite;
-        }
-        @keyframes pulse-dot {
-            0%, 100% { box-shadow: 0 0 6px #22c55e; }
-            50%       { box-shadow: 0 0 16px #22c55e, 0 0 30px rgba(34,197,94,0.4); }
-        }
+        .live-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #22c55e; box-shadow: 0 0 10px #22c55e; }
 
         /* ── HARGA RUPIAH DOMINAN ── */
         .harga-rupiah-panel {
@@ -189,87 +159,74 @@
         }
         .harga-rupiah-panel::before {
             content: '';
-            position: absolute;
-            inset: 0;
+            position: absolute; inset: 0;
             background: radial-gradient(ellipse at center, rgba(245,158,11,0.07) 0%, transparent 70%);
             pointer-events: none;
         }
-        .harga-label {
-            font-size: 11px;
-            color: #94a3b8;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            font-weight: 600;
-        }
+        .harga-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
         .harga-nilai {
-            font-size: 2.8rem;
-            font-weight: 800;
+            font-size: 2.8rem; font-weight: 800;
             font-family: 'Plus Jakarta Sans', monospace;
             color: #f59e0b;
-            text-shadow: 0 0 24px rgba(245, 158, 11, 0.6), 0 0 48px rgba(245, 158, 11, 0.25);
-            letter-spacing: 1px;
-            line-height: 1;
+            text-shadow: 0 0 24px rgba(245,158,11,0.6), 0 0 48px rgba(245,158,11,0.25);
+            letter-spacing: 1px; line-height: 1;
             animation: shimmer-harga 3s ease-in-out infinite;
         }
+        /* Ukuran harga lebih kecil di HP agar tidak overflow */
+        @media (max-width: 480px) { .harga-nilai { font-size: 2rem; } }
         @keyframes shimmer-harga {
-            0%, 100% { text-shadow: 0 0 20px rgba(245,158,11,0.7), 0 0 40px rgba(245,158,11,0.3); }
-            50%       { text-shadow: 0 0 30px rgba(245,158,11,1.0), 0 0 60px rgba(245,158,11,0.5), 0 0 90px rgba(245,158,11,0.2); }
+            0%,100% { text-shadow: 0 0 20px rgba(245,158,11,0.7), 0 0 40px rgba(245,158,11,0.3); }
+            50%      { text-shadow: 0 0 30px rgba(245,158,11,1.0), 0 0 60px rgba(245,158,11,0.5); }
         }
-        .harga-sub {
-            font-size: 12px;
-            color: #64748b;
-            font-family: monospace;
-        }
-        .harga-algo {
-            font-size: 13px;
-            color: #4ade80;
-            font-family: monospace;
-            font-weight: 600;
-        }
+        .harga-sub  { font-size: 12px; color: #64748b; font-family: monospace; }
+        .harga-algo { font-size: 13px; color: #4ade80; font-family: monospace; font-weight: 600; }
         .harga-update-badge {
-            font-size: 10px;
-            color: #22c55e;
-            background: rgba(34,197,94,0.1);
-            border: 1px solid rgba(34,197,94,0.25);
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-family: monospace;
+            font-size: 10px; color: #22c55e;
+            background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
+            padding: 2px 10px; border-radius: 20px; font-family: monospace;
         }
 
-        /* ── RESPONSIVE VESTIGE IFRAME COAT ── */
-        .chart-container-box {
+        /* ══════════════════════════════════════════
+           VESTIGE IFRAME — RESPONSIF OTOMATIS
+           Teknik: wrapper dengan padding-top trick +
+           transform scale agar chart muat di layar HP
+        ══════════════════════════════════════════ */
+        .chart-outer {
+            /* Kontainer luar: menampung wrapper + label */
             width: 100%;
-            max-width: 100%;
-            overflow: hidden;
             border-radius: 12px;
+            overflow: hidden;
             border: 1px solid rgba(74, 222, 128, 0.15);
             background: #0a0f0b;
-        }
-        .chart-wrapper {
             position: relative;
-            width: 100%;
-            height: 500px; /* Tinggi ideal di desktop */
         }
-        .chart-wrapper iframe {
-            display: block;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .chart-overlay-label {
+        .chart-label {
             position: absolute;
-            top: 10px;
-            left: 12px;
-            font-size: 10px;
-            color: #4ade80;
+            top: 10px; left: 12px;
+            font-size: 10px; color: #4ade80;
             background: rgba(6,12,8,0.85);
             border: 1px solid rgba(74,222,128,0.25);
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-family: monospace;
-            font-weight: 600;
-            pointer-events: none;
-            z-index: 5;
+            padding: 3px 10px; border-radius: 20px;
+            font-family: monospace; font-weight: 600;
+            pointer-events: none; z-index: 5;
+        }
+        /* Wrapper ratio-box: menjaga tinggi proporsional */
+        .chart-ratio-box {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* rasio 16:9 — chart tetap proporsional */
+            min-height: 300px;
+        }
+        .chart-ratio-box iframe {
+            position: absolute;
+            top: 0; left: 0;
+            /* Iframe di-render pada lebar penuh native Vestige (800px),
+               lalu di-scale turun agar muat di kontainer */
+            width: 800px;
+            height: 100%;
+            border: none;
+            transform-origin: top left;
+            /* Scale dihitung via JS saat load & resize */
         }
 
         /* ── SIDEBAR ── */
@@ -280,68 +237,40 @@
         .dot { width: 10px; height: 10px; border-radius: 2px; }
         .dot.blue   { background-color: #3b82f6; }
         .dot.yellow { background-color: #eab308; }
-
-        /* ── MILESTONE ── */
         .milestone-box {
             background-color: rgba(6, 12, 8, 0.4);
             border: 1px solid rgba(74, 222, 128, 0.15);
-            padding: 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            padding: 16px; border-radius: 12px;
+            cursor: pointer; transition: all 0.2s ease;
         }
         .milestone-box:hover { border-color: #eab308; background: rgba(14, 28, 19, 0.6); box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1); }
         .m-date  { font-size: 12px; color: #4ade80; font-family: monospace; font-weight: bold; }
         .m-title { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: bold; color: #ffffff; margin: 4px 0; }
         .m-desc  { font-size: 12px; color: #94a3b8; line-height: 1.6; }
-
-        /* ── ARTICLES ── */
         .kompasiana-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
         @media (min-width: 768px)  { .kompasiana-grid { grid-template-columns: repeat(2, 1fr); } }
         @media (min-width: 1024px) { .kompasiana-grid { grid-template-columns: repeat(3, 1fr); } }
         .article-card {
-            padding: 16px;
-            background-color: rgba(6, 12, 8, 0.4);
+            padding: 16px; background-color: rgba(6, 12, 8, 0.4);
             border: 1px solid rgba(74, 222, 128, 0.15);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            border-radius: 12px; cursor: pointer; transition: all 0.2s ease;
         }
         .article-card:hover { border-color: #eab308; background: rgba(14, 28, 19, 0.6); }
         .tag {
-            font-size: 10px;
-            color: #60a5fa;
-            font-family: monospace;
+            font-size: 10px; color: #60a5fa; font-family: monospace;
             background-color: rgba(59, 130, 246, 0.1);
             border: 1px solid rgba(59, 130, 246, 0.2);
-            padding: 2px 8px;
-            border-radius: 4px;
+            padding: 2px 8px; border-radius: 4px;
         }
         .article-title { font-family: 'Playfair Display', serif; font-size: 13px; font-weight: bold; color: #e5e7eb; margin-top: 8px; margin-bottom: 4px; }
         .article-card:hover .article-title { color: #fde047; }
         .article-desc { font-size: 11px; color: #94a3b8; line-height: 1.5; }
         .article-date { font-size: 10px; color: #64748b; font-family: monospace; margin-top: 6px; }
-
-        /* ── FOOTER ── */
         footer {
-            text-align: center;
-            font-size: 12px;
-            color: #475569;
+            text-align: center; font-size: 12px; color: #475569;
             padding: 32px 16px;
             border-top: 1px solid rgba(74, 222, 128, 0.1);
-            margin-top: 48px;
-            font-family: monospace;
-        }
-
-        /* ── RESPONSIVE BREAKPOINT KHUSUS LAYAR HAPE ── */
-        @media (max-width: 768px) {
-            .chart-wrapper {
-                height: 440px; /* Tinggi disesuaikan agar chart lilin tidak pipih di HP */
-            }
-            .chart-overlay-label {
-                font-size: 9px;
-                padding: 2px 8px;
-            }
+            margin-top: 48px; font-family: monospace;
         }
     </style>
 </head>
@@ -359,7 +288,7 @@
             <a href="../../" class="btn-nav-link">🏠 Ke Beranda</a>
             <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="btn-nav-link">⬅ Fitur &amp; Info</a>
             <div class="asa-badge">
-                <span style="color:#9ca3af;">ASA ID:</span>
+                <span style="color: #9ca3af;">ASA ID:</span>
                 <span class="asa-id">3558306283</span>
                 <button onclick="navigator.clipboard.writeText('3558306283'); alert('Asset ID disalin!')" class="copy-btn">📋</button>
             </div>
@@ -368,8 +297,6 @@
 </nav>
 
 <main>
-
-    <!-- ── STATS ROW ── -->
     <div class="stats-grid">
         <div class="card">
             <div class="card-title-upper">Total Supply</div>
@@ -382,21 +309,18 @@
             <div class="card-desc">Token aktif di luar reserve wallet</div>
         </div>
         <div class="card">
-            <div class="card-title-upper">Mitra Internal</div>
+            <div class="card-title-upper">Holder Ekosistem</div>
             <div id="ecosystem-holders" class="card-value blue">0</div>
             <div class="card-desc">Pengguna terdaftar di database profiles</div>
         </div>
         <div class="card">
-            <div class="card-title-upper">Pejuang Organik (Luar)</div>
+            <div class="card-title-upper">Holder Luar (Organik)</div>
             <div id="organic-holders" class="card-value yellow">0</div>
             <div class="card-desc">Investor murni dari blockchain/DEX</div>
         </div>
     </div>
 
-    <!-- ── MAIN CHART + SIDEBAR ── -->
     <div class="main-grid">
-
-        <!-- Chart Panel -->
         <div class="card">
             <div class="panel-heading">
                 <span class="live-dot"></span>
@@ -408,25 +332,24 @@
                 <div class="harga-label">💰 Harga TOF Sekarang (Live)</div>
                 <div class="harga-nilai" id="harga-idr">Memuat...</div>
                 <div class="harga-algo" id="harga-algo-display">≈ ... ALGO</div>
-                <div class="harga-sub" id="kurs-display">Kurs ALGO/IDR: Memuat...</div>
+                <div class="harga-sub"  id="kurs-display">Kurs ALGO/IDR: Memuat...</div>
                 <div class="harga-update-badge" id="update-time-badge">⏱ Memperbarui...</div>
             </div>
 
-            <!-- RESPONSIVE VESTIGE CHART IFRAME -->
-            <div class="chart-container-box">
-                <div class="chart-wrapper">
-                    <div class="chart-overlay-label">📊 Chart by Vestige.fi · ASA 3558306283</div>
+            <!-- VESTIGE IFRAME — AUTO SCALE DI HP -->
+            <div class="chart-outer">
+                <div class="chart-label">📊 Chart by Vestige.fi · ASA 3558306283</div>
+                <div class="chart-ratio-box" id="chartRatioBox">
                     <iframe
+                        id="vestigeFrame"
                         src="https://vestige.fi/asset/3558306283?theme=dark"
                         allowtransparency="true"
-                        title="TOF Token Chart — Vestige.fi"
-                        scrolling="no">
+                        title="TOF Token Chart — Vestige.fi">
                     </iframe>
                 </div>
             </div>
         </div>
 
-        <!-- Sidebar -->
         <div class="sidebar-space">
             <div class="card">
                 <div class="panel-heading">Proporsi Pemegang Token</div>
@@ -434,8 +357,8 @@
                     <canvas id="holderChart"></canvas>
                 </div>
                 <div class="legend-row">
-                    <div class="legend-item"><span class="dot blue"></span> Mitra Internal</div>
-                    <div class="legend-item"><span class="dot yellow"></span> Pejuang Organik</div>
+                    <div class="legend-item"><span class="dot blue"></span> Ekosistem</div>
+                    <div class="legend-item"><span class="dot yellow"></span> Organik</div>
                 </div>
             </div>
 
@@ -444,22 +367,20 @@
                 <div id="milestone-container"
                      onclick="window.open('https://www.tofarmer.xyz/html/portofolio.html', '_blank')"
                      class="milestone-box">
-                    <div id="milestone-date" class="m-date">Memuat tanggal...</div>
+                    <div id="milestone-date"  class="m-date">Memuat tanggal...</div>
                     <div id="milestone-title" class="m-title">Menarik log lini masa...</div>
-                    <p id="milestone-desc" class="m-desc">Sistem sedang membaca postingan paling atas dari berkas statis portofolio.html...</p>
+                    <p   id="milestone-desc"  class="m-desc">Sistem sedang membaca postingan paling atas dari berkas statis portofolio.html...</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ── KOMPASIANA ── -->
     <div class="card">
         <div class="panel-heading">✍️ Artikel Terbaru dari Kompasiana</div>
         <div id="kompasiana-container" class="kompasiana-grid">
-            <div class="article-card" style="color:#6b7280;font-size:12px;">Menghubungkan ke feed Kompasiana...</div>
+            <div class="article-card" style="color: #6b7280; font-size: 12px;">Menghubungkan ke feed Kompasiana...</div>
         </div>
     </div>
-
 </main>
 
 <footer>
@@ -467,6 +388,37 @@
 </footer>
 
 <script>
+// ═══════════════════════════════════════════════════════════════════
+// IFRAME AUTO-SCALE — agar chart Vestige muat di semua ukuran layar
+// Prinsip: iframe di-render dengan lebar asli Vestige (800px),
+// lalu di-scale-down pakai CSS transform agar mengisi kontainer.
+// Tinggi ratio-box ikut menyesuaikan supaya tidak ada ruang kosong.
+// ═══════════════════════════════════════════════════════════════════
+const IFRAME_NATIVE_W = 800;   // lebar native konten Vestige
+const IFRAME_NATIVE_H = 500;   // estimasi tinggi native Vestige
+
+function scaleVestigeIframe() {
+    const box    = document.getElementById('chartRatioBox');
+    const iframe = document.getElementById('vestigeFrame');
+    if (!box || !iframe) return;
+
+    const containerW = box.parentElement.clientWidth; // lebar card
+    const scale      = containerW / IFRAME_NATIVE_W;
+
+    // Terapkan scale ke iframe
+    iframe.style.width  = IFRAME_NATIVE_W + 'px';
+    iframe.style.height = IFRAME_NATIVE_H + 'px';
+    iframe.style.transform = `scale(${scale})`;
+
+    // Sesuaikan tinggi wrapper agar tidak ada ruang sisa / overlap
+    box.style.height   = (IFRAME_NATIVE_H * scale) + 'px';
+    box.style.paddingTop = '0'; // matikan padding-top trick, pakai height langsung
+}
+
+// Jalankan saat load dan setiap resize
+window.addEventListener('load',   scaleVestigeIframe);
+window.addEventListener('resize', scaleVestigeIframe);
+
 // ═══════════════════════════════════════════════════════════════════
 // KONFIGURASI
 // ═══════════════════════════════════════════════════════════════════
@@ -477,13 +429,10 @@ const ASSET_ID          = '3558306283';
 const MILESTONE_URL     = 'portofolio.html';
 const TINYMAN_POOL      = 'XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM';
 const CREATOR_WALLET    = 'WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q';
-const TICKER_INTERVAL   = 5000; // ms — poll tiap 5 detik
+const TICKER_INTERVAL   = 5000;
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ═══════════════════════════════════════════════════════════════════
-// STATE GLOBAL
-// ═══════════════════════════════════════════════════════════════════
 let _algoToIdr    = 0;
 let _tofAlgoRatio = 0;
 let _decimals     = 0;
@@ -513,17 +462,10 @@ function sinkronkanUserParamKeNavigasi() {
     });
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// FORMAT RUPIAH — tampilkan angka besar dengan rapi
-// ═══════════════════════════════════════════════════════════════════
 function formatRupiah(val) {
-    if (val >= 1) {
-        return 'Rp ' + val.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    } else if (val >= 0.01) {
-        return 'Rp ' + val.toFixed(4).replace('.', ',');
-    } else if (val > 0) {
-        return 'Rp ' + val.toFixed(8).replace('.', ',');
-    }
+    if (val >= 1)    return 'Rp ' + val.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    if (val >= 0.01) return 'Rp ' + val.toFixed(4).replace('.', ',');
+    if (val > 0)     return 'Rp ' + val.toFixed(8).replace('.', ',');
     return 'Rp —';
 }
 
@@ -532,19 +474,11 @@ function updateHargaDisplay(priceIdr) {
     const elAlgo = document.getElementById('harga-algo-display');
     const elKurs = document.getElementById('kurs-display');
     const elTime = document.getElementById('update-time-badge');
-
-    if (elIdr && priceIdr > 0) {
-        elIdr.textContent  = formatRupiah(priceIdr);
-    }
-    if (elAlgo && _tofAlgoRatio > 0) {
-        elAlgo.textContent = `≈ ${_tofAlgoRatio.toFixed(8)} ALGO per TOF`;
-    }
-    if (elKurs && _algoToIdr > 0) {
-        elKurs.textContent = `Kurs ALGO/IDR: Rp ${_algoToIdr.toLocaleString('id-ID')}`;
-    }
+    if (elIdr && priceIdr > 0)       elIdr.textContent  = formatRupiah(priceIdr);
+    if (elAlgo && _tofAlgoRatio > 0) elAlgo.textContent = `≈ ${_tofAlgoRatio.toFixed(8)} ALGO per TOF`;
+    if (elKurs && _algoToIdr > 0)    elKurs.textContent = `Kurs ALGO/IDR: Rp ${_algoToIdr.toLocaleString('id-ID')}`;
     if (elTime) {
-        const now = new Date();
-        const hm  = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const hm = new Date().toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
         elTime.textContent = `⏱ Diperbarui: ${hm}`;
     }
 }
@@ -554,15 +488,13 @@ function updateHargaDisplay(priceIdr) {
 // ═══════════════════════════════════════════════════════════════════
 async function fetchAlgorandChainData() {
     try {
-        // 1. Info aset
         const assetRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
         const assetData = await assetRes.json();
-        _decimals       = assetData.asset.params.decimals || 0;
+        _decimals = assetData.asset.params.decimals || 0;
         const rawTotal  = assetData.asset.params.total;
         const totalSupply = rawTotal / Math.pow(10, _decimals);
         document.getElementById('total-supply').innerText = totalSupply.toLocaleString('id-ID') + ' TOF';
 
-        // 2. Sirkulasi
         try {
             const creatorRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}`);
             const creatorData = await creatorRes.json();
@@ -571,113 +503,84 @@ async function fetchAlgorandChainData() {
             document.getElementById('circulating-supply').innerText =
                 (totalSupply - creatorBal).toLocaleString('id-ID') + ' TOF';
         } catch(e) {
-            console.warn('Gagal hitung sirkulasi:', e);
             document.getElementById('circulating-supply').innerText = 'Tidak tersedia';
         }
 
-        // 3. Kurs ALGO → IDR dari CoinGecko
-        const cgRes    = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr');
-        const cgData   = await cgRes.json();
-        _algoToIdr     = cgData.algorand?.idr || 0;
+        const cgRes  = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr');
+        const cgData = await cgRes.json();
+        _algoToIdr   = cgData.algorand?.idr || 0;
 
-        // 4. Saldo pool → rasio TOF/ALGO
         const poolRes  = await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${TINYMAN_POOL}`);
         const poolData = await poolRes.json();
         const algoInPool = (poolData.amount || 0) / 1e6;
         const tofInPool  = ((poolData.assets || []).find(a => a['asset-id'] === parseInt(ASSET_ID))?.amount || 0)
                            / Math.pow(10, _decimals);
+        if (tofInPool > 0) _tofAlgoRatio = algoInPool / tofInPool;
 
-        if (tofInPool > 0) {
-            _tofAlgoRatio = algoInPool / tofInPool;
-        }
+        updateHargaDisplay(_tofAlgoRatio * _algoToIdr);
 
-        const currentPriceIdr = _tofAlgoRatio * _algoToIdr;
-        console.log(`Pool: ${algoInPool.toFixed(2)} ALGO / ${tofInPool.toFixed(2)} TOF`
-            + ` = ${_tofAlgoRatio.toFixed(8)} ALGO/TOF = ${formatRupiah(currentPriceIdr)}`);
-
-        updateHargaDisplay(currentPriceIdr);
-
-        // 5. Holder
         const balRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
         const balData = await balRes.json();
         crossReferenceHolders(balData.balances.map(b => b.address));
 
     } catch(err) {
         console.error('Gagal memuat data on-chain:', err);
-        document.getElementById('total-supply').innerText      = 'Gagal memuat';
+        document.getElementById('total-supply').innerText       = 'Gagal memuat';
         document.getElementById('circulating-supply').innerText = 'Gagal memuat';
         document.getElementById('harga-idr').textContent        = 'Tidak tersedia';
     }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// REAL-TIME PRICE TICKER — hanya poll CoinGecko, ringan
+// REAL-TIME TICKER
 // ═══════════════════════════════════════════════════════════════════
 function startPriceTicker() {
     if (_tofAlgoRatio === 0) return;
-
     async function tick() {
         try {
             const res     = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr');
             const data    = await res.json();
             const algoIdr = data.algorand?.idr || 0;
-            if (algoIdr === 0) return;
+            if (!algoIdr) return;
             _algoToIdr = algoIdr;
             updateHargaDisplay(_tofAlgoRatio * _algoToIdr);
-        } catch(e) {
-            console.warn('Ticker: gagal fetch CoinGecko:', e);
-        }
+        } catch(e) { console.warn('Ticker gagal:', e); }
     }
-
     setInterval(tick, TICKER_INTERVAL);
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SUPABASE — CROSS-REFERENCE HOLDER
+// SUPABASE HOLDER
 // ═══════════════════════════════════════════════════════════════════
 async function crossReferenceHolders(blockchainAddresses) {
     try {
         const { data: profiles, error } = await supabaseClient.from('profiles').select('id');
         if (error) throw error;
-
         const internalSet = new Set((profiles || []).map(u => u.id));
         let eco = 0, org = 0;
         blockchainAddresses.forEach(addr => internalSet.has(addr) ? eco++ : org++);
-
         document.getElementById('ecosystem-holders').innerHTML =
             `${eco} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
         document.getElementById('organic-holders').innerHTML =
             `${org} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
         updateHolderChart(eco, org);
-
     } catch(err) {
         console.error('Gagal sinkronisasi Supabase:', err);
         updateHolderChart(1, 1);
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// PIE CHART
-// ═══════════════════════════════════════════════════════════════════
 function updateHolderChart(eco, org) {
     const ctx = document.getElementById('holderChart').getContext('2d');
     if (holderPieChart) { holderPieChart.destroy(); }
     holderPieChart = new Chart(ctx, {
         type: 'pie',
-        data: {
-            datasets: [{
-                data: [eco, org],
-                backgroundColor: ['#3b82f6', '#eab308'],
-                borderWidth: 0
-            }]
-        },
+        data: { datasets: [{ data: [eco, org], backgroundColor: ['#3b82f6','#eab308'], borderWidth: 0 }] },
         options: {
             responsive: true,
             plugins: {
                 legend: { display: false },
-                tooltip: {
-                    callbacks: { label: ctx => ' ' + ctx.raw + ' Dompet' }
-                }
+                tooltip: { callbacks: { label: ctx => ' ' + ctx.raw + ' Dompet' } }
             }
         }
     });
@@ -694,14 +597,11 @@ async function fetchMilestoneFromHTML() {
         const pageText = doc.body.innerText;
         const match    = pageText.match(/\[(\d{4}-\d{2}-\d{2})\]/);
         if (!match) throw new Error('Format tanggal tidak ditemukan');
-
         const startIdx = pageText.indexOf(match[0]) + match[0].length;
-        const lines    = pageText.substring(startIdx, startIdx + 600).trim()
-                                 .split('\n').filter(l => l.trim());
+        const lines    = pageText.substring(startIdx, startIdx + 600).trim().split('\n').filter(l => l.trim());
         document.getElementById('milestone-date').innerText  = `📅 LOG [${match[1]}]`;
         document.getElementById('milestone-title').innerText = lines[0] || 'Pembaruan Ekosistem Baru';
         document.getElementById('milestone-desc').innerText  = lines.slice(1).join(' ').substring(0, 180) + '...';
-
     } catch(err) {
         console.warn('Fallback milestone statis:', err);
         document.getElementById('milestone-date').innerText  = '📅 LOG [2026-06-15]';
@@ -734,9 +634,6 @@ function fetchKompasianaArticles() {
         </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// START
-// ═══════════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', initDashboard);
 </script>
 </body>
