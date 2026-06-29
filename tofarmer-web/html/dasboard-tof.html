@@ -236,19 +236,24 @@
             font-family: monospace;
         }
 
-        /* ── VESTIGE IFRAME ── */
+        /* ── RESPONSIVE VESTIGE IFRAME COAT ── */
+        .chart-container-box {
+            width: 100%;
+            max-width: 100%;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 222, 128, 0.15);
+            background: #0a0f0b;
+        }
         .chart-wrapper {
             position: relative;
             width: 100%;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid rgba(74, 222, 128, 0.15);
-            background: #0a0f0b;
+            height: 500px; /* Tinggi ideal di desktop */
         }
         .chart-wrapper iframe {
             display: block;
             width: 100%;
-            height: 460px;
+            height: 100%;
             border: none;
         }
         .chart-overlay-label {
@@ -327,6 +332,17 @@
             margin-top: 48px;
             font-family: monospace;
         }
+
+        /* ── RESPONSIVE BREAKPOINT KHUSUS LAYAR HAPE ── */
+        @media (max-width: 768px) {
+            .chart-wrapper {
+                height: 440px; /* Tinggi disesuaikan agar chart lilin tidak pipih di HP */
+            }
+            .chart-overlay-label {
+                font-size: 9px;
+                padding: 2px 8px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -366,12 +382,12 @@
             <div class="card-desc">Token aktif di luar reserve wallet</div>
         </div>
         <div class="card">
-            <div class="card-title-upper">Holder Ekosistem</div>
+            <div class="card-title-upper">Mitra Internal</div>
             <div id="ecosystem-holders" class="card-value blue">0</div>
             <div class="card-desc">Pengguna terdaftar di database profiles</div>
         </div>
         <div class="card">
-            <div class="card-title-upper">Holder Luar (Organik)</div>
+            <div class="card-title-upper">Pejuang Organik (Luar)</div>
             <div id="organic-holders" class="card-value yellow">0</div>
             <div class="card-desc">Investor murni dari blockchain/DEX</div>
         </div>
@@ -396,14 +412,17 @@
                 <div class="harga-update-badge" id="update-time-badge">⏱ Memperbarui...</div>
             </div>
 
-            <!-- VESTIGE CHART IFRAME -->
-            <div class="chart-wrapper">
-                <div class="chart-overlay-label">📊 Chart by Vestige.fi · ASA 3558306283</div>
-                <iframe
-                    src="https://vestige.fi/asset/3558306283?theme=dark"
-                    allowtransparency="true"
-                    title="TOF Token Chart — Vestige.fi">
-                </iframe>
+            <!-- RESPONSIVE VESTIGE CHART IFRAME -->
+            <div class="chart-container-box">
+                <div class="chart-wrapper">
+                    <div class="chart-overlay-label">📊 Chart by Vestige.fi · ASA 3558306283</div>
+                    <iframe
+                        src="https://vestige.fi/asset/3558306283?theme=dark"
+                        allowtransparency="true"
+                        title="TOF Token Chart — Vestige.fi"
+                        scrolling="no">
+                    </iframe>
+                </div>
             </div>
         </div>
 
@@ -415,8 +434,8 @@
                     <canvas id="holderChart"></canvas>
                 </div>
                 <div class="legend-row">
-                    <div class="legend-item"><span class="dot blue"></span> Ekosistem</div>
-                    <div class="legend-item"><span class="dot yellow"></span> Organik</div>
+                    <div class="legend-item"><span class="dot blue"></span> Mitra Internal</div>
+                    <div class="legend-item"><span class="dot yellow"></span> Pejuang Organik</div>
                 </div>
             </div>
 
@@ -499,7 +518,6 @@ function sinkronkanUserParamKeNavigasi() {
 // ═══════════════════════════════════════════════════════════════════
 function formatRupiah(val) {
     if (val >= 1) {
-        // Bulat, format ribuan
         return 'Rp ' + val.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     } else if (val >= 0.01) {
         return 'Rp ' + val.toFixed(4).replace('.', ',');
