@@ -713,44 +713,120 @@ async function fetchMilestoneFromHTML() {
 // KOMPASIANA
 // ═══════════════════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════════════════
-// KOMPASIANA (Vibes Santai & Anti Spaneng)
+// KOMPASIANA
+// Menampilkan artikel terbaru + fallback artikel cadangan
 // ═══════════════════════════════════════════════════════════════════
 
 async function fetchKompasianaArticles() {
-    const container = document.getElementById('kompasiana-container');
-    if (!container) return; // Jika element tidak ditemukan, maka fungsi ini akan berhenti
 
-    const KOMPASIANA_USER = "tofarmer3643";
+    const container = document.getElementById("kompasiana-container");
+    if (!container) return;
 
-    // 1. DAFTAR ARTIKEL CADANGAN (Vibes Santai, Lucu & Akrab)
+    // Loading
+    container.innerHTML = `
+        <div class="loading">
+            <p>📚 Sedang memuat artikel Kompasiana...</p>
+        </div>
+    `;
+
+    // Artikel cadangan
     const artikelCadangan = [
         {
-          title: "Coretan Cetak Biru Ekosistem ToFarmer ↗",
-            desc: "Iseng-iseng nulis cetak biru biar kelihatan serius. Isinya obrolan seputar masa depan tani lokal, teknologi, dan mimpi-mimpi mandiri yang lagi pelan-pelan dirajut.",
-            link: `https://www.kompasiana.com/${KOMPASIANA_USER}`,
-            date: "☕ Sedang Berproses"
+            title: "Coretan Cetak Biru Ekosistem ToFarmer",
+            desc: "Iseng-iseng menyusun cetak biru agar ide-ide pertanian digital tidak hanya berhenti di kepala. Tulisan ini membahas arah pengembangan ToFarmer, kolaborasi petani lokal, teknologi pertanian, serta kumpulan artikel yang dapat menjadi referensi untuk membangun ekosistem pangan yang lebih kuat dan berkelanjutan.",
+            date: "Artikel Cadangan",
+            link: "https://www.kompasiana.com/tofarmer3643"
+        },
+        {
+            title: "Pertanian Bukan Sekadar Menanam",
+            desc: "Pertanian modern bukan hanya soal menanam dan memanen, tetapi juga bagaimana memanfaatkan teknologi, data, dan kolaborasi agar petani memperoleh nilai tambah. Tulisan ini mengajak pembaca melihat dunia pertanian dari sudut pandang yang lebih luas.",
+            date: "Artikel Cadangan",
+            link: "https://www.kompasiana.com/tofarmer3643"
+        },
+        {
+            title: "Membangun Ekosistem Digital untuk Petani Indonesia",
+            desc: "Digitalisasi pertanian membuka peluang baru bagi petani lokal. Mulai dari edukasi, pemasaran hasil panen, hingga pengelolaan data, semuanya dapat dilakukan lebih efisien dengan dukungan teknologi yang tepat.",
+            date: "Artikel Cadangan",
+            link: "https://www.kompasiana.com/tofarmer3643"
         }
-    ]; // Pastikan bahwa array artikelCadangan tidak kosong
+    ];
+
+    function renderArticles(list) {
+
+        container.innerHTML = "";
+
+        list.forEach(article => {
+
+            const card = document.createElement("div");
+            card.className = "kompasiana-card";
+
+            card.innerHTML = `
+                <h3>${article.title}</h3>
+
+                <small style="color:#777;">
+                    ${article.date || ""}
+                </small>
+
+                <p style="margin:10px 0;">
+                    ${article.desc}
+                </p>
+
+                <a href="${article.link}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="btn-kompasiana">
+                    📖 Baca Selengkapnya →
+                </a>
+            `;
+
+            container.appendChild(card);
+
+        });
+
+    }
 
     try {
-        // KODE FAKSALISASI
-        // Ambil data dari API Kompasiana
-        const response = await fetch(`https://kompasiana.com/api/articles?user=${KOMPASIANA_USER}`);
-        const articles = await response.json();
 
-        // Tampilkan artikel di container
-        container.innerHTML = artikelCadangan.map(( artikel ) => {
-            return `
-                <h2>${artikel.title}</h2>
-                <p>${artikel.desc}</p>
-            `;
-        }).join('');
-    } catch (error) {
-        console.error('Error:', error); // Tampilkan pesan error jika terjadi kesalahan
+        // Endpoint backend (buat nanti dengan PHP)
+        const response = await fetch("/api/kompasiana.php");
+
+        if (!response.ok)
+            throw new Error("Server Error");
+
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.length === 0)
+            throw new Error("Tidak ada artikel");
+
+        const articles = data.map(item => ({
+
+            title: item.title,
+
+            desc: item.desc.length > 180
+                ? item.desc.substring(0,180) + "..."
+                : item.desc,
+
+            date: item.date,
+
+            link: item.link
+
+        }));
+
+        renderArticles(articles);
+
     }
+    catch (error) {
+
+        console.warn("Menggunakan artikel cadangan:", error);
+
+        renderArticles(artikelCadangan);
+
+    }
+
 }
 
-fetchKompasianaArticles();
+// Jalankan saat halaman selesai dimuat
+document.addEventListener("DOMContentLoaded", fetchKompasianaArticles);
 // ═══════════════════════════════════════════════════════════════════
 // START
 // ═══════════════════════════════════════════════════════════════════
