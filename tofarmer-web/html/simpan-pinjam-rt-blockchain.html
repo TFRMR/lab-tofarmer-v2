@@ -1,936 +1,1593 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToFarmer - Buku Kas Koperasi RT</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ToFarmer — Buku Kas Koperasi</title>
+<script src="https://unpkg.com/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --hijau:#1a7a40;
+  --hijau-muda:#27ae60;
+  --hijau-bg:#eafaf1;
+  --hijau-border:#a9dfbf;
+  --kuning:#f39c12;
+  --kuning-bg:#fef9e7;
+  --merah:#c0392b;
+  --merah-bg:#fdedec;
+  --merah-muda:#e74c3c;
+  --biru:#2980b9;
+  --biru-bg:#ebf5fb;
+  --abu-gelap:#2c3e50;
+  --abu:#7f8c8d;
+  --abu-muda:#ecf0f1;
+  --putih:#ffffff;
+  --bg:#f4f6f4;
+  --radius:10px;
+  --shadow:0 2px 12px rgba(0,0,0,0.08);
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--abu-gelap);min-height:100vh;}
+a{color:inherit;text-decoration:none;}
 
-    <!-- algosdk v2 — versi stabil terbaru, API Indexer sudah benar -->
-    <script src="https://unpkg.com/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
+/* ═══════════════════════════════════════════
+   LAYER: LOGIN KELOMPOK
+═══════════════════════════════════════════ */
+#layer-login{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;padding:20px;
+  background:linear-gradient(160deg,#0f4c25 0%,#1a7a40 60%,#27ae60 100%);
+}
+.login-box{
+  background:var(--putih);border-radius:16px;
+  padding:36px 32px;width:100%;max-width:420px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+}
+.login-logo{text-align:center;margin-bottom:24px;}
+.login-logo .ikon{font-size:52px;display:block;margin-bottom:8px;}
+.login-logo h1{font-size:22px;font-weight:800;color:var(--hijau);}
+.login-logo p{font-size:13px;color:var(--abu);margin-top:4px;}
+.login-daftar-era{margin-bottom:20px;}
+.login-daftar-era h3{font-size:13px;font-weight:700;color:var(--abu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
+.kartu-era{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;border:2px solid var(--abu-muda);
+  border-radius:8px;cursor:pointer;margin-bottom:8px;
+  transition:all .15s;
+}
+.kartu-era:hover{border-color:var(--hijau-muda);background:var(--hijau-bg);}
+.kartu-era.aktif-pilih{border-color:var(--hijau);background:var(--hijau-bg);}
+.kartu-era-info strong{display:block;font-size:14px;}
+.kartu-era-info span{font-size:11px;color:var(--abu);}
+.kartu-era-cek{color:var(--hijau);font-size:18px;display:none;}
+.kartu-era.aktif-pilih .kartu-era-cek{display:block;}
+.login-atau{text-align:center;font-size:12px;color:var(--abu);margin:16px 0;
+  display:flex;align-items:center;gap:8px;}
+.login-atau::before,.login-atau::after{content:'';flex:1;height:1px;background:var(--abu-muda);}
+.btn-buat-baru{
+  width:100%;padding:12px;border:2px dashed var(--kuning);
+  border-radius:8px;background:var(--kuning-bg);color:#7d6608;
+  font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;
+}
+.btn-buat-baru:hover{background:#fdebd0;border-color:#e67e22;}
+.field-pin{margin-top:16px;}
+.field-pin label{display:block;font-size:12px;font-weight:700;color:var(--abu-gelap);margin-bottom:6px;}
+.input-pin{
+  width:100%;padding:12px;border:2px solid var(--abu-muda);
+  border-radius:8px;font-size:16px;letter-spacing:4px;text-align:center;
+  font-family:monospace;transition:border .15s;
+}
+.input-pin:focus{outline:none;border-color:var(--hijau-muda);}
+.btn-masuk{
+  width:100%;padding:13px;background:var(--hijau);color:white;
+  border:none;border-radius:8px;font-size:15px;font-weight:700;
+  cursor:pointer;margin-top:12px;transition:background .15s;
+}
+.btn-masuk:hover{background:#155d30;}
+.login-err{
+  background:var(--merah-bg);color:var(--merah);
+  border-radius:6px;padding:10px 12px;font-size:13px;
+  margin-top:10px;display:none;text-align:center;
+}
+.login-loading{text-align:center;color:var(--abu);font-size:13px;padding:12px;display:none;}
 
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f0f2f0;
-            margin: 0;
-            padding: 16px;
-            color: #2c3e50;
-        }
-        .container { max-width: 1020px; margin: auto; }
+/* ═══════════════════════════════════════════
+   LAYER: SETUP ERA BARU
+═══════════════════════════════════════════ */
+#layer-setup{display:none;align-items:center;justify-content:center;min-height:100vh;padding:20px;
+  background:linear-gradient(160deg,#0f4c25,#27ae60);}
+.setup-box{background:var(--putih);border-radius:16px;padding:32px;width:100%;max-width:480px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+.setup-box h2{font-size:18px;margin-bottom:6px;color:var(--hijau);}
+.setup-box p{font-size:13px;color:var(--abu);margin-bottom:20px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:480px){.grid2{grid-template-columns:1fr;}}
 
-        /* --- BANNER ATAS --- */
-        .banner {
-            background: linear-gradient(135deg, #1a6b3a, #27ae60);
-            color: white;
-            padding: 18px 22px;
-            border-radius: 10px;
-            margin-bottom: 18px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        .banner h2 { margin: 0 0 6px; font-size: 20px; }
-        .banner-meta { font-size: 12px; opacity: 0.85; margin-bottom: 10px; }
-        .banner-kas {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            background: rgba(0,0,0,0.15);
-            border-radius: 6px;
-            padding: 10px 14px;
-        }
+/* ═══════════════════════════════════════════
+   LAYER: APLIKASI UTAMA
+═══════════════════════════════════════════ */
+#layer-app{display:none;}
+.topbar{
+  background:linear-gradient(135deg,var(--hijau),var(--hijau-muda));
+  color:white;padding:0 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  height:56px;position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 10px rgba(0,0,0,0.15);
+}
+.topbar-kiri{display:flex;align-items:center;gap:10px;}
+.topbar-kiri .ikon-app{font-size:22px;}
+.topbar-kiri h1{font-size:15px;font-weight:800;}
+.topbar-kiri span{font-size:11px;opacity:.8;font-weight:400;}
+.topbar-kanan{display:flex;align-items:center;gap:8px;}
+.btn-topbar{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+  color:white;padding:6px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+  transition:background .15s;
+}
+.btn-topbar:hover{background:rgba(255,255,255,.25);}
+.antrian-badge{
+  background:#e74c3c;color:white;border-radius:20px;
+  font-size:11px;font-weight:700;padding:2px 8px;display:none;
+}
 
-        /* --- GRID UTAMA --- */
-        .grid { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 16px; margin-bottom: 16px; }
-        @media(max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+/* ═══════════════════════════════════════════
+   NOTIFIKASI STATUS (pengganti log teknis)
+═══════════════════════════════════════════ */
+.notif-bar{
+  padding:10px 20px;font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  transition:all .3s;
+}
+.notif-bar.sukses{background:#d4efdf;color:#1a5733;border-bottom:2px solid var(--hijau-border);}
+.notif-bar.antri{background:var(--kuning-bg);color:#7d6608;border-bottom:2px solid #f9e4b7;}
+.notif-bar.proses{background:var(--biru-bg);color:#1a5276;border-bottom:2px solid #aed6f1;}
+.notif-bar.gagal{background:var(--merah-bg);color:var(--merah);border-bottom:2px solid #f1948a;}
+.notif-bar.tersembunyi{display:none;}
 
-        /* --- KARTU --- */
-        .card {
-            background: white;
-            padding: 18px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        }
-        .card h3 { margin: 0 0 14px; font-size: 15px; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; }
+/* BANNER KAS */
+.banner-kas{
+  background:white;border-bottom:1px solid #e8ece8;
+  padding:14px 20px;display:flex;gap:20px;flex-wrap:wrap;align-items:center;
+}
+.kas-item{flex:1;min-width:150px;}
+.kas-item label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--abu);margin-bottom:2px;}
+.kas-item .kas-nilai{font-size:20px;font-weight:800;color:var(--abu-gelap);}
+.kas-item .kas-nilai.merah{color:var(--merah);}
+.kas-item .kas-sub{font-size:11px;color:var(--abu);}
+.badge-antrian{
+  background:var(--kuning-bg);border:1px solid #f9e4b7;
+  border-radius:8px;padding:8px 14px;font-size:13px;color:#7d6608;
+  display:none;align-items:center;gap:8px;
+}
 
-        /* --- FORM ELEMEN --- */
-        label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 13px; color: #555; }
-        select, input[type="text"], input[type="number"], input[type="date"] {
-            width: 100%;
-            padding: 9px 11px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 14px;
-            margin-bottom: 4px;
-            background: #fafafa;
-            transition: border 0.2s;
-        }
-        select:focus, input:focus { outline: none; border-color: #27ae60; background: white; }
+/* ═══════════════════════════════════════════
+   KONTEN UTAMA
+═══════════════════════════════════════════ */
+.app-body{max-width:1060px;margin:0 auto;padding:16px;}
+.grid-utama{display:grid;grid-template-columns:1.3fr 0.7fr;gap:16px;margin-bottom:16px;}
+@media(max-width:720px){.grid-utama{grid-template-columns:1fr;}}
 
-        /* --- TOMBOL --- */
-        button {
-            width: 100%;
-            padding: 11px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-            margin-top: 8px;
-        }
-        .btn-hijau { background: #27ae60; color: white; }
-        .btn-hijau:hover:not(:disabled) { background: #1e8a4a; }
-        .btn-oranye { background: #e67e22; color: white; }
-        .btn-oranye:hover:not(:disabled) { background: #ca6f1e; }
-        .btn-merah { background: #c0392b; color: white; }
-        .btn-merah:hover:not(:disabled) { background: #a93226; }
-        .btn-abu { background: #7f8c8d; color: white; }
-        .btn-abu:hover:not(:disabled) { background: #616a6b; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+/* KARTU */
+.kartu{background:white;border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;}
+.kartu h3{font-size:14px;font-weight:700;color:var(--abu-gelap);margin-bottom:16px;
+  padding-bottom:10px;border-bottom:2px solid var(--abu-muda);display:flex;align-items:center;gap:6px;}
 
-        /* --- KOTAK INFO OTOMATIS --- */
-        .info-box {
-            background: #eafaf1;
-            border-left: 4px solid #27ae60;
-            padding: 10px 12px;
-            font-size: 12px;
-            border-radius: 0 6px 6px 0;
-            white-space: pre-line;
-            line-height: 1.6;
-            color: #1a5733;
-            display: none;
-            margin-bottom: 4px;
-        }
-        .info-box.peringatan {
-            background: #fef9e7;
-            border-color: #f39c12;
-            color: #7d6608;
-        }
+/* FORM */
+.form-grup{margin-bottom:14px;}
+.form-grup label{display:block;font-size:12px;font-weight:700;color:var(--abu-gelap);margin-bottom:5px;}
+.form-kontrol{
+  width:100%;padding:10px 12px;
+  border:2px solid var(--abu-muda);border-radius:7px;
+  font-size:14px;font-family:var(--font);background:white;
+  transition:border .15s;color:var(--abu-gelap);
+}
+.form-kontrol::placeholder{color:#c8d6e0;}
+.form-kontrol:focus{outline:none;border-color:var(--hijau-muda);}
+.form-kontrol.wajib-isi{border-color:#e74c3c;background:#fff8f8;}
+.form-kontrol.terisi{border-color:var(--hijau-border);}
+select.form-kontrol{cursor:pointer;}
 
-        /* --- BOX ERA BARU --- */
-        .box-era {
-            background: white;
-            border: 2px dashed #e67e22;
-            border-radius: 10px;
-            padding: 18px;
-            margin-bottom: 18px;
-            display: none;
-        }
-        .box-era h3 { margin: 0 0 6px; color: #c0392b; }
-        .box-era p { font-size: 13px; color: #777; margin: 0 0 12px; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        @media(max-width: 480px) { .grid-2 { grid-template-columns: 1fr; } }
+/* PREVIEW BOX */
+.preview-box{
+  border-radius:7px;padding:12px 14px;font-size:13px;line-height:1.7;
+  margin-bottom:12px;display:none;white-space:pre-line;
+}
+.preview-box.info{background:var(--hijau-bg);border-left:4px solid var(--hijau-muda);color:#1a5733;}
+.preview-box.peringatan{background:var(--kuning-bg);border-left:4px solid var(--kuning);color:#7d6608;}
+.preview-box.blokir{background:var(--merah-bg);border-left:4px solid var(--merah);color:var(--merah);}
 
-        /* --- LOG JARINGAN --- */
-        .log-box {
-            background: #1c2833;
-            color: #aed6f1;
-            padding: 12px;
-            border-radius: 6px;
-            font-family: monospace;
-            font-size: 11px;
-            max-height: 100px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            line-height: 1.5;
-        }
+/* TOMBOL */
+.btn{
+  width:100%;padding:12px;border:none;border-radius:7px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;
+}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-hijau-solid{background:var(--hijau);color:white;}
+.btn-hijau-solid:hover:not(:disabled){background:#155d30;}
+.btn-oranye{background:#e67e22;color:white;}
+.btn-oranye:hover:not(:disabled){background:#ca6f1e;}
+.btn-merah-solid{background:var(--merah);color:white;}
+.btn-merah-solid:hover:not(:disabled){background:#a93226;}
+.btn-abu{background:var(--abu-muda);color:var(--abu-gelap);}
+.btn-abu:hover:not(:disabled){background:#dfe6e9;}
 
-        /* --- KOREKSI --- */
-        .baris-koreksi { display: flex; gap: 6px; align-items: stretch; }
-        .baris-koreksi input { margin: 0; flex: 1; }
-        .baris-koreksi button { width: auto; padding: 9px 14px; margin-top: 0; font-size: 13px; }
+/* LOADING SPINNER DI TOMBOL */
+.spinner-ikon{
+  width:16px;height:16px;border:2px solid rgba(255,255,255,.4);
+  border-top:2px solid white;border-radius:50%;
+  animation:putar .7s linear infinite;display:none;
+}
+@keyframes putar{to{transform:rotate(360deg);}}
 
-        /* --- TABEL --- */
-        .tabel-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
-        th { background: #f5f6fa; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px; text-align: left; border-bottom: 2px solid #e8e8e8; }
-        td { padding: 9px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #fafffe; }
+/* ═══════════════════════════════════════════
+   PANEL ANTRIAN
+═══════════════════════════════════════════ */
+.panel-antrian{
+  background:var(--kuning-bg);border:2px solid #f9e4b7;
+  border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;
+  display:none;
+}
+.panel-antrian h4{font-size:13px;font-weight:700;color:#7d6608;margin-bottom:10px;}
+.item-antrian{
+  background:white;border-radius:6px;padding:8px 12px;margin-bottom:6px;
+  display:flex;align-items:center;justify-content:space-between;font-size:12px;
+}
+.item-antrian .nama-aksi{font-weight:600;color:var(--abu-gelap);}
+.item-antrian .waktu{color:var(--abu);}
 
-        .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-        .badge-lunas { background: #d4efdf; color: #1a5733; }
-        .badge-cicil { background: #fdebd0; color: #784212; }
+/* ═══════════════════════════════════════════
+   TABEL ANGGOTA
+═══════════════════════════════════════════ */
+.toolbar{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:10px;margin-bottom:14px;
+}
+.toolbar h3{margin:0;border:none;padding:0;font-size:14px;}
+.cari-input{
+  padding:8px 12px;border:2px solid var(--abu-muda);border-radius:7px;
+  font-size:13px;width:200px;transition:border .15s;
+}
+.cari-input:focus{outline:none;border-color:var(--hijau-muda);}
+.tabel-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{
+  background:#f8faf8;font-size:11px;text-transform:uppercase;
+  letter-spacing:.5px;padding:10px 12px;text-align:left;
+  border-bottom:2px solid var(--abu-muda);color:var(--abu);font-weight:700;
+}
+td{padding:11px 12px;border-bottom:1px solid #f0f3f0;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafff9;}
+.nama-klik{
+  font-weight:700;cursor:pointer;color:var(--hijau);
+  text-decoration:underline dotted;text-underline-offset:3px;
+}
+.nama-klik:hover{color:#155d30;}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-lunas{background:#d4efdf;color:#1a5733;}
+.badge-cicil{background:#fdebd0;color:#784212;}
 
-        /* --- TOOLBAR TABEL --- */
-        .toolbar-tabel { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
-        .toolbar-tabel h3 { margin: 0; font-size: 15px; }
-        .toolbar-tabel input { width: 220px; margin: 0; }
-        .toolbar-tabel button { width: auto; padding: 8px 14px; margin: 0; font-size: 13px; }
+/* ═══════════════════════════════════════════
+   MODAL HISTORI ANGGOTA
+═══════════════════════════════════════════ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:1000;align-items:center;justify-content:center;padding:16px;
+}
+.modal-overlay.tampil{display:flex;}
+.modal-kotak{
+  background:white;border-radius:14px;width:100%;max-width:560px;
+  max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+.modal-header{
+  padding:18px 20px;border-bottom:2px solid var(--abu-muda);
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;background:white;z-index:1;
+}
+.modal-header h2{font-size:16px;font-weight:800;color:var(--abu-gelap);}
+.modal-header .nama-besar{color:var(--hijau);font-size:18px;}
+.btn-tutup-modal{
+  background:var(--abu-muda);border:none;border-radius:50%;
+  width:32px;height:32px;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:background .15s;
+}
+.btn-tutup-modal:hover{background:#dfe6e9;}
+.modal-ringkasan{
+  display:flex;gap:12px;padding:14px 20px;flex-wrap:wrap;
+  border-bottom:1px solid var(--abu-muda);background:#fafff9;
+}
+.ringk-item{flex:1;min-width:100px;text-align:center;}
+.ringk-item label{display:block;font-size:10px;text-transform:uppercase;color:var(--abu);margin-bottom:3px;}
+.ringk-item .nilai{font-size:16px;font-weight:800;color:var(--abu-gelap);}
+.ringk-item .nilai.merah{color:var(--merah);}
+.ringk-item .nilai.hijau{color:var(--hijau);}
+.modal-histori{padding:16px 20px;}
+.modal-histori h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--abu);margin-bottom:12px;}
+.item-histori{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:12px 0;border-bottom:1px solid #f0f3f0;position:relative;
+}
+.item-histori:last-child{border-bottom:none;}
+.histori-ikon{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.histori-ikon.modal-awal{background:#d4efdf;} 
+.histori-ikon.pinjam{background:#fdebd0;}
+.histori-ikon.angsur{background:var(--biru-bg);}
+.histori-ikon.koreksi{background:#f2f3f4;}
+.histori-detail{flex:1;}
+.histori-judul{font-size:13px;font-weight:700;color:var(--abu-gelap);}
+.histori-sub{font-size:12px;color:var(--abu);margin-top:2px;}
+.histori-nominal{
+  font-size:13px;font-weight:700;text-align:right;flex-shrink:0;
+}
+.histori-nominal.masuk{color:var(--hijau);}
+.histori-nominal.keluar{color:var(--merah);}
+.histori-nominal.netral{color:var(--abu);}
+.btn-edit-histori{
+  display:inline-block;margin-top:5px;padding:3px 10px;
+  background:var(--abu-muda);border:none;border-radius:5px;
+  font-size:11px;font-weight:600;cursor:pointer;color:var(--abu-gelap);
+  transition:background .15s;
+}
+.btn-edit-histori:hover{background:#dfe6e9;}
+.modal-histori-kosong{text-align:center;color:var(--abu);padding:20px;font-size:13px;}
 
-        /* --- SPINNER --- */
-        .spinner { display: none; text-align: center; padding: 8px; font-size: 13px; color: #888; }
-    </style>
+/* MODAL EDIT */
+.modal-edit-kotak{max-width:400px;}
+.modal-edit-info{
+  background:var(--kuning-bg);border-radius:7px;padding:10px 12px;
+  font-size:12px;color:#7d6608;margin-bottom:14px;line-height:1.5;
+}
+
+/* ═══════════════════════════════════════════
+   PANEL STATUS KONEKSI
+═══════════════════════════════════════════ */
+.panel-koneksi{
+  position:fixed;bottom:16px;right:16px;z-index:500;
+  display:flex;flex-direction:column;gap:8px;align-items:flex-end;
+}
+.chip-koneksi{
+  padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);display:flex;align-items:center;gap:6px;
+}
+.chip-online{background:var(--hijau);color:white;}
+.chip-offline{background:var(--merah);color:white;}
+.dot-animasi{
+  width:8px;height:8px;border-radius:50%;background:white;
+  animation:kelip 1.2s ease-in-out infinite;
+}
+@keyframes kelip{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ═══════════════════════════════════════════
+   FORM SETUP ERA
+═══════════════════════════════════════════ */
+.setup-field{margin-bottom:14px;}
+.setup-field label{display:block;font-size:12px;font-weight:700;color:var(--abu-gelap);margin-bottom:5px;}
+
+/* TOMBOL KELUAR ERA */
+.btn-tutup-era{
+  width:100%;padding:10px;background:white;
+  border:2px solid var(--merah);border-radius:7px;
+  font-size:13px;font-weight:700;color:var(--merah);cursor:pointer;
+  transition:all .15s;margin-top:10px;
+}
+.btn-tutup-era:hover{background:var(--merah-bg);}
+
+/* PESAN KOSONG */
+.kosong{text-align:center;padding:30px;color:var(--abu);font-size:13px;}
+.kosong .ikon-kosong{font-size:36px;margin-bottom:10px;}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .topbar h1{font-size:13px;}
+  .app-body{padding:10px;}
+  .banner-kas{padding:10px 14px;}
+  .kas-item .kas-nilai{font-size:16px;}
+}
+</style>
 </head>
 <body>
 
-<div class="container">
-
-    <!-- =============================================================== -->
-    <!-- BANNER KAS -->
-    <!-- =============================================================== -->
-    <div class="banner">
-        <h2 id="display-judul">🏦 Memuat Data Koperasi...</h2>
-        <div class="banner-meta">
-            Periode Mulai: <strong id="display-tanggal">-</strong>
-            &nbsp;|&nbsp; Era Aktif: <code id="display-era">-</code>
-            &nbsp;|&nbsp; Kesepakatan: <strong id="display-bunga">-</strong>% Bunga Dimuka &middot; Tenor <strong id="display-tenor">-</strong> Bulan
-        </div>
-        <div class="banner-kas">
-            <div>💰 Kas di Brankas: <span id="total-kas-rp">Rp 0</span> <span style="font-weight:normal; opacity:0.7; font-size:12px;">(<span id="total-kas-tof">0 TOF</span>)</span></div>
-            <div>📈 Total Bunga Terkumpul: <span id="total-bunga-rp">Rp 0</span></div>
-        </div>
+<!-- ╔═══════════════════════════════════════════════════════════╗ -->
+<!-- ║ LAYER 1: LOGIN / PILIH KELOMPOK                          ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════╝ -->
+<div id="layer-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="ikon">🌾</span>
+      <h1>ToFarmer</h1>
+      <p>Buku Kas Digital Koperasi Warga</p>
     </div>
 
-    <!-- =============================================================== -->
-    <!-- BOX MUSYAWARAH ERA BARU (tampil jika belum ada era aktif) -->
-    <!-- =============================================================== -->
-    <div id="box-era-baru" class="box-era">
-        <h3>🏁 Tentukan Aturan Siklus / Era Pembukuan Baru</h3>
-        <p>Sistem mendeteksi belum ada siklus aktif. Isi kesepakatan hasil rapat warga di bawah ini, lalu kunci ke blockchain.</p>
-
-        <div class="grid-2">
-            <div>
-                <label>Nama Kelompok / Judul Buku Kas</label>
-                <input type="text" id="setup-judul" value="Koperasi RT 02 Menoreh">
-            </div>
-            <div>
-                <label>Tanggal Dimulai</label>
-                <input type="date" id="setup-tanggal">
-            </div>
+    <div class="login-daftar-era">
+      <h3>Pilih Kelompok / Koperasi</h3>
+      <div id="daftar-era-login">
+        <div class="login-loading" id="login-loading" style="display:block;">
+          ⏳ Mencari kelompok di jaringan...
         </div>
-        <div class="grid-2">
-            <div>
-                <label>Bunga Pinjaman Dimuka (%)</label>
-                <input type="number" id="setup-bunga" value="10" min="0" max="100">
-            </div>
-            <div>
-                <label>Batas Tenor Angsuran (Bulan)</label>
-                <input type="number" id="setup-tenor" value="10" min="1" max="120">
-            </div>
-        </div>
-        <button class="btn-oranye" onclick="inisialisasiEraBaru()">KUNCI ATURAN INI KE BLOCKCHAIN</button>
+      </div>
     </div>
 
-    <!-- =============================================================== -->
-    <!-- GRID LOKET + KENDALI -->
-    <!-- =============================================================== -->
-    <div class="grid">
+    <div class="login-atau">atau buat kelompok baru</div>
+    <button class="btn-buat-baru" onclick="tampilSetup()">➕ Buat Kelompok / Koperasi Baru</button>
 
-        <!-- LOKET INPUT -->
-        <div class="card">
-            <h3>✍️ Loket Pencatatan Transaksi</h3>
+    <div class="field-pin" id="field-pin" style="display:none;">
+      <label>PIN Kelompok (4–8 digit)</label>
+      <input type="password" class="input-pin" id="input-pin-login" placeholder="••••" maxlength="8"
+        oninput="bersihkanErrLogin()" onkeydown="if(event.key==='Enter')masukKelompok()">
+      <button class="btn-masuk" onclick="masukKelompok()">Masuk →</button>
+    </div>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
 
-            <label>Jenis Transaksi</label>
-            <select id="input-aksi" onchange="onAksiChanged()">
-                <option value="daftar_modal">➕ Daftar Anggota Baru + Setor Modal Awal</option>
-                <option value="angsur">💵 Setor Angsuran Bulanan</option>
-                <option value="pinjam">🏦 Pengajuan Pinjaman Baru</option>
-            </select>
-
-            <!-- Input nama baru (hanya untuk daftar_modal) -->
-            <div id="box-nama-baru">
-                <label>Nama Anggota Baru</label>
-                <input type="text" id="input-nama-teks" placeholder="Ketik nama lengkap...">
-            </div>
-
-            <!-- Pilih nama terdaftar (untuk angsur & pinjam) -->
-            <div id="box-nama-pilih" style="display:none;">
-                <label>Pilih Nama Anggota</label>
-                <select id="input-nama-pilih" onchange="hitungPreview()"></select>
-            </div>
-
-            <label>Nominal Rupiah</label>
-            <input type="number" id="input-rupiah" value="100000" min="0" step="1000" oninput="hitungPreview()">
-
-            <!-- Kotak preview kalkulasi otomatis -->
-            <div id="info-preview" class="info-box"></div>
-
-            <label>Catatan Tambahan (Opsional)</label>
-            <input type="text" id="input-catatan" placeholder="Contoh: titip lewat pak RT / uang pas">
-
-            <button class="btn-hijau" id="btn-simpan" onclick="eksekusiTransaksi()">💾 SIMPAN KE BLOCKCHAIN</button>
-            <div class="spinner" id="spinner-simpan">⏳ Mengirim ke jaringan...</div>
-        </div>
-
-        <!-- KENDALI SISTEM -->
-        <div class="card">
-            <h3>⚙️ Kendali & Koreksi</h3>
-
-            <label>Log Jaringan</label>
-            <div id="log-jaringan" class="log-box">Memuat sistem...</div>
-
-            <label style="margin-top:12px;">Anulir / Koreksi Salah Input</label>
-            <small style="color:#888; font-size:11px;">Masukkan TxID yang salah & nominal yang benar</small>
-            <div class="baris-koreksi" style="margin-top:6px;">
-                <input type="text" id="koreksi-txid" placeholder="TxID salah">
-                <input type="number" id="koreksi-rp" placeholder="Rp benar">
-                <button class="btn-oranye" onclick="eksekusiKoreksi()">Anulir</button>
-            </div>
-
-            <button class="btn-merah" style="margin-top:20px;" onclick="tutupBukuSiklus()">⚠️ TUTUP BUKU & AKHIRI SIKLUS</button>
-        </div>
+<!-- ╔═══════════════════════════════════════════════════════════╗ -->
+<!-- ║ LAYER 2: SETUP ERA BARU                                  ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════╝ -->
+<div id="layer-setup" style="display:none;align-items:center;justify-content:center;min-height:100vh;padding:20px;background:linear-gradient(160deg,#0f4c25,#27ae60);">
+  <div class="setup-box">
+    <div style="text-align:center;margin-bottom:20px;">
+      <span style="font-size:36px;">🏁</span>
+      <h2 style="margin-top:8px;">Buat Kelompok Baru</h2>
+      <p>Isi kesepakatan hasil musyawarah. Data ini akan dikunci permanen di blockchain.</p>
     </div>
 
-    <!-- =============================================================== -->
-    <!-- TABEL REKAP ANGGOTA -->
-    <!-- =============================================================== -->
-    <div class="card">
-        <div class="toolbar-tabel">
-            <h3>📊 Rekap Dana Anggota</h3>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <input type="text" id="cari-nama" placeholder="🔍 Cari nama..." oninput="renderTabel()">
-                <button class="btn-abu" onclick="muatData()">🔄 Sinkronkan</button>
-            </div>
-        </div>
-        <div class="spinner" id="spinner-tabel">⏳ Memindai blockchain...</div>
-        <div class="tabel-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Nama Anggota</th>
-                        <th>Modal Terkumpul</th>
-                        <th>Sisa Utang Pokok</th>
-                        <th>Sisa Tenor</th>
-                        <th>Catatan Terakhir</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="badan-tabel">
-                    <tr><td colspan="7" style="text-align:center; color:#aaa; padding:20px;">Klik "Sinkronkan" untuk memuat data.</td></tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="grid2">
+      <div class="setup-field">
+        <label>Nama Kelompok / Koperasi</label>
+        <input type="text" class="form-kontrol" id="setup-judul" placeholder="Koperasi RT 02 Menoreh">
+      </div>
+      <div class="setup-field">
+        <label>Tanggal Mulai</label>
+        <input type="date" class="form-kontrol" id="setup-tanggal">
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="setup-field">
+        <label>Bunga Dimuka (%)</label>
+        <input type="number" class="form-kontrol" id="setup-bunga" value="10" min="0" max="100">
+      </div>
+      <div class="setup-field">
+        <label>Batas Tenor (Bulan)</label>
+        <input type="number" class="form-kontrol" id="setup-tenor" value="10" min="1" max="120">
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Buat PIN Kelompok (4–8 angka) — Jangan dilupakan!</label>
+      <input type="password" class="form-kontrol" id="setup-pin" placeholder="Contoh: 1234" maxlength="8">
     </div>
 
-</div><!-- /container -->
+    <button class="btn btn-oranye" id="btn-kunci-era" onclick="inisialisasiEraBaru()" style="margin-top:4px;">
+      <span class="spinner-ikon" id="spin-setup"></span>
+      🔒 Kunci Aturan Ini ke Blockchain
+    </button>
+    <button class="btn btn-abu" onclick="kembaliKeLogin()" style="margin-top:8px;">← Kembali</button>
+    <div id="setup-err" style="background:var(--merah-bg);color:var(--merah);border-radius:6px;padding:10px;font-size:13px;margin-top:10px;display:none;"></div>
+  </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════════════════════════╗ -->
+<!-- ║ LAYER 3: APLIKASI UTAMA                                  ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════╝ -->
+<div id="layer-app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-kiri">
+      <span class="ikon-app">🌾</span>
+      <div>
+        <h1 id="topbar-judul">Koperasi</h1>
+        <span id="topbar-sub">Era aktif</span>
+      </div>
+    </div>
+    <div class="topbar-kanan">
+      <span class="antrian-badge" id="badge-antrian-top">0 tertunda</span>
+      <button class="btn-topbar" id="btn-sinkron-top" onclick="sinkronAntrian()">🔄 Sinkron</button>
+      <button class="btn-topbar" onclick="konfirmasiKeluar()">⬡ Ganti Kelompok</button>
+    </div>
+  </div>
+
+  <!-- NOTIFIKASI STATUS -->
+  <div class="notif-bar tersembunyi" id="notif-bar">
+    <span id="notif-ikon">✅</span>
+    <span id="notif-teks"></span>
+  </div>
+
+  <!-- BANNER KAS -->
+  <div class="banner-kas">
+    <div class="kas-item">
+      <label>💰 Kas di Brankas</label>
+      <div class="kas-nilai" id="kas-nilai">Rp 0</div>
+      <div class="kas-sub" id="kas-sub">0 anggota</div>
+    </div>
+    <div class="kas-item">
+      <label>📈 Total Bunga Terkumpul</label>
+      <div class="kas-nilai" id="bunga-nilai">Rp 0</div>
+      <div class="kas-sub" id="bunga-sub">Sejak era dimulai</div>
+    </div>
+    <div class="kas-item">
+      <label>📋 Aturan Era</label>
+      <div class="kas-sub" style="font-size:13px;margin-top:4px;" id="aturan-era">—</div>
+    </div>
+    <div class="badge-antrian" id="badge-antrian-kas">
+      <span>⏳</span>
+      <span id="teks-antrian-kas">Menunggu sinkron</span>
+      <button class="btn" style="width:auto;padding:4px 10px;font-size:11px;background:var(--kuning);color:white;border-radius:5px;font-weight:700;" onclick="sinkronAntrian()">Kirim Sekarang</button>
+    </div>
+  </div>
+
+  <!-- PANEL ANTRIAN (tampil jika ada antrian) -->
+  <div style="max-width:1060px;margin:0 auto;padding:12px 16px 0;">
+    <div class="panel-antrian" id="panel-antrian">
+      <h4>📥 Data Tersimpan Lokal — Belum Terkirim ke Jaringan</h4>
+      <div id="list-antrian"></div>
+    </div>
+  </div>
+
+  <!-- BODY UTAMA -->
+  <div class="app-body">
+    <div class="grid-utama">
+
+      <!-- LOKET INPUT -->
+      <div class="kartu">
+        <h3>✍️ Loket Pencatatan</h3>
+
+        <div class="form-grup">
+          <label>Jenis Transaksi</label>
+          <select class="form-kontrol" id="input-aksi" onchange="onAksiChanged()">
+            <option value="daftar_modal">➕ Daftar Anggota Baru + Modal Awal</option>
+            <option value="angsur">💵 Setor Angsuran</option>
+            <option value="pinjam">🏦 Pengajuan Pinjaman</option>
+          </select>
+        </div>
+
+        <div class="form-grup" id="box-nama-baru">
+          <label>Nama Anggota Baru <span style="color:var(--merah);">*</span></label>
+          <input type="text" class="form-kontrol" id="input-nama-teks"
+            placeholder="Ketik nama lengkap..." oninput="validasiForm();hitungPreview()">
+        </div>
+
+        <div class="form-grup" id="box-nama-pilih" style="display:none;">
+          <label>Pilih Anggota <span style="color:var(--merah);">*</span></label>
+          <select class="form-kontrol" id="input-nama-pilih" onchange="hitungPreview()">
+            <option value="">-- Pilih nama anggota --</option>
+          </select>
+        </div>
+
+        <div class="form-grup">
+          <label>Nominal (Rupiah) <span style="color:var(--merah);">*</span></label>
+          <input type="number" class="form-kontrol" id="input-rupiah"
+            placeholder="Ketik nominal..." min="0" step="1000"
+            oninput="validasiForm();hitungPreview()">
+        </div>
+
+        <div class="preview-box" id="preview-box"></div>
+
+        <div class="form-grup">
+          <label>Catatan (Opsional)</label>
+          <input type="text" class="form-kontrol" id="input-catatan"
+            placeholder="Contoh: titip lewat pak RT">
+        </div>
+
+        <button class="btn btn-hijau-solid" id="btn-simpan" onclick="eksekusiTransaksi()" disabled>
+          <span class="spinner-ikon" id="spin-simpan"></span>
+          <span id="teks-btn-simpan">💾 Simpan Transaksi</span>
+        </button>
+      </div>
+
+      <!-- PANEL KANAN -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <!-- STATUS SINGKAT -->
+        <div class="kartu">
+          <h3>📡 Status Sistem</h3>
+          <div style="font-size:13px;line-height:2;color:var(--abu-gelap);">
+            <div>Kelompok: <strong id="status-kelompok">—</strong></div>
+            <div>Mulai: <strong id="status-tgl">—</strong></div>
+            <div>Bunga: <strong id="status-bunga">—</strong>%</div>
+            <div>Tenor maks: <strong id="status-tenor">—</strong> bulan</div>
+            <div>Anggota: <strong id="status-anggota">0</strong> orang</div>
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--abu-muda);">
+            <div style="font-size:12px;color:var(--abu);margin-bottom:6px;">Koneksi jaringan:</div>
+            <div id="indikator-koneksi" style="font-size:13px;font-weight:600;">⏳ Memeriksa...</div>
+          </div>
+          <button class="btn btn-abu" onclick="muatData()" style="margin-top:12px;font-size:12px;padding:8px;">
+            🔄 Perbarui Data
+          </button>
+          <button class="btn-tutup-era" onclick="konfirmasiTutupBuku()">⚠️ Tutup Buku Siklus Ini</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABEL ANGGOTA -->
+    <div class="kartu">
+      <div class="toolbar">
+        <h3 style="border:none;padding:0;margin:0;">📊 Rekap Anggota <span style="font-weight:400;font-size:12px;color:var(--abu);">(klik nama untuk histori)</span></h3>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" class="cari-input" id="cari-nama" placeholder="🔍 Cari nama..." oninput="renderTabel()">
+        </div>
+      </div>
+      <div id="spinner-tabel" style="text-align:center;padding:20px;color:var(--abu);font-size:13px;display:none;">⏳ Memindai data...</div>
+      <div class="tabel-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nama Anggota</th>
+              <th>Modal Terkumpul</th>
+              <th>Sisa Pinjaman</th>
+              <th>Sisa Cicilan</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="badan-tabel">
+            <tr><td colspan="6" class="kosong"><div class="ikon-kosong">📋</div>Klik "Perbarui Data" untuk memuat.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /app-body -->
+</div><!-- /layer-app -->
+
+<!-- ╔═══════════════════════════════════════════════════════════╗ -->
+<!-- ║ MODAL: HISTORI ANGGOTA                                   ║ -->
+<!-- ╚═══════════════════════════════════════════════════════════╝ -->
+<div class="modal-overlay" id="modal-histori">
+  <div class="modal-kotak">
+    <div class="modal-header">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--abu);">Histori Anggota</div>
+        <div class="nama-besar" id="modal-nama-header">—</div>
+      </div>
+      <button class="btn-tutup-modal" onclick="tutupModal('modal-histori')">✕</button>
+    </div>
+    <div class="modal-ringkasan">
+      <div class="ringk-item">
+        <label>Total Modal</label>
+        <div class="nilai hijau" id="modal-total-modal">Rp 0</div>
+      </div>
+      <div class="ringk-item">
+        <label>Sisa Pinjaman</label>
+        <div class="nilai merah" id="modal-sisa-utang">Rp 0</div>
+      </div>
+      <div class="ringk-item">
+        <label>Sisa Cicilan</label>
+        <div class="nilai" id="modal-sisa-tenor">— bulan</div>
+      </div>
+    </div>
+    <div class="modal-histori">
+      <h4>Riwayat Transaksi</h4>
+      <div id="modal-isi-histori">
+        <div class="modal-histori-kosong">Memuat histori...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT / KOREKSI TRANSAKSI -->
+<div class="modal-overlay" id="modal-edit">
+  <div class="modal-kotak modal-edit-kotak">
+    <div class="modal-header">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--abu);">Koreksi Transaksi</div>
+        <div style="font-size:15px;font-weight:700;" id="edit-judul-transaksi">—</div>
+      </div>
+      <button class="btn-tutup-modal" onclick="tutupModal('modal-edit')">✕</button>
+    </div>
+    <div style="padding:18px 20px;">
+      <div class="modal-edit-info">
+        ℹ️ Data lama tidak dihapus — koreksi dicatat sebagai transaksi baru. Riwayat selalu lengkap & aman.
+      </div>
+      <div class="form-grup">
+        <label>Nilai Yang Benar (Rupiah)</label>
+        <input type="number" class="form-kontrol" id="edit-nominal-baru" placeholder="Masukkan nilai yang benar..." min="0" step="1000">
+      </div>
+      <div class="form-grup">
+        <label>Alasan Koreksi</label>
+        <input type="text" class="form-kontrol" id="edit-alasan" placeholder="Contoh: salah ketik nominal">
+      </div>
+      <input type="hidden" id="edit-txid-target">
+      <button class="btn btn-oranye" id="btn-kirim-edit" onclick="eksekusiKoreksi()" style="margin-top:4px;">
+        <span class="spinner-ikon" id="spin-edit"></span>
+        <span id="teks-btn-edit">✏️ Simpan Koreksi</span>
+      </button>
+      <button class="btn btn-abu" onclick="tutupModal('modal-edit')" style="margin-top:8px;">Batal</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL KONEKSI FLOATING -->
+<div class="panel-koneksi" id="panel-koneksi" style="display:none;">
+  <div class="chip-koneksi chip-offline" id="chip-koneksi">
+    <div class="dot-animasi"></div>
+    <span id="teks-chip-koneksi">Offline</span>
+  </div>
+</div>
 
 <script>
-// =============================================================================
-// ██████╗ ██╗  ██╗███████╗    ██╗  ██╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗
-// ██╔══██╗╚██╗██╔╝╚════██║    ██║  ██║██╔═══██╗████╗  ██║██╔════╝██║██╔════╝
-// ██████╔╝ ╚███╔╝     ██╔╝    ███████║██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
-// ██╔══██╗ ██╔██╗    ██╔╝     ██╔══██║██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
-// ██║  ██║██╔╝ ██╗   ██║      ██║  ██║╚██████╔╝██║ ╚████║███████╗██║╚██████╔╝
-// =============================================================================
-//  KONFIGURASI — GANTI 3 BARIS INI SAJA
-// =============================================================================
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ KONFIGURASI — GANTI 3 BARIS INI SAJA                           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const ASSET_ID       = 3558306283;
+const DOMPET_BRANKAS = "QD7ODQIVMGPVHD5HW63ZV5EBVIPMRUSYIY3BBUCAZ47G66VN33OXJ6KYCY";
+const MNEMONIC       = "release caught post weapon ginger slim swift limb better wife minor burger shiver prison say similar fire grab shop casual oak abstract tourist absent repeat";
 
-const ASSET_ID          = 3558306283;           // ← ID Token TOF Anda di Mainnet
-const DOMPET_BRANKAS    = "QD7ODQIVMGPVHD5HW63ZV5EBVIPMRUSYIY3BBUCAZ47G66VN33OXJ6KYCY"; // ← Alamat Public Brankas
-const MNEMONIC_PETUGAS  = "release caught post weapon ginger slim swift limb better wife minor burger shiver prison say similar fire grab shop casual oak abstract tourist absent repeat"; // ← 25 Kata Mnemonic
-
-// =============================================================================
-//  KONEKSI JARINGAN MAINNET
-//  - algod  : untuk kirim transaksi
-//  - indexer : untuk baca riwayat transaksi (BENAR, bukan algod)
-// =============================================================================
-const algod   = new algosdk.Algodv2("", "https://mainnet-api.algonode.cloud", "");
-const indexer = new algosdk.Indexer("", "https://mainnet-idx.algonode.cloud", "");
-const akunPetugas = algosdk.mnemonicToSecretKey(MNEMONIC_PETUGAS);
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ KONEKSI JARINGAN                                                ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const algod   = new algosdk.Algodv2("","https://mainnet-api.algonode.cloud","");
+const indexer = new algosdk.Indexer("","https://mainnet-idx.algonode.cloud","");
+const akun    = algosdk.mnemonicToSecretKey(MNEMONIC);
 const decoder = new TextDecoder();
 
-// =============================================================================
-//  STATE APLIKASI (RAM)
-// =============================================================================
-let ERA_ID         = "";
-let ERA_JUDUL      = "";
-let ERA_TANGGAL    = "";
-let ERA_BUNGA      = 10;   // persen
-let ERA_TENOR      = 10;   // bulan
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ STATE APLIKASI                                                  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+let ERA_ID="", ERA_JUDUL="", ERA_TANGGAL="", ERA_BUNGA=10, ERA_TENOR=10, ERA_PIN="";
+let dbAnggota={};   // { Nama: {simpanan, utang, tenor} }
+let txHistori={};   // { Nama: [ {...txDetail} ] }
+let kasTotal=0, bungaTotal=0;
+let txAnulir={};    // { txid_salah: rp_benar }
+let antrian=[];     // transaksi offline yang belum terkirim
+let daftarEraBlockchain=[];  // semua era yang ditemukan di blockchain
+let sedangKirim=false;
 
-let dbAnggota      = {};   // { "Nama" : { simpanan, utang, tenor, catatan } }
-let kasTotal       = 0;    // kas bersih ada di brankas
-let bungaTotal     = 0;    // akumulasi bunga terkumpul
-let txAnulir       = {};   // { txid_lama: rp_benar }
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ UTILITAS DASAR                                                  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const rp = n => "Rp " + Math.round(n).toLocaleString("id-ID");
+const normNama = s => s.trim().replace(/\b\w/g, c=>c.toUpperCase());
 
-// =============================================================================
-//  UTILITAS
-// =============================================================================
-function rp(angka) {
-    return "Rp " + Math.round(angka).toLocaleString("id-ID");
+function decodeNote(b64){
+  try{
+    const bytes=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+    return JSON.parse(decoder.decode(bytes));
+  }catch(e){return null;}
 }
 
-function log(teks) {
-    const el = document.getElementById("log-jaringan");
-    const waktu = new Date().toLocaleTimeString("id-ID");
-    el.innerText = `[${waktu}] ${teks}\n` + el.innerText;
+function hashPin(pin){
+  // Hash sederhana untuk PIN (bukan kriptografi kuat, cukup untuk context ini)
+  let h=0;
+  for(let i=0;i<pin.length;i++){h=((h<<5)-h)+pin.charCodeAt(i);h|=0;}
+  return Math.abs(h).toString(36).toUpperCase();
 }
 
-function setSpinner(id, aktif) {
-    document.getElementById(id).style.display = aktif ? "block" : "none";
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ NOTIFIKASI STATUS (ramah, bukan log teknis)                    ║
+// ╚══════════════════════════════════════════════════════════════════╝
+let timerNotif=null;
+function tampilNotif(tipe, teks, lama=4000){
+  const bar=document.getElementById("notif-bar");
+  const ikon={sukses:"✅",antri:"📥",proses:"🔄",gagal:"⚠️"};
+  bar.className="notif-bar "+tipe;
+  document.getElementById("notif-ikon").textContent=ikon[tipe]||"ℹ️";
+  document.getElementById("notif-teks").textContent=teks;
+  clearTimeout(timerNotif);
+  if(lama>0){timerNotif=setTimeout(()=>{bar.className="notif-bar tersembunyi";},lama);}
 }
 
-function setTombolSimpan(aktif) {
-    document.getElementById("btn-simpan").disabled = !aktif;
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ INDIKATOR KONEKSI                                               ║
+// ╚══════════════════════════════════════════════════════════════════╝
+let statusOnline = navigator.onLine;
+
+function updateIndikatorKoneksi(){
+  statusOnline = navigator.onLine;
+  const chip   = document.getElementById("chip-koneksi");
+  const teks   = document.getElementById("teks-chip-koneksi");
+  const indika = document.getElementById("indikator-koneksi");
+  const panel  = document.getElementById("panel-koneksi");
+
+  if(statusOnline){
+    chip.className="chip-koneksi chip-online";
+    teks.textContent="Terhubung";
+    if(indika)indika.innerHTML="🟢 <span>Terhubung ke jaringan</span>";
+    panel.style.display="none"; // sembunyikan saat online
+  } else {
+    chip.className="chip-koneksi chip-offline";
+    teks.textContent="Tidak ada sinyal";
+    if(indika)indika.innerHTML="🔴 <span>Tidak ada sinyal — data masuk antrian</span>";
+    panel.style.display="flex";
+    tampilNotif("antri","Tidak ada sinyal. Transaksi baru akan disimpan lokal dulu.",0);
+  }
+  updateTampilanAntrian();
 }
 
-// Decode note Algorand: API mengembalikan base64 string → harus atob() dulu
-function decodeNote(noteB64) {
-    try {
-        const bytes = Uint8Array.from(atob(noteB64), c => c.charCodeAt(0));
-        return JSON.parse(decoder.decode(bytes));
-    } catch (e) {
-        return null;
+window.addEventListener("online",()=>{
+  updateIndikatorKoneksi();
+  tampilNotif("sukses","Sinyal kembali! Mengirim data yang tertunda...",3000);
+  setTimeout(sinkronAntrian, 1500);
+});
+window.addEventListener("offline",()=>updateIndikatorKoneksi());
+
+// Cek koneksi tiap 30 detik dan auto-sinkron jika ada antrian
+setInterval(()=>{
+  updateIndikatorKoneksi();
+  if(statusOnline && antrian.length>0) sinkronAntrian();
+}, 30000);
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ MANAJEMEN ANTRIAN OFFLINE                                       ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function tambahAntrian(noteObj){
+  antrian.push({note:noteObj, waktu:new Date().toLocaleString("id-ID"), id:Date.now()});
+  updateTampilanAntrian();
+}
+
+function updateTampilanAntrian(){
+  const jml = antrian.length;
+  const badgeTop = document.getElementById("badge-antrian-top");
+  const badgeKas = document.getElementById("badge-antrian-kas");
+  const panelAntrian = document.getElementById("panel-antrian");
+
+  if(jml===0){
+    badgeTop.style.display="none";
+    badgeKas.style.display="none";
+    panelAntrian.style.display="none";
+    return;
+  }
+
+  badgeTop.style.display="inline";
+  badgeTop.textContent=jml+" tertunda";
+  badgeKas.style.display="flex";
+  document.getElementById("teks-antrian-kas").textContent=jml+" transaksi belum terkirim";
+  panelAntrian.style.display="block";
+
+  let html="";
+  antrian.forEach(item=>{
+    const aksiLabel={
+      daftar_modal:"Anggota baru",angsur:"Angsuran",pinjam:"Pinjaman",
+      buka_era:"Setup kelompok",koreksi:"Koreksi"
+    };
+    html+=`<div class="item-antrian">
+      <span class="nama-aksi">${aksiLabel[item.note.aksi]||item.note.aksi} — ${item.note.nama||item.note.judul||"—"}</span>
+      <span class="waktu">${item.waktu}</span>
+    </div>`;
+  });
+  document.getElementById("list-antrian").innerHTML=html;
+}
+
+async function sinkronAntrian(){
+  if(!statusOnline||antrian.length===0||sedangKirim)return;
+  sedangKirim=true;
+  tampilNotif("proses",`Mengirim ${antrian.length} data ke jaringan...`,0);
+
+  const berhasil=[];
+  for(const item of antrian){
+    try{
+      const params=await algod.getTransactionParams().do();
+      const txn=algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        from:akun.addr,to:DOMPET_BRANKAS,amount:0,assetIndex:ASSET_ID,
+        note:new TextEncoder().encode(JSON.stringify(item.note)),
+        suggestedParams:params
+      });
+      await algod.sendRawTransaction(txn.signTxn(akun.sk)).do();
+      berhasil.push(item.id);
+    }catch(e){
+      // Lewati item ini, coba lagi nanti
     }
+  }
+
+  antrian=antrian.filter(i=>!berhasil.includes(i.id));
+  sedangKirim=false;
+
+  if(berhasil.length>0){
+    tampilNotif("sukses",`${berhasil.length} transaksi berhasil terkirim ke jaringan! 🎉`,5000);
+    setTimeout(muatData,2000);
+  } else if(antrian.length>0){
+    tampilNotif("gagal","Gagal mengirim. Akan dicoba ulang otomatis.",4000);
+  }
+  updateTampilanAntrian();
 }
 
-// Normalisasi nama: trim spasi & huruf besar pertama tiap kata
-function normNama(nama) {
-    return nama.trim().replace(/\b\w/g, c => c.toUpperCase());
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ LAYER LOGIN: SCAN ERA DI BLOCKCHAIN                             ║
+// ╚══════════════════════════════════════════════════════════════════╝
+async function muatDaftarEra(){
+  const kontainer=document.getElementById("daftar-era-login");
+  const loading=document.getElementById("login-loading");
+  loading.style.display="block";
+  kontainer.innerHTML="";
+  kontainer.appendChild(loading);
+  daftarEraBlockchain=[];
+
+  try{
+    const hasil=await indexer.lookupAccountTransactions(DOMPET_BRANKAS)
+      .assetID(ASSET_ID).limit(500).do();
+    const txs=(hasil.transactions||[]).sort((a,b)=>(a["round-time"]||0)-(b["round-time"]||0));
+
+    const eraMap={};
+    txs.forEach(tx=>{
+      if(!tx.note)return;
+      const d=decodeNote(tx.note);
+      if(!d||d.prefix!=="tofrg:sp"||d.aksi!=="buka_era")return;
+      eraMap[d._era]=d; // selalu timpa → simpan info terbaru
+    });
+
+    daftarEraBlockchain=Object.values(eraMap);
+    loading.style.display="none";
+
+    if(daftarEraBlockchain.length===0){
+      kontainer.innerHTML=`<div style="text-align:center;color:var(--abu);font-size:13px;padding:12px;">
+        Belum ada kelompok. Buat kelompok baru di bawah.
+      </div>`;
+      return;
+    }
+
+    daftarEraBlockchain.forEach((era,i)=>{
+      const div=document.createElement("div");
+      div.className="kartu-era";
+      div.id="kartu-era-"+i;
+      div.innerHTML=`
+        <div class="kartu-era-info">
+          <strong>${era.judul||"Kelompok #"+i}</strong>
+          <span>Mulai ${era.tgl||"?"} • Bunga ${era.bunga||"?"}% • Tenor ${era.tenor||"?"} bln</span>
+        </div>
+        <div class="kartu-era-cek">✓</div>
+      `;
+      div.onclick=()=>pilihEra(i);
+      kontainer.appendChild(div);
+    });
+
+  }catch(e){
+    loading.style.display="none";
+    kontainer.innerHTML=`<div style="color:var(--merah);font-size:13px;padding:8px;">
+      Gagal terhubung ke jaringan. Pastikan ada koneksi internet.
+    </div>`;
+  }
 }
 
-// =============================================================================
-//  UPDATE TAMPILAN BANNER ATAS
-// =============================================================================
-function updateBanner() {
-    document.getElementById("display-judul").innerText   = "🏦 " + (ERA_JUDUL || "Belum Ada Siklus Aktif");
-    document.getElementById("display-tanggal").innerText = ERA_TANGGAL || "-";
-    document.getElementById("display-era").innerText     = ERA_ID      || "-";
-    document.getElementById("display-bunga").innerText   = ERA_BUNGA;
-    document.getElementById("display-tenor").innerText   = ERA_TENOR;
-    document.getElementById("total-kas-rp").innerText    = rp(kasTotal);
-    document.getElementById("total-kas-tof").innerText   = (kasTotal / 1_000_000).toFixed(6) + " TOF";
-    document.getElementById("total-bunga-rp").innerText  = rp(bungaTotal);
+let eraYangDipilih=null;
+function pilihEra(idx){
+  eraYangDipilih=idx;
+  document.querySelectorAll(".kartu-era").forEach(el=>el.classList.remove("aktif-pilih"));
+  const el=document.getElementById("kartu-era-"+idx);
+  if(el)el.classList.add("aktif-pilih");
+  document.getElementById("field-pin").style.display="block";
+  document.getElementById("input-pin-login").focus();
+  bersihkanErrLogin();
 }
 
-// =============================================================================
-//  LOGIKA UI LOKET: GANTI TAMPILAN SESUAI JENIS TRANSAKSI
-// =============================================================================
-function onAksiChanged() {
-    const aksi = document.getElementById("input-aksi").value;
-    const showBaru  = aksi === "daftar_modal";
-
-    document.getElementById("box-nama-baru").style.display  = showBaru ? "block" : "none";
-    document.getElementById("box-nama-pilih").style.display = showBaru ? "none"  : "block";
-
-    // Set default nominal
-    const defVal = { daftar_modal: 100000, angsur: 100000, pinjam: 1000000 };
-    document.getElementById("input-rupiah").value = defVal[aksi];
-
-    hitungPreview();
+function bersihkanErrLogin(){
+  document.getElementById("login-err").style.display="none";
 }
 
-// =============================================================================
-//  KALKULASI PREVIEW OTOMATIS — TAMPIL REAL-TIME SAAT PETUGAS ISI FORM
-// =============================================================================
-function hitungPreview() {
-    const aksi     = document.getElementById("input-aksi").value;
-    const nominal  = parseInt(document.getElementById("input-rupiah").value) || 0;
-    const infoEl   = document.getElementById("info-preview");
-
-    // Bersihkan class peringatan
-    infoEl.className = "info-box";
-
-    if (aksi === "daftar_modal") {
-        infoEl.style.display = "block";
-        infoEl.innerText = `📝 Mendaftarkan anggota baru dengan modal awal sebesar ${rp(nominal)}.\nModal ini langsung masuk ke kas brankas RT.`;
-        return;
-    }
-
-    const nama = document.getElementById("input-nama-pilih").value;
-    if (!nama || !dbAnggota[nama]) {
-        infoEl.style.display = "none";
-        return;
-    }
-
-    const data         = dbAnggota[nama];
-    const bungaPersen  = ERA_BUNGA / 100;
-
-    if (aksi === "angsur") {
-        const sisaSetelah = Math.max(0, data.utang - nominal);
-        infoEl.style.display = "block";
-        infoEl.innerText =
-            `💵 Angsuran masuk: ${rp(nominal)}\n` +
-            `   Sisa utang sekarang : ${rp(data.utang)}\n` +
-            `   Sisa utang setelah  : ${rp(sisaSetelah)}\n` +
-            `   Sisa tenor setelah  : ${Math.max(0, data.tenor - 1)} bulan`;
-
-        if (nominal > data.utang) {
-            infoEl.className = "info-box peringatan";
-            infoEl.innerText += `\n\n⚠️  Angsuran melebihi sisa utang (${rp(data.utang)}). Lebihnya tidak akan otomatis masuk simpanan.`;
-        }
-        return;
-    }
-
-    if (aksi === "pinjam") {
-        const bunga        = Math.round(nominal * bungaPersen);
-        const utangLama    = data.utang;
-        const bersihKeluar = nominal - bunga - utangLama; // uang yang benar-benar diterima warga
-        const angsuranBulanan = Math.round(nominal / ERA_TENOR);
-
-        infoEl.style.display = "block";
-
-        if (utangLama > 0) {
-            infoEl.className = "info-box peringatan";
-            infoEl.innerText =
-                `⚠️  POTONG UTANG LAMA (sisa utang sebelumnya lunas otomatis)\n\n` +
-                `   Pengajuan pinjaman baru  : ${rp(nominal)}\n` +
-                `   Potong bunga dimuka (${ERA_BUNGA}%) : – ${rp(bunga)}\n` +
-                `   Lunasi sisa utang lama   : – ${rp(utangLama)}\n` +
-                `   ─────────────────────────────────\n` +
-                `   Uang BERSIH diterima warga: ${rp(bersihKeluar)}\n\n` +
-                `   Utang baru dicatat: ${rp(nominal)}\n` +
-                `   Angsuran: ${rp(angsuranBulanan)} × ${ERA_TENOR} bulan`;
-        } else {
-            infoEl.innerText =
-                `🏦 Pinjaman Bersih Baru\n\n` +
-                `   Pengajuan pinjaman        : ${rp(nominal)}\n` +
-                `   Potong bunga dimuka (${ERA_BUNGA}%) : – ${rp(bunga)}\n` +
-                `   ─────────────────────────────────\n` +
-                `   Uang BERSIH diterima warga: ${rp(nominal - bunga)}\n\n` +
-                `   Utang dicatat: ${rp(nominal)}\n` +
-                `   Angsuran: ${rp(angsuranBulanan)} × ${ERA_TENOR} bulan`;
-        }
-    }
+function tampilErrLogin(msg){
+  const el=document.getElementById("login-err");
+  el.textContent=msg;
+  el.style.display="block";
 }
 
-// =============================================================================
-//  BUKA ERA BARU — KIRIM ATURAN KE BLOCKCHAIN
-// =============================================================================
-async function inisialisasiEraBaru() {
-    const judul  = document.getElementById("setup-judul").value.trim();
-    const tanggal= document.getElementById("setup-tanggal").value;
-    const bunga  = parseInt(document.getElementById("setup-bunga").value);
-    const tenor  = parseInt(document.getElementById("setup-tenor").value);
+function masukKelompok(){
+  if(eraYangDipilih===null)return tampilErrLogin("Pilih kelompok terlebih dahulu.");
+  const pin=document.getElementById("input-pin-login").value.trim();
+  if(!pin)return tampilErrLogin("Masukkan PIN kelompok.");
 
-    if (!judul || !tanggal || isNaN(bunga) || isNaN(tenor) || bunga < 0 || tenor < 1) {
-        return alert("Lengkapi semua kolom aturan kelompok terlebih dahulu.");
-    }
+  const era=daftarEraBlockchain[eraYangDipilih];
+  const pinHash=hashPin(pin);
 
-    const eraId = "era_" + Date.now();
-    log("Mengirim aturan era baru ke Mainnet...");
+  if(era.pinHash && era.pinHash!==pinHash){
+    return tampilErrLogin("PIN salah. Coba lagi.");
+  }
+  // Jika era lama tidak punya PIN hash (era lama tanpa fitur PIN), izinkan masuk
+  if(!era.pinHash){
+    // Era dibuat sebelum fitur PIN: izinkan masuk langsung
+  }
 
-    try {
-        const params = await algod.getTransactionParams().do();
-        const note = {
-            prefix: "tofrg:sp", aksi: "buka_era",
-            _era: eraId, judul, tgl: tanggal, bunga, tenor
-        };
-        const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-            from: akunPetugas.addr,
-            to: DOMPET_BRANKAS,
-            amount: 0,
-            assetIndex: ASSET_ID,
-            note: new TextEncoder().encode(JSON.stringify(note)),
-            suggestedParams: params
-        });
-        const signedTxn = txn.signTxn(akunPetugas.sk);
-        await algod.sendRawTransaction(signedTxn).do();
-        log(`Era baru berhasil dikirim! ID: ${eraId}`);
-        alert("✅ Aturan siklus baru berhasil dikunci ke blockchain!\nSistem akan sinkronisasi ulang.");
-        document.getElementById("box-era-baru").style.display = "none";
-        muatData();
-    } catch (e) {
-        log("GAGAL buka era: " + e.message);
-        alert("Gagal mengirim ke blockchain: " + e.message);
-    }
+  ERA_ID=era._era; ERA_JUDUL=era.judul; ERA_TANGGAL=era.tgl;
+  ERA_BUNGA=era.bunga; ERA_TENOR=era.tenor; ERA_PIN=pin;
+
+  tampilLayerApp();
+  muatData();
 }
 
-// =============================================================================
-//  KIRIM TRANSAKSI HARIAN (DAFTAR / ANGSUR / PINJAM)
-// =============================================================================
-async function eksekusiTransaksi() {
-    if (!ERA_ID) return alert("Belum ada siklus aktif! Buka era baru terlebih dahulu.");
+function tampilSetup(){
+  document.getElementById("layer-login").style.display="none";
+  document.getElementById("layer-setup").style.display="flex";
+  document.getElementById("setup-tanggal").value=new Date().toISOString().slice(0,10);
+}
 
-    const aksi    = document.getElementById("input-aksi").value;
-    const nominal = parseInt(document.getElementById("input-rupiah").value) || 0;
-    const catatan = document.getElementById("input-catatan").value.trim();
+function kembaliKeLogin(){
+  document.getElementById("layer-setup").style.display="none";
+  document.getElementById("layer-login").style.display="flex";
+}
 
-    if (nominal <= 0) return alert("Nominal harus lebih dari 0.");
+function tampilLayerApp(){
+  document.getElementById("layer-login").style.display="none";
+  document.getElementById("layer-setup").style.display="none";
+  document.getElementById("layer-app").style.display="block";
 
-    let nama = "";
-    if (aksi === "daftar_modal") {
-        nama = normNama(document.getElementById("input-nama-teks").value);
-        if (!nama) return alert("Ketik nama anggota baru terlebih dahulu.");
-        // Cek duplikat nama
-        if (dbAnggota[nama]) return alert(`Nama "${nama}" sudah terdaftar di era ini.`);
+  document.getElementById("topbar-judul").textContent=ERA_JUDUL||"Koperasi";
+  document.getElementById("topbar-sub").textContent="Era: "+ERA_ID.slice(-8);
+  document.getElementById("status-kelompok").textContent=ERA_JUDUL;
+  document.getElementById("status-tgl").textContent=ERA_TANGGAL;
+  document.getElementById("status-bunga").textContent=ERA_BUNGA;
+  document.getElementById("status-tenor").textContent=ERA_TENOR;
+  document.getElementById("aturan-era").textContent=`Bunga ${ERA_BUNGA}% dimuka · Tenor ${ERA_TENOR} bln`;
+
+  updateIndikatorKoneksi();
+  onAksiChanged();
+}
+
+function konfirmasiKeluar(){
+  if(antrian.length>0){
+    const ya=confirm(`Ada ${antrian.length} transaksi yang belum terkirim.\nSinkronkan dulu sebelum ganti kelompok?\n\nTekan OK untuk sinkron, Batal untuk tetap di sini.`);
+    if(ya){sinkronAntrian();return;}
+  }
+  const ya=confirm("Keluar dari kelompok ini dan kembali ke halaman pilih kelompok?");
+  if(!ya)return;
+  document.getElementById("layer-app").style.display="none";
+  document.getElementById("layer-login").style.display="flex";
+  ERA_ID="";dbAnggota={};txHistori={};kasTotal=0;bungaTotal=0;antrian=[];
+  muatDaftarEra();
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ SETUP ERA BARU                                                  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+async function inisialisasiEraBaru(){
+  const judul=document.getElementById("setup-judul").value.trim();
+  const tgl  =document.getElementById("setup-tanggal").value;
+  const bunga=parseInt(document.getElementById("setup-bunga").value);
+  const tenor=parseInt(document.getElementById("setup-tenor").value);
+  const pin  =document.getElementById("setup-pin").value.trim();
+  const errEl=document.getElementById("setup-err");
+  errEl.style.display="none";
+
+  if(!judul||!tgl||isNaN(bunga)||isNaN(tenor)){
+    errEl.textContent="Lengkapi semua kolom terlebih dahulu.";errEl.style.display="block";return;
+  }
+  if(!pin||pin.length<4){
+    errEl.textContent="PIN harus minimal 4 digit.";errEl.style.display="block";return;
+  }
+
+  const eraId="era_"+Date.now();
+  const pinHash=hashPin(pin);
+
+  setLoading("btn-kunci-era","spin-setup",true,"⏳ Mengunci ke blockchain...");
+
+  const note={prefix:"tofrg:sp",aksi:"buka_era",_era:eraId,judul,tgl,bunga,tenor,pinHash};
+  const berhasil=await kirimTransaksi(note);
+
+  setLoading("btn-kunci-era","spin-setup",false,"🔒 Kunci Aturan Ini ke Blockchain");
+
+  if(berhasil){
+    ERA_ID=eraId;ERA_JUDUL=judul;ERA_TANGGAL=tgl;ERA_BUNGA=bunga;ERA_TENOR=tenor;ERA_PIN=pin;
+    alert("✅ Kelompok baru berhasil dibuat! Selamat bergabung.");
+    document.getElementById("layer-setup").style.display="none";
+    tampilLayerApp();
+    muatData();
+  } else {
+    errEl.textContent="Gagal menyimpan ke blockchain. Cek koneksi dan coba lagi.";
+    errEl.style.display="block";
+  }
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ VALIDASI FORM LOKET                                             ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function validasiForm(){
+  const aksi   =document.getElementById("input-aksi").value;
+  const nominal=parseInt(document.getElementById("input-rupiah").value)||0;
+  const btn    =document.getElementById("btn-simpan");
+
+  let valid=true;
+  const rupiahEl=document.getElementById("input-rupiah");
+
+  if(nominal<=0){rupiahEl.classList.add("wajib-isi");valid=false;}
+  else{rupiahEl.classList.remove("wajib-isi");rupiahEl.classList.add("terisi");}
+
+  if(aksi==="daftar_modal"){
+    const namaEl=document.getElementById("input-nama-teks");
+    if(!namaEl.value.trim()){namaEl.classList.add("wajib-isi");valid=false;}
+    else{namaEl.classList.remove("wajib-isi");namaEl.classList.add("terisi");}
+  } else {
+    const pilihEl=document.getElementById("input-nama-pilih");
+    if(!pilihEl.value){valid=false;}
+  }
+
+  btn.disabled=!valid;
+  return valid;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ UI LOKET: SWITCH JENIS TRANSAKSI                                ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function onAksiChanged(){
+  const aksi=document.getElementById("input-aksi").value;
+  document.getElementById("box-nama-baru").style.display  =aksi==="daftar_modal"?"block":"none";
+  document.getElementById("box-nama-pilih").style.display =aksi==="daftar_modal"?"none":"block";
+  document.getElementById("input-rupiah").value="";
+  document.getElementById("preview-box").style.display="none";
+  document.getElementById("btn-simpan").disabled=true;
+  hitungPreview();
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ PREVIEW KALKULASI                                               ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function hitungPreview(){
+  const aksi   =document.getElementById("input-aksi").value;
+  const nominal=parseInt(document.getElementById("input-rupiah").value)||0;
+  const box    =document.getElementById("preview-box");
+
+  box.className="preview-box";
+  box.style.display="none";
+
+  if(nominal<=0)return;
+
+  if(aksi==="daftar_modal"){
+    box.className="preview-box info";
+    box.style.display="block";
+    box.textContent=`Modal awal sebesar ${rp(nominal)} akan masuk ke kas kelompok.`;
+    return;
+  }
+
+  const nama=document.getElementById("input-nama-pilih").value;
+  if(!nama||!dbAnggota[nama])return;
+  const data=dbAnggota[nama];
+
+  if(aksi==="angsur"){
+    const sisaSetelah=Math.max(0,data.utang-nominal);
+    const melebihi=nominal>data.utang&&data.utang>0;
+    box.className="preview-box "+(melebihi?"peringatan":"info");
+    box.style.display="block";
+    box.textContent=
+      `Angsuran: ${rp(nominal)}\n`+
+      `Sisa pinjaman sekarang  : ${rp(data.utang)}\n`+
+      `Sisa pinjaman setelah   : ${rp(sisaSetelah)}\n`+
+      `Sisa cicilan setelah    : ${Math.max(0,data.tenor-1)} bulan`+
+      (melebihi?`\n\n⚠️ Angsuran melebihi sisa pinjaman (${rp(data.utang)}). Lebihnya tidak masuk simpanan.`:"");
+    return;
+  }
+
+  if(aksi==="pinjam"){
+    const bunga=Math.round(nominal*(ERA_BUNGA/100));
+    const utangLama=data.utang;
+    const bersihKeluar=nominal-bunga-utangLama;
+    const angBulan=Math.round(nominal/ERA_TENOR);
+
+    // Cek apakah pinjaman melebihi kas
+    if(bersihKeluar>kasTotal){
+      box.className="preview-box blokir";
+      box.style.display="block";
+      box.textContent=
+        `🚫 Pinjaman tidak bisa diproses!\n\n`+
+        `Uang bersih yang dibutuhkan  : ${rp(bersihKeluar)}\n`+
+        `Kas kelompok saat ini         : ${rp(kasTotal)}\n\n`+
+        `Saldo kas tidak mencukupi. Kurangi nominal pinjaman atau tunggu kas bertambah.`;
+      document.getElementById("btn-simpan").disabled=true;
+      return;
+    }
+
+    box.className="preview-box "+(utangLama>0?"peringatan":"info");
+    box.style.display="block";
+    if(utangLama>0){
+      box.textContent=
+        `⚠️ Pinjaman lama akan dilunasi otomatis:\n\n`+
+        `Pinjaman baru           : ${rp(nominal)}\n`+
+        `Potong bunga (${ERA_BUNGA}%)    : – ${rp(bunga)}\n`+
+        `Lunasi sisa utang lama  : – ${rp(utangLama)}\n`+
+        `─────────────────────────────\n`+
+        `Uang bersih ke anggota  : ${rp(bersihKeluar)}\n\n`+
+        `Angsuran: ${rp(angBulan)} × ${ERA_TENOR} bulan`;
     } else {
-        nama = document.getElementById("input-nama-pilih").value;
-        if (!nama) return alert("Pilih nama anggota.");
+      box.textContent=
+        `Pinjaman baru           : ${rp(nominal)}\n`+
+        `Potong bunga (${ERA_BUNGA}%)    : – ${rp(bunga)}\n`+
+        `─────────────────────────────\n`+
+        `Uang bersih ke anggota  : ${rp(nominal-bunga)}\n\n`+
+        `Angsuran: ${rp(angBulan)} × ${ERA_TENOR} bulan`;
     }
-
-    // Konfirmasi untuk pinjaman (nominal besar)
-    if (aksi === "pinjam") {
-        const konfirm = confirm(`Konfirmasi Pengajuan Pinjaman:\nNama   : ${nama}\nNominal: ${rp(nominal)}\n\nLanjutkan?`);
-        if (!konfirm) return;
-    }
-
-    setTombolSimpan(false);
-    setSpinner("spinner-simpan", true);
-    log(`Mengirim [${aksi}] atas nama ${nama} ke Mainnet...`);
-
-    try {
-        const params = await algod.getTransactionParams().do();
-        const note = {
-            prefix: "tofrg:sp", _era: ERA_ID,
-            aksi, nama, rp: nominal,
-            msg: catatan, ts: Date.now()
-        };
-        const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-            from: akunPetugas.addr,
-            to: DOMPET_BRANKAS,
-            amount: 0,
-            assetIndex: ASSET_ID,
-            note: new TextEncoder().encode(JSON.stringify(note)),
-            suggestedParams: params
-        });
-        await algod.sendRawTransaction(txn.signTxn(akunPetugas.sk)).do();
-        log(`✅ Sukses! [${aksi}] ${nama} ${rp(nominal)}`);
-        alert(`✅ Transaksi berhasil disimpan ke blockchain!`);
-
-        // Bersihkan input
-        document.getElementById("input-nama-teks").value = "";
-        document.getElementById("input-catatan").value   = "";
-        document.getElementById("info-preview").style.display = "none";
-
-        muatData();
-    } catch (e) {
-        log("GAGAL kirim: " + e.message);
-        alert("Transaksi ditolak jaringan: " + e.message);
-    } finally {
-        setTombolSimpan(true);
-        setSpinner("spinner-simpan", false);
-    }
+  }
 }
 
-// =============================================================================
-//  KOREKSI / ANULIR SALAH INPUT
-// =============================================================================
-async function eksekusiKoreksi() {
-    const txidSalah = document.getElementById("koreksi-txid").value.trim();
-    const rpBenar   = parseInt(document.getElementById("koreksi-rp").value) || 0;
-
-    if (!txidSalah) return alert("Masukkan TxID transaksi yang salah.");
-    if (!ERA_ID)    return alert("Tidak ada siklus aktif.");
-
-    const konfirm = confirm(`Anulir TxID:\n${txidSalah}\nGanti nominal menjadi: ${rp(rpBenar)}\n\nLanjutkan?`);
-    if (!konfirm) return;
-
-    log(`Mengirim anulir untuk TxID ${txidSalah}...`);
-    try {
-        const params = await algod.getTransactionParams().do();
-        const note   = {
-            prefix: "tofrg:sp", _era: ERA_ID,
-            aksi: "koreksi", tx_salah: txidSalah, rp: rpBenar
-        };
-        const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
-            from: akunPetugas.addr,
-            to: DOMPET_BRANKAS,
-            amount: 0,
-            assetIndex: ASSET_ID,
-            note: new TextEncoder().encode(JSON.stringify(note)),
-            suggestedParams: params
-        });
-        await algod.sendRawTransaction(txn.signTxn(akunPetugas.sk)).do();
-        log("✅ Prasasti anulir berhasil dikirim.");
-        alert("✅ Koreksi berhasil dicatat!");
-        document.getElementById("koreksi-txid").value = "";
-        document.getElementById("koreksi-rp").value   = "";
-        muatData();
-    } catch (e) {
-        log("GAGAL anulir: " + e.message);
-        alert("Gagal melakukan koreksi: " + e.message);
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ KIRIM TRANSAKSI KE BLOCKCHAIN (atau antrian jika offline)      ║
+// ╚══════════════════════════════════════════════════════════════════╝
+async function kirimTransaksi(note){
+  if(!statusOnline){
+    // Simpan ke antrian
+    tambahAntrian(note);
+    return "antrian";
+  }
+  try{
+    const params=await algod.getTransactionParams().do();
+    const txn=algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+      from:akun.addr,to:DOMPET_BRANKAS,amount:0,assetIndex:ASSET_ID,
+      note:new TextEncoder().encode(JSON.stringify(note)),
+      suggestedParams:params
+    });
+    await algod.sendRawTransaction(txn.signTxn(akun.sk)).do();
+    return true;
+  }catch(e){
+    // Jika gagal karena koneksi, masukkan ke antrian
+    if(e.message&&(e.message.includes("fetch")||e.message.includes("network")||e.message.includes("Failed"))){
+      tambahAntrian(note);
+      return "antrian";
     }
+    console.error(e);
+    return false;
+  }
 }
 
-// =============================================================================
-//  TUTUP BUKU / RESET SIKLUS
-// =============================================================================
-function tutupBukuSiklus() {
-    const konfirm = prompt(
-        "⚠️  PERINGATAN TUTUP BUKU\n\n" +
-        "Siklus saat ini akan diarsipkan. Data rekap era ini tidak akan tampil lagi.\n\n" +
-        "Ketik tepat:  KONFIRMASI TUTUP BUKU"
-    );
-    if (konfirm !== "KONFIRMASI TUTUP BUKU") {
-        return alert("Kata kunci salah. Proses dibatalkan.");
-    }
-
-    ERA_ID = ""; ERA_JUDUL = ""; ERA_TANGGAL = "";
-    ERA_BUNGA = 10; ERA_TENOR = 10;
-    dbAnggota = {}; kasTotal = 0; bungaTotal = 0; txAnulir = {};
-
-    document.getElementById("box-era-baru").style.display = "block";
-    document.getElementById("setup-tanggal").value = new Date().toISOString().slice(0, 10);
-    updateBanner();
-    renderTabel();
-    log("Siklus ditutup. Siap memasuki era baru.");
-    alert("✅ Buku kas berhasil ditutup. Isi aturan era baru di kotak atas.");
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ LOADING BUTTON HELPER                                           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function setLoading(btnId,spinId,aktif,teksBtn){
+  const btn=document.getElementById(btnId);
+  const spin=document.getElementById(spinId);
+  const teksBtnEl=document.getElementById("teks-btn-"+btnId.replace("btn-",""));
+  if(btn)btn.disabled=aktif;
+  if(spin)spin.style.display=aktif?"inline-block":"none";
+  if(teksBtnEl&&teksBtn)teksBtnEl.textContent=aktif?"":teksBtn;
 }
 
-// =============================================================================
-//  ENGINE UTAMA: SCAN BLOCKCHAIN & REKONSILIASI KEUANGAN
-// =============================================================================
-async function muatData() {
-    setSpinner("spinner-tabel", true);
-    log("Menghubungkan ke Indexer Mainnet...");
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ EKSEKUSI TRANSAKSI HARIAN                                       ║
+// ╚══════════════════════════════════════════════════════════════════╝
+async function eksekusiTransaksi(){
+  if(!ERA_ID)return alert("Belum ada kelompok aktif.");
+  if(!validasiForm())return;
 
-    // Reset state
-    dbAnggota = {}; kasTotal = 0; bungaTotal = 0; txAnulir = {};
-    ERA_ID = "";
+  const aksi   =document.getElementById("input-aksi").value;
+  const nominal=parseInt(document.getElementById("input-rupiah").value)||0;
+  const catatan=document.getElementById("input-catatan").value.trim();
 
-    try {
-        // Ambil riwayat transaksi dari Indexer (BUKAN dari algod)
-        // Kita ambil transaksi asset-transfer ke alamat brankas
-        const hasilIndexer = await indexer
-            .lookupAccountTransactions(DOMPET_BRANKAS)
-            .assetID(ASSET_ID)
-            .limit(1000)        // ambil maks 1000 tx; cukup untuk RT kecil
-            .do();
+  let nama="";
+  if(aksi==="daftar_modal"){
+    nama=normNama(document.getElementById("input-nama-teks").value);
+    if(dbAnggota[nama])return alert(`Nama "${nama}" sudah terdaftar di kelompok ini.`);
+  } else {
+    nama=document.getElementById("input-nama-pilih").value;
+    if(!nama)return alert("Pilih anggota terlebih dahulu.");
+  }
 
-        let daftarTx = hasilIndexer.transactions || [];
+  // Blokir pinjaman jika kas kurang
+  if(aksi==="pinjam"){
+    const bunga=Math.round(nominal*(ERA_BUNGA/100));
+    const utangLama=dbAnggota[nama]?dbAnggota[nama].utang:0;
+    const bersihKeluar=nominal-bunga-utangLama;
+    if(bersihKeluar>kasTotal){
+      return alert(`🚫 Kas tidak cukup!\nDibutuhkan: ${rp(bersihKeluar)}\nKas tersedia: ${rp(kasTotal)}`);
+    }
+    if(!confirm(`Konfirmasi Pinjaman:\n${nama}\n${rp(nominal)}\n\nLanjutkan?`))return;
+  }
 
-        // Urutkan dari terlama ke terbaru berdasarkan round/waktu block
-        daftarTx.sort((a, b) => (a["round-time"] || 0) - (b["round-time"] || 0));
+  const btnSimpan=document.getElementById("btn-simpan");
+  const spinSimpan=document.getElementById("spin-simpan");
+  const teksBtnSimpan=document.getElementById("teks-btn-simpan");
+  btnSimpan.disabled=true;
+  spinSimpan.style.display="inline-block";
+  teksBtnSimpan.textContent="Menyimpan...";
 
-        log(`Ditemukan ${daftarTx.length} transaksi. Memproses...`);
+  tampilNotif("proses","Menyimpan transaksi...",0);
 
-        // ---------------------------------------------------------------
-        // TAHAP 1: Temukan ERA AKTIF TERBARU yang ada di blockchain
-        // ---------------------------------------------------------------
-        let eraTerakhir = null;
-        daftarTx.forEach(tx => {
-            if (!tx.note) return;
-            const data = decodeNote(tx.note);
-            if (!data || data.prefix !== "tofrg:sp") return;
-            if (data.aksi === "buka_era") {
-                eraTerakhir = data; // Selalu timpa → yang paling akhir = era aktif
-            }
-        });
+  const note={prefix:"tofrg:sp",_era:ERA_ID,aksi,nama,rp:nominal,msg:catatan,ts:Date.now()};
+  const hasil=await kirimTransaksi(note);
 
-        if (!eraTerakhir) {
-            log("Tidak ada siklus aktif ditemukan di blockchain.");
-            document.getElementById("box-era-baru").style.display = "block";
-            document.getElementById("setup-tanggal").value = new Date().toISOString().slice(0, 10);
-            updateBanner();
-            renderTabel();
-            setSpinner("spinner-tabel", false);
-            return;
+  btnSimpan.disabled=false;
+  spinSimpan.style.display="none";
+  teksBtnSimpan.textContent="💾 Simpan Transaksi";
+
+  if(hasil===true){
+    tampilNotif("sukses","Transaksi berhasil disimpan ke jaringan! ✅",5000);
+    document.getElementById("input-nama-teks").value="";
+    document.getElementById("input-rupiah").value="";
+    document.getElementById("input-catatan").value="";
+    document.getElementById("preview-box").style.display="none";
+    setTimeout(muatData,2000);
+  } else if(hasil==="antrian"){
+    tampilNotif("antri","Tidak ada sinyal — transaksi tersimpan di antrian. Akan terkirim otomatis saat sinyal ada.",0);
+    document.getElementById("input-nama-teks").value="";
+    document.getElementById("input-rupiah").value="";
+    document.getElementById("input-catatan").value="";
+  } else {
+    tampilNotif("gagal","Gagal menyimpan. Cek koneksi dan coba lagi.",5000);
+  }
+  validasiForm();
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ KOREKSI TRANSAKSI (dari modal histori)                          ║
+// ╚══════════════════════════════════════════════════════════════════╝
+async function eksekusiKoreksi(){
+  const txidSalah=document.getElementById("edit-txid-target").value;
+  const rpBaru   =parseInt(document.getElementById("edit-nominal-baru").value)||0;
+  const alasan   =document.getElementById("edit-alasan").value.trim();
+
+  if(!txidSalah)return alert("Tidak ada ID transaksi. Coba tutup dan buka lagi.");
+
+  const btnEdit=document.getElementById("btn-kirim-edit");
+  const spinEdit=document.getElementById("spin-edit");
+  const teksBtnEdit=document.getElementById("teks-btn-edit");
+  btnEdit.disabled=true;
+  spinEdit.style.display="inline-block";
+  teksBtnEdit.textContent="Menyimpan koreksi...";
+
+  const note={prefix:"tofrg:sp",_era:ERA_ID,aksi:"koreksi",tx_salah:txidSalah,rp:rpBaru,msg:alasan,ts:Date.now()};
+  const hasil=await kirimTransaksi(note);
+
+  btnEdit.disabled=false;
+  spinEdit.style.display="none";
+  teksBtnEdit.textContent="✏️ Simpan Koreksi";
+
+  if(hasil===true||hasil==="antrian"){
+    tutupModal("modal-edit");
+    tutupModal("modal-histori");
+    if(hasil===true){
+      tampilNotif("sukses","Koreksi berhasil disimpan!",5000);
+      setTimeout(muatData,2000);
+    } else {
+      tampilNotif("antri","Koreksi masuk antrian, akan terkirim saat sinyal ada.",0);
+    }
+  } else {
+    tampilNotif("gagal","Gagal menyimpan koreksi. Coba lagi.",5000);
+  }
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ TUTUP BUKU SIKLUS                                               ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function konfirmasiTutupBuku(){
+  if(antrian.length>0)return alert("Selesaikan pengiriman data antrian dulu sebelum tutup buku.");
+  const ketik=prompt("⚠️ TUTUP BUKU\n\nSemua catatan era ini akan diarsipkan.\nKetik tepat: TUTUP BUKU");
+  if(ketik!=="TUTUP BUKU")return alert("Kata kunci salah. Dibatalkan.");
+
+  ERA_ID="";dbAnggota={};txHistori={};kasTotal=0;bungaTotal=0;
+  document.getElementById("layer-app").style.display="none";
+  document.getElementById("layer-login").style.display="flex";
+  muatDaftarEra();
+  alert("✅ Buku kas berhasil ditutup. Pilih atau buat kelompok baru.");
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ ENGINE UTAMA: SCAN BLOCKCHAIN & REKONSILIASI                    ║
+// ╚══════════════════════════════════════════════════════════════════╝
+async function muatData(){
+  document.getElementById("spinner-tabel").style.display="block";
+  tampilNotif("proses","Memperbarui data dari jaringan...",0);
+
+  dbAnggota={};txHistori={};kasTotal=0;bungaTotal=0;txAnulir={};
+
+  try{
+    const hasil=await indexer.lookupAccountTransactions(DOMPET_BRANKAS)
+      .assetID(ASSET_ID).limit(1000).do();
+    let daftarTx=(hasil.transactions||[]).sort((a,b)=>(a["round-time"]||0)-(b["round-time"]||0));
+
+    // TAHAP 1: Kumpulkan anulir untuk era aktif
+    daftarTx.forEach(tx=>{
+      if(!tx.note)return;
+      const d=decodeNote(tx.note);
+      if(!d||d.prefix!=="tofrg:sp"||d._era!==ERA_ID)return;
+      if(d.aksi==="koreksi"&&d.tx_salah)txAnulir[d.tx_salah]=d.rp;
+    });
+
+    // TAHAP 2: Rekonsiliasi keuangan
+    daftarTx.forEach(tx=>{
+      if(!tx.note)return;
+      const d=decodeNote(tx.note);
+      if(!d||d.prefix!=="tofrg:sp"||d._era!==ERA_ID)return;
+      if(d.aksi==="buka_era"||d.aksi==="koreksi")return;
+
+      let nominal=d.rp||0;
+      const txId=tx.id;
+      const asliNominal=nominal;
+      let dikoreksi=false;
+      if(txAnulir[txId]!==undefined){nominal=txAnulir[txId];dikoreksi=true;}
+
+      const nama=normNama(d.nama||"");
+      if(!nama)return;
+
+      // Siapkan histori
+      if(!txHistori[nama])txHistori[nama]=[];
+      const waktu=tx["round-time"]
+        ?new Date(tx["round-time"]*1000).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"})
+        :"—";
+
+      if(d.aksi==="daftar_modal"){
+        if(!dbAnggota[nama]){
+          dbAnggota[nama]={simpanan:nominal,utang:0,tenor:0};
+          kasTotal+=nominal;
+        } else {
+          const selisih=nominal-dbAnggota[nama].simpanan;
+          dbAnggota[nama].simpanan+=selisih;
+          kasTotal+=selisih;
         }
-
-        // Kunci state era
-        ERA_ID      = eraTerakhir._era;
-        ERA_JUDUL   = eraTerakhir.judul;
-        ERA_TANGGAL = eraTerakhir.tgl;
-        ERA_BUNGA   = eraTerakhir.bunga;
-        ERA_TENOR   = eraTerakhir.tenor;
-        document.getElementById("box-era-baru").style.display = "none";
-        log(`Era aktif: ${ERA_ID} | Judul: ${ERA_JUDUL}`);
-
-        // ---------------------------------------------------------------
-        // TAHAP 2: Kumpulkan semua perintah ANULIR/KOREKSI untuk era ini
-        // ---------------------------------------------------------------
-        daftarTx.forEach(tx => {
-            if (!tx.note) return;
-            const data = decodeNote(tx.note);
-            if (!data || data.prefix !== "tofrg:sp") return;
-            if (data._era !== ERA_ID) return;
-            if (data.aksi === "koreksi" && data.tx_salah) {
-                txAnulir[data.tx_salah] = data.rp; // rp koreksi (bisa 0 = hapus efek)
-            }
-        });
-
-        // ---------------------------------------------------------------
-        // TAHAP 3: REKONSILIASI KEUANGAN — proses tiap transaksi era aktif
-        // ---------------------------------------------------------------
-        daftarTx.forEach(tx => {
-            if (!tx.note) return;
-            const data = decodeNote(tx.note);
-            if (!data || data.prefix !== "tofrg:sp") return;
-            if (data._era !== ERA_ID) return;
-            if (data.aksi === "buka_era" || data.aksi === "koreksi") return;
-
-            // Terapkan koreksi jika ada: ambil nominal yang sudah dikoreksi
-            let nominal = data.rp;
-            const txId  = tx.id;
-            if (txAnulir[txId] !== undefined) {
-                nominal = txAnulir[txId]; // Gunakan nilai koreksi
-            }
-
-            const nama = normNama(data.nama || "");
-            if (!nama) return;
-
-            // Pastikan catatan selalu diperbarui ke yang terbaru
-            const catatan = data.msg || "";
-
-            // ═══════════════════════════════════════════════════════════
-            // LOGIKA A: DAFTAR ANGGOTA BARU + MODAL AWAL
-            // ═══════════════════════════════════════════════════════════
-            if (data.aksi === "daftar_modal") {
-                if (!dbAnggota[nama]) {
-                    // Anggota baru: inisialisasi record
-                    dbAnggota[nama] = {
-                        simpanan : nominal,
-                        utang    : 0,
-                        tenor    : 0,
-                        catatan  : catatan || "Modal awal"
-                    };
-                    kasTotal += nominal;  // Modal masuk ke kas
-                } else {
-                    // Jika karena koreksi nominal berubah, sesuaikan kas & simpanan
-                    // (rare case: koreksi pada tx daftar_modal)
-                    const selisih = nominal - dbAnggota[nama].simpanan;
-                    dbAnggota[nama].simpanan += selisih;
-                    kasTotal += selisih;
-                }
-                if (catatan) dbAnggota[nama].catatan = catatan;
-                return;
-            }
-
-            // Transaksi berikut hanya berlaku untuk anggota TERDAFTAR
-            const user = dbAnggota[nama];
-            if (!user) return; // Abaikan: nama belum pernah daftar_modal
-
-            if (catatan) user.catatan = catatan; // Update catatan terbaru
-
-            // ═══════════════════════════════════════════════════════════
-            // LOGIKA B: PINJAMAN BARU
-            //
-            //   Kas RT:
-            //     + bunga dimuka (masuk brankas, tidak keluar)
-            //     - uang bersih diterima warga (keluar dari brankas)
-            //
-            //   Catatan: Sisa utang lama sudah ADA di kas (karena pernah
-            //   dicatat keluar waktu pinjam sebelumnya), jadi saat potong
-            //   utang lama, kas tidak berubah — hanya utang yang di-reset.
-            //
-            //   Rumus kas:
-            //     uangBersihKeluar = nominal - bungaDimuka - utangLama
-            //     kas += bungaDimuka        (bunga masuk kas)
-            //     kas -= uangBersihKeluar   (uang bersih keluar)
-            //     → net: kas += bungaDimuka - uangBersihKeluar
-            //     → net: kas += bungaDimuka - (nominal - bungaDimuka - utangLama)
-            //     → net: kas += 2*bunga - nominal + utangLama
-            //
-            //   Simpelnya: setelah pinjam, kas berkurang sebesar uangBersihKeluar,
-            //   dan kas bertambah sebesar bungaDimuka.
-            // ═══════════════════════════════════════════════════════════
-            if (data.aksi === "pinjam") {
-                const bungaDimuka    = Math.round(nominal * (ERA_BUNGA / 100));
-                const utangLama      = user.utang;
-                const uangBersihKeluar = nominal - bungaDimuka - utangLama;
-
-                // Update kas brankas
-                kasTotal   += bungaDimuka;        // Bunga masuk
-                kasTotal   -= uangBersihKeluar;   // Uang bersih keluar
-                bungaTotal += bungaDimuka;         // Akumulasi bunga
-
-                // Update record anggota
-                user.utang = nominal;             // Utang baru = nominal pinjaman (bunga sudah dipotong dimuka)
-                user.tenor = ERA_TENOR;           // Reset tenor ke aturan era
-                return;
-            }
-
-            // ═══════════════════════════════════════════════════════════
-            // LOGIKA C: ANGSURAN BULANAN
-            //
-            //   Uang masuk ke brankas.
-            //   Kurangi sisa utang pokok.
-            //   Kurangi sisa tenor.
-            //
-            //   Catatan: Jika nominal angsuran > sisa utang, kelebihan
-            //   tidak dihitung sebagai simpanan — petugas harus klarifikasi.
-            // ═══════════════════════════════════════════════════════════
-            if (data.aksi === "angsur") {
-                if (user.utang > 0) {
-                    const dibayar    = Math.min(nominal, user.utang); // Tidak lebih dari sisa utang
-                    user.utang       = Math.max(0, user.utang - dibayar);
-                    user.tenor       = Math.max(0, user.tenor - 1);
-                    kasTotal        += dibayar; // Uang masuk kas
-                }
-                return;
-            }
-        });
-
-        log(`Rekonsiliasi selesai. Kas: ${rp(kasTotal)} | Anggota: ${Object.keys(dbAnggota).length}`);
-        updateBanner();
-        renderDropdownNama();
-        renderTabel();
-
-    } catch (e) {
-        log("ERROR saat scanning: " + e.message);
-        alert("Gagal memuat data dari blockchain: " + e.message);
-    } finally {
-        setSpinner("spinner-tabel", false);
-    }
-}
-
-// =============================================================================
-//  RENDER DROPDOWN NAMA ANGGOTA
-// =============================================================================
-function renderDropdownNama() {
-    const select = document.getElementById("input-nama-pilih");
-    select.innerHTML = "";
-    const daftarNama = Object.keys(dbAnggota).sort();
-
-    if (daftarNama.length === 0) {
-        select.innerHTML = `<option value="">-- Belum ada anggota --</option>`;
+        txHistori[nama].push({txId,aksi:"daftar_modal",nominal:asliNominal,nominalEfektif:nominal,
+          waktu,catatan:d.msg||"Modal awal",dikoreksi});
         return;
-    }
-    daftarNama.forEach(nama => {
-        const opt = document.createElement("option");
-        opt.value = nama;
-        opt.textContent = nama;
-        select.appendChild(opt);
-    });
-    hitungPreview();
-}
+      }
 
-// =============================================================================
-//  RENDER TABEL REKAP ANGGOTA
-// =============================================================================
-function renderTabel() {
-    const tbody = document.getElementById("badan-tabel");
-    const filter = document.getElementById("cari-nama").value.toLowerCase().trim();
-    const daftarNama = Object.keys(dbAnggota).sort();
+      const user=dbAnggota[nama];
+      if(!user)return;
 
-    if (daftarNama.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#e67e22;">
-            ⚠️ Belum ada anggota di era ini. Gunakan loket kiri untuk mendaftarkan anggota baru.
-        </td></tr>`;
+      if(d.aksi==="pinjam"){
+        const bunga=Math.round(nominal*(ERA_BUNGA/100));
+        const utangLama=user.utang;
+        const bersihKeluar=nominal-bunga-utangLama;
+        kasTotal+=bunga;
+        kasTotal-=bersihKeluar;
+        bungaTotal+=bunga;
+        txHistori[nama].push({txId,aksi:"pinjam",nominal:asliNominal,nominalEfektif:nominal,
+          waktu,catatan:d.msg||"",bunga,utangLama,bersihKeluar,dikoreksi});
+        user.utang=nominal;
+        user.tenor=ERA_TENOR;
         return;
-    }
+      }
 
-    let html = "";
-    let urutan = 0;
-    daftarNama.forEach(nama => {
-        if (filter && !nama.toLowerCase().includes(filter)) return;
-        urutan++;
-        const d = dbAnggota[nama];
-        const badge = d.utang > 0
-            ? `<span class="badge badge-cicil">Cicilan Aktif</span>`
-            : `<span class="badge badge-lunas">Lunas ✅</span>`;
-        const sisaTenor = d.tenor > 0 ? `${d.tenor} bln` : `—`;
-
-        html += `<tr>
-            <td style="color:#aaa; font-size:12px;">${urutan}</td>
-            <td><strong>${nama}</strong></td>
-            <td>${rp(d.simpanan)}</td>
-            <td>${rp(d.utang)}</td>
-            <td>${sisaTenor}</td>
-            <td style="color:#888; font-style:italic; font-size:12px; max-width:180px;">"${d.catatan || '—'}"</td>
-            <td>${badge}</td>
-        </tr>`;
+      if(d.aksi==="angsur"){
+        if(user.utang>0){
+          const dibayar=Math.min(nominal,user.utang);
+          txHistori[nama].push({txId,aksi:"angsur",nominal:asliNominal,nominalEfektif:nominal,
+            waktu,catatan:d.msg||"",sisaSetelah:Math.max(0,user.utang-dibayar),dikoreksi});
+          user.utang=Math.max(0,user.utang-dibayar);
+          user.tenor=Math.max(0,user.tenor-1);
+          kasTotal+=dibayar;
+        }
+      }
     });
 
-    if (!html) {
-        html = `<tr><td colspan="7" style="text-align:center; color:#aaa; padding:14px;">Tidak ada anggota yang cocok dengan pencarian.</td></tr>`;
-    }
-    tbody.innerHTML = html;
+    updateBannerKas();
+    renderDropdown();
+    renderTabel();
+    tampilNotif("sukses","Data berhasil diperbarui.",4000);
+
+  }catch(e){
+    tampilNotif("gagal","Gagal memperbarui data. Pastikan ada koneksi internet.",5000);
+  }finally{
+    document.getElementById("spinner-tabel").style.display="none";
+  }
 }
 
-// =============================================================================
-//  INISIALISASI SAAT HALAMAN PERTAMA KALI DIMUAT
-// =============================================================================
-document.getElementById("setup-tanggal").value = new Date().toISOString().slice(0, 10);
-onAksiChanged();   // Sesuaikan tampilan form
-muatData();        // Langsung mulai scanning blockchain
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ UPDATE BANNER KAS                                               ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function updateBannerKas(){
+  const jmlAnggota=Object.keys(dbAnggota).length;
+  document.getElementById("kas-nilai").textContent=rp(kasTotal);
+  document.getElementById("kas-sub").textContent=jmlAnggota+" anggota terdaftar";
+  document.getElementById("bunga-nilai").textContent=rp(bungaTotal);
+  document.getElementById("bunga-sub").textContent="Sejak "+ERA_TANGGAL;
+  document.getElementById("status-anggota").textContent=jmlAnggota;
+}
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ DROPDOWN NAMA                                                   ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function renderDropdown(){
+  const sel=document.getElementById("input-nama-pilih");
+  sel.innerHTML=`<option value="">-- Pilih nama anggota --</option>`;
+  Object.keys(dbAnggota).sort().forEach(nama=>{
+    const opt=document.createElement("option");
+    opt.value=nama;opt.textContent=nama;
+    sel.appendChild(opt);
+  });
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ RENDER TABEL                                                    ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function renderTabel(){
+  const tbody=document.getElementById("badan-tabel");
+  const filter=document.getElementById("cari-nama").value.toLowerCase();
+  const daftar=Object.keys(dbAnggota).sort();
+
+  if(daftar.length===0){
+    tbody.innerHTML=`<tr><td colspan="6" class="kosong"><div class="ikon-kosong">🌱</div>Belum ada anggota. Daftarkan melalui loket di atas.</td></tr>`;
+    return;
+  }
+
+  let html="",no=0;
+  daftar.forEach(nama=>{
+    if(filter&&!nama.toLowerCase().includes(filter))return;
+    no++;
+    const d=dbAnggota[nama];
+    const badge=d.utang>0
+      ?`<span class="badge badge-cicil">Cicilan ${d.tenor} bln</span>`
+      :`<span class="badge badge-lunas">Lunas ✅</span>`;
+    html+=`<tr>
+      <td style="color:var(--abu);font-size:12px;">${no}</td>
+      <td><span class="nama-klik" onclick="bukaHistori('${nama.replace(/'/g,"\\'")}')">${nama}</span></td>
+      <td>${rp(d.simpanan)}</td>
+      <td>${d.utang>0?'<span style="color:var(--merah);font-weight:700;">'+rp(d.utang)+'</span>':rp(0)}</td>
+      <td>${d.tenor>0?d.tenor+" bulan":"—"}</td>
+      <td>${badge}</td>
+    </tr>`;
+  });
+  tbody.innerHTML=html||`<tr><td colspan="6" class="kosong">Tidak ditemukan.</td></tr>`;
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ MODAL HISTORI ANGGOTA                                           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+function bukaHistori(nama){
+  const data=dbAnggota[nama];
+  const histori=txHistori[nama]||[];
+
+  document.getElementById("modal-nama-header").textContent=nama;
+  document.getElementById("modal-total-modal").textContent=rp(data.simpanan);
+  document.getElementById("modal-sisa-utang").textContent=rp(data.utang);
+  document.getElementById("modal-sisa-tenor").textContent=data.tenor>0?data.tenor+" bulan":"Lunas";
+
+  const isiEl=document.getElementById("modal-isi-histori");
+  if(histori.length===0){
+    isiEl.innerHTML=`<div class="modal-histori-kosong">Belum ada riwayat transaksi.</div>`;
+  } else {
+    let html="";
+    histori.forEach(h=>{
+      const ikonMap={daftar_modal:{ikon:"🌱",kelas:"modal-awal"},pinjam:{ikon:"🏦",kelas:"pinjam"},
+        angsur:{ikon:"💵",kelas:"angsur"},koreksi:{ikon:"✏️",kelas:"koreksi"}};
+      const {ikon,kelas}=ikonMap[h.aksi]||{ikon:"📝",kelas:""};
+
+      let judul="",sub="",nominalHtml="";
+      if(h.aksi==="daftar_modal"){
+        judul="Daftar Anggota";
+        sub=`Modal awal masuk kas`;
+        nominalHtml=`<div class="histori-nominal masuk">+${rp(h.nominalEfektif)}</div>`;
+      } else if(h.aksi==="pinjam"){
+        judul="Pengajuan Pinjaman";
+        sub=`Uang bersih diterima: ${rp(h.bersihKeluar)} · Bunga: ${rp(h.bunga)}`;
+        if(h.utangLama>0)sub+=` · Lunas utang lama: ${rp(h.utangLama)}`;
+        nominalHtml=`<div class="histori-nominal keluar">–${rp(h.bersihKeluar)}</div>`;
+      } else if(h.aksi==="angsur"){
+        judul="Setor Angsuran";
+        sub=`Sisa pinjaman setelah: ${rp(h.sisaSetelah)}`;
+        nominalHtml=`<div class="histori-nominal masuk">+${rp(h.nominalEfektif)}</div>`;
+      }
+
+      if(h.dikoreksi){sub+=" ✏️ (sudah dikoreksi)";}
+      if(h.catatan){sub+=` · "${h.catatan}"`;}
+
+      html+=`<div class="item-histori">
+        <div class="histori-ikon ${kelas}">${ikon}</div>
+        <div class="histori-detail">
+          <div class="histori-judul">${judul} <span style="color:var(--abu);font-weight:400;font-size:11px;">${h.waktu}</span></div>
+          <div class="histori-sub">${sub}</div>
+          ${!h.dikoreksi&&h.aksi!=="koreksi"?`<button class="btn-edit-histori" onclick="bukaEditTransaksi('${h.txId}','${h.aksi}',${h.nominalEfektif})">✏️ Edit nilai ini</button>`:""}
+        </div>
+        ${nominalHtml}
+      </div>`;
+    });
+    isiEl.innerHTML=html;
+  }
+
+  document.getElementById("modal-histori").classList.add("tampil");
+}
+
+function bukaEditTransaksi(txId,aksi,nominalLama){
+  const aksiLabel={daftar_modal:"Modal Awal",pinjam:"Pinjaman",angsur:"Angsuran"};
+  document.getElementById("edit-judul-transaksi").textContent=(aksiLabel[aksi]||aksi)+" — "+rp(nominalLama);
+  document.getElementById("edit-txid-target").value=txId;
+  document.getElementById("edit-nominal-baru").value=nominalLama;
+  document.getElementById("edit-alasan").value="";
+  document.getElementById("modal-edit").classList.add("tampil");
+}
+
+function tutupModal(id){
+  document.getElementById(id).classList.remove("tampil");
+}
+
+// Tutup modal saat klik overlay
+document.querySelectorAll(".modal-overlay").forEach(el=>{
+  el.addEventListener("click",e=>{if(e.target===el)el.classList.remove("tampil");});
+});
+
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ INISIALISASI SAAT HALAMAN DIMUAT                                ║
+// ╚══════════════════════════════════════════════════════════════════╝
+document.getElementById("layer-login").style.display="flex";
+document.getElementById("setup-tanggal").value=new Date().toISOString().slice(0,10);
+updateIndikatorKoneksi();
+muatDaftarEra();
 </script>
 </body>
 </html>
