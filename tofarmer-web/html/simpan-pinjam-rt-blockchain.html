@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ToFarmer — Buku Kas Koperasi</title>
+<title>ToFarmer — Buku Simpan Pinjam Blockchain</title>
 <script src="https://unpkg.com/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════
@@ -51,20 +51,65 @@ a{color:inherit;text-decoration:none;}
 .login-logo .ikon{font-size:52px;display:block;margin-bottom:8px;}
 .login-logo h1{font-size:22px;font-weight:800;color:var(--hijau);}
 .login-logo p{font-size:13px;color:var(--abu);margin-top:4px;}
-.login-daftar-era{margin-bottom:20px;}
-.login-daftar-era h3{font-size:13px;font-weight:700;color:var(--abu);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;}
-.kartu-era{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:12px 14px;border:2px solid var(--abu-muda);
-  border-radius:8px;cursor:pointer;margin-bottom:8px;
-  transition:all .15s;
+
+/* SESI TERSIMPAN */
+.sesi-box{
+  background:var(--hijau-bg);border:2px solid var(--hijau-border);
+  border-radius:10px;padding:14px 16px;margin-bottom:20px;
 }
-.kartu-era:hover{border-color:var(--hijau-muda);background:var(--hijau-bg);}
-.kartu-era.aktif-pilih{border-color:var(--hijau);background:var(--hijau-bg);}
-.kartu-era-info strong{display:block;font-size:14px;}
-.kartu-era-info span{font-size:11px;color:var(--abu);}
-.kartu-era-cek{color:var(--hijau);font-size:18px;display:none;}
-.kartu-era.aktif-pilih .kartu-era-cek{display:block;}
+.sesi-box .sesi-label{font-size:11px;color:var(--hijau);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+.sesi-box .sesi-nama{font-size:16px;font-weight:800;color:var(--abu-gelap);margin-bottom:10px;}
+.btn-lanjut-sesi{
+  width:100%;padding:11px;background:var(--hijau);color:white;
+  border:none;border-radius:7px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;
+}
+.btn-lanjut-sesi:hover{background:#155d30;}
+.btn-ganti-sesi{
+  width:100%;padding:8px;background:transparent;color:var(--abu);
+  border:none;font-size:12px;cursor:pointer;margin-top:6px;
+  text-decoration:underline;
+}
+.btn-ganti-sesi:hover{color:var(--abu-gelap);}
+
+/* PENCARIAN KOPERASI */
+.cari-koperasi-wrap{margin-bottom:6px;}
+.cari-koperasi-wrap label{display:block;font-size:12px;font-weight:700;color:var(--abu-gelap);margin-bottom:6px;}
+.cari-koperasi-input{
+  width:100%;padding:11px 14px;border:2px solid var(--abu-muda);
+  border-radius:8px;font-size:14px;font-family:var(--font);transition:border .15s;
+  background:white;
+}
+.cari-koperasi-input:focus{outline:none;border-color:var(--hijau-muda);}
+.cari-koperasi-input::placeholder{color:#b2bec3;}
+.hasil-cari{
+  background:white;border:2px solid var(--abu-muda);border-radius:8px;
+  max-height:200px;overflow-y:auto;display:none;margin-top:4px;
+  box-shadow:0 6px 20px rgba(0,0,0,.1);
+}
+.hasil-cari.tampil{display:block;}
+.opsi-koperasi{
+  padding:10px 14px;cursor:pointer;border-bottom:1px solid #f0f3f0;
+  transition:background .1s;
+}
+.opsi-koperasi:last-child{border-bottom:none;}
+.opsi-koperasi:hover,.opsi-koperasi.terpilih{background:var(--hijau-bg);}
+.opsi-koperasi strong{display:block;font-size:13px;color:var(--abu-gelap);}
+.opsi-koperasi span{font-size:11px;color:var(--abu);}
+.hasil-cari-kosong{padding:12px 14px;font-size:13px;color:var(--abu);text-align:center;}
+.hasil-cari-loading{padding:12px 14px;font-size:13px;color:var(--abu);text-align:center;}
+
+/* SELECTED ERA CHIP */
+.era-terpilih-chip{
+  display:none;background:var(--hijau-bg);border:2px solid var(--hijau-border);
+  border-radius:8px;padding:10px 12px;margin-top:10px;
+  justify-content:space-between;align-items:center;
+}
+.era-terpilih-chip.tampil{display:flex;}
+.era-terpilih-chip strong{font-size:13px;color:var(--abu-gelap);}
+.era-terpilih-chip span{font-size:11px;color:var(--abu);display:block;margin-top:2px;}
+.era-terpilih-chip button{background:none;border:none;color:var(--abu);cursor:pointer;font-size:14px;padding:2px;}
+
+/* PIN & TOMBOL MASUK */
 .login-atau{text-align:center;font-size:12px;color:var(--abu);margin:16px 0;
   display:flex;align-items:center;gap:8px;}
 .login-atau::before,.login-atau::after{content:'';flex:1;height:1px;background:var(--abu-muda);}
@@ -74,7 +119,7 @@ a{color:inherit;text-decoration:none;}
   font-weight:700;font-size:14px;cursor:pointer;transition:all .15s;
 }
 .btn-buat-baru:hover{background:#fdebd0;border-color:#e67e22;}
-.field-pin{margin-top:16px;}
+.field-pin{margin-top:14px;}
 .field-pin label{display:block;font-size:12px;font-weight:700;color:var(--abu-gelap);margin-bottom:6px;}
 .input-pin{
   width:100%;padding:12px;border:2px solid var(--abu-muda);
@@ -88,6 +133,11 @@ a{color:inherit;text-decoration:none;}
   cursor:pointer;margin-top:12px;transition:background .15s;
 }
 .btn-masuk:hover{background:#155d30;}
+.notif-tanpa-pin{
+  background:#fff3cd;border:1px solid #ffc107;border-radius:6px;
+  padding:9px 12px;font-size:12px;color:#856404;margin-top:8px;display:none;
+  line-height:1.5;
+}
 .login-err{
   background:var(--merah-bg);color:var(--merah);
   border-radius:6px;padding:10px 12px;font-size:13px;
@@ -404,28 +454,58 @@ tr:hover td{background:#fafff9;}
     <div class="login-logo">
       <span class="ikon">🌾</span>
       <h1>ToFarmer</h1>
-      <p>Buku Kas Digital Koperasi Warga</p>
+      <p>Buku Simpan Pinjam Blockchain</p>
     </div>
 
-    <div class="login-daftar-era">
-      <h3>Pilih Kelompok / Koperasi</h3>
-      <div id="daftar-era-login">
-        <div class="login-loading" id="login-loading" style="display:block;">
-          ⏳ Mencari kelompok di jaringan...
+    <!-- SESI TERSIMPAN (tampil jika ada sesi di perangkat ini) -->
+    <div class="sesi-box" id="sesi-box" style="display:none;">
+      <div class="sesi-label">📱 Masuk terakhir di perangkat ini</div>
+      <div class="sesi-nama" id="sesi-nama-tersimpan">—</div>
+      <button class="btn-lanjut-sesi" onclick="lanjutSesi()">▶ Lanjutkan Sesi Ini</button>
+      <button class="btn-ganti-sesi" onclick="hapusSesiDanReset()">Ganti kelompok / koperasi lain</button>
+    </div>
+
+    <!-- CARI KOPERASI (tampil jika tidak ada sesi) -->
+    <div id="panel-cari-koperasi">
+      <div class="cari-koperasi-wrap">
+        <label>Nama Kelompok / Koperasi</label>
+        <input type="text" class="cari-koperasi-input" id="input-cari-koperasi"
+          placeholder="Ketik nama koperasi..."
+          oninput="onCariKoperasi()"
+          onkeydown="onKeydownCari(event)"
+          autocomplete="off">
+        <div class="hasil-cari" id="hasil-cari">
+          <div class="hasil-cari-loading">⏳ Memuat dari jaringan...</div>
         </div>
       </div>
+
+      <!-- CHIP ERA TERPILIH -->
+      <div class="era-terpilih-chip" id="era-terpilih-chip">
+        <div>
+          <strong id="chip-nama-era">—</strong>
+          <span id="chip-info-era">—</span>
+        </div>
+        <button onclick="batalPilihEra()" title="Ganti pilihan">✕</button>
+      </div>
+
+      <!-- NOTIF ERA TANPA PIN -->
+      <div class="notif-tanpa-pin" id="notif-tanpa-pin">
+        ℹ️ Kelompok ini dibuat sebelum fitur PIN ada. Masukkan PIN sembarang untuk masuk, lalu pertimbangkan buat era baru dengan PIN agar lebih aman.
+      </div>
+
+      <!-- INPUT PIN -->
+      <div class="field-pin" id="field-pin" style="display:none;">
+        <label>PIN Kelompok</label>
+        <input type="password" class="input-pin" id="input-pin-login" placeholder="••••" maxlength="8"
+          oninput="bersihkanErrLogin()" onkeydown="if(event.key==='Enter')masukKelompok()">
+        <button class="btn-masuk" onclick="masukKelompok()">Masuk →</button>
+      </div>
+      <div class="login-err" id="login-err"></div>
+
+      <div class="login-atau">atau</div>
+      <button class="btn-buat-baru" onclick="tampilSetup()">➕ Buat Kelompok / Koperasi Baru</button>
     </div>
 
-    <div class="login-atau">atau buat kelompok baru</div>
-    <button class="btn-buat-baru" onclick="tampilSetup()">➕ Buat Kelompok / Koperasi Baru</button>
-
-    <div class="field-pin" id="field-pin" style="display:none;">
-      <label>PIN Kelompok (4–8 digit)</label>
-      <input type="password" class="input-pin" id="input-pin-login" placeholder="••••" maxlength="8"
-        oninput="bersihkanErrLogin()" onkeydown="if(event.key==='Enter')masukKelompok()">
-      <button class="btn-masuk" onclick="masukKelompok()">Masuk →</button>
-    </div>
-    <div class="login-err" id="login-err"></div>
   </div>
 </div>
 
@@ -889,70 +969,170 @@ async function sinkronAntrian(){
 }
 
 // ╔══════════════════════════════════════════════════════════════════╗
+// ║ SIMPAN SESI — localStorage agar tidak login ulang              ║
+// ╚══════════════════════════════════════════════════════════════════╝
+const KUNCI_SESI = "tofarmer_sesi_v1";
+
+function simpanSesi(era, pin){
+  try{
+    localStorage.setItem(KUNCI_SESI, JSON.stringify({
+      _era:era._era, judul:era.judul, tgl:era.tgl,
+      bunga:era.bunga, tenor:era.tenor,
+      pinHash:era.pinHash||null, pin,
+      waktuSimpan:Date.now()
+    }));
+  }catch(e){/* localStorage mungkin diblokir, tidak masalah */}
+}
+
+function bacaSesi(){
+  try{
+    const raw=localStorage.getItem(KUNCI_SESI);
+    if(!raw)return null;
+    const s=JSON.parse(raw);
+    // Sesi kadaluwarsa setelah 30 hari
+    if(Date.now()-s.waktuSimpan > 30*24*60*60*1000){
+      localStorage.removeItem(KUNCI_SESI);return null;
+    }
+    return s;
+  }catch(e){return null;}
+}
+
+function hapusSesi(){
+  try{localStorage.removeItem(KUNCI_SESI);}catch(e){}
+}
+
+function lanjutSesi(){
+  const s=bacaSesi();
+  if(!s)return hapusSesiDanReset();
+  ERA_ID=s._era; ERA_JUDUL=s.judul; ERA_TANGGAL=s.tgl;
+  ERA_BUNGA=s.bunga; ERA_TENOR=s.tenor; ERA_PIN=s.pin||"";
+  tampilLayerApp();
+  muatData();
+}
+
+function hapusSesiDanReset(){
+  hapusSesi();
+  document.getElementById("sesi-box").style.display="none";
+  document.getElementById("panel-cari-koperasi").style.display="block";
+  // Reset state pencarian
+  batalPilihEra();
+  document.getElementById("input-cari-koperasi").value="";
+  document.getElementById("hasil-cari").classList.remove("tampil");
+}
+
+// ╔══════════════════════════════════════════════════════════════════╗
 // ║ LAYER LOGIN: SCAN ERA DI BLOCKCHAIN                             ║
 // ╚══════════════════════════════════════════════════════════════════╝
 async function muatDaftarEra(){
-  const kontainer=document.getElementById("daftar-era-login");
-  const loading=document.getElementById("login-loading");
-  loading.style.display="block";
-  kontainer.innerHTML="";
-  kontainer.appendChild(loading);
   daftarEraBlockchain=[];
+  const hasilCari=document.getElementById("hasil-cari");
+  hasilCari.innerHTML=`<div class="hasil-cari-loading">⏳ Memuat dari jaringan...</div>`;
 
+  // Cek sesi tersimpan terlebih dahulu
+  const sesi=bacaSesi();
+  if(sesi){
+    document.getElementById("sesi-nama-tersimpan").textContent=sesi.judul||"—";
+    document.getElementById("sesi-box").style.display="block";
+    document.getElementById("panel-cari-koperasi").style.display="none";
+  } else {
+    document.getElementById("sesi-box").style.display="none";
+    document.getElementById("panel-cari-koperasi").style.display="block";
+  }
+
+  // Tetap load data di background untuk pencarian
   try{
     const hasil=await indexer.lookupAccountTransactions(DOMPET_BRANKAS)
       .assetID(ASSET_ID).limit(500).do();
     const txs=(hasil.transactions||[]).sort((a,b)=>(a["round-time"]||0)-(b["round-time"]||0));
-
     const eraMap={};
     txs.forEach(tx=>{
       if(!tx.note)return;
       const d=decodeNote(tx.note);
       if(!d||d.prefix!=="tofrg:sp"||d.aksi!=="buka_era")return;
-      eraMap[d._era]=d; // selalu timpa → simpan info terbaru
+      eraMap[d._era]=d;
     });
-
     daftarEraBlockchain=Object.values(eraMap);
-    loading.style.display="none";
-
-    if(daftarEraBlockchain.length===0){
-      kontainer.innerHTML=`<div style="text-align:center;color:var(--abu);font-size:13px;padding:12px;">
-        Belum ada kelompok. Buat kelompok baru di bawah.
-      </div>`;
-      return;
-    }
-
-    daftarEraBlockchain.forEach((era,i)=>{
-      const div=document.createElement("div");
-      div.className="kartu-era";
-      div.id="kartu-era-"+i;
-      div.innerHTML=`
-        <div class="kartu-era-info">
-          <strong>${era.judul||"Kelompok #"+i}</strong>
-          <span>Mulai ${era.tgl||"?"} • Bunga ${era.bunga||"?"}% • Tenor ${era.tenor||"?"} bln</span>
-        </div>
-        <div class="kartu-era-cek">✓</div>
-      `;
-      div.onclick=()=>pilihEra(i);
-      kontainer.appendChild(div);
-    });
-
+    hasilCari.innerHTML=""; // siap untuk pencarian
   }catch(e){
-    loading.style.display="none";
-    kontainer.innerHTML=`<div style="color:var(--merah);font-size:13px;padding:8px;">
-      Gagal terhubung ke jaringan. Pastikan ada koneksi internet.
-    </div>`;
+    hasilCari.innerHTML=`<div class="hasil-cari-kosong" style="color:var(--merah);">Gagal memuat. Pastikan ada koneksi.</div>`;
   }
 }
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║ PENCARIAN KOPERASI REAL-TIME                                    ║
+// ╚══════════════════════════════════════════════════════════════════╝
 let eraYangDipilih=null;
+
+function onCariKoperasi(){
+  const kata=document.getElementById("input-cari-koperasi").value.trim().toLowerCase();
+  const hasilCari=document.getElementById("hasil-cari");
+
+  if(!kata){hasilCari.classList.remove("tampil");return;}
+
+  if(daftarEraBlockchain.length===0){
+    hasilCari.innerHTML=`<div class="hasil-cari-loading">⏳ Masih memuat data jaringan...</div>`;
+    hasilCari.classList.add("tampil");return;
+  }
+
+  const cocok=daftarEraBlockchain.filter(e=>(e.judul||"").toLowerCase().includes(kata));
+  hasilCari.classList.add("tampil");
+
+  if(cocok.length===0){
+    hasilCari.innerHTML=`<div class="hasil-cari-kosong">Tidak ditemukan. Coba nama lain atau buat kelompok baru.</div>`;
+    return;
+  }
+
+  hasilCari.innerHTML=cocok.map((era,i)=>{
+    const idx=daftarEraBlockchain.indexOf(era);
+    return `<div class="opsi-koperasi" onclick="pilihEra(${idx})">
+      <strong>${era.judul||"Kelompok tanpa nama"}</strong>
+      <span>Mulai ${era.tgl||"?"} · Bunga ${era.bunga||"?"}% · Tenor ${era.tenor||"?"} bln</span>
+    </div>`;
+  }).join("");
+}
+
+function onKeydownCari(e){
+  // Enter saat satu hasil → langsung pilih
+  const cocok=daftarEraBlockchain.filter(era=>(era.judul||"").toLowerCase()
+    .includes(document.getElementById("input-cari-koperasi").value.trim().toLowerCase()));
+  if(e.key==="Enter"&&cocok.length===1) pilihEra(daftarEraBlockchain.indexOf(cocok[0]));
+}
+
 function pilihEra(idx){
   eraYangDipilih=idx;
-  document.querySelectorAll(".kartu-era").forEach(el=>el.classList.remove("aktif-pilih"));
-  const el=document.getElementById("kartu-era-"+idx);
-  if(el)el.classList.add("aktif-pilih");
-  document.getElementById("field-pin").style.display="block";
+  const era=daftarEraBlockchain[idx];
+  if(!era)return;
+
+  // Sembunyikan dropdown hasil cari
+  document.getElementById("hasil-cari").classList.remove("tampil");
+  document.getElementById("input-cari-koperasi").value=era.judul||"";
+
+  // Tampilkan chip era terpilih
+  document.getElementById("chip-nama-era").textContent=era.judul||"—";
+  document.getElementById("chip-info-era").textContent=`Mulai ${era.tgl||"?"} · Bunga ${era.bunga||"?"}% · Tenor ${era.tenor||"?"} bln`;
+  document.getElementById("era-terpilih-chip").classList.add("tampil");
+
+  // Tangani era tanpa PIN (era lama)
+  const notifTanpaPin=document.getElementById("notif-tanpa-pin");
+  if(!era.pinHash){
+    notifTanpaPin.style.display="block";
+    document.getElementById("field-pin").style.display="block";
+    document.getElementById("input-pin-login").placeholder="Ketik sembarang, lalu tekan Masuk";
+  } else {
+    notifTanpaPin.style.display="none";
+    document.getElementById("field-pin").style.display="block";
+    document.getElementById("input-pin-login").placeholder="••••";
+  }
+  document.getElementById("input-pin-login").value="";
+  bersihkanErrLogin();
   document.getElementById("input-pin-login").focus();
+}
+
+function batalPilihEra(){
+  eraYangDipilih=null;
+  document.getElementById("era-terpilih-chip").classList.remove("tampil");
+  document.getElementById("field-pin").style.display="none";
+  document.getElementById("notif-tanpa-pin").style.display="none";
   bersihkanErrLogin();
 }
 
@@ -974,16 +1154,17 @@ function masukKelompok(){
   const era=daftarEraBlockchain[eraYangDipilih];
   const pinHash=hashPin(pin);
 
+  // Era baru: cocokkan hash PIN
   if(era.pinHash && era.pinHash!==pinHash){
     return tampilErrLogin("PIN salah. Coba lagi.");
   }
-  // Jika era lama tidak punya PIN hash (era lama tanpa fitur PIN), izinkan masuk
-  if(!era.pinHash){
-    // Era dibuat sebelum fitur PIN: izinkan masuk langsung
-  }
+  // Era lama tanpa PIN: izinkan masuk dengan sembarang nilai
 
   ERA_ID=era._era; ERA_JUDUL=era.judul; ERA_TANGGAL=era.tgl;
   ERA_BUNGA=era.bunga; ERA_TENOR=era.tenor; ERA_PIN=pin;
+
+  // Simpan sesi ke localStorage
+  simpanSesi(era, pin);
 
   tampilLayerApp();
   muatData();
@@ -1024,9 +1205,16 @@ function konfirmasiKeluar(){
   }
   const ya=confirm("Keluar dari kelompok ini dan kembali ke halaman pilih kelompok?");
   if(!ya)return;
+  hapusSesi(); // bersihkan sesi tersimpan
   document.getElementById("layer-app").style.display="none";
   document.getElementById("layer-login").style.display="flex";
   ERA_ID="";dbAnggota={};txHistori={};kasTotal=0;bungaTotal=0;antrian=[];
+  // Reset form pencarian
+  document.getElementById("input-cari-koperasi").value="";
+  document.getElementById("hasil-cari").classList.remove("tampil");
+  batalPilihEra();
+  document.getElementById("sesi-box").style.display="none";
+  document.getElementById("panel-cari-koperasi").style.display="block";
   muatDaftarEra();
 }
 
@@ -1342,9 +1530,14 @@ function konfirmasiTutupBuku(){
   const ketik=prompt("⚠️ TUTUP BUKU\n\nSemua catatan era ini akan diarsipkan.\nKetik tepat: TUTUP BUKU");
   if(ketik!=="TUTUP BUKU")return alert("Kata kunci salah. Dibatalkan.");
 
+  hapusSesi(); // hapus sesi tersimpan
   ERA_ID="";dbAnggota={};txHistori={};kasTotal=0;bungaTotal=0;
   document.getElementById("layer-app").style.display="none";
   document.getElementById("layer-login").style.display="flex";
+  document.getElementById("sesi-box").style.display="none";
+  document.getElementById("panel-cari-koperasi").style.display="block";
+  document.getElementById("input-cari-koperasi").value="";
+  batalPilihEra();
   muatDaftarEra();
   alert("✅ Buku kas berhasil ditutup. Pilih atau buat kelompok baru.");
 }
