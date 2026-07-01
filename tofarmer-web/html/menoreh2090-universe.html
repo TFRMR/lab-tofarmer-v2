@@ -224,10 +224,10 @@ async function triggerTapScan(clientX, clientY) {
     setTimeout(() => { targetWarpSpeed = 0.5; }, 400);
 
     // GACHA CHANCE ~15%
-    if (seed % 25 === 0) { 
-        isScanning = true;
-        foundEffect = true; 
-        pulseRadius = 5;
+   if (Math.random() < 0.02) { 
+    isScanning = true;
+    foundEffect = true; 
+    pulseRadius = 5;
 
         // CEK KUOTA JATAH TAMU
         if (!isUserLulusLogin && jatahSegelTamu <= 0) {
@@ -283,10 +283,16 @@ async function triggerTapScan(clientX, clientY) {
             isScanning = false;
             jalankanSimulasiLokal(seed, coordX, coordY, sectorId);
         }
-    } else {
-        const teksZonk = ["💨 Hanya Debu Meteor", "💨 Sinyal Pudar", "💨 Hampa Tanpa Inti", "💨 Angin Kosmos Kosong"];
-        buatTeksMelayang(clientX, clientY, teksZonk[seed % teksZonk.length], "#64748b");
-    }
+   } else {
+    const teksZonk = [
+        "💨 Hanya Debu Meteor", 
+        "💨 Sinyal Pudar", 
+        "📡 Frekuensi Nyaris Terkejar...", // Efek psikologis psikis nyaris dapet
+        "🌀 Fluks Magnetik Meloloskan Diri", 
+        "💨 Hampa Tanpa Inti", 
+        "💨 Angin Kosmos Kosong"
+    ];
+    buatTeksMelayang(clientX, clientY, teksZonk[Math.floor(Math.random() * teksZonk.length)], "#64748b");
 }
 
 function jalankanSimulasiLokal(seed, coordX, coordY, sectorId) {
