@@ -83,10 +83,68 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 .user-badge.guest { border-color:#eab308; color:#fde047; }
 
 .no-select { -webkit-user-select:none; user-select:none; }
+
+/* =====================================================================
+   🛸 STYLING TOP NAVIGATION (SCI-FI STYLE)
+   ===================================================================== */
+.top-nav {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10; /* Memastikan tombol berada di lapisan paling atas, di atas kanvas */
+    display: flex;
+    gap: 10px;
+}
+
+.top-btn {
+    background: rgba(14, 28, 19, 0.75);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: 12px;
+    padding: 8px 14px;
+    color: #4ade80;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Efek Getaran Cahaya saat Kursor Mendekat (Addictive Hover Effect) */
+.top-btn:hover {
+    background: rgba(34, 197, 94, 0.2);
+    border-color: #fde047;
+    color: #fde047;
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
+}
+
+.top-btn:active {
+    transform: translateY(0);
+}
+
+/* Responsif Layar Kecil (HP) agar tidak menabrak user-badge di sebelah kanan */
+@media (max-width: 480px) {
+    .top-nav {
+        top: 15px;
+        left: 15px;
+        gap: 6px;
+    }
+    .top-btn {
+        padding: 6px 10px;
+        font-size: 0.65rem;
+    }
+}
 </style>
 </head>
 <body class="no-select">
-
+<div class="game-container">
+    <div class="top-nav">
+        <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="top-btn">⬅ Fitur &amp; Info</a>
+        <a href="../" class="top-btn">🏠 Kembali ke Beranda</a>
+    </div>
 <div class="game-container">
     <div class="user-badge" id="userBadge">Mendeteksi Sinyal...</div>
 
