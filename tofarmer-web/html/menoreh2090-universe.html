@@ -212,6 +212,7 @@ function updateBadgeStatus() {
 // ==========================================
 // GAME ENGINE STATES & CANVAS
 // ==========================================
+let isIntroTyping = true;
 let namaOperator = "";
 let dataTerdeteksi = null;
 let isScanning = false;
@@ -224,7 +225,18 @@ function mengetikNarasi() {
         indexTeks++;
         setTimeout(mengetikNarasi, 35);
     } else {
-        setTimeout(() => { document.getElementById("narrativeHeader").classList.add("minimized"); }, 1500);
+        // Narasi selesai diketik, ubah status agar layar bisa di-klik
+        isIntroTyping = false;
+        
+        // Beri jeda 1.5 detik agar user sempat membaca teks utuh, lalu hilangkan
+        setTimeout(() => { 
+            const header = document.getElementById("narrativeHeader");
+            header.style.opacity = "0";
+            header.style.transition = "opacity 1s ease";
+            
+            // Benar-benar hilangkan dari hirarki layout setelah transisi selesai
+            setTimeout(() => { header.style.display = "none"; }, 1000);
+        }, 1500);
     }
 }
 
@@ -279,7 +291,8 @@ canvas.addEventListener('click', (e) => {
 });
 
 async function triggerTapScan(clientX, clientY) {
-    if (isScanning) return;
+  if (isIntroTyping) return;
+  if (isScanning) return;
 
     targetX = clientX;
     targetY = clientY;
