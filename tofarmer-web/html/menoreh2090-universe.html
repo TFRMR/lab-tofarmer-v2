@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Menoreh Universe 2090 • ToFarmer Lab</title>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=500;700;800&family=Playfair+Display:ital,wght=0,700;1,400&display=swap" rel="stylesheet">
 
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -20,10 +20,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     width:85%; max-width:550px; text-align:center; z-index:10; pointer-events:none;
     transition: all 1s cubic-bezier(0.25, 1, 0.5, 1);
 }
-/* Class saat narasi selesai mengetik, langsung mengecil naik ke atas */
-.narrative-header.minimized {
-    top: 40px; transform: translate(-50%, 0); width:90%;
-}
+.narrative-header.minimized { top: 40px; transform: translate(-50%, 0); width:90%; }
 .narrative-header h1 {
     font-family:'Playfair Display', serif; font-size:2rem; font-weight:700;
     background:linear-gradient(135deg, #fef08a 0%, #4ade80 100%);
@@ -31,10 +28,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     transition: font-size 0.8s;
 }
 .narrative-header.minimized h1 { font-size: 1.2rem; }
-.narrative-p {
-    font-size:0.9rem; line-height:1.6; color:#84a98c; min-height:60px;
-    transition: font-size 0.8s, opacity 0.5s;
-}
+.narrative-p { font-size:0.9rem; line-height:1.6; color:#84a98c; min-height:60px; transition: font-size 0.8s, opacity 0.5s; }
 .narrative-header.minimized .narrative-p { font-size: 0.72rem; line-height: 1.4; color:rgba(132,169,140,0.7); }
 
 /* PANEL MANTRA (BOTTOM FIXED OVERLAY) */
@@ -59,7 +53,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 }
 .sync-btn.active { background:linear-gradient(135deg, #eab308 0%, #ca8a04 100%); }
 
-/* FLOATING CLAIM INTERFACE (MUNCUL JIKA TARGET TERKUNCI) */
+/* FLOATING CLAIM INTERFACE */
 .claim-overlay {
     position:absolute; top:60%; left:50%; transform:translate(-50%, -50%) scale(0.9);
     width:85%; max-width:360px; background:rgba(4, 8, 5, 0.92);
@@ -79,7 +73,6 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 }
 .claim-btn:active { transform: scale(0.98); }
 
-/* ANTI-SELECTION UNTUK HP */
 .no-select { -webkit-user-select:none; user-select:none; }
 </style>
 </head>
@@ -95,12 +88,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 
     <div class="claim-overlay" id="claimOverlay">
         <div class="claim-title">🛰️ FREKUENSI GAIB TERKUNCI!</div>
-        <div class="claim-details" id="claimDetails">
-            Pancaran Sektor: MENCARI...<br>
-            Garis Titik Grid: [X:0 , Y:0]<br>
-            Medan Jiwa: Memuat data...<br>
-            Wujud Anomali: Menghitung Frekuensi...
-        </div>
+        <div class="claim-details" id="claimDetails"></div>
         <button class="claim-btn" onclick="simpanKeSupabase()">🔒 SEGEL FREKUENSI</button>
     </div>
 
@@ -114,7 +102,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 
 <script>
 // ==========================================
-// KONFIGURASI SUPABASE (Ganti dengan Kunci Proyekmu!)
+// KONFIGURASI SUPABASE
 // ==========================================
 const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY"; 
@@ -124,6 +112,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // ==========================================
 let namaOperator = "";
 let dataTerdeteksi = null;
+let isScanning = false; // Mencegah spam klik saat proses penjangkaran sinyal berjalan
 const narasiTeks = "Perbukitan Menoreh Era 2090. Kabut purba menyimpan grid energi rahasia alam semesta. Ketuk layar semamfumu untuk melacak dan mengamankan frekuensi gaib sektormu.";
 
 // --- TYPEWRITER INTRO EFFECT ---
@@ -134,9 +123,7 @@ function mengetikNarasi() {
         indexTeks++;
         setTimeout(mengetikNarasi, 35);
     } else {
-        setTimeout(() => {
-            document.getElementById("narrativeHeader").classList.add("minimized");
-        }, 1500);
+        setTimeout(() => { document.getElementById("narrativeHeader").classList.add("minimized"); }, 1500);
     }
 }
 window.onload = mengetikNarasi;
@@ -149,20 +136,12 @@ let warpSpeed = 0.5, targetWarpSpeed = 0.5;
 let foundEffect = false, pulseRadius = 0;
 let lastTap = 0, targetX = 0, targetY = 0;
 
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
 window.addEventListener('resize', resize);
 resize();
 
-// Init bintang background
 for(let i=0; i<80; i++) {
-    stars.push({ 
-        x: Math.random()*canvas.width - canvas.width/2, 
-        y: Math.random()*canvas.height - canvas.height/2, 
-        z: Math.random()*canvas.width 
-    });
+    stars.push({ x: Math.random()*canvas.width - canvas.width/2, y: Math.random()*canvas.height - canvas.height/2, z: Math.random()*canvas.width });
 }
 
 function ledakkanPartikel(x, y, warna) {
@@ -177,34 +156,58 @@ function buatTeksMelayang(x, y, txt, warna) {
     floatingTexts.push({ x: x, y: y - 15, teks: txt, warna: warna, alpha: 1 });
 }
 
-// --- LOGIKA TAP-TAP MENCARI FREKUENSI GAIB (DENGAN KEAJAIBAN MATEMATIKA) ---
+// --- LOGIKA MENCARI FREKUENSI GAIB (DIPERKETAT + PROSES LOADING SINKRONISASI) ---
 function triggerTapScan(clientX, clientY) {
+    if (isScanning) return; // Kunci input jika sedang proses penjangkaran sinyal lama
+
     targetX = clientX;
     targetY = clientY;
 
     document.getElementById("claimOverlay").classList.remove("show");
     foundEffect = false;
 
-    // Koordinat virtual murni berdasarkan rasio layar ketukan HP
     const coordX = Math.floor((clientX / canvas.width) * 9999);
     const coordY = Math.floor((clientY / canvas.height) * 9999);
 
     ledakkanPartikel(clientX, clientY, '#4ade80');
-    targetWarpSpeed = 8.0;
+    targetWarpSpeed = 6.0; // Tarikan akselerasi visual sesaat
 
-    // Keajaiban Matematika: Menciptakan "Seed" unik dari titik ruang dan waktu ketukan
-    const seed = (coordX * 31) + (coordY * 17) + Math.floor(Math.random() * 50);
+    // Rumus matematika Seed Kosmik
+    const seed = (coordX * 31) + (coordY * 17) + Math.floor(Math.random() * 75);
     
-    setTimeout(() => {
-        targetWarpSpeed = 0.5;
+    // KEMBALIKAN KECEPATAN WARP NORMAL SETELAH TAP
+    setTimeout(() => { targetWarpSpeed = 0.5; }, 300);
 
-        // Peluang 40% sukses mengunci pancaran frekuensi purba
-        if (seed % 5 < 2) { 
+    // MEKANIK GACHA RATE: Hanya lolos jika sisa bagi modulus 7 bernilai 0 (~14-15% peluang beruntung)
+    if (seed % 7 === 0) { 
+        isScanning = true;
+        foundEffect = true; 
+        pulseRadius = 5;
+
+        // Teks interval bertahap di layar yang memicu ketegangan usaha batin
+        buatTeksMelayang(clientX, clientY, "📡 MENANGKAP GELOMBANG...", "#eab308");
+        
+        let tahapanLoading = 0;
+        const intervalLoading = setInterval(() => {
+            tahapanLoading++;
+            const kataLoading = [
+                "⚡ MENYELARASKAN SUKMA...",
+                "🌀 MENEMBUS KABUT DIMENSI...",
+                "🛡️ MENGUNCI ENERGI GRID..."
+            ];
+            if(tahapanLoading <= kataLoading.length) {
+                buatTeksMelayang(targetX, targetY, kataLoading[tahapanLoading-1], "#fde047");
+                ledakkanPartikel(targetX, targetY, '#eab308');
+            }
+        }, 700);
+
+        // JEDA 2.5 DETIK BARU JRENGG KLAIM DISETUJUI ALAM GAIB
+        setTimeout(() => {
+            clearInterval(intervalLoading);
+            isScanning = false;
+
             const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
             
-            // =================================================================
-            // KEAJAIBAN MATEMATIKA SEMANTIK: GENERATOR ANOMALI KOSMOS MENOREH
-            // =================================================================
             const komponenSifat = [
                 "Resonansi Plasma", "Fluks Arus Magnetis", "Eter Suci Manifestasi", 
                 "Kristal Sisa Ledakan", "Aliran Kuanta", "Reaksi Termonuklir", 
@@ -212,7 +215,6 @@ function triggerTapScan(clientX, clientY) {
                 "Matriks Kesadaran", "Arus Jiwa Tachyon", "Simfoni Spektrum",
                 "Kabut Quantum", "Pusaran Kosmik", "Kepingan Memori"
             ];
-
             const komponenEsensi = [
                 "Kopi Purba", "Gajah Menoreh", "Kabut Sumbing", "Suroloyo", 
                 "Prana-Kuno", "Bubuk Hitam Pekat", "Sari Gula Aren Semesta", 
@@ -220,7 +222,6 @@ function triggerTapScan(clientX, clientY) {
                 "Seduhan Batin", "Aroma Jagat", "Serat Jagadnata",
                 "Rasi Kyai Gede", "Isoteri Hitam"
             ];
-
             const komponenKarakter = [
                 "Berdaun Emas", "Penembus Dimensi", "Penenang Jiwa", "Abadi Terkunci", 
                 "Singgasana Langit", "Pengubah Garis Takdir", "Pembebas Sukma", 
@@ -228,25 +229,19 @@ function triggerTapScan(clientX, clientY) {
                 "Penjaga Gerbang Gaib", "Pelebur Ego", "Penggetar Sanubari"
             ];
 
-            // Menggunakan keajaiban matematika "Seed & Modulus" untuk merajut kata secara absolut namun acak
             const indeksSifat   = (seed + coordX) % komponenSifat.length;
             const indeksEsensi  = (seed * coordY + 7) % komponenEsensi.length;
             const indeksKarakter = (seed + coordX * coordY) % komponenKarakter.length;
 
             const anomaliPilihan = `🌌 ${komponenSifat[indeksSifat]} ${komponenEsensi[indeksEsensi]} ${komponenKarakter[indeksKarakter]}`;
 
-            // Variasi status atmosfer dunia gaib 2090 + Hikmah / Filosofi Batin
             const kumpulanKondisi = [
-                "Sangat Murni (Ego Nol)",
-                "Bergejolak Ganas (Arus Amarah)",
-                "Stabil Terisolasi (Heneng-Hening)",
-                "Hampir Memudar (Fana / Kritis)",
-                "Terbuka Lebar (Gerbang Kasih)",
-                "Singkron Sempurna (Manunggaling Sinyal)"
+                "Sangat Murni (Ego Nol)", "Bergejolak Ganas (Arus Amarah)", 
+                "Stabil Terisolasi (Heneng-Hening)", "Hampir Memudar (Fana / Kritis)",
+                "Terbuka Lebar (Gerbang Kasih)", "Singkron Sempurna (Manunggaling Sinyal)"
             ];
             const kondisiPilihan = kumpulanKondisi[(seed + coordY) % kumpulanKondisi.length];
 
-            // Variasi Hikmah / Pesan Kosmos yang menyentuh intuisi user
             const kumpulanHikmah = [
                 "Mantra ini berbisik: Kesabaran adalah ruang tanpa batas waktu.",
                 "Terbaca pesan: Singgah sejenak, reguk pahitnya untuk melihat cahaya.",
@@ -259,11 +254,10 @@ function triggerTapScan(clientX, clientY) {
 
             dataTerdeteksi = { sector: sectorId, x: coordX, y: coordY, item: anomaliPilihan };
 
-            ledakkanPartikel(clientX, clientY, '#eab308');
-            buatTeksMelayang(clientX, clientY, "🎯 FREKUENSI TERKUNCI!", "#fde047");
-            foundEffect = true; pulseRadius = 10;
+            // Ledakan Dopamine Akbar berwarna Kuning Emas
+            for(let k=0; k<2; k++) { ledakkanPartikel(targetX, targetY, '#fde047'); }
+            buatTeksMelayang(targetX, targetY, "✨ KOSMOS MENYETUJUI!", "#4ade80");
 
-            // Update UI teks popup dengan gaya fiksi ilmiah magis yang kaya informasi
             document.getElementById("claimDetails").innerHTML = `
                 🛸 <b>Pancaran Sektor:</b> ${dataTerdeteksi.sector}<br>
                 📍 <b>Garis Titik Grid:</b> [X:${dataTerdeteksi.x} , Y:${dataTerdeteksi.y}]<br>
@@ -274,49 +268,37 @@ function triggerTapScan(clientX, clientY) {
                 🔑 <b>Penjangkar Sukma:</b> ${namaOperator || "Mantra Tanpa Nama"}
             `;
             
-            const btnKlaim = document.querySelector(".claim-btn");
-            if (btnKlaim) btnKlaim.innerText = "🔒 SEGEL FREKUENSI";
-
             document.getElementById("claimOverlay").classList.add("show");
-        } else {
-            const teksZonk = ["💨 Hanya Debu Meteor", "💨 Sinyal Pudar", "💨 Hampa Tanpa Inti", "💨 Angin Kosmos Kosong"];
-            buatTeksMelayang(clientX, clientY, teksZonk[seed % teksZonk.length], "#64748b");
-        }
-    }, 400);
+        }, 2500);
+
+    } else {
+        // Teks hampa/zonk jika hitungan matematika gagal menembus tirai gaib
+        const teksZonk = ["💨 Hanya Debu Meteor", "💨 Sinyal Pudar", "💨 Hampa Tanpa Inti", "💨 Angin Kosmos Kosong", "💨 Distorsi Frekuensi", "💨 Grid Terkunci Logika"];
+        buatTeksMelayang(clientX, clientY, teksZonk[seed % teksZonk.length], "#64748b");
+    }
 }
 
-// Event handler tap-tap layar cerdas
+// Event handler tap layar
 canvas.addEventListener('touchstart', (e) => {
-    let now = Date.now();
-    let timespan = now - lastTap;
-    if (timespan < 350) { 
-        let touch = e.touches[0];
-        triggerTapScan(touch.clientX, touch.clientY);
-    }
+    let now = Date.now(); let timespan = now - lastTap;
+    if (timespan < 350) { let touch = e.touches[0]; triggerTapScan(touch.clientX, touch.clientY); }
     lastTap = now;
 });
-canvas.addEventListener('click', (e) => {
-    triggerTapScan(e.clientX, e.clientY);
-});
+canvas.addEventListener('click', (e) => { triggerTapScan(e.clientX, e.clientY); });
 
-// --- RENDER LOOP ENGINE (ANTI RADIUS MINUS CRASH) ---
+// --- RENDER LOOP ENGINE ---
 function draw() {
-    ctx.fillStyle = "rgba(4, 8, 5, 0.2)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
+    ctx.fillStyle = "rgba(4, 8, 5, 0.2)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     warpSpeed += (targetWarpSpeed - warpSpeed) * 0.1;
     let cx = canvas.width/2, cy = canvas.height/2;
 
     stars.forEach(s => {
-        s.z -= warpSpeed;
-        if(s.z <= 0) s.z = canvas.width;
+        s.z -= warpSpeed; if(s.z <= 0) s.z = canvas.width;
         let k = 100 / s.z, px = s.x*k + cx, py = s.y*k + cy;
         if(px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
             let radiusBintang = Math.max(0.1, (1 - s.z / canvas.width) * 2.5);
-            ctx.fillStyle = '#4ade80'; 
-            ctx.beginPath(); 
-            ctx.arc(px, py, radiusBintang, 0, Math.PI*2); 
-            ctx.fill();
+            ctx.fillStyle = isScanning ? '#eab308' : '#4ade80'; // Bintang berubah oranye/kuning saat loading scan
+            ctx.beginPath(); ctx.arc(px, py, radiusBintang, 0, Math.PI*2); ctx.fill();
         }
     });
 
@@ -327,16 +309,18 @@ function draw() {
     }
 
     for(let i=floatingTexts.length-1; i>=0; i--) {
-        let ft = floatingTexts[i]; ft.y -= 1; ft.alpha -= 0.02;
+        let ft = floatingTexts[i]; ft.y -= 1; ft.alpha -= 0.015;
         if(ft.alpha <= 0) { floatingTexts.splice(i,1); continue; }
         ctx.save(); ctx.globalAlpha = ft.alpha; ctx.fillStyle = ft.warna; ctx.font = "bold 12px monospace"; ctx.textAlign="center"; ctx.fillText(ft.teks, ft.x, ft.y); ctx.restore();
     }
 
     if (foundEffect) {
-        pulseRadius += 1.5;
-        ctx.strokeStyle = 'rgba(234, 179, 8, ' + Math.max(0, 1 - pulseRadius/60) + ')';
-        ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(targetX, targetY, Math.max(0.1, pulseRadius), 0, Math.PI*2); ctx.stroke();
-        if(pulseRadius > 60) pulseRadius = 10;
+        // Cincin denyut berputar lebih kencang saat loading scan terdeteksi
+        pulseRadius += isScanning ? 2.5 : 1.5;
+        ctx.strokeStyle = isScanning ? 'rgba(234, 179, 8, ' + Math.max(0, 1 - pulseRadius/70) + ')' : 'rgba(74, 222, 128, ' + Math.max(0, 1 - pulseRadius/60) + ')';
+        ctx.lineWidth = isScanning ? 3 : 2; 
+        ctx.beginPath(); ctx.arc(targetX, targetY, Math.max(0.1, pulseRadius), 0, Math.PI*2); ctx.stroke();
+        if(pulseRadius > (isScanning ? 70 : 60)) pulseRadius = 10;
     }
 
     requestAnimationFrame(draw);
@@ -346,21 +330,15 @@ requestAnimationFrame(draw);
 function kunciMantra() {
     let isi = document.getElementById("secretMantra").value.trim();
     if(!isi) return alert("Ketik mantra sukmamu terlebih dahulu!");
-    
     let hash = 0; for (let i = 0; i < isi.length; i++) hash = (hash << 5) - hash + isi.charCodeAt(i);
     namaOperator = "OPR-" + Math.abs(hash).toString(16).toUpperCase().substring(0, 5);
-    
     document.getElementById("syncBtn").innerHTML = namaOperator;
     document.getElementById("syncBtn").classList.add("active");
     buatTeksMelayang(canvas.width/2, canvas.height - 80, "🔮 MANTRA TERKUNCI", "#eab308");
 }
 
-// ==========================================
-// INTEGRASI TRANSMISI DATA (SEGEL KE DATABASE)
-// ==========================================
 async function simpanKeSupabase() {
     if (!dataTerdeteksi) return;
-
     const payloadKlaim = {
         sector_id: dataTerdeteksi.sector,
         coordinate_x: dataTerdeteksi.x,
@@ -373,9 +351,8 @@ async function simpanKeSupabase() {
     ledakkanPartikel(targetX, targetY, '#fde047');
     document.getElementById("claimOverlay").classList.remove("show");
 
-    // Deteksi jika kredensial bawaan template belum diubah
     if (SUPABASE_ANON_KEY.includes("MASUKKAN_ANON_KEY")) {
-        console.log("Mode Simulasi (Belum ada Anon Key):", payloadKlaim);
+        console.log("Mode Simulasi:", payloadKlaim);
         buatTeksMelayang(targetX, targetY, "🔒 SEKTOR TERSEGEL (SIMULASI OFFLINE)", "#eab308");
         return;
     }
@@ -391,15 +368,12 @@ async function simpanKeSupabase() {
             },
             body: JSON.stringify(payloadKlaim)
         });
-
         if (response.ok) {
             buatTeksMelayang(targetX, targetY, "🔒 FREKUENSI BERHASIL DISEGEL!", "#4ade80");
         } else {
-            console.error("HTTP Error Status:", response.status);
             throw new Error("Gagal transmisi data.");
         }
     } catch (err) {
-        console.error(err);
         buatTeksMelayang(targetX, targetY, "❌ TRANSMISI MANTRA GAGAL", "#ef4444");
     }
 }
