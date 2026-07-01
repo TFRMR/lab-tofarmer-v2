@@ -269,21 +269,20 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     match_count: 5
   });
 // =====================================================================
-// JALUR MANDIRI GAME MENOREH 2090 (VERSI SUPER AMAN - ANTI CRASH & CORS)
+// JALUR MANDIRI GAME MENOREH 2090 (VERSI ULTRA RESOLUTE - ANTI FALLBACK)
 // =====================================================================
 if (body.trigger === "menoreh-2090-scan") {
   try {
     const textToProcess = body.teks || "";
     
-    // Pastikan LLM_MODEL dan env.AI tersedia dengan aman
     const gameChat = await env.AI.run(LLM_MODEL, {
       messages: [
         { 
           role: "system", 
           content: `Anda adalah Mesin Puitis Gaib ToFarmer Lab era Menoreh 2090.
-WAJIB merespon HANYA berupa objek JSON mentah bersih, tanpa kalimat pembuka, tanpa kalimat penutup, dan TANPA bungkus backtick markdown koding (seperti \`\`\`json ... \`\`\`).
+WAJIB merespon HANYA berupa objek JSON mentah bersih, tanpa kalimat pembuka, tanpa kalimat penutup, dan TANPA bungkus backtick markdown koding.
 
-Format Struktur Objek JSON yang wajib:
+Format Struktur Objek JSON yang wajib (Gunakan tanda kutip ganda dengan benar, jangan ada teks lain di luar tanda kurung kurawal):
 {
   "anomali": "Nama fiksi ilmiah spiritual Jawa kuno + emoji yang relevan",
   "kondisi": "Status energi batin/medan jiwa koordinat",
@@ -298,21 +297,37 @@ Format Struktur Objek JSON yang wajib:
       max_tokens: 400
     });
 
-    // Ambil teks respon batin AI
-    let bersihJSON = gameChat.response ? gameChat.response.trim() : "";
-    
-    if (bersihJSON.includes("```")) {
-      bersihJSON = bersihJSON.replace(/```json|```/g, "").trim();
+    // 🕵️ DETEKSI OTOMATIS STRUKTUR BALIKAN AI SDK
+    let rawAIResult = "";
+    if (typeof gameChat === "string") {
+      rawAIResult = gameChat;
+    } else if (gameChat && typeof gameChat === "object") {
+      rawAIResult = gameChat.response || gameChat.text || gameChat.result || "";
     }
 
-    // Ubah text string menjadi Objek JSON asli agar fungsi json() bawaanmu tidak bingung
+    let bersihJSON = rawAIResult.trim();
+    if (!bersihJSON) throw new Error("Respon dari Cloudflare AI kosong blong.");
+
+    // Ekstraksi paksa: Ambil hanya teks yang berada di dalam kurung kurawal { ... }
+    // Ini berguna jika AI nakal tetap menulis kalimat pembuka/penutup di luar JSON
+    const posisiAwalKurung = bersihJSON.indexOf("{");
+    const posisiAkhirKurung = bersihJSON.lastIndexOf("}");
+    
+    if (posisiAwalKurung !== -1 && posisiAkhirKurung !== -1) {
+      bersihJSON = bersihJSON.substring(posisiAwalKurung, posisiAkhirKurung + 1);
+    }
+
+    // Bersihkan sisa-sisa backtick jika ekstraksi kurung kurawal melosokkannya
+    bersihJSON = bersihJSON.replace(/```json|```/g, "").trim();
+
+    // Ubah string teks menjadi objek JavaScript murni
     const objekValid = JSON.parse(bersihJSON);
 
-    // Gunakan fungsi penampung json() bawaan kodemu agar CORS terpasang otomatis secara sakral
+    // Kirim balik ke game dengan restu CORS utuh
     return json(objekValid, corsHeaders);
 
   } catch (catchError) {
-    // Jika AI cloudflare mogok atau JSON gagal parse, tangkap erornya agar tidak merusak CORS browser!
+    // Log ini akan muncul di terminal Linux Lite kamu saat jalankan `wrangler tail`
     console.error("Gagal di jalur mandiri game:", catchError);
     
     const fallbackLokalAI = {
@@ -325,7 +340,6 @@ Format Struktur Objek JSON yang wajib:
   }
 }
 // =====================================================================
-
 // 4. SUSUN KONTEKS
 // const context = (ilmu && ilmu.length > 0) ... (dan seterusnya kode lamamu)
   // 4. SUSUN KONTEKS
