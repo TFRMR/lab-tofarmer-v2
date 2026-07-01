@@ -268,7 +268,54 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     match_threshold: 0.3,
     match_count: 5
   });
+// =====================================================================
+// JALUR MANDIRI GAME MENOREH 2090 (SEBELUM SUSUN KONTEKS)
+// =====================================================================
+if (body.trigger === "menoreh-2090-scan") {
+  const textToProcess = body.teks || "";
+  
+  const gameChat = await env.AI.run(LLM_MODEL, {
+    messages: [
+      { 
+        role: "system", 
+        content: `Anda adalah Mesin Puitis Gaib ToFarmer Lab era Menoreh 2090.
+WAJIB merespon HANYA berupa objek JSON mentah bersih, tanpa kalimat pembuka, tanpa kalimat penutup, dan TANPA bungkus backtick markdown koding (seperti \`\`\`json ... \`\`\`).
 
+Format Struktur Objek JSON yang wajib:
+{
+  "anomali": "Nama fiksi ilmiah spiritual Jawa kuno + emoji yang relevan",
+  "kondisi": "Status energi batin/medan jiwa koordinat",
+  "hikmah": "Pesan filosofis batin pendek tentang keheningan purba Menoreh"
+}` 
+      },
+      { 
+        role: "user", 
+        content: `Input koordinat & mantra: "${textToProcess}".` 
+      }
+    ],
+    max_tokens: 400
+  });
+
+  // Jaga-jaga jika AI nakal menyertakan backtick, kita bersihkan di backend sebelum dikirim
+  let bersihJSON = gameChat.response.trim();
+  if (bersihJSON.includes("```")) {
+    bersihJSON = bersihJSON.replace(/```json|```/g, "").trim();
+  }
+
+  // Langsung kembalikan respon ke game saat ini juga, putus jalur ke bawah!
+  return new Response(bersihJSON, {
+    headers: { 
+      ...corsHeaders,
+      "Content-Type": "application/json"
+    }
+  });
+}
+// =====================================================================
+// (BATAS JALUR MANDIRI) - KODE DI BAWAH INI ADALAH LOGIKA BAWAANMU YANG AMAN
+// =====================================================================
+
+// 4. SUSUN KONTEKS
+// const context = (ilmu && ilmu.length > 0) ... (dan seterusnya kode lamamu)
   // 4. SUSUN KONTEKS
   const context = (ilmu && ilmu.length > 0) 
     ? ilmu.map(i => i.content).join("\n---\n") 

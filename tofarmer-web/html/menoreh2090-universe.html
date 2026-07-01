@@ -215,21 +215,23 @@ async function triggerTapScan(clientX, clientY) {
     document.getElementById("claimOverlay").classList.remove("show");
     foundEffect = false;
 
+    // 1. HITUNG KOORDINAT KOSMIS (Wajib ada agar tidak error di bagian catch/lokal)
     const coordX = Math.floor((clientX / canvas.width) * 9999);
     const coordY = Math.floor((clientY / canvas.height) * 9999);
+    const seed = (coordX * 31) + (coordY * 17) + Math.floor(Math.random() * 75);
+    const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
 
     ledakkanPartikel(clientX, clientY, '#4ade80');
     targetWarpSpeed = 8.0; 
-    const seed = (coordX * 31) + (coordY * 17) + Math.floor(Math.random() * 75);
     setTimeout(() => { targetWarpSpeed = 0.5; }, 400);
 
-    // GACHA CHANCE ~15%
-   if (Math.random() < 0.02) { 
-    isScanning = true;
-    foundEffect = true; 
-    pulseRadius = 5;
+    // 2. TINGKAT KESULITAN (Gacha chance menggunakan persentase presisi, misal: 0.05 = 5%)
+    if (Math.random() < 0.05) { 
+        isScanning = true;
+        foundEffect = true; 
+        pulseRadius = 5;
 
-        // CEK KUOTA JATAH TAMU
+        // Cek Kuota Tamu
         if (!isUserLulusLogin && jatahSegelTamu <= 0) {
             setTimeout(() => {
                 isScanning = false;
@@ -254,46 +256,58 @@ async function triggerTapScan(clientX, clientY) {
             }
         }, 700);
 
-        const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
         const mantraUser = document.getElementById("secretMantra").value.trim() || "Keheningan Sukma";
+        const promptRekayasa = `Koordinat [X:${coordX}, Y:${coordY}] Sektor ${sectorId}, Mantra Sukma: "${mantraUser}".`;
 
-        const promptRekayasa = `Kamu adalah mesin puitis gaib ToFarmer Lab era Menoreh 2090. Tugasmu wajib memberikan balasan hanya berupa objek JSON mentah tanpa kata pembuka, tanpa penutup, dan tanpa bungkus backtick markdown. Struktur JSON: {"anomali": "Nama fiksi ilmiah gabungan spiritual Jawa dengan emoji", "kondisi": "Status energi batin", "hikmah": "Pesan pendek filosofis batin"}. Masukan -> Koordinat [X:${coordX}, Y:${coordY}] Sektor ${sectorId}, Mantra Sukma: "${mantraUser}".`;
-
+        // ==========================================
+        // BLOK TRY-CATCH AMAN (ANTI-TABRAKAN)
+        // ==========================================
         try {
             const response = await fetch(URL_AI_TOFARMER, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ teks: promptRekayasa }) 
+                body: JSON.stringify({ 
+                    trigger: "menoreh-2090-scan", // Memicu jalur mandiri di Worker
+                    teks: promptRekayasa 
+                }) 
             });
 
             clearInterval(intervalLoading);
             isScanning = false;
 
-            if (!response.ok) throw new Error();
+            if (!response.ok) throw new Error("Koneksi Worker bermasalah.");
             
-            const rawRes = await response.json();
-            const responseText = rawRes.response || rawRes.result?.response || rawRes.text || JSON.stringify(rawRes);
-            const dataAI = JSON.parse(responseText.trim());
+            // Langsung baca JSON mentah dari Worker mandiri
+            const dataAI = await response.json(); 
 
-            dataTerdeteksi = { sector: sectorId, x: coordX, y: coordY, item: dataAI.anomali };
-            tampilkanPopup(dataAI.kondisi, dataAI.anomali, dataAI.hikmah);
+            // Fallback cadangan jika properti JSON dari LLM meleset formatnya
+            const anomaliFinal = dataAI.anomali || "🌌 Relik Spektrum Kosmik Kuno";
+            const kondisiFinal = dataAI.kondisi || "Stabil Terisolasi (Heneng)";
+            const hikmahFinal = dataAI.hikmah || "Kesabaran batin menembus tebalnya kabut pegunungan purba.";
+
+            dataTerdeteksi = { sector: sectorId, x: coordX, y: coordY, item: anomaliFinal };
+            tampilkanPopup(kondisiFinal, anomaliFinal, hikmahFinal);
 
         } catch (err) {
+            // Jika Worker mati/RTO, otomatis dialihkan ke simulasi offline lokal tanpa bikin game crash
             clearInterval(intervalLoading);
             isScanning = false;
+            console.warn("Jalur AI sibuk, beralih ke radar lokal:", err);
             jalankanSimulasiLokal(seed, coordX, coordY, sectorId);
         }
-  } else {
-    const teksZonk = [
-        "💨 Hanya Debu Meteor", 
-        "💨 Sinyal Pudar", 
-        "📡 Frekuensi Nyaris Terkejar...", // Efek psikologis psikis nyaris dapet
-        "🌀 Fluks Magnetik Meloloskan Diri", 
-        "💨 Hampa Tanpa Inti", 
-        "💨 Angin Kosmos Kosong"
-    ];
-    buatTeksMelayang(clientX, clientY, teksZonk[Math.floor(Math.random() * teksZonk.length)], "#64748b");
-}
+
+    } else {
+        // Blok Zonk jika gacha gagal
+        const teksZonk = [
+            "💨 Hanya Debu Meteor", 
+            "💨 Sinyal Pudar", 
+            "📡 Frekuensi Nyaris Terkejar...", 
+            "🌀 Fluks Magnetik Meloloskan Diri", 
+            "💨 Hampa Tanpa Inti", 
+            "💨 Angin Kosmos Kosong"
+        ];
+        buatTeksMelayang(clientX, clientY, teksZonk[Math.floor(Math.random() * teksZonk.length)], "#64748b");
+    }
 }
 
 function jalankanSimulasiLokal(seed, coordX, coordY, sectorId) {
