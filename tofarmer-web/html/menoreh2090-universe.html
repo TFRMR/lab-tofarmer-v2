@@ -255,14 +255,22 @@ function tampilkanPopup(kondisi, anomali, hikmah) {
     for(let k=0; k<2; k++) { ledakkanPartikel(targetX, targetY, '#fde047'); }
     buatTeksMelayang(targetX, targetY, "✨ SIGNAL TRANSMISI SUKSES!", "#4ade80");
 
+    // Ambil nama operator, jika belum klik tombol sinkron, otomatis pakai nama "Mantra Tanpa Nama"
+    const operatorFinal = namaOperator || "Mantra Tanpa Nama";
+
+    // Jaga-jaga jika variabel dari AI ada yang bernilai undefined / kosong
+    const kondisiFinal = kondisi || "Stabil Terisolasi (Heneng)";
+    const anomaliFinal = anomali || "🌌 Relik Spektrum Kosmik Kuno";
+    const hikmahFinal = hikmah || "Kesabaran batin menembus tebalnya kabut pegunungan purba.";
+
     document.getElementById("claimDetails").innerHTML = `
         🛸 <b>Pancaran Sektor:</b> ${dataTerdeteksi.sector}<br>
         📍 <b>Garis Titik Grid:</b> [X:${dataTerdeteksi.x} , Y:${dataTerdeteksi.y}]<br>
-        🧪 <b>Medan Jiwa:</b> ${kondisi}<br>
-        🔮 <span style="color:#fde047; font-size:0.82rem;"><b>Wujud Anomali (ToFarmer AI):</b><br>${anomali}</span><br>
+        🧪 <b>Medan Jiwa:</b> ${kondisiFinal}<br>
+        🔮 <span style="color:#fde047; font-size:0.82rem;"><b>Wujud Anomali (ToFarmer AI):</b><br>${anomaliFinal}</span><br>
         <hr style="border:0; border-top:1px dashed rgba(74,222,128,0.2); margin:8px 0;">
-        📜 <i style="color:#a7f3d0; font-size:0.72rem; display:block; line-height:1.4;">"${hikmah}"</i><br>
-        🔑 <b>Penjangkar Sukma:</b> ${namaOperator || "Mantra Tanpa Nama"}
+        📜 <i style="color:#a7f3d0; font-size:0.72rem; display:block; line-height:1.4;">"${hikmahFinal}"</i><br>
+        🔑 <b>Penjangkar Sukma:</b> ${operatorFinal}
     `;
     document.getElementById("claimOverlay").classList.add("show");
 }
