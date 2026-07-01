@@ -13,7 +13,7 @@ export default {
     }
 
     // ✅ SATU TITIK KONTROL MODEL — ganti di sini saja atau via env variable
-    const LLM_MODEL = env.CF_AI_MODEL || "google/gemini-3.5-flash";
+    const LLM_MODEL = env.CF_AI_MODEL || "@cf/openai/gpt-oss-120b";
 
     const url = new URL(request.url);
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
