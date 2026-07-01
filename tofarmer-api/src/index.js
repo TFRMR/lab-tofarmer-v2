@@ -269,20 +269,20 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     match_count: 5
   });
 // =====================================================================
-// JALUR MANDIRI GAME MENOREH 2090 (VERSI ULTRA RESOLUTE - ANTI FALLBACK)
+// JALUR MANDIRI GAME MENOREH 2090 (VERSI INTERNAL HARDCODED MODEL)
 // =====================================================================
 if (body.trigger === "menoreh-2090-scan") {
   try {
     const textToProcess = body.teks || "";
     
-    const gameChat = await env.AI.run(LLM_MODEL, {
+    const aiPayload = {
       messages: [
         { 
           role: "system", 
           content: `Anda adalah Mesin Puitis Gaib ToFarmer Lab era Menoreh 2090.
 WAJIB merespon HANYA berupa objek JSON mentah bersih, tanpa kalimat pembuka, tanpa kalimat penutup, dan TANPA bungkus backtick markdown koding.
 
-Format Struktur Objek JSON yang wajib (Gunakan tanda kutip ganda dengan benar, jangan ada teks lain di luar tanda kurung kurawal):
+Format Struktur Objek JSON yang wajib:
 {
   "anomali": "Nama fiksi ilmiah spiritual Jawa kuno + emoji yang relevan",
   "kondisi": "Status energi batin/medan jiwa koordinat",
@@ -295,9 +295,21 @@ Format Struktur Objek JSON yang wajib (Gunakan tanda kutip ganda dengan benar, j
         }
       ],
       max_tokens: 400
-    });
+    };
 
-    // 🕵️ DETEKSI OTOMATIS STRUKTUR BALIKAN AI SDK
+    let gameChat;
+    
+    try {
+      // 🚀 Menembak langsung ke model Llama 3 yang sudah kita hardcode di atas
+      console.log("Mencoba melakukan hit ke Model Utama (Llama 3)...");
+      gameChat = await env.AI.run(LLM_MODEL, aiPayload);
+    } catch (llamaError) {
+      console.warn("Model Llama 3 bermasalah, mengalihkan ke model cadangan Qwen...", llamaError);
+      // Jika Llama 3 sibuk, langsung alihkan ke Qwen 1.5 Chat sebagai ban serep internal
+      gameChat = await env.AI.run("@cf/meta/llama-guard-3-8b", aiPayload);
+    }
+
+    // Ekstraksi data hasil balikan AI
     let rawAIResult = "";
     if (typeof gameChat === "string") {
       rawAIResult = gameChat;
@@ -306,10 +318,9 @@ Format Struktur Objek JSON yang wajib (Gunakan tanda kutip ganda dengan benar, j
     }
 
     let bersihJSON = rawAIResult.trim();
-    if (!bersihJSON) throw new Error("Respon dari Cloudflare AI kosong blong.");
+    if (!bersihJSON) throw new Error("Semua lini model AI Cloudflare tidak merespon.");
 
-    // Ekstraksi paksa: Ambil hanya teks yang berada di dalam kurung kurawal { ... }
-    // Ini berguna jika AI nakal tetap menulis kalimat pembuka/penutup di luar JSON
+    // Potong paksa string agar hanya menyisakan objek kurung kurawal { ... }
     const posisiAwalKurung = bersihJSON.indexOf("{");
     const posisiAkhirKurung = bersihJSON.lastIndexOf("}");
     
@@ -317,18 +328,14 @@ Format Struktur Objek JSON yang wajib (Gunakan tanda kutip ganda dengan benar, j
       bersihJSON = bersihJSON.substring(posisiAwalKurung, posisiAkhirKurung + 1);
     }
 
-    // Bersihkan sisa-sisa backtick jika ekstraksi kurung kurawal melosokkannya
     bersihJSON = bersihJSON.replace(/```json|```/g, "").trim();
-
-    // Ubah string teks menjadi objek JavaScript murni
     const objekValid = JSON.parse(bersihJSON);
 
-    // Kirim balik ke game dengan restu CORS utuh
+    // Kirim ke browser game Menoreh dengan restu CORS utuh
     return json(objekValid, corsHeaders);
 
   } catch (catchError) {
-    // Log ini akan muncul di terminal Linux Lite kamu saat jalankan `wrangler tail`
-    console.error("Gagal di jalur mandiri game:", catchError);
+    console.error("Gagal total di sub-sistem AI:", catchError);
     
     const fallbackLokalAI = {
       anomali: "🌌 Resonansi Plasma Eter Purba 🔮",
