@@ -163,7 +163,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 
     <canvas id="cosmosCanvas"></canvas>
 <audio id="ambientSound" loop>
-    <source src="/aset/173520-zabuhailo-hum-1.mp3" type="audio/mpeg">
+    <source src="/aset/moment-of-peace.M4A" type="audio/mpeg">
 </audio>
     <header class="narrative-header" id="narrativeHeader">
         <h1>Menoreh Universe</h1>
@@ -306,15 +306,26 @@ canvas.addEventListener('click', (e) => {
 });
 
 async function triggerTapScan(clientX, clientY) {
-// --- TAMBAHAN: AUTO-PLAY AMBIENT SOUND ---
+    // 1. Inisialisasi & Lazy Load Audio
     const audio = document.getElementById("ambientSound");
+    
+    // Cek apakah src masih kosong, jika ya, isi dengan path file audionya
+    if (audio.src === "" || audio.src.endsWith("/")) {
+        audio.src = "/assets/moment-of-peace.M4A"; // Pastikan path ini benar
+        audio.load();
+    }
+    
+    // Coba mainkan audio jika belum berbunyi
     if (audio.paused) {
-        audio.volume = 0.3; // Volume rendah agar tidak mengganggu
+        audio.volume = 0.2;
         audio.play().catch(e => console.log("Menunggu interaksi user untuk audio"));
     }
-    // ----------------------------------------
+
+    // 2. Cek status game
     if (isIntroTyping) return;
     if (isScanning) return;
+
+
 
     // 1. SENSASI FISIK (Haptic Feedback)
     // Berikan getaran halus saat sentuhan pertama sebagai "feedback" nyata
