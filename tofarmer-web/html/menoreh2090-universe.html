@@ -61,51 +61,49 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 
 /* FLOATING CLAIM INTERFACE (MUNCUL JIKA TARGET TERKUNCI) */
 .claim-overlay {
-    position:absolute; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.9);
-    width:85%; max-width:340px; background:rgba(4, 8, 5, 0.9);
-    border:1px solid rgba(234, 179, 8, 0.4); border-radius:18px; padding:16px;
+    position:absolute; top:60%; left:50%; transform:translate(-50%, -50%) scale(0.9);
+    width:85%; max-width:360px; background:rgba(4, 8, 5, 0.92);
+    border:1px solid rgba(234, 179, 8, 0.4); border-radius:18px; padding:18px;
     z-index:6; pointer-events:auto; opacity:0; visibility:hidden;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 0 30px rgba(34, 197, 94, 0.15);
+    box-shadow: 0 0 35px rgba(34, 197, 94, 0.2);
 }
 .claim-overlay.show { opacity:1; visibility:visible; transform:translate(-50%, -50%) scale(1); }
-.claim-title { font-size:0.8rem; font-weight:800; color:#fde047; letter-spacing:1px; text-align:center; margin-bottom:8px; }
-.claim-details { font-size:0.75rem; color:#cbd5e1; font-family:monospace; background:rgba(255,255,255,0.03); padding:8px; border-radius:8px; line-height:1.5; margin-bottom:12px; border:1px solid rgba(255,255,255,0.05); }
+.claim-title { font-size:0.85rem; font-weight:800; color:#fde047; letter-spacing:1px; text-align:center; margin-bottom:10px; }
+.claim-details { font-size:0.75rem; color:#cbd5e1; font-family:monospace; background:rgba(255,255,255,0.03); padding:10px; border-radius:8px; line-height:1.6; margin-bottom:14px; border:1px solid rgba(255,255,255,0.05); }
 
 .claim-btn {
     width:100%; padding:12px; background:linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
     border:none; color:#050b07; font-weight:800; font-size:0.8rem; border-radius:10px;
-    cursor:pointer; text-transform:uppercase; box-shadow:0 4px 15px rgba(234,179,8,0.3);
+    cursor:pointer; text-transform:uppercase; box-shadow:0 4px 15px rgba(234,179,8,0.3); transition: 0.2s;
 }
+.claim-btn:active { transform: scale(0.98); }
 
-/* ANTI-SELECTION UNTUK HP (BIAR GA NYEDOT TEXT PAS TAP CEPAT) */
+/* ANTI-SELECTION UNTUK HP */
 .no-select { -webkit-user-select:none; user-select:none; }
 </style>
 </head>
 <body class="no-select">
 
 <div class="game-container">
-    <!-- Kanvas Antariksa / Radar Gaib -->
     <canvas id="cosmosCanvas"></canvas>
 
-    <!-- Narasi Pembuka Dinamis -->
     <header class="narrative-header" id="narrativeHeader">
         <h1>Menoreh Universe</h1>
         <div class="narrative-p" id="typedText"></div>
     </header>
 
-    <!-- UI Klaim Melayang -->
     <div class="claim-overlay" id="claimOverlay">
         <div class="claim-title">🛰️ FREKUENSI GAIB TERKUNCI!</div>
         <div class="claim-details" id="claimDetails">
-            Sektor: KOSMOS-MNR-X<br>
-            Koordinat: [0, 0]<br>
-            Anomali: Memuat data...
+            Pancaran Sektor: MENCARI...<br>
+            Garis Titik Grid: [X:0 , Y:0]<br>
+            Medan Jiwa: Memuat data...<br>
+            Wujud Anomali: Menghitung Frekuensi...
         </div>
-        <button class="claim-btn" onclick="simpanKeSupabase()">Segel & Simpan ke Supabase</button>
+        <button class="claim-btn" onclick="simpanKeSupabase()">🔒 SEGEL FREKUENSI</button>
     </div>
 
-    <!-- Panel Pengisi Mantra Bawah -->
     <div class="bottom-panel">
         <div class="mantra-box">
             <input type="text" id="secretMantra" placeholder="Isi jimat batin / mantra sukma..." value="">
@@ -116,10 +114,10 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 
 <script>
 // ==========================================
-// KONFIGURASI SUPABASE (Ganti dengan Link Proyekmu)
+// KONFIGURASI SUPABASE (Ganti dengan Kunci Proyekmu!)
 // ==========================================
 const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY"; 
 
 // ==========================================
 // GAME STATE & CONFIG
@@ -134,9 +132,8 @@ function mengetikNarasi() {
     if (indexTeks < narasiTeks.length) {
         document.getElementById("typedText").innerHTML += narasiTeks.charAt(indexTeks);
         indexTeks++;
-        setTimeout(mengetikNarasi, 35); // Kecepatan mengetik text
+        setTimeout(mengetikNarasi, 35);
     } else {
-        // Selesai mengetik, tunggu 1.5 detik lalu ciutkan ke atas
         setTimeout(() => {
             document.getElementById("narrativeHeader").classList.add("minimized");
         }, 1500);
@@ -161,78 +158,137 @@ resize();
 
 // Init bintang background
 for(let i=0; i<80; i++) {
-    stars.push({ x: Math.random()*canvas.width - canvas.width/2, y: Math.random()*canvas.height - canvas.height/2, z: Math.random()*canvas.width });
+    stars.push({ 
+        x: Math.random()*canvas.width - canvas.width/2, 
+        y: Math.random()*canvas.height - canvas.height/2, 
+        z: Math.random()*canvas.width 
+    });
 }
 
-// Efek Partikel Meledak (Dopamine Booster)
 function ledakkanPartikel(x, y, warna) {
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 25; i++) {
         let sudut = Math.random() * Math.PI * 2;
         let speed = 3 + Math.random() * 6;
         particles.push({ x: x, y: y, vx: Math.cos(sudut)*speed, vy: Math.sin(sudut)*speed, radius: Math.random()*3+1, color: warna, alpha: 1, decay: 0.025 });
     }
 }
 
-// Angka Floating Feedback Pop-up
 function buatTeksMelayang(x, y, txt, warna) {
     floatingTexts.push({ x: x, y: y - 15, teks: txt, warna: warna, alpha: 1 });
 }
 
-// --- LOGIKA TAP-TAP HP / CLICK SCREEN MENCARI FREKUENSI ---
+// --- LOGIKA TAP-TAP MENCARI FREKUENSI GAIB (DENGAN KEAJAIBAN MATEMATIKA) ---
 function triggerTapScan(clientX, clientY) {
     targetX = clientX;
     targetY = clientY;
 
-    // Sembunyikan panel klaim lama
     document.getElementById("claimOverlay").classList.remove("show");
     foundEffect = false;
 
-    // Hitung koordinat virtual berdasarkan lokasi ketukan di layar HP
+    // Koordinat virtual murni berdasarkan rasio layar ketukan HP
     const coordX = Math.floor((clientX / canvas.width) * 9999);
     const coordY = Math.floor((clientY / canvas.height) * 9999);
 
-    // Efek visual ketukan instan
     ledakkanPartikel(clientX, clientY, '#4ade80');
-    targetWarpSpeed = 8.0; // Tarikan warp antariksa sesaat
+    targetWarpSpeed = 8.0;
 
-    // Logika matematika penentu zonk/harta berdasarkan titik koordinat acak
-    const seed = coordX + coordY + Math.floor(Math.random() * 100);
+    // Keajaiban Matematika: Menciptakan "Seed" unik dari titik ruang dan waktu ketukan
+    const seed = (coordX * 31) + (coordY * 17) + Math.floor(Math.random() * 50);
     
     setTimeout(() => {
-        targetWarpSpeed = 0.5; // Kembalikan kecepatan normal
+        targetWarpSpeed = 0.5;
 
-        if (seed % 3 === 0) { // Peluang 33% berhasil menangkap sinyal gaib
+        // Peluang 40% sukses mengunci pancaran frekuensi purba
+        if (seed % 5 < 2) { 
             const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
-            const daftarAnomali = ["Inti Plasma Kopi Purba", "Arus Energi Gajah Menoreh", "Eter Suci Kabut Sumbing"];
-            const anomaliPilihan = daftarAnomali[seed % daftarAnomali.length];
+            
+            // =================================================================
+            // KEAJAIBAN MATEMATIKA SEMANTIK: GENERATOR ANOMALI KOSMOS MENOREH
+            // =================================================================
+            const komponenSifat = [
+                "Resonansi Plasma", "Fluks Arus Magnetis", "Eter Suci Manifestasi", 
+                "Kristal Sisa Ledakan", "Aliran Kuanta", "Reaksi Termonuklir", 
+                "Pancaran Singolaritas", "Anomali Gravitasi", "Pecahan Relik", 
+                "Matriks Kesadaran", "Arus Jiwa Tachyon", "Simfoni Spektrum",
+                "Kabut Quantum", "Pusaran Kosmik", "Kepingan Memori"
+            ];
+
+            const komponenEsensi = [
+                "Kopi Purba", "Gajah Menoreh", "Kabut Sumbing", "Suroloyo", 
+                "Prana-Kuno", "Bubuk Hitam Pekat", "Sari Gula Aren Semesta", 
+                "Mantra Sukma", "Lontar Digital", "Bait Macapat Purba", 
+                "Seduhan Batin", "Aroma Jagat", "Serat Jagadnata",
+                "Rasi Kyai Gede", "Isoteri Hitam"
+            ];
+
+            const komponenKarakter = [
+                "Berdaun Emas", "Penembus Dimensi", "Penenang Jiwa", "Abadi Terkunci", 
+                "Singgasana Langit", "Pengubah Garis Takdir", "Pembebas Sukma", 
+                "Akar Bumi 2090", "Cahaya Swatantra", "Siklus Tak Berujung",
+                "Penjaga Gerbang Gaib", "Pelebur Ego", "Penggetar Sanubari"
+            ];
+
+            // Menggunakan keajaiban matematika "Seed & Modulus" untuk merajut kata secara absolut namun acak
+            const indeksSifat   = (seed + coordX) % komponenSifat.length;
+            const indeksEsensi  = (seed * coordY + 7) % komponenEsensi.length;
+            const indeksKarakter = (seed + coordX * coordY) % komponenKarakter.length;
+
+            const anomaliPilihan = `🌌 ${komponenSifat[indeksSifat]} ${komponenEsensi[indeksEsensi]} ${komponenKarakter[indeksKarakter]}`;
+
+            // Variasi status atmosfer dunia gaib 2090 + Hikmah / Filosofi Batin
+            const kumpulanKondisi = [
+                "Sangat Murni (Ego Nol)",
+                "Bergejolak Ganas (Arus Amarah)",
+                "Stabil Terisolasi (Heneng-Hening)",
+                "Hampir Memudar (Fana / Kritis)",
+                "Terbuka Lebar (Gerbang Kasih)",
+                "Singkron Sempurna (Manunggaling Sinyal)"
+            ];
+            const kondisiPilihan = kumpulanKondisi[(seed + coordY) % kumpulanKondisi.length];
+
+            // Variasi Hikmah / Pesan Kosmos yang menyentuh intuisi user
+            const kumpulanHikmah = [
+                "Mantra ini berbisik: Kesabaran adalah ruang tanpa batas waktu.",
+                "Terbaca pesan: Singgah sejenak, reguk pahitnya untuk melihat cahaya.",
+                "Frekuensi ini selaras dengan denyut jantung bumi yang terlupakan.",
+                "Jangan buru-buru menyegel, rasakan getaran keheningan di dalamnya.",
+                "Sebuah ruang kosong yang siap menerima tumpahan kesadaran barumu.",
+                "Sektor ini membuktikan bahwa yang tak terlihat, justru yang mengikat abadi."
+            ];
+            const hikmahPilihan = kumpulanHikmah[(seed * 3) % kumpulanHikmah.length];
 
             dataTerdeteksi = { sector: sectorId, x: coordX, y: coordY, item: anomaliPilihan };
 
-            // Efek sukses
             ledakkanPartikel(clientX, clientY, '#eab308');
             buatTeksMelayang(clientX, clientY, "🎯 FREKUENSI TERKUNCI!", "#fde047");
             foundEffect = true; pulseRadius = 10;
 
-            // Tampilkan UI klaim melayang langsung di tengah layar
+            // Update UI teks popup dengan gaya fiksi ilmiah magis yang kaya informasi
             document.getElementById("claimDetails").innerHTML = `
-                🛸 <b>Sektor:</b> ${dataTerdeteksi.sector}<br>
-                📍 <b>Sumbu Grid:</b> [X:${dataTerdeteksi.x}, Y:${dataTerdeteksi.y}]<br>
-                💎 <b>Anomali:</b> ${dataTerdeteksi.item}<br>
-                🔑 <b>Penandatangan:</b> ${namaOperator || "Anonim-Sukma"}
+                🛸 <b>Pancaran Sektor:</b> ${dataTerdeteksi.sector}<br>
+                📍 <b>Garis Titik Grid:</b> [X:${dataTerdeteksi.x} , Y:${dataTerdeteksi.y}]<br>
+                🧪 <b>Medan Jiwa:</b> ${kondisiPilihan}<br>
+                🔮 <span style="color:#fde047; font-size:0.82rem;"><b>Wujud Anomali:</b><br>${dataTerdeteksi.item}</span><br>
+                <hr style="border:0; border-top:1px dashed rgba(74,222,128,0.2); margin:8px 0;">
+                📜 <i style="color:#a7f3d0; font-size:0.72rem; display:block; line-height:1.4;">"${hikmahPilihan}"</i><br>
+                🔑 <b>Penjangkar Sukma:</b> ${namaOperator || "Mantra Tanpa Nama"}
             `;
+            
+            const btnKlaim = document.querySelector(".claim-btn");
+            if (btnKlaim) btnKlaim.innerText = "🔒 SEGEL FREKUENSI";
+
             document.getElementById("claimOverlay").classList.add("show");
         } else {
-            // Zonk feedback
-            buatTeksMelayang(clientX, clientY, "💨 Kosong (Hampa)", "#64748b");
+            const teksZonk = ["💨 Hanya Debu Meteor", "💨 Sinyal Pudar", "💨 Hampa Tanpa Inti", "💨 Angin Kosmos Kosong"];
+            buatTeksMelayang(clientX, clientY, teksZonk[seed % teksZonk.length], "#64748b");
         }
     }, 400);
 }
 
-// Listeners untuk HP (Touch) dan Laptop (Mouse)
+// Event handler tap-tap layar cerdas
 canvas.addEventListener('touchstart', (e) => {
     let now = Date.now();
     let timespan = now - lastTap;
-    // Mendukung single tap dinamis yang cepat layaknya game tap-tap adiktif
     if (timespan < 350) { 
         let touch = e.touches[0];
         triggerTapScan(touch.clientX, touch.clientY);
@@ -243,7 +299,7 @@ canvas.addEventListener('click', (e) => {
     triggerTapScan(e.clientX, e.clientY);
 });
 
-// --- RENDER LOOP ENGINE ---
+// --- RENDER LOOP ENGINE (ANTI RADIUS MINUS CRASH) ---
 function draw() {
     ctx.fillStyle = "rgba(4, 8, 5, 0.2)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -251,35 +307,35 @@ function draw() {
     warpSpeed += (targetWarpSpeed - warpSpeed) * 0.1;
     let cx = canvas.width/2, cy = canvas.height/2;
 
-    // Bintang bergerak
     stars.forEach(s => {
         s.z -= warpSpeed;
         if(s.z <= 0) s.z = canvas.width;
         let k = 100 / s.z, px = s.x*k + cx, py = s.y*k + cy;
         if(px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
-            ctx.fillStyle = '#4ade80'; ctx.beginPath(); ctx.arc(px, py, (1-s.z/canvas.width)*2.5, 0, Math.PI*2); ctx.fill();
+            let radiusBintang = Math.max(0.1, (1 - s.z / canvas.width) * 2.5);
+            ctx.fillStyle = '#4ade80'; 
+            ctx.beginPath(); 
+            ctx.arc(px, py, radiusBintang, 0, Math.PI*2); 
+            ctx.fill();
         }
     });
 
-    // Render partikel serpihan ledakan
     for(let i=particles.length-1; i>=0; i--) {
         let p = particles[i]; p.x += p.vx; p.y += p.vy; p.alpha -= p.decay;
         if(p.alpha <= 0) { particles.splice(i,1); continue; }
-        ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.1, p.radius), 0, Math.PI*2); ctx.fill(); ctx.restore();
     }
 
-    // Render text melayang meluncur ke atas
     for(let i=floatingTexts.length-1; i>=0; i--) {
         let ft = floatingTexts[i]; ft.y -= 1; ft.alpha -= 0.02;
         if(ft.alpha <= 0) { floatingTexts.splice(i,1); continue; }
         ctx.save(); ctx.globalAlpha = ft.alpha; ctx.fillStyle = ft.warna; ctx.font = "bold 12px monospace"; ctx.textAlign="center"; ctx.fillText(ft.teks, ft.x, ft.y); ctx.restore();
     }
 
-    // Cincin denyut penanda sasaran frekuensi gaib berhasil didapatkan
     if (foundEffect) {
         pulseRadius += 1.5;
         ctx.strokeStyle = 'rgba(234, 179, 8, ' + Math.max(0, 1 - pulseRadius/60) + ')';
-        ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(targetX, targetY, pulseRadius, 0, Math.PI*2); ctx.stroke();
+        ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(targetX, targetY, Math.max(0.1, pulseRadius), 0, Math.PI*2); ctx.stroke();
         if(pulseRadius > 60) pulseRadius = 10;
     }
 
@@ -287,12 +343,10 @@ function draw() {
 }
 requestAnimationFrame(draw);
 
-// --- LOGIKA PENGISI MANTRA ---
 function kunciMantra() {
     let isi = document.getElementById("secretMantra").value.trim();
     if(!isi) return alert("Ketik mantra sukmamu terlebih dahulu!");
     
-    // Hash sederhana membuat ID Operator unik
     let hash = 0; for (let i = 0; i < isi.length; i++) hash = (hash << 5) - hash + isi.charCodeAt(i);
     namaOperator = "OPR-" + Math.abs(hash).toString(16).toUpperCase().substring(0, 5);
     
@@ -302,43 +356,30 @@ function kunciMantra() {
 }
 
 // ==========================================
-// INTEGRASI SUPABASE (MENGIRIM HASIL KLAIM KE DATABASE)
+// INTEGRASI TRANSMISI DATA (SEGEL KE DATABASE)
 // ==========================================
 async function simpanKeSupabase() {
     if (!dataTerdeteksi) return;
 
-    // Payload data rapi untuk disimpan di baris tabel Supabase-mu
     const payloadKlaim = {
         sector_id: dataTerdeteksi.sector,
         coordinate_x: dataTerdeteksi.x,
         coordinate_y: dataTerdeteksi.y,
         anomaly_item: dataTerdeteksi.item,
-        operator_signature: namaOperator || "Anonim-Sukma",
+        operator_signature: namaOperator || "Mantra Tanpa Nama",
         claimed_at: new Date().toISOString()
     };
 
-    // Tanda selebrasi visual langsung di titik klaim
     ledakkanPartikel(targetX, targetY, '#fde047');
     document.getElementById("claimOverlay").classList.remove("show");
 
-    // Jika Supabase URL masih bawaan template, simulasi offline
-    if (SUPABASE_URL.includes("XYZ_PROJECT_ID_KAMU")) {
-        console.log("Simulasi Berhasil (Supabase Belum Dihubungkan):", payloadKlaim);
-        buatTeksMelayang(targetX, targetY, "💾 SEKTOR TERSIMPAN (LOCAL/SIMULASI)", "#4ade80");
+    // Deteksi jika kredensial bawaan template belum diubah
+    if (SUPABASE_ANON_KEY.includes("MASUKKAN_ANON_KEY")) {
+        console.log("Mode Simulasi (Belum ada Anon Key):", payloadKlaim);
+        buatTeksMelayang(targetX, targetY, "🔒 SEKTOR TERSEGEL (SIMULASI OFFLINE)", "#eab308");
         return;
     }
 
-    /* 
-       💡 CARA MANFAATKAN DATA INI:
-       Kamu tinggal buat tabel bernama "claims" di Supabase Dashboard dengan kolom:
-       - id (int8 / uuid, auto-generate)
-       - sector_id (text)
-       - coordinate_x (int4)
-       - coordinate_y (int4)
-       - anomaly_item (text)
-       - operator_signature (text)
-       - claimed_at (timestamptz)
-    */
     try {
         const response = await fetch(`${SUPABASE_URL}/rest/v1/claims`, {
             method: "POST",
@@ -352,13 +393,14 @@ async function simpanKeSupabase() {
         });
 
         if (response.ok) {
-            buatTeksMelayang(targetX, targetY, "⚡ SUKSES MASUK SUPABASE!", "#4ade80");
+            buatTeksMelayang(targetX, targetY, "🔒 FREKUENSI BERHASIL DISEGEL!", "#4ade80");
         } else {
-            throw new Error("Gagal transmisi data");
+            console.error("HTTP Error Status:", response.status);
+            throw new Error("Gagal transmisi data.");
         }
     } catch (err) {
         console.error(err);
-        buatTeksMelayang(targetX, targetY, "❌ TRANSMISI DATABASE GAGAL", "#ef4444");
+        buatTeksMelayang(targetX, targetY, "❌ TRANSMISI MANTRA GAGAL", "#ef4444");
     }
 }
 </script>
