@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>ToFarmer Game • Menoreh Universe</title>
+<title>ToFarmer Game • Menoreh Universe Cosmic</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
 
@@ -18,35 +18,66 @@ background:
     linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
 min-height:100vh; overflow-x:hidden; color:#e2e8f0; position:relative;
 }
+
+/* kabut lembut pegunungan menoreh */
 body::before{
 content:""; position:fixed; inset:0;
 background: linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0));
 pointer-events:none; animation:fog 14s ease-in-out infinite;
 }
 @keyframes fog{ 0%{transform:translateX(-3%)} 50%{transform:translateX(3%)} 100%{transform:translateX(-3%)} }
+
 .container{ width:100%; max-width:1150px; margin:auto; padding:22px; }
 .hero{ position:relative; padding:40px 20px 30px; text-align:center; }
 .hero h1{ font-family: 'Playfair Display', serif; font-size:2.8rem; font-weight:800; letter-spacing:-1px; line-height:1.2; background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 .hero p { margin-top:12px; font-size:.95rem; line-height:1.8; color:#84a98c; max-width:650px; margin-inline:auto; }
+
 .top-nav{ display:flex; justify-content:center; margin-top:20px; }
 .top-btn{ display:inline-flex; align-items:center; gap:10px; padding:10px 22px; border-radius:999px; text-decoration:none; font-size:.8rem; font-weight:700; background: rgba(20, 36, 26, 0.5); backdrop-filter: blur(12px); color:#a7f3d0; border:1px solid rgba(74, 222, 128, 0.2); transition:.3s ease; }
 .top-btn:hover{ transform:translateY(-2px); background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); color:#050b07; border-color: #4ade80; }
+
 .main-box{ background: rgba(14, 28, 19, 0.45); backdrop-filter: blur(22px); border:1px solid rgba(255, 255, 255, 0.05); border-radius:34px; padding:40px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); margin-top:20px; }
 .grid-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
 @media(max-width:900px){ .grid-tools { grid-template-columns: 1fr; } }
+
 .control-panel { display: flex; flex-direction: column; gap: 20px; }
 .tool-section { background: rgba(18, 35, 24, 0.4); border: 1px solid rgba(255, 255, 255, 0.03); border-left: 3px solid #eab308; padding: 24px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
 .tool-section h3 { font-size: 0.9rem; font-weight: 800; color: #fde047; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; }
 label { font-size: 0.78rem; font-weight: 600; color: #84a98c; display: block; margin-bottom: 6px; }
-input[type="text"], input[type="number"], textarea { width: 100%; padding: 12px 16px; background: rgba(7, 14, 10, 0.6); border: 1px solid rgba(74, 222, 128, 0.15); border-radius: 12px; color: #fff; font-family: inherit; font-size: 0.9rem; transition: all 0.3s; }
+
+/* KUNCI TRANSMEDIS TRANSPARAN (MANUAL TYPE FEEL) */
+input.transparent-input {
+width: 100%; padding: 14px; 
+background: rgba(255, 255, 255, 0.02) !important; 
+border: 1px dashed rgba(234, 179, 8, 0.25) !important; 
+border-radius: 12px; color: #fde047; 
+font-family: monospace; font-size: 1rem; 
+letter-spacing: 1px; text-align: center; transition: all 0.4s;
+}
+input.transparent-input:focus {
+outline: none; background: rgba(234, 179, 8, 0.05) !important;
+border: 1px solid #eab308 !important; box-shadow: 0 0 15px rgba(234, 179, 8, 0.15);
+}
+
+input[type="number"] { width: 100%; padding: 12px 16px; background: rgba(7, 14, 10, 0.6); border: 1px solid rgba(74, 222, 128, 0.15); border-radius: 12px; color: #fff; font-family: inherit; font-size: 0.9rem; }
 .input-row { display: flex; gap: 12px; }
+
 .action-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(21, 128, 61, 0.2) 100%); border: 1px solid #eab308; color: #fde047; border-radius: 12px; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; }
 .action-btn:hover:not(:disabled) { background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); color: #050b07; border-color: #fde047; box-shadow: 0 5px 15px rgba(234, 179, 8, 0.2); }
 .action-btn:disabled { opacity: 0.2; cursor: not-allowed; border-color: rgba(255,255,255,0.1); color: #64748b; }
-.display-panel { background: rgba(5, 11, 7, 0.5); border: 1px dashed rgba(234, 179, 8, 0.2); border-radius: 24px; padding: 30px; display: flex; flex-direction: column; justify-content: center; min-height: 380px; }
-.radar-screen { text-align: center; }
-.tx-box { margin-top: 20px; background: rgba(34, 197, 94, 0.03); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 14px; padding: 16px; }
+
+/* LAYAR DISPLAY SIMULASI KOSMOS */
+.display-panel { 
+background: #040805; border: 1px solid rgba(234, 179, 8, 0.2); 
+border-radius: 24px; padding: 0; display: flex; flex-direction: column; 
+position: relative; min-height: 420px; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
+}
+canvas#cosmosCanvas { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; pointer-events: none; }
+.radar-overlay-content { position: relative; z-index: 2; padding: 30px; display: flex; flex-direction: column; justify-content: center; height: 100%; min-height: 240px; text-align: center; margin: auto; }
+
+.tx-box { margin: 20px; position: relative; z-index: 2; background: rgba(7, 14, 10, 0.85); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 14px; padding: 16px; backdrop-filter: blur(4px); }
 .tx-box h4 { font-size: 0.75rem; color: #4ade80; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+textarea { width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: #000; color: #4ade80; font-family: monospace; font-size: 0.8rem; }
 .footer{ padding:40px 20px; text-align:center; font-size:.78rem; color:#475569; }
 </style>
 </head>
@@ -55,9 +86,9 @@ input[type="text"], input[type="number"], textarea { width: 100%; padding: 12px 
 <div class="container">
     <section class="hero">
         <h1>Menoreh Universe</h1>
-        <p>Tahun 2090. Kabut Perbukitan Menoreh menyimpan rahasia koordinat gaib masa lalu. Aktifkan radarmu, jelajahi areanya, dan segel hak milik asetmu purbamu!</p>
+        <p>Perbukitan Menoreh Era 2090. Kabut purba menyimpan grid energi rahasia alam semesta. Aktifkan koordinat radarmu, robek keheningan langit, dan amankan hak milik sektormu!</p>
         <div class="top-nav">
-            <a href="/html/fitur-ilmu.html" class="top-btn">🏠 Kembali ke Ruang ToFarmer</a>
+            <a href="../" class="top-btn">🛰️ Kembali ke Ruang ToFarmer</a>
         </div>
     </section>
 
@@ -67,39 +98,41 @@ input[type="text"], input[type="number"], textarea { width: 100%; padding: 12px 
             <div class="control-panel">
                 
                 <div class="tool-section">
-                    <h3>🔑 Langkah 1: Mantra Sukma (Sandi Akun)</h3>
-                    <label for="secretPhrase">Ketik Kalimat Rahasia Pemilik Jiwa</label>
-                    <input type="text" id="secretPhrase" value="kopi hitam gula aren" placeholder="Misal: mancing lele di hari selasa...">
-                    <button class="action-btn" style="margin-top: 12px;" onclick="bukaDompet()">Nyalakan Radar Jiwa</button>
+                    <h3>🌌 Langkah 1: Mantra Sukma (Sandi Jiwa)</h3>
+                    <label style="margin-bottom: 10px;">Ketik manual jimat batinmu secara transparan untuk menyalakan otentikasi frekuensi:</label>
+                    <input type="text" id="secretPhrase" class="transparent-input" value="kopi hitam gula aren" placeholder="Ketik kata kunci sukma Anda di sini...">
+                    <button class="action-btn" style="margin-top: 14px;" onclick="bukaDompet()">Hubungkan Frekuensi Jiwa</button>
                 </div>
 
                 <div class="tool-section">
-                    <h3>🛰️ Langkah 2: Bidik Titik Kabut</h3>
-                    <label>Sumbu Koordinat Bukit Menoreh</label>
+                    <h3>🚀 Langkah 2: Lacak Titik Grid Semesta</h3>
+                    <label>Titik Sumbu Gugusan Menoreh</label>
                     <div class="input-row">
-                        <input type="number" id="coordX" value="5521" placeholder="Sumbu X">
-                        <input type="number" id="coordY" value="9942" placeholder="Sumbu Y">
+                        <input type="number" id="coordX" value="7721" placeholder="Sumbu X">
+                        <input type="number" id="coordY" value="3312" placeholder="Sumbu Y">
                     </div>
-                    <button class="action-btn" style="margin-top: 12px;" onclick="pindaiRuang()">Tembak Sinyal Radar</button>
+                    <button class="action-btn" style="margin-top: 14px;" onclick="pindaiRuang()">Tembak Sinyal Radar Cosmic</button>
                 </div>
 
                 <div class="tool-section">
-                    <h3>📜 Langkah 3: Amankan Hak Milik</h3>
-                    <button class="action-btn" id="btnClaim" onclick="klaimObjek()" disabled>Pasang Segel Gaib</button>
+                    <h3>🛡️ Langkah 3: Amankan Kedaulatan Sektor</h3>
+                    <button class="action-btn" id="btnClaim" onclick="klaimObjek()" disabled>Kunci Dengan Segel Gaib</button>
                 </div>
 
             </div>
 
             <div class="display-panel">
-                <div class="radar-screen" id="radarScreen">
-                    <span style="font-size: 3.5rem;">🌫️</span>
-                    <p style="color: #84a98c; margin-top: 15px; font-size: 0.85rem;">Radar tertutup kabut tebal. Masukkan Mantra Sukma dan tembak koordinat untuk menembus kabut.</p>
+                <canvas id="cosmosCanvas"></canvas>
+                
+                <div class="radar-overlay-content" id="radarScreen">
+                    <span style="font-size: 3.5rem; display:block; margin-bottom:15px; filter: drop-shadow(0 0 10px #eab308);">✨</span>
+                    <p style="color: #84a98c; font-size: 0.9rem; line-height: 1.6; max-width: 300px;">Sistem Standby. Hubungkan Frekuensi Jiwa dan bidik koordinat untuk membelah kabut bintang.</p>
                 </div>
 
                 <div class="tx-box" id="txBox" style="display: none;">
-                    <h4>📜 SERTIFIKAT SEGEL GAIB (AMANKAN NOTA INI)</h4>
-                    <textarea id="txOutput" rows="4" style="font-family: monospace; font-size: 0.8rem; color: #4ade80; resize: none; background:#000;" readonly></textarea>
-                    <p style="font-size: 0.65rem; color: #64748b; margin-top: 6px;">*Nota sakti di atas membuktikan secara mutlak bahwa kamulah pemilik sah wilayah ini di alam semesta Menoreh.</p>
+                    <h4>📜 SERTIFIKAT SEGEL GAIB CODES</h4>
+                    <textarea id="txOutput" rows="3" readonly></textarea>
+                    <p style="font-size: 0.65rem; color: #64748b; margin-top: 6px;">*Sertifikat terenkripsi hukum alam. Nota teks ini sah membuktikan kepemilikan mutlak Anda di jagat Menoreh.</p>
                 </div>
             </div>
 
@@ -107,11 +140,97 @@ input[type="text"], input[type="number"], textarea { width: 100%; padding: 12px 
     </div>
 
     <footer class="footer">
-        ToFarmer Lab • Menoreh Universe Project ☕🌱
+        ToFarmer Lab • Menoreh Universe Engine v2.0 ☕🌱
     </footer>
 </div>
 
 <script>
+// ==========================================
+// ENGINE ANIMASI BINTANG KOSMOS (ADDICTIVE CANVAS)
+// ==========================================
+const canvas = document.getElementById('cosmosCanvas');
+const ctx = canvas.getContext('2d');
+let stars = [];
+let maxStars = 120;
+let warpSpeed = 0.5;
+let targetWarpSpeed = 0.5;
+let foundPlanetEffect = false;
+let planetPulse = 0;
+
+function resizeCanvas() {
+    canvas.width = canvas.parentElement.clientWidth;
+    canvas.height = canvas.parentElement.clientHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Buat sebaran titik bintang awal
+for(let i=0; i<maxStars; i++) {
+    stars.push({
+        x: Math.random() * canvas.width - canvas.width/2,
+        y: Math.random() * canvas.height - canvas.height/2,
+        z: Math.random() * canvas.width,
+        color: Math.random() > 0.3 ? '#4ade80' : '#eab308'
+    });
+}
+
+function drawCosmosAnimation() {
+    ctx.fillStyle = "rgba(4, 8, 5, 0.25)"; // Efek ekor bintang lembut
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Akselerasi kecepatan warp pelan-pelan biar smooth
+    warpSpeed += (targetWarpSpeed - warpSpeed) * 0.05;
+    
+    let cx = canvas.width / 2;
+    let cy = canvas.height / 2;
+    
+    // Render loop bintang bergerak dari tengah ke luar layar
+    for(let i=0; i<maxStars; i++) {
+        let s = stars[i];
+        s.z -= warpSpeed;
+        
+        if(s.z <= 0) {
+            s.x = Math.random() * canvas.width - cx;
+            s.y = Math.random() * canvas.height - cy;
+            s.z = canvas.width;
+        }
+        
+        let k = 128 / s.z;
+        let px = s.x * k + cx;
+        let py = s.y * k + cy;
+        
+        if(px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
+            let size = (1 - s.z / canvas.width) * 3;
+            ctx.fillStyle = s.color;
+            ctx.beginPath();
+            ctx.arc(px, py, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    
+    // Jika radar mengunci objek, gambar animasi lingkaran planet berdenyut holografis
+    if(foundPlanetEffect) {
+        planetPulse += 0.04;
+        let pulseRadius = 55 + Math.sin(planetPulse) * 5;
+        ctx.strokeStyle = 'rgba(234, 179, 8, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy - 40, pulseRadius, 0, Math.PI*2);
+        ctx.stroke();
+        
+        ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
+        ctx.beginPath();
+        ctx.arc(cx, cy - 40, pulseRadius - 10, 0, Math.PI*2);
+        ctx.fill();
+    }
+    
+    requestAnimationFrame(drawCosmosAnimation);
+}
+requestAnimationFrame(drawCosmosAnimation);
+
+// ==========================================
+// LOGIKA GAME & MATEMATIKA REKONSTRUKSI
+// ==========================================
 function hitungLogikaGaib(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -127,20 +246,24 @@ let wilayahDitemukan = "";
 
 function bukaDompet() {
     const kalimat = document.getElementById('secretPhrase').value;
-    if(!kalimat) return alert("Mantra Sukma tidak boleh kosong!");
+    if(!kalimat) return alert("Mantra Sukma wajib diketik manual!");
     
-    kodeRahasiaOperator = hitungLogikaGaib(kalimat + "_MENOREH_2090");
-    namaKodeOperator = "OPERATOR-MNR-" + hitungLogikaGaib(kodeRahasiaOperator).substring(0, 6);
+    kodeRahasiaOperator = hitungLogikaGaib(kalimat + "_MENOREH_COS_2090");
+    namaKodeOperator = "OPR-MNR-" + hitungLogikaGaib(kodeRahasiaOperator).substring(0, 5);
     
-    alert("Radar Jiwa Aktif! Kode Sandi Ruang Anda: " + namaKodeOperator);
+    alert("🌌 Sinyal Jiwa Sinkron! Enkripsi ID Operator: " + namaKodeOperator);
     document.getElementById('btnClaim').disabled = false;
-    refreshRadarScreen("<span style='color:#eab308;'>Radar Jiwa Aktif. Sistem siap membidik koordinat bukit terlarang.</span>", "🟢");
+    
+    targetWarpSpeed = 2.5; // Percepat bintang saat dompet masuk
+    setTimeout(() => { targetWarpSpeed = 0.6; }, 800);
+    
+    refreshRadarScreen("<span style='color:#eab308; font-weight:700;'>FREKUENSI JIWA TERKUNCI</span><br><span style='color:#84a98c; font-size:0.8rem;'>Radar siap melacak gugusan grid rahasia Menoreh.</span>", "🟢");
 }
 
 function refreshRadarScreen(pesan, ikon) {
     document.getElementById('radarScreen').innerHTML = `
-        <span style="font-size: 3.5rem;">${ikon}</span>
-        <p style="margin-top: 15px; font-size: 0.9rem; line-height: 1.6;">${pesan}</p>
+        <span style="font-size: 3.5rem; display:block; margin-bottom:10px; filter: drop-shadow(0 0 10px #4ade80);">${ikon}</span>
+        <p style="font-size: 0.9rem; line-height: 1.6; max-width:320px; margin:auto;">${pesan}</p>
     `;
 }
 
@@ -148,52 +271,57 @@ function pindaiRuang() {
     const x = document.getElementById('coordX').value;
     const y = document.getElementById('coordY').value;
     
-    const benihTitik = `X:${x}_Y:${y}`;
-    const hashTitik = hitungLogikaGaib(benihTitik);
-    const hitungPeluang = parseInt(hashTitik, 16) % 10;
-    
     document.getElementById('txBox').style.display = 'none';
+    foundPlanetEffect = false;
+    targetWarpSpeed = 12.0; // Efek warp loncat angkasa sangat cepat saat scan!
+    refreshRadarScreen("<span style='color:#4ade80; letter-spacing:2px;'>MEMBELAH KABUT BINTANG...</span>", "⚡");
 
-    if (hitungPeluang > 4) { 
-        wilayahDitemukan = "LEMBAH-" + hashTitik.substring(0, 4);
-        const opsiHarta = (parseInt(hashTitik.slice(-1), 16) % 2 === 0) ? "Pohon Kopi Purba Berdaun Emas (Aset Langka)" : "Mata Air Energi Termal Gajah";
+    setTimeout(() => {
+        targetWarpSpeed = 0.4; // Perlambat kembali setelah melompat
+        const benihTitik = `X:${x}_Y:${y}`;
+        const hashTitik = hitungLogikaGaib(benihTitik);
+        const hitungPeluang = parseInt(hashTitik, 16) % 10;
         
-        let teksRadar = `
-            <span style="color: #4ade80; font-weight: 800;">🛰️ RADAR MENEMBUS KABUT GAIB!</span><br><br>
-            <div style="text-align: left; max-width: 290px; margin: auto; font-size: 0.85rem; line-height: 1.7;">
-                ⛰️ <b>Nama Sektor:</b> ${wilayahDitemukan}<br>
-                💎 <b>Harta Karun:</b> ${opsiHarta}<br>
-                🟡 <b>Status Wilayah:</b> Liar (Belum Ada Segel)
-            </div>
-        `;
-        refreshRadarScreen(teksRadar, "🪐");
-    } else {
-        wilayahDitemukan = "";
-        refreshRadarScreen("<span style='color: #64748b;'>Radar Meleset. Koordinat ini hanya berisi jurang kosong, bebatuan mati, dan kabut tebal tanpa sinyal energi.</span>", "🌫️");
-    }
+        if (hitungPeluang > 4) { 
+            wilayahDitemukan = "KOSMOS-MNR-" + hashTitik.substring(0, 4);
+            const opsiHarta = (parseInt(hashTitik.slice(-1), 16) % 2 === 0) ? "🪐 Inti Plasma Kopi Purba Berdaun Emas" : "☄️ Sabuk Energi Arus Gajah Menoreh";
+            foundPlanetEffect = true; // Nyalakan cincin planet holografis di canvas
+            
+            let teksRadar = `
+                <span style="color: #fde047; font-weight: 800; letter-spacing:1px;">🛰️ RADAR MENGUNCI GRID ENERGI!</span><br><br>
+                <div style="text-align: left; max-width: 280px; margin: auto; font-size: 0.8rem; line-height: 1.6; color:#e2e8f0; background:rgba(0,0,0,0.6); padding:12px; border-radius:10px; border:1px solid rgba(234,179,8,0.2);">
+                    🛸 <b>Sektor Sinyal:</b> ${wilayahDitemukan}<br>
+                    💎 <b>Anomali Aset:</b> ${opsiHarta}<br>
+                    🟢 <b>Kondisi Jagat:</b> Perawan (Bisa Segel)
+                </div>
+            `;
+            refreshRadarScreen(teksRadar, "");
+        } else {
+            wilayahDitemukan = "";
+            refreshRadarScreen("<span style='color: #64748b; font-size:0.85rem;'>Sinyal Pudar. Titik koordinat ini terdeteksi hampa, hanya berisi sisa debu meteor dan kabut mati berkepanjangan.</span>", "🌫️");
+        }
+    }, 1200); // Durasi loading animasi warp 1.2 detik
 }
 
 function klaimObjek() {
-    if(!namaKodeOperator) return alert("Nyalakan Radar Jiwa Anda dulu di Langkah 1!");
-    if(!wilayahDitemukan) return alert("Radar belum mengunci sektor berenergi!");
+    if(!namaKodeOperator) return alert("Frekuensi Jiwa belum terhubung di Langkah 1!");
+    if(!wilayahDitemukan) return alert("Radar belum mengunci grid energi apa pun!");
     
     const x = document.getElementById('coordX').value;
     const y = document.getElementById('coordY').value;
     
-    const dataNota = `SEGELED:${wilayahDitemukan}:AT:${x},${y}:BY:${namaKodeOperator}`;
+    const dataNota = `SECTOR:${wilayahDitemukan}:AT:${x},${y}:COSMIC_BY:${namaKodeOperator}`;
     const segelMatematika = hitungLogikaGaib(dataNota + kodeRahasiaOperator);
-    const paketNotaLengkap = `${dataNota}:MATRA:${segelMatematika}`;
+    const paketNotaLengkap = `${dataNota}:MANTRA_SIGN:${segelMatematika}`;
     
     document.getElementById('txOutput').value = paketNotaLengkap;
     document.getElementById('txBox').style.display = 'block';
     
     let teksSukses = `
-        <span style="color: #fde047; font-weight: 800;">🔒 WILAYAH RESMI DISEGEL!</span><br><br>
-        <div style="text-align: left; max-width: 280px; margin: auto; font-size: 0.85rem; line-height: 1.7;">
-            Sertifikat Segel Gaib berhasil terbit di bawah. Koordinat alam semesta ini kini terkunci mutlak atas nama jiwa Anda.
-        </div>
+        <span style="color: #4ade80; font-weight: 800; letter-spacing:1px;">🛡️ SEKTOR AMAN TERSEGEL!</span><br><br>
+        <p style="font-size: 0.8rem; line-height: 1.5; color:#a7f3d0; max-width:280px; margin:auto;">Frekuensi jangkar sukses diaktifkan. Algoritma koordinat ini telah terikat abadi pada rasi Mantra Sukma Anda.</p>
     `;
-    refreshRadarScreen(teksSukses, "🛡️");
+    refreshRadarScreen(teksSukses, "");
 }
 </script>
 
