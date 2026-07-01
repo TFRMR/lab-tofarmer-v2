@@ -72,6 +72,15 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     cursor:pointer; text-transform:uppercase; box-shadow:0 4px 15px rgba(234,179,8,0.3); transition: 0.2s;
 }
 .claim-btn:active { transform: scale(0.98); }
+.claim-btn.lock-mode { background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#fff; box-shadow:0 4px 15px rgba(239,68,68,0.3); }
+
+/* BADGE STATUS USER DI ATAS */
+.user-badge {
+    position:absolute; top:20px; right:20px; z-index:5;
+    background:rgba(14,28,19,0.8); padding:6px 12px; border-radius:20px;
+    font-size:0.7rem; font-family:monospace; border:1px solid #22c55e; color:#4ade80;
+}
+.user-badge.guest { border-color:#eab308; color:#fde047; }
 
 .no-select { -webkit-user-select:none; user-select:none; }
 </style>
@@ -79,6 +88,8 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 <body class="no-select">
 
 <div class="game-container">
+    <div class="user-badge" id="userBadge">Mendeteksi Sinyal...</div>
+
     <canvas id="cosmosCanvas"></canvas>
 
     <header class="narrative-header" id="narrativeHeader">
@@ -87,9 +98,9 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     </header>
 
     <div class="claim-overlay" id="claimOverlay">
-        <div class="claim-title">🛰️ FREKUENSI GAIB TERKUNCI!</div>
+        <div class="claim-title" id="overlayTitle">🛰️ FREKUENSI GAIB TERKUNCI!</div>
         <div class="claim-details" id="claimDetails"></div>
-        <button class="claim-btn" onclick="simpanKeSupabase()">🔒 SEGEL FREKUENSI</button>
+        <button class="claim-btn" id="mainClaimBtn" onclick="eksekusiSegel()">🔒 SEGEL FREKUENSI</button>
     </div>
 
     <div class="bottom-panel">
@@ -102,13 +113,28 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 
 <script>
 // =====================================================================
-// 🛰️ ALAMAT ROUTE AI WEBFARMER (Sesuaikan dengan domain workermu!)
+// 🛰️ INTEGRASI WEBFARMER & SUPABASE
 // =====================================================================
 const URL_AI_TOFARMER = "https://tofarmer-api.tofarmer-api.workers.dev/ai-saran";
-
-// Konfigurasi Supabase Log (Uji Coba)
 const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY"; 
+
+// 🔑 CEK STATUS LOGIN TOFARMER (SINKRON DENGAN SISTEM WALLET UTAMAMU)
+const walletToFarmer = localStorage.getItem('tof_wallet');
+const isUserLulusLogin = (walletToFarmer !== null && walletToFarmer !== "");
+
+// State Kontrol Jatah Tamu (Maksimal 3 Kali Sukses Deteksi)
+let jatahSegelTamu = parseInt(localStorage.getItem('mu_jatah_tamu') || '3');
+const MAX_JATAH_TAMU = 3;
+
+// Update Tampilan Badge di Pojok Kanan Atas
+if (isUserLulusLogin) {
+    document.getElementById("userBadge").className = "user-badge";
+    document.getElementById("userBadge").innerHTML = `🟢 ToFarmer Member: ${walletToFarmer.substring(0,6)}...`;
+} else {
+    document.getElementById("userBadge").className = "user-badge guest";
+    document.getElementById("userBadge").innerHTML = `🟡 Akun Tamu (Sisa Jatah: ${jatahSegelTamu}/${MAX_JATAH_TAMU})`;
+}
 
 // ==========================================
 // GAME ENGINE STATES
@@ -157,7 +183,7 @@ function buatTeksMelayang(x, y, txt, warna) {
     floatingTexts.push({ x: x, y: y - 15, teks: txt, warna: warna, alpha: 1 });
 }
 
-// --- LOGIKA TAP SCAN: GACHA MATH + NUMPANG ENDPOINT TOFARMER EXISTING ---
+// --- LOGIKA TAP SCAN ---
 async function triggerTapScan(clientX, clientY) {
     if (isScanning) return;
 
@@ -174,11 +200,20 @@ async function triggerTapScan(clientX, clientY) {
     const seed = (coordX * 31) + (coordY * 17) + Math.floor(Math.random() * 75);
     setTimeout(() => { targetWarpSpeed = 0.5; }, 300);
 
-    // PERSENTASE HOKI ~15% (Modulus 7)
+    // GACHA RATE CHANCE DEKRESI ~15%
     if (seed % 7 === 0) { 
         isScanning = true;
         foundEffect = true; 
         pulseRadius = 5;
+
+        // ⚠️ CRITICAL INTERCEPT: JIKA GUEST DAN JATAH SUDAH HABIS, BLOKIR DI SINI!
+        if (!isUserLulusLogin && jatahSegelTamu <= 0) {
+            setTimeout(() => {
+                isScanning = false;
+                tampilkanPopupBlokirPromo();
+            }, 800);
+            return;
+        }
 
         buatTeksMelayang(clientX, clientY, "📡 MEMANCARKAN GELOMBANG...", "#eab308");
         
@@ -199,22 +234,18 @@ async function triggerTapScan(clientX, clientY) {
         const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
         const mantraUser = document.getElementById("secretMantra").value.trim() || "Keheningan Sukma";
 
-        // MERAKIT SEBUAH PROMPT JELAS KE DALAM SATU VARIABEL "teks" AGAR DIMENGERTI BACKEND LAMA
-        const promptRekayasa = `Kamu adalah mesin puitis gaib ToFarmer Lab era Menoreh 2090. Berikan balasan murni dengan format JSON teks objek (jangan beri backtick markdown kodenya): {"anomali": "Nama fiksi ilmiah esoteris gabungan spiritual Jawa dengan emoji depan", "kondisi": "Status energi batin", "hikmah": "Pesan pendek filosofis batin"}. Data Masukan -> Koordinat [X:${coordX}, Y:${coordY}] Sektor ${sectorId}. Mantra Sukma: "${mantraUser}". Racik!`;
+        const promptRekayasa = `Kamu adalah mesin puitis gaib ToFarmer Lab era Menoreh 2090. Tugasmu wajib memberikan balasan hanya berupa objek JSON mentah tanpa kata pembuka, tanpa penutup, dan tanpa bungkus backtick markdown. Struktur JSON: {"anomali": "Nama fiksi ilmiah gabungan spiritual Jawa dengan emoji", "kondisi": "Status energi batin", "hikmah": "Pesan pendek filosofis batin"}. Masukan -> Koordinat [X:${coordX}, Y:${coordY}] Sektor ${sectorId}, Mantra Sukma: "${mantraUser}".`;
 
         try {
-            // Tembak langsung numpang lewat route /ai-saran bawaan web ToFarmer
             const response = await fetch(URL_AI_TOFARMER, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ teks: promptRekayasa }) // Dikirim via properti 'teks' sesuai isi script Worker lama
+                body: JSON.stringify({ teks: promptRekayasa }) 
             });
 
-            if (!response.ok) throw new Error("Worker ToFarmer menolak sinyal.");
+            if (!response.ok) throw new Error("Worker menolak sinyal.");
             
             const rawRes = await response.json();
-            
-            // Mengatasi jika respon AI dibungkus dalam properti .response atau .result
             const responseText = rawRes.response || rawRes.result?.response || rawRes.text || JSON.stringify(rawRes);
             const dataAI = JSON.parse(responseText.trim());
 
@@ -227,7 +258,7 @@ async function triggerTapScan(clientX, clientY) {
         } catch (err) {
             clearInterval(intervalLoading);
             isScanning = false;
-            console.warn("Gagal numpang AI Worker, beralih ke matematika lokal:", err);
+            console.warn("Beralih ke matematika lokal:", err);
             jalankanSimulasiLokal(seed, coordX, coordY, sectorId);
         }
 
@@ -237,7 +268,6 @@ async function triggerTapScan(clientX, clientY) {
     }
 }
 
-// --- LOGIKA CADANGAN (MATEMATIKA KOMBINATORIKA JIKA OFFLINE / TIMEOUT) ---
 function jalankanSimulasiLokal(seed, coordX, coordY, sectorId) {
     const komponenSifat = ["Resonansi Plasma", "Fluks Arus Magnetis", "Eter Suci Manifestasi", "Aliran Kuanta"];
     const komponenEsensi = ["Kopi Purba", "Gajah Menoreh", "Kabut Sumbing", "Suroloyo", "Prana-Kuno"];
@@ -251,17 +281,22 @@ function jalankanSimulasiLokal(seed, coordX, coordY, sectorId) {
     tampilkanPopup(kondisiPilihan, anomaliPilihan, hikmahPilihan);
 }
 
+// POPUP HASIL DETEKSI NORMAL
 function tampilkanPopup(kondisi, anomali, hikmah) {
     for(let k=0; k<2; k++) { ledakkanPartikel(targetX, targetY, '#fde047'); }
-    buatTeksMelayang(targetX, targetY, "✨ SIGNAL TRANSMISI SUKSES!", "#4ade80");
+    buatTeksMelayang(targetX, targetY, "✨ TRANSMISI SUKSES!", "#4ade80");
 
-    // Ambil nama operator, jika belum klik tombol sinkron, otomatis pakai nama "Mantra Tanpa Nama"
     const operatorFinal = namaOperator || "Mantra Tanpa Nama";
-
-    // Jaga-jaga jika variabel dari AI ada yang bernilai undefined / kosong
     const kondisiFinal = kondisi || "Stabil Terisolasi (Heneng)";
     const anomaliFinal = anomali || "🌌 Relik Spektrum Kosmik Kuno";
     const hikmahFinal = hikmah || "Kesabaran batin menembus tebalnya kabut pegunungan purba.";
+
+    document.getElementById("overlayTitle").innerText = "🛰️ FREKUENSI GAIB TERKUNCI!";
+    
+    let infoTamu = "";
+    if(!isUserLulusLogin) {
+        infoTamu = `<br><span style="color:#f87171; font-size:0.68rem;">⚠️ PERINGATAN: Kamu bermain sebagai Tamu. Menyegel frekuensi ini akan mengurangi kuota harian gratisanmu!</span>`;
+    }
 
     document.getElementById("claimDetails").innerHTML = `
         🛸 <b>Pancaran Sektor:</b> ${dataTerdeteksi.sector}<br>
@@ -271,16 +306,68 @@ function tampilkanPopup(kondisi, anomali, hikmah) {
         <hr style="border:0; border-top:1px dashed rgba(74,222,128,0.2); margin:8px 0;">
         📜 <i style="color:#a7f3d0; font-size:0.72rem; display:block; line-height:1.4;">"${hikmahFinal}"</i><br>
         🔑 <b>Penjangkar Sukma:</b> ${operatorFinal}
+        ${infoTamu}
     `;
+
+    const btn = document.getElementById("mainClaimBtn");
+    btn.className = "claim-btn";
+    btn.innerText = "🔒 SEGEL FREKUENSI SIMPAN LOG";
+    
     document.getElementById("claimOverlay").classList.add("show");
 }
 
-canvas.addEventListener('touchstart', (e) => {
-    let now = Date.now(); let timespan = now - lastTap;
-    if (timespan < 350) { let touch = e.touches[0]; triggerTapScan(touch.clientX, touch.clientY); }
-    lastTap = now;
-});
-canvas.addEventListener('click', (e) => { triggerTapScan(e.clientX, e.clientY); });
+// 🛑 POPUP BLOKIR PROMOSI (JIKA JATAH TAMU HABIS)
+function tampilkanPopupBlokirPromo() {
+    for(let k=0; k<3; k++) { ledakkanPartikel(targetX, targetY, '#ef4444'); }
+    buatTeksMelayang(targetX, targetY, "🔒 AKSES TERKUNCI", "#ef4444");
+
+    document.getElementById("overlayTitle").innerText = "⚠️ TRANSMISI DIHENTIKAN!";
+    document.getElementById("claimDetails").innerHTML = `
+        <div style="text-align:center; padding:5px 0;">
+            <span style="font-size: 2rem;">🛡️</span><br>
+            <b style="color:#ef4444; font-size:0.85rem;">Batas Frekuensi Tamu Terlampaui!</b><br>
+            <p style="margin-top:8px; line-height:1.5; font-size:0.75rem; color:#94a3b8; font-family:'Plus Jakarta Sans',sans-serif;">
+                Sinyal kosmis Menoreh 2090 mendeteksi bahwa kamu belum terdaftar di ekosistem <b>ToFarmer Lab</b>. Jatah 3 kali eksperimen penyegelan gratis kamu telah hangus.
+            </p>
+            <div style="background:rgba(34,197,94,0.1); border:1px dashed #22c55e; border-radius:8px; padding:8px; margin-top:10px; color:#4ade80; font-size:0.7rem;">
+                💡 <b>Benefit Daftar Anggota ToFarmer:</b><br>
+                • Unlimited Penyegelan Spektrum Gaib<br>
+                • Klaim Koin TOF dari grid koordinat hoki<br>
+                • Sinkronisasi database cloud Supabase gratis
+            </div>
+        </div>
+    `;
+
+    const btn = document.getElementById("mainClaimBtn");
+    btn.className = "claim-btn lock-mode";
+    btn.innerText = "🚀 DAFTAR / LOGIN TOFARMER SEKARANG";
+    
+    document.getElementById("claimOverlay").classList.add("show");
+}
+
+// 🕹️ EKSEKUSI KLIK TOMBOL UTAMA POPUP
+async function eksekusiSegel() {
+    // Skenario A: Jika jatah habis dan dipaksa suruh daftar
+    if (!isUserLulusLogin && jatahSegelTamu <= 0) {
+        // Arahkan langsung ke halaman login web utama ToFarmer milikmu
+        window.location.href = '../html/login.html'; 
+        return;
+    }
+
+    // Skenario B: Jika dia user terdaftar ATAU tamu yang jatahnya masih ada
+    document.getElementById("claimOverlay").classList.remove("show");
+
+    if (!isUserLulusLogin) {
+        // Kurangi jatah tamu
+        jatahSegelTamu--;
+        localStorage.setItem('mu_jatah_tamu', jatahSegelTamu.toString());
+        document.getElementById("userBadge").innerHTML = `🟡 Akun Tamu (Sisa Jatah: ${jatahSegelTamu}/${MAX_JATAH_TAMU})`;
+        buatTeksMelayang(targetX, targetY, `🔒 SEKTOR TERSEGEL (Sisa Jatah: ${jatahSegelTamu})`, "#eab308");
+    } else {
+        buatTeksMelayang(targetX, targetY, "🔒 SEKTOR TERSEGEL DI AWAN SUNDAL!", "#4ade80");
+        // Di sini panggil fungsi autoSaveToSupabase() aslimu untuk member terdaftar
+    }
+}
 
 // --- GRAPHIC ENGINE RUNNER ---
 function draw() {
@@ -329,12 +416,6 @@ function kunciMantra() {
     document.getElementById("syncBtn").innerHTML = namaOperator;
     document.getElementById("syncBtn").classList.add("active");
     buatTeksMelayang(canvas.width/2, canvas.height - 80, "🔮 MANTRA TERKUNCI", "#eab308");
-}
-
-async function simpanKeSupabase() {
-    if (!dataTerdeteksi) return;
-    document.getElementById("claimOverlay").classList.remove("show");
-    buatTeksMelayang(targetX, targetY, "🔒 SEKTOR TERSEGEL DI LOG!", "#eab308");
 }
 </script>
 </body>
