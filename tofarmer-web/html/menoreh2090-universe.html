@@ -185,6 +185,19 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 </div>
 
 <script>
+function setupAmbientSound() {
+    const audio = document.getElementById("ambientSound");
+    audio.volume = 0; // Mulai dari sunyi
+    
+    // Fungsi Fade-In perlahan
+    const fadeIn = setInterval(() => {
+        if (audio.volume < 0.3) {
+            audio.volume += 0.01;
+        } else {
+            clearInterval(fadeIn);
+        }
+    }, 200); // Bertambah setiap 200ms
+}
 // =====================================================================
 // 🛰️ INTEGRASI WEBFARMER & SUPABASE
 // =====================================================================
@@ -554,35 +567,38 @@ async function eksekusiSegel() {
     const walletFinal = isUserLulusLogin ? walletToFarmer : "GUEST_RADAR";
 
     try {
-        // --- PROSES GENERASI BUKTI MATEMATIS ---
-        // Kita hashing data sebagai "Sidik Jari" unik di dunia matematika
-        const bukti = await generateProof({
-            sector: dataTerdeteksi.sector,
-            x: dataTerdeteksi.x,
-            y: dataTerdeteksi.y,
-            item: dataTerdeteksi.item
-        });
+    // 1. Generate Proof (Opsional: hapus jika kolom belum ada di DB)
+    const bukti = await generateProof({
+        sector: dataTerdeteksi.sector,
+        x: dataTerdeteksi.x,
+        y: dataTerdeteksi.y,
+        item: dataTerdeteksi.item
+    });
 
-        const responseSupabase = await fetch(`${SUPABASE_URL}/rest/v1/claims`, {
-            method: "POST",
-            headers: {
-                "apikey": SUPABASE_ANON_KEY,
-                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({
-                sector_id: dataTerdeteksi.sector,
-                coordinate_x: dataTerdeteksi.x,
-                coordinate_y: dataTerdeteksi.y,
-                anomaly_item: dataTerdeteksi.item,
-                proof_hash: bukti, // BUKTI MATEMATIS TERSIMPAN
-                operator_signature: `${walletFinal} // ${operatorFinal}`,
-                claimed_at: new Date().toISOString()
-            })
-        });
+    const responseSupabase = await fetch(`${SUPABASE_URL}/rest/v1/claims`, {
+        method: "POST",
+        headers: {
+            "apikey": SUPABASE_ANON_KEY,
+            "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal" // PENTING agar tidak error 400
+        },
+        body: JSON.stringify({
+            sector_id: dataTerdeteksi.sector,
+            coordinate_x: dataTerdeteksi.x,
+            coordinate_y: dataTerdeteksi.y,
+            anomaly_item: dataTerdeteksi.item,
+            operator_signature: `${walletFinal} // ${operatorFinal}`,
+            claimed_at: new Date().toISOString()
+            // HAPUS 'proof_hash: bukti,' jika kolom tersebut belum ada di tabel!
+        })
+    });
 
-        if (!responseSupabase.ok) throw new Error("Gagal menembus grid Supabase.");
+    if (!responseSupabase.ok) {
+        const errorData = await responseSupabase.json();
+        console.error("Detail Error Supabase:", errorData); // Tambahkan ini untuk melihat pesan asli dari Supabase
+        throw new Error("Gagal menembus grid Supabase.");
+    }
 
         // =====================================================================
         // 🔮 NOTIFIKASI ADIKTIF BERGAYA MISTIS SCI-FI
@@ -722,6 +738,7 @@ async function generateProof(data) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+setupAmbientSound();
 </script>
 </body>
 </html>
