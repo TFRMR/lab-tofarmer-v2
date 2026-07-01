@@ -2,497 +2,365 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>ToFarmer Game • Menoreh Universe Cosmic</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Menoreh Universe 2090 • ToFarmer Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
 
 <style>
-*{ margin:0; padding:0; box-sizing:border-box; }
-body{
-font-family:'Plus Jakarta Sans',sans-serif;
-background:
-    radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
-    radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
-    linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
-min-height:100vh; overflow-x:hidden; color:#e2e8f0; position:relative;
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { width:100%; height:100%; overflow:hidden; background:#040805; font-family:'Plus Jakarta Sans', sans-serif; color:#e2e8f0; }
+
+/* LAYAR UTAMA FULLSCREEN */
+.game-container { position:relative; width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-index:1; cursor:crosshair; }
+
+/* TYPEWRITER NARRATION INTRO & HEADER */
+.narrative-header {
+    position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);
+    width:85%; max-width:550px; text-align:center; z-index:10; pointer-events:none;
+    transition: all 1s cubic-bezier(0.25, 1, 0.5, 1);
+}
+/* Class saat narasi selesai mengetik, langsung mengecil naik ke atas */
+.narrative-header.minimized {
+    top: 40px; transform: translate(-50%, 0); width:90%;
+}
+.narrative-header h1 {
+    font-family:'Playfair Display', serif; font-size:2rem; font-weight:700;
+    background:linear-gradient(135deg, #fef08a 0%, #4ade80 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:8px;
+    transition: font-size 0.8s;
+}
+.narrative-header.minimized h1 { font-size: 1.2rem; }
+.narrative-p {
+    font-size:0.9rem; line-height:1.6; color:#84a98c; min-height:60px;
+    transition: font-size 0.8s, opacity 0.5s;
+}
+.narrative-header.minimized .narrative-p { font-size: 0.72rem; line-height: 1.4; color:rgba(132,169,140,0.7); }
+
+/* PANEL MANTRA (BOTTOM FIXED OVERLAY) */
+.bottom-panel {
+    position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
+    width:90%; max-width:420px; z-index:5; display:flex; flex-direction:column; gap:12px;
+}
+.mantra-box {
+    background:rgba(14, 28, 19, 0.75); backdrop-filter:blur(15px);
+    border:1px dashed rgba(234, 179, 8, 0.3); border-radius:16px; padding:12px 16px;
+    display:flex; align-items:center; gap:10px; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
+.mantra-box input {
+    flex:1; background:transparent; border:none; outline:none;
+    color:#fde047; font-family:monospace; font-size:0.9rem; letter-spacing:1px;
+}
+.mantra-box input::placeholder { color:rgba(253, 224, 71, 0.3); font-style:italic; }
+.sync-btn {
+    background:linear-gradient(135deg, #22c55e 0%, #15803d 100%); border:none;
+    color:#050b07; font-weight:700; font-size:0.75rem; padding:8px 14px; border-radius:10px;
+    cursor:pointer; text-transform:uppercase; transition:0.2s;
+}
+.sync-btn.active { background:linear-gradient(135deg, #eab308 0%, #ca8a04 100%); }
+
+/* FLOATING CLAIM INTERFACE (MUNCUL JIKA TARGET TERKUNCI) */
+.claim-overlay {
+    position:absolute; top:65%; left:50%; transform:translate(-50%, -50%) scale(0.9);
+    width:85%; max-width:340px; background:rgba(4, 8, 5, 0.9);
+    border:1px solid rgba(234, 179, 8, 0.4); border-radius:18px; padding:16px;
+    z-index:6; pointer-events:auto; opacity:0; visibility:hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.15);
+}
+.claim-overlay.show { opacity:1; visibility:visible; transform:translate(-50%, -50%) scale(1); }
+.claim-title { font-size:0.8rem; font-weight:800; color:#fde047; letter-spacing:1px; text-align:center; margin-bottom:8px; }
+.claim-details { font-size:0.75rem; color:#cbd5e1; font-family:monospace; background:rgba(255,255,255,0.03); padding:8px; border-radius:8px; line-height:1.5; margin-bottom:12px; border:1px solid rgba(255,255,255,0.05); }
+
+.claim-btn {
+    width:100%; padding:12px; background:linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+    border:none; color:#050b07; font-weight:800; font-size:0.8rem; border-radius:10px;
+    cursor:pointer; text-transform:uppercase; box-shadow:0 4px 15px rgba(234,179,8,0.3);
 }
 
-/* kabut lembut pegunungan menoreh */
-body::before{
-content:""; position:fixed; inset:0;
-background: linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0));
-pointer-events:none; animation:fog 14s ease-in-out infinite;
-}
-@keyframes fog{ 0%{transform:translateX(-3%)} 50%{transform:translateX(3%)} 100%{transform:translateX(-3%)} }
-
-.container{ width:100%; max-width:1150px; margin:auto; padding:22px; }
-.hero{ position:relative; padding:40px 20px 30px; text-align:center; }
-.hero h1{ font-family: 'Playfair Display', serif; font-size:2.8rem; font-weight:800; letter-spacing:-1px; line-height:1.2; background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.hero p { margin-top:12px; font-size:.95rem; line-height:1.8; color:#84a98c; max-width:650px; margin-inline:auto; }
-
-.top-nav{ display:flex; justify-content:center; margin-top:20px; }
-.top-btn{ display:inline-flex; align-items:center; gap:10px; padding:10px 22px; border-radius:999px; text-decoration:none; font-size:.8rem; font-weight:700; background: rgba(20, 36, 26, 0.5); backdrop-filter: blur(12px); color:#a7f3d0; border:1px solid rgba(74, 222, 128, 0.2); transition:.3s ease; }
-.top-btn:hover{ transform:translateY(-2px); background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); color:#050b07; border-color: #4ade80; }
-
-.main-box{ background: rgba(14, 28, 19, 0.45); backdrop-filter: blur(22px); border:1px solid rgba(255, 255, 255, 0.05); border-radius:34px; padding:40px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); margin-top:20px; }
-.grid-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-@media(max-width:900px){ .grid-tools { grid-template-columns: 1fr; } }
-
-.control-panel { display: flex; flex-direction: column; gap: 20px; }
-.tool-section { background: rgba(18, 35, 24, 0.4); border: 1px solid rgba(255, 255, 255, 0.03); border-left: 3px solid #eab308; padding: 24px; border-radius: 20px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1); }
-.tool-section h3 { font-size: 0.9rem; font-weight: 800; color: #fde047; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 14px; }
-label { font-size: 0.78rem; font-weight: 600; color: #84a98c; display: block; margin-bottom: 6px; }
-
-/* KUNCI TRANSMEDIS TRANSPARAN (MANUAL TYPE FEEL) */
-input.transparent-input {
-width: 100%; padding: 14px; 
-background: rgba(255, 255, 255, 0.02) !important; 
-border: 1px dashed rgba(234, 179, 8, 0.25) !important; 
-border-radius: 12px; color: #fde047; 
-font-family: monospace; font-size: 1rem; 
-letter-spacing: 1px; text-align: center; transition: all 0.4s;
-}
-input.transparent-input::placeholder { color: rgba(253, 224, 71, 0.3); font-style: italic; }
-input.transparent-input:focus {
-outline: none; background: rgba(234, 179, 8, 0.05) !important;
-border: 1px solid #eab308 !important; box-shadow: 0 0 15px rgba(234, 179, 8, 0.15);
-}
-
-input[type="number"] { width: 100%; padding: 12px 16px; background: rgba(7, 14, 10, 0.6); border: 1px solid rgba(74, 222, 128, 0.15); border-radius: 12px; color: #fff; font-family: inherit; font-size: 0.9rem; }
-.input-row { display: flex; gap: 12px; }
-
-.action-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(21, 128, 61, 0.2) 100%); border: 1px solid #eab308; color: #fde047; border-radius: 12px; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.5px; cursor: pointer; transition: all 0.3s; text-transform: uppercase; }
-.action-btn:hover:not(:disabled) { background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%); color: #050b07; border-color: #fde047; box-shadow: 0 5px 15px rgba(234, 179, 8, 0.2); }
-.action-btn:disabled { opacity: 0.2; cursor: not-allowed; border-color: rgba(255,255,255,0.1); color: #64748b; }
-
-/* LAYAR DISPLAY SIMULASI KOSMOS */
-.display-panel { 
-background: #040805; border: 1px solid rgba(234, 179, 8, 0.2); 
-border-radius: 24px; padding: 0; display: flex; flex-direction: column; 
-position: relative; min-height: 420px; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
-cursor: crosshair;
--webkit-user-select: none; /* Cegah text ter-highlight pas di-tap tap cepat */
-user-select: none;
-}
-canvas#cosmosCanvas { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; }
-.radar-overlay-content { position: relative; z-index: 2; padding: 30px; display: flex; flex-direction: column; justify-content: center; height: 100%; min-height: 240px; text-align: center; margin: auto; pointer-events: none; }
-
-.tx-box { margin: 20px; position: relative; z-index: 2; background: rgba(7, 14, 10, 0.85); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 14px; padding: 16px; backdrop-filter: blur(4px); }
-.tx-box h4 { font-size: 0.75rem; color: #4ade80; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-textarea { width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: #000; color: #4ade80; font-family: monospace; font-size: 0.8rem; }
-.footer{ padding:40px 20px; text-align:center; font-size:.78rem; color:#475569; }
+/* ANTI-SELECTION UNTUK HP (BIAR GA NYEDOT TEXT PAS TAP CEPAT) */
+.no-select { -webkit-user-select:none; user-select:none; }
 </style>
 </head>
-<body>
+<body class="no-select">
 
-<div class="container">
-    <section class="hero">
+<div class="game-container">
+    <!-- Kanvas Antariksa / Radar Gaib -->
+    <canvas id="cosmosCanvas"></canvas>
+
+    <!-- Narasi Pembuka Dinamis -->
+    <header class="narrative-header" id="narrativeHeader">
         <h1>Menoreh Universe</h1>
-        <p>Perbukitan Menoreh Era 2090. Kabut purba menyimpan grid energi rahasia alam semesta. Aktifkan koordinat radarmu, robek keheningan langit, dan amankan hak milik sektormu!</p>
-        <div class="top-nav">
-            <a href="../" class="top-btn">🛰️ Kembali ke Ruang ToFarmer</a>
+        <div class="narrative-p" id="typedText"></div>
+    </header>
+
+    <!-- UI Klaim Melayang -->
+    <div class="claim-overlay" id="claimOverlay">
+        <div class="claim-title">🛰️ FREKUENSI GAIB TERKUNCI!</div>
+        <div class="claim-details" id="claimDetails">
+            Sektor: KOSMOS-MNR-X<br>
+            Koordinat: [0, 0]<br>
+            Anomali: Memuat data...
         </div>
-    </section>
-
-    <div class="main-box">
-        <div class="grid-tools">
-            
-            <div class="control-panel">
-                
-                <div class="tool-section">
-                    <h3>🌌 Langkah 1: Mantra Sukma (Sandi Jiwa)</h3>
-                    <label style="margin-bottom: 10px;">Ketik manual jimat batinmu secara transparan untuk menyalakan otentikasi frekuensi:</label>
-                    <input type="text" id="secretPhrase" class="transparent-input" value="" placeholder="kopi hitam gula aren">
-                    <button class="action-btn" style="margin-top: 14px;" onclick="bukaDompet()">Hubungkan Frekuensi Jiwa</button>
-                </div>
-
-                <div class="tool-section">
-                    <h3>🚀 Langkah 2: Lacak Titik Grid Semesta</h3>
-                    <label>Sumbu Gugusan Menoreh (<span style="color:#eab308;">Seret kursor / Ketuk 2x Layar Kanan untuk Scan</span>)</label>
-                    <div class="input-row">
-                        <input type="number" id="coordX" value="7721" placeholder="Sumbu X">
-                        <input type="number" id="coordY" value="3312" placeholder="Sumbu Y">
-                    </div>
-                    <button class="action-btn" style="margin-top: 14px;" onclick="pindaiRuang()">Tembak Sinyal Radar Cosmic</button>
-                </div>
-
-                <div class="tool-section">
-                    <h3>🛡️ Langkah 3: Amankan Kedaulatan Sektor</h3>
-                    <button class="action-btn" id="btnClaim" onclick="klaimObjek()" disabled>Kunci Dengan Segel Gaib</button>
-                </div>
-
-            </div>
-
-            <div class="display-panel" id="radarPanel">
-                <canvas id="cosmosCanvas"></canvas>
-                
-                <div class="radar-overlay-content" id="radarScreen">
-                    <p style="color: #84a98c; font-size: 0.9rem; line-height: 1.6; max-width: 300px; margin-top: 80px;">Sistem Standby. Hubungkan Frekuensi Jiwa. Geser bidikan dan <b>KUK-KLIK 2 KALI (TAP-TAP)</b> di layar untuk memicu tembakan sinyal scan gaib!</p>
-                </div>
-
-                <div class="tx-box" id="txBox" style="display: none;">
-                    <h4>📜 SERTIFIKAT SEGEL GAIB CODES</h4>
-                    <textarea id="txOutput" rows="3" readonly></textarea>
-                    <p style="font-size: 0.65rem; color: #64748b; margin-top: 6px;">*Sertifikat terenkripsi hukum alam. Nota teks ini sah membuktikan kepemilikan mutlak Anda di jagat Menoreh.</p>
-                </div>
-            </div>
-
-        </div>
+        <button class="claim-btn" onclick="simpanKeSupabase()">Segel & Simpan ke Supabase</button>
     </div>
 
-    <footer class="footer">
-        ToFarmer Lab • Menoreh Universe Engine v3.0 ☕🌱
-    </footer>
+    <!-- Panel Pengisi Mantra Bawah -->
+    <div class="bottom-panel">
+        <div class="mantra-box">
+            <input type="text" id="secretMantra" placeholder="Isi jimat batin / mantra sukma..." value="">
+            <button class="sync-btn" id="syncBtn" onclick="kunciMantra()">Sinkron</button>
+        </div>
+    </div>
 </div>
 
 <script>
 // ==========================================
-// ENGINE ANIMASI KOSMOS + PECAHAN PARTIKEL ADIKTIF
+// KONFIGURASI SUPABASE (Ganti dengan Link Proyekmu)
 // ==========================================
+const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+
+// ==========================================
+// GAME STATE & CONFIG
+// ==========================================
+let namaOperator = "";
+let dataTerdeteksi = null;
+const narasiTeks = "Perbukitan Menoreh Era 2090. Kabut purba menyimpan grid energi rahasia alam semesta. Ketuk layar semamfumu untuk melacak dan mengamankan frekuensi gaib sektormu.";
+
+// --- TYPEWRITER INTRO EFFECT ---
+let indexTeks = 0;
+function mengetikNarasi() {
+    if (indexTeks < narasiTeks.length) {
+        document.getElementById("typedText").innerHTML += narasiTeks.charAt(indexTeks);
+        indexTeks++;
+        setTimeout(mengetikNarasi, 35); // Kecepatan mengetik text
+    } else {
+        // Selesai mengetik, tunggu 1.5 detik lalu ciutkan ke atas
+        setTimeout(() => {
+            document.getElementById("narrativeHeader").classList.add("minimized");
+        }, 1500);
+    }
+}
+window.onload = mengetikNarasi;
+
+// --- ENGINE GRAPHIC RADAR (CANVAS FULLSCREEN) ---
 const canvas = document.getElementById('cosmosCanvas');
 const ctx = canvas.getContext('2d');
-let stars = [];
-let particles = [];     // Penampung serpihan pecahan ledakan tap-tap
-let floatingTexts = []; // Penampung teks melayang candu
-let maxStars = 120;
-let warpSpeed = 0.5;
-let targetWarpSpeed = 0.5;
-let foundPlanetEffect = false;
-let planetPulse = 0;
+let stars = [], particles = [], floatingTexts = [];
+let warpSpeed = 0.5, targetWarpSpeed = 0.5;
+let foundEffect = false, pulseRadius = 0;
+let lastTap = 0, targetX = 0, targetY = 0;
 
-let pointerX = 0;
-let pointerY = 0;
-let isDragging = false;
-let lastTapTime = 0; // Detektor double-tap di mobile HP
-
-function resizeCanvas() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
-    if(pointerX === 0 && pointerY === 0) {
-        pointerX = canvas.width / 2;
-        pointerY = canvas.height / 2;
-    }
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+window.addEventListener('resize', resize);
+resize();
 
-// Buat bintang latar belakang awal
-for(let i=0; i<maxStars; i++) {
-    stars.push({
-        x: Math.random() * canvas.width - canvas.width/2,
-        y: Math.random() * canvas.height - canvas.height/2,
-        z: Math.random() * canvas.width,
-        color: Math.random() > 0.3 ? '#4ade80' : '#eab308'
-    });
+// Init bintang background
+for(let i=0; i<80; i++) {
+    stars.push({ x: Math.random()*canvas.width - canvas.width/2, y: Math.random()*canvas.height - canvas.height/2, z: Math.random()*canvas.width });
 }
 
-// MEKANIK MELEPASKAN PECAHAN PARTIKEL LEDAKAN (DOPAMINE HIT)
-function ledakkanPartikelGaib(x, y, warna) {
-    let jumlahSerpihan = 25; // Makin banyak serpihan, makin memuaskan efeknya
-    for (let i = 0; i < jumlahSerpihan; i++) {
+// Efek Partikel Meledak (Dopamine Booster)
+function ledakkanPartikel(x, y, warna) {
+    for (let i = 0; i < 20; i++) {
         let sudut = Math.random() * Math.PI * 2;
-        let kecepatan = 2 + Math.random() * 5;
-        particles.push({
-            x: x,
-            y: y,
-            vx: Math.cos(sudut) * kecepatan,
-            vy: Math.sin(sudut) * kecepatan,
-            radius: Math.random() * 4 + 1,
-            color: warna,
-            alpha: 1,
-            decay: 0.02 + Math.random() * 0.03
-        });
+        let speed = 3 + Math.random() * 6;
+        particles.push({ x: x, y: y, vx: Math.cos(sudut)*speed, vy: Math.sin(sudut)*speed, radius: Math.random()*3+1, color: warna, alpha: 1, decay: 0.025 });
     }
 }
 
-// MEKANIK TEKS MELAYANG CANDU (+ENERGY / TEXT POP UP)
-function munculkanTeksMelayang(x, y, teks, warna) {
-    floatingTexts.push({
-        x: x,
-        y: y - 20,
-        teks: teks,
-        warna: warna,
-        alpha: 1,
-        vy: -0.8 - Math.random() * 1
-    });
+// Angka Floating Feedback Pop-up
+function buatTeksMelayang(x, y, txt, warna) {
+    floatingTexts.push({ x: x, y: y - 15, teks: txt, warna: warna, alpha: 1 });
 }
 
-function updateCoordinates(clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
-    pointerX = clientX - rect.left;
-    pointerY = clientY - rect.top;
+// --- LOGIKA TAP-TAP HP / CLICK SCREEN MENCARI FREKUENSI ---
+function triggerTapScan(clientX, clientY) {
+    targetX = clientX;
+    targetY = clientY;
 
-    if (pointerX < 0) pointerX = 0;
-    if (pointerX > canvas.width) pointerX = canvas.width;
-    if (pointerY < 0) pointerY = 0;
-    if (pointerY > canvas.height) pointerY = canvas.height;
+    // Sembunyikan panel klaim lama
+    document.getElementById("claimOverlay").classList.remove("show");
+    foundEffect = false;
 
-    const hitungX = Math.floor(7000 + (pointerX / canvas.width) * 1500);
-    const hitungY = Math.floor(3000 + (pointerY / canvas.height) * 1500);
+    // Hitung koordinat virtual berdasarkan lokasi ketukan di layar HP
+    const coordX = Math.floor((clientX / canvas.width) * 9999);
+    const coordY = Math.floor((clientY / canvas.height) * 9999);
 
-    document.getElementById('coordX').value = hitungX;
-    document.getElementById('coordY').value = hitungY;
-}
+    // Efek visual ketukan instan
+    ledakkanPartikel(clientX, clientY, '#4ade80');
+    targetWarpSpeed = 8.0; // Tarikan warp antariksa sesaat
 
-// --- LISTENERS INTERAKSI DRAG & TAP-TAP SCAN ---
-canvas.addEventListener('mousedown', (e) => { 
-    isDragging = true; 
-    updateCoordinates(e.clientX, e.clientY); 
-});
-
-// Deteksi Klik 2 Kali di Komputer Desktop
-canvas.addEventListener('dblclick', (e) => {
-    updateCoordinates(e.clientX, e.clientY);
-    ledakkanPartikelGaib(pointerX, pointerY, '#fde047');
-    munculkanTeksMelayang(pointerX, pointerY, "⚡ HYPER SCAN SYSTEM", "#4ade80");
-    pindaiRuang(); // Langsung picu pencarian sinyal otomatis!
-});
-
-window.addEventListener('mousemove', (e) => { 
-    if (isDragging) updateCoordinates(e.clientX, e.clientY); 
-});
-window.addEventListener('mouseup', () => { isDragging = false; });
-
-// Deteksi Tap-Tap di Layar HP Smartphone
-canvas.addEventListener('touchstart', (e) => { 
-    isDragging = true; 
-    let t = e.touches[0];
-    updateCoordinates(t.clientX, t.clientY); 
+    // Logika matematika penentu zonk/harta berdasarkan titik koordinat acak
+    const seed = coordX + coordY + Math.floor(Math.random() * 100);
     
-    // Custom Double-Tap Logika untuk Android/iOS Mobile
-    let waktuSekarang = new Date().getTime();
-    let selisihWaktu = waktuSekarang - lastTapTime;
-    if (selisihWaktu < 300 && selisihWaktu > 0) {
-        ledakkanPartikelGaib(pointerX, pointerY, '#4ade80');
-        munculkanTeksMelayang(pointerX, pointerY, "🛰️ PULSE RADAR!", "#fde047");
-        pindaiRuang(); // Langsung picu otomatis!
-        e.preventDefault(); 
-    }
-    lastTapTime = waktuSekarang;
-}, { passive: false });
-
-canvas.addEventListener('touchmove', (e) => { 
-    if (isDragging) updateCoordinates(e.touches[0].clientX, e.touches[0].clientY); 
-}, { passive: true });
-canvas.addEventListener('touchend', () => { isDragging = false; });
-
-
-function drawCosmosAnimation() {
-    ctx.fillStyle = "rgba(4, 8, 5, 0.25)"; 
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    warpSpeed += (targetWarpSpeed - warpSpeed) * 0.05;
-    let cx = canvas.width / 2;
-    let cy = canvas.height / 2;
-    
-    // Render loop bintang berjalan
-    for(let i=0; i<maxStars; i++) {
-        let s = stars[i];
-        s.z -= warpSpeed;
-        if(s.z <= 0) {
-            s.x = Math.random() * canvas.width - cx;
-            s.y = Math.random() * canvas.height - cy;
-            s.z = canvas.width;
-        }
-        let k = 128 / s.z;
-        let px = s.x * k + cx;
-        let py = s.y * k + cy;
-        if(px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
-            let size = (1 - s.z / canvas.width) * 3;
-            ctx.fillStyle = s.color;
-            ctx.beginPath();
-            ctx.arc(px, py, size, 0, Math.PI * 2);
-            ctx.fill();
-        }
-    }
-    
-    // Loop Gambar Serpihan Pecahan Ledakan Adiktif
-    for (let i = particles.length - 1; i >= 0; i--) {
-        let p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= p.decay;
-        if (p.alpha <= 0) {
-            particles.splice(i, 1);
-            continue;
-        }
-        ctx.save();
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-    }
-
-    // Loop Gambar Teks Melayang Indikator Poin
-    for (let i = floatingTexts.length - 1; i >= 0; i--) {
-        let ft = floatingTexts[i];
-        ft.y += ft.vy;
-        ft.alpha -= 0.015;
-        if (ft.alpha <= 0) {
-            floatingTexts.splice(i, 1);
-            continue;
-        }
-        ctx.save();
-        ctx.globalAlpha = ft.alpha;
-        ctx.fillStyle = ft.warna;
-        ctx.font = "bold 11px 'Plus Jakarta Sans', monospace";
-        ctx.textAlign = "center";
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = ft.warna;
-        ctx.fillText(ft.teks, ft.x, ft.y);
-        ctx.restore();
-    }
-    
-    // Cincin denyut energi planet terdeteksi
-    if(foundPlanetEffect) {
-        planetPulse += 0.04;
-        let pulseRadius = 55 + Math.sin(planetPulse) * 5;
-        ctx.strokeStyle = 'rgba(234, 179, 8, 0.4)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(pointerX, pointerY, pulseRadius, 0, Math.PI*2);
-        ctx.stroke();
-        
-        ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
-        ctx.beginPath();
-        ctx.arc(pointerX, pointerY, pulseRadius - 10, 0, Math.PI*2);
-        ctx.fill();
-    }
-
-    // Gambar Kursor Bidik Neon ⌖
-    ctx.save();
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "#4ade80";
-    ctx.strokeStyle = isDragging ? "#eab308" : "#4ade80"; 
-    ctx.lineWidth = 2;
-
-    ctx.beginPath();
-    ctx.arc(pointerX, pointerY, 14, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(pointerX - 22, pointerY); ctx.lineTo(pointerX - 6, pointerY);
-    ctx.moveTo(pointerX + 6, pointerY);  ctx.lineTo(pointerX + 22, pointerY);
-    ctx.moveTo(pointerX, pointerY - 22); ctx.lineTo(pointerX, pointerY - 6);
-    ctx.moveTo(pointerX, pointerY + 6);  ctx.lineTo(pointerX, pointerY + 22);
-    ctx.stroke();
-    ctx.restore();
-    
-    requestAnimationFrame(drawCosmosAnimation);
-}
-requestAnimationFrame(drawCosmosAnimation);
-
-// ==========================================
-// LOGIKA GAME & MATEMATIKA REKONSTRUKSI
-// ==========================================
-function hitungLogikaGaib(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        hash = (hash << 5) - hash + str.charCodeAt(i);
-        hash |= 0;
-    }
-    return Math.abs(hash).toString(16).toUpperCase();
-}
-
-let kodeRahasiaOperator = "";
-let namaKodeOperator = "";
-let wilayahDitemukan = "";
-
-function bukaDompet() {
-    let kalimat = document.getElementById('secretPhrase').value;
-    if(!kalimat) {
-        kalimat = document.getElementById('secretPhrase').placeholder;
-    }
-    
-    kodeRahasiaOperator = hitungLogikaGaib(kalimat + "_MENOREH_COS_2090");
-    namaKodeOperator = "OPR-MNR-" + hitungLogikaGaib(kodeRahasiaOperator).substring(0, 5);
-    
-    alert("🌌 Sinyal Jiwa Sinkron! Enkripsi ID Operator: " + namaKodeOperator);
-    document.getElementById('btnClaim').disabled = false;
-    
-    targetWarpSpeed = 2.5; 
-    setTimeout(() => { targetWarpSpeed = 0.6; }, 800);
-    
-    refreshRadarScreen("<span style='color:#eab308; font-weight:800; font-size:1.1rem; text-shadow: 0 0 15px #eab308, 0 0 30px #ca8a04; letter-spacing:1px;'>FREKUENSI JIWA TERKUNCI</span><br><br><span style='color:#84a98c; font-size:0.85rem; line-height:1.6; display:block; margin-top:40px;'>Radar aktif. Cari koordinat lalu ketuk ganda (Double Tap) di atas area canvas untuk menembak sinyal partikel.</span>");
-}
-
-function refreshRadarScreen(pesan) {
-    document.getElementById('radarScreen').innerHTML = `
-        <p style="font-size: 0.9rem; line-height: 1.6; max-width:320px; margin:auto; margin-top:80px;">${pesan}</p>
-    `;
-}
-
-function pindaiRuang() {
-    const x = document.getElementById('coordX').value;
-    const y = document.getElementById('coordY').value;
-    
-    document.getElementById('txBox').style.display = 'none';
-    foundPlanetEffect = false;
-    targetWarpSpeed = 12.0; 
-    refreshRadarScreen("<span style='color:#4ade80; letter-spacing:2px;'>MEMBELAH KABUT BINTANG...</span>");
-
     setTimeout(() => {
-        targetWarpSpeed = 0.4; 
-        const benihTitik = `X:${x}_Y:${y}`;
-        const hashTitik = hitungLogikaGaib(benihTitik);
-        const hitungPeluang = parseInt(hashTitik, 16) % 10;
-        
-        if (hitungPeluang > 4) { 
-            wilayahDitemukan = "KOSMOS-MNR-" + hashTitik.substring(0, 4);
-            const opsiHarta = (parseInt(hashTitik.slice(-1), 16) % 2 === 0) ? "🪐 Inti Plasma Kopi Purba Berdaun Emas" : "☄️ Sabuk Energi Arus Gajah Menoreh";
-            foundPlanetEffect = true; 
-            
-            // Tambahkan ledakan partikel hijau perayaan karena berhasil menemukan objek
-            ledakkanPartikelGaib(pointerX, pointerY, '#4ade80');
-            munculkanTeksMelayang(pointerX, pointerY - 40, "🎯 TARGET LOCKED!!", "#fde047");
+        targetWarpSpeed = 0.5; // Kembalikan kecepatan normal
 
-            let teksRadar = `
-                <span style="color: #fde047; font-weight: 800; letter-spacing:1px;">🛰️ RADAR MENGUNCI GRID ENERGI!</span><br><br>
-                <div style="text-align: left; max-width: 280px; margin: auto; font-size: 0.8rem; line-height: 1.6; color:#e2e8f0; background:rgba(0,0,0,0.6); padding:12px; border-radius:10px; border:1px solid rgba(234,179,8,0.2);">
-                    🛸 <b>Sektor Sinyal:</b> ${wilayahDitemukan}<br>
-                    💎 <b>Anomali Aset:</b> ${opsiHarta}<br>
-                    🟢 <b>Kondisi Jagat:</b> Perawan (Bisa Segel)
-                </div>
+        if (seed % 3 === 0) { // Peluang 33% berhasil menangkap sinyal gaib
+            const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
+            const daftarAnomali = ["Inti Plasma Kopi Purba", "Arus Energi Gajah Menoreh", "Eter Suci Kabut Sumbing"];
+            const anomaliPilihan = daftarAnomali[seed % daftarAnomali.length];
+
+            dataTerdeteksi = { sector: sectorId, x: coordX, y: coordY, item: anomaliPilihan };
+
+            // Efek sukses
+            ledakkanPartikel(clientX, clientY, '#eab308');
+            buatTeksMelayang(clientX, clientY, "🎯 FREKUENSI TERKUNCI!", "#fde047");
+            foundEffect = true; pulseRadius = 10;
+
+            // Tampilkan UI klaim melayang langsung di tengah layar
+            document.getElementById("claimDetails").innerHTML = `
+                🛸 <b>Sektor:</b> ${dataTerdeteksi.sector}<br>
+                📍 <b>Sumbu Grid:</b> [X:${dataTerdeteksi.x}, Y:${dataTerdeteksi.y}]<br>
+                💎 <b>Anomali:</b> ${dataTerdeteksi.item}<br>
+                🔑 <b>Penandatangan:</b> ${namaOperator || "Anonim-Sukma"}
             `;
-            refreshRadarScreen(teksRadar);
+            document.getElementById("claimOverlay").classList.add("show");
         } else {
-            wilayahDitemukan = "";
-            // Munculkan teks popup melayang merah tipis penanda gagal
-            munculkanTeksMelayang(pointerX, pointerY, "💨 ANOMALI KOSONG", "#64748b");
-            refreshRadarScreen("<span style='color: #64748b; font-size:0.85rem;'>Sinyal Pudar. Titik koordinat ini terdeteksi hampa, hanya berisi sisa debu meteor dan kabut mati berkepanjangan.</span>");
+            // Zonk feedback
+            buatTeksMelayang(clientX, clientY, "💨 Kosong (Hampa)", "#64748b");
         }
-    }, 1200); 
+    }, 400);
 }
 
-function klaimObjek() {
-    if(!namaKodeOperator) return alert("Frekuensi Jiwa belum terhubung di Langkah 1!");
-    if(!wilayahDitemukan) return alert("Radar belum mengunci grid energi apa pun!");
-    
-    const x = document.getElementById('coordX').value;
-    const y = document.getElementById('coordY').value;
-    
-    const dataNota = `SECTOR:${wilayahDitemukan}:AT:${x},${y}:COSMIC_BY:${namaKodeOperator}`;
-    const segelMatematika = hitungLogikaGaib(dataNota + kodeRahasiaOperator);
-    const paketNotaLengkap = `${dataNota}:MANTRA_SIGN:${segelMatematika}`;
-    
-    document.getElementById('txOutput').value = paketNotaLengkap;
-    document.getElementById('txBox').style.display = 'block';
-    
-    // Efek ledakan selebrasi emas saat klik segel
-    ledakkanPartikelGaib(pointerX, pointerY, '#eab308');
-    munculkanTeksMelayang(pointerX, pointerY, "🔒 SECTOR SECURED!", "#4ade80");
+// Listeners untuk HP (Touch) dan Laptop (Mouse)
+canvas.addEventListener('touchstart', (e) => {
+    let now = Date.now();
+    let timespan = now - lastTap;
+    // Mendukung single tap dinamis yang cepat layaknya game tap-tap adiktif
+    if (timespan < 350) { 
+        let touch = e.touches[0];
+        triggerTapScan(touch.clientX, touch.clientY);
+    }
+    lastTap = now;
+});
+canvas.addEventListener('click', (e) => {
+    triggerTapScan(e.clientX, e.clientY);
+});
 
-    let teksSukses = `
-        <span style="color: #4ade80; font-weight: 800; letter-spacing:1px;">🛡️ SEKTOR AMAN TERSEGEL!</span><br><br>
-        <p style="font-size: 0.8rem; line-height: 1.5; color:#a7f3d0; max-width:280px; margin:auto;">Frekuensi jangkar sukses diaktifkan. Algoritma koordinat ini telah terikat abadi pada rasi Mantra Sukma Anda.</p>
-    `;
-    refreshRadarScreen(teksSukses);
+// --- RENDER LOOP ENGINE ---
+function draw() {
+    ctx.fillStyle = "rgba(4, 8, 5, 0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    warpSpeed += (targetWarpSpeed - warpSpeed) * 0.1;
+    let cx = canvas.width/2, cy = canvas.height/2;
+
+    // Bintang bergerak
+    stars.forEach(s => {
+        s.z -= warpSpeed;
+        if(s.z <= 0) s.z = canvas.width;
+        let k = 100 / s.z, px = s.x*k + cx, py = s.y*k + cy;
+        if(px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
+            ctx.fillStyle = '#4ade80'; ctx.beginPath(); ctx.arc(px, py, (1-s.z/canvas.width)*2.5, 0, Math.PI*2); ctx.fill();
+        }
+    });
+
+    // Render partikel serpihan ledakan
+    for(let i=particles.length-1; i>=0; i--) {
+        let p = particles[i]; p.x += p.vx; p.y += p.vy; p.alpha -= p.decay;
+        if(p.alpha <= 0) { particles.splice(i,1); continue; }
+        ctx.save(); ctx.globalAlpha = p.alpha; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2); ctx.fill(); ctx.restore();
+    }
+
+    // Render text melayang meluncur ke atas
+    for(let i=floatingTexts.length-1; i>=0; i--) {
+        let ft = floatingTexts[i]; ft.y -= 1; ft.alpha -= 0.02;
+        if(ft.alpha <= 0) { floatingTexts.splice(i,1); continue; }
+        ctx.save(); ctx.globalAlpha = ft.alpha; ctx.fillStyle = ft.warna; ctx.font = "bold 12px monospace"; ctx.textAlign="center"; ctx.fillText(ft.teks, ft.x, ft.y); ctx.restore();
+    }
+
+    // Cincin denyut penanda sasaran frekuensi gaib berhasil didapatkan
+    if (foundEffect) {
+        pulseRadius += 1.5;
+        ctx.strokeStyle = 'rgba(234, 179, 8, ' + Math.max(0, 1 - pulseRadius/60) + ')';
+        ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(targetX, targetY, pulseRadius, 0, Math.PI*2); ctx.stroke();
+        if(pulseRadius > 60) pulseRadius = 10;
+    }
+
+    requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+// --- LOGIKA PENGISI MANTRA ---
+function kunciMantra() {
+    let isi = document.getElementById("secretMantra").value.trim();
+    if(!isi) return alert("Ketik mantra sukmamu terlebih dahulu!");
+    
+    // Hash sederhana membuat ID Operator unik
+    let hash = 0; for (let i = 0; i < isi.length; i++) hash = (hash << 5) - hash + isi.charCodeAt(i);
+    namaOperator = "OPR-" + Math.abs(hash).toString(16).toUpperCase().substring(0, 5);
+    
+    document.getElementById("syncBtn").innerHTML = namaOperator;
+    document.getElementById("syncBtn").classList.add("active");
+    buatTeksMelayang(canvas.width/2, canvas.height - 80, "🔮 MANTRA TERKUNCI", "#eab308");
+}
+
+// ==========================================
+// INTEGRASI SUPABASE (MENGIRIM HASIL KLAIM KE DATABASE)
+// ==========================================
+async function simpanKeSupabase() {
+    if (!dataTerdeteksi) return;
+
+    // Payload data rapi untuk disimpan di baris tabel Supabase-mu
+    const payloadKlaim = {
+        sector_id: dataTerdeteksi.sector,
+        coordinate_x: dataTerdeteksi.x,
+        coordinate_y: dataTerdeteksi.y,
+        anomaly_item: dataTerdeteksi.item,
+        operator_signature: namaOperator || "Anonim-Sukma",
+        claimed_at: new Date().toISOString()
+    };
+
+    // Tanda selebrasi visual langsung di titik klaim
+    ledakkanPartikel(targetX, targetY, '#fde047');
+    document.getElementById("claimOverlay").classList.remove("show");
+
+    // Jika Supabase URL masih bawaan template, simulasi offline
+    if (SUPABASE_URL.includes("XYZ_PROJECT_ID_KAMU")) {
+        console.log("Simulasi Berhasil (Supabase Belum Dihubungkan):", payloadKlaim);
+        buatTeksMelayang(targetX, targetY, "💾 SEKTOR TERSIMPAN (LOCAL/SIMULASI)", "#4ade80");
+        return;
+    }
+
+    /* 
+       💡 CARA MANFAATKAN DATA INI:
+       Kamu tinggal buat tabel bernama "claims" di Supabase Dashboard dengan kolom:
+       - id (int8 / uuid, auto-generate)
+       - sector_id (text)
+       - coordinate_x (int4)
+       - coordinate_y (int4)
+       - anomaly_item (text)
+       - operator_signature (text)
+       - claimed_at (timestamptz)
+    */
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/claims`, {
+            method: "POST",
+            headers: {
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            },
+            body: JSON.stringify(payloadKlaim)
+        });
+
+        if (response.ok) {
+            buatTeksMelayang(targetX, targetY, "⚡ SUKSES MASUK SUPABASE!", "#4ade80");
+        } else {
+            throw new Error("Gagal transmisi data");
+        }
+    } catch (err) {
+        console.error(err);
+        buatTeksMelayang(targetX, targetY, "❌ TRANSMISI DATABASE GAGAL", "#ef4444");
+    }
 }
 </script>
-
 </body>
 </html>
