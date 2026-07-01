@@ -54,22 +54,34 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 .sync-btn.active { background:linear-gradient(135deg, #eab308 0%, #ca8a04 100%); }
 
 /* FLOATING CLAIM INTERFACE */
+/* FLOATING CLAIM INTERFACE */
 .claim-overlay {
-    position:absolute; top:60%; left:50%; transform:translate(-50%, -50%) scale(0.9);
-    width:85%; max-width:360px; background:rgba(4, 8, 5, 0.92);
+    position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.9);
+    width:85%; max-width:360px; 
+    max-height: 80vh; /* 💡 Batasi tinggi maksimal popup 80% dari tinggi layar */
+    display: flex; flex-direction: column; /* 💡 Ubah layout agar tombol tetap di bawah */
+    background:rgba(4, 8, 5, 0.92);
     border:1px solid rgba(234, 179, 8, 0.4); border-radius:18px; padding:18px;
     z-index:6; pointer-events:auto; opacity:0; visibility:hidden;
     transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     box-shadow: 0 0 35px rgba(34, 197, 94, 0.2);
 }
 .claim-overlay.show { opacity:1; visibility:visible; transform:translate(-50%, -50%) scale(1); }
-.claim-title { font-size:0.85rem; font-weight:800; color:#fde047; letter-spacing:1px; text-align:center; margin-bottom:10px; }
-.claim-details { font-size:0.75rem; color:#cbd5e1; font-family:monospace; background:rgba(255,255,255,0.03); padding:10px; border-radius:8px; line-height:1.6; margin-bottom:14px; border:1px solid rgba(255,255,255,0.05); }
+.claim-title { font-size:0.85rem; font-weight:800; color:#fde047; letter-spacing:1px; text-align:center; margin-bottom:10px; flex-shrink: 0; }
+
+.claim-details { 
+    font-size:0.75rem; color:#cbd5e1; font-family:monospace; 
+    background:rgba(255,255,255,0.03); padding:10px; border-radius:8px; line-height:1.6; 
+    margin-bottom:14px; border:1px solid rgba(255,255,255,0.05); 
+    overflow-y: auto; /* 💡 Aktifkan scrollbar vertikal jika teks terlalu panjang */
+    max-height: 100%; /* 💡 Mengikuti sisa space popup */
+}
 
 .claim-btn {
     width:100%; padding:12px; background:linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
     border:none; color:#050b07; font-weight:800; font-size:0.8rem; border-radius:10px;
     cursor:pointer; text-transform:uppercase; box-shadow:0 4px 15px rgba(234,179,8,0.3); transition: 0.2s;
+    flex-shrink: 0; /* 💡 Mencegah tombol mengecil/gepeng saat di-scroll */
 }
 .claim-btn:active { transform: scale(0.98); }
 .claim-btn.lock-mode { background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#fff; box-shadow:0 4px 15px rgba(239,68,68,0.3); }
@@ -142,7 +154,8 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 <body class="no-select">
 <div class="game-container">
     <div class="top-nav">
-        <a href="https://www.tofarmer.xyz/gudang-alat-tofamer.html" class="top-btn">⬅ Kembali</a>
+        <a href="https://www.tofarmer.xyz/gudang-alat-tofamer.html" class="top-btn">⬅ Kembali
+</a>
        
     </div>
 <div class="game-container">
@@ -443,9 +456,9 @@ function tampilkanPopup(kondisi, anomali, hikmah) {
         🛸 <b>Pancaran Sektor:</b> ${dataTerdeteksi.sector}<br>
         📍 <b>Garis Titik Grid:</b> [X:${dataTerdeteksi.x} , Y:${dataTerdeteksi.y}]<br>
         🧪 <b>Medan Jiwa:</b> ${kondisi}<br>
-        🔮 <span style="color:#fde047; font-size:0.82rem;"><b>Wujud Anomali (ToFarmer Line):</b><br>${anomali}</span><br>
+        🔮 <span style="color:#fde047; font-size:0.82rem;"><b>Wujud Anomali :</b><br>${anomali}</span><br>
         <hr style="border:0; border-top:1px dashed rgba(74,222,128,0.2); margin:8px 0;">
-        📜 <i style="color:#a7f3d0; font-size:0.72rem; display:block; line-height:1.4;">"${hikmah}"</i><br>
+        📜 Mantra batin jimat sukma <i style="color:#a7f3d0; font-size:0.72rem; display:block; line-height:1.4;">"${hikmah}"</i><br>
         🔑 <b>Penjangkar Sukma:</b> ${operatorFinal}
         ${infoTamu}
     `;
