@@ -266,7 +266,7 @@ async function triggerTapScan(clientX, clientY) {
                 "🌌 MENJANGKAR SPEKTRUM SUKMA OPERATOR...",
                 
                 // Phase 3: Kompilasi & Penembusan Awan Cloudflare
-                "💻 MENGALIRKAN LOGIKA CODE LLM GEMMA...",
+                "💻 MENGALIRKAN LOGIKA CODE GEMMA...",
                 "🎯 MEMETAKAN GRID KOORDINAT GAJAH MENOREH...",
                 "☁️ MENEMBUS AWAN PERLINDUNGAN WORKER...",
                 "🌿 MENGUMPULKAN COMPREHENSIVE KNOWLEDGE BASE...",
@@ -431,15 +431,68 @@ async function eksekusiSegel() {
         return;
     }
 
+    const btnSegel = document.getElementById("mainClaimBtn");
+    btnSegel.disabled = true; 
+    btnSegel.innerText = "⚡ MENYALURKAN ENERGI SUKMA...";
+
     document.getElementById("claimOverlay").classList.remove("show");
 
-    if (!isUserLulusLogin) {
-        jatahSegelTamu--;
-        localStorage.setItem('mu_jatah_tamu', jatahSegelTamu.toString());
-        updateBadgeStatus();
-        buatTeksMelayang(targetX, targetY, `🔒 SEKTOR TERSEGEL LOOTED! (Sisa Jatah: ${jatahSegelTamu})`, "#eab308");
-    } else {
-        buatTeksMelayang(targetX, targetY, "🔒 SEKTOR TERSEGEL DI AWAN SUNDAL!", "#4ade80");
+    // Penyelarasan identitas operator sesuai gaya Menoreh 2090
+    const operatorFinal = namaOperator || "OPR-ANON-PURBA";
+    const walletFinal = isUserLulusLogin ? walletToFarmer : "GUEST_RADAR";
+
+    // =====================================================================
+    // 🧬 PROSES INJEKSI PRESISI KE MATRIKS CLAIMS (SUPABASE)
+    // =====================================================================
+    try {
+        const responseSupabase = await fetch(`${SUPABASE_URL}/rest/v1/claims`, {
+            method: "POST",
+            headers: {
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({
+                // Pemetaan presisi 1:1 sesuai schema database kamu
+                sector_id: dataTerdeteksi.sector,
+                coordinate_x: dataTerdeteksi.x,
+                coordinate_y: dataTerdeteksi.y,
+                anomaly_item: dataTerdeteksi.item,
+                operator_signature: `${walletFinal} // ${operatorFinal}`,
+                claimed_at: new Date().toISOString()
+            })
+        });
+
+        if (!responseSupabase.ok) throw new Error("Gagal menembus pertahanan grid Supabase.");
+
+        // =====================================================================
+        // 🔮 NOTIFIKASI ADIKTIF BERGAYA MISTIS SCI-FI
+        // =====================================================================
+        if (!isUserLulusLogin) {
+            jatahSegelTamu--;
+            localStorage.setItem('mu_jatah_tamu', jatahSegelTamu.toString());
+            updateBadgeStatus();
+            
+            // Efek teks beruntun yang candu di layar
+            buatTeksMelayang(targetX, targetY, "🌌 RELEVANSI DIMENSI TERKUNCI!", "#eab308");
+            setTimeout(() => {
+                buatTeksMelayang(targetX, targetY - 20, `📟 KUOTA RADAR TAMU TERSISA: ${jatahSegelTamu}/3`, "#f87171");
+            }, 300);
+        } else {
+            // Semburan kepuasan instan untuk member ToFarmer
+            buatTeksMelayang(targetX, targetY, "🔮 ANOMALI SELESAI DISEGEL!", "#4ade80");
+            setTimeout(() => {
+                buatTeksMelayang(targetX, targetY - 20, "🛰️ DATA SINKRON 100% PADA JANGKAR AWAN TOFARMER", "#60a5fa");
+            }, 250);
+        }
+
+    } catch (err) {
+        console.error("Distorsi Sinyal:", err);
+        buatTeksMelayang(targetX, targetY, "❌ TRANSMISI GAGAL! FLUKSUASI ETER TIDAK STABIL", "#ef4444");
+    } finally {
+        btnSegel.disabled = false;
+        btnSegel.innerText = "🔒 SEGEL FREKUENSI";
     }
 }
 
