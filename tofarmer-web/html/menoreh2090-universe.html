@@ -72,10 +72,12 @@ input[type="number"] { width: 100%; padding: 12px 16px; background: rgba(7, 14, 
 background: #040805; border: 1px solid rgba(234, 179, 8, 0.2); 
 border-radius: 24px; padding: 0; display: flex; flex-direction: column; 
 position: relative; min-height: 420px; overflow: hidden; box-shadow: inset 0 0 40px rgba(0,0,0,0.9);
-cursor: crosshair; /* Mengubah kursor biasa jadi simbol crosshair */
+cursor: crosshair;
+-webkit-user-select: none; /* Cegah text ter-highlight pas di-tap tap cepat */
+user-select: none;
 }
 canvas#cosmosCanvas { position: absolute; top:0; left:0; width:100%; height:100%; z-index: 1; }
-.radar-overlay-content { position: relative; z-index: 2; padding: 30px; display: flex; flex-direction: column; justify-content: center; height: 100%; min-height: 240px; text-align: center; margin: auto; pointer-events: none; /* Biar mouse/touch nembus ke canvas */ }
+.radar-overlay-content { position: relative; z-index: 2; padding: 30px; display: flex; flex-direction: column; justify-content: center; height: 100%; min-height: 240px; text-align: center; margin: auto; pointer-events: none; }
 
 .tx-box { margin: 20px; position: relative; z-index: 2; background: rgba(7, 14, 10, 0.85); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 14px; padding: 16px; backdrop-filter: blur(4px); }
 .tx-box h4 { font-size: 0.75rem; color: #4ade80; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
@@ -102,14 +104,13 @@ textarea { width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); 
                 <div class="tool-section">
                     <h3>🌌 Langkah 1: Mantra Sukma (Sandi Jiwa)</h3>
                     <label style="margin-bottom: 10px;">Ketik manual jimat batinmu secara transparan untuk menyalakan otentikasi frekuensi:</label>
-                    <!-- UBAHAN: Kosong tanpa value, menggunakan placeholder transparan -->
                     <input type="text" id="secretPhrase" class="transparent-input" value="" placeholder="kopi hitam gula aren">
                     <button class="action-btn" style="margin-top: 14px;" onclick="bukaDompet()">Hubungkan Frekuensi Jiwa</button>
                 </div>
 
                 <div class="tool-section">
                     <h3>🚀 Langkah 2: Lacak Titik Grid Semesta</h3>
-                    <label>Titik Sumbu Gugusan Menoreh (Geser Radar di Kanan untuk Mengubah)</label>
+                    <label>Sumbu Gugusan Menoreh (<span style="color:#eab308;">Seret kursor / Ketuk 2x Layar Kanan untuk Scan</span>)</label>
                     <div class="input-row">
                         <input type="number" id="coordX" value="7721" placeholder="Sumbu X">
                         <input type="number" id="coordY" value="3312" placeholder="Sumbu Y">
@@ -128,8 +129,7 @@ textarea { width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); 
                 <canvas id="cosmosCanvas"></canvas>
                 
                 <div class="radar-overlay-content" id="radarScreen">
-                    <!-- UBAHAN: Ikon ⌖ dihapus dari HTML karena sekarang langsung digambar 3D di Canvas secara interaktif -->
-                    <p style="color: #84a98c; font-size: 0.9rem; line-height: 1.6; max-width: 300px; margin-top: 80px;">Sistem Standby. Hubungkan Frekuensi Jiwa, tahan & geser layar radar untuk membidik koordinat rahasia.</p>
+                    <p style="color: #84a98c; font-size: 0.9rem; line-height: 1.6; max-width: 300px; margin-top: 80px;">Sistem Standby. Hubungkan Frekuensi Jiwa. Geser bidikan dan <b>KUK-KLIK 2 KALI (TAP-TAP)</b> di layar untuk memicu tembakan sinyal scan gaib!</p>
                 </div>
 
                 <div class="tx-box" id="txBox" style="display: none;">
@@ -143,32 +143,33 @@ textarea { width: 100%; padding: 10px; border: 1px solid rgba(255,255,255,0.1); 
     </div>
 
     <footer class="footer">
-        ToFarmer Lab • Menoreh Universe Engine v2.0 ☕🌱
+        ToFarmer Lab • Menoreh Universe Engine v3.0 ☕🌱
     </footer>
 </div>
 
 <script>
 // ==========================================
-// ENGINE ANIMASI BINTANG KOSMOS + INTERACTIVE POINTER
+// ENGINE ANIMASI KOSMOS + PECAHAN PARTIKEL ADIKTIF
 // ==========================================
 const canvas = document.getElementById('cosmosCanvas');
 const ctx = canvas.getContext('2d');
 let stars = [];
+let particles = [];     // Penampung serpihan pecahan ledakan tap-tap
+let floatingTexts = []; // Penampung teks melayang candu
 let maxStars = 120;
 let warpSpeed = 0.5;
 let targetWarpSpeed = 0.5;
 let foundPlanetEffect = false;
 let planetPulse = 0;
 
-// Variabel Kontrol Pointer Interaktif
 let pointerX = 0;
 let pointerY = 0;
 let isDragging = false;
+let lastTapTime = 0; // Detektor double-tap di mobile HP
 
 function resizeCanvas() {
     canvas.width = canvas.parentElement.clientWidth;
     canvas.height = canvas.parentElement.clientHeight;
-    // Set pointer default di tengah kanvas saat awal muat
     if(pointerX === 0 && pointerY === 0) {
         pointerX = canvas.width / 2;
         pointerY = canvas.height / 2;
@@ -177,7 +178,7 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Buat sebaran titik bintang awal
+// Buat bintang latar belakang awal
 for(let i=0; i<maxStars; i++) {
     stars.push({
         x: Math.random() * canvas.width - canvas.width/2,
@@ -187,21 +188,47 @@ for(let i=0; i<maxStars; i++) {
     });
 }
 
-// --- LOGIKA JEJAK POINTER BERJALAN & KONTROL KOORDINAT ---
+// MEKANIK MELEPASKAN PECAHAN PARTIKEL LEDAKAN (DOPAMINE HIT)
+function ledakkanPartikelGaib(x, y, warna) {
+    let jumlahSerpihan = 25; // Makin banyak serpihan, makin memuaskan efeknya
+    for (let i = 0; i < jumlahSerpihan; i++) {
+        let sudut = Math.random() * Math.PI * 2;
+        let kecepatan = 2 + Math.random() * 5;
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(sudut) * kecepatan,
+            vy: Math.sin(sudut) * kecepatan,
+            radius: Math.random() * 4 + 1,
+            color: warna,
+            alpha: 1,
+            decay: 0.02 + Math.random() * 0.03
+        });
+    }
+}
+
+// MEKANIK TEKS MELAYANG CANDU (+ENERGY / TEXT POP UP)
+function munculkanTeksMelayang(x, y, teks, warna) {
+    floatingTexts.push({
+        x: x,
+        y: y - 20,
+        teks: teks,
+        warna: warna,
+        alpha: 1,
+        vy: -0.8 - Math.random() * 1
+    });
+}
+
 function updateCoordinates(clientX, clientY) {
     const rect = canvas.getBoundingClientRect();
     pointerX = clientX - rect.left;
     pointerY = clientY - rect.top;
 
-    // Batasi agar pointer tidak keluar dari area panel radar
     if (pointerX < 0) pointerX = 0;
     if (pointerX > canvas.width) pointerX = canvas.width;
     if (pointerY < 0) pointerY = 0;
     if (pointerY > canvas.height) pointerY = canvas.height;
 
-    // ALGORITMA PENYESUAIAN ANGKA KOORDINAT OTOMATIS:
-    // Sumbu X memetakan rentang grid (contoh: 7000 - 8500)
-    // Sumbu Y memetakan rentang grid (contoh: 3000 - 4500)
     const hitungX = Math.floor(7000 + (pointerX / canvas.width) * 1500);
     const hitungY = Math.floor(3000 + (pointerY / canvas.height) * 1500);
 
@@ -209,15 +236,47 @@ function updateCoordinates(clientX, clientY) {
     document.getElementById('coordY').value = hitungY;
 }
 
-// Event handler untuk Desktop (Mouse)
-canvas.addEventListener('mousedown', (e) => { isDragging = true; updateCoordinates(e.clientX, e.clientY); });
-window.addEventListener('mousemove', (e) => { if (isDragging) updateCoordinates(e.clientX, e.clientY); });
+// --- LISTENERS INTERAKSI DRAG & TAP-TAP SCAN ---
+canvas.addEventListener('mousedown', (e) => { 
+    isDragging = true; 
+    updateCoordinates(e.clientX, e.clientY); 
+});
+
+// Deteksi Klik 2 Kali di Komputer Desktop
+canvas.addEventListener('dblclick', (e) => {
+    updateCoordinates(e.clientX, e.clientY);
+    ledakkanPartikelGaib(pointerX, pointerY, '#fde047');
+    munculkanTeksMelayang(pointerX, pointerY, "⚡ HYPER SCAN SYSTEM", "#4ade80");
+    pindaiRuang(); // Langsung picu pencarian sinyal otomatis!
+});
+
+window.addEventListener('mousemove', (e) => { 
+    if (isDragging) updateCoordinates(e.clientX, e.clientY); 
+});
 window.addEventListener('mouseup', () => { isDragging = false; });
 
-// Event handler untuk HP / Mobile Touchscreen
-canvas.addEventListener('touchstart', (e) => { isDragging = true; updateCoordinates(e.touches[0].clientX, e.touches[0].clientY); }, {pasive: true});
-window.addEventListener('touchmove', (e) => { if (isDragging) updateCoordinates(e.touches[0].clientX, e.touches[0].clientY); }, {pasive: true});
-window.addEventListener('touchend', () => { isDragging = false; });
+// Deteksi Tap-Tap di Layar HP Smartphone
+canvas.addEventListener('touchstart', (e) => { 
+    isDragging = true; 
+    let t = e.touches[0];
+    updateCoordinates(t.clientX, t.clientY); 
+    
+    // Custom Double-Tap Logika untuk Android/iOS Mobile
+    let waktuSekarang = new Date().getTime();
+    let selisihWaktu = waktuSekarang - lastTapTime;
+    if (selisihWaktu < 300 && selisihWaktu > 0) {
+        ledakkanPartikelGaib(pointerX, pointerY, '#4ade80');
+        munculkanTeksMelayang(pointerX, pointerY, "🛰️ PULSE RADAR!", "#fde047");
+        pindaiRuang(); // Langsung picu otomatis!
+        e.preventDefault(); 
+    }
+    lastTapTime = waktuSekarang;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => { 
+    if (isDragging) updateCoordinates(e.touches[0].clientX, e.touches[0].clientY); 
+}, { passive: true });
+canvas.addEventListener('touchend', () => { isDragging = false; });
 
 
 function drawCosmosAnimation() {
@@ -225,25 +284,21 @@ function drawCosmosAnimation() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     warpSpeed += (targetWarpSpeed - warpSpeed) * 0.05;
-    
     let cx = canvas.width / 2;
     let cy = canvas.height / 2;
     
-    // Render loop bintang bergerak
+    // Render loop bintang berjalan
     for(let i=0; i<maxStars; i++) {
         let s = stars[i];
         s.z -= warpSpeed;
-        
         if(s.z <= 0) {
             s.x = Math.random() * canvas.width - cx;
             s.y = Math.random() * canvas.height - cy;
             s.z = canvas.width;
         }
-        
         let k = 128 / s.z;
         let px = s.x * k + cx;
         let py = s.y * k + cy;
-        
         if(px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
             let size = (1 - s.z / canvas.width) * 3;
             ctx.fillStyle = s.color;
@@ -253,14 +308,53 @@ function drawCosmosAnimation() {
         }
     }
     
-    // Jika radar mengunci objek
+    // Loop Gambar Serpihan Pecahan Ledakan Adiktif
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) {
+            particles.splice(i, 1);
+            continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // Loop Gambar Teks Melayang Indikator Poin
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        let ft = floatingTexts[i];
+        ft.y += ft.vy;
+        ft.alpha -= 0.015;
+        if (ft.alpha <= 0) {
+            floatingTexts.splice(i, 1);
+            continue;
+        }
+        ctx.save();
+        ctx.globalAlpha = ft.alpha;
+        ctx.fillStyle = ft.warna;
+        ctx.font = "bold 11px 'Plus Jakarta Sans', monospace";
+        ctx.textAlign = "center";
+        ctx.shadowBlur = 5;
+        ctx.shadowColor = ft.warna;
+        ctx.fillText(ft.teks, ft.x, ft.y);
+        ctx.restore();
+    }
+    
+    // Cincin denyut energi planet terdeteksi
     if(foundPlanetEffect) {
         planetPulse += 0.04;
         let pulseRadius = 55 + Math.sin(planetPulse) * 5;
         ctx.strokeStyle = 'rgba(234, 179, 8, 0.4)';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(pointerX, pointerY, pulseRadius, 0, Math.PI*2); // Berdenyut pas di titik kursor baru
+        ctx.arc(pointerX, pointerY, pulseRadius, 0, Math.PI*2);
         ctx.stroke();
         
         ctx.fillStyle = 'rgba(34, 197, 94, 0.15)';
@@ -269,19 +363,17 @@ function drawCosmosAnimation() {
         ctx.fill();
     }
 
-    // --- MENGGAMBAR 3D BIDIKAN ⌖ LANGSUNG DI CANVAS ---
+    // Gambar Kursor Bidik Neon ⌖
     ctx.save();
     ctx.shadowBlur = 15;
     ctx.shadowColor = "#4ade80";
-    ctx.strokeStyle = isDragging ? "#eab308" : "#4ade80"; // Ganti warna jadi emas saat diseret
+    ctx.strokeStyle = isDragging ? "#eab308" : "#4ade80"; 
     ctx.lineWidth = 2;
 
-    // Lingkaran luar kursor bidik
     ctx.beginPath();
     ctx.arc(pointerX, pointerY, 14, 0, Math.PI * 2);
     ctx.stroke();
 
-    // Garis crosshair tengah (+)
     ctx.beginPath();
     ctx.moveTo(pointerX - 22, pointerY); ctx.lineTo(pointerX - 6, pointerY);
     ctx.moveTo(pointerX + 6, pointerY);  ctx.lineTo(pointerX + 22, pointerY);
@@ -311,7 +403,6 @@ let namaKodeOperator = "";
 let wilayahDitemukan = "";
 
 function bukaDompet() {
-    // Ambil input asli, jika kosong gunakan isi placeholder transparan sebagai fallback otomatis
     let kalimat = document.getElementById('secretPhrase').value;
     if(!kalimat) {
         kalimat = document.getElementById('secretPhrase').placeholder;
@@ -326,7 +417,7 @@ function bukaDompet() {
     targetWarpSpeed = 2.5; 
     setTimeout(() => { targetWarpSpeed = 0.6; }, 800);
     
-    refreshRadarScreen("<span style='color:#eab308; font-weight:800; font-size:1.1rem; text-shadow: 0 0 15px #eab308, 0 0 30px #ca8a04; letter-spacing:1px;'>FREKUENSI JIWA TERKUNCI</span><br><br><span style='color:#84a98c; font-size:0.85rem; line-height:1.6; display:block; margin-top:40px;'>Radar canggih mendeteksi getaran sukma. Tahan dan seret bidikan radar untuk mencari titik grid semesta.</span>");
+    refreshRadarScreen("<span style='color:#eab308; font-weight:800; font-size:1.1rem; text-shadow: 0 0 15px #eab308, 0 0 30px #ca8a04; letter-spacing:1px;'>FREKUENSI JIWA TERKUNCI</span><br><br><span style='color:#84a98c; font-size:0.85rem; line-height:1.6; display:block; margin-top:40px;'>Radar aktif. Cari koordinat lalu ketuk ganda (Double Tap) di atas area canvas untuk menembak sinyal partikel.</span>");
 }
 
 function refreshRadarScreen(pesan) {
@@ -355,6 +446,10 @@ function pindaiRuang() {
             const opsiHarta = (parseInt(hashTitik.slice(-1), 16) % 2 === 0) ? "🪐 Inti Plasma Kopi Purba Berdaun Emas" : "☄️ Sabuk Energi Arus Gajah Menoreh";
             foundPlanetEffect = true; 
             
+            // Tambahkan ledakan partikel hijau perayaan karena berhasil menemukan objek
+            ledakkanPartikelGaib(pointerX, pointerY, '#4ade80');
+            munculkanTeksMelayang(pointerX, pointerY - 40, "🎯 TARGET LOCKED!!", "#fde047");
+
             let teksRadar = `
                 <span style="color: #fde047; font-weight: 800; letter-spacing:1px;">🛰️ RADAR MENGUNCI GRID ENERGI!</span><br><br>
                 <div style="text-align: left; max-width: 280px; margin: auto; font-size: 0.8rem; line-height: 1.6; color:#e2e8f0; background:rgba(0,0,0,0.6); padding:12px; border-radius:10px; border:1px solid rgba(234,179,8,0.2);">
@@ -366,6 +461,8 @@ function pindaiRuang() {
             refreshRadarScreen(teksRadar);
         } else {
             wilayahDitemukan = "";
+            // Munculkan teks popup melayang merah tipis penanda gagal
+            munculkanTeksMelayang(pointerX, pointerY, "💨 ANOMALI KOSONG", "#64748b");
             refreshRadarScreen("<span style='color: #64748b; font-size:0.85rem;'>Sinyal Pudar. Titik koordinat ini terdeteksi hampa, hanya berisi sisa debu meteor dan kabut mati berkepanjangan.</span>");
         }
     }, 1200); 
@@ -385,6 +482,10 @@ function klaimObjek() {
     document.getElementById('txOutput').value = paketNotaLengkap;
     document.getElementById('txBox').style.display = 'block';
     
+    // Efek ledakan selebrasi emas saat klik segel
+    ledakkanPartikelGaib(pointerX, pointerY, '#eab308');
+    munculkanTeksMelayang(pointerX, pointerY, "🔒 SECTOR SECURED!", "#4ade80");
+
     let teksSukses = `
         <span style="color: #4ade80; font-weight: 800; letter-spacing:1px;">🛡️ SEKTOR AMAN TERSEGEL!</span><br><br>
         <p style="font-size: 0.8rem; line-height: 1.5; color:#a7f3d0; max-width:280px; margin:auto;">Frekuensi jangkar sukses diaktifkan. Algoritma koordinat ini telah terikat abadi pada rasi Mantra Sukma Anda.</p>
