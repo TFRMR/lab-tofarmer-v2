@@ -310,15 +310,34 @@ Format Struktur Objek JSON yang wajib:
     }
 
     // Ekstraksi data hasil balikan AI
+   // =====================================================================
+    // 🕵️ PROSES EKSTRAKSI DATA ANTI TYPEERROR (ADAPTIF LLAMA 4)
+    // =====================================================================
     let rawAIResult = "";
-    if (typeof gameChat === "string") {
+    
+    if (gameChat && typeof gameChat === "object") {
+      // Ambil isi properti terdalam yang mungkin menyimpan string respons
+      const isiTeks = gameChat.response || gameChat.text || gameChat.result || "";
+      
+      if (typeof isiTeks === "object") {
+        // Jika ternyata sub-propertinya masih berbentuk objek/bukan string, ubah paksa jadi teks string JSON
+        rawAIResult = JSON.stringify(isiTeks);
+      } else {
+        rawAIResult = String(isiTeks);
+      }
+    } else if (typeof gameChat === "string") {
       rawAIResult = gameChat;
-    } else if (gameChat && typeof gameChat === "object") {
-      rawAIResult = gameChat.response || gameChat.text || gameChat.result || "";
+    } else {
+      // Jika gameChat berwujud tipe data lain, konversi paksa ke string agar aman di-trim
+      rawAIResult = String(gameChat || "");
     }
 
+    // Sekarang aman dipangkas tanpa takut memicu .trim() is not a function!
     let bersihJSON = rawAIResult.trim();
-    if (!bersihJSON) throw new Error("Semua lini model AI Cloudflare tidak merespon.");
+    if (!bersihJSON || bersihJSON === "undefined" || bersihJSON === "[object Object]") {
+       // Antisipasi jika seluruh objek gameChat adalah response JSON murni dari Llama 4
+       bersihJSON = JSON.stringify(gameChat);
+    }
 
     // Potong paksa string agar hanya menyisakan objek kurung kurawal { ... }
     const posisiAwalKurung = bersihJSON.indexOf("{");
