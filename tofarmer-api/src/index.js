@@ -13,7 +13,7 @@ export default {
     }
 
     // ✅ SATU TITIK KONTROL MODEL — ganti di sini saja atau via env variable
-    const LLM_MODEL = env.CF_AI_MODEL || "@cf/openai/gpt-oss-120b";
+    const LLM_MODEL = env.CF_AI_MODEL || "@cf/meta/llama-4-scout-17b-16e-instruct";
 
     const url = new URL(request.url);
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
@@ -293,7 +293,7 @@ Format Struktur Objek JSON yang Wajib ditaati:
 {
   "anomali": "[Nama manifestasi gaib-teknologi yang sangat imajinatif, panjang, megah, menggabungkan unsur mekanis cyberpunk masa depan dan spiritualitas Jawa kuno + emoji sakral]",
   "kondisi": "[Deskripsi status medan jiwa/energi batin koordinat tersebut secara puitis, kompleks, dan multidimensi]",
-  "hikmah": "[Refleksi filosofis yang mendalam, transformatif, dan inspiratif]"
+  "hikmah": "[Pilih satu kutipan otentik dari tokoh filsafat stoikisme atau serat wedhatama]"
 }`
         },
         { 

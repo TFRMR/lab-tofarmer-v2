@@ -291,29 +291,39 @@ canvas.addEventListener('click', (e) => {
 });
 
 async function triggerTapScan(clientX, clientY) {
-  if (isIntroTyping) return;
-  if (isScanning) return;
+    if (isIntroTyping) return;
+    if (isScanning) return;
+
+    // 1. SENSASI FISIK (Haptic Feedback)
+    // Berikan getaran halus saat sentuhan pertama sebagai "feedback" nyata
+    if (navigator.vibrate) navigator.vibrate(20);
 
     targetX = clientX;
     targetY = clientY;
     document.getElementById("claimOverlay").classList.remove("show");
     foundEffect = false;
 
-    // 1. HITUNG KOORDINAT KOSMIS
+    // 2. KOMPUTASI "TRUTH" (Menghasilkan seed unik berbasis koordinat)
     const coordX = Math.floor((clientX / canvas.width) * 9999);
     const coordY = Math.floor((clientY / canvas.height) * 9999);
-    const seed = (coordX * 31) + (coordY * 17) + Math.floor(Math.random() * 75);
+    
+    // Seed sekarang menjadi "bukti" awal koordinat
+    const rawData = { x: coordX, y: coordY, timestamp: Date.now() };
+    const seed = (coordX * 31) + (coordY * 17) + (rawData.timestamp % 75);
     const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
 
     ledakkanPartikel(clientX, clientY, '#4ade80');
-    targetWarpSpeed = 12.0; // Bikin hentakan awal warp speed lebih kencang!
-    setTimeout(() => { targetWarpSpeed = 2.0; }, 300); // Pertahankan kecepatan warp agak tinggi saat loading
+    targetWarpSpeed = 12.0; 
+    setTimeout(() => { targetWarpSpeed = 2.0; }, 300);
 
-    // 2. TINGKAT KESULITAN GACHA (5%)
+    // 3. LOGIKA GACHA DENGAN PROOF (Hanya 5% peluang)
     if (Math.random() < 0.05) { 
         isScanning = true;
         foundEffect = true; 
         pulseRadius = 5;
+        
+        // Tambahkan getaran lebih kuat jika berhasil menemukan "anomali"
+        if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
 
         // Cek Kuota Tamu
         if (!isUserLulusLogin && jatahSegelTamu <= 0) {
