@@ -468,6 +468,16 @@ function tampilkanPopup(kondisi, anomali, hikmah) {
     ledakkanPartikel(targetX, targetY, '#fde047');
     buatTeksMelayang(targetX, targetY, "✨ TRANSMISI SUKSES!", "#4ade80");
 
+// --- SISIPKAN KODE DI SINI ---
+    const overlay = document.getElementById("claimOverlay");
+    if (anomali.includes("Eter")) {
+        overlay.style.borderColor = "#fde047"; // Emas untuk barang langka
+        overlay.style.boxShadow = "0 0 45px rgba(234, 179, 8, 0.4)";
+    } else {
+        overlay.style.borderColor = "rgba(234, 179, 8, 0.4)"; // Normal
+    }
+    // ----------------------------
+
     const operatorFinal = namaOperator || "Mantra Tanpa Nama";
     let infoTamu = "";
     if(!isUserLulusLogin) {
@@ -531,14 +541,19 @@ async function eksekusiSegel() {
 
     document.getElementById("claimOverlay").classList.remove("show");
 
-    // Penyelarasan identitas operator sesuai gaya Menoreh 2090
     const operatorFinal = namaOperator || "OPR-ANON-PURBA";
     const walletFinal = isUserLulusLogin ? walletToFarmer : "GUEST_RADAR";
 
-    // =====================================================================
-    // 🧬 PROSES INJEKSI PRESISI KE MATRIKS CLAIMS (SUPABASE)
-    // =====================================================================
     try {
+        // --- PROSES GENERASI BUKTI MATEMATIS ---
+        // Kita hashing data sebagai "Sidik Jari" unik di dunia matematika
+        const bukti = await generateProof({
+            sector: dataTerdeteksi.sector,
+            x: dataTerdeteksi.x,
+            y: dataTerdeteksi.y,
+            item: dataTerdeteksi.item
+        });
+
         const responseSupabase = await fetch(`${SUPABASE_URL}/rest/v1/claims`, {
             method: "POST",
             headers: {
@@ -548,17 +563,17 @@ async function eksekusiSegel() {
                 "Prefer": "return=minimal"
             },
             body: JSON.stringify({
-                // Pemetaan presisi 1:1 sesuai schema database kamu
                 sector_id: dataTerdeteksi.sector,
                 coordinate_x: dataTerdeteksi.x,
                 coordinate_y: dataTerdeteksi.y,
                 anomaly_item: dataTerdeteksi.item,
+                proof_hash: bukti, // BUKTI MATEMATIS TERSIMPAN
                 operator_signature: `${walletFinal} // ${operatorFinal}`,
                 claimed_at: new Date().toISOString()
             })
         });
 
-        if (!responseSupabase.ok) throw new Error("Gagal menembus pertahanan grid Supabase.");
+        if (!responseSupabase.ok) throw new Error("Gagal menembus grid Supabase.");
 
         // =====================================================================
         // 🔮 NOTIFIKASI ADIKTIF BERGAYA MISTIS SCI-FI
@@ -687,6 +702,16 @@ function kunciMantra() {
     document.getElementById("syncBtn").innerHTML = namaOperator;
     document.getElementById("syncBtn").classList.add("active");
     buatTeksMelayang(canvas.width/2, canvas.height - 80, "🔮 MANTRA TERKUNCI", "#eab308");
+}
+// ==========================================
+// 🔐 FUNGSI KOMPUTASI BUKTI (MATH-NATIVE)
+// ==========================================
+async function generateProof(data) {
+    const msg = JSON.stringify(data);
+    const encoder = new TextEncoder();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(msg));
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 </script>
 </body>
