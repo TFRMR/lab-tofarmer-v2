@@ -162,7 +162,9 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     <div class="user-badge" id="userBadge">Mendeteksi Sinyal...</div>
 
     <canvas id="cosmosCanvas"></canvas>
-
+<audio id="ambientSound" loop>
+    <source src="/aset/173520-zabuhailo-hum-1.mp3" type="audio/mpeg">
+</audio>
     <header class="narrative-header" id="narrativeHeader">
         <h1>Menoreh Universe</h1>
         <div class="narrative-p" id="typedText"></div>
@@ -291,6 +293,13 @@ canvas.addEventListener('click', (e) => {
 });
 
 async function triggerTapScan(clientX, clientY) {
+// --- TAMBAHAN: AUTO-PLAY AMBIENT SOUND ---
+    const audio = document.getElementById("ambientSound");
+    if (audio.paused) {
+        audio.volume = 0.3; // Volume rendah agar tidak mengganggu
+        audio.play().catch(e => console.log("Menunggu interaksi user untuk audio"));
+    }
+    // ----------------------------------------
     if (isIntroTyping) return;
     if (isScanning) return;
 
