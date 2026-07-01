@@ -293,7 +293,7 @@ Format Struktur Objek JSON yang Wajib ditaati:
 {
   "anomali": "[Nama manifestasi gaib-teknologi yang sangat imajinatif, panjang, megah, menggabungkan unsur mekanis cyberpunk masa depan dan spiritualitas Jawa kuno + emoji sakral]",
   "kondisi": "[Deskripsi status medan jiwa/energi batin koordinat tersebut secara puitis, kompleks, dan multidimensi]",
-  "hikmah": "[Refleksi filosofis yang mendalam, transformatif, dan bebas dari repetisi kata klise. Jelajahi tema eksistensi, ketenangan batin (heneng-hening), harmoni alam prana, keterikatan manusia dengan jagad gede-jagad cilik, atau pencarian sejati di tengah distopia teknologi tanpa terus-menerus mengulang kata 'sirkular' atau frasa yang seragam]"
+  "hikmah": "[Refleksi filosofis yang mendalam, transformatif, dan inspiratif]"
 }`
         },
         { 
