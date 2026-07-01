@@ -1,6 +1,21 @@
 (function () {
     console.log("👴 [Mbah Eko] Kurator Ilmu Mikro Aktif (Mode Analisis Per User & Autocomplete)...");
 
+    /*
+     * ⚠️ PRASYARAT SKEMA DATABASE untuk versi ini — jalankan mbah_eko_migration.sql dulu sebelum deploy.
+     * Ringkasan:
+     * 1. Tabel BARU "mbah_eko_giliran" — user_id (text, PRIMARY KEY), last_attempt_at (timestamptz).
+     *    Dipakai buat fair queue, gantiin kocokan acak murni.
+     * 2. Tabel "mbah_eko_kurasi" — tambah kolom pilar_aksi (integer) dan jalur (text).
+     *    status_kurasi sekarang juga bisa berisi 'REJECTED_AI' (di luar 'DRAFT' | 'BAKU' | 'REJECTED' yang lama) —
+     *    cek dulu kalau kolom itu punya CHECK constraint pembatas nilai (lihat catatan di file SQL).
+     * 3. Tabel "ilmu_pending" & "ilmu_baku" — pilar_aksi (integer) sudah ada & dikonfirmasi. Tambah kolom jalur (text).
+     *
+     * ⚠️ CATATAN PILAR: pilar_aksi itu INTEGER, bukan string. Cuma Pilar 1 = "Narasi Kreatif" yang confirmed
+     * dari teks GATE3_INSTRUCTION di bawah (nampung SOP PARODI/guyonan). Pilar 2-5 di PILAR_KEYWORDS masih
+     * TEBAKAN placeholder pola SOP pertanian umum — ganti sesuai definisi asli 5 Pilar ToFarmer kamu.
+     */
+
     const BOT_USER_ID = "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY";
     const DB = window.supabaseClient;
 
@@ -9,6 +24,28 @@
         BOT_USER_ID,                                                              // Mbah Eko sendiri
         "HVYBLWO7XBPO76SP7KBBYZ5ZVTCPWA5Z4RTVCYBH4IBL3GJFV5DBZTWNMI"           // TOPLES_ECOSYSTEM (bot akuntansi)
     ];
+
+    // ─── PETA PILAR (buat Gerbang berbasis pilar_aksi, bukan level user) ──
+    // Pilar 1 dikonfirmasi = "Narasi Kreatif" (dipakai GATE3_INSTRUCTION buat konten SOP PARODI).
+    const PILAR_NARASI_KREATIF = 1;
+
+    // ⚠️ Pilar 2-5 di bawah ini TEBAKAN berdasarkan pola SOP pertanian umum — GANTI sesuai definisi
+    // asli 5 Pilar ToFarmer kamu. Cuma dipakai buat GATING (skip/lanjut), bukan isi SOP, jadi gak
+    // fatal kalau kadang meleset — hasil akhirnya tetap disaring lagi lewat voting komunitas.
+    const PILAR_KEYWORDS = {
+        2: ["kompos", "pupuk", "bokashi", "pupuk kandang"],
+        3: ["irigasi", "nyiram", "penyiraman", "drip", "sumur bor"],
+        4: ["hama", "penyakit", "jamur", "ulat", "pestisida"],
+        5: ["bibit", "benih", "semai", "stek", "cangkok", "panen"],
+    };
+
+    function tebakPilar(judul, deskripsi) {
+        const teks = `${judul || ""} ${deskripsi || ""}`.toLowerCase();
+        for (const [pilar, keywords] of Object.entries(PILAR_KEYWORDS)) {
+            if (keywords.some(k => teks.includes(k))) return Number(pilar);
+        }
+        return 0; // 0 = umum/belum terklasifikasi (setara default lama yang di-hardcode)
+    }
 
    const GATE3_INSTRUCTION = `INSTRUKSI TUGAS: Anda adalah sistem kurator ilmu mikro untuk ekosistem multidisplin ToFarmer.
     TUGAS: Menganalisis KUMPULAN catatan/postingan dari SATU USER untuk ditarik kesimpulan menjadi sebuah SOP yang FOKUS dan LOGIS.
@@ -43,7 +80,7 @@
 
 
 
-   // ─── FUNGSI UTAMA: KURATOR (Dengan Fitur Pengocok Acak / Adil) ────────
+   // ─── FUNGSI UTAMA: KURATOR (Dengan Antrean Adil / Fair Queue) ─────────
 
     async function jalankanKurator() {
         try {
@@ -97,103 +134,71 @@
                 grupUser[post.user_id].push(post);
             }
 
-           // 4. 🎰 PROSES KOCOK ARISAN MODEL TOGEL (ACAK MURNI)
-            // Ambil semua daftar key user_id yang terjaring
-            let semuaDaftarUser = Object.keys(grupUser);
-            
-            // Kita petakan user ke dalam bentuk objek yang diberi "Skor Keberuntungan" acak murni.
-            // Rumus: Menggabungkan angka acak pecahan pecahan terkecil dengan sisa pembagian waktu mili-detik saat ini.
-            semuaDaftarUser = semuaDaftarUser
-                .map(userId => ({
-                    id: userId,
-                    skorTogel: Math.random() * (Date.now() % 1000)
-                }))
-                // Urutkan dari skor yang paling besar ke kecil (seperti bola togel yang menggelinding keluar)
-                .sort((a, b) => b.skorTogel - a.skorTogel)
-                // Kembalikan lagi ke format array string user_id
-                .map(user => user.id);
+            // 4. 📋 ANTREAN ADIL (Fair Queue) — prioritaskan user yang PALING LAMA belum dapat giliran dicoba.
+            //    Jitter tetap dipakai sebagai tie-breaker biar urutan gak monoton/predictable,
+            //    tapi penentu utamanya sekarang "siapa paling lama nunggu", bukan acak polos.
+            const semuaDaftarUser = await ambilAntreanAdil(Object.keys(grupUser));
 
-            console.log(`🎰 [Mbah Eko] Hasil kocokan bola togel antrean hari ini:`, semuaDaftarUser);
-            // 5. Analisis target berdasarkan antrean yang sudah DIACAK
+            console.log(`📋 [Mbah Eko] Antrean giliran hari ini (fair queue):`, semuaDaftarUser);
+
+            // 5. Analisis target berdasarkan antrean adil di atas
             for (const targetUserId of semuaDaftarUser) {
                 const koleksiPost = grupUser[targetUserId];
 
-                // PROTEKSI GERBANG B: Cek tabel ilmu_pending (level USER, bukan per-post)
-                const { data: cekPending, error: errCekPending } = await DB
-                    .from("ilmu_pending")
-                    .select("id")
-                    .eq("user_id", targetUserId)
-                    .limit(1);
+                // GERBANG GABUNGAN (A+B+C): cari post user ini yang (a) belum pernah dikurasi/ditolak,
+                // DAN (b) pilar-nya belum "terkunci" oleh ilmu_pending/ilmu_baku milik user yang sama.
+                const jangkar = await cariPostJangkar(targetUserId, koleksiPost);
 
-                if (errCekPending) {
-                    console.error(`❌ [Mbah Eko] Gagal cek tabel ilmu_pending:`, errCekPending.message);
+                if (!jangkar) {
+                    console.log(`ℹ️ [Mbah Eko] User ${targetUserId} tidak punya post dengan pilar fresh, skip ke user lain.`);
                     continue;
                 }
 
-                if (cekPending && cekPending.length > 0) {
-                    console.log(`ℹ️ [Mbah Eko] User ${targetUserId} punya draf menggantung di ilmu_pending, skip ke user lain.`);
-                    continue;
-                }
+                const { post: postJangkar, pilar: pilarJangkar } = jangkar;
 
-                // PROTEKSI GERBANG C: Cek tabel ilmu_baku (level USER, bukan per-post)
-                const { data: cekBaku, error: errCekBaku } = await DB
-                    .from("ilmu_baku")
-                    .select("id")
-                    .eq("user_id", targetUserId)
-                    .limit(1);
-
-                if (errCekBaku) {
-                    console.error(`❌ [Mbah Eko] Gagal cek tabel ilmu_baku:`, errCekBaku.message);
-                    continue;
-                }
-
-                if (cekBaku && cekBaku.length > 0) {
-                    console.log(`ℹ️ [Mbah Eko] User ${targetUserId} ilmunya sudah berstatus BAKU, skip ke user lain.`);
-                    continue;
-                }
-
-                // PROTEKSI GERBANG A: Cari post jangkar yang BELUM pernah dikurasi
-                // Loop semua post milik user ini, pakai yang pertama belum tercatat
-                let postJangkar = null;
-                for (const kandidatPost of koleksiPost) {
-                    const { data: cekKurasi, error: errCekKurasi } = await DB
-                        .from("mbah_eko_kurasi")
-                        .select("id")
-                        .eq("post_id", kandidatPost.id)
-                        .limit(1);
-
-                    if (errCekKurasi) {
-                        console.error(`❌ [Mbah Eko] Gagal cek tabel mbah_eko_kurasi:`, errCekKurasi.message);
-                        break;
-                    }
-
-                    if (!cekKurasi || cekKurasi.length === 0) {
-                        postJangkar = kandidatPost; // Ketemu post yang belum dikurasi!
-                        break;
-                    }
-                    console.log(`ℹ️ [Mbah Eko] Post ${kandidatPost.id} sudah tercatat, coba post lain milik user yang sama...`);
-                }
-
-                if (!postJangkar) {
-                    console.log(`ℹ️ [Mbah Eko] Semua post user ${targetUserId} sudah pernah dikurasi, skip ke user lain.`);
-                    continue;
-                }
-
-                // 6. Jika lolos semua gerbang proteksi, gabungkan rekam jejak teksnya
+                // 6. Gabungkan rekam jejak teks user (tetap dari SEMUA post user, biar konteksnya kaya)
                 let gabunganTeks = "";
                 koleksiPost.forEach((p, index) => {
                     gabunganTeks += `[Tulisan #${index + 1} - Judul: ${p.judul_aksi || 'Tanpa Judul'}]:\n${p.deskripsi_proses}\n\n`;
                 });
 
-                console.log(`🧠 [Mbah Eko] Memulai telaah kumulatif AMAN & ADIL untuk user: ${targetUserId}`);
+                console.log(`🧠 [Mbah Eko] Memulai telaah kumulatif AMAN & ADIL untuk user: ${targetUserId} (pilar tebakan: ${pilarJangkar})`);
 
                 // 7. Tembak ke AI
                 const draftSOP = await fetchAI(gabunganTeks);
 
+                // Catat giliran SEKARANG (bukan cuma kalau sukses) — user ini sudah "dapat jatah dicoba" hari ini,
+                // jadi di run berikutnya dia otomatis mundur ke belakang antrean, gantian sama user lain.
+                await catatGiliran(targetUserId);
+
                 if (!draftSOP || draftSOP.trim().toUpperCase() === "TIDAK") {
-                    console.log(`ℹ️ [Mbah Eko] Hasil telaah untuk user ${targetUserId} ditolak sistem AI (bukan ilmu mikro). Mencoba user berikutnya di antrean acak...`);
-                    continue; // Jika AI bilang TIDAK, perulangan lanjut mencari kandidat user acak berikutnya
+                    console.log(`ℹ️ [Mbah Eko] Hasil telaah untuk user ${targetUserId} ditolak sistem AI (bukan ilmu mikro). Mencatat supaya post ini gak diulang, lanjut ke user berikutnya...`);
+
+                    // Catat penolakan supaya post ini gak dikirim ulang ke AI di run-run berikutnya (buang API call).
+                    const { error: errInsertReject } = await DB
+                        .from("mbah_eko_kurasi")
+                        .insert([{
+                            post_id: postJangkar.id,
+                            pencetus_user_id: targetUserId,
+                            pilar_aksi: pilarJangkar,
+                            status_kurasi: 'REJECTED_AI'
+                        }]);
+
+                    if (errInsertReject) {
+                        console.error(`❌ [Mbah Eko] Gagal mencatat penolakan AI:`, errInsertReject.message);
+                    }
+
+                    continue; // lanjut mencari kandidat user berikutnya di antrean
                 }
+
+                // Tentukan jalur (serius/parodi) dari marker yang sudah diwajibkan GATE3_INSTRUCTION,
+                // gak perlu ubah prompt atau manggil AI tambahan.
+                const jalur = draftSOP.includes("(SOP PARODI)") ? "parodi" : "serius";
+
+                // Kalau ternyata parodi, timpa pilar ke Pilar 1 (Narasi Kreatif) sesuai definisi di
+                // GATE3_INSTRUCTION sendiri — biar gak salah "mengunci" pilar serius gara-gara
+                // tebakan keyword awal kesenggol kata yang kebetulan mirip (mis. "kompos ajaib buat naga").
+                const pilarFinal = jalur === "parodi" ? PILAR_NARASI_KREATIF : pilarJangkar;
 
                 // 8. Ambil nama profil asli
                 const { data: userProfile, error: errProfile } = await DB
@@ -204,14 +209,16 @@
 
                 const username = userProfile?.username || "kawan";
 
-                // 9. Kunci data ke log kurasi internal
+                // 9. Kunci data ke log kurasi internal (sekarang ikut simpan pilar & jalur)
                 const { error: errInsertKurasi } = await DB
                     .from("mbah_eko_kurasi")
                     .insert([{
                         post_id: postJangkar.id,
                         pencetus_user_id: targetUserId,
                         draft_content: draftSOP,
-                        status_kurasi: 'DRAFT'
+                        status_kurasi: 'DRAFT',
+                        pilar_aksi: pilarFinal,
+                        jalur: jalur
                     }]);
 
                 if (errInsertKurasi) {
@@ -235,12 +242,100 @@
                     continue;
                 }
 
-                console.log(`✅ [Mbah Eko] Sukses merilis SOP tunggal secara acak & adil untuk user @${username}`);
+                console.log(`✅ [Mbah Eko] Sukses merilis SOP (pilar: ${pilarFinal}, jalur: ${jalur}) untuk user @${username}`);
                 break; // Selesai! Cukup 1 karya sukses per sesi harian.
             }
 
         } catch (err) {
             console.error("❌ [Mbah Eko] Crash tidak terduga di jalankanKurator:", err);
+        }
+    }
+
+    // ─── FUNGSI BANTU: GERBANG PILAR & ANTREAN ADIL ───────────────────────
+
+    async function cariPostJangkar(targetUserId, koleksiPost) {
+        // Ambil pilar-pilar yang sudah "terkunci" (ada di ilmu_pending atau ilmu_baku) buat user ini.
+        // ilmu_baku dikonfirmasi punya struktur sama kayak ilmu_pending (pilar_aksi integer).
+        const { data: pendingUser, error: errPendingUser } = await DB
+            .from("ilmu_pending")
+            .select("pilar_aksi")
+            .eq("user_id", targetUserId);
+
+        const { data: bakuUser, error: errBakuUser } = await DB
+            .from("ilmu_baku")
+            .select("pilar_aksi")
+            .eq("user_id", targetUserId);
+
+        if (errPendingUser || errBakuUser) {
+            console.error(`❌ [Mbah Eko] Gagal cek pilar terkunci untuk user ${targetUserId}.`);
+            return null;
+        }
+
+        const pilarTerkunci = new Set([
+            ...(pendingUser || []).map(r => r.pilar_aksi),
+            ...(bakuUser || []).map(r => r.pilar_aksi),
+        ]);
+
+        for (const kandidatPost of koleksiPost) {
+            const { data: cekKurasi, error: errCekKurasi } = await DB
+                .from("mbah_eko_kurasi")
+                .select("id")
+                .eq("post_id", kandidatPost.id)
+                .limit(1);
+
+            if (errCekKurasi) {
+                console.error(`❌ [Mbah Eko] Gagal cek tabel mbah_eko_kurasi:`, errCekKurasi.message);
+                return null;
+            }
+
+            if (cekKurasi && cekKurasi.length > 0) {
+                // Post ini sudah pernah diproses (sukses ATAU ditolak AI via REJECTED_AI), coba post lain
+                continue;
+            }
+
+            const pilarKandidat = tebakPilar(kandidatPost.judul_aksi, kandidatPost.deskripsi_proses);
+
+            if (pilarTerkunci.has(pilarKandidat)) {
+                console.log(`ℹ️ [Mbah Eko] Post ${kandidatPost.id} pilar #${pilarKandidat} sudah terkunci (pending/baku) untuk user ini, coba post lain milik user yang sama...`);
+                continue;
+            }
+
+            return { post: kandidatPost, pilar: pilarKandidat };
+        }
+
+        return null; // semua post user ini sudah dikurasi ATAU pilar-nya sudah kepakai semua
+    }
+
+    async function ambilAntreanAdil(daftarUserId) {
+        const { data: riwayat, error: errRiwayat } = await DB
+            .from("mbah_eko_giliran")
+            .select("user_id, last_attempt_at");
+
+        if (errRiwayat) {
+            console.error("⚠️ [Mbah Eko] Gagal ambil riwayat giliran, fallback ke urutan tanpa histori:", errRiwayat.message);
+        }
+
+        const petaGiliran = Object.fromEntries(
+            (riwayat || []).map(r => [r.user_id, new Date(r.last_attempt_at).getTime()])
+        );
+
+        return daftarUserId
+            .map(id => ({
+                id,
+                terakhir: petaGiliran[id] || 0, // belum pernah tercatat = dianggap paling lama nunggu = prioritas utama
+                jitter: Math.random()           // cuma tie-breaker biar urutan gak monoton/predictable
+            }))
+            .sort((a, b) => a.terakhir - b.terakhir || b.jitter - a.jitter)
+            .map(u => u.id);
+    }
+
+    async function catatGiliran(userId) {
+        const { error } = await DB
+            .from("mbah_eko_giliran")
+            .upsert({ user_id: userId, last_attempt_at: new Date().toISOString() }, { onConflict: "user_id" });
+
+        if (error) {
+            console.error(`⚠️ [Mbah Eko] Gagal update giliran user ${userId}:`, error.message);
         }
     }
 
@@ -250,7 +345,7 @@
         try {
             const { data: drafs, error: errDrafs } = await DB
                 .from("mbah_eko_kurasi")
-                .select("id, post_id, pencetus_user_id, draft_content")
+                .select("id, post_id, pencetus_user_id, draft_content, pilar_aksi, jalur")
                 .eq("status_kurasi", 'DRAFT');
 
             if (errDrafs) {
@@ -296,7 +391,8 @@
                             user_id: draf.pencetus_user_id,
                             judul_aksi: "Kurasi Komunitas Mbah Eko",
                             deskripsi_proses: draf.draft_content,
-                            pilar_aksi: 0,
+                            pilar_aksi: draf.pilar_aksi ?? 0, // fallback 0 buat draf lama yang belum punya pilar tercatat
+                            jalur: draf.jalur || 'serius',    // fallback aman buat draf lama
                             total_vote: hasil.ya
                         }]);
 
