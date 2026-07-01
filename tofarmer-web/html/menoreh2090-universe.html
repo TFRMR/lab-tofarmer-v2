@@ -215,17 +215,17 @@ async function triggerTapScan(clientX, clientY) {
     document.getElementById("claimOverlay").classList.remove("show");
     foundEffect = false;
 
-    // 1. HITUNG KOORDINAT KOSMIS (Wajib ada agar tidak error di bagian catch/lokal)
+    // 1. HITUNG KOORDINAT KOSMIS
     const coordX = Math.floor((clientX / canvas.width) * 9999);
     const coordY = Math.floor((clientY / canvas.height) * 9999);
     const seed = (coordX * 31) + (coordY * 17) + Math.floor(Math.random() * 75);
     const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
 
     ledakkanPartikel(clientX, clientY, '#4ade80');
-    targetWarpSpeed = 8.0; 
-    setTimeout(() => { targetWarpSpeed = 0.5; }, 400);
+    targetWarpSpeed = 12.0; // Bikin hentakan awal warp speed lebih kencang!
+    setTimeout(() => { targetWarpSpeed = 2.0; }, 300); // Pertahankan kecepatan warp agak tinggi saat loading
 
-    // 2. TINGKAT KESULITAN (Gacha chance menggunakan persentase presisi, misal: 0.05 = 5%)
+    // 2. TINGKAT KESULITAN GACHA (5%)
     if (Math.random() < 0.05) { 
         isScanning = true;
         foundEffect = true; 
@@ -240,47 +240,68 @@ async function triggerTapScan(clientX, clientY) {
             return;
         }
 
-        buatTeksMelayang(clientX, clientY, "📡 MEMANCARKAN GELOMBANG...", "#eab308");
-        
-        let tahapanLoading = 0;
+        // ==========================================
+        // 🔥 GENERATOR EFEK LOADING SPEKTAKULER
+        // ==========================================
+        let hitungDetik = 0;
         const intervalLoading = setInterval(() => {
-            tahapanLoading++;
-            const kataLoading = [
-                "⚡ MENCOCOKKAN GRID KOORDINAT...",
+            hitungDetik++;
+            
+            // Variasi teks mantra mistis teknologi
+            const mantraLoading = [
+                "⚡ MEMBUKA GERBANG GRID SPEKTRUM...",
+                "🔮 MENYALURKAN ENERGI BATIN MENOREH...",
                 "🌀 MENGONTAK INDUK WORKER TOFARMER...",
-                "🛡️ MEMULIHKAN FREKUENSI GAIB..."
+                "📡 MENYINGKAP TABIR KABUT PURBA...",
+                "🛡️ MEMULIHKAN FREKUENSI SEKTOR GAIB...",
+                "🔥 MENYEGEL INTISARI RESIDU KOSMIK..."
             ];
-            if(tahapanLoading <= kataLoading.length) {
-                buatTeksMelayang(targetX, targetY, kataLoading[tahapanLoading-1], "#fde047");
-                ledakkanPartikel(targetX, targetY, '#eab308');
+            
+            // 1. Tembakkan teks status utama di lokasi ketukan
+            const teksPilihan = mantraLoading[(hitungDetik - 1) % mantraLoading.length];
+            buatTeksMelayang(targetX, targetY, teksPilihan, "#fde047");
+            
+            // 2. Semburkan efek hujan partikel emas dan hijau secara beruntun
+            ledakkanPartikel(targetX + (Math.random() * 60 - 30), targetY + (Math.random() * 60 - 30), '#eab308');
+            ledakkanPartikel(targetX + (Math.random() * 60 - 30), targetY + (Math.random() * 60 - 30), '#22c55e');
+
+            // 3. Efek Radikal: Hujan kode biner / angka koordinat acak di sekeliling ketukan
+            for(let i=0; i<3; i++) {
+                const offsetX = targetX + (Math.random() * 160 - 80);
+                const offsetY = targetY + (Math.random() * 160 - 80);
+                const dataGhoib = Math.random() > 0.5 ? `[X:${Math.floor(Math.random()*9999)}]` : `0x${Math.floor(Math.random()*256).toString(16).toUpperCase()}`;
+                buatTeksMelayang(offsetX, offsetY, dataGhoib, "rgba(74, 222, 128, 0.6)");
             }
-        }, 700);
+
+            // 4. Efek Kejut: Bikin denyut shockwave-nya meledak berulang-ulang
+            pulseRadius = 10; 
+
+        }, 450); // Kecepatan semburan efek per 450ms (lebih padat dan ramai)
 
         const mantraUser = document.getElementById("secretMantra").value.trim() || "Keheningan Sukma";
         const promptRekayasa = `Koordinat [X:${coordX}, Y:${coordY}] Sektor ${sectorId}, Mantra Sukma: "${mantraUser}".`;
 
         // ==========================================
-        // BLOK TRY-CATCH AMAN (ANTI-TABRAKAN)
+        // PROSES TEMBAK API WORKER
         // ==========================================
         try {
             const response = await fetch(URL_AI_TOFARMER, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
-                    trigger: "menoreh-2090-scan", // Memicu jalur mandiri di Worker
+                    trigger: "menoreh-2090-scan",
                     teks: promptRekayasa 
                 }) 
             });
 
-            clearInterval(intervalLoading);
+            clearInterval(intervalLoading); // Hentikan pesta efek loading
             isScanning = false;
+            targetWarpSpeed = 0.5; // Kembalikan kecepatan bintang ke normal
 
             if (!response.ok) throw new Error("Koneksi Worker bermasalah.");
             
-            // Langsung baca JSON mentah dari Worker mandiri
             const dataAI = await response.json(); 
 
-            // Fallback cadangan jika properti JSON dari LLM meleset formatnya
             const anomaliFinal = dataAI.anomali || "🌌 Relik Spektrum Kosmik Kuno";
             const kondisiFinal = dataAI.kondisi || "Stabil Terisolasi (Heneng)";
             const hikmahFinal = dataAI.hikmah || "Kesabaran batin menembus tebalnya kabut pegunungan purba.";
@@ -289,9 +310,9 @@ async function triggerTapScan(clientX, clientY) {
             tampilkanPopup(kondisiFinal, anomaliFinal, hikmahFinal);
 
         } catch (err) {
-            // Jika Worker mati/RTO, otomatis dialihkan ke simulasi offline lokal tanpa bikin game crash
             clearInterval(intervalLoading);
             isScanning = false;
+            targetWarpSpeed = 0.5;
             console.warn("Jalur AI sibuk, beralih ke radar lokal:", err);
             jalankanSimulasiLokal(seed, coordX, coordY, sectorId);
         }
@@ -309,6 +330,7 @@ async function triggerTapScan(clientX, clientY) {
         buatTeksMelayang(clientX, clientY, teksZonk[Math.floor(Math.random() * teksZonk.length)], "#64748b");
     }
 }
+
 
 function jalankanSimulasiLokal(seed, coordX, coordY, sectorId) {
     const komponenSifat = ["Resonansi Plasma", "Fluks Arus Magnetis", "Eter Suci Manifestasi", "Aliran Kuanta"];
