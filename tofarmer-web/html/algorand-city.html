@@ -2,26 +2,39 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Algorand City Live</title>
+    <title>Algorand City • Live Ecosystem</title>
     <style>
-        body { margin: 0; background: #0b0e14; color: white; font-family: sans-serif; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        canvas { cursor: crosshair; }
-        .ui { position: absolute; top: 20px; pointer-events: none; text-align: center; }
+        body { 
+            margin: 0; 
+            background: #070e0a; 
+            overflow: hidden; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh;
+        }
+        canvas { 
+            filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.2)); 
+        }
+        .ui { 
+            position: absolute; top: 30px; left: 30px; 
+            color: #4ade80; font-family: 'Plus Jakarta Sans', sans-serif;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="ui">
-    <h2 style="margin:0">ALGORAND CITY</h2>
-    <p id="status">Menghubungkan ke Node...</p>
+    <h2 style="margin:0; font-family: serif;">ALGORAND CITY</h2>
+    <p id="status" style="font-size: 0.8rem; letter-spacing: 2px;">SYNCING WITH CHAIN...</p>
 </div>
 <canvas id="cityCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById('cityCanvas');
 const ctx = canvas.getContext('2d');
-let transactions = [];
-let buildings = [];
+let entities = [];
 
 function resize() {
     canvas.width = window.innerWidth;
@@ -30,49 +43,64 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Inisialisasi Kota
-function initCity() {
-    for(let i = 0; i < 5; i++) {
-        buildings.push({ x: i * (canvas.width/5) + 50, y: canvas.height - 150 });
-    }
+// Objek Kota: Jalan Raya Futuristik
+function drawRoads() {
+    ctx.strokeStyle = 'rgba(74, 222, 128, 0.1)';
+    ctx.lineWidth = 40;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height/2);
+    ctx.lineTo(canvas.width, canvas.height/2);
+    ctx.stroke();
+    
+    // Garis tengah jalan
+    ctx.setLineDash([20, 20]);
+    ctx.strokeStyle = 'rgba(234, 179, 8, 0.2)';
+    ctx.stroke();
+    ctx.setLineDash([]);
 }
 
 async function fetchTx() {
     try {
-        const res = await fetch("https://mainnet-idx.algonode.cloud/v2/transactions?limit=3");
+        const res = await fetch("https://mainnet-idx.algonode.cloud/v2/transactions?limit=5");
         const data = await res.json();
         if(data.transactions) {
-            data.transactions.forEach(t => {
-                transactions.push({ x: 0, y: Math.random() * canvas.height, speed: Math.random() * 3 + 2 });
+            data.transactions.forEach(() => {
+                const types = ['🚗', '🛵', '🚶'];
+                entities.push({ 
+                    x: 0, 
+                    y: canvas.height/2 - 20 + Math.random()*40, 
+                    type: types[Math.floor(Math.random()*3)],
+                    speed: Math.random() * 2 + 1 
+                });
             });
-            document.getElementById('status').innerText = "Status: Online | Blok Aktif";
+            document.getElementById('status').innerText = "STATUS: LIVE | SECURE";
         }
-    } catch(e) { document.getElementById('status').innerText = "Status: Menunggu Sinyal..."; }
+    } catch(e) {}
 }
 
 function draw() {
-    ctx.fillStyle = 'rgba(11, 14, 20, 0.2)';
+    ctx.fillStyle = '#070e0a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    drawRoads();
+    
+    // Gambar Gedung (Node)
+    ctx.font = '60px serif';
+    ctx.fillText('🏢', canvas.width - 100, canvas.height/2 + 20);
 
-    // Gambar Gedung
-    ctx.font = '80px serif';
-    buildings.forEach(b => ctx.fillText('🏢', b.x, b.y));
-
-    // Gambar Transaksi
-    transactions.forEach((t, i) => {
-        t.x += t.speed;
-        ctx.font = '30px serif';
-        ctx.fillText('💸', t.x, t.y);
+    // Animasi Entitas
+    entities.forEach((e, i) => {
+        e.x += e.speed;
+        ctx.font = '24px serif';
+        ctx.fillText(e.type, e.x, e.y);
         
-        // Hapus jika keluar layar
-        if(t.x > canvas.width) transactions.splice(i, 1);
+        if(e.x > canvas.width - 100) entities.splice(i, 1);
     });
 
     requestAnimationFrame(draw);
 }
 
-initCity();
-setInterval(fetchTx, 3000);
+setInterval(fetchTx, 4000);
 draw();
 </script>
 </body>
