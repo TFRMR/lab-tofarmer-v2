@@ -36,13 +36,7 @@
         }
         .coin {
             display: inline-block;
-            animation: spin 3s linear infinite;
-            transform-origin: center;
             text-shadow: 0 0 5px rgba(251, 191, 36, 0.8);
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -69,7 +63,10 @@ let particles = [];
 let walletMap = new Map();
 let txCount = 0;
 let walletCount = 0;
-let fogOffset = 0;
+
+// Variabel untuk fitur Drag & Drop
+let isDragging = false;
+let draggedWallet = null;
 
 // Konfigurasi Warna
 const COLORS = {
@@ -120,18 +117,6 @@ function generateMountains() {
     ctx.fill();
 }
 
-function drawFog() {
-    fogOffset += 0.5;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-    for(let i = 0; i < 4; i++) {
-        ctx.beginPath();
-        ctx.arc(canvas.width/2 + Math.sin(fogOffset/100 + i)*200, 
-                canvas.height/2 + Math.cos(fogOffset/100 + i)*100, 
-                300, 0, Math.PI*2);
-        ctx.fill();
-    }
-}
-
 async function fetchTx() {
     try {
         const res = await fetch("https://mainnet-idx.algonode.cloud/v2/transactions?limit=10&asset-id=3558306283");
@@ -158,7 +143,7 @@ async function fetchTx() {
                 humans.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    target: wallet, // Targetnya adalah rumah/dompet itu sendiri
+                    target: wallet, // Target mereferensi objek dompet
                     speed: 0.8 + Math.random() * 0.5,
                     wallet: wallet
                 });
@@ -171,7 +156,6 @@ async function fetchTx() {
 }
 
 function createTransactionEffect(x, y) {
-    // Efek koin/percikan yang muncul saat transaksi sampai di rumah
     for(let i = 0; i < 12; i++) {
         particles.push({ 
             x: x, 
@@ -197,7 +181,10 @@ function draw() {
     ctx.fillStyle = 'rgba(7, 14, 10, 0.2)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     generateMountains(); 
-    drawFog();
+
+    // Atur perataan teks agar tepat di koordinat X dan Y (Penting untuk deteksi klik)
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
 
     // 2. Gambar Pohon (Statis)
     staticElements.forEach(e => {
@@ -208,10 +195,12 @@ function draw() {
     // 3. Gambar Rumah (Dompet) dengan efek napas
     walletMap.forEach(wallet => {
         const pulse = Math.sin(Date.now() / 1000) * 5;
-        ctx.font = `${30 + pulse}px serif`;
+        // Besarkan sedikit rumah yang sedang ditarik (di-drag)
+        const isThisDragged = (wallet === draggedWallet);
+        ctx.font = `${(isThisDragged ? 45 : 30) + pulse}px serif`;
         ctx.fillText('🏠', wallet.x, wallet.y);
         
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillStyle = isThisDragged ? '#4ade80' : 'rgba(255,255,255,0.4)';
         ctx.font = '12px Arial';
         ctx.fillText(wallet.address.substring(0, 4) + '...', wallet.x, wallet.y + 25);
     });
@@ -224,7 +213,7 @@ function draw() {
         
         if(dist < 5) {
             createTransactionEffect(h.x, h.y);
-            h.wallet.balance += 0.1; // Tambahan simulasi
+            h.wallet.balance += 0.1;
             humans.splice(i, 1);
         } else {
             h.x += (dx/dist) * h.speed + Math.sin(Date.now()/500)*0.5;
@@ -262,6 +251,62 @@ function draw() {
 
     requestAnimationFrame(draw);
 }
+
+// === LOGIKA DRAG & DROP RUMAH DOMPET ===
+
+canvas.addEventListener('mousedown', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // Cek semua rumah, apakah titik klik berada di area rumah tersebut
+    for (let [address, wallet] of walletMap) {
+        const dx = mouseX - wallet.x;
+        const dy = mouseY - wallet.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Jari-jari deteksi klik sekitar 25 pixel
+        if (distance < 25) {
+            isDragging = true;
+            draggedWallet = wallet;
+            canvas.style.cursor = 'grabbing';
+            break; // Berhenti mencari jika sudah ketemu satu rumah
+        }
+    }
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (isDragging && draggedWallet) {
+        const rect = canvas.getBoundingClientRect();
+        // Update koordinat rumah mengikuti pergerakan kursor
+        draggedWallet.x = e.clientX - rect.left;
+        draggedWallet.y = e.clientY - rect.top;
+    } else {
+        // Efek kursor jika sedang di atas rumah tapi tidak ditekan
+        let isHovering = false;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        for (let [address, wallet] of walletMap) {
+            const dx = mouseX - wallet.x;
+            const dy = mouseY - wallet.y;
+            if (Math.sqrt(dx * dx + dy * dy) < 25) {
+                isHovering = true;
+                break;
+            }
+        }
+        canvas.style.cursor = isHovering ? 'grab' : 'crosshair';
+    }
+});
+
+window.addEventListener('mouseup', () => {
+    if (isDragging) {
+        isDragging = false;
+        draggedWallet = null;
+        canvas.style.cursor = 'crosshair';
+    }
+});
 
 // Inisialisasi & Mulai Loop
 window.addEventListener('resize', initCity);
