@@ -11,7 +11,7 @@
 <body>
 <div class="ui">
     <h2 style="margin:0">MENOREH CITY: ERA MASA LALU</h2>
-    <p id="status" style="font-size:0.8rem; letter-spacing:2px;">MENELUSURI JALUR HUTAN...</p>
+    <p id="status" style="font-size:0.8rem; letter-spacing:2px;">HUTAN TENANG, ALIRAN DATA MASUK...</p>
 </div>
 <canvas id="cityCanvas"></canvas>
 
@@ -19,15 +19,21 @@
 const canvas = document.getElementById('cityCanvas');
 const ctx = canvas.getContext('2d');
 let humans = [];
-let houses = []; // Alamat dompet sebagai rumah
+let staticElements = []; // Pohon dan rumah disimpan di sini
 let particles = [];
 
-function resize() {
+function initCity() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    houses = [];
-    for(let i=0; i<6; i++) {
-        houses.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, id: '🏠' });
+    
+    // Generate pohon dan rumah sekali saja saat load
+    staticElements = [];
+    for(let i=0; i<40; i++) {
+        staticElements.push({ 
+            x: Math.random() * canvas.width, 
+            y: Math.random() * canvas.height, 
+            icon: i < 6 ? '🏠' : '🌲' 
+        });
     }
 }
 
@@ -37,11 +43,13 @@ async function fetchTx() {
         const data = await res.json();
         if(data.transactions) {
             data.transactions.forEach(() => {
+                let houses = staticElements.filter(e => e.icon === '🏠');
+                let target = houses[Math.floor(Math.random() * houses.length)];
                 humans.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    target: houses[Math.floor(Math.random()*houses.length)],
-                    speed: 0.5 + Math.random() * 0.5
+                    target: target,
+                    speed: 0.8 + Math.random() * 0.5
                 });
             });
         }
@@ -49,19 +57,19 @@ async function fetchTx() {
 }
 
 function createExplosion(x, y) {
-    for(let i=0; i<20; i++) {
-        particles.push({ x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1 });
+    for(let i=0; i<15; i++) {
+        particles.push({ x, y, vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8, life: 1 });
     }
 }
 
 function draw() {
-    ctx.fillStyle = 'rgba(7, 14, 10, 0.3)'; // Efek kabut hutan
+    // Background sedikit transparan untuk efek trail halus pada manusia
+    ctx.fillStyle = 'rgba(7, 14, 10, 0.2)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Gambar Hutan & Rumah
+    // Gambar Pohon & Rumah (Statis)
     ctx.font = '40px serif';
-    houses.forEach(h => ctx.fillText(h.id, h.x, h.y));
-    for(let i=0; i<30; i++) ctx.fillText('🌲', Math.random()*canvas.width, Math.random()*canvas.height);
+    staticElements.forEach(e => ctx.fillText(e.icon, e.x, e.y));
 
     // Manusia berjalan
     humans.forEach((h, i) => {
@@ -75,13 +83,14 @@ function draw() {
         } else {
             h.x += (dx/dist) * h.speed;
             h.y += (dy/dist) * h.speed;
+            ctx.font = '24px serif';
             ctx.fillText('🚶', h.x, h.y);
         }
     });
 
-    // Animasi ledakan matematis
+    // Partikel ledakan
     particles.forEach((p, i) => {
-        p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+        p.x += p.vx; p.y += p.vy; p.life -= 0.03;
         ctx.fillStyle = `rgba(234, 179, 8, ${p.life})`;
         ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
         if(p.life <= 0) particles.splice(i, 1);
@@ -90,8 +99,8 @@ function draw() {
     requestAnimationFrame(draw);
 }
 
-window.addEventListener('resize', resize);
-resize();
+window.addEventListener('resize', initCity);
+initCity();
 setInterval(fetchTx, 5000);
 draw();
 </script>
