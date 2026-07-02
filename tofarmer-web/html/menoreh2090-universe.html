@@ -12,7 +12,15 @@ html, body { width:100%; height:100%; overflow:hidden; background:#040805; font-
 
 /* LAYAR UTAMA FULLSCREEN */
 .game-container { position:relative; width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
-canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-index:1; cursor:crosshair; }
+canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-index:1; cursor:crosshair; transition:filter 1.6s ease; }
+
+/* 🌌 TEMA VISUAL PER LEVEL — cukup geser hue di kanvas, murah secara performa tapi hasilnya kerasa banget bedanya */
+.game-container.level-2 #cosmosCanvas { filter:hue-rotate(35deg) saturate(1.15); }
+.game-container.level-3 #cosmosCanvas { filter:hue-rotate(-42deg) saturate(1.4) brightness(1.1); }
+.game-container.level-2 .mantra-box { border-color:rgba(167,139,250,0.4); box-shadow:0 10px 30px rgba(0,0,0,0.5), 0 0 22px rgba(167,139,250,0.18); }
+.game-container.level-2 .user-badge { border-color:#a78bfa; color:#c4b5fd; }
+.game-container.level-3 .mantra-box { border-color:rgba(244,114,182,0.45); box-shadow:0 10px 30px rgba(0,0,0,0.5), 0 0 26px rgba(244,114,182,0.22); }
+.game-container.level-3 .user-badge { border-color:#f472b6; color:#fbcfe8; }
 
 /* TYPEWRITER NARRATION INTRO & HEADER */
 .narrative-header {
@@ -31,6 +39,21 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 .narrative-p { font-size:0.9rem; line-height:1.6; color:#84a98c; min-height:60px; transition: font-size 0.8s, opacity 0.5s; }
 .narrative-header.minimized .narrative-p { font-size: 0.72rem; line-height: 1.4; color:rgba(132,169,140,0.7); }
 
+/* 🔮 BANNER TRANSISI LEVEL */
+.level-transisi {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.92);
+    width:85%; max-width:480px; text-align:center; z-index:9;
+    pointer-events:none; opacity:0; visibility:hidden;
+    transition: all 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.level-transisi.show { opacity:1; visibility:visible; transform:translate(-50%,-50%) scale(1); }
+.level-transisi-judul {
+    font-family:'Playfair Display', serif; font-size:1.6rem; font-weight:700;
+    background:linear-gradient(135deg, #fde047 0%, #a78bfa 50%, #4ade80 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:10px; letter-spacing:1px;
+}
+.level-transisi-teks { font-size:0.85rem; line-height:1.6; color:#c4b5fd; font-style:italic; }
+
 /* PANEL MANTRA (BOTTOM FIXED OVERLAY) */
 .bottom-panel {
     position:absolute; bottom:20px; left:50%; transform:translateX(-50%);
@@ -40,6 +63,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     background:rgba(14, 28, 19, 0.75); backdrop-filter:blur(15px);
     border:1px dashed rgba(234, 179, 8, 0.3); border-radius:16px; padding:12px 16px;
     display:flex; align-items:center; gap:10px; box-shadow:0 10px 30px rgba(0,0,0,0.5);
+    transition: border-color 1s, box-shadow 1s;
 }
 .mantra-box input {
     flex:1; background:transparent; border:none; outline:none;
@@ -54,12 +78,11 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 .sync-btn.active { background:linear-gradient(135deg, #eab308 0%, #ca8a04 100%); }
 
 /* FLOATING CLAIM INTERFACE */
-/* FLOATING CLAIM INTERFACE */
 .claim-overlay {
     position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) scale(0.9);
     width:85%; max-width:360px; 
-    max-height: 80vh; /* 💡 Batasi tinggi maksimal popup 80% dari tinggi layar */
-    display: flex; flex-direction: column; /* 💡 Ubah layout agar tombol tetap di bawah */
+    max-height: 80vh;
+    display: flex; flex-direction: column;
     background:rgba(4, 8, 5, 0.92);
     border:1px solid rgba(234, 179, 8, 0.4); border-radius:18px; padding:18px;
     z-index:6; pointer-events:auto; opacity:0; visibility:hidden;
@@ -73,24 +96,74 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     font-size:0.75rem; color:#cbd5e1; font-family:monospace; 
     background:rgba(255,255,255,0.03); padding:10px; border-radius:8px; line-height:1.6; 
     margin-bottom:14px; border:1px solid rgba(255,255,255,0.05); 
-    overflow-y: auto; /* 💡 Aktifkan scrollbar vertikal jika teks terlalu panjang */
-    max-height: 100%; /* 💡 Mengikuti sisa space popup */
+    overflow-y: auto;
+    max-height: 100%;
 }
 
 .claim-btn {
     width:100%; padding:12px; background:linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
     border:none; color:#050b07; font-weight:800; font-size:0.8rem; border-radius:10px;
     cursor:pointer; text-transform:uppercase; box-shadow:0 4px 15px rgba(234,179,8,0.3); transition: 0.2s;
-    flex-shrink: 0; /* 💡 Mencegah tombol mengecil/gepeng saat di-scroll */
+    flex-shrink: 0;
 }
 .claim-btn:active { transform: scale(0.98); }
+.claim-btn:disabled { opacity:0.6; }
 .claim-btn.lock-mode { background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color:#fff; box-shadow:0 4px 15px rgba(239,68,68,0.3); }
+
+/* 🏅 OVERLAY LEVEL TUNTAS / PIAGAM */
+.level-complete-overlay {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.9);
+    width:85%; max-width:360px; max-height:82vh; overflow-y:auto;
+    background:rgba(4,8,5,0.95); border:1px solid rgba(253,224,71,0.5); border-radius:20px;
+    padding:26px 20px; text-align:center; z-index:11; pointer-events:auto;
+    opacity:0; visibility:hidden;
+    transition: all 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 0 55px rgba(253,224,71,0.28);
+}
+.level-complete-overlay.show { opacity:1; visibility:visible; transform:translate(-50%,-50%) scale(1); }
+.lc-badge { font-size:2.6rem; margin-bottom:6px; filter:drop-shadow(0 0 12px rgba(253,224,71,0.6)); }
+.lc-title { font-family:'Playfair Display', serif; font-weight:700; font-size:1.15rem; color:#fde047; letter-spacing:0.5px; margin-bottom:4px; }
+.lc-subtitle { font-size:0.78rem; color:#a7f3d0; margin-bottom:12px; }
+.lc-reward {
+    display:inline-block; font-size:1.1rem; font-weight:800; color:#050b07;
+    background:linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    padding:6px 18px; border-radius:30px; margin-bottom:14px;
+    box-shadow:0 4px 15px rgba(74,222,128,0.35);
+}
+.lc-desc { font-size:0.74rem; color:#cbd5e1; line-height:1.7; margin-bottom:16px; }
+
+/* 🛰️ INDIKATOR PROGRESS LEVEL */
+.level-progress-bar {
+    position:absolute; top:20px; left:50%; transform:translateX(-50%);
+    z-index:5; display:flex; flex-direction:column; align-items:center; gap:5px;
+    pointer-events:none;
+}
+.lvl-dots { display:flex; gap:6px; }
+.lvl-dot {
+    width:8px; height:8px; border-radius:50%;
+    background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25);
+    transition: all 0.4s;
+}
+.lvl-dot.selesai { background:#4ade80; border-color:#4ade80; box-shadow:0 0 8px rgba(74,222,128,0.65); }
+.lvl-dot.aktif { background:#fde047; border-color:#fde047; box-shadow:0 0 10px rgba(253,224,71,0.7); animation:nadiDot 1.5s ease-in-out infinite; }
+@keyframes nadiDot { 0%,100% { transform:scale(1); } 50% { transform:scale(1.45); } }
+.lvl-label {
+    font-size:0.62rem; font-family:monospace; color:rgba(226,232,240,0.65);
+    background:rgba(4,8,5,0.55); padding:3px 10px; border-radius:20px;
+    letter-spacing:0.4px; white-space:nowrap;
+}
+.lvl-tamat-badge {
+    font-size:0.65rem; font-family:monospace; color:#fde047;
+    background:rgba(234,179,8,0.12); border:1px solid rgba(234,179,8,0.35);
+    padding:4px 12px; border-radius:20px;
+}
 
 /* BADGE STATUS USER DI ATAS */
 .user-badge {
     position:absolute; top:20px; right:20px; z-index:5;
     background:rgba(14,28,19,0.8); padding:6px 12px; border-radius:20px;
     font-size:0.7rem; font-family:monospace; border:1px solid #22c55e; color:#4ade80;
+    transition: border-color 1s, color 1s; max-width:46vw;
 }
 .user-badge.guest { border-color:#eab308; color:#fde047; }
 
@@ -103,7 +176,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     position: absolute;
     top: 20px;
     left: 20px;
-    z-index: 10; /* Memastikan tombol berada di lapisan paling atas, di atas kanvas */
+    z-index: 10;
     display: flex;
     gap: 10px;
 }
@@ -124,7 +197,6 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Efek Getaran Cahaya saat Kursor Mendekat (Addictive Hover Effect) */
 .top-btn:hover {
     background: rgba(34, 197, 94, 0.2);
     border-color: #fde047;
@@ -137,43 +209,52 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
     transform: translateY(0);
 }
 
-/* Responsif Layar Kecil (HP) agar tidak menabrak user-badge di sebelah kanan */
 @media (max-width: 480px) {
-    .top-nav {
-        top: 15px;
-        left: 15px;
-        gap: 6px;
-    }
-    .top-btn {
-        padding: 6px 10px;
-        font-size: 0.65rem;
-    }
+    .top-nav { top: 15px; left: 15px; gap: 6px; }
+    .top-btn { padding: 6px 10px; font-size: 0.65rem; }
+    .level-progress-bar { top: 64px; }
+    .user-badge { top: 15px; max-width:40vw; }
 }
 </style>
 </head>
 <body class="no-select">
 <div class="game-container">
     <div class="top-nav">
-        <a href="/html/gudang-alat-tofarmer.html" class="top-btn">⬅ Kembali
-</a>
-       
+        <a href="/html/gudang-alat-tofarmer.html" class="top-btn">⬅ Kembali</a>
     </div>
-<div class="game-container">
+
     <div class="user-badge" id="userBadge">Mendeteksi Sinyal...</div>
 
+    <div class="level-progress-bar" id="levelProgressBar"></div>
+
     <canvas id="cosmosCanvas"></canvas>
-<audio id="ambientSound" loop>
-    <source src="/aset/moment-of-peace.mp3" type="audio/mpeg">
-</audio>
+    <audio id="ambientSound" loop>
+        <source src="/aset/moment-of-peace.MP3" type="audio/mpeg">
+    </audio>
+
     <header class="narrative-header" id="narrativeHeader">
         <h1>Menoreh Universe</h1>
         <div class="narrative-p" id="typedText"></div>
     </header>
 
+    <div class="level-transisi" id="levelTransisi">
+        <div class="level-transisi-judul" id="levelTransisiJudul"></div>
+        <div class="level-transisi-teks" id="levelTransisiTeks"></div>
+    </div>
+
     <div class="claim-overlay" id="claimOverlay">
         <div class="claim-title" id="overlayTitle">🛰️ FREKUENSI GAIB TERKUNCI!</div>
         <div class="claim-details" id="claimDetails"></div>
         <button class="claim-btn" id="mainClaimBtn" onclick="eksekusiSegel()">🔒 SEGEL FREKUENSI</button>
+    </div>
+
+    <div class="level-complete-overlay" id="levelCompleteOverlay">
+        <div class="lc-badge">🏅</div>
+        <div class="lc-title" id="lcTitle">LEVEL 1 TUNTAS!</div>
+        <div class="lc-subtitle" id="lcSubtitle"></div>
+        <div class="lc-reward" id="lcReward">+0.1 TOF</div>
+        <div class="lc-desc" id="lcDesc"></div>
+        <button class="claim-btn" id="lcClaimBtn">🎁 KLAIM REWARD</button>
     </div>
 
     <div class="bottom-panel">
@@ -187,17 +268,16 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
 <script>
 function setupAmbientSound() {
     const audio = document.getElementById("ambientSound");
-    audio.volume = 0; // Mulai dari sunyi
-    
-    // Fungsi Fade-In perlahan
+    audio.volume = 0;
     const fadeIn = setInterval(() => {
         if (audio.volume < 0.1) {
             audio.volume += 0.01;
         } else {
             clearInterval(fadeIn);
         }
-    }, 200); // Bertambah setiap 200ms
+    }, 200);
 }
+
 // =====================================================================
 // 🛰️ INTEGRASI WEBFARMER & SUPABASE
 // =====================================================================
@@ -213,15 +293,79 @@ const isUserLulusLogin = (walletToFarmer !== null && walletToFarmer !== "");
 let jatahSegelTamu = parseInt(localStorage.getItem('mu_jatah_tamu') || '3');
 const MAX_JATAH_TAMU = 3;
 
+// =====================================================================
+// 🌌 SISTEM LEVEL (3 TINGKAT) — target & reward gampang diubah di sini
+// =====================================================================
+const LEVEL_CONFIG = {
+    1: {
+        nama: "Kabut Purba Menoreh",
+        target: 5,
+        reward: 0.1,
+        narasiBuka: "Kau menembus lapisan pertama kabut purba. Grid energi Menoreh mulai membisikkan namamu perlahan...",
+        narasiTutup: "Kabut Purba telah kau taklukkan. Di kejauhan, Gerbang Suroloyo mulai terbuka untukmu..."
+    },
+    2: {
+        nama: "Gerbang Suroloyo",
+        target: 7,
+        reward: 0.2,
+        narasiBuka: "Puncak Suroloyo menyingkap portalnya. Kau kini menembus lintas dimensi tanah Jawa purba...",
+        narasiTutup: "Gerbang Suroloyo telah kau lewati. Jantung Sukma Semesta menanti di titik tertinggi kesadaran..."
+    },
+    3: {
+        nama: "Jantung Sukma Semesta",
+        target: 10,
+        reward: 0.3,
+        narasiBuka: "Kesadaranmu melebur dengan semesta. Batas ruang, waktu, dan pegunungan Menoreh menyatu dalam dirimu...",
+        narasiTutup: "Kau tuntas menyatu dengan Sukma Semesta Menoreh."
+    }
+};
+
+let levelAktif = Math.min(3, Math.max(1, parseInt(localStorage.getItem('mu_level_aktif') || '1')));
+let progressLevel = parseInt(localStorage.getItem(`mu_progress_lvl_${levelAktif}`) || '0');
+let sudahTamatSemua = localStorage.getItem('mu_tamat_semua') === '1';
+let totalTofTerkumpul = parseFloat(localStorage.getItem('mu_total_tof') || '0');
+
 function updateBadgeStatus() {
     const badge = document.getElementById("userBadge");
+    const infoTof = totalTofTerkumpul > 0 ? ` · ✨${totalTofTerkumpul.toFixed(1)} TOF` : '';
     if (isUserLulusLogin) {
         badge.className = "user-badge";
-        badge.innerHTML = `🟢 ToFarmer Member: ${walletToFarmer.substring(0,6)}...`;
+        badge.innerHTML = `🟢 ToFarmer: ${walletToFarmer.substring(0,6)}...${infoTof}`;
     } else {
         badge.className = "user-badge guest";
-        badge.innerHTML = `🟡 Akun Tamu (Sisa Jatah: ${jatahSegelTamu}/${MAX_JATAH_TAMU})`;
+        badge.innerHTML = `🟡 Tamu (Sisa: ${jatahSegelTamu}/${MAX_JATAH_TAMU})${infoTof}`;
     }
+}
+
+function terapkanTemaLevel() {
+    const container = document.querySelector('.game-container');
+    container.classList.remove('level-1', 'level-2', 'level-3');
+    container.classList.add(`level-${Math.min(levelAktif, 3)}`);
+}
+
+function updateProgressUI() {
+    const bar = document.getElementById('levelProgressBar');
+    if (sudahTamatSemua) {
+        bar.innerHTML = `<span class="lvl-tamat-badge">🏆 Piagam Sukma Diraih</span>`;
+        return;
+    }
+    const cfg = LEVEL_CONFIG[levelAktif];
+    let dots = '';
+    for (let i = 1; i <= 3; i++) {
+        let kelas = 'lvl-dot';
+        if (i < levelAktif) kelas += ' selesai';
+        else if (i === levelAktif) kelas += ' aktif';
+        dots += `<span class="${kelas}"></span>`;
+    }
+    bar.innerHTML = `<div class="lvl-dots">${dots}</div><div class="lvl-label">LV.${levelAktif} ${cfg.nama} · ${progressLevel}/${cfg.target}</div>`;
+}
+
+function tampilkanTransisiLevel(judul, teks) {
+    const el = document.getElementById('levelTransisi');
+    document.getElementById('levelTransisiJudul').innerText = judul;
+    document.getElementById('levelTransisiTeks').innerText = teks;
+    el.classList.add('show');
+    setTimeout(() => { el.classList.remove('show'); }, 3400);
 }
 
 // ==========================================
@@ -240,16 +384,11 @@ function mengetikNarasi() {
         indexTeks++;
         setTimeout(mengetikNarasi, 35);
     } else {
-        // Narasi selesai diketik, ubah status agar layar bisa di-klik
         isIntroTyping = false;
-        
-        // Beri jeda 1.5 detik agar user sempat membaca teks utuh, lalu hilangkan
         setTimeout(() => { 
             const header = document.getElementById("narrativeHeader");
             header.style.opacity = "0";
             header.style.transition = "opacity 1s ease";
-            
-            // Benar-benar hilangkan dari hirarki layout setelah transisi selesai
             setTimeout(() => { header.style.display = "none"; }, 1000);
         }, 1500);
     }
@@ -261,6 +400,7 @@ let stars = [], particles = [], floatingTexts = [];
 let warpSpeed = 0.5, targetWarpSpeed = 0.5;
 let foundEffect = false, pulseRadius = 0;
 let targetX = 0, targetY = 0;
+let sudutPortal = 0, sudutMandala = 0;
 
 function resize() { 
     canvas.width = window.innerWidth; 
@@ -269,7 +409,6 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Inisialisasi Bintang Kosmos
 stars = [];
 for(let i=0; i<100; i++) {
     stars.push({ 
@@ -279,7 +418,8 @@ for(let i=0; i<100; i++) {
     });
 }
 
-function ledakkanPartikel(x, y, warna) {
+// bentuk: 'lingkaran' | 'berlian' | 'bintang' — makin tinggi level, makin variatif bentuknya
+function ledakkanPartikel(x, y, warna, bentuk = 'lingkaran') {
     for (let i = 0; i < 25; i++) {
         let sudut = Math.random() * Math.PI * 2;
         let speed = 2 + Math.random() * 5;
@@ -291,9 +431,13 @@ function ledakkanPartikel(x, y, warna) {
             radius: Math.random() * 2.5 + 1, 
             color: warna, 
             alpha: 1, 
-            decay: 0.02 
+            decay: 0.02,
+            bentuk: bentuk,
+            rotasi: Math.random() * Math.PI * 2,
+            rotasiSpeed: (Math.random() - 0.5) * 0.25
         });
     }
+    if (particles.length > 400) particles.splice(0, particles.length - 400); // 💡 jaga performa tetap ringan
 }
 
 function buatTeksMelayang(x, y, txt, warna) {
@@ -306,29 +450,19 @@ canvas.addEventListener('click', (e) => {
 });
 
 async function triggerTapScan(clientX, clientY) {
-    // 1. Inisialisasi & Lazy Load Audio
     const audio = document.getElementById("ambientSound");
-    
-    // Cek apakah src masih kosong, jika ya, isi dengan path file audionya
     if (audio.src === "" || audio.src.endsWith("/")) {
-        audio.src = "/aset/moment-of-peace.mp3"; // Pastikan path ini benar
+        audio.src = "/aset/moment-of-peace.MP3";
         audio.load();
     }
-    
-    // Coba mainkan audio jika belum berbunyi
     if (audio.paused) {
-        audio.volume = 0.2;
+        audio.volume = 0.3;
         audio.play().catch(e => console.log("Menunggu interaksi user untuk audio"));
     }
 
-    // 2. Cek status game
     if (isIntroTyping) return;
     if (isScanning) return;
 
-
-
-    // 1. SENSASI FISIK (Haptic Feedback)
-    // Berikan getaran halus saat sentuhan pertama sebagai "feedback" nyata
     if (navigator.vibrate) navigator.vibrate(20);
 
     targetX = clientX;
@@ -336,11 +470,9 @@ async function triggerTapScan(clientX, clientY) {
     document.getElementById("claimOverlay").classList.remove("show");
     foundEffect = false;
 
-    // 2. KOMPUTASI "TRUTH" (Menghasilkan seed unik berbasis koordinat)
     const coordX = Math.floor((clientX / canvas.width) * 9999);
     const coordY = Math.floor((clientY / canvas.height) * 9999);
     
-    // Seed sekarang menjadi "bukti" awal koordinat
     const rawData = { x: coordX, y: coordY, timestamp: Date.now() };
     const seed = (coordX * 31) + (coordY * 17) + (rawData.timestamp % 75);
     const sectorId = "MNR-2090-" + Math.abs(seed).toString(16).toUpperCase().substring(0, 4);
@@ -349,16 +481,13 @@ async function triggerTapScan(clientX, clientY) {
     targetWarpSpeed = 12.0; 
     setTimeout(() => { targetWarpSpeed = 2.0; }, 300);
 
-    // 3. LOGIKA GACHA DENGAN PROOF (Hanya 5% peluang)
-    if (Math.random() < 0.03) { 
+    if (Math.random() < 0.05) { 
         isScanning = true;
         foundEffect = true; 
         pulseRadius = 5;
         
-        // Tambahkan getaran lebih kuat jika berhasil menemukan "anomali"
         if (navigator.vibrate) navigator.vibrate([100, 30, 100]);
 
-        // Cek Kuota Tamu
         if (!isUserLulusLogin && jatahSegelTamu <= 0) {
             setTimeout(() => {
                 isScanning = false;
@@ -367,40 +496,29 @@ async function triggerTapScan(clientX, clientY) {
             return;
         }
 
-        // ==========================================
-        // 🔥 GENERATOR EFEK LOADING SPEKTAKULER
-        // ==========================================
         let hitungDetik = 0;
         const intervalLoading = setInterval(() => {
             hitungDetik++;
             
-            // Variasi teks mantra mistis teknologi
             const mantraLoading = [
-                // Phase 1: Inisialisasi & Pembukaan Dimensi
                 "⚡ MEMBUKA GERBANG GRID SPEKTRUM...",
                 "🔮 MENYALURKAN ENERGI BATIN MENOREH...",
                 "🌀 MENGONTAK INDUK WORKER TOFARMER...",
                 "📡 MENYINGKAP TABIR KABUT PURBA...",
                 "🛡️ MEMULIHKAN FREKUENSI SEKTOR GAIB...",
                 "🔥 MENYEGEL INTISARI RESIDU KOSMIK...",
-                
-                // Phase 2: Sinkronisasi Matriks & Jiwa Jawa 2090
                 "🧬 MENGURAI UNTAIAN DNA KARYA ISOTERI...",
                 "🪐 MENYELARASKAN PRANA KUNO SUROLOYO...",
                 "📟 MEMBACA LOG MATRIX SERAT CENTHINI...",
                 "☕ MENGESTRAKSI RESIDU CAFEIN QUANTUM...",
                 "🍃 MENSINKRONKAN DETAK NADI TOFARMER...",
                 "🌌 MENJANGKAR SPEKTRUM SUKMA OPERATOR...",
-                
-                // Phase 3: Kompilasi & Penembusan Awan Cloudflare
                 "💻 MENGALIRKAN LOGIKA CODE GEMMA...",
                 "🎯 MEMETAKAN GRID KOORDINAT GAJAH MENOREH...",
                 "☁️ MENEMBUS AWAN PERLINDUNGAN WORKER...",
                 "🌿 MENGUMPULKAN COMPREHENSIVE KNOWLEDGE BASE...",
                 "💾 MENYIAPKAN SLOT SEGELED FREKUENSI...",
                 "🔱 MEMANCARKAN GELOMBANG REKAYASA GAIB...",
-                
-                // Phase 4: Pemantapan & Penguncian Anomali (Final Stage)
                 "🦅 MENGINTIP ATMAN MATRIKS SUMBING...",
                 "💎 MENSTABILKAN FLUKSUASI ARUS ETER...",
                 "🎼 MENYETEL RESONANSI FREKUENSI MACAPAT...",
@@ -409,15 +527,12 @@ async function triggerTapScan(clientX, clientY) {
                 "✨ MANIFESTASI ANOMALI SEGERA TERWUJUD..."
             ];
             
-            // 1. Tembakkan teks status utama di lokasi ketukan
             const teksPilihan = mantraLoading[(hitungDetik - 1) % mantraLoading.length];
             buatTeksMelayang(targetX, targetY, teksPilihan, "#fde047");
             
-            // 2. Semburkan efek hujan partikel emas dan hijau secara beruntun
             ledakkanPartikel(targetX + (Math.random() * 60 - 30), targetY + (Math.random() * 60 - 30), '#eab308');
             ledakkanPartikel(targetX + (Math.random() * 60 - 30), targetY + (Math.random() * 60 - 30), '#22c55e');
 
-            // 3. Efek Radikal: Hujan kode biner / angka koordinat acak di sekeliling ketukan
             for(let i=0; i<3; i++) {
                 const offsetX = targetX + (Math.random() * 160 - 80);
                 const offsetY = targetY + (Math.random() * 160 - 80);
@@ -425,17 +540,13 @@ async function triggerTapScan(clientX, clientY) {
                 buatTeksMelayang(offsetX, offsetY, dataGhoib, "rgba(74, 222, 128, 0.6)");
             }
 
-            // 4. Efek Kejut: Bikin denyut shockwave-nya meledak berulang-ulang
             pulseRadius = 10; 
 
-        }, 450); // Kecepatan semburan efek per 450ms (lebih padat dan ramai)
+        }, 450);
 
         const mantraUser = document.getElementById("secretMantra").value.trim() || "Keheningan Sukma";
         const promptRekayasa = `Koordinat [X:${coordX}, Y:${coordY}] Sektor ${sectorId}, Mantra Sukma: "${mantraUser}".`;
 
-        // ==========================================
-        // PROSES TEMBAK API WORKER
-        // ==========================================
         try {
             const response = await fetch(URL_AI_TOFARMER, {
                 method: "POST",
@@ -446,9 +557,9 @@ async function triggerTapScan(clientX, clientY) {
                 }) 
             });
 
-            clearInterval(intervalLoading); // Hentikan pesta efek loading
+            clearInterval(intervalLoading);
             isScanning = false;
-            targetWarpSpeed = 0.5; // Kembalikan kecepatan bintang ke normal
+            targetWarpSpeed = 0.5;
 
             if (!response.ok) throw new Error("Koneksi Worker bermasalah.");
             
@@ -470,7 +581,6 @@ async function triggerTapScan(clientX, clientY) {
         }
 
     } else {
-        // Blok Zonk jika gacha gagal
         const teksZonk = [
             "💨 Hanya Debu Meteor", 
             "💨 Sinyal Pudar", 
@@ -498,18 +608,18 @@ function jalankanSimulasiLokal(seed, coordX, coordY, sectorId) {
 }
 
 function tampilkanPopup(kondisi, anomali, hikmah) {
-    ledakkanPartikel(targetX, targetY, '#fde047');
+    // 💡 makin tinggi level, makin variatif bentuk ledakan partikelnya
+    const bentukEfek = levelAktif >= 3 ? 'bintang' : (levelAktif === 2 ? 'berlian' : 'lingkaran');
+    ledakkanPartikel(targetX, targetY, '#fde047', bentukEfek);
     buatTeksMelayang(targetX, targetY, "✨ TRANSMISI SUKSES!", "#4ade80");
 
-// --- SISIPKAN KODE DI SINI ---
     const overlay = document.getElementById("claimOverlay");
     if (anomali.includes("Eter")) {
-        overlay.style.borderColor = "#fde047"; // Emas untuk barang langka
+        overlay.style.borderColor = "#fde047";
         overlay.style.boxShadow = "0 0 45px rgba(234, 179, 8, 0.4)";
     } else {
-        overlay.style.borderColor = "rgba(234, 179, 8, 0.4)"; // Normal
+        overlay.style.borderColor = "rgba(234, 179, 8, 0.4)";
     }
-    // ----------------------------
 
     const operatorFinal = namaOperator || "Mantra Tanpa Nama";
     let infoTamu = "";
@@ -578,7 +688,6 @@ async function eksekusiSegel() {
     const walletFinal = isUserLulusLogin ? walletToFarmer : "GUEST_RADAR";
 
     try {
-    // 1. Generate Proof (Opsional: hapus jika kolom belum ada di DB)
     const bukti = await generateProof({
         sector: dataTerdeteksi.sector,
         x: dataTerdeteksi.x,
@@ -592,7 +701,7 @@ async function eksekusiSegel() {
             "apikey": SUPABASE_ANON_KEY,
             "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
             "Content-Type": "application/json",
-            "Prefer": "return=minimal" // PENTING agar tidak error 400
+            "Prefer": "return=minimal"
         },
         body: JSON.stringify({
             sector_id: dataTerdeteksi.sector,
@@ -601,36 +710,32 @@ async function eksekusiSegel() {
             anomaly_item: dataTerdeteksi.item,
             operator_signature: `${walletFinal} // ${operatorFinal}`,
             claimed_at: new Date().toISOString()
-            // HAPUS 'proof_hash: bukti,' jika kolom tersebut belum ada di tabel!
         })
     });
 
     if (!responseSupabase.ok) {
         const errorData = await responseSupabase.json();
-        console.error("Detail Error Supabase:", errorData); // Tambahkan ini untuk melihat pesan asli dari Supabase
+        console.error("Detail Error Supabase:", errorData);
         throw new Error("Gagal menembus grid Supabase.");
     }
 
-        // =====================================================================
-        // 🔮 NOTIFIKASI ADIKTIF BERGAYA MISTIS SCI-FI
-        // =====================================================================
         if (!isUserLulusLogin) {
             jatahSegelTamu--;
             localStorage.setItem('mu_jatah_tamu', jatahSegelTamu.toString());
             updateBadgeStatus();
             
-            // Efek teks beruntun yang candu di layar
             buatTeksMelayang(targetX, targetY, "🌌 RELEVANSI DIMENSI TERKUNCI!", "#eab308");
             setTimeout(() => {
                 buatTeksMelayang(targetX, targetY - 20, `📟 KUOTA RADAR TAMU TERSISA: ${jatahSegelTamu}/3`, "#f87171");
             }, 300);
         } else {
-            // Semburan kepuasan instan untuk member ToFarmer
             buatTeksMelayang(targetX, targetY, "🔮 ANOMALI SELESAI DISEGEL!", "#4ade80");
             setTimeout(() => {
                 buatTeksMelayang(targetX, targetY - 20, "🛰️ DATA SINKRON 100% PADA JANGKAR AWAN TOFARMER", "#60a5fa");
             }, 250);
         }
+
+        tambahProgressLevel();
 
     } catch (err) {
         console.error("Distorsi Sinyal:", err);
@@ -641,11 +746,175 @@ async function eksekusiSegel() {
     }
 }
 
+// =====================================================================
+// 🏅 LOGIKA NAIK LEVEL & KLAIM REWARD TOF
+// =====================================================================
+function tambahProgressLevel() {
+    if (sudahTamatSemua) return;
+    progressLevel++;
+    localStorage.setItem(`mu_progress_lvl_${levelAktif}`, progressLevel.toString());
+    updateProgressUI();
+
+    const target = LEVEL_CONFIG[levelAktif].target;
+    if (progressLevel >= target) {
+        setTimeout(() => bukaLevelCompleteOverlay(levelAktif), 900);
+    }
+}
+
+function bukaLevelCompleteOverlay(n) {
+    const cfg = LEVEL_CONFIG[n];
+    document.getElementById('lcTitle').innerText = `🌟 LEVEL ${n} TUNTAS!`;
+    document.getElementById('lcSubtitle').innerText = cfg.nama;
+    document.getElementById('lcReward').innerText = `+${cfg.reward} TOF`;
+    document.getElementById('lcDesc').innerHTML = `<i style="font-size:0.72rem; color:#a7f3d0;">"${cfg.narasiTutup}"</i>`;
+    const btn = document.getElementById('lcClaimBtn');
+    btn.innerText = "🎁 KLAIM REWARD";
+    btn.disabled = false;
+    btn.onclick = klaimRewardLevel;
+    document.getElementById('levelCompleteOverlay').classList.add('show');
+
+    // 🎆 ledakan perayaan — dua warna, dua bentuk, dari tengah layar
+    const cx = canvas.width/2, cy = canvas.height/2;
+    ledakkanPartikel(cx, cy, '#fde047', 'bintang');
+    ledakkanPartikel(cx, cy, n >= 3 ? '#f472b6' : (n === 2 ? '#a78bfa' : '#4ade80'), 'berlian');
+    pulseRadius = 5; foundEffect = true; targetX = cx; targetY = cy;
+}
+
+async function klaimRewardLevel() {
+    const n = levelAktif;
+    const cfg = LEVEL_CONFIG[n];
+    const btn = document.getElementById('lcClaimBtn');
+    btn.disabled = true;
+    btn.innerText = "⚡ MENYALURKAN ENERGI...";
+
+    const operatorFinal = namaOperator || "OPR-ANON-PURBA";
+    const walletFinal = isUserLulusLogin ? walletToFarmer : "GUEST_RADAR";
+
+    try {
+        // 💡 Asumsi: reward level dicatat lewat tabel `claims` yang sama (sector_id diberi prefix LEVEL-X-REWARD)
+        // supaya tidak perlu bikin tabel/kolom baru dulu di Supabase. Kalau kamu sudah punya tabel
+        // khusus reward level, tinggal ganti endpoint & body di bawah ini.
+        const responseSupabase = await fetch(`${SUPABASE_URL}/rest/v1/claims`, {
+            method: "POST",
+            headers: {
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({
+                sector_id: `LEVEL-${n}-REWARD`,
+                coordinate_x: 0,
+                coordinate_y: 0,
+                anomaly_item: `Reward Level ${n} Tuntas (${cfg.nama}) - ${cfg.reward} TOF`,
+                operator_signature: `${walletFinal} // ${operatorFinal}`,
+                claimed_at: new Date().toISOString()
+            })
+        });
+
+        if (!responseSupabase.ok) throw new Error("Gagal klaim reward level.");
+
+        localStorage.setItem(`mu_klaim_lvl_${n}`, '1');
+        totalTofTerkumpul = parseFloat((totalTofTerkumpul + cfg.reward).toFixed(2));
+        localStorage.setItem('mu_total_tof', totalTofTerkumpul.toString());
+        updateBadgeStatus();
+
+        if (n < 3) {
+            levelAktif = n + 1;
+            progressLevel = 0;
+            localStorage.setItem('mu_level_aktif', levelAktif.toString());
+            localStorage.setItem(`mu_progress_lvl_${levelAktif}`, '0');
+            terapkanTemaLevel();
+            updateProgressUI();
+            document.getElementById('levelCompleteOverlay').classList.remove('show');
+            setTimeout(() => {
+                tampilkanTransisiLevel(`LEVEL ${levelAktif} · ${LEVEL_CONFIG[levelAktif].nama}`, LEVEL_CONFIG[levelAktif].narasiBuka);
+            }, 500);
+        } else {
+            tampilkanPiagamFinal();
+        }
+
+    } catch (err) {
+        console.error("Gagal klaim reward level:", err);
+        btn.innerText = "❌ GAGAL, COBA LAGI";
+        btn.disabled = false;
+        return;
+    }
+}
+
+function tampilkanPiagamFinal() {
+    sudahTamatSemua = true;
+    localStorage.setItem('mu_tamat_semua', '1');
+    updateProgressUI();
+
+    document.getElementById('lcTitle').innerText = "🏆 PIAGAM SUKMA MENOREH";
+    document.getElementById('lcSubtitle').innerText = namaOperator || "Mantra Tanpa Nama";
+    document.getElementById('lcReward').innerText = `Total ${totalTofTerkumpul.toFixed(1)} TOF`;
+    document.getElementById('lcDesc').innerHTML = `
+        Level 1 · Kabut Purba Menoreh — 0.1 TOF ✅<br>
+        Level 2 · Gerbang Suroloyo — 0.2 TOF ✅<br>
+        Level 3 · Jantung Sukma Semesta — 0.3 TOF ✅<br><br>
+        <i style="font-size:0.7rem; color:#a7f3d0;">Kesadaranmu telah menyatu dengan semesta Menoreh.</i>
+    `;
+    const btn = document.getElementById('lcClaimBtn');
+    btn.innerText = "✨ TUTUP";
+    btn.disabled = false;
+    btn.onclick = () => document.getElementById('levelCompleteOverlay').classList.remove('show');
+    document.getElementById('levelCompleteOverlay').classList.add('show');
+
+    const cx = canvas.width/2, cy = canvas.height/2;
+    for (let i = 0; i < 8; i++) {
+        setTimeout(() => {
+            ledakkanPartikel(cx + (Math.random()*300-150), cy + (Math.random()*300-150), i % 2 === 0 ? '#f472b6' : '#38bdf8', 'bintang');
+        }, i * 130);
+    }
+}
+
+// ==========================================
+// 🎨 EFEK AMBIENT KHUSUS LEVEL 2 & 3 (murah secara hitungan, cukup beberapa garis per frame)
+// ==========================================
+function gambarPortalRing(cx, cy) {
+    sudutPortal += 0.01;
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    ctx.strokeStyle = '#a78bfa';
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 2; i++) {
+        const r = 90 + i * 45 + Math.sin(sudutPortal + i) * 12;
+        ctx.beginPath();
+        ctx.arc(cx, cy, Math.max(0.1, r), 0, Math.PI * 2);
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
+function gambarMandalaSemesta(cx, cy) {
+    sudutMandala += 0.0035;
+    const titik = 8;
+    const radiusDasar = Math.min(canvas.width, canvas.height) * 0.3;
+    ctx.save();
+    ctx.globalAlpha = 0.13;
+    ctx.strokeStyle = `hsl(${(Date.now()/45) % 360}, 80%, 65%)`;
+    ctx.lineWidth = 1;
+    for (let ring = 1; ring <= 3; ring++) {
+        ctx.beginPath();
+        for (let i = 0; i <= titik; i++) {
+            const a = sudutMandala * ring + (i * Math.PI * 2 / titik);
+            const r = radiusDasar * (ring / 3);
+            const x = cx + Math.cos(a) * r;
+            const y = cy + Math.sin(a) * r;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+    }
+    ctx.restore();
+}
+
 // ==========================================
 // 🎨 CORE GRAPHIC GAME LOOP RUNNER
 // ==========================================
 function draw() {
-    // Background Trail Efek Ruang Angkasa
     ctx.fillStyle = "rgba(4, 8, 5, 0.2)"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -653,7 +922,14 @@ function draw() {
     let cx = canvas.width / 2;
     let cy = canvas.height / 2;
 
-    // 1. Gambar Efek Bintang Warp Speed
+    // Efek ambient sesuai level aktif (di belakang bintang & partikel)
+    if (!sudahTamatSemua) {
+        if (levelAktif === 2) gambarPortalRing(cx, cy);
+        else if (levelAktif >= 3) gambarMandalaSemesta(cx, cy);
+    } else {
+        gambarMandalaSemesta(cx, cy);
+    }
+
     stars.forEach(s => {
         s.z -= warpSpeed; 
         if(s.z <= 0) s.z = canvas.width;
@@ -671,12 +947,12 @@ function draw() {
         }
     });
 
-    // 2. Render Ledakkan Partikel-partikel Percikan
     for(let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
         p.x += p.vx; 
         p.y += p.vy; 
         p.alpha -= p.decay;
+        p.rotasi += p.rotasiSpeed || 0;
         
         if(p.alpha <= 0) { 
             particles.splice(i, 1); 
@@ -684,14 +960,34 @@ function draw() {
         }
         ctx.save(); 
         ctx.globalAlpha = p.alpha; 
-        ctx.fillStyle = p.color; 
-        ctx.beginPath(); 
-        ctx.arc(p.x, p.y, Math.max(0.1, p.radius), 0, Math.PI * 2); 
-        ctx.fill(); 
+        ctx.fillStyle = p.color;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotasi || 0);
+        const r = Math.max(0.1, p.radius);
+
+        if (p.bentuk === 'berlian') {
+            ctx.beginPath();
+            ctx.moveTo(0, -r*1.4); ctx.lineTo(r, 0); ctx.lineTo(0, r*1.4); ctx.lineTo(-r, 0);
+            ctx.closePath(); ctx.fill();
+        } else if (p.bentuk === 'bintang') {
+            ctx.beginPath();
+            for (let k2 = 0; k2 < 5; k2++) {
+                const sudutLuar = (k2 * 2 * Math.PI / 5) - Math.PI/2;
+                const sudutDalam = sudutLuar + Math.PI/5;
+                const xl = Math.cos(sudutLuar) * r * 1.6, yl = Math.sin(sudutLuar) * r * 1.6;
+                const xd = Math.cos(sudutDalam) * r * 0.6, yd = Math.sin(sudutDalam) * r * 0.6;
+                if (k2 === 0) ctx.moveTo(xl, yl); else ctx.lineTo(xl, yl);
+                ctx.lineTo(xd, yd);
+            }
+            ctx.closePath(); ctx.fill();
+        } else {
+            ctx.beginPath(); 
+            ctx.arc(0, 0, r, 0, Math.PI * 2); 
+            ctx.fill();
+        }
         ctx.restore();
     }
 
-    // 3. Render Teks Melayang (Floating Info Combat)
     for(let i = floatingTexts.length - 1; i >= 0; i--) {
         let ft = floatingTexts[i];
         ft.y -= 0.8; 
@@ -710,7 +1006,6 @@ function draw() {
         ctx.restore();
     }
 
-    // 4. Gelombang Shockwave Sinyal kalau Berhasil Deteksi
     if (foundEffect) {
         pulseRadius += isScanning ? 3 : 1.5;
         let alphaWave = Math.max(0, 1 - pulseRadius / 80);
@@ -726,6 +1021,8 @@ function draw() {
 }
 
 // Jalankan Awal
+terapkanTemaLevel();
+updateProgressUI();
 updateBadgeStatus();
 mengetikNarasi();
 requestAnimationFrame(draw);
