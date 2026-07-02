@@ -2,86 +2,89 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Algorand City • Live Ecosystem</title>
+    <title>Menoreh City • Era Masa Lalu</title>
     <style>
-        body { margin: 0; background: #070e0a; overflow: hidden; font-family: 'Plus Jakarta Sans', sans-serif; }
-        .ui { position: absolute; top: 20px; left: 20px; color: #4ade80; pointer-events: none; }
-        canvas { display: block; }
+        body { margin: 0; background: #070e0a; overflow: hidden; cursor: crosshair; }
+        .ui { position: absolute; top: 20px; left: 20px; color: #4ade80; font-family: 'Playfair Display', serif; pointer-events: none; }
     </style>
 </head>
 <body>
-
 <div class="ui">
-    <h2 style="font-family: serif; margin:0;">ALGORAND CITY</h2>
-    <p id="status" style="font-size: 0.7rem; letter-spacing: 2px;">SYNCING WITH NODE...</p>
+    <h2 style="margin:0">MENOREH CITY: ERA MASA LALU</h2>
+    <p id="status" style="font-size:0.8rem; letter-spacing:2px;">MENELUSURI JALUR HUTAN...</p>
 </div>
 <canvas id="cityCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById('cityCanvas');
 const ctx = canvas.getContext('2d');
-let entities = [];
-let buildings = [];
+let humans = [];
+let houses = []; // Alamat dompet sebagai rumah
+let particles = [];
 
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    initCity();
-}
-
-function initCity() {
-    buildings = [];
-    for(let i = 0; i < 15; i++) {
-        buildings.push({ 
-            x: Math.random() * canvas.width, 
-            y: Math.random() * canvas.height, 
-            type: Math.random() > 0.5 ? '🏢' : '🌲' 
-        });
+    houses = [];
+    for(let i=0; i<6; i++) {
+        houses.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, id: '🏠' });
     }
 }
 
-// Perilaku unik tiap transaksi
 async function fetchTx() {
     try {
-        const res = await fetch("https://mainnet-idx.algonode.cloud/v2/transactions?limit=3");
+        const res = await fetch("https://mainnet-idx.algonode.cloud/v2/transactions?limit=2");
         const data = await res.json();
         if(data.transactions) {
             data.transactions.forEach(() => {
-                entities.push({
-                    x: Math.random() > 0.5 ? 0 : canvas.width,
-                    y: canvas.height / 2 + (Math.random() * 200 - 100),
-                    type: ['🚗', '🛵', '🚶'][Math.floor(Math.random() * 3)],
-                    speed: (Math.random() * 2 + 0.5) * (Math.random() > 0.5 ? 1 : -1),
-                    wobble: Math.random() * 0.05
+                humans.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    target: houses[Math.floor(Math.random()*houses.length)],
+                    speed: 0.5 + Math.random() * 0.5
                 });
             });
-            document.getElementById('status').innerText = "STATUS: ONLINE | PROSES AKTIF";
         }
     } catch(e) {}
 }
 
+function createExplosion(x, y) {
+    for(let i=0; i<20; i++) {
+        particles.push({ x, y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1 });
+    }
+}
+
 function draw() {
-    ctx.fillStyle = '#070e0a';
+    ctx.fillStyle = 'rgba(7, 14, 10, 0.3)'; // Efek kabut hutan
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Jalan Raya
-    ctx.strokeStyle = 'rgba(234, 179, 8, 0.1)';
-    ctx.lineWidth = 150;
-    ctx.beginPath(); ctx.moveTo(0, canvas.height/2); ctx.lineTo(canvas.width, canvas.height/2); ctx.stroke();
-
-    // Gambar Pohon & Rumah
+    // Gambar Hutan & Rumah
     ctx.font = '40px serif';
-    buildings.forEach(b => ctx.fillText(b.type, b.x, b.y));
+    houses.forEach(h => ctx.fillText(h.id, h.x, h.y));
+    for(let i=0; i<30; i++) ctx.fillText('🌲', Math.random()*canvas.width, Math.random()*canvas.height);
 
-    // Update Entitas
-    entities.forEach((e, i) => {
-        e.x += e.speed;
-        e.y += Math.sin(e.x * e.wobble) * 2; // Gerakan unik (belok/wobble)
+    // Manusia berjalan
+    humans.forEach((h, i) => {
+        let dx = h.target.x - h.x;
+        let dy = h.target.y - h.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        
+        if(dist < 5) {
+            createExplosion(h.x, h.y);
+            humans.splice(i, 1);
+        } else {
+            h.x += (dx/dist) * h.speed;
+            h.y += (dy/dist) * h.speed;
+            ctx.fillText('🚶', h.x, h.y);
+        }
+    });
 
-        ctx.font = '24px serif';
-        ctx.fillText(e.type, e.x, e.y);
-
-        if(e.x < -50 || e.x > canvas.width + 50) entities.splice(i, 1);
+    // Animasi ledakan matematis
+    particles.forEach((p, i) => {
+        p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+        ctx.fillStyle = `rgba(234, 179, 8, ${p.life})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+        if(p.life <= 0) particles.splice(i, 1);
     });
 
     requestAnimationFrame(draw);
