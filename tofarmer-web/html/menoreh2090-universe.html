@@ -256,7 +256,7 @@ canvas#cosmosCanvas { position:absolute; inset:0; width:100%; height:100%; z-ind
         <div class="lc-desc" id="lcDesc"></div>
         <button class="claim-btn" id="lcClaimBtn">🎁 KLAIM REWARD</button>
     </div>
-
+<button class="sync-btn" id="resetBtn" onclick="resetLevel()" style="margin-left: 10px;">🔄 Reset Level</button>
     <div class="bottom-panel">
         <div class="mantra-box">
             <input type="text" id="secretMantra" placeholder="(Bebas) Isi Mantramu" value="">
@@ -859,7 +859,16 @@ function tampilkanPiagamFinal() {
     const btn = document.getElementById('lcClaimBtn');
     btn.innerText = "✨ TUTUP";
     btn.disabled = false;
-    btn.onclick = () => document.getElementById('levelCompleteOverlay').classList.remove('show');
+    btn.onclick = () => {
+        document.getElementById('levelCompleteOverlay').classList.remove('show');
+        // Tambahkan tombol reset di sini
+        const resetBtn = document.createElement("button");
+        resetBtn.id = "resetBtn";
+        resetBtn.className = "sync-btn";
+        resetBtn.textContent = "🔄 Reset Level";
+        resetBtn.onclick = resetLevel;
+        document.querySelector(".bottom-panel").appendChild(resetBtn);
+    };
     document.getElementById('levelCompleteOverlay').classList.add('show');
 
     const cx = canvas.width/2, cy = canvas.height/2;
@@ -1047,6 +1056,33 @@ async function generateProof(data) {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 setupAmbientSound();
+function resetLevel() {
+    const lastResetTime = localStorage.getItem('mu_last_reset_time');
+    const now = Date.now();
+    const cooldownHours = 24; // 24 jam
+    const cooldownMs = cooldownHours * 60 * 60 * 1000;
+
+    if (lastResetTime && (now - parseInt(lastResetTime)) < cooldownMs) {
+        const remaining = Math.ceil((cooldownMs - (now - parseInt(lastResetTime))) / (1000 * 60));
+        alert(`Tunggu ${remaining} menit lagi sebelum reset ulang.`);
+        return;
+    }
+
+    if (sudahTamatSemua) {
+        // Jika sudah selesai semua, reset ke level 1
+        levelAktif = 1;
+        progressLevel = 0;
+        localStorage.setItem('mu_level_aktif', levelAktif.toString());
+        localStorage.setItem(`mu_progress_lvl_${levelAktif}`, '0');
+        localStorage.setItem('mu_last_reset_time', now.toString());
+        terapkanTemaLevel();
+        updateProgressUI();
+        updateBadgeStatus();
+        tampilkanTransisiLevel(`LEVEL 1 · ${LEVEL_CONFIG[1].nama}`, LEVEL_CONFIG[1].narasiBuka);
+    } else {
+        alert("Reset hanya bisa dilakukan setelah menyelesaikan semua level.");
+    }
+}
 </script>
 </body>
 </html>
