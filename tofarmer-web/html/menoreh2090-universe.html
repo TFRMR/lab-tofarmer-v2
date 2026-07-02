@@ -861,13 +861,16 @@ function tampilkanPiagamFinal() {
     btn.disabled = false;
     btn.onclick = () => {
         document.getElementById('levelCompleteOverlay').classList.remove('show');
-        // Tambahkan tombol reset di sini
-        const resetBtn = document.createElement("button");
-        resetBtn.id = "resetBtn";
-        resetBtn.className = "sync-btn";
-        resetBtn.textContent = "🔄 Reset Level";
-        resetBtn.onclick = resetLevel;
-        document.querySelector(".bottom-panel").appendChild(resetBtn);
+        
+        // Tambahkan pesan peringatan saat close piagam
+        setTimeout(() => {
+            buatTeksMelayang(
+                canvas.width/2, 
+                canvas.height/2, 
+                "💡 Catatan: Untuk main lagi, klik tombol Reset di bawah", 
+                "#4ade80"
+            );
+        }, 500);
     };
     document.getElementById('levelCompleteOverlay').classList.add('show');
 
@@ -878,6 +881,24 @@ function tampilkanPiagamFinal() {
         }, i * 130);
     }
 }
+
+// Tambahkan pesan peringatan saat user mencoba tap tanpa arah
+canvas.addEventListener('click', (e) => {
+    // Jika sudah selesai dan belum direset
+    if (sudahTamatSemua && !localStorage.getItem('mu_last_reset_time')) {
+        // Tampilkan pesan peringatan
+        buatTeksMelayang(
+            e.clientX, 
+            e.clientY, 
+            "🔄 Tap untuk reset level", 
+            "#fde047"
+        );
+        return;
+    }
+    
+    triggerTapScan(e.clientX, e.clientY);
+});
+
 
 // ==========================================
 // 🎨 EFEK AMBIENT KHUSUS LEVEL 2 & 3 (murah secara hitungan, cukup beberapa garis per frame)
@@ -1079,6 +1100,16 @@ function resetLevel() {
         updateProgressUI();
         updateBadgeStatus();
         tampilkanTransisiLevel(`LEVEL 1 · ${LEVEL_CONFIG[1].nama}`, LEVEL_CONFIG[1].narasiBuka);
+        
+        // Tambahkan pesan peringatan setelah reset
+        setTimeout(() => {
+            buatTeksMelayang(
+                canvas.width/2, 
+                canvas.height/2, 
+                "🔄 Level telah direset! Tap untuk memulai lagi.", 
+                "#fde047"
+            );
+        }, 500);
     } else {
         alert("Reset hanya bisa dilakukan setelah menyelesaikan semua level.");
     }
