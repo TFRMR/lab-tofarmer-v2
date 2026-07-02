@@ -4,8 +4,46 @@
     <meta charset="UTF-8">
     <title>Tof Village • Era Masa Lalu</title>
     <style>
-        body { margin: 0; background: #070e0a; overflow: hidden; cursor: crosshair; }
-        .ui { position: absolute; top: 20px; left: 20px; color: #4ade80; font-family: 'Playfair Display', serif; pointer-events: none; }
+        body { 
+            margin: 0; 
+            background: linear-gradient(to bottom, #070e0a, #0c1a12); 
+            overflow: hidden; 
+            cursor: crosshair; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .ui { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            color: #4ade80; 
+            font-family: 'Playfair Display', serif; 
+            pointer-events: none; 
+            z-index: 10;
+            text-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+        }
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #86efac;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: right;
+            z-index: 10;
+            background: rgba(10, 20, 15, 0.7);
+            padding: 10px 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+        .coin {
+            display: inline-block;
+            animation: spin 3s linear infinite;
+            transform-origin: center;
+            text-shadow: 0 0 5px rgba(251, 191, 36, 0.8);
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -13,96 +51,224 @@
     <h2 style="margin:0">Tof Village • Era Masa Lalu</h2>
     <p id="status" style="font-size:0.8rem; letter-spacing:2px;">HUTAN TENANG, ALIRAN DATA MASUK...</p>
 </div>
+<div class="stats">
+    <div id="txCount">Transaksi: 0</div>
+    <div id="walletCount">Dompet: 0</div>
+    <div id="coinBalance" class="coin">🪙 TOF: 0</div>
+</div>
 <canvas id="cityCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById('cityCanvas');
 const ctx = canvas.getContext('2d');
+
+// State Variables
 let humans = [];
-let staticElements = []; // Pohon dan rumah disimpan di sini
+let staticElements = []; 
 let particles = [];
+let walletMap = new Map();
+let txCount = 0;
+let walletCount = 0;
+let fogOffset = 0;
+
+// Konfigurasi Warna
+const COLORS = {
+    background: '#070e0a',
+    mountain: ['#1a2a22', '#153a2a', '#104a30'],
+    coin: '#fbbf24'
+};
 
 function initCity() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     
-    // Generate pohon dan rumah sekali saja saat load
+    // Generate pohon sebagai latar belakang hutan (statis)
     staticElements = [];
-    for(let i=0; i<40; i++) {
+    for(let i=0; i<35; i++) {
         staticElements.push({ 
             x: Math.random() * canvas.width, 
             y: Math.random() * canvas.height, 
-            icon: i < 6 ? '🏠' : '🌲' 
+            icon: '🌲',
+            size: 20 + Math.random() * 15
         });
+    }
+    
+    walletMap.clear();
+    txCount = 0;
+    walletCount = 0;
+    updateStats();
+}
+
+function generateMountains() {
+    const gradient = ctx.createLinearGradient(0, canvas.height/2, 0, canvas.height);
+    gradient.addColorStop(0, COLORS.mountain[0]);
+    gradient.addColorStop(0.3, COLORS.mountain[1]);
+    gradient.addColorStop(1, COLORS.mountain[2]);
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height);
+    ctx.lineTo(0, canvas.height/2);
+    
+    for(let i = 0; i <= canvas.width; i += 20) {
+        const height = Math.sin(i / 100) * 50 + Math.sin(i / 50) * 30;
+        ctx.lineTo(i, canvas.height/2 - height);
+    }
+    
+    ctx.lineTo(canvas.width, canvas.height/2);
+    ctx.lineTo(canvas.width, canvas.height);
+    ctx.fill();
+}
+
+function drawFog() {
+    fogOffset += 0.5;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+    for(let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc(canvas.width/2 + Math.sin(fogOffset/100 + i)*200, 
+                canvas.height/2 + Math.cos(fogOffset/100 + i)*100, 
+                300, 0, Math.PI*2);
+        ctx.fill();
     }
 }
 
 async function fetchTx() {
     try {
-        const res = await fetch("https://mainnet-idx.algonode.cloud/v2/transactions?limit=2");
+        const res = await fetch("https://mainnet-idx.algonode.cloud/v2/transactions?limit=10&asset-id=3558306283");
         const data = await res.json();
         if(data.transactions) {
-            data.transactions.forEach(() => {
-                let houses = staticElements.filter(e => e.icon === '🏠');
-                let target = houses[Math.floor(Math.random() * houses.length)];
+            data.transactions.forEach(tx => {
+                txCount++;
+                
+                // Tambahkan dompet (Rumah) jika belum ada
+                if(!walletMap.has(tx.sender)) {
+                    walletMap.set(tx.sender, {
+                        address: tx.sender,
+                        balance: 0,
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height
+                    });
+                    walletCount++;
+                }
+                
+                const wallet = walletMap.get(tx.sender);
+                wallet.balance += 1;
+                
+                // Manusia bergerak ke rumah tersebut
                 humans.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    target: target,
-                    speed: 0.8 + Math.random() * 0.5
+                    target: wallet, // Targetnya adalah rumah/dompet itu sendiri
+                    speed: 0.8 + Math.random() * 0.5,
+                    wallet: wallet
                 });
             });
+            updateStats();
         }
-    } catch(e) {}
-}
-
-function createExplosion(x, y) {
-    for(let i=0; i<15; i++) {
-        particles.push({ x, y, vx: (Math.random()-0.5)*8, vy: (Math.random()-0.5)*8, life: 1 });
+    } catch(e) {
+        console.error("Error fetching transactions:", e);
     }
 }
 
+function createTransactionEffect(x, y) {
+    // Efek koin/percikan yang muncul saat transaksi sampai di rumah
+    for(let i = 0; i < 12; i++) {
+        particles.push({ 
+            x: x, 
+            y: y, 
+            vx: (Math.random() - 0.5) * 6, 
+            vy: (Math.random() - 0.5) * 6, 
+            life: 1.5,                     
+            size: 3 + Math.random() * 2,   
+            color: COLORS.coin               
+        });
+    }
+}
+
+function updateStats() {
+    document.getElementById('txCount').innerText = `Transaksi: ${txCount}`;
+    document.getElementById('walletCount').innerText = `Dompet: ${walletCount}`;
+    let totalBal = Array.from(walletMap.values()).reduce((a, b) => a + b.balance, 0);
+    document.getElementById('coinBalance').innerText = `🪙 TOF: ${totalBal.toFixed(1)}`;
+}
+
 function draw() {
-    // Background sedikit transparan untuk efek trail halus pada manusia
+    // 1. Bersihkan frame & Gambar Latar
     ctx.fillStyle = 'rgba(7, 14, 10, 0.2)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    generateMountains(); 
+    drawFog();
 
-    // Gambar Pohon & Rumah (Statis)
-    ctx.font = '40px serif';
-    staticElements.forEach(e => ctx.fillText(e.icon, e.x, e.y));
+    // 2. Gambar Pohon (Statis)
+    staticElements.forEach(e => {
+        ctx.font = `${e.size}px serif`;
+        ctx.fillText(e.icon, e.x, e.y);
+    });
 
-    // Manusia berjalan
+    // 3. Gambar Rumah (Dompet) dengan efek napas
+    walletMap.forEach(wallet => {
+        const pulse = Math.sin(Date.now() / 1000) * 5;
+        ctx.font = `${30 + pulse}px serif`;
+        ctx.fillText('🏠', wallet.x, wallet.y);
+        
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '12px Arial';
+        ctx.fillText(wallet.address.substring(0, 4) + '...', wallet.x, wallet.y + 25);
+    });
+
+    // 4. Animasi Manusia
     humans.forEach((h, i) => {
         let dx = h.target.x - h.x;
         let dy = h.target.y - h.y;
         let dist = Math.sqrt(dx*dx + dy*dy);
         
         if(dist < 5) {
-            createExplosion(h.x, h.y);
+            createTransactionEffect(h.x, h.y);
+            h.wallet.balance += 0.1; // Tambahan simulasi
             humans.splice(i, 1);
         } else {
-            h.x += (dx/dist) * h.speed;
+            h.x += (dx/dist) * h.speed + Math.sin(Date.now()/500)*0.5;
             h.y += (dy/dist) * h.speed;
-            ctx.font = '24px serif';
-            ctx.fillText('🔮', h.x, h.y);
+            ctx.font = '20px serif';
+            ctx.fillText('🚶', h.x, h.y);
         }
     });
 
-    // Partikel ledakan
+    // 5. Animasi Idle (Saat sepi)
+    if (humans.length === 0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.beginPath();
+        ctx.arc(canvas.width/2 + Math.sin(Date.now()/1000)*100, 
+                canvas.height/2 + Math.cos(Date.now()/1000)*100, 
+                40, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    // 6. Efek Partikel
     particles.forEach((p, i) => {
-        p.x += p.vx; p.y += p.vy; p.life -= 0.03;
-        ctx.fillStyle = `rgba(234, 179, 8, ${p.life})`;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+        p.x += p.vx; 
+        p.y += p.vy; 
+        p.life -= 0.02;
+        
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life < 0 ? 0 : p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+        ctx.fill();
+        ctx.globalAlpha = 1.0;
+        
         if(p.life <= 0) particles.splice(i, 1);
     });
 
     requestAnimationFrame(draw);
 }
 
+// Inisialisasi & Mulai Loop
 window.addEventListener('resize', initCity);
 initCity();
-setInterval(fetchTx, 5000);
+setInterval(fetchTx, 8000); 
 draw();
+
 </script>
 </body>
 </html>
