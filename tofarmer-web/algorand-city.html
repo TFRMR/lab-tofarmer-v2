@@ -463,7 +463,10 @@ async function generateHouses() {
 
     for (let i = 0; i < profiles.length; i++) {
 
-        const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
+       const seed = i * 99991;
+const rand = (seed % 100) / 100;
+
+const x = (i * segmentWidth) + 100 + (rand * 80 - 40);
         const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
 
         housePositions.push({ x, y });
@@ -527,7 +530,7 @@ function drawSky() {
     ctx.fillRect(0, 0, worldWidth, horizonY);
 
     // Bintang — padat di puncak langit, memudar mendekati cakrawala (kabut atmosfer)
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 120; i++) {
         const sx = Math.random() * worldWidth;
         const sy = Math.random() * horizonY * 0.8;
         const r = Math.random() * 1.3 + 0.3;
