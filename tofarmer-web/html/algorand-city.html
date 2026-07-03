@@ -403,35 +403,7 @@
         // Render ulang jalan setapak agar terhubung dengan posisi baru
         drawEnvironment();
     };
-// === KODE PEMANGGIL DATA SUPABASE ===
-    // Kita beri jeda 1 detik (1000ms) untuk memastikan file supabase.js dan app.js sudah selesai dimuat oleh browser
-    setTimeout(async () => {
-        try {
-            // Memastikan supabase sudah terhubung
-            if (typeof supabase !== 'undefined') {
-                // Menarik data username dan avatar dari tabel profiles
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('username, avatar_url');
-                
-                if (error) {
-                    console.error("Error tarik data profil:", error);
-                    return;
-                }
-                
-                if (data && data.length > 0) {
-                    // Berikan datanya ke fungsi pembuat desa!
-                    window.renderDesaToFarmer(data);
-                } else {
-                    console.log("Data profiles kosong atau belum ada user.");
-                }
-            } else {
-                console.warn("Sistem Supabase belum siap.");
-            }
-        } catch (err) {
-            console.error("Gagal mengeksekusi penarikan data:", err);
-        }
-    }, 1000);
+
 
     function drawEnvironment() {
         ctx.clearRect(0, 0, worldWidth, worldHeight);
@@ -526,7 +498,35 @@
 
     drawEnvironment();
     setTimeout(resetView, 100);
-
+// === KODE PEMANGGIL DATA SUPABASE ===
+    // Kita beri jeda 1 detik (1000ms) untuk memastikan file supabase.js dan app.js sudah selesai dimuat oleh browser
+    setTimeout(async () => {
+        try {
+            // Memastikan supabase sudah terhubung
+            if (typeof supabase !== 'undefined') {
+                // Menarik data username dan avatar dari tabel profiles
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('username, avatar_url');
+                
+                if (error) {
+                    console.error("Error tarik data profil:", error);
+                    return;
+                }
+                
+                if (data && data.length > 0) {
+                    // Berikan datanya ke fungsi pembuat desa!
+                    window.renderDesaToFarmer(data);
+                } else {
+                    console.log("Data profiles kosong atau belum ada user.");
+                }
+            } else {
+                console.warn("Sistem Supabase belum siap.");
+            }
+        } catch (err) {
+            console.error("Gagal mengeksekusi penarikan data:", err);
+        }
+    }, 1000);
     // --- NAVIGASI MOUSE & TOUCH ---
     const checkTarget = (e) => {
         if (e.target.closest('.card') || e.target.closest('header') || e.target.closest('.eco') || e.target.closest('.map-btn')) return true;
