@@ -3046,27 +3046,56 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 function openProfile(userId, username, profileData = null) {
     panelManual = false;
-    openResidentPanel();
+    openResidentPanel(); // Membuka drawer/panel samping
 
-    // Perbarui judul panel
+    // 1. Tampilkan Judul & Nama User yang diklik rumahnya
     document.querySelector(".drawer-topline span").innerText = `🏘️ Profil ${username || 'Warga'}`;
-
-    // Perbarui nama di dalam profil
     const nameEl = document.querySelector("#profileInfo div");
     if (nameEl) nameEl.innerText = `@${username || 'anonim'}`;
 
-    // Perbarui Avatar & Status jika profileData tersedia
-    const avatarEl = document.getElementById('profileAvatar');
-    if (profileData && profileData.avatar_url) {
-        avatarEl.src = profileData.avatar_url;
-        avatarEl.style.display = 'block';
-    } else {
-        // Fallback ke avatar default jika tidak ada
-        avatarEl.src = `https://api.dicebear.com/10.x/avataaars/svg?seed=${username}`;
-        avatarEl.style.display = 'block';
+    // 2. Tampilkan Avatar User yang diklik rumahnya di dalam panel
+    const avatarEl = document.getElementById('profileAvatar') || document.querySelector('.drawer-avatar img');
+    if (avatarEl) {
+        avatarEl.src = profileData?.avatar_url || `https://api.dicebear.com/10.x/avataaars/svg?seed=${username}`;
     }
 
-    console.log("Opening profile for:", userId);
+    // 3. Tampilkan Data Rank, XP, dan TOF dari parameter profileData
+    // Menggunakan nilai default alternatif jika data kosong atau posisi pengguna sedang logout
+    const rankValue = profileData?.rank || 'Petani Pemula';
+    const xpValue = profileData?.xp || 0;
+    const tofValue = profileData?.tof || 0;
+
+    // Cari atau buat wadah (container) stats di dalam panel info profil Anda
+    let statsContainer = document.getElementById('profileStatsBox');
+    if (!statsContainer) {
+        statsContainer = document.createElement('div');
+        statsContainer.id = 'profileStatsBox';
+        statsContainer.style.marginTop = '12px';
+        statsContainer.style.padding = '10px';
+        statsContainer.style.background = 'rgba(0,0,0,0.05)';
+        statsContainer.style.borderRadius = '8px';
+        
+        const profileInfo = document.getElementById('profileInfo');
+        if (profileInfo) profileInfo.appendChild(statsContainer);
+    }
+
+    // Tulis data statistik ke dalam panel info profil
+    statsContainer.innerHTML = `
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
+            <span>🏆 <b>Rank:</b></span>
+            <span style="font-weight: bold; color: #2563eb;">${rankValue}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
+            <span>⚡ <b>XP:</b></span>
+            <span style="font-weight: bold; color: #10b981;">${xpValue} XP</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 14px;">
+            <span>🌾 <b>TOF:</b></span>
+            <span style="font-weight: bold; color: #f59e0b;">${tofValue} TOF</span>
+        </div>
+    `;
+
+    console.log("Membuka detail profil warga:", username);
 }
 window.addEventListener("DOMContentLoaded", async () => {
     drawEnvironment();
