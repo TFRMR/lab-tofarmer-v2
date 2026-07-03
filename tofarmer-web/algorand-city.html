@@ -424,41 +424,50 @@
 // Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
 // Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
 
+  async function generateHouses() {
     const profiles = await loadVillageUsers?.() || [];
-if (!profiles.length) return;
-    const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
-    const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
 
-    housePositions.push({ x, y });
+    if (!profiles.length) return;
 
-    const isMyHouse = (i === 0);
-    const residentName = isMyHouse ? 'Rumah Anda' : `Warga_${i + 1}`;
-    const seed = isMyHouse ? 'tofarmer-guest-house' : `tofarmer-warga-${i + 1}`;
-    const avatarUrl = `https://api.dicebear.com/10.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
-    const avatarIdAttr = isMyHouse ? ' id="myHouseAvatar"' : '';
-    const labelIdAttr = isMyHouse ? ' id="myHouseLabel"' : '';
+    const segmentWidth = (worldWidth - 200) / profiles.length;
 
-    const house = document.createElement('div');
-    house.className = 'house-node' + (isMyHouse ? ' my-house' : '');
-    house.style.left = (x - 48) + 'px';
-    house.style.top = (y - 68) + 'px';
-    house.innerHTML = `
-        <div class="house-avatar-wrap">
-            <img class="house-avatar"${avatarIdAttr} src="${avatarUrl}" alt="${residentName}" onerror="this.onerror=null;this.src='aset/favicon.png'"/>
-        </div>
-        <div class="house-icon">${isMyHouse ? '🏡' : '🏠'}</div>
-        <div class="house-name"${labelIdAttr}>${residentName}</div>
-    `;
+    for (let i = 0; i < profiles.length; i++) {
 
-   house.addEventListener('click', (e) => {
-    e.stopPropagation();
+        const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
+        const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
 
-    const userId = house.dataset.userId;
-    const username = house.dataset.username;
+        housePositions.push({ x, y });
 
-    openProfile(userId, username);
-});
+        const isMyHouse = (i === 0);
+        const residentName = isMyHouse ? 'Rumah Anda' : profiles[i].username || `Warga_${i + 1}`;
 
+        const seed = isMyHouse
+            ? 'tofarmer-guest-house'
+            : `tofarmer-warga-${i + 1}`;
+
+        const avatarUrl = `https://api.dicebear.com/10.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+
+        const house = document.createElement('div');
+        house.className = 'house-node' + (isMyHouse ? ' my-house' : '');
+        house.style.left = (x - 48) + 'px';
+        house.style.top = (y - 68) + 'px';
+
+        house.innerHTML = `
+            <div class="house-avatar-wrap">
+                <img class="house-avatar" src="${avatarUrl}" />
+            </div>
+            <div class="house-icon">${isMyHouse ? '🏡' : '🏠'}</div>
+            <div class="house-name">${residentName}</div>
+        `;
+
+        world.appendChild(house);
+
+        house.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openProfile(profiles[i]?.id, profiles[i]?.username);
+        });
+    }
+}
 // --- C. LANGIT SINEMATIK ---
 function drawSky() {
     // Gradasi senja sinematik: navy dalam -> ungu -> magenta -> jingga keemasan di cakrawala
@@ -3029,7 +3038,11 @@ function openProfile(userId, username) {
 
     console.log("Open profile:", userId);
 }
-
+window.addEventListener("DOMContentLoaded", () => {
+  drawEnvironment();
+  spawnTwinkleStars();
+  resetView();
+});
 </script>
 
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
