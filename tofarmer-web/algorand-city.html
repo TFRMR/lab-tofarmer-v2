@@ -510,16 +510,7 @@ async function generateHouses() {
     world.appendChild(fragment);
 }
             
-            // 3. Mengirimkan data profil spesifik rumah yang diklik (bukan profile yang sedang login)
-            // profiles[i] membawa data id, username, avatar_url, rank, xp, tof milik rumah tersebut
-            openProfile(profiles[i]?.id, profiles[i]?.username, profiles[i]);
-            
-            if (typeof focusOnHouse === 'function') {
-                focusOnHouse(x, y); 
-            }
-        });
-    }
-}
+         
 // --- C. LANGIT SINEMATIK ---
 function drawSky() {
     // Gradasi senja sinematik: navy dalam -> ungu -> magenta -> jingga keemasan di cakrawala
@@ -737,18 +728,34 @@ const checkTarget = (e) => {
 const startDrag = (cx, cy) => { isDragging = true; startX = cx - posX; startY = cy - posY; };
 
 // Tambahkan variabel pengunci (ticking)
+// Tambahkan variabel pengunci (ticking)
 let isTicking = false; 
 
 const startDrag = (cx, cy) => { 
     isDragging = true; 
     startX = cx - posX; 
     startY = cy - posY; 
-    document.body.classList.add('is-moving'); // Matikan efek kaca sementara
+    document.body.classList.add('is-moving'); // Matikan efek kaca sementara agar ringan
+};
+
+const moveDrag = (cx, cy) => { 
+    if (!isDragging) return; 
+    posX = cx - startX; 
+    posY = cy - startY; 
+    
+    // Mencegah eksekusi berlebihan pakai requestAnimationFrame
+    if (!isTicking) {
+        window.requestAnimationFrame(() => {
+            updateTransform();
+            isTicking = false;
+        });
+        isTicking = true;
+    }
 };
 
 const stopDrag = () => { 
     isDragging = false; 
-    document.body.classList.remove('is-moving'); // Nyalakan efek kaca lagi
+    document.body.classList.remove('is-moving'); // Nyalakan efek kaca lagi setelah berhenti geser
 };
 
 // Desktop
