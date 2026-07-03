@@ -420,296 +420,308 @@
         }
     }
 
-    // --- B. GENERATOR RUMAH WARGA (foto profil melayang di atas atap) ---
-    // Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
-    // Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
-    for (let i = 0; i < 17; i++) {
-        const segmentWidth = (worldWidth - 200) / 17;
-        const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
-        const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
+   // --- B. GENERATOR RUMAH WARGA (foto profil melayang di atas atap) ---
+// Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
+// Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
+for (let i = 0; i < 17; i++) {
+    const segmentWidth = (worldWidth - 200) / 17;
+    const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
+    const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
 
-        housePositions.push({ x, y });
+    housePositions.push({ x, y });
 
-        const isMyHouse = (i === 0);
-        const residentName = isMyHouse ? 'Rumah Anda' : `Warga_${i + 1}`;
-        const seed = isMyHouse ? 'tofarmer-guest-house' : `tofarmer-warga-${i + 1}`;
-        const avatarUrl = `https://api.dicebear.com/10.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
-        const avatarIdAttr = isMyHouse ? ' id="myHouseAvatar"' : '';
-        const labelIdAttr = isMyHouse ? ' id="myHouseLabel"' : '';
+    const isMyHouse = (i === 0);
+    const residentName = isMyHouse ? 'Rumah Anda' : `Warga_${i + 1}`;
+    const seed = isMyHouse ? 'tofarmer-guest-house' : `tofarmer-warga-${i + 1}`;
+    const avatarUrl = `https://api.dicebear.com/10.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+    const avatarIdAttr = isMyHouse ? ' id="myHouseAvatar"' : '';
+    const labelIdAttr = isMyHouse ? ' id="myHouseLabel"' : '';
 
-        const house = document.createElement('div');
-        house.className = 'house-node' + (isMyHouse ? ' my-house' : '');
-        house.style.left = (x - 48) + 'px';
-        house.style.top = (y - 68) + 'px';
-        house.innerHTML = `
-            <div class="house-avatar-wrap">
-                <img class="house-avatar"${avatarIdAttr} src="${avatarUrl}" alt="${residentName}" onerror="this.onerror=null;this.src='aset/favicon.png'"/>
-            </div>
-            <div class="house-icon">${isMyHouse ? '🏡' : '🏠'}</div>
-            <div class="house-name"${labelIdAttr}>${residentName}</div>
-        `;
+    const house = document.createElement('div');
+    house.className = 'house-node' + (isMyHouse ? ' my-house' : '');
+    house.style.left = (x - 48) + 'px';
+    house.style.top = (y - 68) + 'px';
+    house.innerHTML = `
+        <div class="house-avatar-wrap">
+            <img class="house-avatar"${avatarIdAttr} src="${avatarUrl}" alt="${residentName}" onerror="this.onerror=null;this.src='aset/favicon.png'"/>
+        </div>
+        <div class="house-icon">${isMyHouse ? '🏡' : '🏠'}</div>
+        <div class="house-name"${labelIdAttr}>${residentName}</div>
+    `;
 
-        // Klik rumah -> kamera fokus + panel warga terbuka di pinggir (desa tetap terlihat)
-        house.addEventListener('click', (e) => {
-            e.stopPropagation();
-            focusOnHouse(x, y);
-        });
-        world.appendChild(house);
+    // Klik rumah -> kamera fokus + panel warga terbuka di pinggir (desa tetap terlihat)
+    house.addEventListener('click', (e) => {
+        e.stopPropagation();
+        focusOnHouse(x, y);
+    });
+    world.appendChild(house);
+}
+
+// --- C. LANGIT SINEMATIK ---
+function drawSky() {
+    // Gradasi senja sinematik: navy dalam -> ungu -> magenta -> jingga keemasan di cakrawala
+    let skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+    skyGrad.addColorStop(0,    '#040414');
+    skyGrad.addColorStop(0.20, '#0c0f2e');
+    skyGrad.addColorStop(0.40, '#221846');
+    skyGrad.addColorStop(0.60, '#4a1c48');
+    skyGrad.addColorStop(0.78, '#8a2f4c');
+    skyGrad.addColorStop(0.92, '#c9552f');
+    skyGrad.addColorStop(1,    '#f0954a');
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, worldWidth, horizonY);
+
+    // Bintang — padat di puncak langit, memudar mendekati cakrawala (kabut atmosfer)
+    for (let i = 0; i < 300; i++) {
+        const sx = Math.random() * worldWidth;
+        const sy = Math.random() * horizonY * 0.8;
+        const r = Math.random() * 1.3 + 0.3;
+        const fade = 1 - (sy / horizonY);
+        ctx.globalAlpha = (Math.random() * 0.6 + 0.25) * fade;
+        ctx.fillStyle = Math.random() > 0.82 ? '#ffe3b0' : '#ffffff';
+        ctx.beginPath();
+        ctx.arc(sx, sy, r, 0, Math.PI * 2);
+        ctx.fill();
     }
+    ctx.globalAlpha = 1;
 
-    // --- C. LANGIT SINEMATIK ---
-    function drawSky() {
-        // Gradasi senja sinematik: navy dalam -> ungu -> magenta -> jingga keemasan di cakrawala
-        let skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-        skyGrad.addColorStop(0,    '#040414');
-        skyGrad.addColorStop(0.20, '#0c0f2e');
-        skyGrad.addColorStop(0.40, '#221846');
-        skyGrad.addColorStop(0.60, '#4a1c48');
-        skyGrad.addColorStop(0.78, '#8a2f4c');
-        skyGrad.addColorStop(0.92, '#c9552f');
-        skyGrad.addColorStop(1,    '#f0954a');
-        ctx.fillStyle = skyGrad;
-        ctx.fillRect(0, 0, worldWidth, horizonY);
+    // Bulan dengan cahaya lembut menyebar
+    const moonX = worldWidth * 0.76;
+    const moonY = horizonY * 0.26;
+    const moonR = 44;
+    const glow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonR * 6.5);
+    glow.addColorStop(0, 'rgba(255,244,214,0.5)');
+    glow.addColorStop(0.18, 'rgba(255,224,180,0.2)');
+    glow.addColorStop(1, 'rgba(255,224,180,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonR * 6.5, 0, Math.PI * 2);
+    ctx.fill();
 
-        // Bintang — padat di puncak langit, memudar mendekati cakrawala (kabut atmosfer)
-        for (let i = 0; i < 300; i++) {
-            const sx = Math.random() * worldWidth;
-            const sy = Math.random() * horizonY * 0.8;
-            const r = Math.random() * 1.3 + 0.3;
-            const fade = 1 - (sy / horizonY);
-            ctx.globalAlpha = (Math.random() * 0.6 + 0.25) * fade;
-            ctx.fillStyle = Math.random() > 0.82 ? '#ffe3b0' : '#ffffff';
+    const moonBody = ctx.createRadialGradient(moonX - moonR * 0.3, moonY - moonR * 0.3, moonR * 0.1, moonX, moonY, moonR);
+    moonBody.addColorStop(0, '#fffdf5');
+    moonBody.addColorStop(1, '#ffe1ac');
+    ctx.fillStyle = moonBody;
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Awan tipis melayang di beberapa lapisan ketinggian
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#ffffff';
+    const cloudBands = [
+        { y: horizonY * 0.32, count: 4 },
+        { y: horizonY * 0.54, count: 3 },
+        { y: horizonY * 0.74, count: 5 }
+    ];
+    cloudBands.forEach(band => {
+        for (let i = 0; i < band.count; i++) {
+            const cx = Math.random() * worldWidth;
+            const cy = band.y + (Math.random() * 40 - 20);
+            const cw = 160 + Math.random() * 220;
             ctx.beginPath();
-            ctx.arc(sx, sy, r, 0, Math.PI * 2);
+            ctx.ellipse(cx, cy, cw, 16 + Math.random() * 10, 0, 0, Math.PI * 2);
             ctx.fill();
         }
-        ctx.globalAlpha = 1;
-
-        // Bulan dengan cahaya lembut menyebar
-        const moonX = worldWidth * 0.76;
-        const moonY = horizonY * 0.26;
-        const moonR = 44;
-        const glow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonR * 6.5);
-        glow.addColorStop(0, 'rgba(255,244,214,0.5)');
-        glow.addColorStop(0.18, 'rgba(255,224,180,0.2)');
-        glow.addColorStop(1, 'rgba(255,224,180,0)');
-        ctx.fillStyle = glow;
-        ctx.beginPath();
-        ctx.arc(moonX, moonY, moonR * 6.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        const moonBody = ctx.createRadialGradient(moonX - moonR * 0.3, moonY - moonR * 0.3, moonR * 0.1, moonX, moonY, moonR);
-        moonBody.addColorStop(0, '#fffdf5');
-        moonBody.addColorStop(1, '#ffe1ac');
-        ctx.fillStyle = moonBody;
-        ctx.beginPath();
-        ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Awan tipis melayang di beberapa lapisan ketinggian
-        ctx.save();
-        ctx.globalAlpha = 0.12;
-        ctx.fillStyle = '#ffffff';
-        const cloudBands = [
-            { y: horizonY * 0.32, count: 4 },
-            { y: horizonY * 0.54, count: 3 },
-            { y: horizonY * 0.74, count: 5 }
-        ];
-        cloudBands.forEach(band => {
-            for (let i = 0; i < band.count; i++) {
-                const cx = Math.random() * worldWidth;
-                const cy = band.y + (Math.random() * 40 - 20);
-                const cw = 160 + Math.random() * 220;
-                ctx.beginPath();
-                ctx.ellipse(cx, cy, cw, 16 + Math.random() * 10, 0, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        });
-        ctx.restore();
-
-        // Cahaya atmosfer hangat dekat cakrawala (efek "golden hour")
-        const horizonGlow = ctx.createLinearGradient(0, horizonY * 0.7, 0, horizonY);
-        horizonGlow.addColorStop(0, 'rgba(255,170,90,0)');
-        horizonGlow.addColorStop(1, 'rgba(255,170,90,0.4)');
-        ctx.fillStyle = horizonGlow;
-        ctx.fillRect(0, horizonY * 0.7, worldWidth, horizonY * 0.3);
-    }
-
-    function drawEnvironment() {
-        ctx.clearRect(0, 0, worldWidth, worldHeight);
-
-        drawSky();
-
-        // Daratan Agritech
-        let landGrad = ctx.createLinearGradient(0, horizonY, 0, worldHeight);
-        landGrad.addColorStop(0, '#0c1a12');
-        landGrad.addColorStop(1, '#050b07');
-        ctx.fillStyle = landGrad;
-        ctx.fillRect(0, horizonY, worldWidth, worldHeight - horizonY);
-
-        // Cakrawala / Bukit, dengan siluet tersapu cahaya hangat dari langit
-        ctx.fillStyle = '#09140e';
-        ctx.beginPath();
-        ctx.moveTo(0, horizonY);
-        for (let x = 0; x <= worldWidth; x += 40) {
-            let hillHeight = Math.sin(x / 120) * 40 + Math.cos(x / 250) * 60;
-            ctx.lineTo(x, horizonY + hillHeight);
-        }
-        ctx.lineTo(worldWidth, worldHeight);
-        ctx.lineTo(0, worldHeight);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.strokeStyle = 'rgba(255,170,90,0.18)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(0, horizonY);
-        for (let x = 0; x <= worldWidth; x += 40) {
-            let hillHeight = Math.sin(x / 120) * 40 + Math.cos(x / 250) * 60;
-            ctx.lineTo(x, horizonY + hillHeight);
-        }
-        ctx.stroke();
-
-        // Jalan Setapak Sirkuit Data
-        ctx.strokeStyle = 'rgba(74, 222, 128, 0.12)';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([8, 12]);
-        ctx.beginPath();
-        for (let i = 0; i < housePositions.length - 1; i++) {
-            ctx.moveTo(housePositions[i].x, housePositions[i].y);
-            ctx.lineTo(housePositions[i + 1].x, housePositions[i].y);
-            ctx.lineTo(housePositions[i + 1].x, housePositions[i + 1].y);
-        }
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        // Pohon Organik
-        ctx.textAlign = 'center';
-        for (let i = 0; i < 55; i++) {
-            let treeX = Math.random() * worldWidth;
-            let treeY = horizonY + 60 + (Math.random() * (worldHeight - horizonY - 100));
-            let nearHouse = housePositions.some(h => Math.hypot(h.x - treeX, h.y - treeY) < 80);
-            if (!nearHouse) {
-                ctx.font = `${20 + Math.random() * 18}px serif`;
-                ctx.fillText('🌲', treeX, treeY);
-            }
-        }
-    }
-
-    // Lapisan bintang CSS yang benar-benar berkelip (di atas canvas, murni suasana)
-    function spawnTwinkleStars() {
-        for (let i = 0; i < 18; i++) {
-            const star = document.createElement('div');
-            star.className = 'twinkle-star';
-            const size = Math.random() * 2 + 1.5;
-            star.style.width = size + 'px';
-            star.style.height = size + 'px';
-            star.style.left = (Math.random() * worldWidth) + 'px';
-            star.style.top = (Math.random() * horizonY * 0.75) + 'px';
-            star.style.animationDelay = (Math.random() * 3) + 's';
-            star.style.zIndex = '2';
-            world.appendChild(star);
-        }
-    }
-
-    // --- D. MANAJEMEN KAMERA & PEMICU PANEL WARGA ---
-    function updateTransform() {
-        scale = Math.min(Math.max(scale, 0.25), 2.5);
-        posX = Math.min(Math.max(posX, window.innerWidth - worldWidth * scale), 0);
-        posY = Math.min(Math.max(posY, window.innerHeight - worldHeight * scale), 0);
-
-        world.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-
-        // Mode otomatis: panel muncul saat zoom cukup dekat, kecuali sedang di-override manual
-        if (!panelManual) {
-            if (scale >= 1.2) { openResidentPanel(); }
-            else { closeResidentPanel(); }
-        }
-    }
-
-    function focusOnHouse(hx, hy) {
-        scale = 1.6;
-        panelManual = false; // klik rumah selalu membuka panel & kembali ke mode otomatis
-
-        if (window.innerWidth <= 850) {
-            // Mobile: panel jadi lembar bawah -> geser rumah ke area atas yang masih kosong
-            posX = (window.innerWidth / 2) - (hx * scale);
-            const safeTop = window.innerHeight * 0.28;
-            posY = (safeTop / 2) - (hy * scale);
-        } else {
-            // Desktop: panel di kiri -> geser rumah ke tengah area kanan yang tersisa
-            const sidebarW = Math.min(410, window.innerWidth * 0.9);
-            posX = (sidebarW + (window.innerWidth - sidebarW) / 2) - (hx * scale);
-            posY = (window.innerHeight / 2) - (hy * scale);
-        }
-        updateTransform();
-        openResidentPanel();
-    }
-
-    function zoomMenu(delta) { scale += delta; updateTransform(); }
-
-    function resetView() {
-        scale = window.innerWidth / worldWidth;
-        if (scale < 0.3) scale = 0.35;
-        posX = (window.innerWidth - worldWidth * scale) / 2;
-        posY = (window.innerHeight - worldHeight * scale) / 2;
-        panelManual = false;
-        closeResidentPanel();
-        updateTransform();
-    }
-
-    // Inisialisasi visual
-    drawEnvironment();
-    spawnTwinkleStars();
-    setTimeout(resetView, 100);
-
-    // --- E. NAVIGASI MOUSE & TOUCH ---
-    // Semua interaksi di dalam HUD atas (.container) atau panel warga (.layout-wrapper)
-    // dikecualikan dari drag peta, supaya scroll/klik di dalamnya tidak menggeser dunia.
-    const checkTarget = (e) => {
-        if (e.target.closest('.layout-wrapper') || e.target.closest('.container') || e.target.closest('.map-btn')) return true;
-        return false;
-    };
-
-    const startDrag = (cx, cy) => { isDragging = true; startX = cx - posX; startY = cy - posY; };
-    const moveDrag = (cx, cy) => { if (!isDragging) return; posX = cx - startX; posY = cy - startY; updateTransform(); };
-    const stopDrag = () => { isDragging = false; };
-
-    // Desktop
-    window.addEventListener('mousedown', (e) => { if (!checkTarget(e)) startDrag(e.clientX, e.clientY); });
-    window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
-    window.addEventListener('mouseup', stopDrag);
-    window.addEventListener('wheel', (e) => {
-        if (!checkTarget(e)) { scale += e.deltaY < 0 ? 0.05 : -0.05; updateTransform(); }
     });
+    ctx.restore();
 
-    // Mobile
-    window.addEventListener('touchstart', (e) => {
-        if (checkTarget(e)) return;
-        if (e.touches.length === 1) { startDrag(e.touches[0].clientX, e.touches[0].clientY); }
-        else if (e.touches.length === 2) { isDragging = false; lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
-    });
-    window.addEventListener('touchmove', (e) => {
-        if (checkTarget(e)) return;
-        if (isDragging && e.touches.length === 1) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); }
-        else if (e.touches.length === 2) {
-            let dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            scale *= (dist / lastDist); lastDist = dist; updateTransform();
+    // Cahaya atmosfer hangat dekat cakrawala (efek "golden hour")
+    const horizonGlow = ctx.createLinearGradient(0, horizonY * 0.7, 0, horizonY);
+    horizonGlow.addColorStop(0, 'rgba(255,170,90,0)');
+    horizonGlow.addColorStop(1, 'rgba(255,170,90,0.4)');
+    ctx.fillStyle = horizonGlow;
+    ctx.fillRect(0, horizonY * 0.7, worldWidth, horizonY * 0.3);
+}
+
+function drawEnvironment() {
+    ctx.clearRect(0, 0, worldWidth, worldHeight);
+
+    drawSky();
+
+    // Daratan Agritech
+    let landGrad = ctx.createLinearGradient(0, horizonY, 0, worldHeight);
+    landGrad.addColorStop(0, '#0c1a12');
+    landGrad.addColorStop(1, '#050b07');
+    ctx.fillStyle = landGrad;
+    ctx.fillRect(0, horizonY, worldWidth, worldHeight - horizonY);
+
+    // Cakrawala / Bukit, dengan siluet tersapu cahaya hangat dari langit
+    ctx.fillStyle = '#09140e';
+    ctx.beginPath();
+    ctx.moveTo(0, horizonY);
+    for (let x = 0; x <= worldWidth; x += 40) {
+        let hillHeight = Math.sin(x / 120) * 40 + Math.cos(x / 250) * 60;
+        ctx.lineTo(x, horizonY + hillHeight);
+    }
+    ctx.lineTo(worldWidth, worldHeight);
+    ctx.lineTo(0, worldHeight);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,170,90,0.18)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, horizonY);
+    for (let x = 0; x <= worldWidth; x += 40) {
+        let hillHeight = Math.sin(x / 120) * 40 + Math.cos(x / 250) * 60;
+        ctx.lineTo(x, horizonY + hillHeight);
+    }
+    ctx.stroke();
+
+    // Jalan Setapak Sirkuit Data
+    ctx.strokeStyle = 'rgba(74, 222, 128, 0.12)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 12]);
+    ctx.beginPath();
+    for (let i = 0; i < housePositions.length - 1; i++) {
+        ctx.moveTo(housePositions[i].x, housePositions[i].y);
+        ctx.lineTo(housePositions[i + 1].x, housePositions[i].y);
+        ctx.lineTo(housePositions[i + 1].x, housePositions[i + 1].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Pohon Organik
+    ctx.textAlign = 'center';
+    for (let i = 0; i < 55; i++) {
+        let treeX = Math.random() * worldWidth;
+        let treeY = horizonY + 60 + (Math.random() * (worldHeight - horizonY - 100));
+        let nearHouse = housePositions.some(h => Math.hypot(h.x - treeX, h.y - treeY) < 80);
+        if (!nearHouse) {
+            ctx.font = `${20 + Math.random() * 18}px serif`;
+            ctx.fillText('🌲', treeX, treeY);
         }
-    });
-    window.addEventListener('touchend', stopDrag);
-    window.addEventListener('resize', resetView);
+    }
+}
 
-    // --- F. PRATINJAU GAMBAR UNGGAHAN ---
-    document.getElementById("imageInput").addEventListener("change", function (e) {
-        const file = e.target.files?.[0];
-        const previewText = document.getElementById("imagePreviewText");
-        if (!file) { previewText.innerText = ""; return; }
-        let name = file.name;
-        if (name.length > 18) { name = name.substring(0, 18) + "..."; }
-        previewText.innerText = "Terpilih: " + name;
-    });
+// Lapisan bintang CSS yang benar-benar berkelip (di atas canvas, murni suasana)
+function spawnTwinkleStars() {
+    for (let i = 0; i < 18; i++) {
+        const star = document.createElement('div');
+        star.className = 'twinkle-star';
+        const size = Math.random() * 2 + 1.5;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        star.style.left = (Math.random() * worldWidth) + 'px';
+        star.style.top = (Math.random() * horizonY * 0.75) + 'px';
+        star.style.animationDelay = (Math.random() * 3) + 's';
+        star.style.zIndex = '2';
+        world.appendChild(star);
+    }
+}
 
+// --- D. MANAJEMEN KAMERA & PEMICU PANEL WARGA ---
+function updateTransform() {
+    scale = Math.min(Math.max(scale, 0.25), 2.5);
+    posX = Math.min(Math.max(posX, window.innerWidth - worldWidth * scale), 0);
+    posY = Math.min(Math.max(posY, window.innerHeight - worldHeight * scale), 0);
+
+    world.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+
+    // Mode otomatis: panel muncul saat zoom cukup dekat, kecuali sedang di-override manual
+    if (!panelManual) {
+        if (scale >= 1.2) { openResidentPanel(); }
+        else { closeResidentPanel(); }
+    }
+}
+
+function focusOnHouse(hx, hy) {
+    scale = 1.6;
+    panelManual = false; // klik rumah selalu membuka panel & kembali ke mode otomatis
+
+    if (window.innerWidth <= 850) {
+        // Mobile: panel jadi lembar bawah -> geser rumah ke area atas yang masih kosong
+        posX = (window.innerWidth / 2) - (hx * scale);
+        const safeTop = window.innerHeight * 0.28;
+        posY = (safeTop / 2) - (hy * scale);
+    } else {
+        // Desktop: panel di kiri -> geser rumah ke tengah area kanan yang tersisa
+        const sidebarW = Math.min(410, window.innerWidth * 0.9);
+        posX = (sidebarW + (window.innerWidth - sidebarW) / 2) - (hx * scale);
+        posY = (window.innerHeight / 2) - (hy * scale);
+    }
+    updateTransform();
+    openResidentPanel();
+}
+
+function zoomMenu(delta) { scale += delta; updateTransform(); }
+
+function resetView() {
+    scale = window.innerWidth / worldWidth;
+    if (scale < 0.3) scale = 0.35;
+    posX = (window.innerWidth - worldWidth * scale) / 2;
+    posY = (window.innerHeight - worldHeight * scale) / 2;
+    panelManual = false;
+    closeResidentPanel();
+    updateTransform();
+}
+
+// Inisialisasi visual
+drawEnvironment();
+spawnTwinkleStars();
+setTimeout(resetView, 100);
+
+// --- E. NAVIGASI MOUSE & TOUCH ---
+// Semua interaksi di dalam HUD atas (.container) atau panel warga (.layout-wrapper)
+// dikecualikan dari drag peta, supaya scroll/klik di dalamnya tidak menggeser dunia.
+const checkTarget = (e) => {
+    if (e.target.closest('.layout-wrapper') || e.target.closest('.container') || e.target.closest('.map-btn')) return true;
+    return false;
+};
+
+const startDrag = (cx, cy) => { isDragging = true; startX = cx - posX; startY = cy - posY; };
+const moveDrag = (cx, cy) => { if (!isDragging) return; posX = cx - startX; posY = cy - startY; updateTransform(); };
+const stopDrag = () => { isDragging = false; };
+
+// Desktop
+window.addEventListener('mousedown', (e) => { if (!checkTarget(e)) startDrag(e.clientX, e.clientY); });
+window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+window.addEventListener('mouseup', stopDrag);
+window.addEventListener('wheel', (e) => {
+    if (!checkTarget(e)) { scale += e.deltaY < 0 ? 0.05 : -0.05; updateTransform(); }
+});
+
+// Mobile
+window.addEventListener('touchstart', (e) => {
+    if (checkTarget(e)) return;
+    if (e.touches.length === 1) { startDrag(e.touches[0].clientX, e.touches[0].clientY); }
+    else if (e.touches.length === 2) { isDragging = false; lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+});
+window.addEventListener('touchmove', (e) => {
+    if (checkTarget(e)) return;
+    if (isDragging && e.touches.length === 1) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); }
+    else if (e.touches.length === 2) {
+        let dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        scale *= (dist / lastDist); lastDist = dist; updateTransform();
+    }
+});
+window.addEventListener('touchend', stopDrag);
+window.addEventListener('resize', resetView);
+
+// --- F. PRATINJAU GAMBAR UNGGAHAN ---
+document.getElementById("imageInput").addEventListener("change", function (e) {
+    const file = e.target.files?.[0];
+    const previewText = document.getElementById("imagePreviewText");
+    if (!file) { previewText.innerText = ""; return; }
+    let name = file.name;
+    if (name.length > 18) { name = name.substring(0, 18) + "..."; }
+    previewText.innerText = "Terpilih: " + name;
+});
+
+// --- G. EVENT LISTENER UNTUK CLOSE PANEL WARGA KETIKA KLIK DI LUAR ---
+document.addEventListener('click', function(event) {
+    const layoutWrapper = document.getElementById('mainLayout');
+    const houseNodes = document.querySelectorAll('.house-node');
+    
+    // Jika klik di luar panel warga dan house nodes, tutup panel
+    if (!layoutWrapper.contains(event.target) && !houseNodes.contains(event.target)) {
+        if (layoutWrapper.classList.contains('active-profile')) {
+            closeResidentPanel(true);
+        }
+    }
+});
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
