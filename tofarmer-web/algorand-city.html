@@ -410,13 +410,21 @@
         if (manual) panelManual = true;
         document.getElementById('mainLayout').classList.remove('active-profile');
     }
-    function toggleResidentPanel() {
+   function toggleResidentPanel() {
         const el = document.getElementById('mainLayout');
         if (el.classList.contains('active-profile')) {
             closeResidentPanel(true);
         } else {
             panelManual = true;
             openResidentPanel();
+            
+            // Kembalikan judul panel
+            document.querySelector(".drawer-topline span").innerText = `🏘️ Balai Desa ToFarmer`;
+            
+            // Jalankan ulang renderProfile() agar isi kotak kembali ke data akunmu sendiri
+            if (typeof renderProfile === 'function') {
+                renderProfile();
+            }
         }
     }
 
@@ -3046,56 +3054,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 function openProfile(userId, username, profileData = null) {
     panelManual = false;
-    openResidentPanel(); // Membuka drawer/panel samping
+    openResidentPanel(); 
 
-    // 1. Tampilkan Judul & Nama User yang diklik rumahnya
+    // Ubah judul laci atas
     document.querySelector(".drawer-topline span").innerText = `🏘️ Profil ${username || 'Warga'}`;
-    const nameEl = document.querySelector("#profileInfo div");
-    if (nameEl) nameEl.innerText = `@${username || 'anonim'}`;
 
-    // 2. Tampilkan Avatar User yang diklik rumahnya di dalam panel
-    const avatarEl = document.getElementById('profileAvatar') || document.querySelector('.drawer-avatar img');
+    const userBox = document.getElementById("profileInfo");
+    const avatarEl = document.getElementById('profileAvatar');
+
+    // 1. Update Foto Profil Warga
     if (avatarEl) {
-        avatarEl.src = profileData?.avatar_url || `https://api.dicebear.com/10.x/avataaars/svg?seed=${username}`;
+        avatarEl.src = profileData?.avatar_url || profileData?.avatar || `https://api.dicebear.com/10.x/avataaars/svg?seed=${username}`;
+        avatarEl.style.display = 'block';
     }
 
-    // 3. Tampilkan Data Rank, XP, dan TOF dari parameter profileData
-    // Menggunakan nilai default alternatif jika data kosong atau posisi pengguna sedang logout
-    const rankValue = profileData?.rank || 'Petani Pemula';
-    const xpValue = profileData?.xp || 0;
-    const tofValue = profileData?.tof || 0;
+    // 2. Bangun Ulang Kotak Profil Spesifik Warga (Bukan Kita)
+    if (userBox) {
+        const rankValue = profileData?.rank || 'Petani Pemula';
+        const xpValue = profileData?.xp || 0;
+        const tofValue = profileData?.tof || 0;
 
-    // Cari atau buat wadah (container) stats di dalam panel info profil Anda
-    let statsContainer = document.getElementById('profileStatsBox');
-    if (!statsContainer) {
-        statsContainer = document.createElement('div');
-        statsContainer.id = 'profileStatsBox';
-        statsContainer.style.marginTop = '12px';
-        statsContainer.style.padding = '10px';
-        statsContainer.style.background = 'rgba(0,0,0,0.05)';
-        statsContainer.style.borderRadius = '8px';
-        
-        const profileInfo = document.getElementById('profileInfo');
-        if (profileInfo) profileInfo.appendChild(statsContainer);
+        userBox.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@${username}</div>
+                <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">🏆 ${rankValue}</div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
+                <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#555;">XP: <b>${Math.floor(xpValue)}</b></div>
+                <div style="background:#fff8e1;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>${Number(tofValue).toLocaleString("id-ID")}</b></div>
+            </div>
+            <button onclick="window.location.href='profile.html?id=${userId}'" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:11px;font-weight:600;cursor:pointer;">☕ Masuk Profil ${username}</button>
+        `;
     }
-
-    // Tulis data statistik ke dalam panel info profil
-    statsContainer.innerHTML = `
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
-            <span>🏆 <b>Rank:</b></span>
-            <span style="font-weight: bold; color: #2563eb;">${rankValue}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px;">
-            <span>⚡ <b>XP:</b></span>
-            <span style="font-weight: bold; color: #10b981;">${xpValue} XP</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; font-size: 14px;">
-            <span>🌾 <b>TOF:</b></span>
-            <span style="font-weight: bold; color: #f59e0b;">${tofValue} TOF</span>
-        </div>
-    `;
-
-    console.log("Membuka detail profil warga:", username);
 }
 window.addEventListener("DOMContentLoaded", async () => {
     drawEnvironment();
