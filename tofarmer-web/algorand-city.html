@@ -464,7 +464,9 @@
 
         house.addEventListener('click', (e) => {
             e.stopPropagation();
-            openProfile(profiles[i]?.id, profiles[i]?.username);
+            // Kirim data lengkap profil ke openProfile agar UI terisi benar
+            openProfile(profiles[i]?.id, profiles[i]?.username, profiles[i]);
+            focusOnHouse(x, y); 
         });
     }
 }
@@ -3015,6 +3017,14 @@ document.addEventListener("DOMContentLoaded", () => {
     function syncMyHouse() {
         const img = document.getElementById('myHouseAvatar');
         const label = document.getElementById('myHouseLabel');
+        
+        // Tambahan: Bersihkan panel jika belum ada sesi login
+        if (typeof currentProfile === 'undefined' || !currentProfile) {
+            const profileInfo = document.querySelector("#profileInfo div");
+            if (profileInfo) profileInfo.innerHTML = `@guest <div style="...background:#eee;...">🌱 BELUM LOGIN</div>`;
+            return;
+        }
+
         if (!img || !label) return;
 
         if (typeof currentProfile !== 'undefined' && currentProfile) {
@@ -3024,19 +3034,29 @@ document.addEventListener("DOMContentLoaded", () => {
             label.textContent = 'Rumah Anda';
         }
     }
-function openProfile(userId, username) {
+function openProfile(userId, username, profileData = null) {
     panelManual = false;
-
     openResidentPanel();
 
-    // isi UI panel sesuai user
-    document.querySelector(".drawer-topline span").innerText =
-        `🏘️ Profil ${username}`;
+    // Perbarui judul panel
+    document.querySelector(".drawer-topline span").innerText = `🏘️ Profil ${username || 'Warga'}`;
 
+    // Perbarui nama di dalam profil
     const nameEl = document.querySelector("#profileInfo div");
-    if (nameEl) nameEl.innerText = `@${username}`;
+    if (nameEl) nameEl.innerText = `@${username || 'anonim'}`;
 
-    console.log("Open profile:", userId);
+    // Perbarui Avatar & Status jika profileData tersedia
+    const avatarEl = document.getElementById('profileAvatar');
+    if (profileData && profileData.avatar_url) {
+        avatarEl.src = profileData.avatar_url;
+        avatarEl.style.display = 'block';
+    } else {
+        // Fallback ke avatar default jika tidak ada
+        avatarEl.src = `https://api.dicebear.com/10.x/avataaars/svg?seed=${username}`;
+        avatarEl.style.display = 'block';
+    }
+
+    console.log("Opening profile for:", userId);
 }
 window.addEventListener("DOMContentLoaded", async () => {
     drawEnvironment();
