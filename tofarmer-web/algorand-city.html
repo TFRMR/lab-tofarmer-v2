@@ -229,6 +229,17 @@
             #map-controls { bottom: 14px; left: 14px; }
             .map-btn { padding: 9px 11px; font-size: 12px; }
         }
+/* Beri tahu browser bahwa elemen ini akan sering di-transform (Hardware Acceleration) */
+#world {
+    will-change: transform;
+}
+
+/* Class tambahan saat sedang menggeser peta agar ringan */
+.is-moving .layout-wrapper,
+.is-moving .container {
+    backdrop-filter: none !important;
+    background: rgba(7, 15, 11, 0.98) !important; /* Gunakan warna solid sedikit transparan */
+}
     </style>
 </head>
 <body>
@@ -440,12 +451,14 @@ function bukaProfilSaya() {
 // Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
 // Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
 
- async function generateHouses() {
+async function generateHouses() {
     const profiles = await loadVillageUsers?.() || [];
-
     if (!profiles.length) return;
 
     const segmentWidth = (worldWidth - 200) / profiles.length;
+    
+    // BIKIN KARDUS VIRTUAL (DocumentFragment)
+    const fragment = document.createDocumentFragment();
 
     for (let i = 0; i < profiles.length; i++) {
 
@@ -485,6 +498,17 @@ function bukaProfilSaya() {
 
         house.addEventListener('click', (e) => {
             e.stopPropagation();
+            openProfile(profiles[i]?.id, profiles[i]?.username, profiles[i]);
+            if (typeof focusOnHouse === 'function') focusOnHouse(x, y); 
+        });
+
+        // Masukkan rumah ke kardus virtual, BUKAN langsung ke 'world'
+        fragment.appendChild(house);
+    }
+    
+    // Render semua rumah ke layar DALAM 1 KALI TEMBAK
+    world.appendChild(fragment);
+}
             
             // 3. Mengirimkan data profil spesifik rumah yang diklik (bukan profile yang sedang login)
             // profiles[i] membawa data id, username, avatar_url, rank, xp, tof milik rumah tersebut
@@ -711,8 +735,21 @@ const checkTarget = (e) => {
 };
 
 const startDrag = (cx, cy) => { isDragging = true; startX = cx - posX; startY = cy - posY; };
-const moveDrag = (cx, cy) => { if (!isDragging) return; posX = cx - startX; posY = cy - startY; updateTransform(); };
-const stopDrag = () => { isDragging = false; };
+
+// Tambahkan variabel pengunci (ticking)
+let isTicking = false; 
+
+const startDrag = (cx, cy) => { 
+    isDragging = true; 
+    startX = cx - posX; 
+    startY = cy - posY; 
+    document.body.classList.add('is-moving'); // Matikan efek kaca sementara
+};
+
+const stopDrag = () => { 
+    isDragging = false; 
+    document.body.classList.remove('is-moving'); // Nyalakan efek kaca lagi
+};
 
 // Desktop
 window.addEventListener('mousedown', (e) => { if (!checkTarget(e)) startDrag(e.clientX, e.clientY); });
