@@ -540,26 +540,29 @@ function drawSky() {
     }
     ctx.globalAlpha = 1;
 
-    // Bulan dengan cahaya lembut menyebar
-    const moonX = worldWidth * 0.76;
-    const moonY = horizonY * 0.26;
-    const moonR = 44;
-    const glow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonR * 6.5);
-    glow.addColorStop(0, 'rgba(255,244,214,0.5)');
-    glow.addColorStop(0.18, 'rgba(255,224,180,0.2)');
-    glow.addColorStop(1, 'rgba(255,224,180,0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, moonR * 6.5, 0, Math.PI * 2);
-    ctx.fill();
+   // --- BULAN (Fixed ke koordinat layar, bukan koordinat peta) ---
+// Gunakan window.innerWidth agar selalu di kanan atas layar HP
+const moonX = window.innerWidth * 0.8; 
+const moonY = window.innerHeight * 0.15; // 15% dari atas layar
+const moonR = 40; // Disesuaikan agar pas di HP
 
-    const moonBody = ctx.createRadialGradient(moonX - moonR * 0.3, moonY - moonR * 0.3, moonR * 0.1, moonX, moonY, moonR);
-    moonBody.addColorStop(0, '#fffdf5');
-    moonBody.addColorStop(1, '#ffe1ac');
-    ctx.fillStyle = moonBody;
-    ctx.beginPath();
-    ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
-    ctx.fill();
+// Cahaya lembut
+const glow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonR * 5);
+glow.addColorStop(0, 'rgba(255,244,214,0.4)');
+glow.addColorStop(1, 'rgba(255,224,180,0)');
+ctx.fillStyle = glow;
+ctx.beginPath();
+ctx.arc(moonX, moonY, moonR * 5, 0, Math.PI * 2);
+ctx.fill();
+
+// Body Bulan
+const moonBody = ctx.createRadialGradient(moonX - moonR * 0.3, moonY - moonR * 0.3, moonR * 0.1, moonX, moonY, moonR);
+moonBody.addColorStop(0, '#fffdf5');
+moonBody.addColorStop(1, '#ffe1ac');
+ctx.fillStyle = moonBody;
+ctx.beginPath();
+ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+ctx.fill();
 
     // Awan tipis melayang di beberapa lapisan ketinggian
     ctx.save();
