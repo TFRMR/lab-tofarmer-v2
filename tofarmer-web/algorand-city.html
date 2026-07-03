@@ -354,11 +354,16 @@
     const housePositions = [];
 
     // Generate 17 Rumah
-   // Generate Rumah Berdasarkan Data Supabase (Dipanggil dari app.js)
+    // Generate Rumah Berdasarkan Data Supabase (Dipanggil dari app.js)
     window.renderDesaToFarmer = function(profilesData) {
         // Bersihkan area jika ada rumah sebelumnya
         document.querySelectorAll('.house-node').forEach(el => el.remove());
         housePositions.length = 0; 
+
+        if (!profilesData || profilesData.length === 0) {
+            console.log("Tidak ada data profil untuk ditampilkan");
+            return;
+        }
 
         const jumlahRumah = profilesData.length;
 
@@ -403,7 +408,6 @@
         // Render ulang jalan setapak agar terhubung dengan posisi baru
         drawEnvironment();
     };
-
 
     function drawEnvironment() {
         ctx.clearRect(0, 0, worldWidth, worldHeight);
@@ -498,7 +502,8 @@
 
     drawEnvironment();
     setTimeout(resetView, 100);
-// === KODE PEMANGGIL DATA SUPABASE ===
+    
+    // === KODE PEMANGGIL DATA SUPABASE ===
     // Kita beri jeda 1 detik (1000ms) untuk memastikan file supabase.js dan app.js sudah selesai dimuat oleh browser
     setTimeout(async () => {
         try {
@@ -519,14 +524,21 @@
                     window.renderDesaToFarmer(data);
                 } else {
                     console.log("Data profiles kosong atau belum ada user.");
+                    // Tampilkan placeholder jika tidak ada data
+                    window.renderDesaToFarmer([]);
                 }
             } else {
                 console.warn("Sistem Supabase belum siap.");
+                // Tampilkan placeholder jika tidak ada data
+                window.renderDesaToFarmer([]);
             }
         } catch (err) {
             console.error("Gagal mengeksekusi penarikan data:", err);
+            // Tampilkan placeholder jika gagal
+            window.renderDesaToFarmer([]);
         }
     }, 1000);
+    
     // --- NAVIGASI MOUSE & TOUCH ---
     const checkTarget = (e) => {
         if (e.target.closest('.card') || e.target.closest('header') || e.target.closest('.eco') || e.target.closest('.map-btn')) return true;
@@ -541,24 +553,24 @@
     window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
     window.addEventListener('mouseup', stopDrag);
     window.addEventListener('wheel', (e) => { 
-        if(!checkTarget(e)){ scale += e.deltaY < 0 ? 0.05 : -0.05; updateTransform(); }
-    });
+    if(!checkTarget(e)){ scale += e.deltaY < 0 ? 0.05 : -0.05; updateTransform(); }
+});
 
-    window.addEventListener('touchstart', (e) => {
-        if(checkTarget(e)) return;
-        if (e.touches.length === 1) { startDrag(e.touches[0].clientX, e.touches[0].clientY); }
-        else if (e.touches.length === 2) { isDragging = false; lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
-    });
-    window.addEventListener('touchmove', (e) => {
-        if(checkTarget(e)) return;
-        if (isDragging && e.touches.length === 1) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); }
-        else if (e.touches.length === 2) {
-            let dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            scale *= (dist / lastDist); lastDist = dist; updateTransform();
-        }
-    });
-    window.addEventListener('touchend', stopDrag);
-    window.addEventListener('resize', resetView);
+window.addEventListener('touchstart', (e) => {
+    if(checkTarget(e)) return;
+    if (e.touches.length === 1) { startDrag(e.touches[0].clientX, e.touches[0].clientY); }
+    else if (e.touches.length === 2) { isDragging = false; lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+});
+window.addEventListener('touchmove', (e) => {
+    if(checkTarget(e)) return;
+    if (isDragging && e.touches.length === 1) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); }
+    else if (e.touches.length === 2) {
+        let dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        scale *= (dist / lastDist); lastDist = dist; updateTransform();
+    }
+});
+window.addEventListener('touchend', stopDrag);
+window.addEventListener('resize', resetView);
 </script>
 
 <script>
@@ -595,8 +607,6 @@ document.getElementById("imageInput").addEventListener("change", function (e) {
 <!-- IMPORTANT: APP HARUS PALING AKHIR -->
 <script src="/app.js"></script>
 
-
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
 </body>
-
 </html>
