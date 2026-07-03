@@ -424,7 +424,7 @@
 // Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
 // Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
 
-  async function generateHouses() {
+ async function generateHouses() {
     const profiles = await loadVillageUsers?.() || [];
 
     if (!profiles.length) return;
@@ -439,13 +439,18 @@
         housePositions.push({ x, y });
 
         const isMyHouse = (i === 0);
-        const residentName = isMyHouse ? 'Rumah Anda' : profiles[i].username || `Warga_${i + 1}`;
+        
+        // 1. Ambil nama penghuni (jika bukan rumah sendiri, ambil username asli dari data profile)
+        const residentName = isMyHouse ? 'Rumah Anda' : (profiles[i].username || `Warga_${i + 1}`);
 
-        const seed = isMyHouse
-            ? 'tofarmer-guest-house'
-            : `tofarmer-warga-${i + 1}`;
-
-        const avatarUrl = `https://api.dicebear.com/10.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+        // 2. Perbaikan Foto Balon di Atas Rumah: Gunakan avatar_url dari database jika tersedia
+        let avatarUrl = profiles[i].avatar_url || profiles[i].avatar;
+        
+        // Jika data foto tidak ada di database, gunakan generator Dicebear sebagai cadangan (fallback)
+        if (!avatarUrl) {
+            const seed = isMyHouse ? 'tofarmer-guest-house' : `tofarmer-warga-${i + 1}`;
+            avatarUrl = `https://api.dicebear.com/10.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+        }
 
         const house = document.createElement('div');
         house.className = 'house-node' + (isMyHouse ? ' my-house' : '');
@@ -464,9 +469,14 @@
 
         house.addEventListener('click', (e) => {
             e.stopPropagation();
-            // Kirim data lengkap profil ke openProfile agar UI terisi benar
+            
+            // 3. Mengirimkan data profil spesifik rumah yang diklik (bukan profile yang sedang login)
+            // profiles[i] membawa data id, username, avatar_url, rank, xp, tof milik rumah tersebut
             openProfile(profiles[i]?.id, profiles[i]?.username, profiles[i]);
-            focusOnHouse(x, y); 
+            
+            if (typeof focusOnHouse === 'function') {
+                focusOnHouse(x, y); 
+            }
         });
     }
 }
