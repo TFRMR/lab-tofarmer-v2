@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title id="postTitle">ToFarmer • Desa Agritech</title>
     <meta name="description" id="postDesc" content="Intip ide, progres, dan eksperimen seru di ekosistem ToFarmer.">
-    
+
     <meta property="og:title" id="ogTitle" content="ToFarmer - Ruang Tanam Karya" />
     <meta property="og:description" id="ogDesc" content="Intip ide, progres, dan eksperimen seru di ekosistem ToFarmer." />
     <meta property="og:image" id="ogImage" content="https://afpzddwuikvwsedzgsee.supabase.co/storage/v1/object/public/profile-posts/tofarmer-kecil.png" />
@@ -14,14 +14,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
     <link rel="icon" type="image/png" href="aset/favicon.png">
-    
+
     <style>
+        * { box-sizing: border-box; }
+
         /* =========================================
            1. PENGATURAN DUNIA & PETA (MAP ENGINE)
            ========================================= */
-        body, html { 
-            margin: 0; padding: 0; width: 100%; height: 100%; 
-            background: #050b07; overflow: hidden; touch-action: none; 
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #050414; overflow: hidden; touch-action: none;
             font-family: 'Inter', sans-serif; user-select: none;
         }
 
@@ -29,103 +31,174 @@
         #world { width: 3200px; height: 2400px; position: absolute; top: 0; left: 0; transform-origin: 0 0; }
         #bgCanvas { position: absolute; top: 0; left: 0; z-index: 1; }
 
+        /* Vignette sinematik di atas seluruh viewport (murni dekoratif, tidak menghalangi klik) */
+        #cine-vignette {
+            position: fixed; inset: 0; z-index: 2; pointer-events: none;
+            background:
+                radial-gradient(ellipse 80% 65% at 50% 42%, rgba(0,0,0,0) 45%, rgba(3,6,10,0.55) 100%),
+                linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 18%, rgba(0,0,0,0) 78%, rgba(0,0,0,0.38) 100%);
+        }
+        /* Bintang kelap-kelip (lapisan CSS tipis di atas canvas, murni ambient) */
+        .twinkle-star {
+            position: absolute; border-radius: 50%; background: #fff8e6;
+            box-shadow: 0 0 6px 1px rgba(255,248,230,0.85);
+            animation: starTwinkle 3.4s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes starTwinkle { 0%,100%{ opacity:.25; transform:scale(0.8);} 50%{ opacity:1; transform:scale(1.15);} }
+
         /* Rumah Penduduk */
-        .house-node { position: absolute; width: 90px; text-align: center; cursor: pointer; z-index: 3; }
-        .house-icon { font-size: 42px; transition: transform 0.2s; filter: drop-shadow(0 0 12px rgba(74, 222, 128, 0.5)); }
-        .house-node:hover .house-icon { transform: scale(1.2) translateY(-5px); }
-        .house-name { 
-            background: rgba(5, 11, 7, 0.9); color: #a7f3d0; border: 1px solid rgba(74, 222, 128, 0.3); 
-            padding: 3px 6px; border-radius: 5px; font-size: 11px; margin-top: 2px;
+        .house-node { position: absolute; width: 96px; text-align: center; cursor: pointer; z-index: 3; display: flex; flex-direction: column; align-items: center; }
+        .house-avatar-wrap { position: relative; width: 42px; height: 42px; margin-bottom: 1px; }
+        .house-avatar {
+            width: 42px; height: 42px; border-radius: 50%; object-fit: cover; display: block;
+            background: #0c1a12; border: 2px solid rgba(74, 222, 128, 0.75);
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.55), 0 4px 10px rgba(0,0,0,0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .house-node:hover .house-avatar { transform: scale(1.14) translateY(-3px); box-shadow: 0 0 16px rgba(74, 222, 128, 0.8), 0 4px 10px rgba(0,0,0,0.5); }
+        .house-icon { font-size: 36px; line-height: 1; transition: transform 0.2s; filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.5)); margin-top: -2px; }
+        .house-node:hover .house-icon { transform: scale(1.18) translateY(-4px); }
+        .house-name {
+            background: rgba(5, 11, 7, 0.88); color: #a7f3d0; border: 1px solid rgba(74, 222, 128, 0.3);
+            padding: 3px 7px; border-radius: 6px; font-size: 10.5px; margin-top: 3px; font-weight: 600;
             white-space: nowrap; display: inline-block; box-shadow: 0 3px 6px rgba(0,0,0,0.5);
         }
 
+        /* Rumah milik pengguna yang sedang login — beri aksen emas agar terlihat spesial */
+        .house-node.my-house .house-avatar { border-color: #ffd166; box-shadow: 0 0 14px rgba(255, 209, 102, 0.75), 0 4px 10px rgba(0,0,0,0.5); }
+        .house-node.my-house .house-icon { filter: drop-shadow(0 0 12px rgba(255, 209, 102, 0.7)); }
+        .house-node.my-house .house-name { color: #ffe9b3; border-color: rgba(255, 209, 102, 0.55); }
+        .house-node.my-house::before {
+            content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 60px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,209,102,0.28) 0%, rgba(255,209,102,0) 72%);
+            z-index: -1; animation: myHouseGlow 2.6s ease-in-out infinite;
+        }
+        @keyframes myHouseGlow { 0%,100%{ opacity:.6; } 50%{ opacity:1; } }
+
         /* Kontrol Kamera Peta */
-        #map-controls { position: fixed; bottom: 20px; left: 20px; z-index: 50; display: flex; gap: 8px; pointer-events: auto; }
+        #map-controls { position: fixed; bottom: 20px; left: 20px; z-index: 50; display: flex; gap: 8px; pointer-events: auto; flex-wrap: wrap; max-width: calc(100vw - 40px); }
         .map-btn {
             background: rgba(12, 26, 18, 0.85); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3);
-            padding: 10px 14px; font-weight: bold; font-size: 13px; border-radius: 8px; 
+            padding: 10px 14px; font-weight: bold; font-size: 13px; border-radius: 8px;
             cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: all 0.2s; backdrop-filter: blur(5px);
         }
         .map-btn:active { background: #4ade80; color: #050b07; transform: scale(0.95); }
+        .map-btn.primary { color: #ffd166; border-color: rgba(255, 209, 102, 0.4); }
+        .map-btn.primary:active { background: #ffd166; color: #1a1200; }
 
         /* =========================================
-           2. UI TOFARMER (GLASSMORPHISM OVERLAY)
+           2. HUD ATAS — RINGKAS, TIDAK MENUTUPI DESA
            ========================================= */
-        #ui-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            z-index: 20; pointer-events: none; overflow-y: auto; padding-bottom: 80px;
+        #ui-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
+
+        .container {
+            position: relative; z-index: 30;
+            max-width: 1300px; margin: 0 auto; padding: 10px 16px;
+            pointer-events: none;
+            display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+            background: linear-gradient(180deg, rgba(4,9,7,0.82) 0%, rgba(4,9,7,0.55) 70%, transparent 100%);
+            backdrop-filter: blur(14px);
         }
 
-        .container { max-width: 1100px; margin: auto; padding: 1rem; pointer-events: none; }
-        
-        /* Elemen UI yang bisa diklik */
-        header, nav, .eco, .layout-wrapper { pointer-events: auto; }
-
-        header { text-align: center; padding: 1.5rem 1rem; }
-        .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: #a7f3d0; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-        .logo { width: 60px; height: 60px; border-radius: 50%; background: white; border: 2px solid rgba(47,111,78,0.2); animation: pulse 4s infinite; }
+        header, nav, .eco { pointer-events: auto; }
+        header { text-align: left; padding: 6px 0; }
+        .brand { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; color: #a7f3d0; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .logo { width: 40px; height: 40px; border-radius: 50%; background: white; border: 2px solid rgba(47,111,78,0.2); animation: pulse 4s infinite; }
+        .brand h2 { font-size: 16px; letter-spacing: .01em; }
         @keyframes pulse { 0%{filter:drop-shadow(0 0 6px rgba(74,222,128,0.4));} 50%{filter:drop-shadow(0 0 18px rgba(74,222,128,0.6));} 100%{filter:drop-shadow(0 0 6px rgba(74,222,128,0.4));} }
 
-        nav { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
-        nav a { padding: 8px 16px; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; color: #a7f3d0; text-decoration: none; font-size: 12px; background: rgba(5, 11, 7, 0.7); backdrop-filter: blur(8px); transition: 0.2s; }
+        nav { display: flex; gap: 8px; margin: 0; }
+        nav a { padding: 6px 12px; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 10px; color: #a7f3d0; text-decoration: none; font-size: 11px; background: rgba(5, 11, 7, 0.55); backdrop-filter: blur(8px); transition: 0.2s; }
         nav a:hover { background: rgba(74, 222, 128, 0.2); transform: translateY(-2px); }
 
-        /* Panel Kaca (Glassmorphism) untuk Dashboard ToFarmer */
-        .card, .eco {
-            background: rgba(255, 255, 255, 0.92);
+        .eco { display: flex; align-items: center; gap: 16px; background: transparent; border: none; box-shadow: none; padding: 0; margin: 0; }
+        .eco > div { line-height: 1.3; }
+        .eco span { color: #9db8ac; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+        .eco b { color: #ffd166; font-size: 14px; }
+        .eco-avatars { display: flex; justify-content: flex-end; overflow: hidden; }
+        #avatarStack { display: flex; gap: -10px; overflow-x: auto; padding-right: 4px; max-width: 140px; scrollbar-width: none; }
+        #avatarStack::-webkit-scrollbar { display: none; }
+        .avatar-item { width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; object-fit: cover; margin-left: -10px; transition: 0.25s; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .avatar-item:hover { transform: translateY(-6px) scale(1.15); z-index: 10; }
+
+        /* =========================================
+           3. PANEL WARGA — DIPINGGIR, DESA TETAP TAMPAK
+           ========================================= */
+        .layout-wrapper {
+            position: fixed; top: 0; left: 0; height: 100vh; width: min(410px, 90vw);
+            z-index: 25; pointer-events: none; display: flex; flex-direction: column;
+            transform: translateX(-104%);
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            background: linear-gradient(180deg, rgba(7,15,11,0.95), rgba(4,9,7,0.98));
+            backdrop-filter: blur(20px);
+            box-shadow: 30px 0 70px rgba(0,0,0,0.55);
+            border-right: 1px solid rgba(255,255,255,0.07);
+        }
+        .layout-wrapper.active-profile { transform: translateX(0); pointer-events: auto; }
+
+        .drawer-topline {
+            flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top));
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .drawer-topline span { color: #a7f3d0; font-weight: 700; font-size: 13px; }
+        .panel-close-btn {
+            width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(255,255,255,0.06); color: #e2f4ea; font-size: 14px; line-height: 1;
+            cursor: pointer; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center;
+            transition: 0.2s;
+        }
+        .panel-close-btn:hover { background: rgba(255,255,255,0.16); transform: none; }
+
+        .drawer-inner { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; padding-bottom: 90px; touch-action: pan-y; }
+        .drawer-inner::-webkit-scrollbar { width: 5px; }
+        .drawer-inner::-webkit-scrollbar-thumb { background: rgba(76,175,122,0.5); border-radius: 10px; }
+
+        @media (min-width: 851px) {
+            .drawer-inner { padding-top: 128px; }
+        }
+
+        .layout { display: flex; flex-direction: column; gap: 0; }
+        .left { width: 100%; }
+        .right { flex: 1; margin-top: 4px; }
+
+        /* Panel Kaca (Glassmorphism) untuk kartu ToFarmer di dalam drawer */
+        .card, .eco-legacy {
+            background: rgba(255, 255, 255, 0.94);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 16px; padding: 15px; margin-bottom: 15px;
-            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            border-radius: 16px; padding: 15px; margin-bottom: 12px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.25);
             color: #1c2b22;
         }
 
-        .eco { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: center; border: 1px solid rgba(212,175,55,0.4); }
-        .eco span { color: #556b5e; font-size: 11px; font-weight: 600;}
-        .eco b { color: #b8921e; font-size: 18px; }
-
-        .eco-avatars { display: flex; justify-content: flex-end; overflow: hidden; }
-        #avatarStack { display: flex; gap: -10px; overflow-x: auto; padding-right: 10px; scrollbar-width: none; }
-        #avatarStack::-webkit-scrollbar { display: none; }
-        .avatar-item { width: 34px; height: 34px; border-radius: 50%; border: 2px solid white; object-fit: cover; margin-left: -10px; transition: 0.25s; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        .avatar-item:hover { transform: translateY(-6px) scale(1.15); z-index: 10; }
-
-        /* Transisi Layout (Muncul saat Zoom In) */
-        .layout-wrapper {
-            opacity: 0; transform: translateY(30px) scale(0.98); pointer-events: none;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .layout-wrapper.active-profile {
-            opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
-        }
-
-        .layout { display: flex; gap: 20px; }
-        .left { width: 320px; }
-        .right { flex: 1; }
-
         /* Postingan & Feed */
-        .feed { max-height: 600px; overflow-y: auto; padding-right: 5px; }
+        .feed { max-height: 46vh; overflow-y: auto; padding-right: 5px; touch-action: pan-y; }
         .feed::-webkit-scrollbar { width: 5px; }
         .feed::-webkit-scrollbar-thumb { background: #4caf7a; border-radius: 10px; }
         .post { background: #ffffff; padding: 12px; border-left: 4px solid #4caf7a; margin-bottom: 10px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
         .user { color: #2f6f4e; font-size: 12px; margin-bottom: 5px; font-weight: 600; }
         .text { font-size: 13px; color: #2c3a33; line-height: 1.5; }
-        
+
         .post-actions { margin-top: 8px; margin-bottom: 8px; padding-top: 4px; border-top: 1px solid rgba(0, 0, 0, 0.04); }
         .share-btn { background: transparent; border: none; color: #6f7f76; font-size: 11px; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; }
         .share-btn:hover { background: rgba(76, 175, 122, 0.1); color: #2f6f4e; }
 
         /* Input Textarea ToFarmer */
         textarea {
-            width: 100%; min-height: 120px; padding: 16px; border-radius: 16px;
+            width: 100%; min-height: 110px; padding: 14px; border-radius: 16px;
             border: 3px solid #2f6f4e; outline: none; box-shadow: 4px 4px 0px #c9a227;
             font-size: 14px; transition: all 0.3s ease; background: rgba(255,255,255,0.95);
+            font-family: 'Inter', sans-serif;
         }
         textarea:focus { box-shadow: 6px 6px 0px #c9a227; transform: translateY(-2px); }
 
         button {
             margin-top: 10px; width: 45%; padding: 10px; background: linear-gradient(90deg,#4caf7a,#c9a227);
             border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s;
+            font-family: 'Inter', sans-serif;
         }
         button:hover { transform: translateY(-2px); opacity: 0.95; box-shadow: 0 6px 15px rgba(201,162,39,0.4); }
 
@@ -138,14 +211,23 @@
         .tof-wa-float img { width: 32px; height: 32px; }
         @keyframes tofGlow { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 
-        /* Responsive */
-        @media(max-width: 850px){
-            .layout { flex-direction: column; }
-            .left { width: 100%; }
-            .eco { grid-template-columns: 1fr; text-align: center; }
-            .eco-avatars { justify-content: center; }
-            #avatarStack { justify-content: center; }
-            #profileAvatar{ width:60px !important; height:60px !important; }
+        /* Responsive — panel jadi lembar bawah agar langit & desa tetap terlihat di atas */
+        @media (max-width: 850px){
+            .container { padding: 8px 12px; gap: 10px; justify-content: center; }
+            .eco { gap: 10px; }
+
+            .layout-wrapper {
+                top: auto; left: 0; right: 0; bottom: 0; height: min(74vh, 640px); width: 100%;
+                transform: translateY(105%);
+                border-radius: 22px 22px 0 0;
+                border-right: none; border-top: 1px solid rgba(255,255,255,0.08);
+            }
+            .layout-wrapper.active-profile { transform: translateY(0); }
+            .drawer-inner { padding-top: 16px; padding-bottom: 70px; }
+            .feed { max-height: 34vh; }
+            #profileAvatar{ width:56px !important; height:56px !important; }
+            #map-controls { bottom: 14px; left: 14px; }
+            .map-btn { padding: 9px 11px; font-size: 12px; }
         }
     </style>
 </head>
@@ -154,18 +236,19 @@
 <div id="viewport">
     <div id="world">
         <canvas id="bgCanvas"></canvas>
-        </div>
+    </div>
 </div>
+<div id="cine-vignette"></div>
 
 <div id="map-controls">
     <button class="map-btn" onclick="zoomMenu(0.2)">➕</button>
     <button class="map-btn" onclick="zoomMenu(-0.2)">➖</button>
     <button class="map-btn" onclick="resetView()">🌄 Lihat Desa</button>
+    <button class="map-btn primary" onclick="toggleResidentPanel()">🏘️ Balai Desa</button>
 </div>
 
 <div id="ui-overlay">
     <div class="container">
-
         <header>
             <a class="brand" href="#">
                 <img class="logo" src="aset/logo.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1892/1892751.png'"/>
@@ -178,139 +261,96 @@
             <a href="html/fitur-ilmu.html">Fitur & Info</a>
         </nav>
 
-        <div class="eco eco-grid">
+        <div class="eco">
             <div>
-                <span>Total Aset Ekosistem</span><br>
+                <span>Total Aset</span>
                 <b id="totalAsset">0 TOF</b>
             </div>
-            <div class="avatars" id="avatarStack"></div>
             <div>
-                <span>Users</span><br>
+                <span>Warga</span>
                 <b id="rankSummary">0</b>
             </div>
             <div class="eco-avatars">
+                <div id="avatarStack"></div>
             </div>
         </div>
+    </div>
 
-        <div class="layout-wrapper" id="mainLayout">
+    <div class="layout-wrapper" id="mainLayout">
+        <div class="drawer-topline">
+            <span>🏘️ Balai Desa ToFarmer</span>
+            <button class="panel-close-btn" onclick="closeResidentPanel(true)" aria-label="Tutup panel">✕</button>
+        </div>
+
+        <div class="drawer-inner">
             <div class="layout">
 
                 <div class="left">
-
-                    <div class="card" style="padding:10px 12px;">
-                        <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="card" style="padding:15px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
                             <div style="position:relative;flex-shrink:0;">
-                                <img
-                                    id="profileAvatar"
-                                    style="
-                                        display:none;
-                                        width:46px;
-                                        height:46px;
-                                        border-radius:50%;
-                                        object-fit:cover;
-                                        border:2px solid rgba(76,175,122,.25);
-                                        box-shadow:0 2px 8px rgba(0,0,0,.08);
-                                    "
-                                >
-                                <label
-                                    id="editAvatarBtn"
-                                    for="avatarInput"
-                                    style="
-                                        display:flex;
-                                        visibility:hidden;
-                                        position:absolute;
-                                        right:-2px;
-                                        bottom:-2px;
-                                        width:16px;
-                                        height:16px;
-                                        border-radius:50%;
-                                        background:#4caf7a;
-                                        color:white;
-                                        cursor:pointer;
-                                        font-size:8px;
-                                        align-items:center;
-                                        justify-content:center;
-                                        box-shadow:0 1px 4px rgba(0,0,0,.15);
-                                    "
-                                >✏️</label>
+                                <img id="profileAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid rgba(76,175,122,.5); box-shadow:0 2px 8px rgba(0,0,0,.1); display:none;">
+                                <label id="editAvatarBtn" for="avatarInput" style="display:flex; visibility:hidden; position:absolute; right:-2px; bottom:-2px; width:20px; height:20px; border-radius:50%; background:#4caf7a; color:white; cursor:pointer; font-size:10px; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.2);">✏️</label>
                                 <input type="file" id="avatarInput" accept="image/*" style="display:none;">
                             </div>
-
                             <div id="profileInfo" style="flex:1;min-width:0;">
-                                <div id="profileUsernameTarget" style="font-weight:700;font-size:13px;color:#2f6f4e;">@guest</div>
-                                <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;">
-                                    <div style="background:#f5f5f5;border-radius:6px;padding:2px 6px;font-size:10px;color:#555;">XP: <b>0</b></div>
-                                    <div style="background:#fff8e1;border-radius:6px;padding:2px 6px;font-size:10px;color:#c9a227;">TOF: <b>0</b></div>
-                                    <div style="background:#eef7f1;border-radius:6px;padding:2px 6px;font-size:10px;color:#2f6f4e;font-weight:600;">🌱 GROWER</div>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@guest</div>
+                                    <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">🌱 BELUM LOGIN</div>
+                                </div>
+                                <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+                                    <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#888;">XP: <b>0</b></div>
+                                    <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>0</b></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="card" id="walletCard">
-                        <h4 style="color:#2f6f4e;font-size:12px;">Algorand wallet</h4>
-                        <button id="connectBtn" onclick="connectWallet()">
-                            🔑 MASUK / DAFTAR 🌿
-                        </button>
-                        <button id="logoutBtn" onclick="disconnectWallet()" style="display:none;">
-                            🚪 LOGOUT
-                        </button>
+                        <h4 style="color:#2f6f4e;font-size:12px;margin-bottom:8px;">Algorand Wallet</h4>
+                        <button id="connectBtn" onclick="connectWallet()" style="width:100%; font-size:12px;">🔑 MASUK / DAFTAR 🌿</button>
                     </div>
 
                     <div class="card">
-                        <h4 style="color:#c9a227;font-size:12px;">FASE PROGRESS SEKARANG</h4>
-                        <div style="height:6px;background:#eee;border-radius:5px;overflow:hidden;">
+                        <h4 style="color:#c9a227;font-size:12px;margin-bottom:8px;">FASE PROGRESS SEKARANG</h4>
+                        <div style="height:8px;background:#eee;border-radius:5px;overflow:hidden;">
                             <div id="faseBar" style="width:20%;height:100%;background:linear-gradient(90deg,#4caf7a,#c9a227);"></div>
                         </div>
-                        <p id="faseText" style="font-size:10px; margin-top:4px; color:#6f7f76; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            Loading...
-                        </p>
+                        <p id="faseText" style="font-size:11px; margin-top:6px; color:#556b5e;">Memuat progres fase...</p>
                     </div>
 
                     <div class="card" id="qlrCard">
-                        <h4 style="color:#2f6f4e;font-size:12px;">
-                            🌱 QUANTUM LIFE RADAR → 100K TOF
-                        </h4>
-                        <p style="font-size:10px;color:#6f7f76;margin-bottom:10px;">
-                            Estimasi waktu tiap user menuju 100.000 TOF (10% compounding/bulan)
-                        </p>
+                        <h4 style="color:#2f6f4e;font-size:12px;margin-bottom:6px;">🌱 QUANTUM LIFE RADAR → 100K TOF</h4>
+                        <p style="font-size:10px;color:#6f7f76;margin-bottom:10px;">Estimasi waktu tiap user menuju 100.000 TOF (10% compounding/bulan)</p>
                         <div id="qlrContainer"></div>
-                        <p style="font-size:10px;color:#6f7f76;text-align:center;margin-bottom:12px;">
-                            Peringkat Energi dan KontribusiToFarmer
-                        </p>
-                        <div id="radar-peringkat-list" style="display:flex;flex-direction:column;gap:6px;max-height:185px;overflow-y:auto;padding-right:2px;">
-                            <p style="font-size:8px;color:#94a3b8;text-align:center;font-style:italic;margin:0;">Memuat Data...</p>
+                        <hr style="border:0; border-top:1px solid rgba(0,0,0,0.05); margin:10px 0;">
+                        <p style="font-size:11px;color:#2f6f4e;text-align:center;font-weight:bold;margin-bottom:8px;">Peringkat Energi Kontribusi</p>
+                        <div id="radar-peringkat-list" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;padding-right:2px;">
+                            <p style="font-size:10px;color:#94a3b8;text-align:center;font-style:italic;margin:0;">Memuat Data Ekosistem...</p>
                         </div>
                     </div>
                 </div>
 
                 <div class="right">
-                    <div class="card" style="padding:20px; border:1px solid rgba(76,175,122,0.12); box-shadow:0 12px 32px rgba(47,111,78,0.06);">
-                        <textarea 
-                            id="postBox" 
-                            placeholder="Ada Progres apa? ide, atau keajaiban hari ini di ToFarmer? Tulis di sini..." 
-                            style="width: 100%; min-height: 120px; padding: 16px; border-radius: 16px; border: 3px solid #2f6f4e; outline: none; box-shadow: 0px 0px 0px #c9a227; font-size: 14px; transition: all 0.3s ease;"
-                            onfocus="this.style.boxShadow='6px 6px 0px #c9a227';" 
-                            onblur="this.style.boxShadow='4px 4px 0px #c9a227';"
-                        ></textarea>
-                        
-                        <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
-                            <label for="imageInput" style="display:inline-flex; align-items:center; justify-content:center; padding:6px 10px; border-radius:999px; cursor:pointer; background:linear-gradient(135deg, rgba(76,175,122,.12), rgba(201,162,39,.10)); border:1px solid rgba(76,175,122,.16); color:#2f6f4e; font-size:11px; font-weight:600; transition:0.2s; user-select:none;" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(76,175,122,.12)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none';">
-                                Foto
-                            </label>
-                            <span id="imagePreviewText" style="font-size:10px; color:#8a938d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;"></span>
+                    <div class="card">
+                        <textarea id="postBox" placeholder="Ada progres apa? Ide, atau keajaiban hari ini di Desa ToFarmer? Tulis di sini..."></textarea>
+
+                        <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <label for="imageInput" style="display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:999px; cursor:pointer; background:linear-gradient(135deg, rgba(76,175,122,.15), rgba(201,162,39,.15)); border:1px solid rgba(76,175,122,.2); color:#2f6f4e; font-size:12px; font-weight:600; transition:0.2s;">
+                                    📷 Tambah Foto
+                                </label>
+                                <span id="imagePreviewText" style="font-size:11px; color:#6f7f76; max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></span>
+                                <input type="file" id="imageInput" accept="image/*" style="display:none">
+                            </div>
+                            <button onclick="sendPost()" style="margin:0; width:auto; padding:10px 24px;">KIRIM KARYA</button>
                         </div>
-                        
-                        <input type="file" id="imageInput" accept="image/*" style="display:none"/>
-                        <button onclick="sendPost()">
-                            KIRIM
-                        </button>
                     </div>
 
                     <div class="feed" id="feed">
                         <div class="post">
-                            <div class="user">@system</div>
-                            <div class="text">ToFarmer engine initialized...</div>
+                            <div class="user">@system_tofarmer</div>
+                            <div class="text">Desa Twilight Menoreh Agritech initialized. Selamat datang di ekosistem sirkular ToFarmer! 🌱</div>
                         </div>
                     </div>
                 </div>
@@ -320,8 +360,8 @@
     </div>
 </div>
 
-<div id="pilarModal" style="position:fixed; inset:0; background:rgba(20,30,25,.45); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; z-index:9999; padding:20px;">
-    <div style="width:100%; max-width:420px; background:rgba(255,255,255,.92); border-radius:24px; padding:22px; border:1px solid rgba(76,175,122,.12); box-shadow:0 20px 50px rgba(0,0,0,.12);">
+<div id="pilarModal" style="position:fixed; inset:0; background:rgba(20,30,25,.6); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; z-index:9999; padding:20px;">
+    <div style="width:100%; max-width:420px; background:rgba(255,255,255,.95); border-radius:24px; padding:22px; border:1px solid rgba(76,175,122,.2); box-shadow:0 20px 50px rgba(0,0,0,.2);">
         <div style="text-align:center; margin-bottom:18px;">
             <div style="font-size:42px;">🌿</div>
             <h3 style="color:#2f6f4e; font-size:20px; margin-top:8px;">Pilih Pilar Tulisan</h3>
@@ -336,98 +376,178 @@
 </a>
 
 <script>
-    // --- MAP ENGINE ---
+    // ===================================================================
+    // MESIN PETA DESA MENOREH — versi sinematik
+    // (Kamera, langit, dan generator rumah warga. Tidak menyentuh logika
+    //  ToFarmer di app.js — hanya menyediakan "panggung" visualnya.)
+    // ===================================================================
     const world = document.getElementById('world');
     const canvas = document.getElementById('bgCanvas');
     const ctx = canvas.getContext('2d');
-    
+
     const worldWidth = 3200;
     const worldHeight = 2400;
-    const horizonY = worldHeight * 0.35; 
+    const horizonY = worldHeight * 0.35;
 
     canvas.width = worldWidth;
     canvas.height = worldHeight;
 
-    let scale = 0.4; 
+    let scale = 0.4;
     let posX = 0, posY = 0;
     let isDragging = false, startX, startY, lastDist = 0;
     const housePositions = [];
 
-    // Generate 17 Rumah
-    // Generate Rumah Berdasarkan Data Supabase (Dipanggil dari app.js)
-    window.renderDesaToFarmer = function(profilesData) {
-        // Bersihkan area jika ada rumah sebelumnya
-        document.querySelectorAll('.house-node').forEach(el => el.remove());
-        housePositions.length = 0; 
+    // --- A. STATE PANEL WARGA (SIDEBAR) ---
+    // panelManual = true berarti pengguna membuka/menutup panel secara sengaja,
+    // sehingga logika otomatis berbasis zoom tidak menimpanya sampai ia
+    // memilih rumah lain atau menekan "Lihat Desa".
+    let panelManual = false;
 
-        if (!profilesData || profilesData.length === 0) {
-            console.log("Tidak ada data profil untuk ditampilkan");
-            return;
+    function openResidentPanel() {
+        document.getElementById('mainLayout').classList.add('active-profile');
+    }
+    function closeResidentPanel(manual) {
+        if (manual) panelManual = true;
+        document.getElementById('mainLayout').classList.remove('active-profile');
+    }
+    function toggleResidentPanel() {
+        const el = document.getElementById('mainLayout');
+        if (el.classList.contains('active-profile')) {
+            closeResidentPanel(true);
+        } else {
+            panelManual = true;
+            openResidentPanel();
         }
+    }
 
-        const jumlahRumah = profilesData.length;
+    // --- B. GENERATOR RUMAH WARGA (foto profil melayang di atas atap) ---
+    // Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
+    // Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
+    for (let i = 0; i < 17; i++) {
+        const segmentWidth = (worldWidth - 200) / 17;
+        const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
+        const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
 
-        for(let i = 0; i < jumlahRumah; i++) {
-            const profile = profilesData[i];
-            
-            // Mengambil data dari database, berikan fallback jika data kosong
-            const namaUser = profile.username || `Warga_${i+1}`;
-            const fotoProfile = profile.avatar_url || 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+        housePositions.push({ x, y });
 
-            const segmentWidth = (worldWidth - 200) / (jumlahRumah > 0 ? jumlahRumah : 1);
-            const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
-            const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
+        const isMyHouse = (i === 0);
+        const residentName = isMyHouse ? 'Rumah Anda' : `Warga_${i + 1}`;
+        const seed = isMyHouse ? 'tofarmer-guest-house' : `tofarmer-warga-${i + 1}`;
+        const avatarUrl = `https://api.dicebear.com/10.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+        const avatarIdAttr = isMyHouse ? ' id="myHouseAvatar"' : '';
+        const labelIdAttr = isMyHouse ? ' id="myHouseLabel"' : '';
 
-            housePositions.push({x, y});
+        const house = document.createElement('div');
+        house.className = 'house-node' + (isMyHouse ? ' my-house' : '');
+        house.style.left = (x - 48) + 'px';
+        house.style.top = (y - 68) + 'px';
+        house.innerHTML = `
+            <div class="house-avatar-wrap">
+                <img class="house-avatar"${avatarIdAttr} src="${avatarUrl}" alt="${residentName}" onerror="this.onerror=null;this.src='aset/favicon.png'"/>
+            </div>
+            <div class="house-icon">${isMyHouse ? '🏡' : '🏠'}</div>
+            <div class="house-name"${labelIdAttr}>${residentName}</div>
+        `;
 
-            const house = document.createElement('div');
-            house.className = 'house-node';
-            house.style.left = (x - 45) + 'px'; 
-            house.style.top = (y - 50) + 'px';
-            
-            // Susunan elemen: Foto (Atas), Ikon Rumah (Tengah), Username (Bawah)
-            house.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center;">
-                    <img src="${fotoProfile}" style="width:34px; height:34px; border-radius:50%; border:2px solid #4caf7a; margin-bottom:-8px; z-index:2; background:#fff; object-fit:cover; box-shadow:0 4px 8px rgba(0,0,0,0.3);" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
-                    <div class="house-icon" style="font-size:26px; z-index:1; position:relative;">🏠</div>
-                    <div class="house-name" style="background:rgba(0,0,0,0.65); padding:3px 8px; border-radius:6px; color:#fff; font-size:11px; margin-top:2px; white-space:nowrap; border: 1px solid rgba(255,255,255,0.1);">@${namaUser}</div>
-                </div>
-            `;
-            
-            // Interaksi klik untuk zoom dan menampilkan username di profil kiri
-            house.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const usernameEl = document.getElementById('profileUsernameTarget');
-                if (usernameEl) usernameEl.innerText = `@${namaUser}`;
-                focusOnHouse(x, y);
-            });
-            
-            world.appendChild(house);
+        // Klik rumah -> kamera fokus + panel warga terbuka di pinggir (desa tetap terlihat)
+        house.addEventListener('click', (e) => {
+            e.stopPropagation();
+            focusOnHouse(x, y);
+        });
+        world.appendChild(house);
+    }
+
+    // --- C. LANGIT SINEMATIK ---
+    function drawSky() {
+        // Gradasi senja sinematik: navy dalam -> ungu -> magenta -> jingga keemasan di cakrawala
+        let skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+        skyGrad.addColorStop(0,    '#040414');
+        skyGrad.addColorStop(0.20, '#0c0f2e');
+        skyGrad.addColorStop(0.40, '#221846');
+        skyGrad.addColorStop(0.60, '#4a1c48');
+        skyGrad.addColorStop(0.78, '#8a2f4c');
+        skyGrad.addColorStop(0.92, '#c9552f');
+        skyGrad.addColorStop(1,    '#f0954a');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, worldWidth, horizonY);
+
+        // Bintang — padat di puncak langit, memudar mendekati cakrawala (kabut atmosfer)
+        for (let i = 0; i < 300; i++) {
+            const sx = Math.random() * worldWidth;
+            const sy = Math.random() * horizonY * 0.8;
+            const r = Math.random() * 1.3 + 0.3;
+            const fade = 1 - (sy / horizonY);
+            ctx.globalAlpha = (Math.random() * 0.6 + 0.25) * fade;
+            ctx.fillStyle = Math.random() > 0.82 ? '#ffe3b0' : '#ffffff';
+            ctx.beginPath();
+            ctx.arc(sx, sy, r, 0, Math.PI * 2);
+            ctx.fill();
         }
+        ctx.globalAlpha = 1;
 
-        // Render ulang jalan setapak agar terhubung dengan posisi baru
-        drawEnvironment();
-    };
+        // Bulan dengan cahaya lembut menyebar
+        const moonX = worldWidth * 0.76;
+        const moonY = horizonY * 0.26;
+        const moonR = 44;
+        const glow = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, moonR * 6.5);
+        glow.addColorStop(0, 'rgba(255,244,214,0.5)');
+        glow.addColorStop(0.18, 'rgba(255,224,180,0.2)');
+        glow.addColorStop(1, 'rgba(255,224,180,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(moonX, moonY, moonR * 6.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        const moonBody = ctx.createRadialGradient(moonX - moonR * 0.3, moonY - moonR * 0.3, moonR * 0.1, moonX, moonY, moonR);
+        moonBody.addColorStop(0, '#fffdf5');
+        moonBody.addColorStop(1, '#ffe1ac');
+        ctx.fillStyle = moonBody;
+        ctx.beginPath();
+        ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Awan tipis melayang di beberapa lapisan ketinggian
+        ctx.save();
+        ctx.globalAlpha = 0.12;
+        ctx.fillStyle = '#ffffff';
+        const cloudBands = [
+            { y: horizonY * 0.32, count: 4 },
+            { y: horizonY * 0.54, count: 3 },
+            { y: horizonY * 0.74, count: 5 }
+        ];
+        cloudBands.forEach(band => {
+            for (let i = 0; i < band.count; i++) {
+                const cx = Math.random() * worldWidth;
+                const cy = band.y + (Math.random() * 40 - 20);
+                const cw = 160 + Math.random() * 220;
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, cw, 16 + Math.random() * 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        });
+        ctx.restore();
+
+        // Cahaya atmosfer hangat dekat cakrawala (efek "golden hour")
+        const horizonGlow = ctx.createLinearGradient(0, horizonY * 0.7, 0, horizonY);
+        horizonGlow.addColorStop(0, 'rgba(255,170,90,0)');
+        horizonGlow.addColorStop(1, 'rgba(255,170,90,0.4)');
+        ctx.fillStyle = horizonGlow;
+        ctx.fillRect(0, horizonY * 0.7, worldWidth, horizonY * 0.3);
+    }
 
     function drawEnvironment() {
         ctx.clearRect(0, 0, worldWidth, worldHeight);
 
-        // Langit Senja Menoreh
-        let skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
-        skyGrad.addColorStop(0, '#0f172a');
-        skyGrad.addColorStop(0.6, '#1e1b4b');
-        skyGrad.addColorStop(1, '#2e1065');
-        ctx.fillStyle = skyGrad;
-        ctx.fillRect(0, 0, worldWidth, horizonY);
+        drawSky();
 
         // Daratan Agritech
         let landGrad = ctx.createLinearGradient(0, horizonY, 0, worldHeight);
-        landGrad.addColorStop(0, '#0c1a12'); 
-        landGrad.addColorStop(1, '#050b07'); 
+        landGrad.addColorStop(0, '#0c1a12');
+        landGrad.addColorStop(1, '#050b07');
         ctx.fillStyle = landGrad;
         ctx.fillRect(0, horizonY, worldWidth, worldHeight - horizonY);
 
-        // Cakrawala / Bukit
+        // Cakrawala / Bukit, dengan siluet tersapu cahaya hangat dari langit
         ctx.fillStyle = '#09140e';
         ctx.beginPath();
         ctx.moveTo(0, horizonY);
@@ -440,18 +560,28 @@
         ctx.closePath();
         ctx.fill();
 
-        // Jalan Setapak
-        ctx.strokeStyle = 'rgba(74, 222, 128, 0.12)';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([8, 12]); 
+        ctx.strokeStyle = 'rgba(255,170,90,0.18)';
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        for(let i = 0; i < housePositions.length - 1; i++) {
-            ctx.moveTo(housePositions[i].x, housePositions[i].y);
-            ctx.lineTo(housePositions[i+1].x, housePositions[i].y);
-            ctx.lineTo(housePositions[i+1].x, housePositions[i+1].y);
+        ctx.moveTo(0, horizonY);
+        for (let x = 0; x <= worldWidth; x += 40) {
+            let hillHeight = Math.sin(x / 120) * 40 + Math.cos(x / 250) * 60;
+            ctx.lineTo(x, horizonY + hillHeight);
         }
         ctx.stroke();
-        ctx.setLineDash([]); 
+
+        // Jalan Setapak Sirkuit Data
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.12)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 12]);
+        ctx.beginPath();
+        for (let i = 0; i < housePositions.length - 1; i++) {
+            ctx.moveTo(housePositions[i].x, housePositions[i].y);
+            ctx.lineTo(housePositions[i + 1].x, housePositions[i].y);
+            ctx.lineTo(housePositions[i + 1].x, housePositions[i + 1].y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
 
         // Pohon Organik
         ctx.textAlign = 'center';
@@ -459,92 +589,85 @@
             let treeX = Math.random() * worldWidth;
             let treeY = horizonY + 60 + (Math.random() * (worldHeight - horizonY - 100));
             let nearHouse = housePositions.some(h => Math.hypot(h.x - treeX, h.y - treeY) < 80);
-            if(!nearHouse) {
+            if (!nearHouse) {
                 ctx.font = `${20 + Math.random() * 18}px serif`;
                 ctx.fillText('🌲', treeX, treeY);
             }
         }
     }
 
+    // Lapisan bintang CSS yang benar-benar berkelip (di atas canvas, murni suasana)
+    function spawnTwinkleStars() {
+        for (let i = 0; i < 18; i++) {
+            const star = document.createElement('div');
+            star.className = 'twinkle-star';
+            const size = Math.random() * 2 + 1.5;
+            star.style.width = size + 'px';
+            star.style.height = size + 'px';
+            star.style.left = (Math.random() * worldWidth) + 'px';
+            star.style.top = (Math.random() * horizonY * 0.75) + 'px';
+            star.style.animationDelay = (Math.random() * 3) + 's';
+            star.style.zIndex = '2';
+            world.appendChild(star);
+        }
+    }
+
+    // --- D. MANAJEMEN KAMERA & PEMICU PANEL WARGA ---
     function updateTransform() {
         scale = Math.min(Math.max(scale, 0.25), 2.5);
         posX = Math.min(Math.max(posX, window.innerWidth - worldWidth * scale), 0);
         posY = Math.min(Math.max(posY, window.innerHeight - worldHeight * scale), 0);
-        
+
         world.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
 
-        // EFEK POPUP GAME: Memunculkan layout panel saat zoom in
-        const layoutEl = document.getElementById('mainLayout');
-        if (scale >= 1.2) {
-            layoutEl.classList.add('active-profile');
-        } else {
-            layoutEl.classList.remove('active-profile');
+        // Mode otomatis: panel muncul saat zoom cukup dekat, kecuali sedang di-override manual
+        if (!panelManual) {
+            if (scale >= 1.2) { openResidentPanel(); }
+            else { closeResidentPanel(); }
         }
     }
 
     function focusOnHouse(hx, hy) {
-        scale = 1.6; 
-        posX = (window.innerWidth / 2) - (hx * scale) + 150; 
-        if(window.innerWidth < 850) posX = (window.innerWidth / 2) - (hx * scale); 
-        posY = (window.innerHeight / 2) - (hy * scale);
+        scale = 1.6;
+        panelManual = false; // klik rumah selalu membuka panel & kembali ke mode otomatis
+
+        if (window.innerWidth <= 850) {
+            // Mobile: panel jadi lembar bawah -> geser rumah ke area atas yang masih kosong
+            posX = (window.innerWidth / 2) - (hx * scale);
+            const safeTop = window.innerHeight * 0.28;
+            posY = (safeTop / 2) - (hy * scale);
+        } else {
+            // Desktop: panel di kiri -> geser rumah ke tengah area kanan yang tersisa
+            const sidebarW = Math.min(410, window.innerWidth * 0.9);
+            posX = (sidebarW + (window.innerWidth - sidebarW) / 2) - (hx * scale);
+            posY = (window.innerHeight / 2) - (hy * scale);
+        }
         updateTransform();
+        openResidentPanel();
     }
 
     function zoomMenu(delta) { scale += delta; updateTransform(); }
 
     function resetView() {
         scale = window.innerWidth / worldWidth;
-        if(scale < 0.3) scale = 0.35;
+        if (scale < 0.3) scale = 0.35;
         posX = (window.innerWidth - worldWidth * scale) / 2;
         posY = (window.innerHeight - worldHeight * scale) / 2;
+        panelManual = false;
+        closeResidentPanel();
         updateTransform();
     }
 
+    // Inisialisasi visual
     drawEnvironment();
+    spawnTwinkleStars();
     setTimeout(resetView, 100);
-    
-   // === KODE PEMANGGIL DATA SUPABASE ===
-// Perbaikan bagian yang menyebabkan error "Sistem Supabase belum siap atau tidak valid"
-setTimeout(async () => {
-    try {
-        // Tambahkan pengecekan lebih mendalam terhadap supabase
-        if (typeof supabase === 'undefined' || !supabase || typeof supabase.from !== 'function') {
-            console.warn("Sistem Supabase belum siap atau tidak valid.");
-            // Tampilkan placeholder jika tidak ada data
-            window.renderDesaToFarmer([]);
-            return;
-        }
-        
-        // Memastikan supabase sudah terhubung
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('username, avatar_url');
-        
-        if (error) {
-            console.error("Error tarik data profil:", error);
-            // Tampilkan placeholder jika gagal
-            window.renderDesaToFarmer([]);
-            return;
-        }
-        
-        if (data && data.length > 0) {
-            // Berikan datanya ke fungsi pembuat desa!
-            window.renderDesaToFarmer(data);
-        } else {
-            console.log("Data profiles kosong atau belum ada user.");
-            // Tampilkan placeholder jika tidak ada data
-            window.renderDesaToFarmer([]);
-        }
-    } catch (err) {
-        console.error("Gagal mengeksekusi penarikan data:", err);
-        // Tampilkan placeholder jika gagal
-        window.renderDesaToFarmer([]);
-    }
-}, 1000);
-    
-    // --- NAVIGASI MOUSE & TOUCH ---
+
+    // --- E. NAVIGASI MOUSE & TOUCH ---
+    // Semua interaksi di dalam HUD atas (.container) atau panel warga (.layout-wrapper)
+    // dikecualikan dari drag peta, supaya scroll/klik di dalamnya tidak menggeser dunia.
     const checkTarget = (e) => {
-        if (e.target.closest('.card') || e.target.closest('header') || e.target.closest('.eco') || e.target.closest('.map-btn')) return true;
+        if (e.target.closest('.layout-wrapper') || e.target.closest('.container') || e.target.closest('.map-btn')) return true;
         return false;
     };
 
@@ -552,64 +675,1210 @@ setTimeout(async () => {
     const moveDrag = (cx, cy) => { if (!isDragging) return; posX = cx - startX; posY = cy - startY; updateTransform(); };
     const stopDrag = () => { isDragging = false; };
 
-    window.addEventListener('mousedown', (e) => { if(!checkTarget(e)) startDrag(e.clientX, e.clientY); });
+    // Desktop
+    window.addEventListener('mousedown', (e) => { if (!checkTarget(e)) startDrag(e.clientX, e.clientY); });
     window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
     window.addEventListener('mouseup', stopDrag);
-    window.addEventListener('wheel', (e) => { 
-    if(!checkTarget(e)){ scale += e.deltaY < 0 ? 0.05 : -0.05; updateTransform(); }
-});
+    window.addEventListener('wheel', (e) => {
+        if (!checkTarget(e)) { scale += e.deltaY < 0 ? 0.05 : -0.05; updateTransform(); }
+    });
 
-window.addEventListener('touchstart', (e) => {
-    if(checkTarget(e)) return;
-    if (e.touches.length === 1) { startDrag(e.touches[0].clientX, e.touches[0].clientY); }
-    else if (e.touches.length === 2) { isDragging = false; lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
-});
-window.addEventListener('touchmove', (e) => {
-    if(checkTarget(e)) return;
-    if (isDragging && e.touches.length === 1) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); }
-    else if (e.touches.length === 2) {
-        let dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-        scale *= (dist / lastDist); lastDist = dist; updateTransform();
-    }
-});
-window.addEventListener('touchend', stopDrag);
-window.addEventListener('resize', resetView);
+    // Mobile
+    window.addEventListener('touchstart', (e) => {
+        if (checkTarget(e)) return;
+        if (e.touches.length === 1) { startDrag(e.touches[0].clientX, e.touches[0].clientY); }
+        else if (e.touches.length === 2) { isDragging = false; lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+    });
+    window.addEventListener('touchmove', (e) => {
+        if (checkTarget(e)) return;
+        if (isDragging && e.touches.length === 1) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); }
+        else if (e.touches.length === 2) {
+            let dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            scale *= (dist / lastDist); lastDist = dist; updateTransform();
+        }
+    });
+    window.addEventListener('touchend', stopDrag);
+    window.addEventListener('resize', resetView);
+
+    // --- F. PRATINJAU GAMBAR UNGGAHAN ---
+    document.getElementById("imageInput").addEventListener("change", function (e) {
+        const file = e.target.files?.[0];
+        const previewText = document.getElementById("imagePreviewText");
+        if (!file) { previewText.innerText = ""; return; }
+        let name = file.name;
+        if (name.length > 18) { name = name.substring(0, 18) + "..."; }
+        previewText.innerText = "Terpilih: " + name;
+    });
+
 </script>
 
-<script>
-document.getElementById("imageInput").addEventListener("change", function (e) {
-  const file = e.target.files?.[0];
-  const previewText = document.getElementById("imagePreviewText");
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="js/rank.js"></script>
+<script src="js/reaction.js"></script>
+<script src="./js/comments.js"></script>
+<script src="js/share.js"></script>
+<script src="js/qlr.js"></script>
+<script src="js/ai-memory.js"></script>
+<script src="mbah_eko_injector.js"></script>
 
-  if (!file) {
-    previewText.innerText = "";
+<script>
+/* ===================================================================
+   ISI app.js DIMASUKKAN LANGSUNG (INLINE) DI SINI — TIDAK DIUBAH SAMA SEKALI.
+   Semua fitur: wallet login, posting, feed + infinite scroll, komentar,
+   reaksi sruput/cangkul, share, edit/sembunyikan postingan, avatar upload,
+   ekonomi TOF, fase progress, radar peringkat — berjalan persis seperti
+   di index.html yang sudah live.
+   =================================================================== */
+let currentWallet = null
+let currentProfile = null
+
+// --- SATPAM LOGIN (RAMAH TAMU) ---
+function checkLoginStatus() {
+    const wallet = localStorage.getItem('tof_wallet');
+    if (!wallet) {
+        console.log("Pengunjung sedang melihat-lihat sebagai Guest 🌿");
+        return;
+    }
+}
+checkLoginStatus();
+
+// ===================== WALLET =====================
+async function connectWallet() {
+  return new Promise((resolve) => {
+
+    const modal = document.createElement("div")
+
+    modal.innerHTML = `
+    <div style="
+      position:fixed;
+      inset:0;
+      background:rgba(16,25,20,.65);
+      backdrop-filter:blur(12px);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:99999;
+      padding:20px;
+    ">
+      <div style="
+        width:100%;
+        max-width:420px;
+        background:#fff;
+        border-radius:28px;
+        padding:24px;
+      ">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">🌿</div>
+          <h2 style="color:#2f6f4e;">Login/Daftar ToFarmer</h2>
+          <p style="font-size:12px;color:#666;margin-top:8px;">Nama + Wallet Algorand</p>
+<p style="font-size:12px;color:#666;margin-top:8px;">
+  Daftar pakai Nama | Alamat Dompet Algorand<br>
+  Bikin dompet dulu di Pera Wallet/Defly
+</p>
+        </div>
+        <input id="tofName" placeholder="Nama pengguna" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
+        <input id="tofWallet" placeholder="Wallet Algorand" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
+        <button id="registerBtn" style="width:100%;">Masuk ke Ladang 🚀</button>
+        <button id="cancelBtn" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
+      </div>
+    </div>
+    `
+
+    document.body.appendChild(modal)
+
+    modal.querySelector("#registerBtn").onclick = async () => {
+      const username = document.getElementById("tofName").value.trim()
+      const wallet = document.getElementById("tofWallet").value.trim()
+
+      if (!username) {
+        alert("Nama wajib diisi 🌱")
+        return
+      }
+
+      try {
+        const decoded = algosdk.decodeAddress(wallet)
+        if (!decoded) throw new Error()
+      } catch {
+        alert("Wallet tidak valid / bukan Algorand 😄")
+        return
+      }
+
+      const { data: existingUser } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("id", wallet)
+        .maybeSingle()
+
+      if (!existingUser) {
+        const { error } = await supabaseClient
+          .from("profiles")
+          .insert([
+            {
+              id: wallet,
+              username: username,
+              xp: 0,
+              saldo_tof: 0,
+              level: 1,
+              avatar_url: "https://www.tofarmer.xyz/aset/favicon.png"
+            }
+          ])
+
+        if (error) {
+          console.log(error)
+          alert("Gagal daftar")
+          return
+        }
+      }
+
+      currentWallet = wallet
+      localStorage.setItem("tof_wallet", wallet)
+
+      await syncProfile(wallet)
+      updateWalletUI()
+      renderProfile()
+
+      document.body.removeChild(modal)
+      showWelcomePopup()
+      resolve(wallet)
+    }
+
+    modal.querySelector("#cancelBtn").onclick = () => {
+      document.body.removeChild(modal)
+      resolve(null)
+    }
+  })
+}
+
+function showWelcomePopup() {
+  const modal = document.createElement("div")
+  modal.innerHTML = `
+  <div style="position:fixed;inset:0;background:rgba(16,25,20,.6);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:center;z-index:99999;">
+    <div style="background:linear-gradient(180deg,#ffffff,#f3f8f4);padding:26px;border-radius:26px;text-align:center;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(47,111,78,.25);border:1px solid rgba(76,175,122,.15);">
+      <div style="font-size:55px;">🌿🎉</div>
+      <h2 style="color:#2f6f4e;">Ladang Terbuka!</h2>
+      <p style="color:#6f7f76;font-size:13px;margin:10px 0 20px;">Selamat datang di ToFarmer.<br>Dari kopi → ide → aksi → panen 🚀</p>
+      <button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;border:none;border-radius:14px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-weight:bold;cursor:pointer;">Siap Panen Ide 🌱</button>
+    </div>
+  </div>
+  `
+  document.body.appendChild(modal)
+}
+
+function logoutWallet() {
+  const yakin = confirm("Yakin ingin meninggalkan ladang? 🌱");
+  if (!yakin) return;
+
+  currentWallet = null
+  currentProfile = null
+  localStorage.removeItem("tof_wallet")
+  localStorage.removeItem("tof_user_id")
+  updateWalletUI()
+  renderProfile()
+  window.location.href = 'index.html'; 
+}
+
+
+// ===================== UI & PROFILE SYNC =====================
+function updateWalletUI() {
+  const btn = document.querySelector("button[onclick='connectWallet()']")
+  const editBtn = document.getElementById("editAvatarBtn")
+
+  if (!btn) return
+
+  if (currentWallet) {
+    // 1. Teks jika petani SUDAH LOGIN / CONNECT
+    btn.innerText = "🚪 LOGOUT"
+    btn.style.background = "#4caf7a"
+    btn.onclick = logoutWallet
+    if (editBtn) editBtn.style.visibility = "visible"
+  } else {
+    // 2. Teks jika petani BELUM LOGIN (Ini yang Anda tanyakan 😎)
+    btn.innerText = "🔑 MASUK / DAFTAR 🌿"
+    btn.style.background = ""
+    btn.onclick = connectWallet
+    if (editBtn) editBtn.style.visibility = "hidden"
+  }
+}
+
+async function syncProfile(wallet) {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("*")
+    .eq("id", wallet)
+    .maybeSingle()
+
+  if (error) {
+    console.log(error)
+    return
+  }
+
+  if (!data) {
+    alert("Wallet belum terdaftar 🌱\nSilakan daftar dulu.")
+    logoutWallet()
+    return
+  } else {
+    currentProfile = data
+  }
+
+  await refreshUserBalance()
+}
+
+// ===================== POSTING SYSTEM =====================
+const PILAR_MAP = {
+  community: 1,
+  inovasi: 2,
+  ladang: 3,
+  finance: 4,
+  refleksi: 5
+}
+
+function pilihPilarPopup(text) {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div")
+    modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(16,25,20,.55);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:flex-start;padding-top:40px;overflow-y:auto;z-index:99999;padding:20px;">
+      <div style="width:100%;max-width:430px;max-height:85vh;overflow-y:auto;background:linear-gradient(180deg,#fff,#f3f8f4);border-radius:28px;padding:26px;box-shadow:0 20px 60px rgba(47,111,78,.18);border:1px solid rgba(76,175,122,.12);">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">☕🌿</div>
+          <h2 style="color:#2f6f4e;">Mau ditanam di ladang mana?</h2>
+          <p style="color:#6f7f76;font-size:13px;">Pilih dulu temamu 😎</p>
+        </div>
+        <div style="display:grid;gap:10px;margin-top:20px;">
+          <button class="pilar-btn" data-p="community">🤝 Titik Kumpul <small>Ngopi, ide, ngobrol, santai ,ngonten</small></button>
+          <button class="pilar-btn" data-p="inovasi">🤖 Ladang Eksperimen <small>AI, blockchain, robot, dan ide yang kadang “nggak masuk akal”</small></button>
+          <button class="pilar-btn" data-p="ladang">🌱 Cerita Tanah & Panen <small>Drama masuk kebun</small></button>
+          <button class="pilar-btn" data-p="finance">☕ Duit...duit dan duit <small>TOF, aset, strategi biar ladang tetap jalan</small></button>
+          <button class="pilar-btn" data-p="refleksi">🔥 Mode Petapa Gunung <small>Renungan, kabut pagi, dan pikiran random</small></button>
+        </div>
+        <button id="cancelPilar" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:16px;background:#eef4ef;color:#6f7f76;font-weight:600;">🐐 batal, kambing panen dulu</button>
+      </div>
+    </div>
+    `
+    document.body.appendChild(modal)
+
+    modal.querySelectorAll(".pilar-btn").forEach(btn => {
+      btn.onclick = () => {
+        const value = btn.dataset.p
+        document.body.removeChild(modal)
+        resolve(value)
+      }
+    })
+
+    modal.querySelector("#cancelPilar").onclick = () => {
+      document.body.removeChild(modal)
+      resolve(null)
+    }
+  })
+}
+
+async function classifyPilar(text) {
+  const t = text.toLowerCase()
+  let rekomendasiAwal = "community"
+
+  if (t.includes("modal") || t.includes("profit") || t.includes("aset")) {
+    rekomendasiAwal = "finance"
+  } else if (t.includes("tanam") || t.includes("ladang") || t.includes("panen")) {
+    rekomendasiAwal = "ladang"
+  } else if (t.includes("blockchain") || t.includes("wallet")) {
+    rekomendasiAwal = "inovasi"
+  }
+
+  const userChoice = await pilihPilarPopup(text)
+  if (userChoice === null) return null
+
+  return userChoice || rekomendasiAwal
+}
+
+async function sendPost() {
+  let imageUrl = null
+  const input = document.getElementById("postBox")
+  const imageInput = document.getElementById("imageInput")
+  if (!input) return
+
+  const text = input.value.trim()
+  if (!text) return
+
+  const pilar = await classifyPilar(text)
+  if (!pilar) return
+
+  const file = imageInput?.files?.[0] || null
+
+  if (file instanceof File) {
+    const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
+    const { error: uploadError } = await supabaseClient.storage
+      .from("post-images")
+      .upload(fileName, file, { cacheControl: "3600", upsert: false })
+
+    if (uploadError) {
+      alert("Upload gambar gagal: " + uploadError.message)
+      return
+    }
+
+    const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
+    if (!data?.publicUrl) {
+      alert("Gagal ambil URL gambar")
+      return
+    }
+    imageUrl = data.publicUrl
+  }
+
+  const isSelfPost = true
+  const xpBonus = isSelfPost ? 20 : 5
+
+ const { error } = await supabaseClient
+    .from("contributions")
+    .insert([
+      {
+        user_id: currentWallet,
+        pilar_aksi: PILAR_MAP[pilar],
+        judul_aksi: "Feed Post",
+        deskripsi_proses: text,
+        image_url: imageUrl,
+        status_validasi: "pending",
+        xp_reward: xpBonus,
+        is_self_post: isSelfPost,
+        is_private: false // <<< TAMBAHKAN BARIS INI AGAR TEGAS SEBAGAI POSTINGAN PUBLIK
+      }
+    ])
+
+  if (currentProfile) {
+    const newXP = (currentProfile.xp || 0) + xpBonus
+    const { error: xpError } = await supabaseClient
+      .from("profiles")
+      .update({ xp: newXP })
+      .eq("id", currentWallet)
+
+    if (!xpError) {
+      currentProfile.xp = newXP
+      renderProfile()
+    }
+  }
+
+  if (error) {
+    alert("Gagal kirim: " + error.message)
+    return
+  }
+
+  input.value = ""
+  if (imageInput) imageInput.value = ""
+
+  loadFeed()
+
+  
+}
+
+// ===================== ECONOMY & ALGORAND INFRA =====================
+const TOF_ASSET_ID = 3558306283
+const ALGONODE_URL = "https://mainnet-api.algonode.cloud"
+
+async function getWalletTofBalance(wallet) {
+  try {
+    if (!wallet) return 0
+    const res = await fetch(`${ALGONODE_URL}/v2/accounts/${wallet}`)
+    if (!res.ok) return 0
+
+    const account = await res.json()
+    const asset = account.assets?.find(a => Number(a["asset-id"]) === TOF_ASSET_ID)
+    return asset ? Number(asset.amount) / 1000000 : 0
+  } catch (err) {
+    console.log("Wallet fetch gagal:", wallet)
+    return 0
+  }
+}
+
+async function refreshUserBalance() {
+  if (!currentWallet || !currentProfile) return
+  const balance = await getWalletTofBalance(currentWallet)
+  currentProfile.saldo_tof = balance
+  renderProfile()
+}
+
+
+
+async function loadEconomy() {
+  try {
+    // Tarik id dan xp dari supabase
+    const { data: profiles, error } = await supabaseClient.from("profiles").select("id, xp")
+    if (error || !profiles) return
+
+    const totalAsset = document.getElementById("totalAsset")
+    if (totalAsset) totalAsset.innerText = "Sync..."
+
+    let total = 0
+    const batchSize = 5
+    
+    // --- TETAP PERTAHANKAN BATCH PROMISE BLOCKCHAIN ALGORAND ---
+    for (let i = 0; i < profiles.length; i += batchSize) {
+      const batch = profiles.slice(i, i + batchSize)
+      const balances = await Promise.all(batch.map(user => getWalletTofBalance(user.id)))
+      total += balances.reduce((sum, bal) => sum + bal, 0)
+    }
+
+    const totalFixed = Number(total) || 0
+    if (totalAsset) {
+      totalAsset.innerText = totalFixed.toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " TOF"
+    }
+
+    // Jalankan progres bar fase dan tumpukan avatar stack
+    setTimeout(() => { typeof updateFaseProgress === "function" && updateFaseProgress(totalFixed) }, 100)
+    loadAvatarStack()
+
+    // --- SINKRONISASI COUTER BARIS ATAS ---
+    const growerEl = document.getElementById("rankSummary")
+    if (growerEl && typeof getRankStats === "function") {
+      const stats = getRankStats(profiles)
+      growerEl.innerHTML = `Total-${profiles.length} ( 🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite} )`
+    }
+  } catch (err) {
+    console.log("ECONOMY ERROR:", err)
+  }
+}
+
+function formatShort(num) {
+  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(".0","") + "M"
+  if (num >= 1000) return (num / 1000).toFixed(1).replace(".0","") + "K"
+  return num.toString()
+}
+
+function updateFaseProgress(totalTof) {
+  const faseBar = document.getElementById("faseBar")
+  const faseText = document.getElementById("faseText")
+  if (!faseBar || !faseText) return
+
+  totalTof = Number(totalTof) || 0
+  const fases = [
+    { name: "FASE 1", target: 10 }, { name: "FASE 2", target: 500 },
+    { name: "FASE 3", target: 1000 }, { name: "FASE 4", target: 3000 },
+    { name: "FASE 5", target: 10000 }, { name: "FASE 6", target: 30000 },
+    { name: "FASE 7", target: 100000 }
+  ]
+
+  let currentPhase = fases[0]
+  let previousTarget = 0
+  for (let i = 0; i < fases.length; i++) {
+    if (totalTof <= fases[i].target) { currentPhase = fases[i]; break; }
+    previousTarget = fases[i].target
+  }
+
+  const range = currentPhase.target - previousTarget
+  let progress = range > 0 ? ((totalTof - previousTarget) / range) * 100 : 100
+  progress = Math.max(0, Math.min(progress, 100))
+  faseBar.style.width = progress + "%"
+
+  const sisa = Math.max(0, currentPhase.target - totalTof)
+  faseText.innerHTML = `
+    <div style="font-size:11px;font-weight:700;color:#2f6f4e;">🌿 ${currentPhase.name}</div>
+    <div style="font-size:10px;color:#6f7f76;margin-top:2px;">${Math.floor(progress)}% progress</div>
+    <div style="font-size:10px;color:#b5942b;margin-top:2px;">${formatShort(totalTof)} / ${formatShort(currentPhase.target)} TOF</div>
+    <div style="font-size:10px;color:#999;margin-top:2px;">Sisa ${formatShort(sisa)} TOF</div>
+  `
+}
+
+// ===================== RENDERING LINI MASA (FEED) =====================
+// --- INFINITE SCROLL SETUP ---
+let feedPage = 0;
+const FEED_PAGE_SIZE = 5;
+let feedLoading = false;
+let feedAllLoaded = false;
+
+function initFeedScroll() {
+  const feed = document.getElementById("feed");
+  if (!feed) return;
+  feed.addEventListener("scroll", () => {
+    if (feedLoading || feedAllLoaded) return;
+    const nearBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 80;
+    if (nearBottom) loadMoreFeed();
+  });
+}
+
+async function loadMoreFeed() {
+  if (feedLoading || feedAllLoaded) return;
+  feedLoading = true;
+
+  const feed = document.getElementById("feed");
+  const loadingEl = document.getElementById("feedLoadingMore");
+  if (loadingEl) loadingEl.style.display = "block";
+
+  const from = feedPage * FEED_PAGE_SIZE;
+  const to = from + FEED_PAGE_SIZE - 1;
+
+  const { data: posts, error: postError } = await supabaseClient
+    .from("contributions")
+    .select(`id, created_at, deskripsi_proses, image_url, sruput_count, cangkul_count, profiles!inner(id, username, avatar_url)`)
+    .eq("is_private", false)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (loadingEl) loadingEl.style.display = "none";
+
+  if (postError || !posts || posts.length === 0) {
+    feedAllLoaded = true;
+    feedLoading = false;
+    if (feed && feedPage > 0) {
+      const endMsg = document.createElement("div");
+      endMsg.style.cssText = "text-align:center;padding:12px;font-size:11px;color:#aaa;";
+      endMsg.innerText = "🌾 Semua postingan sudah dimuat";
+      feed.appendChild(endMsg);
+    }
     return;
   }
 
-  let name = file.name;
-  if (name.length > 18) {
-    name = name.substring(0, 18) + "...";
+  if (posts.length < FEED_PAGE_SIZE) feedAllLoaded = true;
+  feedPage++;
+
+  await renderPostsBatch(posts, feed);
+  feedLoading = false;
+}
+
+async function loadFeed() {
+  const feed = document.getElementById("feed")
+  if (!feed) return
+  feed.innerHTML = ""
+  feedPage = 0;
+  feedLoading = false;
+  feedAllLoaded = false;
+
+  // Tambahkan elemen loading di bawah
+  const loadingMore = document.createElement("div");
+  loadingMore.id = "feedLoadingMore";
+  loadingMore.style.cssText = "text-align:center;padding:12px;font-size:11px;color:#aaa;display:none;";
+  loadingMore.innerText = "⏳ Memuat lebih banyak...";
+  feed.appendChild(loadingMore);
+
+  await loadMoreFeed();
+  initFeedScroll();
+}
+
+async function renderPostsBatch(posts, feed) {
+  const loadingMore = document.getElementById("feedLoadingMore");
+
+  // Ambil komentar untuk batch ini saja
+  const postIds = posts.map(p => String(p.id));
+  let comments = [];
+  try {
+    const { data: rawComments } = await supabaseClient
+      .from("comments")
+      .select("*")
+      .in("post_id", postIds);
+
+    if (rawComments && rawComments.length > 0) {
+      const { data: allProfiles } = await supabaseClient
+        .from("profiles")
+        .select("id, username, avatar_url");
+
+      comments = rawComments.map(c => {
+        const pencocok = allProfiles ? allProfiles.find(p => String(p.id).trim() === String(c.user_id).trim()) : null;
+        return {
+          ...c,
+          profiles: pencocok || { username: "Petani_Misterius", avatar_url: "https://www.tofarmer.xyz/aset/favicon.png", id: "" }
+        };
+      });
+    }
+  } catch (e) { comments = []; }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const postIdParam = urlParams.get("post");
+  if (postIdParam && feedPage === 1) {
+    try {
+      const matchedPost = posts.find(p => String(p.id) === String(postIdParam));
+      if (matchedPost) {
+        const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres karya di ToFarmer.";
+        const namaPetani = matchedPost.profiles?.username || "Petani";
+        document.title = `Catatan Karya @${namaPetani} | ToFarmer`;
+        const metaDesc = document.getElementById("postDesc");
+        const ogTitle = document.getElementById("ogTitle");
+        const ogDesc = document.getElementById("ogDesc");
+        const ogImage = document.getElementById("ogImage");
+        if (metaDesc) metaDesc.setAttribute("content", petikTeks);
+        if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
+        if (ogDesc) ogDesc.setAttribute("content", petikTeks);
+        if (matchedPost.image_url && ogImage) ogImage.setAttribute("content", matchedPost.image_url);
+      }
+    } catch (metaErr) { console.log(metaErr); }
   }
 
-  previewText.innerText = "📷 " + name;
+  posts.forEach(item => {
+    const div = document.createElement("div")
+    div.className = "post"
+    div.id = `post-card-${item.id}` // 🟢 Tambahkan ini sebagai jangkar koordinat
+
+    const username = item.profiles?.username || "guest"
+    const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
+    
+    // KODE BARU: Langsung saring dari array komentar yang sudah matang dijodohkan di atas
+    // Memaksa perbandingan tipe string literal agar tidak meleset karena tipe BigInt/Number
+    const postComments = comments.filter(c => c && String(c.post_id).trim() === String(item.id).trim());
+    const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+    const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
+
+    // KUNCI FB: Cek apakah postingan ini milik user yang sedang login sekarang
+    const isMyPost = item.profiles?.id === currentWallet;
+
+    div.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:between; gap:8px; width:100%;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+          <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
+          <div onclick="window.location.href='profile.html?id=${item.profiles?.id}'" style="font-weight:600;color:#2f6f4e;cursor:pointer;">@${username}</div>
+        </div>
+        
+        ${isMyPost ? `
+        <div class="post-menu-container" style="position: relative; display: inline-block;">
+          <button class="btn-dot-menu" onclick="toggleDotMenu('${item.id}')" style="background:none; border:none; color:#65676b; font-size:16px; cursor:pointer; padding:4px 8px;">•••</button>
+          <div class="dot-dropdown" id="dropdown-${item.id}" style="display:none; position:absolute; right:0; top:24px; background:white; box-shadow:0 2px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:150px; border:1px solid #e4e6eb; padding:4px 0;">
+            <button class="btn-edit-post" data-post-id="${item.id}" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
+            <button onclick="aksiSembunyikanKeProfil('${item.id}')" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">🔒 Sembunyikan ke Profil</button>
+          </div>
+        </div>
+        ` : ''}
+      </div>
+      <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">${date}</div>
+      <div class="text" style="margin-top:6px;">${convertMentions(item.deskripsi_proses || "")}</div>
+      ${item.image_url ? `<div style="margin-top:10px;display:flex;justify-content:center;"><img src="${item.image_url}" style="max-width:100%;max-height:420px;border-radius:14px;border:1px solid rgba(0,0,0,0.08);" /></div>` : ""}
+      <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
+        <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">☕ ${item.sruput_count || 0} Sruput</span>
+        <span onclick="reactPost('${item.id}','cangkul')" style="cursor:pointer;">⛏️ ${item.cangkul_count || 0} Cangkul</span>
+      </div>
+      <div class="post-actions"><button class="share-btn" onclick="sharePost('${item.id}', '${username}', \`${safeText}\`)">📢 Bagikan Progres</button></div>
+      <div style="margin-top:10px; padding-top:8px; border-top:1px solid #f0f0f0; display:flex; gap:16px; font-size:12px; color:#6f7f76;">
+        <span onclick="toggleKomentarBox('${item.id}')" style="cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+          💬 ${postComments.length} Komentar
+        </span>
+      </div>
+
+      <div id="box-komentar-${item.id}" style="display:none; margin-top:12px; padding:12px; background:#f8faf9; border-radius:12px;">
+        
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <input id="comment-${item.id}" placeholder="Tulis komentar ladang..." style="flex-grow:1; padding:8px 12px; border-radius:20px; border:1px solid #ddd; font-size:12px; outline:none;" />
+          <button type="button" onclick="sendComment('${item.id}')" style="margin-top:0; width:auto; padding:6px 14px; font-size:12px; border-radius:20px;">Kirim</button>
+        </div>
+
+        <div id="list-komentar-${item.id}" style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+          ${postComments.length === 0 ? `<div id="empty-comment-${item.id}" style="color:#999; text-align:center; padding:5px 0;">Belum ada diskusi, yuk sapa petani! 🌱</div>` : ''}
+          
+         ${postComments.map(c => {
+            if (!c) return '';
+            // Ambil data profile dari objek gabungan Supabase
+            const cUser = (c.profiles && c.profiles.username) ? c.profiles.username : "Petani_Misterius";
+            const cAvatar = (c.profiles && c.profiles.avatar_url) ? c.profiles.avatar_url : "https://www.tofarmer.xyz/aset/favicon.png";
+            const cUserId = (c.profiles && c.profiles.id) ? c.profiles.id : "";
+            const isiKomentar = c.comment || "";
+            
+            return `
+              <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
+                <img src="${cAvatar}" 
+                     onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
+                     style="width:24px; height:24px; border-radius:50%; object-fit:cover; cursor:pointer; border:1px solid rgba(0,0,0,0.08);" />
+                
+                <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.05); max-width:calc(100% - 32px);">
+                  <span onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
+                        style="font-weight:700; color:#2f6f4e; cursor:pointer; margin-right:4px;">
+                    @${cUser}
+                  </span>
+                  <span style="color:#2c3a33; white-space:pre-wrap;">${convertMentions(isiKomentar)}</span>
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+
+      </div>
+    `
+    // Insert before the "loading more" indicator at bottom
+    if (loadingMore && loadingMore.parentNode === feed) {
+      feed.insertBefore(div, loadingMore);
+    } else {
+      feed.appendChild(div);
+    }
+  });
+}
+
+// ===================== MANAGEMENT PROFIL =====================
+function renderProfile() {
+  const userBox = document.getElementById("profileInfo")
+  const avatar = document.getElementById("profileAvatar")
+  if (!userBox) return
+
+  if (!currentProfile) {
+    if (avatar) avatar.style.display = "none"
+    userBox.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@guest</div>
+        <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">🌱 BELUM LOGIN</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
+        <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#888;">XP: <b>0</b></div>
+        <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>0</b></div>
+      </div>
+      <button onclick="alert('Login dulu ya 🌱')" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:#ddd;font-size:11px;">👤 Masuk Profil</button>
+    `
+    return
+  }
+
+  if (avatar) {
+    avatar.style.display = "block"
+    avatar.src = currentProfile.avatar_url || "https://via.placeholder.com/100"
+  }
+
+  const calculatedLevel = typeof getTofLevel === "function" ? getTofLevel(currentProfile.xp || 0) : 1;
+  const calculatedRank = typeof getRank === "function" ? getRank(currentProfile.xp || 0) : "GROWER";
+
+  let rankEmoji = "🌱";
+  if (calculatedRank === "PRO") rankEmoji = "🥉";
+  if (calculatedRank === "SPECIALIST") rankEmoji = "🥈";
+  if (calculatedRank === "ELITE") rankEmoji = "🥇";
+
+  userBox.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@${currentProfile.username}</div>
+      <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">${rankEmoji} Lv${calculatedLevel}</div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
+      <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#555;">XP: <b>${Math.floor(currentProfile.xp || 0)}</b></div>
+      <div style="background:#fff8e1;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>${Number(currentProfile.saldo_tof || 0).toLocaleString("id-ID")}</b></div>
+    </div>
+    <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:11px;font-weight:600;cursor:pointer;">☕ Lihat Profil</button>
+  `
+}
+
+// Fitur listener upload avatar bawaan jangan diubah, biarkan utuh di bawah renderProfile
+document.addEventListener("change", async (e) => {
+  if (e.target.id !== "avatarInput") return
+  if (!currentWallet) { alert("Connect wallet dulu 😄"); return; }
+
+  const file = e.target.files[0]
+  if (!file) return
+
+  const fileName = currentWallet + "-" + Date.now()
+  const { data: uploadData, error: uploadError } = await supabaseClient.storage.from("avatars").upload(fileName, file)
+
+  if (uploadError) { alert("Upload gagal: " + uploadError.message); return; }
+
+  const { data } = supabaseClient.storage.from("avatars").getPublicUrl(fileName)
+  const avatarUrl = data.publicUrl
+
+  const { error: updateError } = await supabaseClient.from("profiles").update({ avatar_url: avatarUrl }).eq("id", currentWallet)
+  if (updateError) { alert("Gagal update profile"); return; }
+
+  currentProfile.avatar_url = avatarUrl
+  renderProfile()
+  loadEconomy()
+  alert("Foto berhasil diganti 🌿")
+})
+
+function convertMentions(text) {
+  if (!text) return "";
+
+  // 1. Pola Regex cerdas untuk menangkap segala jenis bentuk link (http, https, www, maupun ekstensi langsung)
+  const linkPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\b[A-Z0-9._%+-]+\.(com|org|id|net|xyz|app|online|tech)\b([-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])?)/ig;
+
+  let result = text.replace(linkPattern, function(url) {
+    let href = url;
+    
+    // Skenario antisipasi tanda baca di akhir kalimat agar tidak ikut kecatut ke dalam link
+    let akhirTandaBaca = "";
+    if (/[.,;:!?]$/.test(url)) {
+      akhirTandaBaca = url.slice(-1);
+      url = url.slice(0, -1);
+      href = url;
+    }
+
+    // Jika user menulis tanpa http/https (misal cuma www.xxx atau langsung xxx.com), 
+    // kita wajib tambahkan 'https://' di href-nya agar browser tidak mengira itu link internal halaman web ToFarmer
+    if (!/^https?:\/\//i.test(href)) {
+      href = "https://" + href;
+    }
+
+    return `<a href="${href}" target="_blank" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #4caf7a;" onmouseover="this.style.color='#b5942b'" onmouseout="this.style.color='#2f6f4e'">${url}</a>${akhirTandaBaca}`;
+  });
+
+  // 2. Pertahankan fitur deteksi @mention bawaan Anda
+  result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="goToUsername('$1')" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
+
+  // 3. Pertahankan fitur ganti baris enter bawaan Anda
+  result = result.replace(/\n/g, "<br>");
+
+  return result;
+}
+async function goToUsername(username) {
+  const { data, error } = await supabaseClient.from("profiles").select("id").eq("username", username).maybeSingle()
+  if (error || !data) { alert("Petani tidak ditemukan 🌱"); return; }
+  window.location.href = `profile.html?id=${data.id}`
+}
+
+async function loadAvatarStack() {
+  const { data, error } = await supabaseClient.from("profiles").select("id, avatar_url, username").limit(30)
+  const container = document.getElementById("avatarStack")
+  if (!container || error || !data) return
+
+  container.innerHTML = ""
+  data.forEach(user => {
+    const img = document.createElement("img")
+    img.src = user.avatar_url || "https://via.placeholder.com/100"
+    img.className = "avatar-item"
+    img.title = user.username
+    img.onclick = () => { window.location.href = `profile.html?id=${user.id}` }
+    container.appendChild(img)
+  })
+}
+
+// ===================== BOOTSTRAP INIT =====================
+window.addEventListener("DOMContentLoaded", () => {
+  const saved = localStorage.getItem("tof_wallet")
+  if (saved) {
+    currentWallet = saved
+    syncProfile(saved).then(() => {
+      updateWalletUI()
+      renderProfile()
+    })
+  }
+
+loadFeed().then(() => {
+    // 1. BUAT KANTONG URL (PENTING: Ini yang sebelumnya hilang sehingga bikin macet!)
+    const urlParams = new URLSearchParams(window.location.search);
+    const postIdParam = urlParams.get("post");
+
+    if (postIdParam) {
+      // 2. Beri jeda 1000 milidetik (1 detik) agar browser selesai menggambar kartu & komentar di layar
+      setTimeout(() => {
+        const targetCard = document.getElementById(`post-card-${postIdParam}`);
+        if (targetCard) {
+          
+          // 3. OTOMATIS BUKA KOTAK KOMENTAR (Biar user langsung bisa baca/tulis diskusi)
+          if (typeof toggleKomentarBox === "function") {
+            toggleKomentarBox(postIdParam);
+          }
+
+          // 4. Hitung lokasi koordinat kartu tersebut di dalam halaman web
+          const koordinatY = targetCard.getBoundingClientRect().top + window.scrollY;
+          
+          // 5. Luncurkan layar otomatis ke lokasi kartu secara mulus
+          window.scrollTo({
+            top: koordinatY - 100, // Dikurangi 100px agar ada jarak ruang nyaman di atas kartu
+            behavior: 'smooth'    // Memberikan efek meluncur halus yang estetik
+          });
+          
+          // 6. Beri efek highlight visual (bingkai hijau + bayangan menyala) agar user tahu itu pos tujuan
+          targetCard.style.transition = "all 0.8s ease";
+          targetCard.style.boxShadow = "0 0 20px rgba(47, 111, 78, 0.4)";
+          targetCard.style.borderColor = "#2f6f4e";
+          targetCard.style.borderWidth = "2px";
+        }
+      }, 1000); // Durasi 1000ms sangat aman bahkan saat koneksi internet sedang lambat
+    }
+  });
+
+  // 🟢 BATAS BAWAH KODE BARU AMAN SUNTIK
+  loadAvatarStack()
+  loadEconomy()
+
+  if (typeof loadRankSummary === "function") {
+    loadRankSummary()
+  }
+
+  
+});
+// --- FUNGSI ALA FACEBOOK UNTUK KONTROL BUKA/TUTUP KOTAK KOMENTAR ---
+function toggleKomentarBox(postId) {
+  const box = document.getElementById(`box-komentar-${postId}`);
+  if (!box) return;
+  
+  if (box.style.display === "none" || box.style.display === "") {
+    box.style.display = "block";
+  } else {
+    box.style.display = "none";
+  }
+}
+async function sendComment(postId) {
+  const input = document.getElementById(`comment-${postId}`);
+  if (!input) return;
+  const commentText = input.value.trim();
+  if (!commentText) return;
+
+  if (!currentWallet) {
+    alert("Connect wallet dulu untuk ikut berdiskusi 🌱");
+    return;
+  }
+
+  // 1. Kirim data ke database Supabase
+  const { data, error } = await supabaseClient
+    .from("comments")
+    .insert([
+      {
+        post_id: postId,
+        user_id: currentWallet,
+        comment: commentText
+      }
+    ]);
+
+  if (error) {
+    alert("Gagal mengirim komentar: " + error.message);
+    return;
+  }
+
+  // 2. Ambil container list diskusi spesifik yang sudah kita beri ID di Langkah 2
+  const listContainer = document.getElementById(`list-komentar-${postId}`);
+  if (!listContainer) return;
+
+  // Hapus tulisan "Belum ada diskusi" jika ini adalah komentar pertama di post tersebut
+  const emptyMessage = document.getElementById(`empty-comment-${postId}`);
+  if (emptyMessage) {
+    emptyMessage.remove();
+  }
+
+  // 3. Siapkan data profil lokal untuk langsung dirender secara instan
+  const currentUsername = currentProfile ? currentProfile.username : "Petani";
+  const currentAvatar = currentProfile ? currentProfile.avatar_url : "https://www.tofarmer.xyz/aset/favicon.png";
+
+  // 4. Struktur HTML untuk komentar baru Anda
+  const newCommentHtml = `
+    <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
+      <img src="${currentAvatar}" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid rgba(0,0,0,0.08);" />
+      <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.05); max-width:calc(100% - 32px);">
+        <span style="font-weight:700; color:#2f6f4e; margin-right:4px;">@${currentUsername}</span>
+        <span style="color:#2c3a33; white-space:pre-wrap;">${convertMentions(commentText)}</span>
+      </div>
+    </div>
+  `;
+
+  // 5. Suntikkan HTML ke bagian paling bawah container tanpa merusak state halaman
+  listContainer.insertAdjacentHTML('beforeend', newCommentHtml);
+
+  // 6. Bersihkan kotak input komentar
+  input.value = "";
+
+  // 7. Update text counter jumlah komentar secara dinamis di luar kotak
+  const counterEl = document.querySelector(`[onclick="toggleKomentarBox('${postId}')"]`);
+  if (counterEl) {
+    // Ambil angka lama, tambah 1, lalu tulis ulang
+    const currentCount = parseInt(counterEl.innerText.replace(/[^0-9]/g, '')) || 0;
+    counterEl.innerHTML = `💬 ${currentCount + 1} Komentar`;
+  }
+}
+let isReactingFeed = false; // <-- Ini gembok pengamannya
+
+async function reactPost(postId, type) {
+  if (!currentWallet) {
+    alert("Connect wallet dulu untuk memberikan apresiasi 🌱");
+    return;
+  }
+
+  if (isReactingFeed) return; // <-- Jika gembok masih mengunci, abaikan klik selanjutnya!
+  isReactingFeed = true;      // <-- Kunci pintu!
+
+  try {
+    const { error } = await supabaseClient
+      .rpc(type === 'sruput' ? 'increment_sruput' : 'increment_cangkul', { row_id: postId });
+
+    if (error) {
+      console.log("RPC gagal, mencoba metode update alternatif...");
+    }
+
+    // A. KUNCI KOORDINAT LAYAR
+    const targetCard = document.getElementById(`post-card-${postId}`);
+    const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
+
+    // B. Muat ulang lini masa feed
+    // Jalankan feed pertama kali
+  await loadFeed();
+
+  // Panggil pengisian daftar peringkat petani untuk radar card
+  loadRadarPeringkat();
+
+
+    // C. KEMBALIKAN POSISI SCROLL LAYAR
+    if (koordinatY) {
+      window.scrollTo({
+        top: koordinatY - 100, 
+        behavior: 'auto'       
+      });
+    }
+
+  } catch (err) {
+    console.log("Gagal memproses reaksi:", err);
+  } finally {
+    isReactingFeed = false; // <-- Selesai / Error? Buka kembali gemboknya!
+  }
+}
+function sharePost(postId, username, text) {
+  // 1. Susun URL unik yang mengarah langsung ke postingan ini di halaman profil
+  // Menggunakan window.location.origin + pathname agar dinamis baik di lokal maupun domain live
+  const shareUrl = `${window.location.origin}${window.location.pathname}?u=${username}&post=${postId}`;
+
+ navigator.clipboard.writeText(shareUrl).then(() => {
+    alert(`📢 Tautan karya @${username} berhasil disalin! Siap dibagikan ke komunitas 🌱\n\nLink: ${shareUrl}`);
+  }).catch((err) => {
+    console.error("Gagal menyalin tautan:", err);
+    alert(`Salin tautan ini secara manual:\n${shareUrl}`);
+  });
+}
+
+// 🟢 AWAL SISIPAN: FUNGSI MEMBACA PERINGKAT UNTUK RADAR CARD
+function getRadarRank(xp) {
+  const lvl = Math.floor(Math.sqrt(xp / 100)) + 1;
+  if (lvl >= 50) return "👑 Mahaguru ladang";
+  if (lvl >= 40) return "🧙‍♂️ Sesepuh Kebun";
+  if (lvl >= 30) return "👨‍🌾 Penguasa Lahan";
+  if (lvl >= 20) return "🌱 Petani Teladan";
+  if (lvl >= 10) return "🌿 Pembasmi Gulma";
+  if (lvl >= 5)  return "🍃 Penyiram Ulung";
+  return "🪵 Buruh Macul";
+}
+
+async function loadRadarPeringkat() {
+  const wadahRadar = document.getElementById("radar-peringkat-list");
+  if (!wadahRadar) return;
+
+  try {
+    // 🟢 SUDAH FIX: diganti menjadi 'supabaseClient'
+    const { data: users, error } = await supabaseClient
+      .from("profiles")
+      .select("username, xp")
+      .order("xp", { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    if (users && users.length > 0) {
+      wadahRadar.innerHTML = users.map((user, indeks) => {
+        const posisi = indeks + 1;
+        let medali = `${posisi}.`;
+        if (posisi === 1) medali = "🥇";
+        if (posisi === 2) medali = "🥈";
+        if (posisi === 3) medali = "🥉";
+
+        const xpUser = user.xp || 0;
+        const levelUser = Math.floor(Math.sqrt(xpUser / 100)) + 1;
+
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid #f1f5f9;padding:6px 10px;border-radius:8px;font-size:11px;">
+            <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
+              <span style="font-weight:bold;color:#64748b;width:16px;flex-shrink:0;">${medali}</span>
+              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                <strong style="color:#1e293b;">@${user.username}</strong>
+                <div style="font-size:9px;color:#64748b;">${getRadarRank(xpUser)}</div>
+              </div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;font-weight:600;color:#2f6f4e;background:#eef7f1;padding:2px 6px;border-radius:999px;font-size:10px;margin-left:4px;">
+              Lvl ${levelUser} <span style="font-size:9px;font-weight:normal;color:#6f7f76;">(${xpUser})</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+    } else {
+      wadahRadar.innerHTML = `<p style="font-size:11px;color:#94a3b8;text-align:center;margin:0;">Belum ada data petani.</p>`;
+    }
+  } catch (err) {
+    console.error("Gagal memuat radar peringkat:", err);
+    wadahRadar.innerHTML = `<p style="font-size:11px;color:#ef4444;text-align:center;margin:0;">⚠️ Gagal memuat peringkat</p>`;
+  }
+}
+// 🟢 AKHIR SISIPAN FUNGSI
+// Fungsi pengendali menu dropdown titik tiga ala FB untuk Beranda utama
+function toggleDotMenu(postId) {
+  const dropdown = document.getElementById(`dropdown-${postId}`);
+  if (!dropdown) return;
+  document.querySelectorAll('.dot-dropdown').forEach(el => {
+    if (el.id !== `dropdown-${postId}`) el.style.display = 'none';
+  });
+  dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+}
+
+window.addEventListener('click', function(e) {
+  if (!e.target.matches('.btn-dot-menu')) {
+    document.querySelectorAll('.dot-dropdown').forEach(el => el.style.display = 'none');
+  }
+
+  // Handler untuk tombol Edit Postingan - ambil teks dari DOM secara aman
+  if (e.target.matches('.btn-edit-post')) {
+    const postId = e.target.dataset.postId;
+    if (!postId) return;
+    const card = document.getElementById(`post-card-${postId}`);
+    if (!card) return;
+    // Ambil teks asli dari elemen .text di dalam card
+    const tekstEl = card.querySelector('.text');
+    const teksLama = tekstEl ? (tekstEl.innerText || tekstEl.textContent || "") : "";
+    aksiEditPostingan(postId, teksLama);
+  }
+});
+
+async function aksiEditPostingan(postId, teksLama) {
+  if (!currentWallet) {
+    alert("Login dulu ya 🌱");
+    return;
+  }
+
+  const teksBaru = prompt("Edit postingan Anda:", teksLama);
+  if (teksBaru === null) return;
+  if (!teksBaru.trim()) return alert("Teks tidak boleh kosong!");
+
+  const { error } = await supabaseClient
+    .from("contributions")
+    .update({ deskripsi_proses: teksBaru.trim() })
+    .eq("id", postId)
+    .eq("user_id", currentWallet);
+
+  if (error) {
+    alert("Gagal mengedit: " + error.message);
+  } else {
+    alert("Postingan berhasil diperbarui! 🌱");
+    if (typeof loadFeed === "function") loadFeed();
+  }
+}
+
+async function aksiSembunyikanKeProfil(postId) {
+  const yakin = confirm("Sembunyikan dari Beranda Utama? Postingan tetap tersimpan aman di Profil pribadi Anda.");
+  if (!yakin) return;
+
+  const { error } = await supabaseClient
+    .from("contributions")
+    .update({ is_private: true })
+    .eq("id", postId);
+
+  if (error) {
+    alert("Gagal menyembunyikan: " + error.message);
+  } else {
+    alert("Postingan berhasil dipindahkan ke arsip profil pribadi 🔒");
+    if (typeof loadFeed === "function") loadFeed();
+  }
+}
+// Pastikan radar langsung muncul saat halaman dibuka
+document.addEventListener("DOMContentLoaded", () => {
+  loadRadarPeringkat();
 });
 </script>
 
-<!-- ===================== ENGINE DEPENDENCIES (WAJIB) ===================== -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    // ===================================================================
+    // SINKRONISASI "RUMAH ANDA" — murni tambahan visual, TIDAK mengubah
+    // satu baris pun dari app.js di atas. Fungsi renderProfile() (didefinisikan
+    // di app.js) di-"bungkus" agar setiap kali profil asli diperbarui
+    // (login, ganti avatar, sinkron wallet tersimpan), foto & nama di atas
+    // rumah pertama pada peta ikut mengikuti akun yang sedang login.
+    // ===================================================================
+    if (typeof renderProfile === 'function') {
+        const _origRenderProfile = renderProfile;
+        renderProfile = function () {
+            _origRenderProfile();
+            syncMyHouse();
+        };
+    }
 
-<script src="/supabase.js"></script>
-<script src="/js/rank.js"></script>
-<script src="/js/reaction.js"></script>
-<script src="/js/comments.js"></script>
-<script src="/js/share.js"></script>
-<script src="/js/qlr.js"></script>
-<script src="/js/ai-memory.js"></script>
-<script src="/mbah_eko_injector.js"></script>
+    function syncMyHouse() {
+        const img = document.getElementById('myHouseAvatar');
+        const label = document.getElementById('myHouseLabel');
+        if (!img || !label) return;
 
-<!-- IMPORTANT: APP HARUS PALING AKHIR -->
-<script src="/app.js"></script>
+        if (typeof currentProfile !== 'undefined' && currentProfile) {
+            img.src = currentProfile.avatar_url || img.src;
+            label.textContent = '@' + (currentProfile.username || 'Anda');
+        } else {
+            label.textContent = 'Rumah Anda';
+        }
+    }
+</script>
 
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+
 </body>
 </html>
