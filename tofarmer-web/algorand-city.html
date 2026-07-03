@@ -423,8 +423,9 @@
    // --- B. GENERATOR RUMAH WARGA (foto profil melayang di atas atap) ---
 // Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
 // Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
-for (let i = 0; i < 17; i++) {
-    const segmentWidth = (worldWidth - 200) / 17;
+const userId = isMyHouse ? currentWallet : `warga_${i + 1}`;
+const username = isMyHouse ? "Mbah Eko" : `Warga_${i + 1}`;
+    const segmentWidth = (worldWidth - 200) / profiles.length;
     const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
     const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
 
@@ -449,13 +450,14 @@ for (let i = 0; i < 17; i++) {
         <div class="house-name"${labelIdAttr}>${residentName}</div>
     `;
 
-    // Klik rumah -> kamera fokus + panel warga terbuka di pinggir (desa tetap terlihat)
-    house.addEventListener('click', (e) => {
-        e.stopPropagation();
-        focusOnHouse(x, y);
-    });
-    world.appendChild(house);
-}
+   house.addEventListener('click', (e) => {
+    e.stopPropagation();
+
+    const userId = house.dataset.userId;
+    const username = house.dataset.username;
+
+    openProfile(userId, username);
+});
 
 // --- C. LANGIT SINEMATIK ---
 function drawSky() {
@@ -713,15 +715,29 @@ document.getElementById("imageInput").addEventListener("change", function (e) {
 // --- G. EVENT LISTENER UNTUK CLOSE PANEL WARGA KETIKA KLIK DI LUAR ---
 document.addEventListener('click', function(event) {
     const layoutWrapper = document.getElementById('mainLayout');
-    const houseNodes = document.querySelectorAll('.house-node');
-    
-    // Jika klik di luar panel warga dan house nodes, tutup panel
-    if (!layoutWrapper.contains(event.target) && !houseNodes.contains(event.target)) {
+
+    const clickedHouse = event.target.closest('.house-node');
+    const clickedPanel = event.target.closest('.layout-wrapper');
+    const clickedUI = event.target.closest('.container');
+
+    if (!clickedPanel && !clickedHouse && !clickedUI) {
         if (layoutWrapper.classList.contains('active-profile')) {
             closeResidentPanel(true);
         }
     }
 });
+async function loadVillageUsers() {
+  const { data: users, error } = await supabaseClient
+    .from("profiles")
+    .select("id, username, avatar_url, xp, saldo_tof");
+
+  if (error) {
+    console.log(error);
+    return [];
+  }
+
+  return users;
+}
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2999,6 +3015,20 @@ document.addEventListener("DOMContentLoaded", () => {
             label.textContent = 'Rumah Anda';
         }
     }
+function openProfile(userId, username) {
+    panelManual = false;
+
+    openResidentPanel();
+
+    // isi UI panel sesuai user
+    document.querySelector(".drawer-topline span").innerText =
+        `🏘️ Profil ${username}`;
+
+    const nameEl = document.querySelector("#profileInfo div");
+    if (nameEl) nameEl.innerText = `@${username}`;
+
+    console.log("Open profile:", userId);
+}
 </script>
 
 <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
