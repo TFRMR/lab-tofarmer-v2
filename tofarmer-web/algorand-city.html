@@ -156,14 +156,35 @@
     }
     button:hover { transform: translateY(-2px); opacity: 0.95; box-shadow: 0 6px 15px rgba(201,162,39,0.4); }
 
-    .  /* Floating WA */
-        .tof-wa-float {
-            position: fixed; right: 20px; bottom: 20px; width: 60px; height: 60px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #5dff9d, #24b45a);
-            box-shadow: 0 0 15px rgba(37,211,102,.4); z-index: 99999; animation: tofGlow 2s infinite ease-in-out; pointer-events: auto;
-        }
-        .tof-wa-float img { width: 32px; height: 32px; }
-        @keyframes tofGlow { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+   /* Perbaikan Tombol WA agar ukurannya terkunci 60px */
+.tof-wa-float {
+    position: fixed; 
+    right: 20px; 
+    bottom: 20px; 
+    width: 60px !important; 
+    height: 60px !important; 
+    min-width: 60px;
+    min-height: 60px;
+    flex-shrink: 0; /* Mencegah tombol melar */
+    border-radius: 50%;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    background: radial-gradient(circle, #5dff9d, #24b45a);
+    box-shadow: 0 0 15px rgba(37,211,102,.4); 
+    z-index: 99999; 
+    pointer-events: auto;
+    overflow: hidden; /* Memastikan isi tidak keluar batas */
+}
+
+/* Memastikan icon WA di dalamnya berukuran wajar */
+.tof-wa-float img {
+    width: 32px !important; 
+    height: 32px !important; 
+    object-fit: contain;
+    display: block;
+}
+
     /* Responsive */
     @media (max-width: 850px){
         .container { padding: 8px 12px; gap: 10px; justify-content: center; }
