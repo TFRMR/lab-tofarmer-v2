@@ -2,318 +2,487 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Tof Village • Era Masa Lalu</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title id="postTitle">ToFarmer • Desa Agritech</title>
+    <meta name="description" id="postDesc" content="Intip ide, progres, dan eksperimen seru di ekosistem ToFarmer.">
+    
+    <meta property="og:title" id="ogTitle" content="ToFarmer - Ruang Tanam Karya" />
+    <meta property="og:description" id="ogDesc" content="Intip ide, progres, dan eksperimen seru di ekosistem ToFarmer." />
+    <meta property="og:image" id="ogImage" content="https://afpzddwuikvwsedzgsee.supabase.co/storage/v1/object/public/profile-posts/tofarmer-kecil.png" />
+    <meta property="og:type" content="website" />
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
+    <link rel="icon" type="image/png" href="aset/favicon.png">
+    
     <style>
-        body { 
-            margin: 0; 
-            background: linear-gradient(to bottom, #070e0a, #0c1a12); 
-            overflow: hidden; 
-            cursor: crosshair; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        /* =========================================
+           1. PENGATURAN DUNIA & PETA (MAP ENGINE)
+           ========================================= */
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: #050b07; overflow: hidden; touch-action: none; 
+            font-family: 'Inter', sans-serif; user-select: none;
         }
-        .ui { 
-            position: absolute; 
-            top: 20px; 
-            left: 20px; 
-            color: #4ade80; 
-            font-family: 'Playfair Display', serif; 
-            pointer-events: none; 
-            z-index: 10;
-            text-shadow: 0 0 8px rgba(74, 222, 128, 0.7);
+
+        #viewport { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; overflow: hidden; z-index: 0; }
+        #world { width: 3200px; height: 2400px; position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+        #bgCanvas { position: absolute; top: 0; left: 0; z-index: 1; }
+
+        /* Rumah Penduduk */
+        .house-node { position: absolute; width: 90px; text-align: center; cursor: pointer; z-index: 3; }
+        .house-icon { font-size: 42px; transition: transform 0.2s; filter: drop-shadow(0 0 12px rgba(74, 222, 128, 0.5)); }
+        .house-node:hover .house-icon { transform: scale(1.2) translateY(-5px); }
+        .house-name { 
+            background: rgba(5, 11, 7, 0.9); color: #a7f3d0; border: 1px solid rgba(74, 222, 128, 0.3); 
+            padding: 3px 6px; border-radius: 5px; font-size: 11px; margin-top: 2px;
+            white-space: nowrap; display: inline-block; box-shadow: 0 3px 6px rgba(0,0,0,0.5);
         }
-        .stats {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            color: #86efac;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            text-align: right;
-            z-index: 10;
-            background: rgba(10, 20, 15, 0.7);
-            padding: 10px 15px;
-            border-radius: 10px;
-            border: 1px solid rgba(74, 222, 128, 0.3);
+
+        /* Kontrol Kamera Peta */
+        #map-controls { position: fixed; bottom: 20px; left: 20px; z-index: 50; display: flex; gap: 8px; pointer-events: auto; }
+        .map-btn {
+            background: rgba(12, 26, 18, 0.85); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3);
+            padding: 10px 14px; font-weight: bold; font-size: 13px; border-radius: 8px; 
+            cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); transition: all 0.2s; backdrop-filter: blur(5px);
         }
-        .coin {
-            display: inline-block;
-            text-shadow: 0 0 5px rgba(251, 191, 36, 0.8);
+        .map-btn:active { background: #4ade80; color: #050b07; transform: scale(0.95); }
+
+        /* =========================================
+           2. UI TOFARMER (GLASSMORPHISM OVERLAY)
+           ========================================= */
+        #ui-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            z-index: 20; pointer-events: none; overflow-y: auto; padding-bottom: 80px;
+        }
+
+        .container { max-width: 1100px; margin: auto; padding: 1rem; pointer-events: none; }
+        
+        /* Elemen UI yang bisa diklik */
+        header, nav, .eco, .layout-wrapper { pointer-events: auto; }
+
+        header { text-align: center; padding: 1.5rem 1rem; }
+        .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; color: #a7f3d0; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .logo { width: 60px; height: 60px; border-radius: 50%; background: white; border: 2px solid rgba(47,111,78,0.2); animation: pulse 4s infinite; }
+        @keyframes pulse { 0%{filter:drop-shadow(0 0 6px rgba(74,222,128,0.4));} 50%{filter:drop-shadow(0 0 18px rgba(74,222,128,0.6));} 100%{filter:drop-shadow(0 0 6px rgba(74,222,128,0.4));} }
+
+        nav { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        nav a { padding: 8px 16px; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 12px; color: #a7f3d0; text-decoration: none; font-size: 12px; background: rgba(5, 11, 7, 0.7); backdrop-filter: blur(8px); transition: 0.2s; }
+        nav a:hover { background: rgba(74, 222, 128, 0.2); transform: translateY(-2px); }
+
+        /* Panel Kaca (Glassmorphism) untuk Dashboard ToFarmer */
+        .card, .eco {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 16px; padding: 15px; margin-bottom: 15px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            color: #1c2b22;
+        }
+
+        .eco { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: center; border: 1px solid rgba(212,175,55,0.4); }
+        .eco span { color: #556b5e; font-size: 11px; font-weight: 600;}
+        .eco b { color: #b8921e; font-size: 18px; }
+
+        .eco-avatars { display: flex; justify-content: flex-end; overflow: hidden; }
+        #avatarStack { display: flex; gap: -10px; overflow-x: auto; padding-right: 10px; scrollbar-width: none; }
+        #avatarStack::-webkit-scrollbar { display: none; }
+        .avatar-item { width: 34px; height: 34px; border-radius: 50%; border: 2px solid white; object-fit: cover; margin-left: -10px; transition: 0.25s; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+        .avatar-item:hover { transform: translateY(-6px) scale(1.15); z-index: 10; }
+
+        /* Transisi Layout (Muncul saat Zoom In) */
+        .layout-wrapper {
+            opacity: 0; transform: translateY(30px) scale(0.98); pointer-events: none;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .layout-wrapper.active-profile {
+            opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+        }
+
+        .layout { display: flex; gap: 20px; }
+        .left { width: 320px; }
+        .right { flex: 1; }
+
+        /* Postingan & Feed */
+        .feed { max-height: 600px; overflow-y: auto; padding-right: 5px; }
+        .feed::-webkit-scrollbar { width: 5px; }
+        .feed::-webkit-scrollbar-thumb { background: #4caf7a; border-radius: 10px; }
+        .post { background: #ffffff; padding: 12px; border-left: 4px solid #4caf7a; margin-bottom: 10px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+        .user { color: #2f6f4e; font-size: 12px; margin-bottom: 5px; font-weight: 600; }
+        .text { font-size: 13px; color: #2c3a33; line-height: 1.5; }
+        
+        .post-actions { margin-top: 8px; margin-bottom: 8px; padding-top: 4px; border-top: 1px solid rgba(0, 0, 0, 0.04); }
+        .share-btn { background: transparent; border: none; color: #6f7f76; font-size: 11px; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; transition: all 0.2s ease; }
+        .share-btn:hover { background: rgba(76, 175, 122, 0.1); color: #2f6f4e; }
+
+        /* Input Textarea ToFarmer */
+        textarea {
+            width: 100%; min-height: 120px; padding: 16px; border-radius: 16px;
+            border: 3px solid #2f6f4e; outline: none; box-shadow: 4px 4px 0px #c9a227;
+            font-size: 14px; transition: all 0.3s ease; background: rgba(255,255,255,0.95);
+        }
+        textarea:focus { box-shadow: 6px 6px 0px #c9a227; transform: translateY(-2px); }
+
+        button {
+            margin-top: 10px; width: 45%; padding: 10px; background: linear-gradient(90deg,#4caf7a,#c9a227);
+            border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: white; transition: 0.2s;
+        }
+        button:hover { transform: translateY(-2px); opacity: 0.95; box-shadow: 0 6px 15px rgba(201,162,39,0.4); }
+
+        /* Floating WA */
+        .tof-wa-float {
+            position: fixed; right: 20px; bottom: 20px; width: 60px; height: 60px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #5dff9d, #24b45a);
+            box-shadow: 0 0 15px rgba(37,211,102,.4); z-index: 99999; animation: tofGlow 2s infinite ease-in-out; pointer-events: auto;
+        }
+        .tof-wa-float img { width: 32px; height: 32px; }
+        @keyframes tofGlow { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+        /* Responsive */
+        @media(max-width: 850px){
+            .layout { flex-direction: column; }
+            .left { width: 100%; }
+            .eco { grid-template-columns: 1fr; text-align: center; }
+            .eco-avatars { justify-content: center; }
+            #avatarStack { justify-content: center; }
+            #profileAvatar{ width:60px !important; height:60px !important; }
         }
     </style>
 </head>
 <body>
-<div class="ui">
-    <h2 style="margin:0">Tof Village • Era Masa Lalu</h2>
-    <p id="status" style="font-size:0.8rem; letter-spacing:2px;">HUTAN TENANG, ALIRAN DATA MASUK...</p>
+
+<div id="viewport">
+    <div id="world">
+        <canvas id="bgCanvas"></canvas>
+        </div>
 </div>
-<div class="stats">
-    <div id="txCount">Transaksi: 0</div>
-    <div id="walletCount">Dompet: 0</div>
-    <div id="coinBalance" class="coin">🪙 TOF: 0</div>
+
+<div id="map-controls">
+    <button class="map-btn" onclick="zoomMenu(0.2)">➕</button>
+    <button class="map-btn" onclick="zoomMenu(-0.2)">➖</button>
+    <button class="map-btn" onclick="resetView()">🌄 Lihat Desa</button>
 </div>
-<canvas id="cityCanvas"></canvas>
+
+<div id="ui-overlay">
+    <div class="container">
+        
+        <header>
+            <a class="brand" href="#">
+                <img class="logo" src="aset/logo.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1892/1892751.png'"/>
+                <h2>ToFarmer</h2>
+            </a>
+        </header>
+
+        <nav>
+            <a href="html/dashboard.html">Sumbang Ilmu</a>
+            <a href="html/fitur-ilmu.html">Fitur & Info</a>
+        </nav>
+
+        <div class="eco">
+            <div>
+                <span>Total Aset Ekosistem</span><br>
+                <b id="totalAsset">0 TOF</b>
+            </div>
+            <div>
+                <span>Users</span><br>
+                <b id="rankSummary">0</b>
+            </div>
+            <div class="eco-avatars">
+                <div id="avatarStack"></div>
+            </div>
+        </div>
+
+        <div class="layout-wrapper" id="mainLayout">
+            <div class="layout">
+                
+                <div class="left">
+                    <div class="card" style="padding:15px;">
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <div style="position:relative;flex-shrink:0;">
+                                <img id="profileAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid rgba(76,175,122,.5); box-shadow:0 2px 8px rgba(0,0,0,.1);">
+                                <label id="editAvatarBtn" for="avatarInput" style="display:flex; position:absolute; right:-2px; bottom:-2px; width:20px; height:20px; border-radius:50%; background:#4caf7a; color:white; cursor:pointer; font-size:10px; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.2);">✏️</label>
+                                <input type="file" id="avatarInput" accept="image/*" style="display:none;">
+                            </div>
+                            <div id="profileInfo" style="flex:1;min-width:0;">
+                                <div id="profileUsername" style="font-weight:700;font-size:15px;color:#2f6f4e;">@guest</div>
+                                <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap;">
+                                    <div style="background:#f5f5f5;border-radius:6px;padding:3px 8px;font-size:10px;color:#555;border:1px solid #ddd;">XP: <b>0</b></div>
+                                    <div style="background:#fff8e1;border-radius:6px;padding:3px 8px;font-size:10px;color:#c9a227;border:1px solid #fde68a;">TOF: <b>0</b></div>
+                                    <div style="background:#eef7f1;border-radius:6px;padding:3px 8px;font-size:10px;color:#2f6f4e;font-weight:600;border:1px solid #bbf7d0;">🌱 GROWER</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card" id="walletCard">
+                        <h4 style="color:#2f6f4e;font-size:12px;margin-bottom:8px;">Algorand Wallet</h4>
+                        <button id="connectBtn" onclick="connectWallet()" style="width:100%; font-size:12px;">🔑 MASUK / DAFTAR 🌿</button>
+                        <button id="logoutBtn" onclick="disconnectWallet()" style="display:none; width:100%; background:#e11d48; font-size:12px;">🚪 LOGOUT</button>
+                    </div>
+
+                    <div class="card">
+                        <h4 style="color:#c9a227;font-size:12px;margin-bottom:8px;">FASE PROGRESS SEKARANG</h4>
+                        <div style="height:8px;background:#eee;border-radius:5px;overflow:hidden;">
+                            <div id="faseBar" style="width:20%;height:100%;background:linear-gradient(90deg,#4caf7a,#c9a227);"></div>
+                        </div>
+                        <p id="faseText" style="font-size:11px; margin-top:6px; color:#556b5e;">Fase 1: Nabung Receh...</p>
+                    </div>
+
+                    <div class="card" id="qlrCard">
+                        <h4 style="color:#2f6f4e;font-size:12px;margin-bottom:6px;">🌱 QUANTUM LIFE RADAR → 100K TOF</h4>
+                        <p style="font-size:10px;color:#6f7f76;margin-bottom:10px;">Estimasi waktu tiap user menuju 100.000 TOF (10% compounding/bulan)</p>
+                        <div id="qlrContainer"></div>
+                        <hr style="border:0; border-top:1px solid rgba(0,0,0,0.05); margin:10px 0;">
+                        <p style="font-size:11px;color:#2f6f4e;text-align:center;font-weight:bold;margin-bottom:8px;">Peringkat Energi Kontribusi</p>
+                        <div id="radar-peringkat-list" style="display:flex;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;padding-right:2px;">
+                            <p style="font-size:10px;color:#94a3b8;text-align:center;font-style:italic;margin:0;">Memuat Data Ekosistem...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right">
+                    <div class="card">
+                        <textarea id="postBox" placeholder="Ada progres apa? Ide, atau keajaiban hari ini di Desa ToFarmer? Tulis di sini..."></textarea>
+                        
+                        <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <label for="imageInput" style="display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:999px; cursor:pointer; background:linear-gradient(135deg, rgba(76,175,122,.15), rgba(201,162,39,.15)); border:1px solid rgba(76,175,122,.2); color:#2f6f4e; font-size:12px; font-weight:600; transition:0.2s;">
+                                    📷 Tambah Foto
+                                </label>
+                                <span id="imagePreviewText" style="font-size:11px; color:#6f7f76; max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></span>
+                                <input type="file" id="imageInput" accept="image/*" style="display:none">
+                            </div>
+                            <button onclick="sendPost()" style="margin:0; width:auto; padding:10px 24px;">KIRIM KARYA</button>
+                        </div>
+                    </div>
+
+                    <div class="feed" id="feed">
+                        <div class="post">
+                            <div class="user">@system_tofarmer</div>
+                            <div class="text">Desa Twilight Menoreh Agritech initialized. Selamat datang di ekosistem sirkular ToFarmer! 🌱</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="pilarModal" style="position:fixed; inset:0; background:rgba(20,30,25,.6); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; z-index:9999; padding:20px;">
+    <div style="width:100%; max-width:420px; background:rgba(255,255,255,.95); border-radius:24px; padding:22px; border:1px solid rgba(76,175,122,.2); box-shadow:0 20px 50px rgba(0,0,0,.2);">
+        <div style="text-align:center; margin-bottom:18px;">
+            <div style="font-size:42px;">🌿</div>
+            <h3 style="color:#2f6f4e; font-size:20px; margin-top:8px;">Pilih Pilar Tulisan</h3>
+            <p style="font-size:12px; color:#6f7f76; margin-top:6px;">Vibes tulisanmu hari ini apa? ☕</p>
+        </div>
+        <div id="pilarOptions" style="display:grid; gap:10px;"></div>
+    </div>
+</div>
+
+<a href="https://wa.me/6285228028131?text=Halo%20Admin%20ToFarmer%20🌿" class="tof-wa-float" target="_blank">
+    <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="WA"/>
+</a>
+
 
 <script>
-const canvas = document.getElementById('cityCanvas');
-const ctx = canvas.getContext('2d');
-
-// State Variables
-let humans = [];
-let staticElements = []; 
-let particles = [];
-let walletMap = new Map();
-let txCount = 0;
-let walletCount = 0;
-
-// Variabel untuk fitur Drag & Drop
-let isDragging = false;
-let draggedWallet = null;
-
-// Konfigurasi Warna
-const COLORS = {
-    background: '#070e0a',
-    mountain: ['#1a2a22', '#153a2a', '#104a30'],
-    coin: '#fbbf24'
-};
-
-function initCity() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // --- A. MESIN PETA DESA MENOREH ---
+    const world = document.getElementById('world');
+    const canvas = document.getElementById('bgCanvas');
+    const ctx = canvas.getContext('2d');
     
-    // Generate pohon sebagai latar belakang hutan (statis)
-    staticElements = [];
-    for(let i=0; i<35; i++) {
-        staticElements.push({ 
-            x: Math.random() * canvas.width, 
-            y: Math.random() * canvas.height, 
-            icon: '🌲',
-            size: 20 + Math.random() * 15
+    const worldWidth = 3200;
+    const worldHeight = 2400;
+    const horizonY = worldHeight * 0.35; 
+
+    canvas.width = worldWidth;
+    canvas.height = worldHeight;
+
+    let scale = 0.4; 
+    let posX = 0, posY = 0;
+    let isDragging = false, startX, startY, lastDist = 0;
+    const housePositions = [];
+
+    // Generator 17 Rumah di Daratan (Di bawah cakrawala)
+    for(let i = 0; i < 17; i++) {
+        const segmentWidth = (worldWidth - 200) / 17;
+        const x = (i * segmentWidth) + 100 + (Math.random() * 80 - 40);
+        const y = horizonY + 150 + (Math.random() * (worldHeight - horizonY - 350));
+
+        housePositions.push({x, y});
+
+        const house = document.createElement('div');
+        house.className = 'house-node';
+        house.style.left = (x - 45) + 'px'; 
+        house.style.top = (y - 30) + 'px';
+        house.innerHTML = `<div class="house-icon">🏠</div><div class="house-name">Masyarakat_${i+1}</div>`;
+        
+        // Klik rumah -> Zoom masuk (Buka Profil)
+        house.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Ganti nama profil guest sementara sesuai rumah yang diklik
+            document.getElementById('profileUsername').innerText = `@Masyarakat_${i+1}`;
+            focusOnHouse(x, y);
         });
+        world.appendChild(house);
     }
-    
-    walletMap.clear();
-    txCount = 0;
-    walletCount = 0;
-    updateStats();
-}
 
-function generateMountains() {
-    const gradient = ctx.createLinearGradient(0, canvas.height/2, 0, canvas.height);
-    gradient.addColorStop(0, COLORS.mountain[0]);
-    gradient.addColorStop(0.3, COLORS.mountain[1]);
-    gradient.addColorStop(1, COLORS.mountain[2]);
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height);
-    ctx.lineTo(0, canvas.height/2);
-    
-    for(let i = 0; i <= canvas.width; i += 20) {
-        const height = Math.sin(i / 100) * 50 + Math.sin(i / 50) * 30;
-        ctx.lineTo(i, canvas.height/2 - height);
-    }
-    
-    ctx.lineTo(canvas.width, canvas.height/2);
-    ctx.lineTo(canvas.width, canvas.height);
-    ctx.fill();
-}
+    function drawEnvironment() {
+        ctx.clearRect(0, 0, worldWidth, worldHeight);
 
-async function fetchTx() {
-    try {
-        const res = await fetch("https://mainnet-idx.algonode.cloud/v2/transactions?limit=10&asset-id=3558306283");
-        const data = await res.json();
-        if(data.transactions) {
-            data.transactions.forEach(tx => {
-                txCount++;
-                
-                // Tambahkan dompet (Rumah) jika belum ada
-                if(!walletMap.has(tx.sender)) {
-                    walletMap.set(tx.sender, {
-                        address: tx.sender,
-                        balance: 0,
-                        x: Math.random() * canvas.width,
-                        y: Math.random() * canvas.height
-                    });
-                    walletCount++;
-                }
-                
-                const wallet = walletMap.get(tx.sender);
-                wallet.balance += 1;
-                
-                // Manusia bergerak ke rumah tersebut
-                humans.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    target: wallet, // Target mereferensi objek dompet
-                    speed: 0.8 + Math.random() * 0.5,
-                    wallet: wallet
-                });
-            });
-            updateStats();
-        }
-    } catch(e) {
-        console.error("Error fetching transactions:", e);
-    }
-}
+        // Langit Senja Menoreh
+        let skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+        skyGrad.addColorStop(0, '#0f172a');
+        skyGrad.addColorStop(0.6, '#1e1b4b');
+        skyGrad.addColorStop(1, '#2e1065');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, worldWidth, horizonY);
 
-function createTransactionEffect(x, y) {
-    for(let i = 0; i < 12; i++) {
-        particles.push({ 
-            x: x, 
-            y: y, 
-            vx: (Math.random() - 0.5) * 6, 
-            vy: (Math.random() - 0.5) * 6, 
-            life: 1.5,                     
-            size: 3 + Math.random() * 2,   
-            color: COLORS.coin               
-        });
-    }
-}
+        // Daratan Agritech
+        let landGrad = ctx.createLinearGradient(0, horizonY, 0, worldHeight);
+        landGrad.addColorStop(0, '#0c1a12'); 
+        landGrad.addColorStop(1, '#050b07'); 
+        ctx.fillStyle = landGrad;
+        ctx.fillRect(0, horizonY, worldWidth, worldHeight - horizonY);
 
-function updateStats() {
-    document.getElementById('txCount').innerText = `Transaksi: ${txCount}`;
-    document.getElementById('walletCount').innerText = `Dompet: ${walletCount}`;
-    let totalBal = Array.from(walletMap.values()).reduce((a, b) => a + b.balance, 0);
-    document.getElementById('coinBalance').innerText = `🪙 TOF: ${totalBal.toFixed(1)}`;
-}
-
-function draw() {
-    // 1. Bersihkan frame & Gambar Latar
-    ctx.fillStyle = 'rgba(7, 14, 10, 0.2)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    generateMountains(); 
-
-    // Atur perataan teks agar tepat di koordinat X dan Y (Penting untuk deteksi klik)
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-
-    // 2. Gambar Pohon (Statis)
-    staticElements.forEach(e => {
-        ctx.font = `${e.size}px serif`;
-        ctx.fillText(e.icon, e.x, e.y);
-    });
-
-    // 3. Gambar Rumah (Dompet) dengan efek napas
-    walletMap.forEach(wallet => {
-        const pulse = Math.sin(Date.now() / 1000) * 5;
-        // Besarkan sedikit rumah yang sedang ditarik (di-drag)
-        const isThisDragged = (wallet === draggedWallet);
-        ctx.font = `${(isThisDragged ? 45 : 30) + pulse}px serif`;
-        ctx.fillText('🏠', wallet.x, wallet.y);
-        
-        ctx.fillStyle = isThisDragged ? '#4ade80' : 'rgba(255,255,255,0.4)';
-        ctx.font = '12px Arial';
-        ctx.fillText(wallet.address.substring(0, 4) + '...', wallet.x, wallet.y + 25);
-    });
-
-    // 4. Animasi Manusia
-    humans.forEach((h, i) => {
-        let dx = h.target.x - h.x;
-        let dy = h.target.y - h.y;
-        let dist = Math.sqrt(dx*dx + dy*dy);
-        
-        if(dist < 5) {
-            createTransactionEffect(h.x, h.y);
-            h.wallet.balance += 0.1;
-            humans.splice(i, 1);
-        } else {
-            h.x += (dx/dist) * h.speed + Math.sin(Date.now()/500)*0.5;
-            h.y += (dy/dist) * h.speed;
-            ctx.font = '20px serif';
-            ctx.fillText('🚶', h.x, h.y);
-        }
-    });
-
-    // 5. Animasi Idle (Saat sepi)
-    if (humans.length === 0) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        // Cakrawala / Bukit
+        ctx.fillStyle = '#09140e';
         ctx.beginPath();
-        ctx.arc(canvas.width/2 + Math.sin(Date.now()/1000)*100, 
-                canvas.height/2 + Math.cos(Date.now()/1000)*100, 
-                40, 0, Math.PI*2);
-        ctx.fill();
-    }
-
-    // 6. Efek Partikel
-    particles.forEach((p, i) => {
-        p.x += p.vx; 
-        p.y += p.vy; 
-        p.life -= 0.02;
-        
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = p.life < 0 ? 0 : p.life;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-        
-        if(p.life <= 0) particles.splice(i, 1);
-    });
-
-    requestAnimationFrame(draw);
-}
-
-// === LOGIKA DRAG & DROP RUMAH DOMPET ===
-
-canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // Cek semua rumah, apakah titik klik berada di area rumah tersebut
-    for (let [address, wallet] of walletMap) {
-        const dx = mouseX - wallet.x;
-        const dy = mouseY - wallet.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        // Jari-jari deteksi klik sekitar 25 pixel
-        if (distance < 25) {
-            isDragging = true;
-            draggedWallet = wallet;
-            canvas.style.cursor = 'grabbing';
-            break; // Berhenti mencari jika sudah ketemu satu rumah
+        ctx.moveTo(0, horizonY);
+        for (let x = 0; x <= worldWidth; x += 40) {
+            let hillHeight = Math.sin(x / 120) * 40 + Math.cos(x / 250) * 60;
+            ctx.lineTo(x, horizonY + hillHeight);
         }
-    }
-});
+        ctx.lineTo(worldWidth, worldHeight);
+        ctx.lineTo(0, worldHeight);
+        ctx.closePath();
+        ctx.fill();
 
-canvas.addEventListener('mousemove', (e) => {
-    if (isDragging && draggedWallet) {
-        const rect = canvas.getBoundingClientRect();
-        // Update koordinat rumah mengikuti pergerakan kursor
-        draggedWallet.x = e.clientX - rect.left;
-        draggedWallet.y = e.clientY - rect.top;
-    } else {
-        // Efek kursor jika sedang di atas rumah tapi tidak ditekan
-        let isHovering = false;
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        for (let [address, wallet] of walletMap) {
-            const dx = mouseX - wallet.x;
-            const dy = mouseY - wallet.y;
-            if (Math.sqrt(dx * dx + dy * dy) < 25) {
-                isHovering = true;
-                break;
+        // Jalan Setapak Sirkuit Data
+        ctx.strokeStyle = 'rgba(74, 222, 128, 0.12)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 12]); 
+        ctx.beginPath();
+        for(let i = 0; i < housePositions.length - 1; i++) {
+            ctx.moveTo(housePositions[i].x, housePositions[i].y);
+            ctx.lineTo(housePositions[i+1].x, housePositions[i].y);
+            ctx.lineTo(housePositions[i+1].x, housePositions[i+1].y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]); 
+
+        // Pohon Organik
+        ctx.textAlign = 'center';
+        for (let i = 0; i < 55; i++) {
+            let treeX = Math.random() * worldWidth;
+            let treeY = horizonY + 60 + (Math.random() * (worldHeight - horizonY - 100));
+            let nearHouse = housePositions.some(h => Math.hypot(h.x - treeX, h.y - treeY) < 80);
+            if(!nearHouse) {
+                ctx.font = `${20 + Math.random() * 18}px serif`;
+                ctx.fillText('🌲', treeX, treeY);
             }
         }
-        canvas.style.cursor = isHovering ? 'grab' : 'crosshair';
     }
-});
 
-window.addEventListener('mouseup', () => {
-    if (isDragging) {
-        isDragging = false;
-        draggedWallet = null;
-        canvas.style.cursor = 'crosshair';
+    // --- B. MANAJEMEN KAMERA & PEMICU UI TOFARMER ---
+    function updateTransform() {
+        scale = Math.min(Math.max(scale, 0.25), 2.5);
+        posX = Math.min(Math.max(posX, window.innerWidth - worldWidth * scale), 0);
+        posY = Math.min(Math.max(posY, window.innerHeight - worldHeight * scale), 0);
+        
+        world.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
+
+        // TRIGGER PENTING: Tampilkan panel ToFarmer jika zoom cukup dekat
+        const layoutEl = document.getElementById('mainLayout');
+        if (scale >= 1.2) {
+            layoutEl.classList.add('active-profile');
+        } else {
+            layoutEl.classList.remove('active-profile');
+        }
     }
-});
 
-// Inisialisasi & Mulai Loop
-window.addEventListener('resize', initCity);
-initCity();
-setInterval(fetchTx, 8000); 
-draw();
+    function focusOnHouse(hx, hy) {
+        scale = 1.6; // Zoom in ke area rumah
+        posX = (window.innerWidth / 2) - (hx * scale) + 150; // Offset sedikit ke kanan agar panel Profil tidak menutupi rumah sepenuhnya
+        if(window.innerWidth < 850) posX = (window.innerWidth / 2) - (hx * scale); // Di HP tetap di tengah
+        posY = (window.innerHeight / 2) - (hy * scale);
+        updateTransform();
+    }
+
+    function zoomMenu(delta) { scale += delta; updateTransform(); }
+
+    function resetView() {
+        scale = window.innerWidth / worldWidth;
+        if(scale < 0.3) scale = 0.35;
+        posX = (window.innerWidth - worldWidth * scale) / 2;
+        posY = (window.innerHeight - worldHeight * scale) / 2;
+        updateTransform();
+    }
+
+    // Inisialisasi Visual
+    drawEnvironment();
+    setTimeout(resetView, 100);
+
+    // --- C. NAVIGASI MOUSE & TOUCH ---
+    const checkTarget = (e) => {
+        // Cegah drag peta jika user mengklik/scroll di dalam UI Card ToFarmer
+        if (e.target.closest('.card') || e.target.closest('header') || e.target.closest('.eco') || e.target.closest('.map-btn')) return true;
+        return false;
+    };
+
+    const startDrag = (cx, cy) => { isDragging = true; startX = cx - posX; startY = cy - posY; };
+    const moveDrag = (cx, cy) => { if (!isDragging) return; posX = cx - startX; posY = cy - startY; updateTransform(); };
+    const stopDrag = () => { isDragging = false; };
+
+    // Desktop
+    window.addEventListener('mousedown', (e) => { if(!checkTarget(e)) startDrag(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+    window.addEventListener('mouseup', stopDrag);
+    window.addEventListener('wheel', (e) => { 
+        if(!checkTarget(e)){ scale += e.deltaY < 0 ? 0.05 : -0.05; updateTransform(); }
+    });
+
+    // Mobile
+    window.addEventListener('touchstart', (e) => {
+        if(checkTarget(e)) return;
+        if (e.touches.length === 1) { startDrag(e.touches[0].clientX, e.touches[0].clientY); }
+        else if (e.touches.length === 2) { isDragging = false; lastDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }
+    });
+    window.addEventListener('touchmove', (e) => {
+        if(checkTarget(e)) return;
+        if (isDragging && e.touches.length === 1) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); }
+        else if (e.touches.length === 2) {
+            let dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+            scale *= (dist / lastDist); lastDist = dist; updateTransform();
+        }
+    });
+    window.addEventListener('touchend', stopDrag);
+    window.addEventListener('resize', resetView);
+
+    // --- D. LOGIKA UPLOAD GAMBAR TOFARMER ---
+    document.getElementById("imageInput").addEventListener("change", function (e) {
+        const file = e.target.files?.[0];
+        const previewText = document.getElementById("imagePreviewText");
+        if (!file) { previewText.innerText = ""; return; }
+        let name = file.name;
+        if (name.length > 18) { name = name.substring(0, 18) + "..."; }
+        previewText.innerText = "Terpilih: " + name;
+    });
 
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="js/rank.js"></script>
+<script src="js/reaction.js"></script>
+<script src="./js/comments.js"></script>
+<script src="js/share.js"></script>
+<script src="js/qlr.js"></script>
+<script src="js/ai-memory.js"></script> 
+<script src="mbah_eko_injector.js"></script> 
+<script src="app.js"></script>
+
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+
 </body>
 </html>
