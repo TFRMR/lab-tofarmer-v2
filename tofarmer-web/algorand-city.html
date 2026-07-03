@@ -506,30 +506,31 @@
    // === KODE PEMANGGIL DATA SUPABASE ===
 setTimeout(async () => {
     try {
-        // Memastikan supabase sudah terhubung
-        if (typeof supabase !== 'undefined' && supabase && typeof supabase.from === 'function') {
-            // Menarik data username dan avatar dari tabel profiles
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('username, avatar_url');
-            
-            if (error) {
-                console.error("Error tarik data profil:", error);
-                // Tampilkan placeholder jika gagal
-                window.renderDesaToFarmer([]);
-                return;
-            }
-            
-            if (data && data.length > 0) {
-                // Berikan datanya ke fungsi pembuat desa!
-                window.renderDesaToFarmer(data);
-            } else {
-                console.log("Data profiles kosong atau belum ada user.");
-                // Tampilkan placeholder jika tidak ada data
-                window.renderDesaToFarmer([]);
-            }
-        } else {
+        // Tambahkan pengecekan lebih mendalam terhadap supabase
+        if (typeof supabase === 'undefined' || !supabase || typeof supabase.from !== 'function') {
             console.warn("Sistem Supabase belum siap atau tidak valid.");
+            // Tampilkan placeholder jika tidak ada data
+            window.renderDesaToFarmer([]);
+            return;
+        }
+        
+        // Memastikan supabase sudah terhubung
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('username, avatar_url');
+        
+        if (error) {
+            console.error("Error tarik data profil:", error);
+            // Tampilkan placeholder jika gagal
+            window.renderDesaToFarmer([]);
+            return;
+        }
+        
+        if (data && data.length > 0) {
+            // Berikan datanya ke fungsi pembuat desa!
+            window.renderDesaToFarmer(data);
+        } else {
+            console.log("Data profiles kosong atau belum ada user.");
             // Tampilkan placeholder jika tidak ada data
             window.renderDesaToFarmer([]);
         }
