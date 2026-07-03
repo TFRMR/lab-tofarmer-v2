@@ -210,8 +210,8 @@
     <button class="map-btn" onclick="zoomMenu(0.2)">➕</button>
     <button class="map-btn" onclick="zoomMenu(-0.2)">➖</button>
     <button class="map-btn" onclick="resetView()">🌄 Lihat Desa</button>
-    <button class="map-btn primary" onclick="toggleResidentPanel()">🏘️ Balai Desa</button>
-    <button class="map-btn" style="border-color: #4ade80; color: #fff;" onclick="bukaProfilSaya()">👤 Profil Saya</button>
+    
+   
 </div>
 
 <div id="ui-overlay">
@@ -238,9 +238,7 @@
                 <span>Warga</span>
                 <b id="rankSummary">0</b>
             </div>
-            <div class="eco-avatars">
-                <div id="avatarStack"></div>
-            </div>
+           
         </div>
     </div>
 
@@ -378,23 +376,7 @@
         if (manual) panelManual = true;
         document.getElementById('mainLayout').classList.remove('active-profile');
     }
-   function toggleResidentPanel() {
-        const el = document.getElementById('mainLayout');
-        if (el.classList.contains('active-profile')) {
-            closeResidentPanel(true);
-        } else {
-            panelManual = true;
-            openResidentPanel();
-            
-            // Kembalikan judul panel
-            document.querySelector(".drawer-topline span").innerText = `🏘️ Balai Desa ToFarmer`;
-            
-            // Jalankan ulang renderProfile() agar isi kotak kembali ke data akunmu sendiri
-            if (typeof renderProfile === 'function') {
-                renderProfile();
-            }
-        }
-    }
+  
 function bukaProfilSaya() {
         if (!currentWallet) {
             alert("Login dulu ya untuk melihat profil Anda 🌱");
