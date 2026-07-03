@@ -245,6 +245,7 @@
     <button class="map-btn" onclick="zoomMenu(-0.2)">➖</button>
     <button class="map-btn" onclick="resetView()">🌄 Lihat Desa</button>
     <button class="map-btn primary" onclick="toggleResidentPanel()">🏘️ Balai Desa</button>
+    <button class="map-btn" style="border-color: #4ade80; color: #fff;" onclick="bukaProfilSaya()">👤 Profil Saya</button>
 </div>
 
 <div id="ui-overlay">
@@ -427,7 +428,14 @@
             }
         }
     }
-
+function bukaProfilSaya() {
+        if (!currentWallet) {
+            alert("Login dulu ya untuk melihat profil Anda 🌱");
+            return;
+        }
+        // Langsung lompat ke halaman profil dengan ID wallet sendiri
+        window.location.href = `profile.html?id=${currentWallet}`;
+    }
    // --- B. GENERATOR RUMAH WARGA (foto profil melayang di atas atap) ---
 // Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
 // Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
@@ -3069,10 +3077,13 @@ function openProfile(userId, username, profileData = null) {
     }
 
     // 2. Bangun Ulang Kotak Profil Spesifik Warga (Bukan Kita)
+    // 2. Bangun Ulang Kotak Profil Spesifik Warga (Bukan Kita)
     if (userBox) {
-        const rankValue = profileData?.rank || 'Petani Pemula';
         const xpValue = profileData?.xp || 0;
-        const tofValue = profileData?.tof || 0;
+        const tofValue = profileData?.saldo_tof || 0; // Menggunakan 'saldo_tof' sesuai database
+        
+        // Memanggil fungsi getRadarRank yang sudah kamu buat sebelumnya untuk menentukan pangkat dari XP
+        const rankValue = typeof getRadarRank === 'function' ? getRadarRank(xpValue) : 'Petani Pemula';
 
         userBox.innerHTML = `
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
