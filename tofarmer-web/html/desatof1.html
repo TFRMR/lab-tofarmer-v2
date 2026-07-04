@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ToFarmer | Orbit Menoreh 3D</title>
+    <title>ToFarmer | Orbit Menoreh Solid</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { 
             --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; 
-            --wall: #e2e8f0; --wall-shadow: #cbd5e1; --roof-l: #b45309; --roof-r: #78350f;
         }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
@@ -29,38 +28,42 @@
         
         /* LANTAI DESA */
         .tile { position: absolute; width: 80px; height: 80px; background: rgba(74, 222, 128, 0.02); border: 1px solid rgba(255,255,255,0.03); box-sizing: border-box; }
-        .obj { position: absolute; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 40px; transform: translateZ(15px); filter: drop-shadow(5px 15px 5px rgba(0,0,0,0.6)); pointer-events: none; }
+        .obj { position: absolute; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 40px; transform: translateZ(5px); filter: drop-shadow(5px 15px 5px rgba(0,0,0,0.6)); pointer-events: none; }
 
-        /* ARSITEKTUR RUMAH JAWANESE REAL-3D FIXED */
+        /* STRUKTUR RUMAH SOLID IMAGE 2.5D */
         .house-node { position: absolute; width: 80px; height: 80px; transform-style: preserve-3d; cursor: pointer; }
-        .house-3d { position: absolute; width: 44px; height: 44px; left: 18px; top: 18px; transform-style: preserve-3d; transform: translateZ(0px); transition: transform 0.2s; }
-        .house-node:hover .house-3d { transform: translateZ(8px); }
         
-        /* Dinding Utama */
-        .face { position: absolute; box-sizing: border-box; backface-visibility: hidden; }
-        .w-front { width: 44px; height: 25px; background: var(--wall); transform: rotateX(-90deg) translateZ(22px); }
-        .w-back  { width: 44px; height: 25px; background: var(--wall-shadow); transform: rotateX(90deg) translateZ(22px); }
-        .w-left  { width: 44px; height: 25px; background: var(--wall-shadow); transform: rotateY(-90deg) translateZ(22px); }
-        .w-right { width: 44px; height: 25px; background: var(--wall); transform: rotateY(90deg) translateZ(22px); }
+        /* Gambar Rumah Datar Mengikuti Kemiringan Lantai Isometric (Rapi & Tidak Aneh) */
+        .house-sprite { 
+            position: absolute; width: 64px; height: 64px; left: 8px; top: 8px;
+            background-size: contain; background-repeat: no-repeat; background-position: center;
+            filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.4));
+            transition: transform 0.2s;
+        }
+        .house-node:hover .house-sprite { transform: scale(1.08); }
         
-        /* PERBAIKAN STRUKTUR ATAP SEGITIGA (GENTENG) */
-        .r-left  { width: 28px; height: 44px; background: var(--roof-l); transform: translate3d(0px, 0px, 25px) rotateY(-40deg); transform-origin: left center; border: 1px solid rgba(0,0,0,0.3); }
-        .r-right { width: 28px; height: 44px; background: var(--roof-r); transform: translate3d(44px, 0px, 25px) rotateY(40deg); transform-origin: right center; border: 1px solid rgba(0,0,0,0.3); }
-
-        /* FOTO PROFIL BILLBOARD */
+        /* BALLON FOTO PROFIL (BILLBOARD TEGAK LURUS MENGHADAP MATA USER) */
         .avatar-billboard { 
-            position: absolute; top: -55px; left: 50%; transform: translateX(-50%);
-            transform-style: preserve-3d; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none;
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+            transform-style: preserve-3d; display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 10;
         }
         .billboard-content { display: flex; flex-direction: column; align-items: center; transform-style: preserve-3d; }
         
+        /* Efek Balon Melayang */
         .avatar-img { 
-            width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent); 
-            background: #1e293b; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid var(--accent); 
+            background: #1e293b; object-fit: cover; box-shadow: 0 6px 12px rgba(0,0,0,0.6);
+        }
+        /* Ekor Balon kecil di bawah foto */
+        .billboard-content::after {
+            content: ''; display: block; width: 0; height: 0;
+            border-left: 5px solid transparent; border-right: 5px solid transparent;
+            border-top: 6px solid var(--accent); margin-top: -1px;
         }
         .nametag { 
-            background: rgba(5, 11, 7, 0.9); color: #fff; border: 1px solid var(--accent); 
-            font-size: 8px; padding: 1px 5px; border-radius: 4px; white-space: nowrap; font-weight: bold; 
+            margin-top: 4px; background: rgba(5, 11, 7, 0.95); color: #fff; border: 1px solid var(--accent); 
+            font-size: 8px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; font-weight: bold; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
         }
 
         /* UI CONTROLS */
@@ -93,7 +96,7 @@
     </div>
 </div>
 
-<div class="instructions">Klik Kiri + Geser = Pindah Map | Klik Kanan / Ctrl + Geser = Putar Sisi 3D 🔄</div>
+<div class="instructions">Geser 1 Jari = Pindah Map | Geser 2 Jari / Klik Kanan = Putar Map 🔄</div>
 <div id="auth-status">Memeriksa session...</div>
 
 <div class="controls">
@@ -123,6 +126,7 @@
         cameraPan.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`;
         cameraRot.style.transform = `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`;
         
+        // MATEMATIKA ANTI-MIRING: Mengunci balon foto agar selalu lurus menghadap layar monitor
         document.querySelectorAll('.billboard-content').forEach(el => {
             el.style.transform = `rotateZ(${-rotZ}deg) rotateX(${-rotX}deg)`;
         });
@@ -153,7 +157,7 @@
 
     window.addEventListener('mouseup', () => isDragging = false);
 
-    // TOUCH HANDLERS HP KENTANG
+    // KENDALI SENTUH LAYAR HP
     viewport.addEventListener('touchstart', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls')) return;
         isDragging = true;
@@ -223,40 +227,33 @@
         
         document.getElementById('auth-status').innerText = "Warga: @" + localStorage.getItem('tof_username');
         createBaseGrid();
-        updateCamera();
 
-      // 1. Muat Seluruh Komponen Alam dan Jalan dari tabel village_map
-const { data: terrain } = await db.from('village_map').select('*');
-terrain?.forEach(obj => {
-    // Daftarkan koordinat ini ke sistem kunci ubin agar tidak ditimpa rumah warga otomatis
-    reservedTiles.add(`${obj.x_pos},${obj.y_pos}`);
-    
-    // Ambil div ubin yang sudah dibuat di lantai dasar koordinat ini
-    // Rumus mencari indeks ubin di dalam DOM: (x * GRID_SIZE) + y
-    const tileIndex = (obj.x_pos * GRID_SIZE) + obj.y_pos;
-    const currentTile = world.getElementsByClassName('tile')[tileIndex];
+        // 1. Render Elemen Lapisan Tanah Terstruktur (village_map)
+        const { data: terrain } = await db.from('village_map').select('*');
+        terrain?.forEach(obj => {
+            reservedTiles.add(`${obj.x_pos},${obj.y_pos}`);
+            const tileIndex = (obj.x_pos * GRID_SIZE) + obj.y_pos;
+            const currentTile = world.getElementsByClassName('tile')[tileIndex];
 
-    if (currentTile) {
-        if (obj.type === 'paved_road') {
-            // Mengubah ubin tanah dasar menjadi tekstur jalan aspal gelap
-            currentTile.style.background = 'rgba(30, 41, 59, 0.9)';
-            currentTile.style.border = '1px solid rgba(74, 222, 128, 0.15)';
-        } else if (obj.type === 'soil_farm') {
-            // Mengubah ubin menjadi petak tanah perkebunan cokelat subur
-            currentTile.style.background = 'rgba(120, 53, 4, 0.4)';
-            currentTile.style.border = '1px dashed rgba(245, 158, 11, 0.3)';
-        } else {
-            // Untuk jenis objek 3D tegak/timbul (Gunung dan Pohon)
-            const div = document.createElement('div');
-            div.className = 'obj';
-            div.style.left = (obj.x_pos * 80) + 'px';
-            div.style.top = (obj.y_pos * 80) + 'px';
-            div.innerHTML = obj.type === 'mountain' ? '⛰️' : '🌳';
-            world.appendChild(div);
-        }
-    }
-});
+            if (currentTile) {
+                if (obj.type === 'paved_road') {
+                    currentTile.style.background = 'rgba(30, 41, 59, 0.9)';
+                    currentTile.style.border = '1px solid rgba(74, 222, 128, 0.15)';
+                } else if (obj.type === 'soil_farm') {
+                    currentTile.style.background = 'rgba(120, 53, 4, 0.4)';
+                    currentTile.style.border = '1px dashed rgba(245, 158, 11, 0.3)';
+                } else {
+                    const div = document.createElement('div');
+                    div.className = 'obj';
+                    div.style.left = (obj.x_pos * 80) + 'px';
+                    div.style.top = (obj.y_pos * 80) + 'px';
+                    div.innerHTML = obj.type === 'mountain' ? '⛰️' : '🌳';
+                    world.appendChild(div);
+                }
+            }
+        });
 
+        // 2. Render Rumah Gambar 1 File + Balon Profil Tegak (profiles)
         const { data: users, error } = await db.from('profiles').select('id, username, level, bakat_utama, avatar_url').order('created_at', { ascending: true });
         if (error) return console.error(error);
 
@@ -268,27 +265,23 @@ terrain?.forEach(obj => {
             container.style.top = (coord.y * 80) + 'px';
 
             const photoSrc = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
+            
+            // LINK GAMBAR RUMAH ISOMETRIK REALISTIS (Bisa diganti ke url aset lokal Anda: 'aset/rumah.png')
+            const houseImage = 'https://img.icons8.com/plasticine/100/home.png';
 
             container.innerHTML = `
-                <div class="house-3d">
-                    <div class="face w-front"></div>
-                    <div class="face w-back"></div>
-                    <div class="face w-left"></div>
-                    <div class="face w-right"></div>
-                    <div class="face r-left"></div>
-                    <div class="face r-right"></div>
-                    
-                    <div class="avatar-billboard">
-                        <div class="billboard-content">
-                            <img class="avatar-img" src="${photoSrc}" />
-                            <div class="nametag">@${user.username}</div>
-                        </div>
+                <div class="house-sprite" style="background-image: url('${houseImage}');"></div>
+                
+                <div class="avatar-billboard">
+                    <div class="billboard-content">
+                        <img class="avatar-img" src="${photoSrc}" />
+                        <div class="nametag">@${user.username}</div>
                     </div>
                 </div>
             `;
 
             container.onclick = () => {
-                alert(`🌾 Struktur Rumah ToFarmer\n────────────────\nWarga: @${user.username}\nKeahlian: ${user.bakat_utama || 'Anggota Mandiri'}\nReputasi: Level ${user.level || 1}`);
+                alert(`🏡 Profil Lahan Warga\n────────────────\nUsername: @${user.username}\nBakat Utama: ${user.bakat_utama || 'Anggota Mandiri'}\nLevel Kelas: ${user.level || 1}`);
             };
 
             world.appendChild(container);
