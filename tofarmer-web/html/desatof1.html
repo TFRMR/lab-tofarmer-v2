@@ -10,76 +10,69 @@
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
         /* HEADER & NAV */
-        header { padding: 15px; display: flex; align-items: center; background: var(--ui); position: fixed; top: 0; width: 100%; z-index: 100; border-bottom: 1px solid var(--accent); }
+        header { padding: 10px 20px; display: flex; align-items: center; background: var(--ui); position: fixed; top: 0; width: 100%; z-index: 1000; border-bottom: 1px solid var(--accent); }
         .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; }
         .logo { width: 30px; }
-        nav { position: fixed; top: 60px; left: 0; width: 100%; display: flex; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.5); z-index: 99; }
-        nav a { color: var(--accent); text-decoration: none; font-size: 14px; }
+        nav { position: fixed; top: 60px; left: 0; width: 100%; display: flex; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.8); z-index: 999; }
+        nav a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
 
-        /* MAP ENGINE */
-        #viewport { position: fixed; inset: 0; cursor: grab; }
-        #world { position: absolute; width: 10000px; height: 10000px; transform-origin: 0 0; transition: transform 0.1s; }
-        .obj { position: absolute; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 30px; }
-        
-        /* CONTROLS */
-        .controls { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 50; }
-        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 15px; border-radius: 50px; cursor: pointer; }
+        /* MAP 3D ISOMETRIC */
+        #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; perspective: 1500px; }
+        #world { position: absolute; transform-style: preserve-3d; transform: rotateX(60deg) rotateZ(-45deg) scale(1); transition: transform 0.1s; }
+        .tile { position: absolute; width: 80px; height: 80px; background: rgba(74, 222, 128, 0.05); border: 1px solid rgba(255,255,255,0.05); }
+        .obj { position: absolute; font-size: 40px; transform: translateZ(10px); filter: drop-shadow(5px 5px 5px rgba(0,0,0,0.5)); }
+
+        /* UI CONTROLS */
+        #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; }
+        .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
+        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 15px; border-radius: 50%; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <header>
     <a class="brand" href="#">
-      <img class="logo" src="/aset/logo.png" onerror="this.style.display='none'"/>
-      <h2>ToFarmer</h2>
+        <img class="logo" src="aset/logo.png" onerror="this.style.display='none'"/>
+        <h2>ToFarmer</h2>
     </a>
 </header>
 
-
+<nav>
+    <a href="html/dashboard.html">Sumbang Ilmu</a>
+    <a href="html/fitur-ilmu.html">Fitur & Info</a>
+    <button onclick="logout()" style="background:none; border:none; color:#ff4d4d; cursor:pointer;">Logout</button>
+</nav>
 
 <div id="viewport">
     <div id="world"></div>
 </div>
 
+<div id="auth-status">Memeriksa session...</div>
+
 <div class="controls">
-    <button class="btn" onclick="zoom(0.2)">➕</button>
-    <button class="btn" onclick="zoom(-0.2)">➖</button>
+    <button class="btn" onclick="adjust(0.2, 0, 0)">➕</button>
+    <button class="btn" onclick="adjust(-0.2, 0, 0)">➖</button>
 </div>
 
 <script>
     const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
-    
-    let scale = 1, offsetX = 0, offsetY = 0;
     const world = document.getElementById('world');
-    const viewport = document.getElementById('viewport');
+    let scale = 1, posX = 0, posY = 0;
 
-    // ZOOM LOGIC
-    function zoom(d) {
-        scale = Math.min(Math.max(scale + d, 0.5), 3);
-        updateTransform();
-    }
+    // FUNGSI MAP
+    function adjust(s, x, y) { scale += s; updateWorld(); }
+    function updateWorld() { world.style.transform = `rotateX(60deg) rotateZ(-45deg) scale(${scale})`; }
 
-    // PAN (GESER) LOGIC
-    let isDragging = false, startX, startY;
-    viewport.onmousedown = (e) => { isDragging = true; startX = e.clientX - offsetX; startY = e.clientY - offsetY; };
-    window.onmousemove = (e) => {
-        if (!isDragging) return;
-        offsetX = e.clientX - startX;
-        offsetY = e.clientY - startY;
-        updateTransform();
-    };
-    window.onmouseup = () => isDragging = false;
-
-    function updateTransform() {
-        world.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-    }
-
-    // LOAD MAP
-    async function loadVillage() {
-        const { data: objects } = await db.from('village_map').select('*');
-        if (!objects) return;
+    // AUTH & DATA
+    async function init() {
+        const wallet = localStorage.getItem('tof_wallet');
+        if (!wallet) { window.location.href = 'html/login.html'; return; }
         
-        objects.forEach(obj => {
+        document.getElementById('auth-status').innerText = "User: " + localStorage.getItem('tof_username');
+        
+        // Load data peta
+        const { data: objects } = await db.from('village_map').select('*');
+        objects?.forEach(obj => {
             const div = document.createElement('div');
             div.className = 'obj';
             div.style.left = (obj.x_pos * 80) + 'px';
@@ -89,7 +82,9 @@
         });
     }
 
-    loadVillage();
+    function logout() { localStorage.clear(); location.reload(); }
+
+    init();
 </script>
 </body>
 </html>
