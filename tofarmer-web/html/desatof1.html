@@ -36,7 +36,7 @@
         .sprite { position: absolute; bottom: 25px; height: 60px; pointer-events: none; transition: transform 0.2s ease; z-index: 2; }
         
         /* WADAH INTERAKSI RUMAH WARGA */
-        .house-container { position: absolute; width: 100px; height: 140px; bottom: 10px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; pointer-events: auto; z-index: 10; }
+        .house-container { position: absolute; width: 100px; height: 140px; bottom: 10px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; pointer-events: auto; }
         
         /* BALON FOTO PROFIL (SELALU DI DEPAN RUMAH) */
         .avatar-balloon { display: flex; flex-direction: column; align-items: center; margin-bottom: -15px; z-index: 5; transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); will-change: transform; pointer-events: none; }
@@ -177,18 +177,45 @@
         return { x: (rx - ry) * (TILE_WIDTH / 2), y: (rx + ry) * (TILE_HEIGHT / 2) };
     }
 
+    // ALGORITMA PENYEBARAN LONGGAR (SPARSE) - MENGHINDARI RUMAH DEMPET & SALING TUMPUK
     function findEmptyTile() {
-        let cx = 10, cy = 10; let x = 0, y = 0, dx = 0, dy = -1;
-        for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
-            if ((-GRID_SIZE/2 <= x) && (x <= GRID_SIZE/2) && (-GRID_SIZE/2 <= y) && (y <= GRID_SIZE/2)) {
-                let tx = cx + x; let ty = cy + y;
-                let key = `${tx},${ty}`;
-                if (!reservedTiles.has(key) && tx >= 0 && tx < GRID_SIZE && ty >= 0 && ty < GRID_SIZE) {
-                    reservedTiles.add(key); return { x: tx, y: ty };
+        // Coba cari ubin kosong secara acak dengan batas radius minimal aman (jarak 2 ubin)
+        for (let mencoba = 0; mencoba < 500; mencoba++) {
+            // Berikan margin agar tidak terlalu mepet dengan ujung batas peta (grid 2 s/id 17)
+            let tx = Math.floor(Math.random() * (GRID_SIZE - 4)) + 2;
+            let ty = Math.floor(Math.random() * (GRID_SIZE - 4)) + 2;
+            
+            let key = `${tx},${ty}`;
+            if (!reservedTiles.has(key)) {
+                // Periksa apakah radius 2 langkah di sekitarnya aman dari rumah lain
+                let adaTetanggaDekat = false;
+                for (let dx = -2; dx <= 2; dx++) {
+                    for (let dy = -2; dy <= 2; dy++) {
+                        if (reservedTiles.has(`${tx + dx},${ty + dy}`)) {
+                            adaTetanggaDekat = true;
+                            break;
+                        }
+                    }
+                    if (adaTetanggaDekat) break;
+                }
+                
+                // Jika tidak ada tetangga terlalu dekat, kunci ubin ini!
+                if (!adaTetanggaDekat) {
+                    reservedTiles.add(key);
+                    return { x: tx, y: ty };
                 }
             }
-            if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) { let temp = dx; dx = -dy; dy = temp; }
-            x += dx; y += dy;
+        }
+        
+        // Batas Cadangan Akhir (Fallback jika peta sudah sangat padat): Cari ubin kosong mana saja yang tersedia
+        for (let tx = 1; tx < GRID_SIZE - 1; tx++) {
+            for (let ty = 1; ty < GRID_SIZE - 1; ty++) {
+                let key = `${tx},${ty}`;
+                if (!reservedTiles.has(key)) {
+                    reservedTiles.add(key);
+                    return { x: tx, y: ty };
+                }
+            }
         }
         return { x: Math.floor(Math.random()*GRID_SIZE), y: Math.floor(Math.random()*GRID_SIZE) };
     }
@@ -206,6 +233,8 @@
                 const coords = getIsoCoords(x, y);
                 node.style.left = coords.x + 'px';
                 node.style.top = coords.y + 'px';
+                // Penataan z-index dasar lantai berdasarkan kedalaman Y
+                node.style.zIndex = x + y;
 
                 const tile = document.createElement('div');
                 tile.className = 'tile';
@@ -230,7 +259,7 @@
             }
         }
 
-        // 2. Plotting Rumah Warga + Urutan HTML Baru (Foto di Depan)
+        // 2. Plotting Rumah Warga (Posisi Menyebar & Renggang)
         rawUserData.forEach(user => {
             if (!user.assignedCoord) user.assignedCoord = findEmptyTile();
             
@@ -239,6 +268,10 @@
             const coords = getIsoCoords(user.assignedCoord.x, user.assignedCoord.y);
             node.style.left = coords.x + 'px';
             node.style.top = coords.y + 'px';
+            
+            // Mengunci kedalaman susunan agar objek depan menutupi objek belakang secara matematis
+            const depthIndex = user.assignedCoord.x + user.assignedCoord.y + 50;
+            node.style.zIndex = depthIndex;
 
             const photoSrc = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
             const houseImage = 'https://img.icons8.com/plasticine/100/home.png';
@@ -246,7 +279,7 @@
             const container = document.createElement('div');
             container.className = 'house-container';
             
-            // KOREKSI UTAMA: Gambar Rumah Dirender Duluan, Balon Profil Ditaruh Setelahnya (Di Atas/Depan Gambar)
+            // Gambar Rumah di bawah, Balon Profil menumpuk tegas di atasnya
             container.innerHTML = `
                 <img class="sprite" src="${houseImage}" style="height: 55px;" />
                 <div class="avatar-balloon">
@@ -270,7 +303,6 @@
         document.getElementById('m-level').innerText = user.level || '1';
         document.getElementById('m-xp').innerText = user.xp || '0';
         
-        // KOREKSI KEDUA: Memakai variabel kolom .saldo_tof yang valid dari database
         const tofAset = user.saldo_tof !== undefined && user.saldo_tof !== null ? user.saldo_tof.toLocaleString('id-ID') : '0';
         document.getElementById('m-tof').innerText = `${tofAset} TOF`;
         
@@ -281,19 +313,17 @@
 
     function closeModal(e) { if(e.target === document.getElementById('custom-modal')) document.getElementById('custom-modal').classList.remove('active'); }
     
-    // Saat ganti sudut pandang, pusat peta juga tetap konsisten
     function rotateMap() { 
         currentRotationIndex = (currentRotationIndex + 1) % 4; 
         renderVillage(); 
         centerMapOnVillage();
     }
 
-    // KOREKSI KETIGA: Fungsi Auto-Center untuk Menyeret Grid Tengah (10,10) Tepat ke Tengah Layar HP
+    // Menggeser kamera fokus ke pusat keramaian tengah desa (10,10)
     function centerMapOnVillage() {
         const centerCoords = getIsoCoords(10, 10);
-        // Set panX dan panY agar koordinat (10,10) berada di titik 0,0 viewport (tengah layar)
         panX = -centerCoords.x;
-        panY = -centerCoords.y + 50; // Sedikit kompensasi tinggi header
+        panY = -centerCoords.y + 50; 
         updateWorldTransform();
     }
 
@@ -306,12 +336,10 @@
         const { data: terrain } = await db.from('village_map').select('*');
         rawTerrainData = terrain || [];
 
-        // Mengambil data lengkap dengan penamaan kolom database yang tepat (saldo_tof)
         const { data: users, error } = await db.from('profiles').select('id, username, level, xp, saldo_tof, rank, power, avatar_url').order('created_at', { ascending: true });
         if (error) return console.error(error);
         rawUserData = users || [];
 
-        // Jalankan render dan posisikan langsung di tengah klaster
         renderVillage();
         centerMapOnVillage();
     }
