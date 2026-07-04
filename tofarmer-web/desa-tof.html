@@ -419,23 +419,23 @@
     }
 
     const TerrainLayer = L.GridLayer.extend({
-        tileSize: 32,
+        tileSize: 1024,
         updateWhenZooming: true,
         keepBuffer: 2,
 
         createTile: function (coords) {
             const tile = L.DomUtil.create('canvas', 'leaflet-tile');
-            tile.width = 32;
-            tile.height = 32;
+            tile.width = 1024;
+            tile.height = 1024;
             const ctx = tile.getContext('2d');
 
-            const nwPoint = new L.Point(coords.x * 32, coords.y * 32);
+            const nwPoint = new L.Point(coords.x * 1024, coords.y * 1024);
 
             // Sampel di resolusi rendah lalu digambar membesar dengan smoothing —
             // inilah kunci supaya transisi warna menyatu mulus, bukan berkotak
             // maupun bergaris (dulu ini akar masalah "garis vertikal").
             const SAMPLE = 40;
-            const step = 32 / SAMPLE;
+            const step = 1024 / SAMPLE;
 
             const kanvasKecil = document.createElement('canvas');
             kanvasKecil.width = SAMPLE;
@@ -484,7 +484,7 @@
             sctx.putImageData(imgData, 0, 0);
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(kanvasKecil, 0, 0, SAMPLE, SAMPLE, 0, 0, 32, 32);
+            ctx.drawImage(kanvasKecil, 0, 0, SAMPLE, SAMPLE, 0, 0, 1024, 1024);
 
             return tile;
         }
