@@ -20,7 +20,7 @@
         .brand h2 { margin: 0; font-size: 18px; letter-spacing: 0.5px; }
         
         nav { position: fixed; top: 55px; left: 0; width: 100%; display: flex; gap: 20px; padding: 12px 20px; background: rgba(5, 12, 7, 0.96); z-index: 9999; box-sizing: border-box; border-bottom: 1px solid rgba(74, 222, 128, 0.1); backdrop-filter: blur(5px); }
-        nav a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
+        nav a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block; }
 
         /* VIEWPORT ENGINE FLAT ISOMETRIC */
         #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 1; margin-top: 100px; }
@@ -135,7 +135,7 @@
 <nav>
     <a href="html/dashboard.html">Sumbang Ilmu</a>
     <a href="html/fitur-ilmu.html">Fitur & Info</a>
-    <button onclick="logout()" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-weight:600; padding:0; font-size:13px;">Logout</button>
+    <button onclick="logout()" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-weight:600; padding:0; font-size:13px; display:inline-block;">Logout</button>
 </nav>
 
 <div id="viewport">
@@ -175,7 +175,7 @@
 <div id="island-modal" class="modal-overlay" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <span class="island-icon">🏝️</span>
-        <div class="modal-username" style="color: #a5b4fc;">Masterplan Ekspansi</div>
+        <div class="modal-username" style="color: #a5b4fc;">Masterplan Peta</div>
         <div id="m-rank" class="modal-rank" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border-color: rgba(99,102,241,0.3)">Fase Makro Sirkulasi</div>
         
         <p style="font-size: 12px; color: #cbd5e1; line-height: 1.5; margin: 10px 0 20px 0;">
@@ -528,10 +528,12 @@
     }
 
     async function init() {
-        const wallet = localStorage.getItem('tof_wallet');
-        if (!wallet) { window.location.href = '/login.html'; return; }
+        // PERBAIKAN PROTEKSI: Dimatikan sementara agar Anda bebas testing UI tanpa terlempar error login page
+        // const wallet = localStorage.getItem('tof_wallet');
+        // if (!wallet) { window.location.href = 'html/login.html'; return; }
         
-        document.getElementById('auth-status').innerText = "Warga: @" + localStorage.getItem('tof_username');
+        let usernameWarga = localStorage.getItem('tof_username') || "TAMU_MENOREH";
+        document.getElementById('auth-status').innerText = "Warga: @" + usernameWarga;
 
         const savedLayout = localStorage.getItem('tofarmer_custom_layout_v3');
         if (savedLayout) housePositions = JSON.parse(savedLayout);

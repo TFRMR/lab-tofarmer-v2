@@ -3,1877 +3,554 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title id="postTitle">ToFarmer • Desa Agritech</title>
-    <meta name="description" id="postDesc" content="Intip ide, progres, dan eksperimen seru di ekosistem ToFarmer.">
-
-    <meta property="og:title" id="ogTitle" content="ToFarmer - Ruang Tanam Karya" />
-    <meta property="og:description" id="ogDesc" content="Intip ide, progres, dan eksperimen seru di ekosistem ToFarmer." />
-    <meta property="og:image" id="ogImage" content="https://afpzddwuikvwsedzgsee.supabase.co/storage/v1/object/public/profile-posts/tofarmer-kecil.png" />
-    <meta property="og:type" content="website" />
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
-    <link rel="icon" type="image/png" href="aset/favicon.png">
-
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-   <style>
-    * { box-sizing: border-box; }
-
-    /* 1. PENGATURAN DUNIA & PETA */
-    body, html {
-        margin: 0; padding: 0; width: 100%; height: 100%;
-        background: #050414; overflow: hidden; touch-action: none;
-        font-family: 'Inter', sans-serif; user-select: none;
-    }
-
-    #viewport { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; overflow: hidden; z-index: 0; background: #050414; }
-    .leaflet-container { background: #050414; outline: none; }
-    .leaflet-marker-icon:focus { outline: none; }
-
-    /* Lapisan atmosfer: bulan & bintang kelap-kelip, FIXED ke layar (bukan ke koordinat peta),
-       jadi tetap ringan karena tidak pernah ikut dihitung ulang saat peta di-pan/zoom. */
-    #atmosphere-layer { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
-    
-
-    #cine-vignette {
-        position: fixed; inset: 0; z-index: 2; pointer-events: none;
-        background: radial-gradient(ellipse 80% 65% at 50% 42%, rgba(0,0,0,0) 45%, rgba(3,6,10,0.55) 100%),
-                    linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0) 18%, rgba(0,0,0,0) 78%, rgba(0,0,0,0.38) 100%);
-    }
-
-    
-
-    /* Rumah Penduduk (isi divIcon Leaflet — posisi absolut sudah ditangani wrapper marker Leaflet) */
-    .custom-house-marker { background: none; border: none; }
-    .house-node { position: relative; width: 96px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
-    .house-avatar-wrap { position: relative; width: 42px; height: 42px; margin-bottom: 1px; }
-    .house-avatar {
-        width: 42px; height: 42px; border-radius: 50%; object-fit: cover; display: block;
-        background: #0c1a12; border: 2px solid rgba(74, 222, 128, 0.75);
-        box-shadow: 0 0 10px rgba(74, 222, 128, 0.55), 0 4px 10px rgba(0,0,0,0.5);
-    }
-    .house-node:hover .house-avatar { transform: scale(1.14) translateY(-3px); box-shadow: 0 0 16px rgba(74, 222, 128, 0.8), 0 4px 10px rgba(0,0,0,0.5); }
-    .house-icon { font-size: 36px; line-height: 1; filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.5)); margin-top: -2px; }
-    .house-node:hover .house-icon { transform: scale(1.18) translateY(-4px); }
-    .house-name {
-        background: rgba(5, 11, 7, 0.88); color: #a7f3d0; border: 1px solid rgba(74, 222, 128, 0.3);
-        padding: 3px 7px; border-radius: 6px; font-size: 10.5px; margin-top: 3px; font-weight: 600;
-        white-space: nowrap; display: inline-block; box-shadow: 0 3px 6px rgba(0,0,0,0.5);
-    }
-
-    /* Rumah Login */
-    .house-node.my-house .house-avatar { border-color: #ffd166; box-shadow: 0 0 14px rgba(255, 209, 102, 0.75), 0 4px 10px rgba(0,0,0,0.5); }
-    .house-node.my-house .house-icon { filter: drop-shadow(0 0 12px rgba(255, 209, 102, 0.7)); }
-    .house-node.my-house .house-name { color: #ffe9b3; border-color: rgba(255, 209, 102, 0.55); }
-    .house-node.my-house::before {
-        content: ''; position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
-        width: 60px; height: 60px; border-radius: 50%;
-        background: radial-gradient(circle, rgba(255,209,102,0.28) 0%, rgba(255,209,102,0) 72%);
-        z-index: -1;
-    }
-
-    /* Kontrol Kamera Peta */
-    #map-controls { position: fixed; bottom: 20px; left: 20px; z-index: 50; display: flex; gap: 8px; pointer-events: auto; flex-wrap: wrap; max-width: calc(100vw - 40px); }
-    .map-btn {
-        background: rgba(12, 26, 18, 0.85); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3);
-        padding: 10px 14px; font-weight: bold; font-size: 13px; border-radius: 8px;
-        cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); backdrop-filter: blur(5px);
-    }
-    .map-btn:active { background: #4ade80; color: #050b07; transform: scale(0.95); }
-    .map-btn.primary { color: #ffd166; border-color: rgba(255, 209, 102, 0.4); }
-    .map-btn.primary:active { background: #ffd166; color: #1a1200; }
-
-    /* 2. HUD ATAS */
-    #ui-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 20; pointer-events: none; }
-    .container {
-        position: relative; z-index: 30;
-        max-width: 1300px; margin: 0 auto; padding: 10px 16px;
-        pointer-events: none;
-        display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
-        background: linear-gradient(180deg, rgba(4,9,7,0.82) 0%, rgba(4,9,7,0.55) 70%, transparent 100%);
-        backdrop-filter: blur(14px);
-    }
-    header, nav, .eco { pointer-events: auto; }
-    header { text-align: left; padding: 6px 0; }
-    .brand { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; color: #a7f3d0; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-    .logo { width: 40px; height: 40px; border-radius: 50%; background: white; border: 2px solid rgba(47,111,78,0.2); }
-    .brand h2 { font-size: 16px; letter-spacing: .01em; }
-
-    nav { display: flex; gap: 8px; margin: 0; }
-    nav a { padding: 6px 12px; border: 1px solid rgba(74, 222, 128, 0.4); border-radius: 10px; color: #a7f3d0; text-decoration: none; font-size: 11px; background: rgba(5, 11, 7, 0.55); backdrop-filter: blur(8px); }
-    nav a:hover { background: rgba(74, 222, 128, 0.2); transform: translateY(-2px); }
-
-    .eco { display: flex; align-items: center; gap: 16px; background: transparent; border: none; box-shadow: none; padding: 0; margin: 0; }
-    .eco > div { line-height: 1.3; }
-    .eco span { color: #9db8ac; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-    .eco b { color: #ffd166; font-size: 14px; }
-    .avatar-item { width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; object-fit: cover; margin-left: -10px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-    .avatar-item:hover { transform: translateY(-6px) scale(1.15); z-index: 10; }
-
-    /* 3. PANEL WARGA */
-    .layout-wrapper {
-        position: fixed; top: 0; left: 0; height: 100vh; width: min(410px, 90vw);
-        z-index: 25; pointer-events: none; display: flex; flex-direction: column;
-        transform: translateX(-104%);
-        background: rgb(5, 11, 8); 
-        box-shadow: 30px 0 70px rgba(0,0,0,0.55);
-        border-right: 1px solid rgba(255,255,255,0.07);
-    }
-    .layout-wrapper.active-profile { transform: translateX(0); pointer-events: auto; }
-
-    .drawer-topline {
-        flex-shrink: 0; display: flex; align-items: center; justify-content: space-between;
-        padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top));
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .drawer-topline span { color: #a7f3d0; font-weight: 700; font-size: 13px; }
-    .panel-close-btn {
-        width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.18);
-        background: rgba(255,255,255,0.06); color: #e2f4ea; font-size: 14px; line-height: 1;
-        cursor: pointer; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center;
-    }
-    .panel-close-btn:hover { background: rgba(255,255,255,0.16); }
-
-    .drawer-inner { flex: 1; min-height: 0; overflow-y: auto; padding: 16px; padding-bottom: 90px; touch-action: pan-y; }
-    .card {
-        background: #ffffff; border: 1px solid rgba(200, 200, 200, 0.5);
-        border-radius: 16px; padding: 15px; margin-bottom: 12px;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.25); color: #1c2b22;
-    }
-
-    .post { background: #ffffff; padding: 12px; border-left: 4px solid #4caf7a; margin-bottom: 10px; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-    .share-btn { background: transparent; border: none; color: #6f7f76; font-size: 11px; font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px; }
-    .share-btn:hover { background: rgba(76, 175, 122, 0.1); color: #2f6f4e; }
-
-    textarea {
-        width: 100%; min-height: 110px; padding: 14px; border-radius: 16px;
-        border: 3px solid #2f6f4e; outline: none; box-shadow: 4px 4px 0px #c9a227;
-        font-size: 14px; background: rgba(255,255,255,0.95); font-family: 'Inter', sans-serif;
-    }
-    textarea:focus { box-shadow: 6px 6px 0px #c9a227; transform: translateY(-2px); }
-
-    button {
-        margin-top: 10px; width: 45%; padding: 10px; background: linear-gradient(90deg,#4caf7a,#c9a227);
-        border: none; border-radius: 12px; font-weight: bold; cursor: pointer; color: white;
-        font-family: 'Inter', sans-serif;
-    }
-    button:hover { transform: translateY(-2px); opacity: 0.95; box-shadow: 0 6px 15px rgba(201,162,39,0.4); }
-
-   /* Perbaikan Tombol WA agar ukurannya terkunci 60px */
-.tof-wa-float {
-    position: fixed; 
-    right: 20px; 
-    bottom: 20px; 
-    width: 60px !important; 
-    height: 60px !important; 
-    min-width: 60px;
-    min-height: 60px;
-    flex-shrink: 0; /* Mencegah tombol melar */
-    border-radius: 50%;
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    background: radial-gradient(circle, #5dff9d, #24b45a);
-    box-shadow: 0 0 15px rgba(37,211,102,.4); 
-    z-index: 99999; 
-    pointer-events: auto;
-    overflow: hidden; /* Memastikan isi tidak keluar batas */
-}
-
-/* Memastikan icon WA di dalamnya berukuran wajar */
-.tof-wa-float img {
-    width: 32px !important; 
-    height: 32px !important; 
-    object-fit: contain;
-    display: block;
-}
-
-    /* Responsive */
-    @media (max-width: 850px){
-        .container { padding: 8px 12px; gap: 10px; justify-content: center; }
-        .layout-wrapper {
-            top: auto; left: 0; right: 0; bottom: 0; height: min(74vh, 640px); width: 100%;
-            transform: translateY(105%); border-radius: 22px 22px 0 0;
-            border-right: none; border-top: 1px solid rgba(255,255,255,0.08);
+    <title>ToFarmer | Menoreh Klasik Premium</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root { 
+            --bg: #030704; --ui: rgba(12, 26, 18, 0.95); --accent: #4ade80; 
+            --glass: rgba(15, 32, 22, 0.85); --border: rgba(74, 222, 128, 0.2);
+            --island-color: #818cf8;
         }
-        .layout-wrapper.active-profile { transform: translateY(0); }
-    }
-</style>
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
+        
+        /* HEADER & NAV FIXED */
+        header { padding: 10px 20px; display: flex; align-items: center; background: var(--ui); position: fixed; top: 0; width: 100%; z-index: 10000; border-bottom: 1px solid var(--border); box-sizing: border-box; height: 55px; }
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; }
+        .logo { width: 30px; }
+        .brand h2 { margin: 0; font-size: 18px; letter-spacing: 0.5px; }
+        
+        nav { position: fixed; top: 55px; left: 0; width: 100%; display: flex; gap: 20px; padding: 12px 20px; background: rgba(5, 12, 7, 0.96); z-index: 9999; box-sizing: border-box; border-bottom: 1px solid rgba(74, 222, 128, 0.1); backdrop-filter: blur(5px); }
+        nav a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; display: inline-block; }
+
+        /* VIEWPORT ENGINE FLAT ISOMETRIC */
+        #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 1; margin-top: 100px; }
+        #viewport:active { cursor: grabbing; }
+        #world { position: absolute; width: 0; height: 0; transform-style: flat; will-change: transform; }
+        
+        /* NODE ISOMETRIC */
+        .iso-node { position: absolute; width: 100px; height: 50px; transform: translate(-50%, -50%); will-change: transform; display: flex; align-items: center; justify-content: center; }
+        
+        /* Ubin / Grid */
+        .tile { width: 98px; height: 48px; border: 1px solid rgba(74, 222, 128, 0.03); background: rgba(74, 222, 128, 0.01); box-sizing: border-box; transition: background 0.2s; }
+        .tile:hover { background: rgba(74, 222, 128, 0.08); cursor: pointer; }
+        .road { background: rgba(30, 41, 59, 0.85); border-color: rgba(74, 222, 128, 0.2); }
+        .farm { background: rgba(120, 53, 4, 0.35); border-style: dashed; border-color: rgba(245, 158, 11, 0.3); }
+
+        /* Kunci interaksi hover ubin saat mode edit arsitek aktif */
+        .edit-mode .tile { cursor: move !important; }
+        .edit-mode .tile:hover { background: transparent !important; }
+
+        /* Sprite Alam */
+        .sprite { position: absolute; bottom: 25px; height: 60px; pointer-events: none; transition: transform 0.2s ease; z-index: 2; }
+        
+        /* WADAH INTERAKSI RUMAH WARGA */
+        .house-container { position: absolute; width: 100px; height: 140px; bottom: 10px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; pointer-events: auto; }
+        .edit-mode .house-container { cursor: move; filter: drop-shadow(0 0 12px var(--accent)); }
+        .edit-mode .house-container:active { transform: scale(1.15); z-index: 9999 !important; }
+
+        /* BALON FOTO PROFIL */
+        .avatar-balloon { display: flex; flex-direction: column; align-items: center; margin-bottom: -15px; z-index: 5; transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); will-change: transform; pointer-events: none; }
+        .avatar-img { width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid var(--accent); background: #1e293b; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.6); }
+        .avatar-balloon::after { content: ''; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--accent); margin-top: -1px; }
+        .nametag { margin-top: 4px; background: rgba(5, 11, 7, 0.95); color: #fff; border: 1px solid var(--accent); font-size: 8px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; font-weight: bold; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+
+        .house-container:hover .avatar-balloon { transform: translateY(-18px) scale(1.15); z-index: 6; }
+        .house-container:hover .sprite { transform: scale(1.08); filter: drop-shadow(0 10px 15px rgba(74,222,128,0.25)); }
+
+        /* MULTI MODAL OVERLAYS SYSTEM */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(2, 4, 3, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 20000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .modal-box { background: var(--glass); border: 1px solid var(--accent); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(74, 222, 128, 0.1); width: 90%; max-width: 340px; padding: 25px 20px 20px 20px; border-radius: 16px; text-align: center; transform: scale(0.85); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: #f8fafc; }
+        .modal-overlay.active .modal-box { transform: scale(1); }
+        
+        /* MODAL PULAU STYLING CUSTOMIZATION */
+        .island-modal-box { border-color: var(--island-color); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(129, 140, 248, 0.15); }
+        .island-icon { font-size: 48px; margin-bottom: 10px; display: inline-block; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+
+        .modal-avatar { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--accent); margin: -60px auto 10px auto; display: block; background: #0f172a; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+        .modal-username { font-size: 18px; margin: 5px 0; color: #fff; font-weight: 700; letter-spacing: 0.5px; }
+        .modal-rank { font-size: 11px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: inline-block; padding: 2px 10px; border-radius: 20px; font-weight: 600; text-transform: uppercase; border: 1px solid rgba(74, 222, 128, 0.3); margin-bottom: 15px; }
+        
+        .modal-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-item { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+        .stat-value { font-size: 13px; font-weight: 700; color: #fff; }
+        .stat-value.tof { color: #fbbf24; } 
+
+        .modal-bakat { font-size: 12px; color: #cbd5e1; font-style: italic; margin-top: 10px; line-height: 1.5; padding: 0 5px; min-height: 36px; }
+        
+        .modal-buttons-group { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
+        .btn-modal-action { width: 100%; padding: 11px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: background 0.2s, transform 0.1s; border: none; box-sizing: border-box; }
+        .btn-modal-action:active { transform: scale(0.98); }
+        .btn-visit-profile { background: rgba(74, 222, 128, 0.1); border: 1px solid var(--accent); color: var(--accent); }
+        .btn-visit-profile:hover { background: rgba(74, 222, 128, 0.2); }
+        .btn-close-modal { background: linear-gradient(135deg, #22c55e, #15803d); color: white; box-shadow: 0 4px 10px rgba(34,197,94,0.25); }
+        
+        .btn-island-submit { background: linear-gradient(135deg, #6366f1, #4338ca); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .btn-island-cancel { background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* POP-UP HUD EDIT TATA RUMAH */
+        .edit-hud-banner { position: fixed; bottom: -180px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 400px; background: rgba(10, 25, 15, 0.92); border: 1.5px solid var(--accent); backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.8); z-index: 15000; display: flex; flex-direction: column; gap: 12px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2) ; }
+        .edit-hud-banner.active { bottom: 25px; }
+        .hud-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+        .hud-desc { font-size: 11px; color: #cbd5e1; line-height: 1.4; margin: 0; }
+        .hud-action-row { display: flex; gap: 10px; width: 100%; }
+        .hud-btn { flex: 1; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center; border: none; }
+        .hud-btn-save { background: linear-gradient(135deg, #22c55e, #166534); color: white; }
+        .hud-btn-cancel { background: rgba(255, 255, 255, 0.08); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* POP-UP HUD AKSI UBIN */
+        .tile-action-hud { position: fixed; bottom: -120px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 340px; background: rgba(15, 23, 42, 0.95); border: 1px solid #38bdf8; backdrop-filter: blur(8px); padding: 12px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); z-index: 14000; display: flex; align-items: center; justify-content: space-between; gap: 10px; transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); }
+        .tile-action-hud.active { bottom: 25px; }
+        .tile-info-text { font-size: 11px; color: #94a3b8; }
+        .tile-info-text strong { color: #fff; display: block; font-size: 12px; }
+        .tile-buttons { display: flex; gap: 6px; }
+        .btn-tile-act { padding: 8px 12px; font-size: 11px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; }
+        .btn-claim { background: #0284c7; color: white; }
+        .btn-build { background: #eab308; color: #1e293b; }
+
+        /* UI CONTROLS NAVIGASI KAMERA */
+        #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); transition: opacity 0.3s; }
+        .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; transition: opacity 0.3s; }
+        
+        .edit-active-ui #auth-status, .edit-active-ui .controls,
+        .tile-active-ui #auth-status, .tile-active-ui .controls { opacity: 0; pointer-events: none; }
+
+        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; text-align: center; min-width: 110px; box-sizing: border-box; }
+        .btn-edit { background: linear-gradient(135deg, #1e3a1f, #051a08); border-color: #22c55e; color: #4ade80; }
+        .btn-island { background: linear-gradient(135deg, #0f172a, #1e1b4b); border-color: #6366f1; color: #a5b4fc; }
+    </style>
 </head>
 <body>
 
-<div id="viewport"></div>
-<div id="atmosphere-layer">
-   
+<header>
+    <a class="brand" href="#">
+        <img class="logo" src="aset/logo.png" onerror="this.style.display='none'"/>
+        <h2>ToFarmer</h2>
+    </a>
+</header>
+
+<nav>
+    <a href="html/dashboard.html">Sumbang Ilmu</a>
+    <a href="html/fitur-ilmu.html">Fitur & Info</a>
+    <button onclick="logout()" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-weight:600; padding:0; font-size:13px; display:inline-block;">Logout</button>
+</nav>
+
+<div id="viewport">
+    <div id="world" class="locked-mode"></div>
 </div>
-<div id="cine-vignette"></div>
 
-<div id="map-controls">
-    <button class="map-btn" onclick="zoomMenu(0.2)">Zoom➕</button>
-    <button class="map-btn" onclick="zoomMenu(-0.2)">Zoom➖</button>
-    <button class="map-btn" onclick="resetView()">🌄 Lihat Desa</button>
-    
-   
-</div>
-
-<div id="ui-overlay">
-    <div class="container">
-        <header>
-            <a class="brand" href="#">
-                <img class="logo" src="aset/logo.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/1892/1892751.png'"/>
-                <h2>ToFarmer</h2>
-            </a>
-        </header>
-
-        <nav>
-            <a href="html/dashboard.html">Sumbang Ilmu</a>
-            <a href="html/fitur-ilmu.html">Fitur & Info</a>
-<a href="/index.html">Mode Medsos</a>
-        </nav>
-
-        <div class="eco">
-            <div>
-                <span>Total Aset</span>
-                <b id="totalAsset">0 TOF</b>
+<div id="custom-modal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <img id="m-avatar" class="modal-avatar" src="" />
+        <div id="m-username" class="modal-username">@username</div>
+        <div id="m-rank" class="modal-rank">Rank</div>
+        
+        <div class="modal-stats">
+            <div class="stat-item">
+                <span class="stat-label">Level</span>
+                <span id="m-level" class="stat-value">1</span>
             </div>
-            <div>
-                <span>Warga</span>
-                <b id="rankSummary">0</b>
+            <div class="stat-item">
+                <span class="stat-label">XP</span>
+                <span id="m-xp" class="stat-value">0</span>
             </div>
-           
+            <div class="stat-item">
+                <span class="stat-label">Aset TOF</span>
+                <span id="m-tof" class="stat-value tof">0</span>
+            </div>
         </div>
-    </div>
-
-    <div class="layout-wrapper" id="mainLayout">
-        <div class="drawer-topline">
-            <span>🏘️ Balai Desa ToFarmer</span>
-            <button class="panel-close-btn" onclick="closeResidentPanel(true)" aria-label="Tutup panel">✕</button>
-        </div>
-
-        <div class="drawer-inner">
-            <div class="layout">
-
-                <div class="left">
-                    <div class="card" style="padding:15px;">
-                        <div style="display:flex;align-items:center;gap:12px;">
-                            <div style="position:relative;flex-shrink:0;">
-                                <img id="profileAvatar" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid rgba(76,175,122,.5); box-shadow:0 2px 8px rgba(0,0,0,.1); display:none;">
-                                <label id="editAvatarBtn" for="avatarInput" style="display:flex; visibility:hidden; position:absolute; right:-2px; bottom:-2px; width:20px; height:20px; border-radius:50%; background:#4caf7a; color:white; cursor:pointer; font-size:10px; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,.2);">✏️</label>
-                                <input type="file" id="avatarInput" accept="image/*" style="display:none;">
-                            </div>
-                            <div id="profileInfo" style="flex:1;min-width:0;">
-                                <div style="display:flex;align-items:center;gap:8px;">
-                                    <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@guest</div>
-                                    <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">🌱 BELUM LOGIN</div>
-                                </div>
-                                <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
-                                    <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#888;">XP: <b>0</b></div>
-                                    <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>0</b></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card" id="walletCard">
-                        <h4 style="color:#2f6f4e;font-size:12px;margin-bottom:8px;">Algorand Wallet</h4>
-                        <button id="connectBtn" onclick="connectWallet()" style="width:100%; font-size:12px;">🔑 MASUK / DAFTAR 🌿</button>
-                    </div>
-
-                    
-                <div class="right">
-                    <div class="card">
-                        <textarea id="postBox" placeholder="Ada progres apa? Ide, atau keajaiban hari ini di Desa ToFarmer? Tulis di sini..."></textarea>
-
-                        <div style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <label for="imageInput" style="display:inline-flex; align-items:center; justify-content:center; padding:8px 14px; border-radius:999px; cursor:pointer; background:linear-gradient(135deg, rgba(76,175,122,.15), rgba(201,162,39,.15)); border:1px solid rgba(76,175,122,.2); color:#2f6f4e; font-size:12px; font-weight:600; transition:0.2s;">
-                                    📷 Tambah Foto
-                                </label>
-                                <span id="imagePreviewText" style="font-size:11px; color:#6f7f76; max-width:140px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></span>
-                                <input type="file" id="imageInput" accept="image/*" style="display:none">
-                            </div>
-                            <button onclick="sendPost()" style="margin:0; width:auto; padding:10px 24px;">KIRIM KARYA</button>
-                        </div>
-                    </div>
-
-                    <div class="feed" id="feed">
-                        <div class="post">
-                            <div class="user">@system_tofarmer</div>
-                            <div class="text">Desa Twilight Menoreh Agritech initialized. Selamat datang di ekosistem sirkular ToFarmer! 🌱</div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
+        
+        <div id="m-bakat" class="modal-bakat">Keahlian</div>
+        
+        <div class="modal-buttons-group">
+            <button class="btn-modal-action btn-visit-profile" onclick="goToUserProfile()">📖 Buka Portofolio Ilmu</button>
+            <button class="btn-modal-action btn-close-modal" onclick="document.getElementById('custom-modal').classList.remove('active')">Kembali ke Desa</button>
         </div>
     </div>
 </div>
 
-<div id="pilarModal" style="position:fixed; inset:0; background:rgba(20,30,25,.6); backdrop-filter:blur(8px); display:none; align-items:center; justify-content:center; z-index:9999; padding:20px;">
-    <div style="width:100%; max-width:420px; background:rgba(255,255,255,.95); border-radius:24px; padding:22px; border:1px solid rgba(76,175,122,.2); box-shadow:0 20px 50px rgba(0,0,0,.2);">
-        <div style="text-align:center; margin-bottom:18px;">
-            <div style="font-size:42px;">🌿</div>
-            <h3 style="color:#2f6f4e; font-size:20px; margin-top:8px;">Pilih Pilar Tulisan</h3>
-            <p style="font-size:12px; color:#6f7f76; margin-top:6px;">Vibes tulisanmu hari ini apa? ☕</p>
+<div id="island-modal" class="modal-overlay" onclick="closeIslandModal(event)">
+    <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
+        <span class="island-icon">🏝️</span>
+        <div class="modal-username" style="color: #a5b4fc;">Masterplan Peta</div>
+        <div id="m-rank" class="modal-rank" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border-color: rgba(99,102,241,0.3)">Fase Makro Sirkulasi</div>
+        
+        <p style="font-size: 12px; color: #cbd5e1; line-height: 1.5; margin: 10px 0 20px 0;">
+            Apakah Anda ingin mengajukan pembukaan klaster **Daratan / Pulau Baru** di luar batas peta koordinat Menoreh saat ini?
+            <br><br>
+            <span style="color: #fbbf24;">⚠️ Estimasi Biaya Konsensus: <strong>50,000 TOF</strong></span>
+        </p>
+        
+        <div class="modal-buttons-group">
+            <button class="btn-modal-action btn-island-submit" onclick="submitIslandRequest()">Kirim Pengajuan Daratan</button>
+            <button class="btn-modal-action btn-island-cancel" onclick="document.getElementById('island-modal').classList.remove('active')">Batal</button>
         </div>
-        <div id="pilarOptions" style="display:grid; gap:10px;"></div>
     </div>
 </div>
 
-<a href="https://wa.me/6285228028131?text=Halo%20Admin%20ToFarmer%20🌿" class="tof-wa-float" target="_blank">
-    <img src="https://cdn-icons-png.flaticon.com/512/733/733585.png" alt="WA"/>
-</a>
+<div id="tile-hud" class="tile-action-hud">
+    <div class="tile-info-text">
+        <span id="hud-tile-coord">Ubin (X, Y)</span>
+        <strong id="hud-tile-status">Tanah Kosong Desa</strong>
+    </div>
+    <div class="tile-buttons">
+        <button class="btn-tile-act btn-claim" onclick="triggerClaimAction()">Claim</button>
+        <button class="btn-tile-act btn-build" onclick="triggerBuildAction()">Bangun</button>
+    </div>
+</div>
+
+<div id="edit-hud" class="edit-hud-banner">
+    <div class="hud-title">🛠️ Mode Arsitek Desa</div>
+    <p class="hud-desc">Sentuh dan geser (*drag & drop*) pada ikon rumah warga untuk mengatur tata letak desa Menoreh secara bebas & artistik.</p>
+    <div class="hud-action-row">
+        <button class="hud-btn hud-btn-cancel" onclick="cancelEditMode()">Batal</button>
+        <button class="hud-btn hud-btn-save" onclick="saveAndLockMode()">🔒 Kunci Posisi</button>
+    </div>
+</div>
+
+<div id="auth-status">Memeriksa session...</div>
+
+<div class="controls">
+    <button class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
+    <button class="btn btn-island" onclick="openIslandModal()">🏝️ Bikin Pulau</button>
+    <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
+    <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
+    <button class="btn" onclick="rotateMap()">🔄 Putar Sisi</button>
+</div>
 
 <script>
-    // ===================================================================
-    // MESIN PETA DESA MENOREH — versi sinematik
-    // (Kamera, langit, dan generator rumah warga. Tidak menyentuh logika
-    //  ToFarmer di app.js — hanya menyediakan "panggung" visualnya.)
-    // ===================================================================
-    // --- A. STATE PANEL WARGA (SIDEBAR) ---
-    // panelManual = true berarti pengguna membuka/menutup panel secara sengaja,
-    // sehingga logika otomatis berbasis zoom tidak menimpanya sampai ia
-    // memilih rumah lain atau menekan "Lihat Desa".
-    let panelManual = false;
-    const housePositions = [];
+    const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
+    
+    const world = document.getElementById('world');
+    const viewport = document.getElementById('viewport');
 
-    function openResidentPanel() {
-        document.getElementById('mainLayout').classList.add('active-profile');
-    }
-    function closeResidentPanel(manual) {
-        if (manual) panelManual = true;
-        document.getElementById('mainLayout').classList.remove('active-profile');
+    let zoom = 0.7;
+    let panX = 0, panY = 0;
+    let currentRotationIndex = 0; 
+    let isEditMode = false;
+    let currentSelectedUsername = null; 
+    let currentSelectedTile = { x: null, y: null };
+    
+    let isDraggingView = false;
+    let startX = 0, startY = 0;
+    
+    const GRID_SIZE = 30;
+    const TILE_WIDTH = 100;   
+    const TILE_HEIGHT = 50;   
+    
+    let rawTerrainData = [];
+    let rawUserData = [];
+    const reservedTiles = new Set();
+    let housePositions = {}; 
+    let backupPositions = {};
+
+    function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.0); updateWorldTransform(); }
+    function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
+
+    // MAP VIEWPORT CONTROL
+    viewport.addEventListener('mousedown', (e) => {
+        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('.modal-overlay') || e.target.closest('.house-container') || e.target.closest('#edit-hud') || e.target.closest('#tile-hud')) return;
+        isDraggingView = true; startX = e.clientX - panX; startY = e.clientY - panY;
+        closeTileHUD();
+    });
+    window.addEventListener('mousemove', (e) => { if (isDraggingView) { panX = e.clientX - startX; panY = e.clientY - startY; updateWorldTransform(); } });
+    window.addEventListener('mouseup', () => isDraggingView = false);
+
+    viewport.addEventListener('touchstart', (e) => {
+        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('.modal-overlay') || e.target.closest('.house-container') || e.target.closest('#edit-hud') || e.target.closest('#tile-hud')) return;
+        isDraggingView = true; startX = e.touches[0].clientX - panX; startY = e.touches[0].clientY - panY;
+        closeTileHUD();
+    });
+    window.addEventListener('touchmove', (e) => { if (isDraggingView) { panX = e.touches[0].clientX - startX; panY = e.touches[0].clientY - startY; updateWorldTransform(); } });
+    window.addEventListener('touchend', () => isDraggingView = false);
+
+    function getIsoCoords(x, y) {
+        let rx = x, ry = y;
+        if (currentRotationIndex === 1) { rx = y; ry = GRID_SIZE - 1 - x; }
+        else if (currentRotationIndex === 2) { rx = GRID_SIZE - 1 - x; ry = GRID_SIZE - 1 - y; }
+        else if (currentRotationIndex === 3) { rx = GRID_SIZE - 1 - y; ry = x; }
+        return { x: (rx - ry) * (TILE_WIDTH / 2), y: (rx + ry) * (TILE_HEIGHT / 2) };
     }
 
-    function bukaProfilSaya() {
-        if (!currentWallet) {
-            alert("Login dulu ya untuk melihat profil Anda 🌱");
-            return;
-        }
-        // Langsung lompat ke halaman profil dengan ID wallet sendiri
-        window.location.href = `profile.html?id=${currentWallet}`;
-    }
-
-    // ===================================================================
-    // MESIN PETA — peta matematis sungguhan (Leaflet + CRS.Simple), bukan
-    // satu kanvas raksasa yang di-geser pakai CSS transform. Leaflet hanya
-    // menggambar & menghitung ubin (tile) yang sedang terlihat di layar,
-    // sehingga pan/zoom/pinch ditangani mesinnya sendiri (sudah teroptimasi,
-    // tidak perlu kode drag/touch manual lagi) dan tidak ada lagi jahitan/
-    // garis vertikal seperti pada kanvas besar yang diskalakan CSS.
-    // ===================================================================
-    const WORLD_W = 320;              // lebar dunia (satuan peta, bukan pixel layar)
-    const HORIZON_BASE = 30;          // tinggi dasar cakrawala: di atas = langit, di bawah = tanah
-    const SKY_RANGE = 85;             // jarak gradasi langit dari cakrawala ke puncak malam
-    const LAND_RANGE = 150;           // jarak gradasi tanah dari cakrawala ke dasar terdalam
-
-    function smoothstep(t) { return t * t * (3 - 2 * t); }
-    function lerpColor(c1, c2, t) {
-        return [
-            Math.round(c1[0] + (c2[0] - c1[0]) * t),
-            Math.round(c1[1] + (c2[1] - c1[1]) * t),
-            Math.round(c1[2] + (c2[2] - c1[2]) * t)
-        ];
-    }
-    function warnaBertingkat(stops, t) {
-        for (let i = 0; i < stops.length - 1; i++) {
-            if (t >= stops[i].t && t <= stops[i + 1].t) {
-                const lokalT = smoothstep((t - stops[i].t) / (stops[i + 1].t - stops[i].t));
-                return lerpColor(stops[i].c, stops[i + 1].c, lokalT);
+    function findInitialEmptyTile() {
+        for (let mencoba = 0; mencoba < 1000; mencoba++) {
+            let tx = Math.floor(Math.random() * (GRID_SIZE - 6)) + 3;
+            let ty = Math.floor(Math.random() * (GRID_SIZE - 6)) + 3;
+            let key = `${tx},${ty}`;
+            if (!reservedTiles.has(key)) {
+                let aman = true;
+                for (let dx = -3; dx <= 3; dx++) {
+                    for (let dy = -3; dy <= 3; dy++) {
+                        if (reservedTiles.has(`${tx + dx},${ty + dy}`)) { aman = false; break; }
+                    }
+                    if (!aman) break;
+                }
+                if (aman) { reservedTiles.add(key); return { x: tx, y: ty }; }
             }
         }
-        return t < stops[0].t ? stops[0].c : stops[stops.length - 1].c;
+        return { x: Math.floor(Math.random()*(GRID_SIZE-2))+1, y: Math.floor(Math.random()*(GRID_SIZE-2))+1 };
     }
 
-    // Gradasi langit senja sinematik: emas cakrawala -> jingga bara -> magenta -> ungu -> malam pekat
-    const SKY_STOPS = [
-        { t: 0,    c: [240, 149, 74] }, // #f0954a keemasan di cakrawala
-        { t: 0.15, c: [201, 85, 47] },  // #c9552f
-        { t: 0.30, c: [138, 47, 76] },  // #8a2f4c
-        { t: 0.55, c: [74, 28, 72] },   // #4a1c48
-        { t: 0.78, c: [34, 24, 70] },   // #221846
-        { t: 0.92, c: [12, 15, 46] },   // #0c0f2e
-        { t: 1.0,  c: [4, 4, 20] }      // #040414
-    ];
-    // Gradasi tanah Agritech: hangat dekat cakrawala -> hijau tua -> hampir hitam di kejauhan
-    const LAND_STOPS = [
-        { t: 0,    c: [58, 42, 26] },   // rona hangat pantulan senja di tepi cakrawala
-        { t: 0.12, c: [16, 28, 18] },   // #101c12 siluet bukit
-        { t: 0.5,  c: [12, 26, 18] },   // #0c1a12 dataran
-        { t: 1.0,  c: [5, 11, 7] }      // #050b07 kejauhan gelap
-    ];
-
-    // Noise organik dua-oktaf untuk variasi ladang (mirip corak sawah/kebun, bukan blok rata)
-    function noiseAlam(x, y) {
-        return Math.sin(x * 0.01) * Math.cos(y * 0.01) + Math.sin(x * 0.028 + y * 0.02) * 0.22;
+    // MODAL EKSPANSI PULAU BARU CONTROL
+    function openIslandModal() {
+        closeTileHUD();
+        document.getElementById('island-modal').classList.add('active');
+    }
+    function closeIslandModal(e) { if(e.target === document.getElementById('island-modal')) document.getElementById('island-modal').classList.remove('active'); }
+    
+    function submitIslandRequest() {
+        alert("Sistem Makro ToFarmer:\nPengajuan klaster pulau baru telah dikirim ke masterplan sirkulasi!");
+        document.getElementById('island-modal').classList.remove('active');
     }
 
-    const TerrainLayer = L.GridLayer.extend({
-        tileSize: 256,
-        updateWhenZooming: true,
-        keepBuffer: 2,
+    // GRID SELEKSI UBIN
+    function selectTile(x, y, event) {
+        // SOLUSI TOTAL: Jika mode edit aktif, fungsi seleksi ubin langsung dimatikan agar bebas drag!
+        if (isEditMode) return;
+        
+        event.stopPropagation();
+        currentSelectedTile = { x, y };
+        
+        document.getElementById('hud-tile-coord').innerText = `Koordinat: Sisi (${x}, ${y})`;
+        const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+        let statusText = "Tanah Kosong Bebas";
+        if (ground) statusText = ground.type === 'paved_road' ? 'Jalan Desa' : (ground.type === 'soil_farm' ? 'Lahan Pertanian' : 'Area Alam');
+        document.getElementById('hud-tile-status').innerText = statusText;
 
-        createTile: function (coords) {
-            const tile = L.DomUtil.create('canvas', 'leaflet-tile');
-            tile.width = 256;
-            tile.height = 256;
-            const ctx = tile.getContext('2d');
+        document.body.classList.add('tile-active-ui');
+        document.getElementById('tile-hud').classList.add('active');
+    }
 
-            const nwPoint = new L.Point(coords.x * 256, coords.y * 256);
+    function closeTileHUD() {
+        document.body.classList.remove('tile-active-ui');
+        document.getElementById('tile-hud').classList.remove('active');
+    }
 
-            // Sampel di resolusi rendah lalu digambar membesar dengan smoothing —
-            // inilah kunci supaya transisi warna menyatu mulus, bukan berkotak
-            // maupun bergaris (dulu ini akar masalah "garis vertikal").
-            const SAMPLE = 40;
-            const step = 256 / SAMPLE;
+    // UTALITAS SIRKULASI TOF ACTIONS
+    function triggerClaimAction() {
+        alert(`Sirkulasi TOF:\nKlaim Hak Pakai Ubin (${currentSelectedTile.x}, ${currentSelectedTile.y}) dikonfirmasi.\nData akan segera disinkronkan ke master database.`);
+        closeTileHUD();
+    }
 
-            const kanvasKecil = document.createElement('canvas');
-            kanvasKecil.width = SAMPLE;
-            kanvasKecil.height = SAMPLE;
-            const sctx = kanvasKecil.getContext('2d');
-            const imgData = sctx.createImageData(SAMPLE, SAMPLE);
+    function triggerBuildAction() {
+        alert(`Menu Konstruksi TOF:\nSilakan tentukan blueprint komponen/dekorasi untuk diletakkan pada titik koordinat (${currentSelectedTile.x}, ${currentSelectedTile.y}).`);
+        closeTileHUD();
+    }
 
-            for (let sy = 0; sy < SAMPLE; sy++) {
-                for (let sx = 0; sx < SAMPLE; sx++) {
-                    const p = new L.Point(nwPoint.x + sx * step, nwPoint.y + sy * step);
-                    const latlng = this._map.unproject(p, coords.z);
+    // SINKRONISASI LINK PORTAL ILMU WARGA PRODUCTION READY
+    function goToUserProfile() {
+        if(currentSelectedUsername) {
+            window.location.href = `https://www.tofarmer.xyz/profile.html?u=${currentSelectedUsername}`;
+        }
+    }
 
-                    const gX = latlng.lng;
-                    const gH = latlng.lat; // "lat" di CRS.Simple = tinggi dunia (naik = atas layar)
+    function enableEditMode() {
+        isEditMode = true;
+        closeTileHUD(); 
+        backupPositions = JSON.parse(JSON.stringify(housePositions)); 
+        world.className = "edit-mode";
+        document.body.classList.add('edit-active-ui');
+        document.getElementById('edit-hud').classList.add('active');
+    }
 
-                    // Garis cakrawala meliuk alami, sama seperti riak bukit aslinya
-                    const cakrawala = HORIZON_BASE + Math.sin(gX / 120) * 40 + Math.cos(gX / 250) * 60;
+    function saveAndLockMode() {
+        isEditMode = false;
+        world.className = "locked-mode";
+        document.body.classList.remove('edit-active-ui');
+        document.getElementById('edit-hud').classList.remove('active');
+        localStorage.setItem('tofarmer_custom_layout_v3', JSON.stringify(housePositions));
+        renderVillage();
+    }
 
-                    let r, g, b;
-                    if (gH > cakrawala) {
-                        const t = Math.min(1, Math.max(0, (gH - cakrawala) / SKY_RANGE));
-                        [r, g, b] = warnaBertingkat(SKY_STOPS, t);
-                    } else {
-                        const d = Math.min(1, Math.max(0, (cakrawala - gH) / LAND_RANGE));
-                        let [lr, lg, lb] = warnaBertingkat(LAND_STOPS, d);
+    function cancelEditMode() {
+        isEditMode = false;
+        world.className = "locked-mode";
+        document.body.classList.remove('edit-active-ui');
+        document.getElementById('edit-hud').classList.remove('active');
+        housePositions = JSON.parse(JSON.stringify(backupPositions)); 
+        renderVillage();
+    }
 
-                        // Sentuhan noise organik supaya tanah terasa hidup (ladang/kebun), diredam agar tetap halus
-                        const n = (noiseAlam(gX, gH) + 1.2) / 2.4; // 0..1
-                        const tint = warnaBertingkat(
-                            [{ t: 0, c: [10, 22, 14] }, { t: 0.5, c: [14, 34, 20] }, { t: 1, c: [24, 20, 10] }],
-                            n
-                        );
-                        r = Math.round(lr * 0.65 + tint[0] * 0.35);
-                        g = Math.round(lg * 0.65 + tint[1] * 0.35);
-                        b = Math.round(lb * 0.65 + tint[2] * 0.35);
-                    }
+    // RENDER VILLAGE
+    function renderVillage() {
+        world.innerHTML = ''; 
+        reservedTiles.clear();
 
-                    const idx = (sy * SAMPLE + sx) * 4;
-                    imgData.data[idx] = r;
-                    imgData.data[idx + 1] = g;
-                    imgData.data[idx + 2] = b;
-                    imgData.data[idx + 3] = 255;
+        // 1. Render Base Ground
+        for (let x = 0; x < GRID_SIZE; x++) {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                const node = document.createElement('div');
+                node.className = 'iso-node';
+                node.setAttribute('data-tile-x', x);
+                node.setAttribute('data-tile-y', y);
+                
+                const coords = getIsoCoords(x, y);
+                node.style.left = coords.x + 'px';
+                node.style.top = coords.y + 'px';
+                node.style.zIndex = x + y;
+
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.onclick = (e) => selectTile(x, y, e);
+
+                const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+                if (ground) {
+                    reservedTiles.add(`${x},${y}`);
+                    if (ground.type === 'paved_road') tile.classList.add('road');
+                    if (ground.type === 'soil_farm') tile.classList.add('farm');
+                }
+
+                node.appendChild(tile);
+                world.appendChild(node);
+
+                if (ground && (ground.type === 'mountain' || ground.type === 'tree')) {
+                    const icon = document.createElement('span');
+                    icon.className = 'sprite';
+                    icon.style.fontSize = '30px';
+                    icon.innerText = ground.type === 'mountain' ? '⛰️' : '🌳';
+                    node.appendChild(icon);
                 }
             }
-
-            sctx.putImageData(imgData, 0, 0);
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(kanvasKecil, 0, 0, SAMPLE, SAMPLE, 0, 0, 256, 256);
-
-            return tile;
-        }
-    });
-
-    const map = L.map('viewport', {
-        crs: L.CRS.Simple,
-        minZoom: -3,
-        maxZoom: 4,
-        zoomSnap: 0,        // zoom kontinu, biar terasa selembut versi lama
-        zoomDelta: 0.2,
-        wheelPxPerZoomLevel: 100,
-        zoomControl: false,
-        attributionControl: false,
-        maxBounds: [[-3000, -3000], [3000, 3000]],
-        maxBoundsViscosity: 0.6
-    });
-    new TerrainLayer().addTo(map);
-
-    let fitZoom = -1; // dihitung ulang tiap resetView/resize, mengikuti lebar layar
-
-    // --- B. GENERATOR RUMAH WARGA (foto profil melayang di atas atap) ---
-    // Rumah index 0 = "Rumah Anda", otomatis mengikuti akun yang login (lihat script sinkronisasi di bagian bawah halaman).
-    // Rumah lainnya = warga desa dengan avatar unik yang stabil (deterministik dari nama, tidak berubah tiap reload).
-    let layerRumah = L.layerGroup().addTo(map);
-    let layerPohon = L.layerGroup().addTo(map);
-    let layerJalan = L.layerGroup().addTo(map);
-
-    async function generateHouses() {
-        const profiles = await loadVillageUsers?.() || [];
-        if (!profiles.length) return;
-
-        const segmentWidth = (WORLD_W - 200) / profiles.length;
-
-        for (let i = 0; i < profiles.length; i++) {
-            const seed = i * 99991;
-            const rand = (seed % 100) / 100;
-
-            const x = (i * segmentWidth) + 100 - (WORLD_W / 2) + (rand * 80 - 40);
-            const depthBawahCakrawala = 150 + Math.random() * 1060;
-            const h = HORIZON_BASE - depthBawahCakrawala;
-
-            housePositions.push({ x, y: h });
-
-            const isMyHouse = (i === 0);
-            const residentName = isMyHouse ? 'Rumah Anda' : (profiles[i].username || `Warga_${i + 1}`);
-
-            let avatarUrl = profiles[i].avatar_url || profiles[i].avatar;
-            if (!avatarUrl) {
-                const seedAvatar = isMyHouse ? 'tofarmer-guest-house' : `tofarmer-warga-${i + 1}`;
-                avatarUrl = `https://api.dicebear.com/10.x/avataaars/svg?seed=${encodeURIComponent(seedAvatar)}`;
-            }
-
-            const htmlContent = `
-                <div class="house-node${isMyHouse ? ' my-house' : ''}">
-                    <div class="house-avatar-wrap">
-                        <img class="house-avatar" src="${avatarUrl}" />
-                    </div>
-                    <div class="house-icon">${isMyHouse ? '🏡' : '🏠'}</div>
-                    <div class="house-name">${residentName}</div>
-                </div>
-            `;
-            const icon = L.divIcon({
-                html: htmlContent,
-                className: 'custom-house-marker',
-                iconSize: [96, 108],
-                iconAnchor: [48, 90]
-            });
-
-            L.marker([h, x], { icon }).addTo(layerRumah)
-                .on('click', (ev) => {
-                    L.DomEvent.stopPropagation(ev);
-                    openProfile(profiles[i]?.id, profiles[i]?.username, profiles[i]);
-                    if (typeof focusOnHouse === 'function') focusOnHouse(x, h);
-                });
         }
 
-        // Jalan setapak sirkuit data — polyline asli yang otomatis ikut ter-reproyeksi
-        // saat peta di-pan/zoom (jauh lebih ringan daripada dibakar ke kanvas statis).
-        const jalurPoin = [];
-        for (let i = 0; i < housePositions.length - 1; i++) {
-            jalurPoin.push([housePositions[i].y, housePositions[i].x]);
-            jalurPoin.push([housePositions[i].y, housePositions[i + 1].x]);
-            jalurPoin.push([housePositions[i + 1].y, housePositions[i + 1].x]);
-        }
-        if (jalurPoin.length) {
-            L.polyline(jalurPoin, { color: '#4ade80', weight: 2, opacity: 0.18, dashArray: '6 10' }).addTo(layerJalan);
-        }
-
-        // Pohon dekoratif — ikon ringan, dibuat sekali saja (bukan digambar ulang tiap ubin)
-        for (let i = 0; i < 45; i++) {
-            const tx = Math.random() * WORLD_W - WORLD_W / 2;
-            const cakrawalaDiTx = HORIZON_BASE + Math.sin(tx / 120) * 40 + Math.cos(tx / 250) * 60;
-            const ty = cakrawalaDiTx - (60 + Math.random() * (LAND_RANGE - 100));
-            const dekatRumah = housePositions.some(hp => Math.hypot(hp.x - tx, hp.y - ty) < 90);
-            if (dekatRumah) continue;
-
-            const treeIcon = L.divIcon({
-                html: `<div style="font-size:${20 + Math.random() * 16}px; filter:drop-shadow(0 2px 4px rgba(0,0,0,.6));">🌲</div>`,
-                className: 'custom-house-marker',
-                iconSize: [30, 30],
-                iconAnchor: [15, 26]
-            });
-            L.marker([ty, tx], { icon: treeIcon, interactive: false }).addTo(layerPohon);
-        }
-    }
-
-   
-
-    // --- C. MANAJEMEN KAMERA & PEMICU PANEL WARGA ---
-    map.on('zoomend', () => {
-        if (!panelManual) {
-            if (map.getZoom() >= fitZoom + 1.4) { openResidentPanel(); }
-            else { closeResidentPanel(); }
-        }
-    });
-
-    function focusOnHouse(hx, hy) {
-        panelManual = false; // klik rumah selalu membuka panel & kembali ke mode otomatis
-        const targetZoom = fitZoom + 2.6;
-        map.setView([hy, hx], targetZoom, { animate: true });
-
-        // Geser sedikit supaya rumah tidak tertutup panel warga (kiri di desktop, bawah di mobile)
-        requestAnimationFrame(() => {
-            if (window.innerWidth <= 850) {
-                map.panBy([0, -window.innerHeight * 0.16], { animate: true });
+        // 2. Render Player Houses
+        rawUserData.forEach(user => {
+            if (housePositions[user.id]) {
+                user.assignedCoord = housePositions[user.id];
+                reservedTiles.add(`${user.assignedCoord.x},${user.assignedCoord.y}`);
             } else {
-                const sidebarW = Math.min(410, window.innerWidth * 0.9);
-                map.panBy([-sidebarW / 2, 0], { animate: true });
+                user.assignedCoord = findInitialEmptyTile();
+                housePositions[user.id] = user.assignedCoord;
             }
-        });
-        openResidentPanel();
-    }
-
-    function zoomMenu(delta) { map.setZoom(map.getZoom() + delta); }
-
-    function resetView() {
-        fitZoom = Math.log2(window.innerWidth / WORLD_W);
-        panelManual = false;
-        closeResidentPanel();
-        map.setView([0, 0], fitZoom, { animate: true });
-    }
-
-    // Inisialisasi visual
-   
-    resetView();
-
-    window.addEventListener('resize', resetView);
-
-// --- F. PRATINJAU GAMBAR UNGGAHAN ---
-document.getElementById("imageInput").addEventListener("change", function (e) {
-    const file = e.target.files?.[0];
-    const previewText = document.getElementById("imagePreviewText");
-    if (!file) { previewText.innerText = ""; return; }
-    let name = file.name;
-    if (name.length > 18) { name = name.substring(0, 18) + "..."; }
-    previewText.innerText = "Terpilih: " + name;
-});
-
-// --- G. EVENT LISTENER UNTUK CLOSE PANEL WARGA KETIKA KLIK DI LUAR ---
-document.addEventListener('click', function(event) {
-    const layoutWrapper = document.getElementById('mainLayout');
-
-    const clickedHouse = event.target.closest('.house-node');
-    const clickedPanel = event.target.closest('.layout-wrapper');
-    const clickedUI = event.target.closest('.container');
-
-    if (!clickedPanel && !clickedHouse && !clickedUI) {
-        if (layoutWrapper.classList.contains('active-profile')) {
-            closeResidentPanel(true);
-        }
-    }
-});
-async function loadVillageUsers() {
-  const { data: users, error } = await supabaseClient
-    .from("profiles")
-    .select("id, username, avatar_url, xp, saldo_tof");
-
-  if (error) {
-    console.log(error);
-    return [];
-  }
-
-  return users;
-}
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase.js"></script>
-<script src="js/rank.js"></script>
-<script src="js/reaction.js"></script>
-<script src="./js/comments.js"></script>
-<script src="js/share.js"></script>
-
-<script src="js/ai-memory.js"></script>
-<script src="mbah_eko_injector.js"></script>
-
-<script>
-let currentWallet = null
-let currentProfile = null
-
-// --- SATPAM LOGIN (RAMAH TAMU) ---
-function checkLoginStatus() {
-    const wallet = localStorage.getItem('tof_wallet');
-    if (!wallet) {
-        console.log("Pengunjung sedang melihat-lihat sebagai Guest 🌿");
-        return;
-    }
-}
-checkLoginStatus();
-
-// ===================== WALLET =====================
-async function connectWallet() {
-  return new Promise((resolve) => {
-
-    const modal = document.createElement("div")
-
-    modal.innerHTML = `
-    <div style="
-      position:fixed;
-      inset:0;
-      background:rgba(16,25,20,.65);
-      backdrop-filter:blur(12px);
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      z-index:99999;
-      padding:20px;
-    ">
-      <div style="
-        width:100%;
-        max-width:420px;
-        background:#fff;
-        border-radius:28px;
-        padding:24px;
-      ">
-        <div style="text-align:center;">
-          <div style="font-size:50px;">🌿</div>
-          <h2 style="color:#2f6f4e;">Login/Daftar ToFarmer</h2>
-          <p style="font-size:12px;color:#666;margin-top:8px;">Nama + Wallet Algorand</p>
-<p style="font-size:12px;color:#666;margin-top:8px;">
-  Daftar pakai Nama | Alamat Dompet Algorand<br>
-  Bikin dompet dulu di Pera Wallet/Defly
-</p>
-        </div>
-        <input id="tofName" placeholder="Nama pengguna" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
-        <input id="tofWallet" placeholder="Wallet Algorand" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
-        <button id="registerBtn" style="width:100%;">Masuk ke Ladang 🚀</button>
-        <button id="cancelBtn" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
-      </div>
-    </div>
-    `
-
-    document.body.appendChild(modal)
-
-    modal.querySelector("#registerBtn").onclick = async () => {
-      const username = document.getElementById("tofName").value.trim()
-      const wallet = document.getElementById("tofWallet").value.trim()
-
-      if (!username) {
-        alert("Nama wajib diisi 🌱")
-        return
-      }
-
-      try {
-        const decoded = algosdk.decodeAddress(wallet)
-        if (!decoded) throw new Error()
-      } catch {
-        alert("Wallet tidak valid / bukan Algorand 😄")
-        return
-      }
-
-      const { data: existingUser } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", wallet)
-        .maybeSingle()
-
-      if (!existingUser) {
-        const { error } = await supabaseClient
-          .from("profiles")
-          .insert([
-            {
-              id: wallet,
-              username: username,
-              xp: 0,
-              saldo_tof: 0,
-              level: 1,
-              avatar_url: "https://www.tofarmer.xyz/aset/favicon.png"
-            }
-          ])
-
-        if (error) {
-          console.log(error)
-          alert("Gagal daftar")
-          return
-        }
-      }
-
-      currentWallet = wallet
-      localStorage.setItem("tof_wallet", wallet)
-
-      await syncProfile(wallet)
-      updateWalletUI()
-      renderProfile()
-
-      document.body.removeChild(modal)
-      showWelcomePopup()
-      resolve(wallet)
-    }
-
-    modal.querySelector("#cancelBtn").onclick = () => {
-      document.body.removeChild(modal)
-      resolve(null)
-    }
-  })
-}
-
-function showWelcomePopup() {
-  const modal = document.createElement("div")
-  modal.innerHTML = `
-  <div style="position:fixed;inset:0;background:rgba(16,25,20,.6);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:center;z-index:99999;">
-    <div style="background:linear-gradient(180deg,#ffffff,#f3f8f4);padding:26px;border-radius:26px;text-align:center;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(47,111,78,.25);border:1px solid rgba(76,175,122,.15);">
-      <div style="font-size:55px;">🌿🎉</div>
-      <h2 style="color:#2f6f4e;">Ladang Terbuka!</h2>
-      <p style="color:#6f7f76;font-size:13px;margin:10px 0 20px;">Selamat datang di ToFarmer.<br>Dari kopi → ide → aksi → panen 🚀</p>
-      <button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;border:none;border-radius:14px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-weight:bold;cursor:pointer;">Siap Panen Ide 🌱</button>
-    </div>
-  </div>
-  `
-  document.body.appendChild(modal)
-}
-
-function logoutWallet() {
-  const yakin = confirm("Yakin ingin meninggalkan ladang? 🌱");
-  if (!yakin) return;
-
-  currentWallet = null
-  currentProfile = null
-  localStorage.removeItem("tof_wallet")
-  localStorage.removeItem("tof_user_id")
-  updateWalletUI()
-  renderProfile()
-  window.location.href = 'index.html'; 
-}
-
-
-// ===================== UI & PROFILE SYNC =====================
-function updateWalletUI() {
-  const btn = document.querySelector("button[onclick='connectWallet()']")
-  const editBtn = document.getElementById("editAvatarBtn")
-
-  if (!btn) return
-
-  if (currentWallet) {
-    // 1. Teks jika petani SUDAH LOGIN / CONNECT
-    btn.innerText = "🚪 LOGOUT"
-    btn.style.background = "#4caf7a"
-    btn.onclick = logoutWallet
-    if (editBtn) editBtn.style.visibility = "visible"
-  } else {
-    // 2. Teks jika petani BELUM LOGIN (Ini yang Anda tanyakan 😎)
-    btn.innerText = "🔑 MASUK / DAFTAR 🌿"
-    btn.style.background = ""
-    btn.onclick = connectWallet
-    if (editBtn) editBtn.style.visibility = "hidden"
-  }
-}
-
-async function syncProfile(wallet) {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("*")
-    .eq("id", wallet)
-    .maybeSingle()
-
-  if (error) {
-    console.log(error)
-    return
-  }
-
-  if (!data) {
-    alert("Wallet belum terdaftar 🌱\nSilakan daftar dulu.")
-    logoutWallet()
-    return
-  } else {
-    currentProfile = data
-  }
-
-  await refreshUserBalance()
-}
-
-// ===================== POSTING SYSTEM =====================
-const PILAR_MAP = {
-  community: 1,
-  inovasi: 2,
-  ladang: 3,
-  finance: 4,
-  refleksi: 5
-}
-
-function pilihPilarPopup(text) {
-  return new Promise((resolve) => {
-    const modal = document.createElement("div")
-    modal.innerHTML = `
-    <div style="position:fixed;inset:0;background:rgba(16,25,20,.55);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:flex-start;padding-top:40px;overflow-y:auto;z-index:99999;padding:20px;">
-      <div style="width:100%;max-width:430px;max-height:85vh;overflow-y:auto;background:linear-gradient(180deg,#fff,#f3f8f4);border-radius:28px;padding:26px;box-shadow:0 20px 60px rgba(47,111,78,.18);border:1px solid rgba(76,175,122,.12);">
-        <div style="text-align:center;">
-          <div style="font-size:50px;">☕🌿</div>
-          <h2 style="color:#2f6f4e;">Mau ditanam di ladang mana?</h2>
-          <p style="color:#6f7f76;font-size:13px;">Pilih dulu temamu 😎</p>
-        </div>
-        <div style="display:grid;gap:10px;margin-top:20px;">
-          <button class="pilar-btn" data-p="community">🤝 Titik Kumpul <small>Ngopi, ide, ngobrol, santai ,ngonten</small></button>
-          <button class="pilar-btn" data-p="inovasi">🤖 Ladang Eksperimen <small>AI, blockchain, robot, dan ide yang kadang “nggak masuk akal”</small></button>
-          <button class="pilar-btn" data-p="ladang">🌱 Cerita Tanah & Panen <small>Drama masuk kebun</small></button>
-          <button class="pilar-btn" data-p="finance">☕ Duit...duit dan duit <small>TOF, aset, strategi biar ladang tetap jalan</small></button>
-          <button class="pilar-btn" data-p="refleksi">🔥 Mode Petapa Gunung <small>Renungan, kabut pagi, dan pikiran random</small></button>
-        </div>
-        <button id="cancelPilar" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:16px;background:#eef4ef;color:#6f7f76;font-weight:600;">🐐 batal, kambing panen dulu</button>
-      </div>
-    </div>
-    `
-    document.body.appendChild(modal)
-
-    modal.querySelectorAll(".pilar-btn").forEach(btn => {
-      btn.onclick = () => {
-        const value = btn.dataset.p
-        document.body.removeChild(modal)
-        resolve(value)
-      }
-    })
-
-    modal.querySelector("#cancelPilar").onclick = () => {
-      document.body.removeChild(modal)
-      resolve(null)
-    }
-  })
-}
-
-async function classifyPilar(text) {
-  const t = text.toLowerCase()
-  let rekomendasiAwal = "community"
-
-  if (t.includes("modal") || t.includes("profit") || t.includes("aset")) {
-    rekomendasiAwal = "finance"
-  } else if (t.includes("tanam") || t.includes("ladang") || t.includes("panen")) {
-    rekomendasiAwal = "ladang"
-  } else if (t.includes("blockchain") || t.includes("wallet")) {
-    rekomendasiAwal = "inovasi"
-  }
-
-  const userChoice = await pilihPilarPopup(text)
-  if (userChoice === null) return null
-
-  return userChoice || rekomendasiAwal
-}
-
-async function sendPost() {
-  let imageUrl = null
-  const input = document.getElementById("postBox")
-  const imageInput = document.getElementById("imageInput")
-  if (!input) return
-
-  const text = input.value.trim()
-  if (!text) return
-
-  const pilar = await classifyPilar(text)
-  if (!pilar) return
-
-  const file = imageInput?.files?.[0] || null
-
-  if (file instanceof File) {
-    const fileName = `${currentWallet}-${Date.now()}-${file.name || "img"}`
-    const { error: uploadError } = await supabaseClient.storage
-      .from("post-images")
-      .upload(fileName, file, { cacheControl: "3600", upsert: false })
-
-    if (uploadError) {
-      alert("Upload gambar gagal: " + uploadError.message)
-      return
-    }
-
-    const { data } = supabaseClient.storage.from("post-images").getPublicUrl(fileName)
-    if (!data?.publicUrl) {
-      alert("Gagal ambil URL gambar")
-      return
-    }
-    imageUrl = data.publicUrl
-  }
-
-  const isSelfPost = true
-  const xpBonus = isSelfPost ? 20 : 5
-
- const { error } = await supabaseClient
-    .from("contributions")
-    .insert([
-      {
-        user_id: currentWallet,
-        pilar_aksi: PILAR_MAP[pilar],
-        judul_aksi: "Feed Post",
-        deskripsi_proses: text,
-        image_url: imageUrl,
-        status_validasi: "pending",
-        xp_reward: xpBonus,
-        is_self_post: isSelfPost,
-        is_private: false // <<< TAMBAHKAN BARIS INI AGAR TEGAS SEBAGAI POSTINGAN PUBLIK
-      }
-    ])
-
-  if (currentProfile) {
-    const newXP = (currentProfile.xp || 0) + xpBonus
-    const { error: xpError } = await supabaseClient
-      .from("profiles")
-      .update({ xp: newXP })
-      .eq("id", currentWallet)
-
-    if (!xpError) {
-      currentProfile.xp = newXP
-      renderProfile()
-    }
-  }
-
-  if (error) {
-    alert("Gagal kirim: " + error.message)
-    return
-  }
-
-  input.value = ""
-  if (imageInput) imageInput.value = ""
-
-  loadFeed()
-
-  
-}
-
-// ===================== ECONOMY & ALGORAND INFRA =====================
-const TOF_ASSET_ID = 3558306283
-const ALGONODE_URL = "https://mainnet-api.algonode.cloud"
-
-async function getWalletTofBalance(wallet) {
-  try {
-    if (!wallet) return 0
-    const res = await fetch(`${ALGONODE_URL}/v2/accounts/${wallet}`)
-    if (!res.ok) return 0
-
-    const account = await res.json()
-    const asset = account.assets?.find(a => Number(a["asset-id"]) === TOF_ASSET_ID)
-    return asset ? Number(asset.amount) / 1000000 : 0
-  } catch (err) {
-    console.log("Wallet fetch gagal:", wallet)
-    return 0
-  }
-}
-
-async function refreshUserBalance() {
-  if (!currentWallet || !currentProfile) return
-  const balance = await getWalletTofBalance(currentWallet)
-  currentProfile.saldo_tof = balance
-  renderProfile()
-}
-
-
-
-async function loadEconomy() {
-  try {
-    // Tarik id dan xp dari supabase
-    const { data: profiles, error } = await supabaseClient.from("profiles").select("id, xp")
-    if (error || !profiles) return
-
-    const totalAsset = document.getElementById("totalAsset")
-    if (totalAsset) totalAsset.innerText = "Sync..."
-
-    let total = 0
-    const batchSize = 5
-    
-    // --- TETAP PERTAHANKAN BATCH PROMISE BLOCKCHAIN ALGORAND ---
-    for (let i = 0; i < profiles.length; i += batchSize) {
-      const batch = profiles.slice(i, i + batchSize)
-      const balances = await Promise.all(batch.map(user => getWalletTofBalance(user.id)))
-      total += balances.reduce((sum, bal) => sum + bal, 0)
-    }
-
-    const totalFixed = Number(total) || 0
-    if (totalAsset) {
-      totalAsset.innerText = totalFixed.toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " TOF"
-    }
-
-    // Jalankan progres bar fase dan tumpukan avatar stack
-    setTimeout(() => { typeof updateFaseProgress === "function" && updateFaseProgress(totalFixed) }, 100)
-    loadAvatarStack()
-
-    // --- SINKRONISASI COUTER BARIS ATAS ---
-    const growerEl = document.getElementById("rankSummary")
-    if (growerEl && typeof getRankStats === "function") {
-      const stats = getRankStats(profiles)
-      growerEl.innerHTML = `Total-${profiles.length} ( 🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite} )`
-    }
-  } catch (err) {
-    console.log("ECONOMY ERROR:", err)
-  }
-}
-
-function formatShort(num) {
-  if (num >= 1000000) return (num / 1000000).toFixed(1).replace(".0","") + "M"
-  if (num >= 1000) return (num / 1000).toFixed(1).replace(".0","") + "K"
-  return num.toString()
-}
-
-function updateFaseProgress(totalTof) {
-  const faseBar = document.getElementById("faseBar")
-  const faseText = document.getElementById("faseText")
-  if (!faseBar || !faseText) return
-
-  totalTof = Number(totalTof) || 0
-  const fases = [
-    { name: "FASE 1", target: 10 }, { name: "FASE 2", target: 500 },
-    { name: "FASE 3", target: 1000 }, { name: "FASE 4", target: 3000 },
-    { name: "FASE 5", target: 10000 }, { name: "FASE 6", target: 30000 },
-    { name: "FASE 7", target: 100000 }
-  ]
-
-  let currentPhase = fases[0]
-  let previousTarget = 0
-  for (let i = 0; i < fases.length; i++) {
-    if (totalTof <= fases[i].target) { currentPhase = fases[i]; break; }
-    previousTarget = fases[i].target
-  }
-
-  const range = currentPhase.target - previousTarget
-  let progress = range > 0 ? ((totalTof - previousTarget) / range) * 100 : 100
-  progress = Math.max(0, Math.min(progress, 100))
-  faseBar.style.width = progress + "%"
-
-  const sisa = Math.max(0, currentPhase.target - totalTof)
-  faseText.innerHTML = `
-    <div style="font-size:11px;font-weight:700;color:#2f6f4e;">🌿 ${currentPhase.name}</div>
-    <div style="font-size:10px;color:#6f7f76;margin-top:2px;">${Math.floor(progress)}% progress</div>
-    <div style="font-size:10px;color:#b5942b;margin-top:2px;">${formatShort(totalTof)} / ${formatShort(currentPhase.target)} TOF</div>
-    <div style="font-size:10px;color:#999;margin-top:2px;">Sisa ${formatShort(sisa)} TOF</div>
-  `
-}
-
-// ===================== RENDERING LINI MASA (FEED) =====================
-// --- INFINITE SCROLL SETUP ---
-let feedPage = 0;
-const FEED_PAGE_SIZE = 1;
-let feedLoading = false;
-let feedAllLoaded = false;
-
-function initFeedScroll() {
-  const feed = document.getElementById("feed");
-  if (!feed) return;
-  feed.addEventListener("scroll", () => {
-    if (feedLoading || feedAllLoaded) return;
-    const nearBottom = feed.scrollTop + feed.clientHeight >= feed.scrollHeight - 80;
-    if (nearBottom) loadMoreFeed();
-  });
-}
-
-async function loadMoreFeed() {
-  if (feedLoading || feedAllLoaded) return;
-  feedLoading = true;
-
-  const feed = document.getElementById("feed");
-  const loadingEl = document.getElementById("feedLoadingMore");
-  if (loadingEl) loadingEl.style.display = "block";
-
-  const from = feedPage * FEED_PAGE_SIZE;
-  const to = from + FEED_PAGE_SIZE - 1;
-
-  const { data: posts, error: postError } = await supabaseClient
-    .from("contributions")
-    .select(`id, created_at, deskripsi_proses, image_url, sruput_count, cangkul_count, profiles!inner(id, username, avatar_url)`)
-    .eq("is_private", false)
-    .order("created_at", { ascending: false })
-    .range(from, to);
-
-  if (loadingEl) loadingEl.style.display = "none";
-
-  if (postError || !posts || posts.length === 0) {
-    feedAllLoaded = true;
-    feedLoading = false;
-    if (feed && feedPage > 0) {
-      const endMsg = document.createElement("div");
-      endMsg.style.cssText = "text-align:center;padding:12px;font-size:11px;color:#aaa;";
-      endMsg.innerText = "🌾 Semua postingan sudah dimuat";
-      feed.appendChild(endMsg);
-    }
-    return;
-  }
-
-  if (posts.length < FEED_PAGE_SIZE) feedAllLoaded = true;
-  feedPage++;
-
-  await renderPostsBatch(posts, feed);
-  feedLoading = false;
-}
-
-async function loadFeed() {
-  const feed = document.getElementById("feed")
-  if (!feed) return
-  feed.innerHTML = ""
-  feedPage = 0;
-  feedLoading = false;
-  feedAllLoaded = false;
-
-  // Tambahkan elemen loading di bawah
-  const loadingMore = document.createElement("div");
-  loadingMore.id = "feedLoadingMore";
-  loadingMore.style.cssText = "text-align:center;padding:12px;font-size:11px;color:#aaa;display:none;";
-  loadingMore.innerText = "⏳ Memuat lebih banyak...";
-  feed.appendChild(loadingMore);
-
-  await loadMoreFeed();
-  initFeedScroll();
-}
-
-async function renderPostsBatch(posts, feed) {
-  const loadingMore = document.getElementById("feedLoadingMore");
-
-  // Ambil komentar untuk batch ini saja
-  const postIds = posts.map(p => String(p.id));
-  let comments = [];
-  try {
-    const { data: rawComments } = await supabaseClient
-      .from("comments")
-      .select("*")
-      .in("post_id", postIds);
-
-    if (rawComments && rawComments.length > 0) {
-      const { data: allProfiles } = await supabaseClient
-        .from("profiles")
-        .select("id, username, avatar_url");
-
-      comments = rawComments.map(c => {
-        const pencocok = allProfiles ? allProfiles.find(p => String(p.id).trim() === String(c.user_id).trim()) : null;
-        return {
-          ...c,
-          profiles: pencocok || { username: "Petani_Misterius", avatar_url: "https://www.tofarmer.xyz/aset/favicon.png", id: "" }
-        };
-      });
-    }
-  } catch (e) { comments = []; }
-
-  const urlParams = new URLSearchParams(window.location.search);
-  const postIdParam = urlParams.get("post");
-  if (postIdParam && feedPage === 1) {
-    try {
-      const matchedPost = posts.find(p => String(p.id) === String(postIdParam));
-      if (matchedPost) {
-        const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres karya di ToFarmer.";
-        const namaPetani = matchedPost.profiles?.username || "Petani";
-        document.title = `Catatan Karya @${namaPetani} | ToFarmer`;
-        const metaDesc = document.getElementById("postDesc");
-        const ogTitle = document.getElementById("ogTitle");
-        const ogDesc = document.getElementById("ogDesc");
-        const ogImage = document.getElementById("ogImage");
-        if (metaDesc) metaDesc.setAttribute("content", petikTeks);
-        if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
-        if (ogDesc) ogDesc.setAttribute("content", petikTeks);
-        if (matchedPost.image_url && ogImage) ogImage.setAttribute("content", matchedPost.image_url);
-      }
-    } catch (metaErr) { console.log(metaErr); }
-  }
-
-  posts.forEach(item => {
-    const div = document.createElement("div")
-    div.className = "post"
-    div.id = `post-card-${item.id}` // 🟢 Tambahkan ini sebagai jangkar koordinat
-
-    const username = item.profiles?.username || "guest"
-    const avatar = item.profiles?.avatar_url || "https://via.placeholder.com/40"
-    
-    // KODE BARU: Langsung saring dari array komentar yang sudah matang dijodohkan di atas
-    // Memaksa perbandingan tipe string literal agar tidak meleset karena tipe BigInt/Number
-    const postComments = comments.filter(c => c && String(c.post_id).trim() === String(item.id).trim());
-    const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-    const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
-
-    // KUNCI FB: Cek apakah postingan ini milik user yang sedang login sekarang
-    const isMyPost = item.profiles?.id === currentWallet;
-
-    div.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:between; gap:8px; width:100%;">
-        <div style="display:flex; align-items:center; gap:8px; flex:1;">
-          <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
-          <div onclick="window.location.href='profile.html?id=${item.profiles?.id}'" style="font-weight:600;color:#2f6f4e;cursor:pointer;">@${username}</div>
-        </div>
-        
-        ${isMyPost ? `
-        <div class="post-menu-container" style="position: relative; display: inline-block;">
-          <button class="btn-dot-menu" onclick="toggleDotMenu('${item.id}')" style="background:none; border:none; color:#65676b; font-size:16px; cursor:pointer; padding:4px 8px;">•••</button>
-          <div class="dot-dropdown" id="dropdown-${item.id}" style="display:none; position:absolute; right:0; top:24px; background:white; box-shadow:0 2px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:150px; border:1px solid #e4e6eb; padding:4px 0;">
-            <button class="btn-edit-post" data-post-id="${item.id}" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
-            <button onclick="aksiSembunyikanKeProfil('${item.id}')" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">🔒 Sembunyikan ke Profil</button>
-          </div>
-        </div>
-        ` : ''}
-      </div>
-      <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">${date}</div>
-      <div class="text" style="margin-top:6px;">${convertMentions(item.deskripsi_proses || "")}</div>
-      ${item.image_url ? `<div style="margin-top:10px;display:flex;justify-content:center;"><img src="${item.image_url}" style="max-width:100%;max-height:420px;border-radius:14px;border:1px solid rgba(0,0,0,0.08);" /></div>` : ""}
-      <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
-        <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">☕ ${item.sruput_count || 0} Sruput</span>
-        <span onclick="reactPost('${item.id}','cangkul')" style="cursor:pointer;">⛏️ ${item.cangkul_count || 0} Cangkul</span>
-      </div>
-      <div class="post-actions"><button class="share-btn" onclick="sharePost('${item.id}', '${username}', \`${safeText}\`)">📢 Bagikan Progres</button></div>
-      <div style="margin-top:10px; padding-top:8px; border-top:1px solid #f0f0f0; display:flex; gap:16px; font-size:12px; color:#6f7f76;">
-        <span onclick="toggleKomentarBox('${item.id}')" style="cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
-          💬 ${postComments.length} Komentar
-        </span>
-      </div>
-
-      <div id="box-komentar-${item.id}" style="display:none; margin-top:12px; padding:12px; background:#f8faf9; border-radius:12px;">
-        
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
-          <input id="comment-${item.id}" placeholder="Tulis komentar ladang..." style="flex-grow:1; padding:8px 12px; border-radius:20px; border:1px solid #ddd; font-size:12px; outline:none;" />
-          <button type="button" onclick="sendComment('${item.id}')" style="margin-top:0; width:auto; padding:6px 14px; font-size:12px; border-radius:20px;">Kirim</button>
-        </div>
-
-        <div id="list-komentar-${item.id}" style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
-          ${postComments.length === 0 ? `<div id="empty-comment-${item.id}" style="color:#999; text-align:center; padding:5px 0;">Belum ada diskusi, yuk sapa petani! 🌱</div>` : ''}
-          
-         ${postComments.map(c => {
-            if (!c) return '';
-            // Ambil data profile dari objek gabungan Supabase
-            const cUser = (c.profiles && c.profiles.username) ? c.profiles.username : "Petani_Misterius";
-            const cAvatar = (c.profiles && c.profiles.avatar_url) ? c.profiles.avatar_url : "https://www.tofarmer.xyz/aset/favicon.png";
-            const cUserId = (c.profiles && c.profiles.id) ? c.profiles.id : "";
-            const isiKomentar = c.comment || "";
             
-            return `
-              <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
-                <img src="${cAvatar}" 
-                     onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
-                     style="width:24px; height:24px; border-radius:50%; object-fit:cover; cursor:pointer; border:1px solid rgba(0,0,0,0.08);" />
-                
-                <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.05); max-width:calc(100% - 32px);">
-                  <span onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
-                        style="font-weight:700; color:#2f6f4e; cursor:pointer; margin-right:4px;">
-                    @${cUser}
-                  </span>
-                  <span style="color:#2c3a33; white-space:pre-wrap;">${convertMentions(isiKomentar)}</span>
+            const node = document.createElement('div');
+            node.className = 'iso-node';
+            node.id = `node-user-${user.id}`;
+            
+            const coords = getIsoCoords(user.assignedCoord.x, user.assignedCoord.y);
+            node.style.left = coords.x + 'px';
+            node.style.top = coords.y + 'px';
+            node.style.zIndex = user.assignedCoord.x + user.assignedCoord.y + 50;
+
+            const photoSrc = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
+            const houseImage = 'https://img.icons8.com/plasticine/100/home.png';
+
+            const container = document.createElement('div');
+            container.className = 'house-container';
+            container.setAttribute('draggable', 'false');
+            
+            container.innerHTML = `
+                <img class="sprite" src="${houseImage}" style="height: 55px;" />
+                <div class="avatar-balloon">
+                    <img class="avatar-img" src="${photoSrc}" />
+                    <div class="nametag">@${user.username}</div>
                 </div>
-              </div>
             `;
-          }).join("")}
-        </div>
 
-      </div>
-    `
-    // Insert before the "loading more" indicator at bottom
-    if (loadingMore && loadingMore.parentNode === feed) {
-      feed.insertBefore(div, loadingMore);
-    } else {
-      feed.appendChild(div);
+            let dragActive = false;
+            
+            const startDrag = (e) => {
+                if (!isEditMode) { openProfileModal(user); return; }
+                dragActive = true;
+                e.preventDefault();
+            };
+
+            const moveDrag = (e) => {
+                if (!dragActive) return;
+                let clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                let clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                if (!clientX || !clientY) return;
+
+                node.style.display = 'none'; 
+                let targetEl = document.elementFromPoint(clientX, clientY);
+                node.style.display = 'flex'; 
+
+                let targetNode = targetEl ? targetEl.closest('.iso-node[data-tile-x]') : null;
+                if (targetNode) {
+                    let tx = parseInt(targetNode.getAttribute('data-tile-x'));
+                    let ty = parseInt(targetNode.getAttribute('data-tile-y'));
+                    
+                    let liveCoords = getIsoCoords(tx, ty);
+                    node.style.left = liveCoords.x + 'px';
+                    node.style.top = liveCoords.y + 'px';
+                    node.style.zIndex = tx + ty + 100;
+                    
+                    housePositions[user.id] = { x: tx, y: ty };
+                }
+            };
+
+            const endDrag = () => { if (dragActive) { dragActive = false; renderVillage(); } };
+
+            container.addEventListener('mousedown', startDrag);
+            window.addEventListener('mousemove', moveDrag);
+            window.addEventListener('mouseup', endDrag);
+
+            container.addEventListener('touchstart', startDrag, {passive: false});
+            window.addEventListener('touchmove', moveDrag, {passive: false});
+            window.addEventListener('touchend', endDrag);
+
+            node.appendChild(container);
+            world.appendChild(node);
+        });
     }
-  });
-}
 
-// ===================== MANAGEMENT PROFIL =====================
-function renderProfile() {
-  const userBox = document.getElementById("profileInfo")
-  const avatar = document.getElementById("profileAvatar")
-  if (!userBox) return
+    function openProfileModal(user) {
+        currentSelectedUsername = user.username; 
+        document.getElementById('m-avatar').src = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
+        document.getElementById('m-username').innerText = `@${user.username}`;
+        document.getElementById('m-rank').innerText = user.rank || 'Warga Mandiri';
+        document.getElementById('m-level').innerText = user.level || '1';
+        document.getElementById('m-xp').innerText = user.xp || '0';
+        
+        const tofAset = user.saldo_tof !== undefined && user.saldo_tof !== null ? user.saldo_tof.toLocaleString('id-ID') : '0';
+        document.getElementById('m-tof').innerText = `${tofAset} TOF`;
+        document.getElementById('m-bakat').innerText = user.power ? `💡 Fokus Kompetensi: ${user.power}` : '🌱 Siap berkontribusi menyumbang ilmu di ekosistem Menoreh.';
+        
+        document.getElementById('custom-modal').classList.add('active');
+    }
 
-  if (!currentProfile) {
-    if (avatar) avatar.style.display = "none"
-    userBox.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@guest</div>
-        <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">🌱 BELUM LOGIN</div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;">
-        <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#888;">XP: <b>0</b></div>
-        <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>0</b></div>
-      </div>
-      <button onclick="alert('Login dulu ya 🌱')" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:#ddd;font-size:11px;">👤 Masuk Profil</button>
-    `
-    return
-  }
-
-  if (avatar) {
-    avatar.style.display = "block"
-    avatar.src = currentProfile.avatar_url || "https://via.placeholder.com/100"
-  }
-
-  const calculatedLevel = typeof getTofLevel === "function" ? getTofLevel(currentProfile.xp || 0) : 1;
-  const calculatedRank = typeof getRank === "function" ? getRank(currentProfile.xp || 0) : "GROWER";
-
-  let rankEmoji = "🌱";
-  if (calculatedRank === "PRO") rankEmoji = "🥉";
-  if (calculatedRank === "SPECIALIST") rankEmoji = "🥈";
-  if (calculatedRank === "ELITE") rankEmoji = "🥇";
-
-  userBox.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@${currentProfile.username}</div>
-      <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">${rankEmoji} Lv${calculatedLevel}</div>
-    </div>
-    <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
-      <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#555;">XP: <b>${Math.floor(currentProfile.xp || 0)}</b></div>
-      <div style="background:#fff8e1;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>${Number(currentProfile.saldo_tof || 0).toLocaleString("id-ID")}</b></div>
-    </div>
-    <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:11px;font-weight:600;cursor:pointer;">☕ Lihat Profil</button>
-  `
-}
-
-// Fitur listener upload avatar bawaan jangan diubah, biarkan utuh di bawah renderProfile
-document.addEventListener("change", async (e) => {
-  if (e.target.id !== "avatarInput") return
-  if (!currentWallet) { alert("Connect wallet dulu 😄"); return; }
-
-  const file = e.target.files[0]
-  if (!file) return
-
-  const fileName = currentWallet + "-" + Date.now()
-  const { data: uploadData, error: uploadError } = await supabaseClient.storage.from("avatars").upload(fileName, file)
-
-  if (uploadError) { alert("Upload gagal: " + uploadError.message); return; }
-
-  const { data } = supabaseClient.storage.from("avatars").getPublicUrl(fileName)
-  const avatarUrl = data.publicUrl
-
-  const { error: updateError } = await supabaseClient.from("profiles").update({ avatar_url: avatarUrl }).eq("id", currentWallet)
-  if (updateError) { alert("Gagal update profile"); return; }
-
-  currentProfile.avatar_url = avatarUrl
-  renderProfile()
-  loadEconomy()
-  alert("Foto berhasil diganti 🌿")
-})
-
-function convertMentions(text) {
-  if (!text) return "";
-
-  // 1. Pola Regex cerdas untuk menangkap segala jenis bentuk link (http, https, www, maupun ekstensi langsung)
-  const linkPattern = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\bwww\.[-A-Z0-9+&@#\/%=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])|(\b[A-Z0-9._%+-]+\.(com|org|id|net|xyz|app|online|tech)\b([-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])?)/ig;
-
-  let result = text.replace(linkPattern, function(url) {
-    let href = url;
+    function closeModal(e) { if(e.target === document.getElementById('custom-modal')) document.getElementById('custom-modal').classList.remove('active'); }
     
-    // Skenario antisipasi tanda baca di akhir kalimat agar tidak ikut kecatut ke dalam link
-    let akhirTandaBaca = "";
-    if (/[.,;:!?]$/.test(url)) {
-      akhirTandaBaca = url.slice(-1);
-      url = url.slice(0, -1);
-      href = url;
+    function rotateMap() { 
+        currentRotationIndex = (currentRotationIndex + 1) % 4; 
+        renderVillage(); 
+        centerMapOnVillage();
     }
 
-    // Jika user menulis tanpa http/https (misal cuma www.xxx atau langsung xxx.com), 
-    // kita wajib tambahkan 'https://' di href-nya agar browser tidak mengira itu link internal halaman web ToFarmer
-    if (!/^https?:\/\//i.test(href)) {
-      href = "https://" + href;
+    function centerMapOnVillage() {
+        const centerCoords = getIsoCoords(Math.floor(GRID_SIZE/2), Math.floor(GRID_SIZE/2));
+        panX = -centerCoords.x;
+        panY = -centerCoords.y + 50; 
+        updateWorldTransform();
     }
 
-    return `<a href="${href}" target="_blank" style="color: #2f6f4e; font-weight: 600; text-decoration: none; border-bottom: 1px dashed #4caf7a;" onmouseover="this.style.color='#b5942b'" onmouseout="this.style.color='#2f6f4e'">${url}</a>${akhirTandaBaca}`;
-  });
-
-  // 2. Pertahankan fitur deteksi @mention bawaan Anda
-  result = result.replace(/@([a-zA-Z0-9_]+)/g, `<span class="tof-mention" onclick="goToUsername('$1')" style="color:#6ea84f;font-weight:700;cursor:pointer;">@$1</span>`);
-
-  // 3. Pertahankan fitur ganti baris enter bawaan Anda
-  result = result.replace(/\n/g, "<br>");
-
-  return result;
-}
-async function goToUsername(username) {
-  const { data, error } = await supabaseClient.from("profiles").select("id").eq("username", username).maybeSingle()
-  if (error || !data) { alert("Petani tidak ditemukan 🌱"); return; }
-  window.location.href = `profile.html?id=${data.id}`
-}
-
-async function loadAvatarStack() {
-  const { data, error } = await supabaseClient.from("profiles").select("id, avatar_url, username").limit(30)
-  const container = document.getElementById("avatarStack")
-  if (!container || error || !data) return
-
-  container.innerHTML = ""
-  data.forEach(user => {
-    const img = document.createElement("img")
-    img.src = user.avatar_url || "https://via.placeholder.com/100"
-    img.className = "avatar-item"
-    img.title = user.username
-    img.onclick = () => { window.location.href = `profile.html?id=${user.id}` }
-    container.appendChild(img)
-  })
-}
-
-// ===================== BOOTSTRAP INIT =====================
-window.addEventListener("DOMContentLoaded", () => {
-  const saved = localStorage.getItem("tof_wallet")
-  if (saved) {
-    currentWallet = saved
-    syncProfile(saved).then(() => {
-      updateWalletUI()
-      renderProfile()
-    })
-  }
-
-loadFeed().then(() => {
-    // 1. BUAT KANTONG URL (PENTING: Ini yang sebelumnya hilang sehingga bikin macet!)
-    const urlParams = new URLSearchParams(window.location.search);
-    const postIdParam = urlParams.get("post");
-
-    if (postIdParam) {
-      // 2. Beri jeda 1000 milidetik (1 detik) agar browser selesai menggambar kartu & komentar di layar
-      setTimeout(() => {
-        const targetCard = document.getElementById(`post-card-${postIdParam}`);
-        if (targetCard) {
-          
-          // 3. OTOMATIS BUKA KOTAK KOMENTAR (Biar user langsung bisa baca/tulis diskusi)
-          if (typeof toggleKomentarBox === "function") {
-            toggleKomentarBox(postIdParam);
-          }
-
-          // 4. Hitung lokasi koordinat kartu tersebut di dalam halaman web
-          const koordinatY = targetCard.getBoundingClientRect().top + window.scrollY;
-          
-          // 5. Luncurkan layar otomatis ke lokasi kartu secara mulus
-          window.scrollTo({
-            top: koordinatY - 100, // Dikurangi 100px agar ada jarak ruang nyaman di atas kartu
-            behavior: 'smooth'    // Memberikan efek meluncur halus yang estetik
-          });
-          
-          // 6. Beri efek highlight visual (bingkai hijau + bayangan menyala) agar user tahu itu pos tujuan
-          targetCard.style.transition = "all 0.8s ease";
-          targetCard.style.boxShadow = "0 0 20px rgba(47, 111, 78, 0.4)";
-          targetCard.style.borderColor = "#2f6f4e";
-          targetCard.style.borderWidth = "2px";
-        }
-      }, 1000); // Durasi 1000ms sangat aman bahkan saat koneksi internet sedang lambat
-    }
-  });
-
-  // 🟢 BATAS BAWAH KODE BARU AMAN SUNTIK
-  loadAvatarStack()
-  loadEconomy()
-
-  if (typeof loadRankSummary === "function") {
-    loadRankSummary()
-  }
-
-  
-});
-// --- FUNGSI ALA FACEBOOK UNTUK KONTROL BUKA/TUTUP KOTAK KOMENTAR ---
-function toggleKomentarBox(postId) {
-  const box = document.getElementById(`box-komentar-${postId}`);
-  if (!box) return;
-  
-  if (box.style.display === "none" || box.style.display === "") {
-    box.style.display = "block";
-  } else {
-    box.style.display = "none";
-  }
-}
-async function sendComment(postId) {
-  const input = document.getElementById(`comment-${postId}`);
-  if (!input) return;
-  const commentText = input.value.trim();
-  if (!commentText) return;
-
-  if (!currentWallet) {
-    alert("Connect wallet dulu untuk ikut berdiskusi 🌱");
-    return;
-  }
-
-  // 1. Kirim data ke database Supabase
-  const { data, error } = await supabaseClient
-    .from("comments")
-    .insert([
-      {
-        post_id: postId,
-        user_id: currentWallet,
-        comment: commentText
-      }
-    ]);
-
-  if (error) {
-    alert("Gagal mengirim komentar: " + error.message);
-    return;
-  }
-
-  // 2. Ambil container list diskusi spesifik yang sudah kita beri ID di Langkah 2
-  const listContainer = document.getElementById(`list-komentar-${postId}`);
-  if (!listContainer) return;
-
-  // Hapus tulisan "Belum ada diskusi" jika ini adalah komentar pertama di post tersebut
-  const emptyMessage = document.getElementById(`empty-comment-${postId}`);
-  if (emptyMessage) {
-    emptyMessage.remove();
-  }
-
-  // 3. Siapkan data profil lokal untuk langsung dirender secara instan
-  const currentUsername = currentProfile ? currentProfile.username : "Petani";
-  const currentAvatar = currentProfile ? currentProfile.avatar_url : "https://www.tofarmer.xyz/aset/favicon.png";
-
-  // 4. Struktur HTML untuk komentar baru Anda
-  const newCommentHtml = `
-    <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
-      <img src="${currentAvatar}" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1px solid rgba(0,0,0,0.08);" />
-      <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.05); max-width:calc(100% - 32px);">
-        <span style="font-weight:700; color:#2f6f4e; margin-right:4px;">@${currentUsername}</span>
-        <span style="color:#2c3a33; white-space:pre-wrap;">${convertMentions(commentText)}</span>
-      </div>
-    </div>
-  `;
-
-  // 5. Suntikkan HTML ke bagian paling bawah container tanpa merusak state halaman
-  listContainer.insertAdjacentHTML('beforeend', newCommentHtml);
-
-  // 6. Bersihkan kotak input komentar
-  input.value = "";
-
-  // 7. Update text counter jumlah komentar secara dinamis di luar kotak
-  const counterEl = document.querySelector(`[onclick="toggleKomentarBox('${postId}')"]`);
-  if (counterEl) {
-    // Ambil angka lama, tambah 1, lalu tulis ulang
-    const currentCount = parseInt(counterEl.innerText.replace(/[^0-9]/g, '')) || 0;
-    counterEl.innerHTML = `💬 ${currentCount + 1} Komentar`;
-  }
-}
-let isReactingFeed = false; // <-- Ini gembok pengamannya
-
-async function reactPost(postId, type) {
-  if (!currentWallet) {
-    alert("Connect wallet dulu untuk memberikan apresiasi 🌱");
-    return;
-  }
-
-  if (isReactingFeed) return; // <-- Jika gembok masih mengunci, abaikan klik selanjutnya!
-  isReactingFeed = true;      // <-- Kunci pintu!
-
-  try {
-    const { error } = await supabaseClient
-      .rpc(type === 'sruput' ? 'increment_sruput' : 'increment_cangkul', { row_id: postId });
-
-    if (error) {
-      console.log("RPC gagal, mencoba metode update alternatif...");
-    }
-
-    // A. KUNCI KOORDINAT LAYAR
-    const targetCard = document.getElementById(`post-card-${postId}`);
-    const koordinatY = targetCard ? targetCard.getBoundingClientRect().top + window.scrollY : 0;
-
-    // B. Muat ulang lini masa feed
-    // Jalankan feed pertama kali
-  await loadFeed();
-
-  // Panggil pengisian daftar peringkat petani untuk radar card
-  loadRadarPeringkat();
-
-
-    // C. KEMBALIKAN POSISI SCROLL LAYAR
-    if (koordinatY) {
-      window.scrollTo({
-        top: koordinatY - 100, 
-        behavior: 'auto'       
-      });
-    }
-
-  } catch (err) {
-    console.log("Gagal memproses reaksi:", err);
-  } finally {
-    isReactingFeed = false; // <-- Selesai / Error? Buka kembali gemboknya!
-  }
-}
-function sharePost(postId, username, text) {
-  // 1. Susun URL unik yang mengarah langsung ke postingan ini di halaman profil
-  // Menggunakan window.location.origin + pathname agar dinamis baik di lokal maupun domain live
-  const shareUrl = `${window.location.origin}${window.location.pathname}?u=${username}&post=${postId}`;
-
- navigator.clipboard.writeText(shareUrl).then(() => {
-    alert(`📢 Tautan karya @${username} berhasil disalin! Siap dibagikan ke komunitas 🌱\n\nLink: ${shareUrl}`);
-  }).catch((err) => {
-    console.error("Gagal menyalin tautan:", err);
-    alert(`Salin tautan ini secara manual:\n${shareUrl}`);
-  });
-}
-
-// 🟢 AWAL SISIPAN: FUNGSI MEMBACA PERINGKAT UNTUK RADAR CARD
-function getRadarRank(xp) {
-  const lvl = Math.floor(Math.sqrt(xp / 100)) + 1;
-  if (lvl >= 50) return "👑 Mahaguru ladang";
-  if (lvl >= 40) return "🧙‍♂️ Sesepuh Kebun";
-  if (lvl >= 30) return "👨‍🌾 Penguasa Lahan";
-  if (lvl >= 20) return "🌱 Petani Teladan";
-  if (lvl >= 10) return "🌿 Pembasmi Gulma";
-  if (lvl >= 5)  return "🍃 Penyiram Ulung";
-  return "🪵 Buruh Macul";
-}
-
-async function loadRadarPeringkat() {
-  const wadahRadar = document.getElementById("radar-peringkat-list");
-  if (!wadahRadar) return;
-
-  try {
-    // 🟢 SUDAH FIX: diganti menjadi 'supabaseClient'
-    const { data: users, error } = await supabaseClient
-      .from("profiles")
-      .select("username, xp")
-      .order("xp", { ascending: false })
-      .limit(10);
-
-    if (error) throw error;
-
-    if (users && users.length > 0) {
-      wadahRadar.innerHTML = users.map((user, indeks) => {
-        const posisi = indeks + 1;
-        let medali = `${posisi}.`;
-        if (posisi === 1) medali = "🥇";
-        if (posisi === 2) medali = "🥈";
-        if (posisi === 3) medali = "🥉";
-
-        const xpUser = user.xp || 0;
-        const levelUser = Math.floor(Math.sqrt(xpUser / 100)) + 1;
-
-        return `
-          <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid #f1f5f9;padding:6px 10px;border-radius:8px;font-size:11px;">
-            <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
-              <span style="font-weight:bold;color:#64748b;width:16px;flex-shrink:0;">${medali}</span>
-              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                <strong style="color:#1e293b;">@${user.username}</strong>
-                <div style="font-size:9px;color:#64748b;">${getRadarRank(xpUser)}</div>
-              </div>
-            </div>
-            <div style="text-align:right;flex-shrink:0;font-weight:600;color:#2f6f4e;background:#eef7f1;padding:2px 6px;border-radius:999px;font-size:10px;margin-left:4px;">
-              Lvl ${levelUser} <span style="font-size:9px;font-weight:normal;color:#6f7f76;">(${xpUser})</span>
-            </div>
-          </div>
-        `;
-      }).join("");
-    } else {
-      wadahRadar.innerHTML = `<p style="font-size:11px;color:#94a3b8;text-align:center;margin:0;">Belum ada data petani.</p>`;
-    }
-  } catch (err) {
-    console.error("Gagal memuat radar peringkat:", err);
-    wadahRadar.innerHTML = `<p style="font-size:11px;color:#ef4444;text-align:center;margin:0;">⚠️ Gagal memuat peringkat</p>`;
-  }
-}
-// 🟢 AKHIR SISIPAN FUNGSI
-// Fungsi pengendali menu dropdown titik tiga ala FB untuk Beranda utama
-function toggleDotMenu(postId) {
-  const dropdown = document.getElementById(`dropdown-${postId}`);
-  if (!dropdown) return;
-  document.querySelectorAll('.dot-dropdown').forEach(el => {
-    if (el.id !== `dropdown-${postId}`) el.style.display = 'none';
-  });
-  dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-}
-
-window.addEventListener('click', function(e) {
-  if (!e.target.matches('.btn-dot-menu')) {
-    document.querySelectorAll('.dot-dropdown').forEach(el => el.style.display = 'none');
-  }
-
-  // Handler untuk tombol Edit Postingan - ambil teks dari DOM secara aman
-  if (e.target.matches('.btn-edit-post')) {
-    const postId = e.target.dataset.postId;
-    if (!postId) return;
-    const card = document.getElementById(`post-card-${postId}`);
-    if (!card) return;
-    // Ambil teks asli dari elemen .text di dalam card
-    const tekstEl = card.querySelector('.text');
-    const teksLama = tekstEl ? (tekstEl.innerText || tekstEl.textContent || "") : "";
-    aksiEditPostingan(postId, teksLama);
-  }
-});
-
-async function aksiEditPostingan(postId, teksLama) {
-  if (!currentWallet) {
-    alert("Login dulu ya 🌱");
-    return;
-  }
-
-  const teksBaru = prompt("Edit postingan Anda:", teksLama);
-  if (teksBaru === null) return;
-  if (!teksBaru.trim()) return alert("Teks tidak boleh kosong!");
-
-  const { error } = await supabaseClient
-    .from("contributions")
-    .update({ deskripsi_proses: teksBaru.trim() })
-    .eq("id", postId)
-    .eq("user_id", currentWallet);
-
-  if (error) {
-    alert("Gagal mengedit: " + error.message);
-  } else {
-    alert("Postingan berhasil diperbarui! 🌱");
-    if (typeof loadFeed === "function") loadFeed();
-  }
-}
-
-async function aksiSembunyikanKeProfil(postId) {
-  const yakin = confirm("Sembunyikan dari Beranda Utama? Postingan tetap tersimpan aman di Profil pribadi Anda.");
-  if (!yakin) return;
-
-  const { error } = await supabaseClient
-    .from("contributions")
-    .update({ is_private: true })
-    .eq("id", postId);
-
-  if (error) {
-    alert("Gagal menyembunyikan: " + error.message);
-  } else {
-    alert("Postingan berhasil dipindahkan ke arsip profil pribadi 🔒");
-    if (typeof loadFeed === "function") loadFeed();
-  }
-}
-// Pastikan radar langsung muncul saat halaman dibuka
-document.addEventListener("DOMContentLoaded", () => {
-  loadRadarPeringkat();
-});
-</script>
-
-<script>
-    // ===================================================================
-    // SINKRONISASI "RUMAH ANDA" — murni tambahan visual, TIDAK mengubah
-    // satu baris pun dari app.js di atas. Fungsi renderProfile() (didefinisikan
-    // di app.js) di-"bungkus" agar setiap kali profil asli diperbarui
-    // (login, ganti avatar, sinkron wallet tersimpan), foto & nama di atas
-    // rumah pertama pada peta ikut mengikuti akun yang sedang login.
-    // ===================================================================
-    if (typeof renderProfile === 'function') {
-        const _origRenderProfile = renderProfile;
-        renderProfile = function () {
-            _origRenderProfile();
-            syncMyHouse();
-        };
-    }
-
-    function syncMyHouse() {
-        const img = document.getElementById('myHouseAvatar');
-        const label = document.getElementById('myHouseLabel');
+    async function init() {
+        // PERBAIKAN PROTEKSI: Dimatikan sementara agar Anda bebas testing UI tanpa terlempar error login page
+        // const wallet = localStorage.getItem('tof_wallet');
+        // if (!wallet) { window.location.href = 'html/login.html'; return; }
         
-        // Tambahan: Bersihkan panel jika belum ada sesi login
-        if (typeof currentProfile === 'undefined' || !currentProfile) {
-            const profileInfo = document.querySelector("#profileInfo div");
-            if (profileInfo) profileInfo.innerHTML = `@guest <div style="...background:#eee;...">🌱 BELUM LOGIN</div>`;
-            return;
-        }
+        let usernameWarga = localStorage.getItem('tof_username') || "TAMU_MENOREH";
+        document.getElementById('auth-status').innerText = "Warga: @" + usernameWarga;
 
-        if (!img || !label) return;
+        const savedLayout = localStorage.getItem('tofarmer_custom_layout_v3');
+        if (savedLayout) housePositions = JSON.parse(savedLayout);
 
-        if (typeof currentProfile !== 'undefined' && currentProfile) {
-            img.src = currentProfile.avatar_url || img.src;
-            label.textContent = '@' + (currentProfile.username || 'Anda');
-        } else {
-            label.textContent = 'Rumah Anda';
-        }
-    }
-function openProfile(userId, username, profileData = null) {
-    panelManual = false;
-    openResidentPanel(); 
+        const { data: terrain } = await db.from('village_map').select('*');
+        rawTerrainData = terrain || [];
 
-    // Ubah judul laci atas
-    document.querySelector(".drawer-topline span").innerText = `🏘️ Profil ${username || 'Warga'}`;
+        const { data: users, error } = await db.from('profiles').select('id, username, level, xp, saldo_tof, rank, power, avatar_url').order('created_at', { ascending: true });
+        if (error) return console.error(error);
+        rawUserData = users || [];
 
-    const userBox = document.getElementById("profileInfo");
-    const avatarEl = document.getElementById('profileAvatar');
-
-    // 1. Update Foto Profil Warga
-    if (avatarEl) {
-        avatarEl.src = profileData?.avatar_url || profileData?.avatar || `https://api.dicebear.com/10.x/avataaars/svg?seed=${username}`;
-        avatarEl.style.display = 'block';
+        renderVillage();
+        centerMapOnVillage();
     }
 
-    // 2. Bangun Ulang Kotak Profil Spesifik Warga (Bukan Kita)
-    // 2. Bangun Ulang Kotak Profil Spesifik Warga (Bukan Kita)
-    if (userBox) {
-        const xpValue = profileData?.xp || 0;
-        const tofValue = profileData?.saldo_tof || 0; // Menggunakan 'saldo_tof' sesuai database
-        
-        // Memanggil fungsi getRadarRank yang sudah kamu buat sebelumnya untuk menentukan pangkat dari XP
-        const rankValue = typeof getRadarRank === 'function' ? getRadarRank(xpValue) : 'Petani Pemula';
-
-        userBox.innerHTML = `
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@${username}</div>
-                <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">🏆 ${rankValue}</div>
-            </div>
-            <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
-                <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#555;">XP: <b>${Math.floor(xpValue)}</b></div>
-                <div style="background:#fff8e1;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>${Number(tofValue).toLocaleString("id-ID")}</b></div>
-            </div>
-            <button onclick="window.location.href='profile.html?id=${userId}'" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:11px;font-weight:600;cursor:pointer;">☕ Masuk Profil ${username}</button>
-        `;
-    }
-}
-window.addEventListener("DOMContentLoaded", async () => {
-    await generateHouses();
-    resetView();
-});
+    function logout() { localStorage.clear(); location.reload(); }
+    init();
 </script>
-
-<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
-
 </body>
 </html>
