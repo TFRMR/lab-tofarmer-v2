@@ -33,17 +33,16 @@
 </div>
 
 <script>
-    const supabase = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
+   const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
     const world = document.getElementById('world');
 
-    // 1. CEK LOGIN OTOMATIS
-   async function loginAction(walletInput, usernameInput) {
-    // 1. Cek apakah wallet ini ada di tabel profiles
-    const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('id, username')
-        .eq('id', walletInput)
-        .single();
+    // Pastikan semua fungsi di bawah menggunakan variabel 'db' bukan 'supabase'
+    async function loginAction(walletInput, usernameInput) {
+        const { data: profile, error } = await db // Ganti ke db
+            .from('profiles')
+            .select('id, username')
+            .eq('id', walletInput)
+            .single();
 
     if (error || !profile) {
         alert("Alamat dompet tidak ditemukan di Desa ToFarmer. Pastikan sudah mendaftar ya!");
