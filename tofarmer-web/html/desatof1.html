@@ -12,7 +12,7 @@
         }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
-        /* HEADER & NAV FIXED - FIX KETUTUPAN & TIDAK BISA DIKLIK */
+        /* HEADER & NAV FIXED */
         header { padding: 10px 20px; display: flex; align-items: center; background: var(--ui); position: fixed; top: 0; width: 100%; z-index: 10000; border-bottom: 1px solid var(--border); box-sizing: border-box; height: 55px; }
         .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; }
         .logo { width: 30px; }
@@ -35,6 +35,9 @@
         .road { background: rgba(30, 41, 59, 0.85); border-color: rgba(74, 222, 128, 0.2); }
         .farm { background: rgba(120, 53, 4, 0.35); border-style: dashed; border-color: rgba(245, 158, 11, 0.3); }
 
+        /* Matikan hover ubin saat mode edit arsitek aktif agar drag lancar */
+        .edit-mode .tile:hover { background: transparent !important; cursor: move !important; }
+
         /* Sprite Alam */
         .sprite { position: absolute; bottom: 25px; height: 60px; pointer-events: none; transition: transform 0.2s ease; z-index: 2; }
         
@@ -54,7 +57,7 @@
         .house-container:hover .avatar-balloon { transform: translateY(-18px) scale(1.15); z-index: 6; }
         .house-container:hover .sprite { transform: scale(1.08); filter: drop-shadow(0 10px 15px rgba(74,222,128,0.25)); }
 
-        /* POP-UP MODAL PROFIL WARGA + ACTION BUTTONS */
+        /* POP-UP MODAL PROFIL WARGA */
         .modal-overlay { position: fixed; inset: 0; background: rgba(2, 4, 3, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 20000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         
@@ -80,7 +83,7 @@
         .btn-visit-profile:hover { background: rgba(74, 222, 128, 0.2); }
         .btn-close-modal { background: linear-gradient(135deg, #22c55e, #15803d); color: white; box-shadow: 0 4px 10px rgba(34,197,94,0.25); }
 
-        /* POP-UP HUD EDIT TATA RUMAH BARU YANG PREMIUM */
+        /* POP-UP HUD EDIT TATA RUMAH */
         .edit-hud-banner { position: fixed; bottom: -180px; left: 50%; transform: translateX(-50%); width: 95%; max-width: 400px; background: rgba(10, 25, 15, 0.92); border: 1.5px solid var(--accent); backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.8); z-index: 15000; display: flex; flex-direction: column; gap: 12px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2) ; }
         .edit-hud-banner.active { bottom: 25px; }
         .hud-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
@@ -90,7 +93,7 @@
         .hud-btn-save { background: linear-gradient(135deg, #22c55e, #166534); color: white; }
         .hud-btn-cancel { background: rgba(255, 255, 255, 0.08); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); }
 
-        /* POP-UP AKSI TANAH / UBIN (KLAIM & BANGUN) */
+        /* POP-UP HUD AKSI UBIN */
         .tile-action-hud { position: fixed; bottom: -120px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 340px; background: rgba(15, 23, 42, 0.95); border: 1px solid #38bdf8; backdrop-filter: blur(8px); padding: 12px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); z-index: 14000; display: flex; align-items: center; justify-content: space-between; gap: 10px; transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); }
         .tile-action-hud.active { bottom: 25px; }
         .tile-info-text { font-size: 11px; color: #94a3b8; }
@@ -104,7 +107,7 @@
         #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); transition: opacity 0.3s; }
         .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; transition: opacity 0.3s; }
         
-        /* Hilangkan UI navigasi standar saat mode edit atau pilih ubin aktif agar fokus */
+        /* Sembunyikan navigasi pelengkap saat ubin atau mode tata rumah diaktifkan */
         .edit-active-ui #auth-status, .edit-active-ui .controls,
         .tile-active-ui #auth-status, .tile-active-ui .controls { opacity: 0; pointer-events: none; }
 
@@ -132,7 +135,6 @@
     <div id="world" class="locked-mode"></div>
 </div>
 
-<!-- POP-UP CUSTOM PROFIL MODAL -->
 <div id="custom-modal" class="modal-overlay" onclick="closeModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <img id="m-avatar" class="modal-avatar" src="" />
@@ -157,14 +159,12 @@
         <div id="m-bakat" class="modal-bakat">Keahlian</div>
         
         <div class="modal-buttons-group">
-            <!-- UTALITAS SIRKULASI TOF: Tombol Buka Halaman Profil Anggota -->
-            <button id="btn-visit" class="btn-modal-action btn-visit-profile" onclick="goToUserProfile()">📖 Buka Portofolio Ilmu</button>
+            <button class="btn-modal-action btn-visit-profile" onclick="goToUserProfile()">📖 Buka Portofolio Ilmu</button>
             <button class="btn-modal-action btn-close-modal" onclick="document.getElementById('custom-modal').classList.remove('active')">Kembali ke Desa</button>
         </div>
     </div>
 </div>
 
-<!-- POP-UP HUD AKSI UBIN (KLAIM & BANGUN DEKORASI) -->
 <div id="tile-hud" class="tile-action-hud">
     <div class="tile-info-text">
         <span id="hud-tile-coord">Ubin (X, Y)</span>
@@ -176,7 +176,6 @@
     </div>
 </div>
 
-<!-- POP-UP HUD EDIT TATA RUMAH -->
 <div id="edit-hud" class="edit-hud-banner">
     <div class="hud-title">🛠️ Mode Arsitek Desa</div>
     <p class="hud-desc">Sentuh dan geser (*drag & drop*) pada ikon rumah warga untuk mengatur tata letak desa Menoreh secara bebas & artistik.</p>
@@ -190,7 +189,6 @@
 
 <div class="controls">
     <button class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
-    <!-- FITUR COMPREHENSIVE: Request Daratan Terluar / Pulau Kosong Berbasis TOF -->
     <button class="btn btn-island" onclick="triggerIslandRequest()">🏝️ Bikin Pulau</button>
     <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
     <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
@@ -207,7 +205,7 @@
     let panX = 0, panY = 0;
     let currentRotationIndex = 0; 
     let isEditMode = false;
-    let currentSelectedUserId = null;
+    let currentSelectedUsername = null; 
     let currentSelectedTile = { x: null, y: null };
     
     let isDraggingView = false;
@@ -226,7 +224,7 @@
     function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.0); updateWorldTransform(); }
     function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
 
-    // GESTURE DRAG VIEWPORT MAP
+    // MAP VIEWPORT INTERACTION
     viewport.addEventListener('mousedown', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('#custom-modal') || e.target.closest('.house-container') || e.target.closest('#edit-hud') || e.target.closest('#tile-hud')) return;
         isDraggingView = true; startX = e.clientX - panX; startY = e.clientY - panY;
@@ -270,9 +268,11 @@
         return { x: Math.floor(Math.random()*(GRID_SIZE-2))+1, y: Math.floor(Math.random()*(GRID_SIZE-2))+1 };
     }
 
-    // INTERAKSI KLIK UBIN TANAH KOSONG (UNTUK KLAIM/HIAS)
+    // INTERAKSI GRID SELEKSI UBIN
     function selectTile(x, y, event) {
+        // PERBAIKAN: Jika mode edit/tata rumah aktif, matikan fungsi pop-up ubin agar bebas drag
         if (isEditMode) return;
+        
         event.stopPropagation();
         currentSelectedTile = { x, y };
         
@@ -291,32 +291,32 @@
         document.getElementById('tile-hud').classList.remove('active');
     }
 
-    // LOGIKA PEMICU UTALITAS LAYANAN TOF
+    // ACTION LOGIC
     function triggerClaimAction() {
-        alert(`Sirkulasi TOF Aktif:\nMemproses klaim Hak Milik Ubin (${currentSelectedTile.x}, ${currentSelectedTile.y}).\nSistem akan memotong saldo TOF Anda setelah integrasi Smart Contract/DB dikonfirmasi.`);
+        alert(`Sirkulasi TOF:\nKlaim Hak Pakai Ubin (${currentSelectedTile.x}, ${currentSelectedTile.y}) dikonfirmasi.\nData akan segera disinkronkan ke master database.`);
         closeTileHUD();
     }
 
     function triggerBuildAction() {
-        alert(`Menu Konstruksi & Modifikasi:\nSilakan pilih blueprint dekorasi (Rumah Kayu, Joglo, Kebun Kopi, Kolam) untuk diletakkan di koordinat (${currentSelectedTile.x}, ${currentSelectedTile.y}).`);
+        alert(`Menu Konstruksi TOF:\nSilakan tentukan blueprint komponen/dekorasi untuk diletakkan pada titik koordinat (${currentSelectedTile.x}, ${currentSelectedTile.y}).`);
         closeTileHUD();
     }
 
     function triggerIslandRequest() {
-        const confirmReq = confirm("Ekspansi Makro Ekosistem ToFarmer:\nApakah Anda ingin mengajukan pembukaan klaster daratan/pulau baru di luar batas koordinat peta utama saat ini?\n\nBiaya request: Berdasarkan konsensus kepemilikan TOF.");
-        if(confirmReq) alert("Permintaan pembukaan daratan baru telah dikirim ke masterplan ekosistem ToFarmer!");
+        const confirmReq = confirm("Eksplorasi Wilayah ToFarmer:\nApakah Anda ingin memicu pembukaan klaster daratan/pulau baru di luar zona ekosistem Menoreh utama saat ini?");
+        if(confirmReq) alert("Permintaan alokasi pulau baru berhasil dicatat dalam masterplan sirkulasi.");
     }
 
-    // REDIRECT PROFIL WARGA (SINKRONISASI PORTAL ILMU)
+    // DINAMIS REDIRECT PROFIL BERBASIS USERNAME
     function goToUserProfile() {
-        if(currentSelectedUserId) {
-            window.location.href = `html/user-profile.html?id=${currentSelectedUserId}`;
+        if(currentSelectedUsername) {
+            window.location.href = `html/user-profile.html?username=${currentSelectedUsername}`;
         }
     }
 
     function enableEditMode() {
         isEditMode = true;
-        closeTileHUD();
+        closeTileHUD(); // Tutup HUD ubin jika terbuka saat masuk mode edit
         backupPositions = JSON.parse(JSON.stringify(housePositions)); 
         world.className = "edit-mode";
         document.body.classList.add('edit-active-ui');
@@ -341,12 +341,12 @@
         renderVillage();
     }
 
-    // DRAW ENGINE MAP
+    // VILLAGE GENERATOR ENGINE
     function renderVillage() {
         world.innerHTML = ''; 
         reservedTiles.clear();
 
-        // 1. Lantai Tanah
+        // 1. Render Base Ground
         for (let x = 0; x < GRID_SIZE; x++) {
             for (let y = 0; y < GRID_SIZE; y++) {
                 const node = document.createElement('div');
@@ -383,7 +383,7 @@
             }
         }
 
-        // 2. Rumah Warga
+        // 2. Render Player Houses
         rawUserData.forEach(user => {
             if (housePositions[user.id]) {
                 user.assignedCoord = housePositions[user.id];
@@ -465,7 +465,7 @@
     }
 
     function openProfileModal(user) {
-        currentSelectedUserId = user.id; // Kunci id user untuk redirect profil
+        currentSelectedUsername = user.username; // Mengunci data string username dari DB untuk link portofolio
         document.getElementById('m-avatar').src = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
         document.getElementById('m-username').innerText = `@${user.username}`;
         document.getElementById('m-rank').innerText = user.rank || 'Warga Mandiri';
