@@ -130,7 +130,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script>
-    // --- AKUN & KONEKSI DATA ---
+   // --- AKUN & KONEKSI DATA ---
     const authLink = document.getElementById('auth-link');
     let selectedX = 0;
     let selectedY = 0;
@@ -153,7 +153,7 @@
         }
     }
 
-    // --- RENDER PETAK ALAM MATEMATIKA LEAFLET (Anti Lemot) ---
+    // --- RENDER PETAK ALAM MATEMATIKA LEAFLET (Fix Anti-Hilang Saat Zoom) ---
     const map = L.map('viewport', {
         crs: L.CRS.Simple,
         minZoom: -2,
@@ -163,6 +163,7 @@
         maxBounds: [[-2000, -2000], [2000, 2000]]
     }).setView([0, 0], 0);
 
+    // Rumus noise matematika alam Menoreh
     function getTwilightNoise(x, y) {
         return Math.sin(x * 0.01) * Math.cos(y * 0.01) + Math.sin(x * 0.03 + y * 0.02) * 0.2;
     }
@@ -174,10 +175,19 @@
             tile.height = 256;
             const ctx = tile.getContext('2d');
 
+            // Ambil titik awal ubin dalam pixel global
+            const nwPoint = new L.Point(coords.x * 256, coords.y * 256);
+
             for (let x = 0; x < 256; x += 32) {
                 for (let y = 0; y < 256; y += 32) {
-                    const gX = (coords.x * 256) + x;
-                    const gY = (coords.y * 256) + y;
+                    // Hitung posisi pixel absolut berdasarkan zoom saat ini
+                    const p = new L.Point(nwPoint.x + x, nwPoint.y + y);
+                    
+                    // Terjemahkan pixel menjadi koordinat peta murni (X & Y)
+                    const latlng = map.unproject(p, coords.z);
+                    const gX = latlng.lng;
+                    const gY = latlng.lat;
+
                     const v = getTwilightNoise(gX, gY);
 
                     // Palet Gelap Senja Pegunungan Menoreh
@@ -204,7 +214,7 @@
             return;
         }
 
-        // Ambil pembulatan koordinat agar presisi seperti petak tanah murni
+        // Pembulatan koordinat agar presisi masuk ke petak
         selectedX = Math.round(e.latlng.lng);
         selectedY = Math.round(e.latlng.lat);
 
@@ -216,7 +226,7 @@
         document.getElementById('twilight-panel').style.display = 'block';
         document.getElementById('panel-coords').innerText = `Koordinat Lahan -> X: ${x}, Y: ${y}`;
         
-        // Cek apakah warga ini sudah punya rumah sebelumnya di DB
+        // Cek kepemilikan lahan lama
         const { data: lahanLama } = await supabaseClient
             .from('lahan_desa')
             .select('id')
@@ -240,33 +250,33 @@
     }
 
     function tutupPanel() {
-        if(html5QrcodeScanner) { html5QrcodeScanner.clear(); }
+        if(html5QrcodeScanner) { 
+            html5QrcodeScanner.clear().catch(err => console.log(err)); 
+        }
         document.getElementById('twilight-panel').style.display = 'none';
         document.getElementById('qr-reader').style.display = 'none';
     }
 
-    // --- SCANNER KERTAS QR NOTE VALUE ---
+    // --- SCANNER KERTAS QR NOTE VALUE (Fix Typo Bug) ---
     function bukaScannerQR() {
-        document.getElementById('qr-reader').style.style.display = 'block';
+        document.getElementById('qr-reader').style.display = 'block'; // Fix typo .style.style
         html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
         html5QrcodeScanner.render((decodedText) => {
             document.getElementById('note-code-input').value = decodedText;
             html5QrcodeScanner.clear();
             document.getElementById('qr-reader').style.display = 'none';
-        }, (error) => { /* bypass scan error logs */ });
+        }, (error) => { /* bypass scan logs */ });
     }
 
-    // --- PROSES KLAIM LAHAN BARU MENGGUNAKAN NOTE VALUE (KUPON) ---
+    // --- PROSES KLAIM LAHAN BARU MENGGUNAKAN NOTE VALUE ---
     async function prosesKlaimLahan() {
         const noteCode = document.getElementById('note-code-input').value.trim();
         const userId = localStorage.getItem('tof_user_id');
 
         if(!noteCode) { alert("Masukkan kode Note TOF cetak kamu!"); return; }
 
-        // Ambil data profil terbaru untuk disalin datanya ke peta
         const { data: profil } = await supabaseClient.from('profiles').select('username, avatar_url').eq('id', userId).single();
 
-        // Rekam data koordinat pilihan secara instan ke Supabase
         const { error } = await supabaseClient.from('lahan_desa').insert([{
             user_id: userId,
             username: profil.username,
@@ -282,11 +292,11 @@
         } else {
             alert(`Selamat! Rumah @${profil.username} berhasil didirikan secara abadi di lokasi pilihan! 🌾`);
             tutupPanel();
-            muatSeluruhLahanDesa(); // Refresh render peta
+            muatSeluruhLahanDesa(); 
         }
     }
 
-    // --- PROSES PINDAH KOORDINAT (MENDEKAT / MENATA ULANG) ---
+    // --- PROSES PINDAH KOORDINAT (MENDEKAT) ---
     async function eksekusiPindahLahan() {
         const userId = localStorage.getItem('tof_user_id');
 
@@ -304,11 +314,11 @@
         }
     }
 
-    // --- ENGINE MERENDER MARKER SEMUA WARGA DARI SUPABASE CACHE ---
+    // --- ENGINE MERENDER MARKER SEMUA WARGA ---
     let layerGroupRumah = L.layerGroup().addTo(map);
 
     async function muatSeluruhLahanDesa() {
-        layerGroupRumah.clearLayers(); // Bersihkan peta lama
+        layerGroupRumah.clearLayers(); 
 
         const { data: lahans, error } = await supabaseClient.from('lahan_desa').select('*');
         if (error || !lahans) return;
@@ -333,7 +343,7 @@
 
             L.marker([lahan.y, lahan.x], { icon: kustomIcon }).addTo(layerGroupRumah)
              .on('click', (ev) => {
-                 L.DomEvent.stopPropagation(ev); // Stop trigger klik peta luar
+                 L.DomEvent.stopPropagation(ev); 
                  window.location.href = `profile.html?id=${lahan.user_id}`;
              });
         });
