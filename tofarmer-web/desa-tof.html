@@ -3,76 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ToFarmer • Desa Agritech</title>
+    <title>ToFarmer • Desa Agritech Twilight</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@800&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script src="https://unpkg.com/html5-qrcode"></script>
+
     <style>
         * { box-sizing: border-box; touch-action: manipulation; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #050414; overflow: hidden; font-family: 'Inter', sans-serif; }
 
-        /* Peta Dasar */
-        #viewport { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; overflow: hidden; }
-        #world { width: 3200px; height: 2400px; position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; }
-        #bgCanvas { position: absolute; top: 0; left: 0; }
+        #viewport { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #050414; }
 
-        /* HEADER / UI OVERLAY */
+        /* UI OVERLAY - TWILIGHT MENOREH */
         #ui-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; z-index: 20; 
-            padding: 10px 15px; 
-            display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; 
-            pointer-events: none;
-            background: rgba(5, 11, 7, 0.7);
-            border-bottom: 2px solid #d4af37; /* Garis Gold Twilight */
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; 
+            padding: 10px 15px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; 
+            pointer-events: none; background: linear-gradient(to bottom, rgba(5, 4, 20, 0.95) 0%, rgba(12, 10, 28, 0.6) 100%);
+            border-bottom: 2px solid #d4af37; box-shadow: 0 4px 25px rgba(212, 175, 55, 0.15);
         }
-
-        /* Logo & Brand */
-        .logo-container { pointer-events: auto; display: flex; align-items: center; gap: 8px; }
-        .logo-img { height: 32px; width: auto; object-fit: contain; }
+        .logo-container { pointer-events: auto; display: flex; align-items: center; gap: 8px; cursor: pointer; }
         h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.5rem;
-            margin: 0;
-            background: linear-gradient(135deg, #fef08a 0%, #d4af37 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            font-family: 'Playfair Display', serif; font-size: 1.4rem; margin: 0;
+            background: linear-gradient(135deg, #fef08a 0%, #d4af37 60%, #aa7c11 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-
-        /* Navigasi */
         .nav-group { 
-            pointer-events: auto; background: rgba(5, 11, 7, 0.4); backdrop-filter: blur(8px); 
-            padding: 6px 10px; border-radius: 12px; border: 1px solid rgba(212, 175, 55, 0.3);
-            display: flex; gap: 8px; align-items: center;
+            pointer-events: auto; background: rgba(12, 10, 28, 0.8); backdrop-filter: blur(8px); 
+            padding: 6px 10px; border-radius: 12px; border: 1px solid rgba(212, 175, 55, 0.3); display: flex; gap: 8px;
         }
-        
-        .nav-link { 
-            color: #ffffff; text-decoration: none; font-size: 10px; font-weight: 600; 
-            padding: 4px 8px; border-radius: 6px; transition: 0.3s;
-        }
+        .nav-link { color: #ffffff; text-decoration: none; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 6px; }
         .nav-link:hover { background: rgba(212, 175, 55, 0.2); color: #fef08a; }
 
-        /* Kontrol Peta */
-        #map-controls { position: fixed; bottom: 20px; left: 20px; z-index: 50; display: flex; gap: 10px; pointer-events: auto; }
-        .map-btn { background: rgba(12, 26, 18, 0.9); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.4); padding: 12px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
-        
-        /* Simbol Rumah */
-        .house-node { position: absolute; width: 80px; text-align: center; cursor: pointer; z-index: 3; }
-        .house-avatar { width: 42px; height: 42px; border-radius: 50%; border: 2px solid #4ade80; background: #0c1a12; }
-        .house-name { background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 2px 5px; border-radius: 4px; margin-top: 4px; }
+        /* KONTROL PETA */
+        #map-controls { position: fixed; bottom: 20px; left: 20px; z-index: 1000; display: flex; gap: 8px; }
+        .map-btn { 
+            background: #0c0a1c; color: #4ade80; border: 1px solid #d4af37; 
+            padding: 12px 16px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        }
+
+        /* PANEL AKSI TWILIGHT (POPUP SMART MODAL) */
+        .twilight-panel {
+            position: fixed; bottom: 20px; right: 20px; z-index: 1001;
+            background: rgba(12, 10, 28, 0.95); border: 2px solid #d4af37;
+            padding: 15px; border-radius: 16px; width: 280px; color: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8); display: none;
+        }
+        .panel-title { font-family: 'Playfair Display', serif; color: #fef08a; font-size: 16px; margin-bottom: 10px; font-weight: bold;}
+        .panel-input { width: 100%; padding: 8px; background: #050414; border: 1px solid rgba(212, 175, 55, 0.5); color: #fff; border-radius: 6px; margin-bottom: 10px; font-size: 12px; }
+        .panel-btn { width: 100%; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 12px; margin-bottom: 5px;}
+        .btn-gold { background: linear-gradient(135deg, #fef08a, #d4af37); color: #050414; }
+        .btn-red { background: #7f1d1d; color: #fca5a5; }
+
+        /* BADGE INFO TOKEN GLOBAL */
+        #token-badge {
+            position: fixed; top: 75px; right: 15px; z-index: 999;
+            background: rgba(12, 10, 28, 0.85); border: 1px solid rgba(214, 175, 55, 0.4);
+            padding: 6px 12px; border-radius: 20px; font-size: 11px; color: #fef08a; font-weight: bold;
+        }
+
+        /* CUSTOM DOM MARKER: BALON FOTO PROFIL WARGA */
+        .custom-house-marker { background: none; border: none; }
+        .house-node { display: flex; flex-direction: column; align-items: center; width: 100px; }
+        .house-avatar-wrap {
+            position: relative; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #d4af37;
+            background: #0c1a12; padding: 1px; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.5);
+            animation: floatAnimation 3s ease-in-out infinite;
+        }
+        .house-avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .house-avatar-wrap::after {
+            content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+            width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #d4af37;
+        }
+        .house-building { font-size: 26px; margin-top: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); }
+        .house-name { 
+            background: rgba(5, 4, 20, 0.9); color: #fef08a; font-size: 10px; padding: 2px 6px; 
+            border-radius: 6px; margin-top: 4px; font-weight: 600; border: 0.5px solid rgba(212, 175, 55, 0.3);
+            white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
+        @keyframes floatAnimation { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-5px); } }
+        .leaflet-marker-icon:focus { outline: none; }
+        #qr-reader { width: 100%; background: #000; margin-bottom: 10px; display: none; border-radius: 8px; overflow: hidden;}
     </style>
 </head>
 <body>
 
-<div id="viewport">
-    <div id="world">
-        <canvas id="bgCanvas"></canvas>
-    </div>
-</div>
+<div id="viewport"></div>
 
 <div id="ui-overlay">
-    <div class="logo-container">
-        <img src="/aset/logo.png" alt="ToFarmer Logo" class="logo-img" onerror="this.style.display='none';">
-        <h1>ToFarmer</h1>
+    <div class="logo-container" onclick="resetView()">
+        <h1>ToFarmer • Menoreh</h1>
     </div>
-    
     <nav class="nav-group">
         <a href="html/dashboard.html" class="nav-link">Sumbang Ilmu</a>
         <a href="html/fitur-ilmu.html" class="nav-link">Fitur</a>
@@ -81,122 +105,247 @@
     </nav>
 </div>
 
+<div id="token-badge">
+    🌾 POOL 1 TOF ≈ Rp 1.000 (ASA: 3558306283)
+</div>
+
+<div id="twilight-panel" class="twilight-panel">
+    <div class="panel-title" id="panel-title">Petak Koordinat</div>
+    <div style="font-size: 11px; margin-bottom: 10px; color: #a7f3d0;" id="panel-coords">X: 0, Y: 0</div>
+    
+    <div id="qr-reader"></div> <div id="action-area">
+        <input type="text" id="note-code-input" class="panel-input" placeholder="Masukkan Kode Kertas/Note TOF">
+        <button class="panel-btn btn-gold" onclick="prosesKlaimLahan()">Klaim Ladang Sini</button>
+        <button class="panel-btn" style="background:#1e293b; color:#fff;" onclick="bukaScannerQR()">📷 Scan QR Note</button>
+    </div>
+    <button class="panel-btn btn-red" style="margin-top: 8px;" onclick="tutupPanel()">Batal</button>
+</div>
+
 <div id="map-controls">
-    <button class="map-btn" onclick="zoomMenu(0.2)">➕</button>
-    <button class="map-btn" onclick="zoomMenu(-0.2)">➖</button>
+    <button class="map-btn" onclick="zoomMenu(1)">➕</button>
+    <button class="map-btn" onclick="zoomMenu(-1)">➖</button>
     <button class="map-btn" onclick="resetView()">📍</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script>
-    // --- MANAJEMEN SESI (Login/Logout) ---
+    // --- AKUN & KONEKSI DATA ---
     const authLink = document.getElementById('auth-link');
+    let selectedX = 0;
+    let selectedY = 0;
+    let markerWargaLokal = null; 
+    let html5QrcodeScanner = null;
 
     function updateAuthUI() {
         const wallet = localStorage.getItem('tof_wallet');
-        if (wallet) {
-            authLink.innerText = "Logout";
-        } else {
-            authLink.innerText = "Login";
-        }
+        authLink.innerText = wallet ? "Logout" : "Login";
     }
 
     function handleAuthClick() {
-        const wallet = localStorage.getItem('tof_wallet');
-        if (wallet) {
-            logoutWallet();
+        if (localStorage.getItem('tof_wallet')) {
+            if(confirm("Yakin ingin meninggalkan ladang? 🌱")) {
+                localStorage.clear();
+                window.location.reload();
+            }
         } else {
             window.location.href = 'html/login.html';
         }
     }
 
-    function logoutWallet() {
-        const yakin = confirm("Yakin ingin meninggalkan ladang? 🌱");
-        if (!yakin) return;
+    // --- RENDER PETAK ALAM MATEMATIKA LEAFLET (Anti Lemot) ---
+    const map = L.map('viewport', {
+        crs: L.CRS.Simple,
+        minZoom: -2,
+        maxZoom: 2,
+        zoomControl: false,
+        attributionControl: false,
+        maxBounds: [[-2000, -2000], [2000, 2000]]
+    }).setView([0, 0], 0);
 
-        localStorage.removeItem("tof_wallet");
-        localStorage.removeItem("tof_user_id");
-        updateAuthUI();
-        window.location.reload(); // Refresh untuk update view
+    function getTwilightNoise(x, y) {
+        return Math.sin(x * 0.01) * Math.cos(y * 0.01) + Math.sin(x * 0.03 + y * 0.02) * 0.2;
     }
 
-    // --- KONFIGURASI PETA ---
-    const world = document.getElementById('world');
-    const canvas = document.getElementById('bgCanvas');
-    const ctx = canvas.getContext('2d');
-    const worldWidth = 3200;
-    const worldHeight = 2400;
-    canvas.width = worldWidth;
-    canvas.height = worldHeight;
+    const TerrainLayer = L.GridLayer.extend({
+        createTile: function (coords) {
+            const tile = L.DomUtil.create('canvas', 'leaflet-tile');
+            tile.width = 256;
+            tile.height = 256;
+            const ctx = tile.getContext('2d');
 
-    let scale = 0.4, posX = 0, posY = 0, isDragging = false;
-    let startX, startY;
+            for (let x = 0; x < 256; x += 32) {
+                for (let y = 0; y < 256; y += 32) {
+                    const gX = (coords.x * 256) + x;
+                    const gY = (coords.y * 256) + y;
+                    const v = getTwilightNoise(gX, gY);
 
-    // --- LOGIKA RENDER PETA ---
-    function drawBase() {
-        ctx.fillStyle = '#050414';
-        ctx.fillRect(0, 0, worldWidth, worldHeight);
-    }
+                    // Palet Gelap Senja Pegunungan Menoreh
+                    if (v < -0.3) ctx.fillStyle = '#050414';      // Jurang / Lembah Malam
+                    else if (v < 0.2) ctx.fillStyle = '#0b131a'; // Sawah Irigasi Twilight
+                    else if (v < 0.6) ctx.fillStyle = '#0e2417'; // Perkebunan Kopi Hijau Tua
+                    else ctx.fillStyle = '#21160a';              // Batuan Bukit Menoreh
 
-    async function generateHouses() {
-        const { data: users } = await supabaseClient.from("profiles").select("id, username, avatar_url");
-        if (!users) return;
-
-        users.forEach((user, i) => {
-            const x = 200 + (i * 150) % (worldWidth - 400);
-            const y = 300 + (Math.floor(i * 150 / (worldWidth - 400)) * 200);
-
-            const house = document.createElement('div');
-            house.className = 'house-node';
-            house.style.left = x + 'px';
-            house.style.top = y + 'px';
-            house.innerHTML = `
-                <img class="house-avatar" src="${user.avatar_url || 'https://via.placeholder.com/40'}" />
-                <div class="house-name">${user.username}</div>
-            `;
-            // Cek login sebelum pindah halaman
-            house.onclick = () => {
-                const wallet = localStorage.getItem('tof_wallet');
-                if (!wallet) {
-                    alert("Masuk dulu ya biar ilmunya tersimpan di ladangmu. 🌿");
-                    window.location.href = 'html/login.html';
-                } else {
-                    window.location.href = `profile.html?id=${user.id}`;
+                    ctx.fillRect(x, y, 32, 32);
+                    ctx.strokeStyle = 'rgba(212, 175, 55, 0.02)';
+                    ctx.strokeRect(x, y, 32, 32);
                 }
-            };
-            world.appendChild(house);
+            }
+            return tile;
+        }
+    });
+    new TerrainLayer().addTo(map);
+
+    // --- KLIK PETA UNTUK MEMILIH / MEMINDAHKAN KOORDINAT ---
+    map.on('click', function(e) {
+        const wallet = localStorage.getItem('tof_wallet');
+        if (!wallet) {
+            alert("Masuk akun ToFarmer dulu untuk menata atau membeli lahan! 🌿");
+            return;
+        }
+
+        // Ambil pembulatan koordinat agar presisi seperti petak tanah murni
+        selectedX = Math.round(e.latlng.lng);
+        selectedY = Math.round(e.latlng.lat);
+
+        bukaPanelAksi(selectedX, selectedY);
+    });
+
+    async function bukaPanelAksi(x, y) {
+        const userId = localStorage.getItem('tof_user_id');
+        document.getElementById('twilight-panel').style.display = 'block';
+        document.getElementById('panel-coords').innerText = `Koordinat Lahan -> X: ${x}, Y: ${y}`;
+        
+        // Cek apakah warga ini sudah punya rumah sebelumnya di DB
+        const { data: lahanLama } = await supabaseClient
+            .from('lahan_desa')
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (lahanLama) {
+            document.getElementById('panel-title').innerText = "Tata & Pindah Lahan";
+            document.getElementById('action-area').innerHTML = `
+                <div style="font-size:11px; margin-bottom:10px; color:#fef08a;">Kamu sudah punya lahan. Pindahkan rumahmu ke titik koordinat baru ini sekarang?</div>
+                <button class="panel-btn btn-gold" onclick="eksekusiPindahLahan()">Pindahkan Rumah Kemitraan</button>
+            `;
+        } else {
+            document.getElementById('panel-title').innerText = "Klaim Lahan Baru";
+            document.getElementById('action-area').innerHTML = `
+                <input type="text" id="note-code-input" class="panel-input" placeholder="Masukkan Kode Kertas/Note TOF">
+                <button class="panel-btn btn-gold" onclick="prosesKlaimLahan()">Klaim Ladang Sini</button>
+                <button class="panel-btn" style="background:#1e293b; color:#fff;" onclick="bukaScannerQR()">📷 Scan QR Note</button>
+            `;
+        }
+    }
+
+    function tutupPanel() {
+        if(html5QrcodeScanner) { html5QrcodeScanner.clear(); }
+        document.getElementById('twilight-panel').style.display = 'none';
+        document.getElementById('qr-reader').style.display = 'none';
+    }
+
+    // --- SCANNER KERTAS QR NOTE VALUE ---
+    function bukaScannerQR() {
+        document.getElementById('qr-reader').style.style.display = 'block';
+        html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render((decodedText) => {
+            document.getElementById('note-code-input').value = decodedText;
+            html5QrcodeScanner.clear();
+            document.getElementById('qr-reader').style.display = 'none';
+        }, (error) => { /* bypass scan error logs */ });
+    }
+
+    // --- PROSES KLAIM LAHAN BARU MENGGUNAKAN NOTE VALUE (KUPON) ---
+    async function prosesKlaimLahan() {
+        const noteCode = document.getElementById('note-code-input').value.trim();
+        const userId = localStorage.getItem('tof_user_id');
+
+        if(!noteCode) { alert("Masukkan kode Note TOF cetak kamu!"); return; }
+
+        // Ambil data profil terbaru untuk disalin datanya ke peta
+        const { data: profil } = await supabaseClient.from('profiles').select('username, avatar_url').eq('id', userId).single();
+
+        // Rekam data koordinat pilihan secara instan ke Supabase
+        const { error } = await supabaseClient.from('lahan_desa').insert([{
+            user_id: userId,
+            username: profil.username,
+            avatar_url: profil.avatar_url,
+            x: selectedX,
+            y: selectedY,
+            building_type: '🏡',
+            note_code: noteCode
+        }]);
+
+        if (error) {
+            alert("Gagal klaim! Koordinat mungkin sudah padat atau ada gangguan jaringan.");
+        } else {
+            alert(`Selamat! Rumah @${profil.username} berhasil didirikan secara abadi di lokasi pilihan! 🌾`);
+            tutupPanel();
+            muatSeluruhLahanDesa(); // Refresh render peta
+        }
+    }
+
+    // --- PROSES PINDAH KOORDINAT (MENDEKAT / MENATA ULANG) ---
+    async function eksekusiPindahLahan() {
+        const userId = localStorage.getItem('tof_user_id');
+
+        const { error } = await supabaseClient
+            .from('lahan_desa')
+            .update({ x: selectedX, y: selectedY })
+            .eq('user_id', userId);
+
+        if (error) {
+            alert("Gagal memindahkan posisi lahan.");
+        } else {
+            alert("Posisi rumah berhasil ditata ulang mendekati koordinat senja yang baru! 📍");
+            tutupPanel();
+            muatSeluruhLahanDesa();
+        }
+    }
+
+    // --- ENGINE MERENDER MARKER SEMUA WARGA DARI SUPABASE CACHE ---
+    let layerGroupRumah = L.layerGroup().addTo(map);
+
+    async function muatSeluruhLahanDesa() {
+        layerGroupRumah.clearLayers(); // Bersihkan peta lama
+
+        const { data: lahans, error } = await supabaseClient.from('lahan_desa').select('*');
+        if (error || !lahans) return;
+
+        lahans.forEach(lahan => {
+            const htmlContent = `
+                <div class="house-node">
+                    <div class="house-avatar-wrap">
+                        <img class="house-avatar" src="${lahan.avatar_url || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" />
+                    </div>
+                    <div class="house-building">${lahan.building_type || '🏡'}</div>
+                    <div class="house-name">@${lahan.username}</div>
+                </div>
+            `;
+
+            const kustomIcon = L.divIcon({
+                html: htmlContent,
+                className: 'custom-house-marker',
+                iconSize: [100, 90],
+                iconAnchor: [50, 75]
+            });
+
+            L.marker([lahan.y, lahan.x], { icon: kustomIcon }).addTo(layerGroupRumah)
+             .on('click', (ev) => {
+                 L.DomEvent.stopPropagation(ev); // Stop trigger klik peta luar
+                 window.location.href = `profile.html?id=${lahan.user_id}`;
+             });
         });
     }
 
-    // --- MANAJEMEN KAMERA ---
-    function updateTransform() {
-        scale = Math.min(Math.max(scale, 0.2), 2);
-        world.style.transform = `translate(${posX}px, ${posY}px) scale(${scale})`;
-    }
+    // --- NAVIGASI KAMERA ---
+    function zoomMenu(delta) { delta > 0 ? map.zoomIn() : map.zoomOut(); }
+    function resetView() { map.setView([0, 0], 0); }
 
-    function zoomMenu(delta) { scale += delta; updateTransform(); }
-
-    function resetView() {
-        scale = 0.4; posX = 0; posY = 0;
-        updateTransform();
-    }
-
-    // --- INPUT HANDLER ---
-    window.addEventListener('mousedown', (e) => { 
-        if(e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('.nav-group')) return;
-        isDragging = true; startX = e.clientX - posX; startY = e.clientY - posY; 
-    });
-    window.addEventListener('mousemove', (e) => { 
-        if(isDragging) { posX = e.clientX - startX; posY = e.clientY - startY; updateTransform(); } 
-    });
-    window.addEventListener('mouseup', () => isDragging = false);
-
-    // --- INITIAL LOAD ---
-    drawBase();
-    generateHouses();
-    resetView();
-    updateAuthUI(); // Cek status login saat halaman dibuka
+    // --- RUNNING SYSTEM ---
+    muatSeluruhLahanDesa();
+    updateAuthUI();
 </script>
 </body>
 </html>
