@@ -168,6 +168,7 @@
         return Math.sin(x * 0.01) * Math.cos(y * 0.01) + Math.sin(x * 0.03 + y * 0.02) * 0.2;
     }
 
+    // --- RENDER PETAK ALAM + CAKRAWALA & LANGIT MATEMATIKA (Anti-Lemot) ---
     const TerrainLayer = L.GridLayer.extend({
         createTile: function (coords) {
             const tile = L.DomUtil.create('canvas', 'leaflet-tile');
@@ -180,25 +181,53 @@
 
             for (let x = 0; x < 256; x += 32) {
                 for (let y = 0; y < 256; y += 32) {
-                    // Hitung posisi pixel absolut berdasarkan zoom saat ini
+                    // Hitung posisi pixel absolut & terjemahkan ke koordinat dunia murni (X & Y)
                     const p = new L.Point(nwPoint.x + x, nwPoint.y + y);
-                    
-                    // Terjemahkan pixel menjadi koordinat peta murni (X & Y)
                     const latlng = map.unproject(p, coords.z);
                     const gX = latlng.lng;
-                    const gY = latlng.lat;
+                    const gY = latlng.lat; // Sumbu Y (makin ke atas makin besar nilainya)
 
-                    const v = getTwilightNoise(gX, gY);
+                    // 1. RUMUS CAKRAWALA: Membuat garis batas bukit siluet yang meliuk alami
+                    // Angka 250 adalah tinggi dasar cakrawala. Bisa kamu naik-turunkan sesuai selera.
+                    const garisCakrawala = 250 + Math.sin(gX * 0.03) * 35 + Math.cos(gX * 0.08) * 12;
 
-                    // Palet Gelap Senja Pegunungan Menoreh
-                    if (v < -0.3) ctx.fillStyle = '#050414';      // Jurang / Lembah Malam
-                    else if (v < 0.2) ctx.fillStyle = '#0b131a'; // Sawah Irigasi Twilight
-                    else if (v < 0.6) ctx.fillStyle = '#0e2417'; // Perkebunan Kopi Hijau Tua
-                    else ctx.fillStyle = '#21160a';              // Batuan Bukit Menoreh
+                    if (gY > garisCakrawala) {
+                        // ===================================================
+                        // ZONA LANGIT & CAKRAWALA SENJA (Paling Atas)
+                        // ===================================================
+                        // Hitung faktor ketinggian langit untuk efek gradasi fading (0 sampai 1)
+                        let batasLangit = (gY - garisCakrawala) / 500; 
+                        if (batasLangit > 1) batasLangit = 1;
+                        if (batasLangit < 0) batasLangit = 0;
 
-                    ctx.fillRect(x, y, 32, 32);
-                    ctx.strokeStyle = 'rgba(212, 175, 55, 0.02)';
-                    ctx.strokeRect(x, y, 32, 32);
+                        // Interpolasi Warna Kustom: Dari Oranye Senja Bara memudar ke Ungu/Hitam Malam
+                        // Warna bawah (Dekat bukit): #bd5338 (Senja Menoreh) -> RGB(189, 83, 56)
+                        // Warna atas (Langit dalam): #050414 (Malam Pekat)  -> RGB(5, 4, 20)
+                        let r = Math.round(189 - (189 - 5) * batasLangit);
+                        let g = Math.round(83 - (83 - 4) * batasLangit);
+                        let b = Math.round(56 - (56 - 20) * batasLangit);
+
+                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                        ctx.fillRect(x, y, 32, 32);
+
+                    } else {
+                        // ===================================================
+                        // ZONA DARATAN PEGUNUNGAN (Bawah Cakrawala)
+                        // ===================================================
+                        const v = getTwilightNoise(gX, gY);
+
+                        // Palet Gelap Senja Pegunungan Menoreh
+                        if (v < -0.3) ctx.fillStyle = '#050414';      // Jurang / Lembah Malam
+                        else if (v < 0.2) ctx.fillStyle = '#0b131a'; // Sawah Irigasi Twilight
+                        else if (v < 0.6) ctx.fillStyle = '#0e2417'; // Perkebunan Kopi Hijau Tua
+                        else ctx.fillStyle = '#21160a';              // Batuan Bukit Menoreh
+
+                        ctx.fillRect(x, y, 32, 32);
+
+                        // Garis grid tipis estetis petak tanah
+                        ctx.strokeStyle = 'rgba(212, 175, 55, 0.015)';
+                        ctx.strokeRect(x, y, 32, 32);
+                    }
                 }
             }
             return tile;
