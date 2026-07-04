@@ -184,7 +184,10 @@ ctx.setTransform(1, 0, 0, 1, 0, 0);
             // Ambil titik awal ubin dalam pixel global
             const nwPoint = new L.Point(coords.x * 256, coords.y * 256);
 
-           const step = Math.max(8, 32 / Math.pow(2, coords.z));
+          const zoom = Math.max(0, coords.z);
+const scale = Math.pow(2, zoom);
+
+const step = Math.max(4, 32 / scale);
 
 
 
