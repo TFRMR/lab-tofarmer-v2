@@ -16,6 +16,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
     btn.innerText = "Memeriksa...";
 
     try {
+        // Query ke database Supabase pada tabel 'profiles'
         const { data, error } = await supabase
             .from('profiles')
             .select('*')
@@ -30,35 +31,34 @@ document.getElementById('login-btn').addEventListener('click', async () => {
             return;
         }
 
-        // simpan session user
+        // Amankan sesi warga ke dalam LocalStorage browser
         localStorage.setItem('tof_wallet', data.id);
         localStorage.setItem('tof_username', data.username);
-        localStorage.setItem('tof_level', data.level);
-        localStorage.setItem('tof_rank', data.rank);
-        localStorage.setItem('tof_xp', data.xp);
+        localStorage.setItem('tof_level', data.level || 1);
+        localStorage.setItem('tof_rank', data.rank || 'Warga Mandiri');
+        localStorage.setItem('tof_xp', data.xp || 0);
 
-        alert(`Selamat datang kembali, ${data.username}!`);
+        alert(`Selamat datang kembali, @${data.username}!`);
 
-        // =========================
-        // REDIRECT LOGIC (FIXED)
-        // =========================
+        // ========================================
+        // ENGINE DETEKSI REDIRECT DINAMIS (FIXED)
+        // ========================================
         const redirectTo = localStorage.getItem('redirect_to');
 
         if (redirectTo) {
+            // Hapus temporary penanda agar tidak terjadi perulangan sirkular
             localStorage.removeItem('redirect_to');
+            
+            // Melempar user ke halaman asal (bisa ../desa-tof.html atau ../index.html)
             window.location.href = redirectTo;
         } else {
-            // ❗ tidak paksa ke dashboard lagi
-            // tetap di halaman sekarang
-            btn.disabled = false;
-            btn.innerText = "Masuk Ladang";
-
-            alert("Login berhasil!");
+            // Antisipasi darurat jika user mengetik langsung url html/login.html tanpa melompati halaman depan
+            window.location.href = '../index.html'; 
         }
 
     } catch (err) {
-        console.error("Kesalahan sistem login:", err.message);
-        alert("Terjadi kesalahan saat masuk. Coba lagi nanti.");
+        console.error("Kesalahan fatal pada sistem login:", err.message);
+        alert("Terjadi kesalahan teknis saat masuk ladang. Coba lagi nanti.");
 
         btn.disabled = false;
         btn.innerText = "Masuk Ladang";
