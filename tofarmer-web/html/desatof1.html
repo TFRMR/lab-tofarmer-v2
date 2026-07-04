@@ -225,18 +225,37 @@
         createBaseGrid();
         updateCamera();
 
-        const { data: terrain } = await db.from('village_map').select('*');
-        terrain?.forEach(obj => {
-            if (obj.type === 'mountain' || obj.type === 'tree') {
-                reservedTiles.add(`${obj.x_pos},${obj.y_pos}`);
-                const div = document.createElement('div');
-                div.className = 'obj';
-                div.style.left = (obj.x_pos * 80) + 'px';
-                div.style.top = (obj.y_pos * 80) + 'px';
-                div.innerHTML = obj.type === 'mountain' ? '⛰️' : '🌳';
-                world.appendChild(div);
-            }
-        });
+      // 1. Muat Seluruh Komponen Alam dan Jalan dari tabel village_map
+const { data: terrain } = await db.from('village_map').select('*');
+terrain?.forEach(obj => {
+    // Daftarkan koordinat ini ke sistem kunci ubin agar tidak ditimpa rumah warga otomatis
+    reservedTiles.add(`${obj.x_pos},${obj.y_pos}`);
+    
+    // Ambil div ubin yang sudah dibuat di lantai dasar koordinat ini
+    // Rumus mencari indeks ubin di dalam DOM: (x * GRID_SIZE) + y
+    const tileIndex = (obj.x_pos * GRID_SIZE) + obj.y_pos;
+    const currentTile = world.getElementsByClassName('tile')[tileIndex];
+
+    if (currentTile) {
+        if (obj.type === 'paved_road') {
+            // Mengubah ubin tanah dasar menjadi tekstur jalan aspal gelap
+            currentTile.style.background = 'rgba(30, 41, 59, 0.9)';
+            currentTile.style.border = '1px solid rgba(74, 222, 128, 0.15)';
+        } else if (obj.type === 'soil_farm') {
+            // Mengubah ubin menjadi petak tanah perkebunan cokelat subur
+            currentTile.style.background = 'rgba(120, 53, 4, 0.4)';
+            currentTile.style.border = '1px dashed rgba(245, 158, 11, 0.3)';
+        } else {
+            // Untuk jenis objek 3D tegak/timbul (Gunung dan Pohon)
+            const div = document.createElement('div');
+            div.className = 'obj';
+            div.style.left = (obj.x_pos * 80) + 'px';
+            div.style.top = (obj.y_pos * 80) + 'px';
+            div.innerHTML = obj.type === 'mountain' ? '⛰️' : '🌳';
+            world.appendChild(div);
+        }
+    }
+});
 
         const { data: users, error } = await db.from('profiles').select('id, username, level, bakat_utama, avatar_url').order('created_at', { ascending: true });
         if (error) return console.error(error);
