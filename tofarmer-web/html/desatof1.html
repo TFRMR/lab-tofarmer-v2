@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ToFarmer | Twilight Menoreh 3D</title>
+    <title>ToFarmer | Orbit Menoreh 3D</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; --wall-l: #2b5c3a; --wall-r: #1e4228; --roof: #4ade80; }
+        :root { 
+            --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; 
+            --wall: #e2e8f0; --wall-shadow: #cbd5e1; --roof-l: #b45309; --roof-r: #78350f;
+        }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
         /* HEADER & NAV */
@@ -16,37 +19,57 @@
         nav { position: fixed; top: 52px; left: 0; width: 100%; display: flex; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.8); z-index: 999; box-sizing: border-box; }
         nav a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
 
-        /* MAP 3D ENGINE */
-        #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; perspective: 1500px; z-index: 1; }
+        /* VIEWPORT & ORBIT ENGINE */
+        #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; perspective: 1200px; z-index: 1; }
         #viewport:active { cursor: grabbing; }
-        #anchor { position: absolute; transform-style: preserve-3d; }
+        
+        /* Wadah Utama Orientasi Kamera */
+        #camera-pan { position: absolute; transform-style: preserve-3d; }
+        #camera-rot { position: absolute; transform-style: preserve-3d; transform: rotateX(60deg) rotateZ(-45deg); }
         #world { position: absolute; transform-style: preserve-3d; width: 2400px; height: 2400px; left: -1200px; top: -1200px; }
         
+        /* LANTAI DESA */
         .tile { position: absolute; width: 80px; height: 80px; background: rgba(74, 222, 128, 0.02); border: 1px solid rgba(255,255,255,0.03); box-sizing: border-box; }
         .obj { position: absolute; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 40px; transform: translateZ(15px); filter: drop-shadow(5px 15px 5px rgba(0,0,0,0.6)); pointer-events: none; }
 
-        /* KONSTRUKSI RUMAH 3D MURNI CSS (SUPER RINGAN) */
-        .house-3d { position: absolute; width: 80px; height: 80px; transform-style: preserve-3d; cursor: pointer; pointer-events: auto; }
-        .cube { position: absolute; width: 40px; height: 40px; left: 20px; top: 20px; transform-style: preserve-3d; transform: translateZ(0px); transition: transform 0.2s; }
-        .cube:hover { transform: translateZ(10px); }
+        /* ARSITEKTUR RUMAH JAWANESE REAL-3D MURNI CSS */
+        .house-node { position: absolute; width: 80px; height: 80px; transform-style: preserve-3d; cursor: pointer; }
+        .house-3d { position: absolute; width: 44px; height: 44px; left: 18px; top: 18px; transform-style: preserve-3d; transform: translateZ(0px); transition: transform 0.2s; }
+        .house-node:hover .house-3d { transform: translateZ(8px); }
         
-        /* Sisi-sisi Balok Rumah */
-        .face { position: absolute; width: 40px; height: 40px; box-sizing: border-box; }
-        .left  { background: var(--wall-l); transform: rotateX(-90deg) translateZ(20px); border: 1px solid rgba(255,255,255,0.1); }
-        .right { background: var(--wall-r); transform: rotateY(90deg) translateZ(20px); border: 1px solid rgba(255,255,255,0.1); }
-        .top   { background: var(--roof); transform: translateZ(40px); border: 1px solid #fff; box-shadow: inset 0 0 10px rgba(0,0,0,0.3); }
+        /* Komponen Struktur Dinding & Atap Segitiga */
+        .face { position: absolute; box-sizing: border-box; backface-visibility: hidden; }
+        .w-front { width: 44px; height: 25px; background: var(--wall); transform: rotateX(-90deg) translateZ(22px); }
+        .w-back  { width: 44px; height: 25px; background: var(--wall-shadow); transform: rotateX(90deg) translateZ(22px); }
+        .w-left  { width: 44px; height: 25px; background: var(--wall-shadow); transform: rotateY(-90deg) translateZ(22px); }
+        .w-right { width: 44px; height: 25px; background: var(--wall); transform: rotateY(90deg) translateZ(22px); }
+        
+        /* Atap Segitiga Kampung Berpapasan (Pitch Roof) */
+        .r-left  { width: 30px; height: 44px; background: var(--roof-l); transform: translate3d(0px, 0px, 25px) rotateY(40deg); transform-origin: left center; border: 1px solid rgba(0,0,0,0.2); }
+        .r-right { width: 30px; height: 44px; background: var(--roof-r); transform: translate3d(14px, 0px, 25px) rotateY(-40deg); transform-origin: right center; border: 1px solid rgba(0,0,0,0.2); }
 
-        /* KUSTOMISASI RUMAH PREMIUM (LEVEL TINGGI) */
-        .premium .top { var(--accent); background: #f59e0b; } /* Atap Emas untuk Level Tinggi */
-        .premium .left { background: #b45309; }
-        .premium .right { background: #78350f; }
-
-        .nametag { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%) rotateZ(0deg); background: rgba(5, 11, 7, 0.9); color: #fff; border: 1px solid var(--accent); font-size: 9px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; font-weight: bold; pointer-events: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        /* FOTO PROFIL (AVATAR) BILLBOARD DI ATAS RUMAH */
+        .avatar-billboard { 
+            position: absolute; top: -45px; left: 50%; transform: translateX(-50%);
+            transform-style: preserve-3d; display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none;
+        }
+        /* Selalu Menghadap Layar (Akan Di-counter oleh JavaScript saat Berputar) */
+        .billboard-content { display: flex; flex-direction: column; align-items: center; transform-style: preserve-3d; }
+        
+        .avatar-img { 
+            width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent); 
+            background: #1e293b; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .nametag { 
+            background: rgba(5, 11, 7, 0.9); color: #fff; border: 1px solid var(--accent); 
+            font-size: 8px; padding: 1px 5px; border-radius: 4px; white-space: nowrap; font-weight: bold; 
+        }
 
         /* UI CONTROLS */
         #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); }
         .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
         .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 15px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; box-sizing: border-box; }
+        .instructions { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 20px; font-size: 10px; color: #a3a3a3; pointer-events: none; text-align: center; z-index: 1000; }
     </style>
 </head>
 <body>
@@ -65,53 +88,118 @@
 </nav>
 
 <div id="viewport">
-    <div id="anchor">
-        <div id="world"></div>
+    <div id="camera-pan">
+        <div id="camera-rot">
+            <div id="world"></div>
+        </div>
     </div>
 </div>
 
+<div class="instructions">Klik Kiri + Geser = Pindah Map | Klik Kanan / Ctrl + Geser = Putar Sisi 3D 🔄</div>
 <div id="auth-status">Memeriksa session...</div>
 
 <div class="controls">
-    <button class="btn" onclick="adjust(0.1)">➕</button>
-    <button class="btn" onclick="adjust(-0.1)">➖</button>
+    <button class="btn" onclick="adjustZoom(0.15)">➕</button>
+    <button class="btn" onclick="adjustZoom(-0.15)">➖</button>
 </div>
 
 <script>
     const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
     
-    const anchor = document.getElementById('anchor');
+    const cameraPan = document.getElementById('camera-pan');
+    const cameraRot = document.getElementById('camera-rot');
     const world = document.getElementById('world');
     const viewport = document.getElementById('viewport');
 
-    let scale = 1.0;
-    let posX = 0, posY = 0;
+    // STATE KAMERA ORBIT
+    let zoom = 1.0;
+    let panX = 0, panY = 0;
+    let rotX = 60, rotZ = -45; 
+    
     let isDragging = false;
+    let dragMode = 'pan'; // 'pan' atau 'orbit'
     let startX = 0, startY = 0;
 
-    const GRID_SIZE = 20;
-    const reservedTiles = new Set(); 
-
-    function adjust(s) { scale = Math.min(Math.max(scale + s, 0.4), 2.2); updateTransform(); }
-    function updateTransform() { 
-        anchor.style.transform = `translate3d(${posX}px, ${posY}px, 0px)`;
-        world.style.transform = `rotateX(60deg) rotateZ(-45deg) scale(${scale})`; 
+    function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.5); updateCamera(); }
+    
+    function updateCamera() {
+        cameraPan.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`;
+        cameraRot.style.transform = `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`;
+        
+        // Pembaruan Billboard agar Foto Pemilik Selalu Tegak Menghadap Layar Monitor/HP Anda
+        document.querySelectorAll('.billboard-content').forEach(el => {
+            el.style.transform = `rotateZ(${-rotZ}deg) rotateX(${-rotX}deg)`;
+        });
     }
 
-    // DRAG & TOUCH LOGIC
+    // ENGINE NAVIGASI KENDALI TOTAL (MOUSE & TOUCH HP)
+    viewport.addEventListener('contextmenu', e => e.preventDefault()); // Matikan klik kanan browser
+
     viewport.addEventListener('mousedown', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls')) return;
-        isDragging = true; startX = e.clientX - posX; startY = e.clientY - posY;
+        isDragging = true;
+        // Klik kanan atau tekan tombol Ctrl berarti merotasi/putar map sesuka hati
+        dragMode = (e.button === 2 || e.ctrlKey) ? 'orbit' : 'pan';
+        startX = e.clientX;
+        startY = e.clientY;
     });
-    window.addEventListener('mousemove', (e) => { if (isDragging) { posX = e.clientX - startX; posY = e.clientY - startY; updateTransform(); } });
+
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        let dx = e.clientX - startX;
+        let dy = e.clientY - startY;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        if (dragMode === 'pan') {
+            panX += dx; panY += dy;
+        } else {
+            rotZ += dx * 0.4;
+            rotX = Math.min(Math.max(rotX - dy * 0.4, 30), 80); // Kunci kemiringan sudut pandang mata
+        }
+        updateCamera();
+    });
+
     window.addEventListener('mouseup', () => isDragging = false);
 
+    // DUKUNGAN MULTI-TOUCH HP KENTANG
+    let touchStartDist = 0;
     viewport.addEventListener('touchstart', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls')) return;
-        isDragging = true; startX = e.touches[0].clientX - posX; startY = e.touches[0].clientY - posY;
+        isDragging = true;
+        if (e.touches.length === 1) {
+            dragMode = 'pan';
+            startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        } else if (e.touches.length === 2) {
+            dragMode = 'orbit'; // Dua jari otomatis memutar sudut pandang desa
+            startX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            startY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        }
     });
-    window.addEventListener('touchmove', (e) => { if (isDragging) { posX = e.touches[0].clientX - startX; posY = e.touches[0].clientY - startY; updateTransform(); } });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        let currentX = e.touches[0].clientX;
+        let currentY = e.touches[0].clientY;
+        if (e.touches.length === 2) {
+            currentX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        }
+        let dx = currentX - startX; let dy = currentY - startY;
+        startX = currentX; startY = currentY;
+
+        if (dragMode === 'pan') {
+            panX += dx; panY += dy;
+        } else {
+            rotZ += dx * 0.6;
+        }
+        updateCamera();
+    });
     window.addEventListener('touchend', () => isDragging = false);
+
+    // BANGUN GRID PETAK TANAH
+    const GRID_SIZE = 20;
+    const reservedTiles = new Set(); 
 
     function createBaseGrid() {
         for (let x = 0; x < GRID_SIZE; x++) {
@@ -125,26 +213,18 @@
         }
     }
 
-    // SPIRAL ALGORITHM FOR POSITIONING
+    // ALGORITMA SPIRAL SPIRITUAL
     function findEmptyTile() {
-        let cx = 10, cy = 10; 
-        let x = 0, y = 0, dx = 0, dy = -1;
-        let t = Math.max(GRID_SIZE, GRID_SIZE);
-        let maxI = t * t;
-
-        for (let i = 0; i < maxI; i++) {
+        let cx = 10, cy = 10; let x = 0, y = 0, dx = 0, dy = -1;
+        for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
             if ((-GRID_SIZE/2 <= x) && (x <= GRID_SIZE/2) && (-GRID_SIZE/2 <= y) && (y <= GRID_SIZE/2)) {
-                let tx = cx + x;
-                let ty = cy + y;
+                let tx = cx + x; let ty = cy + y;
                 let key = `${tx},${ty}`;
                 if (!reservedTiles.has(key) && tx >= 0 && tx < GRID_SIZE && ty >= 0 && ty < GRID_SIZE) {
-                    reservedTiles.add(key); 
-                    return { x: tx, y: ty };
+                    reservedTiles.add(key); return { x: tx, y: ty };
                 }
             }
-            if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) {
-                let temp = dx; dx = -dy; dy = temp;
-            }
+            if (x === y || (x < 0 && x === -y) || (x > 0 && x === 1 - y)) { let temp = dx; dx = -dy; dy = temp; }
             x += dx; y += dy;
         }
         return { x: Math.floor(Math.random()*GRID_SIZE), y: Math.floor(Math.random()*GRID_SIZE) };
@@ -156,14 +236,13 @@
         
         document.getElementById('auth-status').innerText = "Warga: @" + localStorage.getItem('tof_username');
         createBaseGrid();
-        updateTransform();
+        updateCamera();
 
-        // 1. Render Fitur Alam Statis (Tabel village_map)
+        // 1. Muat Fitur Alam Dekoratif (village_map)
         const { data: terrain } = await db.from('village_map').select('*');
         terrain?.forEach(obj => {
             if (obj.type === 'mountain' || obj.type === 'tree') {
                 reservedTiles.add(`${obj.x_pos},${obj.y_pos}`);
-                
                 const div = document.createElement('div');
                 div.className = 'obj';
                 div.style.left = (obj.x_pos * 80) + 'px';
@@ -173,34 +252,47 @@
             }
         });
 
-        // 2. Render Rumah Warga Maket 3D Murni CSS (Tabel profiles)
-        const { data: users, error } = await db.from('profiles').select('id, username, level, bakat_utama').order('created_at', { ascending: true });
+        // 2. Muat Warga + Rumah Atap Joglo Segitiga + Foto Profil (profiles)
+        const { data: users, error } = await db.from('profiles').select('id, username, level, bakat_utama, avatar_url').order('created_at', { ascending: true });
         if (error) return console.error(error);
 
         users?.forEach(user => {
             const coord = findEmptyTile();
-            
             const container = document.createElement('div');
-            container.className = 'house-3d' + (user.level > 5 ? ' premium' : '');
+            container.className = 'house-node';
             container.style.left = (coord.x * 80) + 'px';
             container.style.top = (coord.y * 80) + 'px';
 
-            // Membangun Kubus Objek Rumah 3D Murni menggunakan CSS Sisi Balok
+            // Gunakan fallback gambar anonim jika avatar_url kosong
+            const photoSrc = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
+
+            // HTML Struktur Rumah Joglo Tradisional Segitiga Nyata 3D
             container.innerHTML = `
-                <div class="cube">
-                    <div class="face top"></div>
-                    <div class="face left"></div>
-                    <div class="face right"></div>
+                <div class="house-3d">
+                    <div class="face w-front"></div>
+                    <div class="face w-back"></div>
+                    <div class="face w-left"></div>
+                    <div class="face w-right"></div>
+                    <div class="face r-left"></div>
+                    <div class="face r-right"></div>
+                    
+                    <div class="avatar-billboard">
+                        <div class="billboard-content">
+                            <img class="avatar-img" src="${photoSrc}" />
+                            <div class="nametag">@${user.username}</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="nametag">@${user.username} (Lv.${user.level || 1})</div>
             `;
 
             container.onclick = () => {
-                alert(`🏰 ToFarmer Real-3D Asset\n────────────────\nPemilik: @${user.username}\nBakat Utama: ${user.bakat_utama || 'Pencari Ilmu'}\nID Wallet: ${user.id}`);
+                alert(`🌾 Struktur Rumah ToFarmer\n────────────────\nWarga: @${user.username}\nKeahlian: ${user.bakat_utama || 'Anggota Mandiri'}\nReputasi: Level ${user.level || 1}`);
             };
 
             world.appendChild(container);
         });
+
+        updateCamera(); // Sinkronkan rotasi awal billboard foto profil
     }
 
     function logout() { localStorage.clear(); location.reload(); }
