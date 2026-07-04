@@ -669,11 +669,23 @@
     }
 
     init();
-if (localStorage.getItem('tof_username') === 'TAMU_MENOREH' || !localStorage.getItem('tof_wallet')) {
-    // Karena desa-tof.html ada di luar, jalur kembali dari folder html/ adalah '../desa-tof.html'
-    localStorage.setItem('redirect_to', '../desa-tof.html'); 
-    window.location.href = 'html/login.html';
-}
+// Cek apakah user adalah tamu atau belum memiliki session wallet
+        const wallet = localStorage.getItem('tof_wallet');
+        const username = localStorage.getItem('tof_username');
+
+        if (!wallet || !username || username === "TAMU_MENOREH") {
+            // Pasang jangkar kembali: Karena login.html ada di dalam folder 'html/', 
+            // untuk kembali ke desa-tof.html kita harus keluar satu tingkat memakai '../'
+            localStorage.setItem('redirect_to', '../desa-tof.html');
+            
+            // Lemparkan ke halaman login
+            window.location.href = 'html/login.html';
+        }
+
+        // ===========================================
+        // LOGIKA UNTUK CORE ENGINE DESA ANDA DI SINI
+        // ===========================================
+        console.log("Warga terverifikasi:", username);
 </script>
 </body>
 </html>
