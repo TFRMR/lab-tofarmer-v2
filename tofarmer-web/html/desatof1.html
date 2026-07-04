@@ -33,34 +33,27 @@
 </div>
 
 <script>
-   const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
+    // Inisialisasi client database
+    const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
     const world = document.getElementById('world');
 
-    // Pastikan semua fungsi di bawah menggunakan variabel 'db' bukan 'supabase'
-    async function loginAction(walletInput, usernameInput) {
-        const { data: profile, error } = await db // Ganti ke db
-            .from('profiles')
-            .select('id, username')
-            .eq('id', walletInput)
-            .single();
-
-    if (error || !profile) {
-        alert("Alamat dompet tidak ditemukan di Desa ToFarmer. Pastikan sudah mendaftar ya!");
-        return;
+    // 1. CEK LOGIN OTOMATIS (Sync dengan LocalStorage)
+    async function checkAuth() {
+        const wallet = localStorage.getItem('tof_wallet');
+        if (wallet) {
+            document.getElementById('auth-status').innerText = "Halo, " + localStorage.getItem('tof_username');
+            document.getElementById('logout-btn').style.display = 'block';
+            loadVillage(); // Panggil fungsi loadVillage yang sudah diperbaiki
+        } else {
+            document.getElementById('auth-status').innerText = "Belum login";
+            document.getElementById('login-btn').style.display = 'block';
+        }
     }
 
-    // 2. Jika ketemu, simpan ke localStorage sebagai "Session"
-    localStorage.setItem('tof_wallet', profile.id);
-    localStorage.setItem('tof_username', profile.username);
-
-    alert("Selamat datang kembali di Menoreh, " + profile.username + "! 🌿");
-    window.location.href = '/index.html'; // Kembali ke map desa
-}
-
-    // 2. LOAD MAP DARI SUPABASE
+    // 2. LOAD MAP DARI SUPABASE (PERBAIKAN: Gunakan 'db' bukan 'supabase')
     async function loadVillage() {
-        const { data: objects, error } = await supabase.from('village_map').select('*');
-        if (error) return console.error(error);
+        const { data: objects, error } = await db.from('village_map').select('*'); // <-- PERBAIKAN DI SINI
+        if (error) return console.error("Error load map:", error);
 
         world.innerHTML = '';
         objects.forEach(obj => {
@@ -69,7 +62,6 @@
             div.style.left = (obj.x_pos * 80) + 'px';
             div.style.top = (obj.y_pos * 80) + 'px';
             
-            // Ikon berdasarkan tipe
             const icons = { 'mountain': '⛰️', 'tree': '🌳', 'house': '🏡' };
             div.innerHTML = icons[obj.type] || '❓';
             
@@ -77,8 +69,13 @@
         });
     }
 
+    // Fungsi Login/Logout
     async function login() { await supabase.auth.signInWithOAuth({ provider: 'google' }); }
-    async function logout() { await supabase.auth.signOut(); location.reload(); }
+    async function logout() { 
+        localStorage.clear(); // Bersihkan session wallet
+        await supabase.auth.signOut(); 
+        location.reload(); 
+    }
 
     checkAuth();
 </script>
