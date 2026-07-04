@@ -35,11 +35,7 @@
     /* Lapisan atmosfer: bulan & bintang kelap-kelip, FIXED ke layar (bukan ke koordinat peta),
        jadi tetap ringan karena tidak pernah ikut dihitung ulang saat peta di-pan/zoom. */
     #atmosphere-layer { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
-    #moon-fixed {
-        position: absolute; top: 9%; right: 12%; width: 74px; height: 74px; border-radius: 50%;
-        background: radial-gradient(circle at 35% 32%, #fffdf5 0%, #ffe1ac 65%, #ffcf85 100%);
-        box-shadow: 0 0 20px 10px rgba(255,224,180,0.35), 0 0 70px 34px rgba(255,200,140,0.18);
-    }
+    
 
     #cine-vignette {
         position: fixed; inset: 0; z-index: 2; pointer-events: none;
@@ -214,7 +210,7 @@
 
 <div id="viewport"></div>
 <div id="atmosphere-layer">
-    <div id="moon-fixed"></div>
+   
 </div>
 <div id="cine-vignette"></div>
 
@@ -419,23 +415,23 @@
     }
 
     const TerrainLayer = L.GridLayer.extend({
-        tileSize: 1024,
+        tileSize: 256,
         updateWhenZooming: true,
         keepBuffer: 2,
 
         createTile: function (coords) {
             const tile = L.DomUtil.create('canvas', 'leaflet-tile');
-            tile.width = 1024;
-            tile.height = 1024;
+            tile.width = 256;
+            tile.height = 256;
             const ctx = tile.getContext('2d');
 
-            const nwPoint = new L.Point(coords.x * 1024, coords.y * 1024);
+            const nwPoint = new L.Point(coords.x * 256, coords.y * 256);
 
             // Sampel di resolusi rendah lalu digambar membesar dengan smoothing —
             // inilah kunci supaya transisi warna menyatu mulus, bukan berkotak
             // maupun bergaris (dulu ini akar masalah "garis vertikal").
             const SAMPLE = 40;
-            const step = 1024 / SAMPLE;
+            const step = 256 / SAMPLE;
 
             const kanvasKecil = document.createElement('canvas');
             kanvasKecil.width = SAMPLE;
@@ -484,7 +480,7 @@
             sctx.putImageData(imgData, 0, 0);
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(kanvasKecil, 0, 0, SAMPLE, SAMPLE, 0, 0, 1024, 1024);
+            ctx.drawImage(kanvasKecil, 0, 0, SAMPLE, SAMPLE, 0, 0, 256, 256);
 
             return tile;
         }
@@ -592,21 +588,7 @@
         }
     }
 
-    // Lapisan bintang CSS yang benar-benar berkelip — fixed ke layar (murni suasana, sangat ringan)
-    function spawnTwinkleStars() {
-        const wadah = document.getElementById('atmosphere-layer');
-        for (let i = 0; i < 18; i++) {
-            const star = document.createElement('div');
-            star.className = 'twinkle-star';
-            const size = Math.random() * 2 + 1.5;
-            star.style.width = size + 'px';
-            star.style.height = size + 'px';
-            star.style.left = (Math.random() * 100) + 'vw';
-            star.style.top = (Math.random() * 38) + 'vh';
-            star.style.animationDelay = (Math.random() * 3) + 's';
-            wadah.appendChild(star);
-        }
-    }
+   
 
     // --- C. MANAJEMEN KAMERA & PEMICU PANEL WARGA ---
     map.on('zoomend', () => {
@@ -643,7 +625,7 @@
     }
 
     // Inisialisasi visual
-    spawnTwinkleStars();
+   
     resetView();
 
     window.addEventListener('resize', resetView);
