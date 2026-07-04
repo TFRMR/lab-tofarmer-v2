@@ -254,59 +254,61 @@
         }
 
         // --- AMBIL DATA RIIL DARI SUPABASE ---
-        async function syncWithSupabase() {
-            if(!supabaseClient) return;
-            try {
-                // 1. Ambil Profil Sendiri
-                const { data: profile, error } = await supabaseClient
-                    .from("profiles")
-                    .select("username, tof")
-                    .eq("id", currentWallet)
-                    .single();
+      // --- AMBIL DATA RIIL DARI SUPABASE ---
+async function syncWithSupabase() {
+    if(!supabaseClient) return;
+    try {
+        // 1. Ambil Profil Sendiri
+        const { data: profile, error } = await supabaseClient
+            .from("profiles")
+            .select("*") // Aman: Mengambil semua kolom yang ada saja
+            .eq("id", currentWallet)
+            .single();
 
-                if (!error && profile) {
-                    state.balance = Number(profile.tof) || 0;
-                    state.username = profile.username;
-                    document.getElementById('balance-display').innerText = state.balance.toLocaleString("id-ID") + " TOF";
-                } else {
-                    document.getElementById('balance-display').innerText = "Mode Pantau";
-                }
-
-                // 2. Ambil Semua Warga untuk Di-inject Jadi Rumah Tetangga secara Otomatis
-                const { data: allUsers, error2 } = await supabaseClient
-                    .from("profiles")
-                    .select("id, username, avatar_url, avatar, tof")
-                    .order("tof", { ascending: false });
-
-                if (!error2 && allUsers) {
-                    // Bersihkan node lama kecuali grid dasar
-                    document.querySelectorAll('.grid-item').forEach(el => el.remove());
-                    
-                    // Render rumah-rumah warga secara teratur berdasarkan hash ID agar lokasinya tetap
-                    allUsers.forEach((user, idx) => {
-                        // Pola penempatan matematika melingkar/spiral agar lokasi konisten tak berubah
-                        const angle = idx * 0.9;
-                        const radius = 2 + Math.floor(idx / 4) * 2;
-                        const gx = Math.round(Math.cos(angle) * radius);
-                        const gy = Math.round(Math.sin(angle) * radius);
-
-                        injectResidentHouse(gx, gy, user);
-                    });
-
-                    // Render ulang hiasan tambahan lokal
-                    for (let coord in state.claimedPlots) {
-                        const [gx, gy] = coord.split(',').map(Number);
-                        renderLandDecoration(gx, gy);
-                    }
-                    for (let coord in state.placedObjects) {
-                        const [gx, gy] = coord.split(',').map(Number);
-                        renderObjectSprite(gx, gy, state.placedObjects[coord].sprite, state.placedObjects[coord].type === 'tani');
-                    }
-                }
-            } catch(err) {
-                console.error("Koneksi Supabase Bermasalah:", err);
-            }
+        if (!error && profile) {
+            // Cek apakah kolomnya bernama 'tof', jika tidak ada coba fallback ke nama lain
+            state.balance = Number(profile.tof || profile.tof_balance || 0);
+            state.username = profile.username;
+            document.getElementById('balance-display').innerText = state.balance.toLocaleString("id-ID") + " TOF";
+        } else {
+            document.getElementById('balance-display').innerText = "Mode Pantau";
         }
+
+        // 2. Ambil Semua Warga (Gunakan select("*") agar tidak memicu error 400 jika kolom avatar/avatar_url tidak lengkap)
+        const { data: allUsers, error2 } = await supabaseClient
+            .from("profiles")
+            .select("*") 
+            .order("tof", { ascending: false }); // CATATAN: Pastikan nama kolom 'tof' di DB Anda sudah benar. Jika di DB namanya 'tof_balance', ganti menjadi "tof_balance"
+
+        if (!error2 && allUsers) {
+            // Bersihkan node lama
+            document.querySelectorAll('.grid-item').forEach(el => el.remove());
+            
+            allUsers.forEach((user, idx) => {
+                const angle = idx * 0.9;
+                const radius = 2 + Math.floor(idx / 4) * 2;
+                const gx = Math.round(Math.cos(angle) * radius);
+                const gy = Math.round(Math.sin(angle) * radius);
+
+                injectResidentHouse(gx, gy, user);
+            });
+
+            // Render ulang dekorasi lokal
+            for (let coord in state.claimedPlots) {
+                const [gx, gy] = coord.split(',').map(Number);
+                renderLandDecoration(gx, gy);
+            }
+            for (let coord in state.placedObjects) {
+                const [gx, gy] = coord.split(',').map(Number);
+                renderObjectSprite(gx, gy, state.placedObjects[coord].sprite, state.placedObjects[coord].type === 'tani');
+            }
+        } else if (error2) {
+            console.error("Detail error dari Supabase:", error2.message);
+        }
+    } catch(err) {
+        console.error("Koneksi Supabase Bermasalah:", err);
+    }
+}
 
         // --- UPDATE SALDO TOF LANGSUNG KE TABEL SUPABASE ---
         async function updateSupabaseBalance(newBalance, logContext, valueChange) {
