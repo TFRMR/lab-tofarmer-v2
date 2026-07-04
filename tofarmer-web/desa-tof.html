@@ -166,22 +166,38 @@
 
     // --- RENDER PETAK ALAM + CAKRAWALA & LANGIT MATEMATIKA (Anti-Lemot) ---
     const TerrainLayer = L.GridLayer.extend({
-        createTile: function (coords) {
-            const tile = L.DomUtil.create('canvas', 'leaflet-tile');
-            tile.width = 256;
-            tile.height = 256;
-            const ctx = tile.getContext('2d');
+
+    tileSize: 256,
+
+    updateWhenZooming: true,
+
+    keepBuffer: 2,
+
+    const tile = L.DomUtil.create('canvas', 'leaflet-tile');
+tile.width = 256;
+tile.height = 256;
+
+const ctx = tile.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+ctx.setTransform(1, 0, 0, 1, 0, 0);
 
             // Ambil titik awal ubin dalam pixel global
             const nwPoint = new L.Point(coords.x * 256, coords.y * 256);
 
-            for (let x = 0; x < 256; x += 32) {
-                for (let y = 0; y < 256; y += 32) {
-                    // Hitung posisi pixel absolut & terjemahkan ke koordinat dunia murni (X & Y)
-                    const p = new L.Point(nwPoint.x + x, nwPoint.y + y);
-                   const latlng = this._map.unproject(p, coords.z);
-                    const gX = latlng.lng;
-                    const gY = latlng.lat; // Sumbu Y (makin ke atas makin besar nilainya)
+           const step = Math.max(8, 32 / Math.pow(2, coords.z));
+
+const step = Math.max(8, 32 / Math.pow(2, coords.z));
+
+for (let x = 0; x < 256; x += step) {
+    for (let y = 0; y < 256; y += step) {
+
+        // Hitung posisi pixel absolut & terjemahkan ke koordinat dunia
+        const p = new L.Point(nwPoint.x + x, nwPoint.y + y);
+
+        const latlng = this._map.unproject(p, coords.z);
+
+        const gX = Math.round(latlng.lng);
+        const gY = Math.round(latlng.lat);
 
                     // 1. RUMUS CAKRAWALA: Membuat garis batas bukit siluet yang meliuk alami
                     // Angka 250 adalah tinggi dasar cakrawala. Bisa kamu naik-turunkan sesuai selera.
