@@ -3,45 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ToFarmer | Menoreh Klasik 2.5D</title>
+    <title>ToFarmer | Menoreh Klasik Premium</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; }
+        :root { 
+            --bg: #030704; --ui: rgba(12, 26, 18, 0.93); --accent: #4ade80; 
+            --glass: rgba(15, 32, 22, 0.85); --border: rgba(74, 222, 128, 0.2);
+        }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
         /* HEADER & NAV */
         header { padding: 10px 20px; display: flex; align-items: center; background: var(--ui); position: fixed; top: 0; width: 100%; z-index: 1000; border-bottom: 1px solid var(--accent); box-sizing: border-box; }
         .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; }
         .logo { width: 30px; }
-        nav { position: fixed; top: 52px; left: 0; width: 100%; display: flex; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.8); z-index: 999; box-sizing: border-box; }
+        nav { position: fixed; top: 52px; left: 0; width: 100%; display: flex; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.85); z-index: 999; box-sizing: border-box; }
         nav a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
 
-        /* VIEWPORT 2D ORDINAT (TANPA PERSPECTIVE 3D = SUPER RINGAN!) */
-        #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 1; background: #030704; }
+        /* VIEWPORT ENGINE FLAT ISOMETRIC (100% ENTENG) */
+        #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 1; }
         #viewport:active { cursor: grabbing; }
         #world { position: absolute; width: 0; height: 0; transform-style: flat; }
         
-        /* ELEMEN SEBELUMNYA CSS 3D SEKARANG MENJADI MATRIKS FLAT YANG DIRENDERING GPU NYAMAN */
+        /* NODE ISOMETRIC */
         .iso-node { position: absolute; width: 100px; height: 50px; transform: translate(-50%, -50%); will-change: transform; display: flex; align-items: center; justify-content: center; }
         
-        /* Tekstur Ubin Isometrik */
-        .tile { width: 98px; height: 48px; border: 1px solid rgba(74, 222, 128, 0.04); background: rgba(74, 222, 128, 0.01); transform: rotateX(0deg); box-sizing: border-box; }
-        
-        /* Aset Jalan dan Kebun Datar */
+        /* Ubin / Grid */
+        .tile { width: 98px; height: 48px; border: 1px solid rgba(74, 222, 128, 0.04); background: rgba(74, 222, 128, 0.01); box-sizing: border-box; }
         .road { background: rgba(30, 41, 59, 0.85); border-color: rgba(74, 222, 128, 0.2); }
         .farm { background: rgba(120, 53, 4, 0.35); border-style: dashed; border-color: rgba(245, 158, 11, 0.3); }
 
-        /* Sprite Objek Alam & Rumah */
-        .sprite { position: absolute; bottom: 25px; height: 60px; pointer-events: none; }
-        .clickable-zone { width: 60px; height: 60px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; }
+        /* Sprite Alam (Tegak) */
+        .sprite { position: absolute; bottom: 25px; height: 60px; pointer-events: none; transition: transform 0.2s ease; }
+        
+        /* WADAH INTERAKSI RUMAH WARGA */
+        .house-container { position: absolute; width: 80px; height: 120px; bottom: 25px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; pointer-events: auto; }
+        
+        /* BALON FOTO PROFIL (BILLBOARD FLAT PREMIUM) */
+        .avatar-balloon { display: flex; flex-direction: column; align-items: center; margin-bottom: 5px; transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); will-change: transform; }
+        .avatar-img { width: 34px; height: 34px; border-radius: 50%; border: 2.5px solid var(--accent); background: #1e293b; object-fit: cover; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        .avatar-balloon::after { content: ''; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid var(--accent); margin-top: -1px; }
+        .nametag { margin-top: 4px; background: rgba(5, 11, 7, 0.95); color: #fff; border: 1px solid var(--accent); font-size: 8px; padding: 1px 6px; border-radius: 4px; white-space: nowrap; font-weight: bold; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.4); }
 
-        /* BALON FOTO TEGAK ALAMI TANPA KALKULASI ROTASI BERAT */
-        .avatar-balloon { position: absolute; bottom: 65px; display: flex; flex-direction: column; align-items: center; z-index: 10; pointer-events: none; }
-        .avatar-img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent); background: #1e293b; object-fit: cover; }
-        .avatar-balloon::after { content: ''; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--accent); margin-top: -1px; }
-        .nametag { margin-top: 3px; background: rgba(5, 11, 7, 0.95); color: #fff; border: 1px solid var(--accent); font-size: 8px; padding: 1px 5px; border-radius: 4px; white-space: nowrap; font-weight: bold; }
+        /* EFEK MENYEMBUL SAAT TERKENA POINTER (HOVER EFFECT) */
+        .house-container:hover .avatar-balloon { transform: translateY(-12px) scale(1.1); }
+        .house-container:hover .sprite { transform: scale(1.08); filter: drop-shadow(0 8px 12px rgba(74,222,128,0.2)); }
 
-        /* UI KENDALI KAMERA */
+        /* POP-UP MODAL CUSTOM PRESTISIUS (THEME TOFARMER) */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(2, 4, 3, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .modal-box { background: var(--glass); border: 1px solid var(--accent); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(74, 222, 128, 0.1); width: 90%; max-width: 340px; padding: 20px; border-radius: 16px; text-align: center; transform: scale(0.85); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: #f8fafc; }
+        .modal-overlay.active .modal-box { transform: scale(1); }
+        
+        .modal-avatar { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--accent); margin: -50px auto 10px auto; display: block; background: #0f172a; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+        .modal-username { font-size: 18px; margin: 5px 0; color: #fff; font-weight: 700; letter-spacing: 0.5px; }
+        .modal-rank { font-size: 11px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: inline-block; padding: 2px 10px; border-radius: 20px; font-weight: 600; text-transform: uppercase; border: 1px solid rgba(74, 222, 128, 0.3); margin-bottom: 15px; }
+        
+        /* Grid Indikator Status Ekonomi Desa */
+        .modal-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; background: rgba(0,0,0,0.3); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        .stat-item { display: flex; flex-direction: column; align-items: center; }
+        .stat-label { font-size: 9px; color: #94a3b8; text-transform: uppercase; font-weight: 600; margin-bottom: 2px; }
+        .stat-value { font-size: 13px; font-weight: 700; color: #fff; }
+        .stat-value.tof { color: #fbbf24; } /* Warna Emas Khusus Token TOF */
+
+        .modal-bakat { font-size: 12px; color: #cbd5e1; font-style: italic; margin-top: 10px; line-height: 1.5; padding: 0 5px; }
+        .modal-close-btn { margin-top: 20px; width: 100%; background: linear-gradient(135deg, #22c55e, #15803d); border: none; color: white; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(34,197,94,0.3); transition: background 0.2s; }
+        .modal-close-btn:hover { background: linear-gradient(135deg, #4ade80, #166534); }
+
+        /* UI KAMERA */
         #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); }
         .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
         .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; text-align: center; min-width: 50px; box-sizing: border-box; }
@@ -66,6 +95,32 @@
     <div id="world"></div>
 </div>
 
+<div id="custom-modal" class="modal-overlay" onclick="closeModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+        <img id="m-avatar" class="modal-avatar" src="" />
+        <div id="m-username" class="modal-username">@username</div>
+        <div id="m-rank" class="modal-rank">Rank</div>
+        
+        <div class="modal-stats">
+            <div class="stat-item">
+                <span class="stat-label">Level</span>
+                <span id="m-level" class="stat-value">1</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">XP</span>
+                <span id="m-xp" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Aset TOF</span>
+                <span id="m-tof" class="stat-value tof">0</span>
+            </div>
+        </div>
+        
+        <div id="m-bakat" class="modal-bakat">Keahlian</div>
+        <button class="modal-close-btn" onclick="document.getElementById('custom-modal').classList.remove('active')">Kembali ke Desa</button>
+    </div>
+</div>
+
 <div id="auth-status">Memeriksa session...</div>
 
 <div class="controls">
@@ -80,58 +135,48 @@
     const world = document.getElementById('world');
     const viewport = document.getElementById('viewport');
 
-    // ENGINE KOORDINAT DAN DATA POSISI 2D
     let zoom = 1.0;
     let panX = 0, panY = 0;
-    let currentRotationIndex = 0; // 0=0°, 1=90°, 2=180°, 3=270°
+    let currentRotationIndex = 0; 
     
     let isDragging = false;
     let startX = 0, startY = 0;
     
     const GRID_SIZE = 20;
-    const TILE_WIDTH = 100;   // Lebar Isometrik
-    const TILE_HEIGHT = 50;   // Tinggi Isometrik
+    const TILE_WIDTH = 100;   
+    const TILE_HEIGHT = 50;   
     
     let rawTerrainData = [];
     let rawUserData = [];
     const reservedTiles = new Set();
 
     function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.4), 2.0); updateWorldTransform(); }
-    
-    function updateWorldTransform() {
-        world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`;
-    }
+    function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
 
-    // DRAG MAP NORMAL (SUPER RINGAN)
+    // ENGINE NAVIGASI KENDALI TOTAL (DRAG MAP)
     viewport.addEventListener('mousedown', (e) => {
-        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls')) return;
+        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('#custom-modal')) return;
         isDragging = true; startX = e.clientX - panX; startY = e.clientY - panY;
     });
     window.addEventListener('mousemove', (e) => { if (isDragging) { panX = e.clientX - startX; panY = e.clientY - startY; updateWorldTransform(); } });
     window.addEventListener('mouseup', () => isDragging = false);
 
     viewport.addEventListener('touchstart', (e) => {
-        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls')) return;
+        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('#custom-modal')) return;
         isDragging = true; startX = e.touches[0].clientX - panX; startY = e.touches[0].clientY - panY;
     });
     window.addEventListener('touchmove', (e) => { if (isDragging) { panX = e.touches[0].clientX - startX; panY = e.touches[0].clientY - startY; updateWorldTransform(); } });
     window.addEventListener('touchend', () => isDragging = false);
 
-    // RUMUS MATEMATIKA PROYEKSI ISOMETRIK KLASIK GAMING (2.5D FLAT)
+    // FORMULA KORDINAT ISOMETRIK 2.5D
     function getIsoCoords(x, y) {
         let rx = x, ry = y;
-        // Transformasi Rotasi Indeks (Memutar Urutan Array, Bukan memutar elemen fisik HTML)
         if (currentRotationIndex === 1) { rx = y; ry = GRID_SIZE - 1 - x; }
         else if (currentRotationIndex === 2) { rx = GRID_SIZE - 1 - x; ry = GRID_SIZE - 1 - y; }
         else if (currentRotationIndex === 3) { rx = GRID_SIZE - 1 - y; ry = x; }
-
-        // Konversi Kartesius ke Isometrik
-        const isoX = (rx - ry) * (TILE_WIDTH / 2);
-        const isoY = (rx + ry) * (TILE_HEIGHT / 2);
-        return { x: isoX, y: isoY };
+        return { x: (rx - ry) * (TILE_WIDTH / 2), y: (rx + ry) * (TILE_HEIGHT / 2) };
     }
 
-    // PENCARIAN SPIRAL KEBUN KOSONG
     function findEmptyTile() {
         let cx = 10, cy = 10; let x = 0, y = 0, dx = 0, dy = -1;
         for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
@@ -148,17 +193,16 @@
         return { x: Math.floor(Math.random()*GRID_SIZE), y: Math.floor(Math.random()*GRID_SIZE) };
     }
 
-    // DRAW ENGINE UTAMA
+    // DRAW ENGINE MAP DESA
     function renderVillage() {
-        world.innerHTML = ''; // Kosongkan layar secara instan
+        world.innerHTML = ''; 
         reservedTiles.clear();
 
-        // 1. Gambar Ubin Tanah, Jalan, dan Lahan Subur Berdasarkan Sudut Pandang Baru
+        // 1. Gambar Ubin Dasar Alam
         for (let x = 0; x < GRID_SIZE; x++) {
             for (let y = 0; y < GRID_SIZE; y++) {
                 const node = document.createElement('div');
                 node.className = 'iso-node';
-                
                 const coords = getIsoCoords(x, y);
                 node.style.left = coords.x + 'px';
                 node.style.top = coords.y + 'px';
@@ -166,7 +210,6 @@
                 const tile = document.createElement('div');
                 tile.className = 'tile';
 
-                // Cek isi data dari array memori lokal (Tanpa hit database ulang)
                 const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
                 if (ground) {
                     reservedTiles.add(`${x},${y}`);
@@ -177,7 +220,6 @@
                 node.appendChild(tile);
                 world.appendChild(node);
 
-                // Jika ubin berisi Gunung / Pohon, tumpuk Spritenya langsung di node ini
                 if (ground && (ground.type === 'mountain' || ground.type === 'tree')) {
                     const icon = document.createElement('span');
                     icon.className = 'sprite';
@@ -188,13 +230,12 @@
             }
         }
 
-        // 2. Plotting Rumah Warga Menggunakan Hasil Koordinat Rotasi Array
+        // 2. Plotting Rumah Warga + Efek Menyembul CSS
         rawUserData.forEach(user => {
-            if (!user.assignedCoord) user.assignedCoord = findEmptyTile(); // Kunci posisi rumah saat pertama kali daftar
+            if (!user.assignedCoord) user.assignedCoord = findEmptyTile();
             
             const node = document.createElement('div');
             node.className = 'iso-node';
-            
             const coords = getIsoCoords(user.assignedCoord.x, user.assignedCoord.y);
             node.style.left = coords.x + 'px';
             node.style.top = coords.y + 'px';
@@ -202,29 +243,44 @@
             const photoSrc = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
             const houseImage = 'https://img.icons8.com/plasticine/100/home.png';
 
-            node.innerHTML = `
-                <div class="clickable-zone">
-                    <img class="sprite" src="${houseImage}" style="height: 55px;" />
-                </div>
+            // Membuat Kontainer Komponen Rumah & Balon
+            const container = document.createElement('div');
+            container.className = 'house-container';
+            container.innerHTML = `
                 <div class="avatar-balloon">
                     <img class="avatar-img" src="${photoSrc}" />
                     <div class="nametag">@${user.username}</div>
                 </div>
+                <img class="sprite" src="${houseImage}" style="height: 55px;" />
             `;
 
-            node.querySelector('.clickable-zone').onclick = () => {
-                alert(`🏡 Rumah ToFarmer Klasik\n────────────────\nWarga: @${user.username}\nKeahlian: ${user.bakat_utama || 'Anggota Mandiri'}`);
-            };
+            // AKSI KLIK: Buka Pop-up Custom Premium dengan Data Lengkap dari Tabel
+            container.onclick = () => openProfileModal(user);
 
+            node.appendChild(container);
             world.appendChild(node);
         });
     }
 
-    // FITUR TOMBOL ROTASI INSTAN (TANPA AKSI BERAT 3D)
-    function rotateMap() {
-        currentRotationIndex = (currentRotationIndex + 1) % 4; // Bergeser sudut pandang 0 -> 90 -> 180 -> 270 derajat
-        renderVillage();
+    // INJEKSI DATA KE POP-UP MODAL CUSTOM
+    function openProfileModal(user) {
+        document.getElementById('m-avatar').src = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
+        document.getElementById('m-username').innerText = `@${user.username}`;
+        document.getElementById('m-rank').innerText = user.rank || 'Warga Mandiri';
+        document.getElementById('m-level').innerText = user.level || '1';
+        document.getElementById('m-xp').innerText = user.xp || '0';
+        
+        // Format Tampilan Aset Mata Uang Komunitas TOF
+        const tofAset = user.tof_balance !== undefined && user.tof_balance !== null ? user.tof_balance.toLocaleString('id-ID') : '0';
+        document.getElementById('m-tof').innerText = `${tofAset} TOF`;
+        
+        document.getElementById('m-bakat').innerText = user.bakat_utama ? `💡 Keahlian Utama: ${user.bakat_utama}` : '🌱 Siap berkontribusi menyumbang ilmu di ekosistem Menoreh.';
+        
+        document.getElementById('custom-modal').classList.add('active');
     }
+
+    function closeModal(e) { if(e.target === document.getElementById('custom-modal')) document.getElementById('custom-modal').classList.remove('active'); }
+    function rotateMap() { currentRotationIndex = (currentRotationIndex + 1) % 4; renderVillage(); }
 
     async function init() {
         const wallet = localStorage.getItem('tof_wallet');
@@ -233,11 +289,11 @@
         document.getElementById('auth-status').innerText = "Warga: @" + localStorage.getItem('tof_username');
         updateWorldTransform();
 
-        // Ambil data satu kali saja ke memori variabel RAM halaman
         const { data: terrain } = await db.from('village_map').select('*');
         rawTerrainData = terrain || [];
 
-        const { data: users, error } = await db.from('profiles').select('id, username, level, bakat_utama, avatar_url').order('created_at', { ascending: true });
+        // MENGAMBIL DATA LENGKAP: rank, tof_balance, dan xp dari tabel profiles
+        const { data: users, error } = await db.from('profiles').select('id, username, level, xp, saldo_tof, rank, power, avatar_url').order('created_at', { ascending: true });
         if (error) return console.error(error);
         rawUserData = users || [];
 
