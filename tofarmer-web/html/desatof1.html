@@ -7,77 +7,92 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; }
-        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; }
+        body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
-        #viewport { position: fixed; inset: 0; overflow: hidden; cursor: grab; }
-        #world { position: absolute; width: 10000px; height: 10000px; transform-origin: 0 0; }
-        
-        /* Objek di Map */
+        /* HEADER & NAV */
+        header { padding: 15px; display: flex; align-items: center; background: var(--ui); position: fixed; top: 0; width: 100%; z-index: 100; border-bottom: 1px solid var(--accent); }
+        .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; }
+        .logo { width: 30px; }
+        nav { position: fixed; top: 60px; left: 0; width: 100%; display: flex; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.5); z-index: 99; }
+        nav a { color: var(--accent); text-decoration: none; font-size: 14px; }
+
+        /* MAP ENGINE */
+        #viewport { position: fixed; inset: 0; cursor: grab; }
+        #world { position: absolute; width: 10000px; height: 10000px; transform-origin: 0 0; transition: transform 0.1s; }
         .obj { position: absolute; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 30px; }
         
-        /* HUD UI */
-        #ui { position: fixed; top: 20px; left: 20px; z-index: 10; pointer-events: none; }
-        .btn { pointer-events: auto; background: var(--ui); border: 1px solid var(--accent); color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; margin-bottom: 10px; }
+        /* CONTROLS */
+        .controls { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 50; }
+        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 15px; border-radius: 50px; cursor: pointer; }
     </style>
 </head>
 <body>
+
+<header>
+    <a class="brand" href="#">
+      <img class="logo" src="aset/logo.png" onerror="this.style.display='none'"/>
+      <h2>ToFarmer</h2>
+    </a>
+</header>
+
+<nav>
+    <a href="html/dashboard.html">Sumbang Ilmu</a>
+    <a href="html/fitur-ilmu.html">Fitur & Info</a>
+</nav>
 
 <div id="viewport">
     <div id="world"></div>
 </div>
 
-<div id="ui">
-    <div id="auth-status">Memeriksa login...</div>
-    <button class="btn" id="login-btn" style="display:none;" onclick="login()">Login dengan Google</button>
-    <button class="btn" id="logout-btn" style="display:none;" onclick="logout()">Logout</button>
+<div class="controls">
+    <button class="btn" onclick="zoom(0.2)">➕</button>
+    <button class="btn" onclick="zoom(-0.2)">➖</button>
 </div>
 
 <script>
-    // Inisialisasi client database
     const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
+    
+    let scale = 1, offsetX = 0, offsetY = 0;
     const world = document.getElementById('world');
+    const viewport = document.getElementById('viewport');
 
-    // 1. CEK LOGIN OTOMATIS (Sync dengan LocalStorage)
-    async function checkAuth() {
-        const wallet = localStorage.getItem('tof_wallet');
-        if (wallet) {
-            document.getElementById('auth-status').innerText = "Halo, " + localStorage.getItem('tof_username');
-            document.getElementById('logout-btn').style.display = 'block';
-            loadVillage(); // Panggil fungsi loadVillage yang sudah diperbaiki
-        } else {
-            document.getElementById('auth-status').innerText = "Belum login";
-            document.getElementById('login-btn').style.display = 'block';
-        }
+    // ZOOM LOGIC
+    function zoom(d) {
+        scale = Math.min(Math.max(scale + d, 0.5), 3);
+        updateTransform();
     }
 
-    // 2. LOAD MAP DARI SUPABASE (PERBAIKAN: Gunakan 'db' bukan 'supabase')
-    async function loadVillage() {
-        const { data: objects, error } = await db.from('village_map').select('*'); // <-- PERBAIKAN DI SINI
-        if (error) return console.error("Error load map:", error);
+    // PAN (GESER) LOGIC
+    let isDragging = false, startX, startY;
+    viewport.onmousedown = (e) => { isDragging = true; startX = e.clientX - offsetX; startY = e.clientY - offsetY; };
+    window.onmousemove = (e) => {
+        if (!isDragging) return;
+        offsetX = e.clientX - startX;
+        offsetY = e.clientY - startY;
+        updateTransform();
+    };
+    window.onmouseup = () => isDragging = false;
 
-        world.innerHTML = '';
+    function updateTransform() {
+        world.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    }
+
+    // LOAD MAP
+    async function loadVillage() {
+        const { data: objects } = await db.from('village_map').select('*');
+        if (!objects) return;
+        
         objects.forEach(obj => {
             const div = document.createElement('div');
             div.className = 'obj';
             div.style.left = (obj.x_pos * 80) + 'px';
             div.style.top = (obj.y_pos * 80) + 'px';
-            
-            const icons = { 'mountain': '⛰️', 'tree': '🌳', 'house': '🏡' };
-            div.innerHTML = icons[obj.type] || '❓';
-            
+            div.innerHTML = { 'mountain': '⛰️', 'tree': '🌳', 'house': '🏡' }[obj.type] || '❓';
             world.appendChild(div);
         });
     }
 
-    // Fungsi Login/Logout
-    async function login() { await supabase.auth.signInWithOAuth({ provider: 'google' }); }
-    async function logout() { 
-        localStorage.clear(); // Bersihkan session wallet
-        await supabase.auth.signOut(); 
-        location.reload(); 
-    }
-
-    checkAuth();
+    loadVillage();
 </script>
 </body>
 </html>
