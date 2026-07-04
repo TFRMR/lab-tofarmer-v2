@@ -3,12 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ToFarmer | Orbit Menoreh Solid</title>
+    <title>ToFarmer | Menoreh Klasik 2.5D</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { 
-            --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; 
-        }
+        :root { --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
         /* HEADER & NAV */
@@ -18,59 +16,35 @@
         nav { position: fixed; top: 52px; left: 0; width: 100%; display: flex; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.8); z-index: 999; box-sizing: border-box; }
         nav a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
 
-        /* VIEWPORT & ORBIT ENGINE */
-        #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; perspective: 1200px; z-index: 1; }
+        /* VIEWPORT 2D ORDINAT (TANPA PERSPECTIVE 3D = SUPER RINGAN!) */
+        #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 1; background: #030704; }
         #viewport:active { cursor: grabbing; }
+        #world { position: absolute; width: 0; height: 0; transform-style: flat; }
         
-        #camera-pan { position: absolute; transform-style: preserve-3d; }
-        #camera-rot { position: absolute; transform-style: preserve-3d; transform: rotateX(60deg) rotateZ(-45deg); }
-        #world { position: absolute; transform-style: preserve-3d; width: 2400px; height: 2400px; left: -1200px; top: -1200px; }
+        /* ELEMEN SEBELUMNYA CSS 3D SEKARANG MENJADI MATRIKS FLAT YANG DIRENDERING GPU NYAMAN */
+        .iso-node { position: absolute; width: 100px; height: 50px; transform: translate(-50%, -50%); will-change: transform; display: flex; align-items: center; justify-content: center; }
         
-        /* LANTAI DESA */
-        .tile { position: absolute; width: 80px; height: 80px; background: rgba(74, 222, 128, 0.02); border: 1px solid rgba(255,255,255,0.03); box-sizing: border-box; }
-        .obj { position: absolute; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 40px; transform: translateZ(5px); filter: drop-shadow(5px 15px 5px rgba(0,0,0,0.6)); pointer-events: none; }
+        /* Tekstur Ubin Isometrik */
+        .tile { width: 98px; height: 48px; border: 1px solid rgba(74, 222, 128, 0.04); background: rgba(74, 222, 128, 0.01); transform: rotateX(0deg); box-sizing: border-box; }
+        
+        /* Aset Jalan dan Kebun Datar */
+        .road { background: rgba(30, 41, 59, 0.85); border-color: rgba(74, 222, 128, 0.2); }
+        .farm { background: rgba(120, 53, 4, 0.35); border-style: dashed; border-color: rgba(245, 158, 11, 0.3); }
 
-        /* STRUKTUR RUMAH SOLID IMAGE 2.5D */
-        .house-node { position: absolute; width: 80px; height: 80px; transform-style: preserve-3d; cursor: pointer; }
-        
-        /* Gambar Rumah Datar Mengikuti Kemiringan Lantai Isometric (Rapi & Tidak Aneh) */
-        .house-sprite { 
-            position: absolute; width: 64px; height: 64px; left: 8px; top: 8px;
-            background-size: contain; background-repeat: no-repeat; background-position: center;
-            filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.4));
-            transition: transform 0.2s;
-        }
-        .house-node:hover .house-sprite { transform: scale(1.08); }
-        
-        /* BALLON FOTO PROFIL (BILLBOARD TEGAK LURUS MENGHADAP MATA USER) */
-        .avatar-billboard { 
-            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
-            transform-style: preserve-3d; display: flex; flex-direction: column; align-items: center; pointer-events: none; z-index: 10;
-        }
-        .billboard-content { display: flex; flex-direction: column; align-items: center; transform-style: preserve-3d; }
-        
-        /* Efek Balon Melayang */
-        .avatar-img { 
-            width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid var(--accent); 
-            background: #1e293b; object-fit: cover; box-shadow: 0 6px 12px rgba(0,0,0,0.6);
-        }
-        /* Ekor Balon kecil di bawah foto */
-        .billboard-content::after {
-            content: ''; display: block; width: 0; height: 0;
-            border-left: 5px solid transparent; border-right: 5px solid transparent;
-            border-top: 6px solid var(--accent); margin-top: -1px;
-        }
-        .nametag { 
-            margin-top: 4px; background: rgba(5, 11, 7, 0.95); color: #fff; border: 1px solid var(--accent); 
-            font-size: 8px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; font-weight: bold; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
-        }
+        /* Sprite Objek Alam & Rumah */
+        .sprite { position: absolute; bottom: 25px; height: 60px; pointer-events: none; }
+        .clickable-zone { width: 60px; height: 60px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; }
 
-        /* UI CONTROLS */
+        /* BALON FOTO TEGAK ALAMI TANPA KALKULASI ROTASI BERAT */
+        .avatar-balloon { position: absolute; bottom: 65px; display: flex; flex-direction: column; align-items: center; z-index: 10; pointer-events: none; }
+        .avatar-img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent); background: #1e293b; object-fit: cover; }
+        .avatar-balloon::after { content: ''; width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--accent); margin-top: -1px; }
+        .nametag { margin-top: 3px; background: rgba(5, 11, 7, 0.95); color: #fff; border: 1px solid var(--accent); font-size: 8px; padding: 1px 5px; border-radius: 4px; white-space: nowrap; font-weight: bold; }
+
+        /* UI KENDALI KAMERA */
         #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); }
         .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
-        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 15px; border-radius: 50%; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; width: 50px; height: 50px; box-sizing: border-box; }
-        .instructions { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.7); padding: 6px 12px; border-radius: 20px; font-size: 10px; color: #a3a3a3; pointer-events: none; text-align: center; z-index: 1000; }
+        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; text-align: center; min-width: 50px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -89,122 +63,75 @@
 </nav>
 
 <div id="viewport">
-    <div id="camera-pan">
-        <div id="camera-rot">
-            <div id="world"></div>
-        </div>
-    </div>
+    <div id="world"></div>
 </div>
 
-<div class="instructions">Geser 1 Jari = Pindah Map | Geser 2 Jari / Klik Kanan = Putar Map 🔄</div>
 <div id="auth-status">Memeriksa session...</div>
 
 <div class="controls">
-    <button class="btn" onclick="adjustZoom(0.15)">➕</button>
-    <button class="btn" onclick="adjustZoom(-0.15)">➖</button>
+    <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
+    <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
+    <button class="btn" onclick="rotateMap()">🔄 Putar Sisi</button>
 </div>
 
 <script>
     const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
     
-    const cameraPan = document.getElementById('camera-pan');
-    const cameraRot = document.getElementById('camera-rot');
     const world = document.getElementById('world');
     const viewport = document.getElementById('viewport');
 
+    // ENGINE KOORDINAT DAN DATA POSISI 2D
     let zoom = 1.0;
     let panX = 0, panY = 0;
-    let rotX = 60, rotZ = -45; 
+    let currentRotationIndex = 0; // 0=0°, 1=90°, 2=180°, 3=270°
     
     let isDragging = false;
-    let dragMode = 'pan'; 
     let startX = 0, startY = 0;
-
-    function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.5); updateCamera(); }
     
-    function updateCamera() {
-        cameraPan.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`;
-        cameraRot.style.transform = `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`;
-        
-        // MATEMATIKA ANTI-MIRING: Mengunci balon foto agar selalu lurus menghadap layar monitor
-        document.querySelectorAll('.billboard-content').forEach(el => {
-            el.style.transform = `rotateZ(${-rotZ}deg) rotateX(${-rotX}deg)`;
-        });
+    const GRID_SIZE = 20;
+    const TILE_WIDTH = 100;   // Lebar Isometrik
+    const TILE_HEIGHT = 50;   // Tinggi Isometrik
+    
+    let rawTerrainData = [];
+    let rawUserData = [];
+    const reservedTiles = new Set();
+
+    function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.4), 2.0); updateWorldTransform(); }
+    
+    function updateWorldTransform() {
+        world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`;
     }
 
-    viewport.addEventListener('contextmenu', e => e.preventDefault());
-
+    // DRAG MAP NORMAL (SUPER RINGAN)
     viewport.addEventListener('mousedown', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls')) return;
-        isDragging = true;
-        dragMode = (e.button === 2 || e.ctrlKey) ? 'orbit' : 'pan';
-        startX = e.clientX; startY = e.clientY;
+        isDragging = true; startX = e.clientX - panX; startY = e.clientY - panY;
     });
-
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        let dx = e.clientX - startX; let dy = e.clientY - startY;
-        startX = e.clientX; startY = e.clientY;
-
-        if (dragMode === 'pan') {
-            panX += dx; panY += dy;
-        } else {
-            rotZ += dx * 0.4;
-            rotX = Math.min(Math.max(rotX - dy * 0.4, 30), 80);
-        }
-        updateCamera();
-    });
-
+    window.addEventListener('mousemove', (e) => { if (isDragging) { panX = e.clientX - startX; panY = e.clientY - startY; updateWorldTransform(); } });
     window.addEventListener('mouseup', () => isDragging = false);
 
-    // KENDALI SENTUH LAYAR HP
     viewport.addEventListener('touchstart', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls')) return;
-        isDragging = true;
-        if (e.touches.length === 1) {
-            dragMode = 'pan';
-            startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-        } else if (e.touches.length === 2) {
-            dragMode = 'orbit';
-            startX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            startY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        }
+        isDragging = true; startX = e.touches[0].clientX - panX; startY = e.touches[0].clientY - panY;
     });
-
-    window.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        let currentX = e.touches[0].clientX; let currentY = e.touches[0].clientY;
-        if (e.touches.length === 2) {
-            currentX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        }
-        let dx = currentX - startX; let dy = currentY - startY;
-        startX = currentX; startY = currentY;
-
-        if (dragMode === 'pan') {
-            panX += dx; panY += dy;
-        } else {
-            rotZ += dx * 0.6;
-        }
-        updateCamera();
-    });
+    window.addEventListener('touchmove', (e) => { if (isDragging) { panX = e.touches[0].clientX - startX; panY = e.touches[0].clientY - startY; updateWorldTransform(); } });
     window.addEventListener('touchend', () => isDragging = false);
 
-    const GRID_SIZE = 20;
-    const reservedTiles = new Set(); 
+    // RUMUS MATEMATIKA PROYEKSI ISOMETRIK KLASIK GAMING (2.5D FLAT)
+    function getIsoCoords(x, y) {
+        let rx = x, ry = y;
+        // Transformasi Rotasi Indeks (Memutar Urutan Array, Bukan memutar elemen fisik HTML)
+        if (currentRotationIndex === 1) { rx = y; ry = GRID_SIZE - 1 - x; }
+        else if (currentRotationIndex === 2) { rx = GRID_SIZE - 1 - x; ry = GRID_SIZE - 1 - y; }
+        else if (currentRotationIndex === 3) { rx = GRID_SIZE - 1 - y; ry = x; }
 
-    function createBaseGrid() {
-        for (let x = 0; x < GRID_SIZE; x++) {
-            for (let y = 0; y < GRID_SIZE; y++) {
-                const tile = document.createElement('div');
-                tile.className = 'tile';
-                tile.style.left = (x * 80) + 'px';
-                tile.style.top = (y * 80) + 'px';
-                world.appendChild(tile);
-            }
-        }
+        // Konversi Kartesius ke Isometrik
+        const isoX = (rx - ry) * (TILE_WIDTH / 2);
+        const isoY = (rx + ry) * (TILE_HEIGHT / 2);
+        return { x: isoX, y: isoY };
     }
 
+    // PENCARIAN SPIRAL KEBUN KOSONG
     function findEmptyTile() {
         let cx = 10, cy = 10; let x = 0, y = 0, dx = 0, dy = -1;
         for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
@@ -221,73 +148,100 @@
         return { x: Math.floor(Math.random()*GRID_SIZE), y: Math.floor(Math.random()*GRID_SIZE) };
     }
 
+    // DRAW ENGINE UTAMA
+    function renderVillage() {
+        world.innerHTML = ''; // Kosongkan layar secara instan
+        reservedTiles.clear();
+
+        // 1. Gambar Ubin Tanah, Jalan, dan Lahan Subur Berdasarkan Sudut Pandang Baru
+        for (let x = 0; x < GRID_SIZE; x++) {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                const node = document.createElement('div');
+                node.className = 'iso-node';
+                
+                const coords = getIsoCoords(x, y);
+                node.style.left = coords.x + 'px';
+                node.style.top = coords.y + 'px';
+
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+
+                // Cek isi data dari array memori lokal (Tanpa hit database ulang)
+                const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+                if (ground) {
+                    reservedTiles.add(`${x},${y}`);
+                    if (ground.type === 'paved_road') tile.classList.add('road');
+                    if (ground.type === 'soil_farm') tile.classList.add('farm');
+                }
+
+                node.appendChild(tile);
+                world.appendChild(node);
+
+                // Jika ubin berisi Gunung / Pohon, tumpuk Spritenya langsung di node ini
+                if (ground && (ground.type === 'mountain' || ground.type === 'tree')) {
+                    const icon = document.createElement('span');
+                    icon.className = 'sprite';
+                    icon.style.fontSize = '30px';
+                    icon.innerText = ground.type === 'mountain' ? '⛰️' : '🌳';
+                    node.appendChild(icon);
+                }
+            }
+        }
+
+        // 2. Plotting Rumah Warga Menggunakan Hasil Koordinat Rotasi Array
+        rawUserData.forEach(user => {
+            if (!user.assignedCoord) user.assignedCoord = findEmptyTile(); // Kunci posisi rumah saat pertama kali daftar
+            
+            const node = document.createElement('div');
+            node.className = 'iso-node';
+            
+            const coords = getIsoCoords(user.assignedCoord.x, user.assignedCoord.y);
+            node.style.left = coords.x + 'px';
+            node.style.top = coords.y + 'px';
+
+            const photoSrc = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
+            const houseImage = 'https://img.icons8.com/plasticine/100/home.png';
+
+            node.innerHTML = `
+                <div class="clickable-zone">
+                    <img class="sprite" src="${houseImage}" style="height: 55px;" />
+                </div>
+                <div class="avatar-balloon">
+                    <img class="avatar-img" src="${photoSrc}" />
+                    <div class="nametag">@${user.username}</div>
+                </div>
+            `;
+
+            node.querySelector('.clickable-zone').onclick = () => {
+                alert(`🏡 Rumah ToFarmer Klasik\n────────────────\nWarga: @${user.username}\nKeahlian: ${user.bakat_utama || 'Anggota Mandiri'}`);
+            };
+
+            world.appendChild(node);
+        });
+    }
+
+    // FITUR TOMBOL ROTASI INSTAN (TANPA AKSI BERAT 3D)
+    function rotateMap() {
+        currentRotationIndex = (currentRotationIndex + 1) % 4; // Bergeser sudut pandang 0 -> 90 -> 180 -> 270 derajat
+        renderVillage();
+    }
+
     async function init() {
         const wallet = localStorage.getItem('tof_wallet');
         if (!wallet) { window.location.href = 'html/login.html'; return; }
         
         document.getElementById('auth-status').innerText = "Warga: @" + localStorage.getItem('tof_username');
-        createBaseGrid();
+        updateWorldTransform();
 
-        // 1. Render Elemen Lapisan Tanah Terstruktur (village_map)
+        // Ambil data satu kali saja ke memori variabel RAM halaman
         const { data: terrain } = await db.from('village_map').select('*');
-        terrain?.forEach(obj => {
-            reservedTiles.add(`${obj.x_pos},${obj.y_pos}`);
-            const tileIndex = (obj.x_pos * GRID_SIZE) + obj.y_pos;
-            const currentTile = world.getElementsByClassName('tile')[tileIndex];
+        rawTerrainData = terrain || [];
 
-            if (currentTile) {
-                if (obj.type === 'paved_road') {
-                    currentTile.style.background = 'rgba(30, 41, 59, 0.9)';
-                    currentTile.style.border = '1px solid rgba(74, 222, 128, 0.15)';
-                } else if (obj.type === 'soil_farm') {
-                    currentTile.style.background = 'rgba(120, 53, 4, 0.4)';
-                    currentTile.style.border = '1px dashed rgba(245, 158, 11, 0.3)';
-                } else {
-                    const div = document.createElement('div');
-                    div.className = 'obj';
-                    div.style.left = (obj.x_pos * 80) + 'px';
-                    div.style.top = (obj.y_pos * 80) + 'px';
-                    div.innerHTML = obj.type === 'mountain' ? '⛰️' : '🌳';
-                    world.appendChild(div);
-                }
-            }
-        });
-
-        // 2. Render Rumah Gambar 1 File + Balon Profil Tegak (profiles)
         const { data: users, error } = await db.from('profiles').select('id, username, level, bakat_utama, avatar_url').order('created_at', { ascending: true });
         if (error) return console.error(error);
+        rawUserData = users || [];
 
-        users?.forEach(user => {
-            const coord = findEmptyTile();
-            const container = document.createElement('div');
-            container.className = 'house-node';
-            container.style.left = (coord.x * 80) + 'px';
-            container.style.top = (coord.y * 80) + 'px';
-
-            const photoSrc = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
-            
-            // LINK GAMBAR RUMAH ISOMETRIK REALISTIS (Bisa diganti ke url aset lokal Anda: 'aset/rumah.png')
-            const houseImage = 'https://img.icons8.com/plasticine/100/home.png';
-
-            container.innerHTML = `
-                <div class="house-sprite" style="background-image: url('${houseImage}');"></div>
-                
-                <div class="avatar-billboard">
-                    <div class="billboard-content">
-                        <img class="avatar-img" src="${photoSrc}" />
-                        <div class="nametag">@${user.username}</div>
-                    </div>
-                </div>
-            `;
-
-            container.onclick = () => {
-                alert(`🏡 Profil Lahan Warga\n────────────────\nUsername: @${user.username}\nBakat Utama: ${user.bakat_utama || 'Anggota Mandiri'}\nLevel Kelas: ${user.level || 1}`);
-            };
-
-            world.appendChild(container);
-        });
-
-        updateCamera(); 
+        renderVillage();
     }
 
     function logout() { localStorage.clear(); location.reload(); }
