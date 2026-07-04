@@ -39,8 +39,8 @@
         .house-container { position: absolute; width: 100px; height: 140px; bottom: 10px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; pointer-events: auto; }
         
         /* MODE EDIT ACTIVE STYLE */
-        .edit-mode .house-container { cursor: move; filter: drop-shadow(0 0 8px var(--accent)); }
-        .edit-mode .house-container:active { transform: scale(1.1); z-index: 9999 !important; }
+        .edit-mode .house-container { cursor: move; filter: drop-shadow(0 0 12px var(--accent)); }
+        .edit-mode .house-container:active { transform: scale(1.15); z-index: 9999 !important; }
 
         /* BALON FOTO PROFIL */
         .avatar-balloon { display: flex; flex-direction: column; align-items: center; margin-bottom: -15px; z-index: 5; transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275); will-change: transform; pointer-events: none; }
@@ -51,7 +51,7 @@
         .house-container:hover .avatar-balloon { transform: translateY(-18px) scale(1.15); z-index: 6; }
         .house-container:hover .sprite { transform: scale(1.08); filter: drop-shadow(0 10px 15px rgba(74,222,128,0.25)); }
 
-        /* POP-UP MODAL CUSTOM PRESTISIUS */
+        /* POP-UP MODAL PROFIL WARGA */
         .modal-overlay { position: fixed; inset: 0; background: rgba(2, 4, 3, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         
@@ -71,12 +71,26 @@
         .modal-bakat { font-size: 12px; color: #cbd5e1; font-style: italic; margin-top: 10px; line-height: 1.5; padding: 0 5px; }
         .modal-close-btn { margin-top: 20px; width: 100%; background: linear-gradient(135deg, #22c55e, #15803d); border: none; color: white; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; box-shadow: 0 4px 10px rgba(34,197,94,0.3); transition: background 0.2s; }
 
-        /* UI CONTROLS */
-        #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); }
-        .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; }
-        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; text-align: center; min-width: 100px; box-sizing: border-box; }
-        .btn-edit { background: #1e3a1f; border-color: #22c55e; color: #4ade80; }
-        .btn-lock { background: #3b0712; border-color: #ef4444; color: #fca5a5; display: none; }
+        /* POP-UP HUD EDIT MODE PREMIUM (CANTIK & FUNGSIONAL) */
+        .edit-hud-banner { position: fixed; bottom: -150px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; background: rgba(10, 25, 15, 0.9); border: 1.5px solid var(--accent); backdrop-filter: blur(10px); padding: 15px 20px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.8), inset 0 0 15px rgba(74,222,128,0.15); z-index: 1500; display: flex; flex-direction: column; gap: 12px; transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2) ; }
+        .edit-hud-banner.active { bottom: 25px; }
+        .hud-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+        .hud-desc { font-size: 11px; color: #cbd5e1; line-height: 1.4; margin: 0; }
+        .hud-action-row { display: flex; gap: 10px; width: 100%; }
+        .hud-btn { flex: 1; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center; border: none; transition: transform 0.1s; }
+        .hud-btn:active { transform: scale(0.96); }
+        .hud-btn-save { background: linear-gradient(135deg, #22c55e, #166534); color: white; box-shadow: 0 4px 10px rgba(34,197,94,0.25); }
+        .hud-btn-cancel { background: rgba(255, 255, 255, 0.08); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); }
+
+        /* UI CONTROLS NAVIGASI KAMERA */
+        #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); transition: opacity 0.3s; }
+        .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; transition: opacity 0.3s; }
+        
+        /* Menyembunyikan kontrol kamera standard saat merapikan rumah agar layar bersih */
+        .edit-active-ui #auth-status, .edit-active-ui .controls { opacity: 0; pointer-events: none; }
+
+        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; text-align: center; min-width: 110px; box-sizing: border-box; }
+        .btn-edit { background: linear-gradient(135deg, #1e3a1f, #051a08); border-color: #22c55e; color: #4ade80; }
     </style>
 </head>
 <body>
@@ -98,7 +112,7 @@
     <div id="world" class="locked-mode"></div>
 </div>
 
-<!-- POP-UP CUSTOM MODAL -->
+<!-- POP-UP CUSTOM PROFIL MODAL -->
 <div id="custom-modal" class="modal-overlay" onclick="closeModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <img id="m-avatar" class="modal-avatar" src="" />
@@ -125,11 +139,20 @@
     </div>
 </div>
 
+<!-- POP-UP HUD EDIT TATA RUMAH BARU YANG PREMIUM -->
+<div id="edit-hud" class="edit-hud-banner">
+    <div class="hud-title">🛠️ Mode Arsitek Desa</div>
+    <p class="hud-desc">Sentuh dan geser (*drag & drop*) pada ikon rumah warga untuk mengatur tata letak desa Menoreh secara bebas & artistik.</p>
+    <div class="hud-action-row">
+        <button class="hud-btn hud-btn-cancel" onclick="cancelEditMode()">Batal</button>
+        <button class="hud-btn hud-btn-save" onclick="saveAndLockMode()">🔒 Kunci Posisi</button>
+    </div>
+</div>
+
 <div id="auth-status">Memeriksa session...</div>
 
 <div class="controls">
     <button id="btn-toggle-edit" class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
-    <button id="btn-toggle-lock" class="btn btn-lock" onclick="saveAndLockMode()">🔒 Kunci Posisi</button>
     <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
     <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
     <button class="btn" onclick="rotateMap()">🔄 Putar Sisi</button>
@@ -149,7 +172,6 @@
     let isDraggingView = false;
     let startX = 0, startY = 0;
     
-    // EKSPANSI LUAS PETA: Diperluas menjadi 30x30 agar ruang tata letak sangat luas
     const GRID_SIZE = 30;
     const TILE_WIDTH = 100;   
     const TILE_HEIGHT = 50;   
@@ -157,27 +179,27 @@
     let rawTerrainData = [];
     let rawUserData = [];
     const reservedTiles = new Set();
-    let housePositions = {}; // Menyimpan data posisi kustom koordinat { userId: {x, y} }
+    let housePositions = {}; 
+    let backupPositions = {}; // Untuk fitur 'Batal' kembali ke susunan semula
 
     function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.0); updateWorldTransform(); }
     function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
 
-    // DETEKSI DRAG VIEWPORT (Hanya berjalan jika tidak sedang menggeser rumah)
+    // NAVIGATION SYSTEM
     viewport.addEventListener('mousedown', (e) => {
-        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('#custom-modal') || e.target.closest('.house-container')) return;
+        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('#custom-modal') || e.target.closest('.house-container') || e.target.closest('#edit-hud')) return;
         isDraggingView = true; startX = e.clientX - panX; startY = e.clientY - panY;
     });
     window.addEventListener('mousemove', (e) => { if (isDraggingView) { panX = e.clientX - startX; panY = e.clientY - startY; updateWorldTransform(); } });
     window.addEventListener('mouseup', () => isDraggingView = false);
 
     viewport.addEventListener('touchstart', (e) => {
-        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('#custom-modal') || e.target.closest('.house-container')) return;
+        if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('#custom-modal') || e.target.closest('.house-container') || e.target.closest('#edit-hud')) return;
         isDraggingView = true; startX = e.touches[0].clientX - panX; startY = e.touches[0].clientY - panY;
     });
     window.addEventListener('touchmove', (e) => { if (isDraggingView) { panX = e.touches[0].clientX - startX; panY = e.touches[0].clientY - startY; updateWorldTransform(); } });
     window.addEventListener('touchend', () => isDraggingView = false);
 
-    // FORMULA KORDINAT ISOMETRIK
     function getIsoCoords(x, y) {
         let rx = x, ry = y;
         if (currentRotationIndex === 1) { rx = y; ry = GRID_SIZE - 1 - x; }
@@ -186,7 +208,6 @@
         return { x: (rx - ry) * (TILE_WIDTH / 2), y: (rx + ry) * (TILE_HEIGHT / 2) };
     }
 
-    // GENERATOR RANDOM YANG SANGAT MERENGGANG DI MAP LUAS
     function findInitialEmptyTile() {
         for (let mencoba = 0; mencoba < 1000; mencoba++) {
             let tx = Math.floor(Math.random() * (GRID_SIZE - 6)) + 3;
@@ -207,27 +228,36 @@
         return { x: Math.floor(Math.random()*(GRID_SIZE-2))+1, y: Math.floor(Math.random()*(GRID_SIZE-2))+1 };
     }
 
-    // AKTIFKAN MODE TATA LETAK RUMAH
+    // TRIGGER POP-UP HUD EDIT PREMIUM
     function enableEditMode() {
         isEditMode = true;
+        backupPositions = JSON.parse(JSON.stringify(housePositions)); // Simpan cadangan posisi jika batal
         world.className = "edit-mode";
-        document.getElementById('btn-toggle-edit').style.display = 'none';
-        document.getElementById('btn-toggle-lock').style.display = 'block';
-        alert("🛠️ Mode Tata Rumah Aktif!\nSilakan tarik (drag & drop) rumah ke area ubin mana saja yang kosong, lalu klik 'Kunci Posisi' jika sudah selesai.");
+        document.body.classList.add('edit-active-ui');
+        document.getElementById('edit-hud').classList.add('active');
     }
 
-    // LOCK DAN SIMPAN STRUKTUR POSISI BARU KE LOCALSTORAGE
+    // SAVE & UNLOCK POSISI BARU
     function saveAndLockMode() {
         isEditMode = false;
         world.className = "locked-mode";
-        document.getElementById('btn-toggle-edit').style.display = 'block';
-        document.getElementById('btn-toggle-lock').style.display = 'none';
+        document.body.classList.remove('edit-active-ui');
+        document.getElementById('edit-hud').classList.remove('active');
         localStorage.setItem('tofarmer_custom_layout_v3', JSON.stringify(housePositions));
         renderVillage();
-        alert("🔒 Posisi tata letak rumah desa berhasil dikunci dan disimpan!");
     }
 
-    // RENDER UTAMA EKOSISTEM DESA
+    // BATALKAN PENGATURAN TATA LETAK
+    function cancelEditMode() {
+        isEditMode = false;
+        world.className = "locked-mode";
+        document.body.classList.remove('edit-active-ui');
+        document.getElementById('edit-hud').classList.remove('active');
+        housePositions = JSON.parse(JSON.stringify(backupPositions)); // Kembalikan posisi awal
+        renderVillage();
+    }
+
+    // RENDER UTAMA
     function renderVillage() {
         world.innerHTML = ''; 
         reservedTiles.clear();
@@ -270,7 +300,6 @@
 
         // 2. Plotting Rumah Penduduk
         rawUserData.forEach(user => {
-            // Gunakan posisi simpanan lokal jika ada, jika tidak pakai generator otomatis
             if (housePositions[user.id]) {
                 user.assignedCoord = housePositions[user.id];
                 reservedTiles.add(`${user.assignedCoord.x},${user.assignedCoord.y}`);
@@ -303,7 +332,6 @@
                 </div>
             `;
 
-            // EVENT HANDLER DRAG & DROP UNTUK MENATA RUMAH SECARA MANDIRI
             let dragActive = false;
             
             const startDrag = (e) => {
@@ -318,23 +346,20 @@
                 let clientY = e.clientY || (e.touches && e.touches[0].clientY);
                 if (!clientX || !clientY) return;
 
-                // Cari elemen ubin lantai terdekat di bawah kursor saat ditarik
-                node.style.display = 'none'; // Sembunyikan objek sementara untuk deteksi elemen di bawahnya
+                node.style.display = 'none'; 
                 let targetEl = document.elementFromPoint(clientX, clientY);
-                node.style.display = 'flex'; // Tampilkan kembali
+                node.style.display = 'flex'; 
 
                 let targetNode = targetEl ? targetEl.closest('.iso-node[data-tile-x]') : null;
                 if (targetNode) {
                     let tx = parseInt(targetNode.getAttribute('data-tile-x'));
                     let ty = parseInt(targetNode.getAttribute('data-tile-y'));
                     
-                    // Pindahkan koordinat visual secara realtime saat ditarik
                     let liveCoords = getIsoCoords(tx, ty);
                     node.style.left = liveCoords.x + 'px';
                     node.style.top = liveCoords.y + 'px';
                     node.style.zIndex = tx + ty + 100;
                     
-                    // Update data memori posisi koordinat baru
                     housePositions[user.id] = { x: tx, y: ty };
                 }
             };
@@ -389,7 +414,6 @@
         
         document.getElementById('auth-status').innerText = "Warga: @" + localStorage.getItem('tof_username');
 
-        // Load data layout kostum prapilihan pengguna dari memori lokal jika ada
         const savedLayout = localStorage.getItem('tofarmer_custom_layout_v3');
         if (savedLayout) housePositions = JSON.parse(savedLayout);
 
