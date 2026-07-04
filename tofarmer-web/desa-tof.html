@@ -418,7 +418,7 @@
         return Math.sin(x * 0.01) * Math.cos(y * 0.01) + Math.sin(x * 0.028 + y * 0.02) * 0.22;
     }
 
-    const TerrainLayer = L.GridLayer.extend({
+   const TerrainLayer = L.GridLayer.extend({
         tileSize: 256,
         updateWhenZooming: true,
         keepBuffer: 2,
@@ -429,11 +429,10 @@
             tile.height = 256;
             const ctx = tile.getContext('2d');
 
+            // Fallback aman untuk instance map Leaflet
+            const currentMap = this._map || map;
             const nwPoint = new L.Point(coords.x * 256, coords.y * 256);
 
-            // Sampel di resolusi rendah lalu digambar membesar dengan smoothing —
-            // inilah kunci supaya transisi warna menyatu mulus, bukan berkotak
-            // maupun bergaris (dulu ini akar masalah "garis vertikal").
             const SAMPLE = 40;
             const step = 256 / SAMPLE;
 
@@ -446,31 +445,49 @@
             for (let sy = 0; sy < SAMPLE; sy++) {
                 for (let sx = 0; sx < SAMPLE; sx++) {
                     const p = new L.Point(nwPoint.x + sx * step, nwPoint.y + sy * step);
-                    const latlng = this._map.unproject(p, coords.z);
+                    const latlng = currentMap.unproject(p, coords.z);
 
                     const gX = latlng.lng;
-                    const gH = latlng.lat; // "lat" di CRS.Simple = tinggi dunia (naik = atas layar)
+                    const gH = latlng.lat; 
 
-                    // Garis cakrawala meliuk alami, sama seperti riak bukit aslinya
+                    // Garis cakrawala meliuk alami bukit Menoreh
                     const cakrawala = HORIZON_BASE + Math.sin(gX / 120) * 40 + Math.cos(gX / 250) * 60;
 
                     let r, g, b;
                     if (gH > cakrawala) {
+                        // --- ZONA LANGIT TWILIGHT ---
                         const t = Math.min(1, Math.max(0, (gH - cakrawala) / SKY_RANGE));
                         [r, g, b] = warnaBertingkat(SKY_STOPS, t);
                     } else {
+                        // --- ZONA DARATAN MENOREH (ANTI-MELAYANG) ---
                         const d = Math.min(1, Math.max(0, (cakrawala - gH) / LAND_RANGE));
-                        let [lr, lg, lb] = warnaBertingkat(LAND_STOPS, d);
+                        
+                        // Menghidupkan warna tanah: Hijau zamrud senja -> lumut -> lembah bernyawa (bukan hitam hampa)
+                        let [lr, lg, lb] = warnaBertingkat([
+                            { t: 0,    c: [76, 53, 36] },   // Semburat tanah hangat dekat cakrawala terpapar senja
+                            { t: 0.15, c: [25, 65, 42] },   // Siluet bukit hijau Menoreh tebal
+                            { t: 0.5,  c: [16, 48, 30] },   // Dataran perkebunan kopi
+                            { t: 1.0,  c: [10, 35, 22] }    // Lapisan terdalam (tetap hijau gelap solid, anti-tembus pandang)
+                        ], d);
 
-                        // Sentuhan noise organik supaya tanah terasa hidup (ladang/kebun), diredam agar tetap halus
-                        const n = (noiseAlam(gX, gH) + 1.2) / 2.4; // 0..1
-                        const tint = warnaBertingkat(
-                            [{ t: 0, c: [10, 22, 14] }, { t: 0.5, c: [14, 34, 20] }, { t: 1, c: [24, 20, 10] }],
-                            n
-                        );
-                        r = Math.round(lr * 0.65 + tint[0] * 0.35);
-                        g = Math.round(lg * 0.65 + tint[1] * 0.35);
-                        b = Math.round(lb * 0.65 + tint[2] * 0.35);
+                        // EFEK MATEMATIKA TERASERING (Sawah Berundak Kulon Progo)
+                        // Membuat garis tingkat kontur meliuk alami mengikuti koordinat dunia
+                        const elevasiSawah = gH + Math.sin(gX * 0.02) * 15;
+                        const sisaTingkat = Math.abs(elevasiSawah % 40); 
+                        
+                        let efekKontur = 1.0;
+                        if (sisaTingkat < 2.5) {
+                            efekKontur = 1.25; // Garis pematang sawah (galengan) memantulkan sisa cahaya
+                        } else if (sisaTingkat > 37.5) {
+                            efekKontur = 0.85; // Bayangan undakan tebing terasering
+                        }
+
+                        // Campurkan dengan riak tekstur ladang organik (noise) supaya permukaan tidak flat murni
+                        const n = (noiseAlam(gX, gH) + 1.2) / 2.4; 
+                        
+                        r = Math.min(255, Math.max(0, Math.round((lr * 0.65 + n * 25) * efekKontur)));
+                        g = Math.min(255, Math.max(0, Math.round((lg * 0.65 + n * 45) * efekKontur)));
+                        b = Math.min(255, Math.max(0, Math.round((lb * 0.65 + n * 20) * efekKontur)));
                     }
 
                     const idx = (sy * SAMPLE + sx) * 4;
@@ -489,7 +506,6 @@
             return tile;
         }
     });
-
     const map = L.map('viewport', {
         crs: L.CRS.Simple,
         minZoom: -3,
