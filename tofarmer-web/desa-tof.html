@@ -127,7 +127,7 @@
 
 <header>
     <a class="brand" href="#">
-        <img class="logo" src="aset/logo.png" onerror="this.style.display='none'"/>
+        <img class="logo" src="/aset/logo.png" onerror="this.style.display='none'"/>
         <h2>ToFarmer</h2>
     </a>
 </header>
@@ -135,6 +135,7 @@
 <nav>
     <a href="html/dashboard.html" id="nav-sumbang">Sumbang Ilmu</a>
     <a href="html/fitur-ilmu.html">Fitur & Info</a>
+<a href="index.html">Mode Medsos</a>
     <button id="auth-nav-btn" onclick="handleAuthNav()" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-weight:600; padding:0; font-size:13px; display:inline-block;">Logout</button>
 </nav>
 
@@ -668,6 +669,11 @@
     }
 
     init();
+if (localStorage.getItem('tof_username') === 'TAMU_MENOREH' || !localStorage.getItem('tof_wallet')) {
+    // Karena desa-tof.html ada di luar, jalur kembali dari folder html/ adalah '../desa-tof.html'
+    localStorage.setItem('redirect_to', '../desa-tof.html'); 
+    window.location.href = 'html/login.html';
+}
 </script>
 </body>
 </html>
