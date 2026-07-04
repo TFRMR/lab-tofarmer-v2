@@ -33,7 +33,7 @@
         
         .nav-link { 
             color: #ffffff; text-decoration: none; font-size: 11px; font-weight: 600; 
-            padding: 4px 8px; border-radius: 6px; transition: background 0.2s;
+            padding: 4px 8px; border-radius: 6px; transition: background 0.2s; cursor: pointer;
         }
         .nav-link:hover { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
 
@@ -65,7 +65,7 @@
         <a href="html/dashboard.html" class="nav-link">Ilmu</a>
         <a href="html/fitur-ilmu.html" class="nav-link">Fitur</a>
         <a href="/index.html" class="nav-link">Medsos</a>
-        <a href="html/login.html" class="nav-link" style="color:#ffd166;">Auth</a>
+        <a href="#" id="auth-link" class="nav-link" style="color:#ffd166;" onclick="handleAuthClick()">Auth</a>
     </nav>
 </div>
 
@@ -78,6 +78,37 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script>
+    // --- MANAJEMEN SESI (Login/Logout) ---
+    const authLink = document.getElementById('auth-link');
+
+    function updateAuthUI() {
+        const wallet = localStorage.getItem('tof_wallet');
+        if (wallet) {
+            authLink.innerText = "Logout";
+        } else {
+            authLink.innerText = "Login";
+        }
+    }
+
+    function handleAuthClick() {
+        const wallet = localStorage.getItem('tof_wallet');
+        if (wallet) {
+            logoutWallet();
+        } else {
+            window.location.href = 'html/login.html';
+        }
+    }
+
+    function logoutWallet() {
+        const yakin = confirm("Yakin ingin meninggalkan ladang? 🌱");
+        if (!yakin) return;
+
+        localStorage.removeItem("tof_wallet");
+        localStorage.removeItem("tof_user_id");
+        updateAuthUI();
+        window.location.reload(); // Refresh untuk update view
+    }
+
     // --- KONFIGURASI PETA ---
     const world = document.getElementById('world');
     const canvas = document.getElementById('bgCanvas');
@@ -112,7 +143,16 @@
                 <img class="house-avatar" src="${user.avatar_url || 'https://via.placeholder.com/40'}" />
                 <div class="house-name">${user.username}</div>
             `;
-            house.onclick = () => window.location.href = `profile.html?id=${user.id}`;
+            // Cek login sebelum pindah halaman
+            house.onclick = () => {
+                const wallet = localStorage.getItem('tof_wallet');
+                if (!wallet) {
+                    alert("Masuk dulu ya biar ilmunya tersimpan di ladangmu. 🌿");
+                    window.location.href = 'html/login.html';
+                } else {
+                    window.location.href = `profile.html?id=${user.id}`;
+                }
+            };
             world.appendChild(house);
         });
     }
@@ -140,10 +180,11 @@
     });
     window.addEventListener('mouseup', () => isDragging = false);
 
-    // Initial Load
+    // --- INITIAL LOAD ---
     drawBase();
     generateHouses();
     resetView();
+    updateAuthUI(); // Cek status login saat halaman dibuka
 </script>
 </body>
 </html>
