@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ToFarmer | Twilight Menoreh</title>
+    <title>ToFarmer | Twilight Menoreh 3D</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; }
+        :root { --bg: #050b07; --ui: rgba(12, 26, 18, 0.9); --accent: #4ade80; --wall-l: #2b5c3a; --wall-r: #1e4228; --roof: #4ade80; }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
         /* HEADER & NAV */
@@ -16,20 +16,32 @@
         nav { position: fixed; top: 52px; left: 0; width: 100%; display: flex; gap: 20px; padding: 10px 20px; background: rgba(0,0,0,0.8); z-index: 999; box-sizing: border-box; }
         nav a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 600; }
 
-        /* MAP 3D ISOMETRIC ENGINE */
+        /* MAP 3D ENGINE */
         #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; perspective: 1500px; z-index: 1; }
         #viewport:active { cursor: grabbing; }
         #anchor { position: absolute; transform-style: preserve-3d; }
         #world { position: absolute; transform-style: preserve-3d; width: 2400px; height: 2400px; left: -1200px; top: -1200px; }
         
         .tile { position: absolute; width: 80px; height: 80px; background: rgba(74, 222, 128, 0.02); border: 1px solid rgba(255,255,255,0.03); box-sizing: border-box; }
+        .obj { position: absolute; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 40px; transform: translateZ(15px); filter: drop-shadow(5px 15px 5px rgba(0,0,0,0.6)); pointer-events: none; }
+
+        /* KONSTRUKSI RUMAH 3D MURNI CSS (SUPER RINGAN) */
+        .house-3d { position: absolute; width: 80px; height: 80px; transform-style: preserve-3d; cursor: pointer; pointer-events: auto; }
+        .cube { position: absolute; width: 40px; height: 40px; left: 20px; top: 20px; transform-style: preserve-3d; transform: translateZ(0px); transition: transform 0.2s; }
+        .cube:hover { transform: translateZ(10px); }
         
-        /* KOMPONEN OBJEK DAN PAPAN NAMA WARGA */
-        .obj { position: absolute; width: 80px; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 40px; transform: translateZ(15px); filter: drop-shadow(5px 15px 5px rgba(0,0,0,0.6)); }
-        .house-container { position: absolute; width: 80px; height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translateZ(15px); cursor: pointer; pointer-events: auto; }
-        .house-sprite { font-size: 42px; filter: drop-shadow(5px 10px 4px rgba(0,0,0,0.5)); transition: transform 0.2s; }
-        .house-sprite:hover { transform: scale(1.1) translateZ(5px); }
-        .nametag { position: absolute; bottom: -12px; background: rgba(5, 11, 7, 0.85); color: #fff; border: 1px solid var(--accent); font-size: 9px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; font-weight: bold; pointer-events: none; }
+        /* Sisi-sisi Balok Rumah */
+        .face { position: absolute; width: 40px; height: 40px; box-sizing: border-box; }
+        .left  { background: var(--wall-l); transform: rotateX(-90deg) translateZ(20px); border: 1px solid rgba(255,255,255,0.1); }
+        .right { background: var(--wall-r); transform: rotateY(90deg) translateZ(20px); border: 1px solid rgba(255,255,255,0.1); }
+        .top   { background: var(--roof); transform: translateZ(40px); border: 1px solid #fff; box-shadow: inset 0 0 10px rgba(0,0,0,0.3); }
+
+        /* KUSTOMISASI RUMAH PREMIUM (LEVEL TINGGI) */
+        .premium .top { var(--accent); background: #f59e0b; } /* Atap Emas untuk Level Tinggi */
+        .premium .left { background: #b45309; }
+        .premium .right { background: #78350f; }
+
+        .nametag { position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%) rotateZ(0deg); background: rgba(5, 11, 7, 0.9); color: #fff; border: 1px solid var(--accent); font-size: 9px; padding: 2px 6px; border-radius: 4px; white-space: nowrap; font-weight: bold; pointer-events: none; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
 
         /* UI CONTROLS */
         #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); }
@@ -77,9 +89,8 @@
     let isDragging = false;
     let startX = 0, startY = 0;
 
-    // GAMBARAN GRID UKURAN (20x20 ubin agar area tampung lebih luas)
     const GRID_SIZE = 20;
-    const reservedTiles = new Set(); // Menyimpan koordinat alam (X,Y) agar rumah tidak menumpuk
+    const reservedTiles = new Set(); 
 
     function adjust(s) { scale = Math.min(Math.max(scale + s, 0.4), 2.2); updateTransform(); }
     function updateTransform() { 
@@ -87,7 +98,7 @@
         world.style.transform = `rotateX(60deg) rotateZ(-45deg) scale(${scale})`; 
     }
 
-    // EVENT MOUSE & TOUCH DRAGGING
+    // DRAG & TOUCH LOGIC
     viewport.addEventListener('mousedown', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls')) return;
         isDragging = true; startX = e.clientX - posX; startY = e.clientY - posY;
@@ -102,7 +113,6 @@
     window.addEventListener('touchmove', (e) => { if (isDragging) { posX = e.touches[0].clientX - startX; posY = e.touches[0].clientY - startY; updateTransform(); } });
     window.addEventListener('touchend', () => isDragging = false);
 
-    // BENTUK PROYEKSI LANTAI DASAR
     function createBaseGrid() {
         for (let x = 0; x < GRID_SIZE; x++) {
             for (let y = 0; y < GRID_SIZE; y++) {
@@ -115,9 +125,9 @@
         }
     }
 
-    // ALGORITMA MATEMATIKA SPIRAL MENCARI TANAH KOSONG
+    // SPIRAL ALGORITHM FOR POSITIONING
     function findEmptyTile() {
-        let cx = 10, cy = 10; // Memulai pencarian dari titik tengah peta koordinat (10,10)
+        let cx = 10, cy = 10; 
         let x = 0, y = 0, dx = 0, dy = -1;
         let t = Math.max(GRID_SIZE, GRID_SIZE);
         let maxI = t * t;
@@ -128,7 +138,7 @@
                 let ty = cy + y;
                 let key = `${tx},${ty}`;
                 if (!reservedTiles.has(key) && tx >= 0 && tx < GRID_SIZE && ty >= 0 && ty < GRID_SIZE) {
-                    reservedTiles.add(key); // Tandai tanah langsung terisi rumah warga
+                    reservedTiles.add(key); 
                     return { x: tx, y: ty };
                 }
             }
@@ -140,7 +150,6 @@
         return { x: Math.floor(Math.random()*GRID_SIZE), y: Math.floor(Math.random()*GRID_SIZE) };
     }
 
-    // INTI SINKRONISASI DATA DARI 2 TABEL BERBEDA
     async function init() {
         const wallet = localStorage.getItem('tof_wallet');
         if (!wallet) { window.location.href = 'html/login.html'; return; }
@@ -149,11 +158,11 @@
         createBaseGrid();
         updateTransform();
 
-        // 1. Ambil data Alam Khusus (Tabel village_map)
+        // 1. Render Fitur Alam Statis (Tabel village_map)
         const { data: terrain } = await db.from('village_map').select('*');
         terrain?.forEach(obj => {
             if (obj.type === 'mountain' || obj.type === 'tree') {
-                reservedTiles.add(`${obj.x_pos},${obj.y_pos}`); // Kunci ubin agar tidak ditabrak rumah
+                reservedTiles.add(`${obj.x_pos},${obj.y_pos}`);
                 
                 const div = document.createElement('div');
                 div.className = 'obj';
@@ -164,32 +173,30 @@
             }
         });
 
-        // 2. Tarik Data Semua Warga (Tabel profiles Anda)
+        // 2. Render Rumah Warga Maket 3D Murni CSS (Tabel profiles)
         const { data: users, error } = await db.from('profiles').select('id, username, level, bakat_utama').order('created_at', { ascending: true });
-        if (error) return console.error("Gagal memuat profil warga:", error);
+        if (error) return console.error(error);
 
         users?.forEach(user => {
-            // Cari ubin kosong secara matematis terdekat dari pusat desa
             const coord = findEmptyTile();
             
             const container = document.createElement('div');
-            container.className = 'house-container';
+            container.className = 'house-3d' + (user.level > 5 ? ' premium' : '');
             container.style.left = (coord.x * 80) + 'px';
             container.style.top = (coord.y * 80) + 'px';
 
-            // Custom visual berdasarkan data asli user
-            let houseEmoji = '🏡';
-            if (user.level > 5) houseEmoji = '🏰'; // Naik spek visual jika level reputasi tinggi
-            if (user.bakat_utama === 'Petani') houseEmoji = '👨‍🌾';
-
+            // Membangun Kubus Objek Rumah 3D Murni menggunakan CSS Sisi Balok
             container.innerHTML = `
-                <div class="house-sprite">${houseEmoji}</div>
+                <div class="cube">
+                    <div class="face top"></div>
+                    <div class="face left"></div>
+                    <div class="face right"></div>
+                </div>
                 <div class="nametag">@${user.username} (Lv.${user.level || 1})</div>
             `;
 
-            // Interaksi klik untuk melihat bio / bakat warga
             container.onclick = () => {
-                alert(`🏡 Rumah Warga ToFarmer\n────────────────\nNama: @${user.username}\nBakat Utama: ${user.bakat_utama || 'Pencari Ilmu'}\nID Dompet: ${user.id}`);
+                alert(`🏰 ToFarmer Real-3D Asset\n────────────────\nPemilik: @${user.username}\nBakat Utama: ${user.bakat_utama || 'Pencari Ilmu'}\nID Wallet: ${user.id}`);
             };
 
             world.appendChild(container);
