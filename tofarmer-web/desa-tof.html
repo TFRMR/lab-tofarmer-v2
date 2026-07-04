@@ -135,7 +135,6 @@
 <nav>
     <a href="html/dashboard.html" id="nav-sumbang">Sumbang Ilmu</a>
     <a href="html/fitur-ilmu.html">Fitur & Info</a>
-    <!-- TOMBOL AUTENTIKASI DINAMIS -->
     <button id="auth-nav-btn" onclick="handleAuthNav()" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-weight:600; padding:0; font-size:13px; display:inline-block;">Logout</button>
 </nav>
 
@@ -143,7 +142,6 @@
     <div id="world" class="locked-mode"></div>
 </div>
 
-<!-- POP-UP CUSTOM PROFIL MODAL -->
 <div id="custom-modal" class="modal-overlay" onclick="closeModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <img id="m-avatar" class="modal-avatar" src="" />
@@ -174,7 +172,6 @@
     </div>
 </div>
 
-<!-- POP-UP CUSTOM MODAL PREMIUM: REQUEST DARATAN PULAU BARU -->
 <div id="island-modal" class="modal-overlay" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <span class="island-icon">🏝️</span>
@@ -184,7 +181,7 @@
         <p style="font-size: 12px; color: #cbd5e1; line-height: 1.5; margin: 10px 0 20px 0;">
             Apakah Anda ingin mengajukan pembukaan klaster **Daratan / Pulau Baru** di luar batas peta koordinat Menoreh saat ini?
             <br><br>
-            <span style="color: #fbbf24;">⚠️ Estimasi Biaya Konsensus: <strong>10 TOF</strong></span>
+            <span style="color: #fbbf24;">⚠️ Estimasi Biaya Konsensus: <strong>10TOF</strong></span>
         </p>
         
         <div class="modal-buttons-group">
@@ -194,7 +191,6 @@
     </div>
 </div>
 
-<!-- POP-UP HUD AKSI UBIN (KLAIM & BANGUN) -->
 <div id="tile-hud" class="tile-action-hud">
     <div class="tile-info-text">
         <span id="hud-tile-coord">Ubin (X, Y)</span>
@@ -206,7 +202,6 @@
     </div>
 </div>
 
-<!-- POP-UP HUD EDIT TATA RUMAH -->
 <div id="edit-hud" class="edit-hud-banner">
     <div class="hud-title">🛠️ Mode Arsitek Desa</div>
     <p class="hud-desc">Sentuh dan geser (*drag & drop*) pada ikon rumah warga untuk mengatur tata letak desa Menoreh secara bebas & artistik.</p>
@@ -242,6 +237,13 @@
     let isDraggingView = false;
     let startX = 0, startY = 0;
     
+    // VARIABEL KHUSUS GESTUR MULTI-TOUCH (2 JARI)
+    let startTouchDistance = 0;
+    let startTouchAngle = 0;
+    let startZoomOnTouch = 0;
+    let isMultiTouching = false;
+    let lastRotationTriggerTime = 0;
+
     const GRID_SIZE = 30;
     const TILE_WIDTH = 100;   
     const TILE_HEIGHT = 50;   
@@ -255,14 +257,12 @@
     function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.0); updateWorldTransform(); }
     function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
 
-    // DETEKSI STATUS AKUN TAMU VS WARGA
     function isGuestUser() {
         const wallet = localStorage.getItem('tof_wallet');
         const user = localStorage.getItem('tof_username');
         return (!wallet || !user || user === "TAMU_MENOREH");
     }
 
-    // UPDATE UI SEPANJANG AUTENTIKASI BERUBAH
     function refreshAuthUI() {
         const btn = document.getElementById('auth-nav-btn');
         if (isGuestUser()) {
@@ -280,13 +280,10 @@
         }
     }
 
-    // MANAJEMEN TOMBOL AUTH NAVIGASI
     function handleAuthNav() {
         if (isGuestUser()) {
-            // Jika tamu klik "Login", lempar ke halaman login
             window.location.href = 'html/login.html';
         } else {
-            // Jika warga klik "Logout", hapus data lokal dan ubah status ke tamu secara instan
             localStorage.removeItem('tof_wallet');
             localStorage.setItem('tof_username', 'TAMU_MENOREH');
             alert("Sesi ditutup. Anda sekarang berada dalam Mode Tamu.");
@@ -294,7 +291,16 @@
         }
     }
 
-    // MAP VIEWPORT CONTROL (Tamu & Warga bebas menggeser/navigasi)
+    // UTALITAS KALKULASI JARAK & SUDUT 2 JARI
+    function getTouchDistance(t1, t2) {
+        return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    }
+    
+    function getTouchAngle(t1, t2) {
+        return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
+    }
+
+    // MOUSE CAMERA CONTROLS (DESKTOP)
     viewport.addEventListener('mousedown', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('.modal-overlay') || e.target.closest('.house-container') || e.target.closest('#edit-hud') || e.target.closest('#tile-hud')) return;
         isDraggingView = true; startX = e.clientX - panX; startY = e.clientY - panY;
@@ -303,13 +309,85 @@
     window.addEventListener('mousemove', (e) => { if (isDraggingView) { panX = e.clientX - startX; panY = e.clientY - startY; updateWorldTransform(); } });
     window.addEventListener('mouseup', () => isDraggingView = false);
 
+    // ADVANCED MOBILE MULTI-TOUCH CONTROLS (HAPE)
     viewport.addEventListener('touchstart', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('.modal-overlay') || e.target.closest('.house-container') || e.target.closest('#edit-hud') || e.target.closest('#tile-hud')) return;
-        isDraggingView = true; startX = e.touches[0].clientX - panX; startY = e.touches[0].clientY - panY;
         closeTileHUD();
+
+        if (e.touches.length === 1) {
+            // Kontrol Seret 1 Jari standar
+            isMultiTouching = false;
+            isDraggingView = true;
+            startX = e.touches[0].clientX - panX;
+            startY = e.touches[0].clientY - panY;
+        } else if (e.touches.length === 2) {
+            // Masuk Mode 2 Jari (Zoom & Rotate Gestures)
+            isMultiTouching = true;
+            isDraggingView = true; // Tetap izinkan geser kamera dengan titik tengah 2 jari jika mau
+            startX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - panX;
+            startY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - panY;
+            
+            startTouchDistance = getTouchDistance(e.touches[0], e.touches[1]);
+            startTouchAngle = getTouchAngle(e.touches[0], e.touches[1]);
+            startZoomOnTouch = zoom;
+        }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!isDraggingView) return;
+
+        if (e.touches.length === 1 && !isMultiTouching) {
+            // Pemrosesan Seret 1 Jari
+            panX = e.touches[0].clientX - startX;
+            panY = e.touches[0].clientY - startY;
+            updateWorldTransform();
+        } else if (e.touches.length === 2 && isMultiTouching) {
+            e.preventDefault(); // Menghentikan scroll browser bawaan
+            
+            // 1. Eksekusi Geser Kamera 2 Jari (titik tengah jari)
+            let currentMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            let currentMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            panX = currentMidX - startX;
+            panY = currentMidY - startY;
+
+            // 2. Eksekusi Pinch Zoom
+            let currentDist = getTouchDistance(e.touches[0], e.touches[1]);
+            if (startTouchDistance > 0) {
+                let factor = currentDist / startTouchDistance;
+                zoom = Math.min(Math.max(startZoomOnTouch * factor, 0.3), 2.0);
+            }
+
+            // 3. Eksekusi Twist Rotate (Sensitivitas Putaran 2 Jari Aman)
+            let currentAngle = getTouchAngle(e.touches[0], e.touches[1]);
+            let angleDiff = currentAngle - startTouchAngle;
+            let now = Date.now();
+            
+            if (Math.abs(angleDiff) > 40 && (now - lastRotationTriggerTime > 600)) {
+                if (angleDiff > 0) {
+                    currentRotationIndex = (currentRotationIndex + 1) % 4;
+                } else {
+                    currentRotationIndex = (currentRotationIndex + 3) % 4;
+                }
+                startTouchAngle = currentAngle; // Reset jangkar sudut sentuh baru
+                lastRotationTriggerTime = now;
+                renderVillage();
+            }
+
+            updateWorldTransform();
+        }
+    }, { passive: false });
+
+    window.addEventListener('touchend', (e) => {
+        if (e.touches.length === 0) {
+            isDraggingView = false;
+            isMultiTouching = false;
+        } else if (e.touches.length === 1) {
+            // Transisi halus kembali ke kontrol 1 jari jika salah satu jari diangkat
+            isMultiTouching = false;
+            startX = e.touches[0].clientX - panX;
+            startY = e.touches[0].clientY - panY;
+        }
     });
-    window.addEventListener('touchmove', (e) => { if (isDraggingView) { panX = e.touches[0].clientX - startX; panY = e.touches[0].clientY - startY; updateWorldTransform(); } });
-    window.addEventListener('touchend', () => isDraggingView = false);
 
     function getIsoCoords(x, y) {
         let rx = x, ry = y;
@@ -338,7 +416,6 @@
         return { x: Math.floor(Math.random()*(GRID_SIZE-2))+1, y: Math.floor(Math.random()*(GRID_SIZE-2))+1 };
     }
 
-    // MODAL EKSPANSI PULAU BARU
     function openIslandModal() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak memiliki otoritas sirkulasi makro. Silakan login!"); return; }
         closeTileHUD();
@@ -351,7 +428,6 @@
         document.getElementById('island-modal').classList.remove('active');
     }
 
-    // GRID SELEKSI UBIN
     function selectTile(x, y, event) {
         if (isEditMode) return;
         event.stopPropagation();
@@ -372,7 +448,6 @@
         document.getElementById('tile-hud').classList.remove('active');
     }
 
-    // PROTEKSI AKSI SIRKULASI TOF
     function triggerClaimAction() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa mengklaim lahan. Silakan masuk ke akun Anda!"); closeTileHUD(); return; }
         alert(`Sirkulasi TOF:\nKlaim Hak Pakai Ubin (${currentSelectedTile.x}, ${currentSelectedTile.y}) dikonfirmasi.\nData akan segera disinkronkan ke master database.`);
@@ -391,7 +466,6 @@
         }
     }
 
-    // PROTEKSI TATA ARSITEK RUMAH
     function enableEditMode() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa menata letak rumah warga desa!"); return; }
         isEditMode = true;
@@ -420,7 +494,6 @@
         renderVillage();
     }
 
-    // RENDER VILLAGE ENGINE
     function renderVillage() {
         world.innerHTML = ''; 
         reservedTiles.clear();
@@ -574,7 +647,6 @@
     }
 
     async function init() {
-        // Jika tidak ada data wallet/user sama sekali di storage browser, default ke tamu tanpa macet
         if(!localStorage.getItem('tof_username')) {
             localStorage.setItem('tof_username', 'TAMU_MENOREH');
         }
