@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ToFarmer • Desa Agritech Twilight</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@800&display=swap" rel="stylesheet">
-    
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
+
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <style>
@@ -18,9 +18,9 @@
         #viewport { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #050414; }
 
         /* UI OVERLAY - TWILIGHT MENOREH */
-        #ui-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; 
-            padding: 10px 15px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; 
+        #ui-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; z-index: 1000;
+            padding: 10px 15px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center;
             pointer-events: none; background: linear-gradient(to bottom, rgba(5, 4, 20, 0.95) 0%, rgba(12, 10, 28, 0.6) 100%);
             border-bottom: 2px solid #d4af37; box-shadow: 0 4px 25px rgba(212, 175, 55, 0.15);
         }
@@ -30,8 +30,8 @@
             background: linear-gradient(135deg, #fef08a 0%, #d4af37 60%, #aa7c11 100%);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .nav-group { 
-            pointer-events: auto; background: rgba(12, 10, 28, 0.8); backdrop-filter: blur(8px); 
+        .nav-group {
+            pointer-events: auto; background: rgba(12, 10, 28, 0.8); backdrop-filter: blur(8px);
             padding: 6px 10px; border-radius: 12px; border: 1px solid rgba(212, 175, 55, 0.3); display: flex; gap: 8px;
         }
         .nav-link { color: #ffffff; text-decoration: none; font-size: 10px; font-weight: 600; padding: 4px 8px; border-radius: 6px; }
@@ -39,8 +39,8 @@
 
         /* KONTROL PETA */
         #map-controls { position: fixed; bottom: 20px; left: 20px; z-index: 1000; display: flex; gap: 8px; }
-        .map-btn { 
-            background: #0c0a1c; color: #4ade80; border: 1px solid #d4af37; 
+        .map-btn {
+            background: #0c0a1c; color: #4ade80; border: 1px solid #d4af37;
             padding: 12px 16px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 14px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.6);
         }
@@ -79,8 +79,8 @@
             width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #d4af37;
         }
         .house-building { font-size: 26px; margin-top: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); }
-        .house-name { 
-            background: rgba(5, 4, 20, 0.9); color: #fef08a; font-size: 10px; padding: 2px 6px; 
+        .house-name {
+            background: rgba(5, 4, 20, 0.9); color: #fef08a; font-size: 10px; padding: 2px 6px;
             border-radius: 6px; margin-top: 4px; font-weight: 600; border: 0.5px solid rgba(212, 175, 55, 0.3);
             white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.5);
         }
@@ -108,7 +108,7 @@
 <div id="twilight-panel" class="twilight-panel">
     <div class="panel-title" id="panel-title">Petak Koordinat</div>
     <div style="font-size: 11px; margin-bottom: 10px; color: #a7f3d0;" id="panel-coords">X: 0, Y: 0</div>
-    
+
     <div id="qr-reader"></div> <div id="action-area">
         <input type="text" id="note-code-input" class="panel-input" placeholder="Masukkan Kode Kertas/Note TOF">
         <button class="panel-btn btn-gold" onclick="prosesKlaimLahan()">Klaim Ladang Sini</button>
@@ -130,7 +130,7 @@
     const authLink = document.getElementById('auth-link');
     let selectedX = 0;
     let selectedY = 0;
-    let markerWargaLokal = null; 
+    let markerWargaLokal = null;
     let html5QrcodeScanner = null;
 
     function updateAuthUI() {
@@ -159,92 +159,116 @@
         maxBounds: [[-2000, -2000], [2000, 2000]]
     }).setView([0, 0], 0);
 
-    // Rumus noise matematika alam Menoreh
+    // Rumus noise matematika alam Menoreh (dua oktaf supaya lebih organik & tidak berulang)
     function getTwilightNoise(x, y) {
-        return Math.sin(x * 0.01) * Math.cos(y * 0.01) + Math.sin(x * 0.03 + y * 0.02) * 0.2;
+        const base = Math.sin(x * 0.01) * Math.cos(y * 0.01);
+        const detail = Math.sin(x * 0.03 + y * 0.02) * 0.25;
+        const micro = Math.sin(x * 0.07 - y * 0.05) * 0.08;
+        return base + detail + micro;
     }
 
-    // --- RENDER PETAK ALAM + CAKRAWALA & LANGIT MATEMATIKA (Anti-Lemot) ---
+    // --- PALET WARNA TERRAIN, DIINTERPOLASI HALUS (bukan pita warna keras) ---
+    const TERRAIN_STOPS = [
+        { v: -1.2, c: [5, 4, 20] },    // Jurang / Lembah Malam
+        { v: -0.3, c: [11, 19, 26] },  // Sawah Irigasi Twilight
+        { v: 0.2,  c: [14, 36, 23] },  // Perkebunan Kopi Hijau Tua
+        { v: 0.6,  c: [33, 22, 10] },  // Batuan Bukit Menoreh
+        { v: 1.2,  c: [46, 32, 16] }   // Puncak Batu Terang
+    ];
+
+    function smoothstep(t) { return t * t * (3 - 2 * t); }
+
+    function lerpColor(c1, c2, t) {
+        return [
+            Math.round(c1[0] + (c2[0] - c1[0]) * t),
+            Math.round(c1[1] + (c2[1] - c1[1]) * t),
+            Math.round(c1[2] + (c2[2] - c1[2]) * t)
+        ];
+    }
+
+    function warnaTerrain(v) {
+        for (let i = 0; i < TERRAIN_STOPS.length - 1; i++) {
+            const a = TERRAIN_STOPS[i], b = TERRAIN_STOPS[i + 1];
+            if (v >= a.v && v <= b.v) {
+                const t = smoothstep((v - a.v) / (b.v - a.v));
+                return lerpColor(a.c, b.c, t);
+            }
+        }
+        return v < TERRAIN_STOPS[0].v ? TERRAIN_STOPS[0].c : TERRAIN_STOPS[TERRAIN_STOPS.length - 1].c;
+    }
+
+    // --- RENDER PETAK ALAM + CAKRAWALA & LANGIT (versi halus, anti "kotak-kotak") ---
+    // Trik: sampel warna di resolusi rendah (grid kecil), lalu gambarkan hasilnya
+    // membesar ke ukuran tile penuh dengan smoothing aktif. Ini yang menghilangkan
+    // kesan blok-blok pixel ala Minecraft dan membuat gradasi terlihat menyatu & alami.
     const TerrainLayer = L.GridLayer.extend({
 
-    tileSize: 256,
-    updateWhenZooming: true,
-    keepBuffer: 2,
+        tileSize: 256,
+        updateWhenZooming: true,
+        keepBuffer: 2,
 
-    createTile: function (coords) {
+        createTile: function (coords) {
+            const tile = L.DomUtil.create('canvas', 'leaflet-tile');
+            tile.width = 256;
+            tile.height = 256;
+            const ctx = tile.getContext('2d');
 
-        const tile = L.DomUtil.create('canvas', 'leaflet-tile');
-tile.width = 256;
-tile.height = 256;
-
-const ctx = tile.getContext('2d');
-ctx.imageSmoothingEnabled = false;
-ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-            // Ambil titik awal ubin dalam pixel global
             const nwPoint = new L.Point(coords.x * 256, coords.y * 256);
 
-          const zoom = Math.max(0, coords.z);
-const scale = Math.pow(2, zoom);
+            // Jumlah sampel per sisi tile — cukup rendah untuk mulus, cukup tinggi untuk detail
+            const SAMPLE = 40;
+            const sampleStep = 256 / SAMPLE;
 
-const step = Math.max(4, 32 / scale);
+            const kanvasKecil = document.createElement('canvas');
+            kanvasKecil.width = SAMPLE;
+            kanvasKecil.height = SAMPLE;
+            const sctx = kanvasKecil.getContext('2d');
+            const imgData = sctx.createImageData(SAMPLE, SAMPLE);
 
+            for (let sy = 0; sy < SAMPLE; sy++) {
+                for (let sx = 0; sx < SAMPLE; sx++) {
+                    const px = sx * sampleStep;
+                    const py = sy * sampleStep;
 
+                    const p = new L.Point(nwPoint.x + px, nwPoint.y + py);
+                    const latlng = this._map.unproject(p, coords.z);
 
-for (let x = 0; x < 256; x += step) {
-    for (let y = 0; y < 256; y += step) {
+                    const gX = latlng.lng;
+                    const gY = latlng.lat;
 
-        // Hitung posisi pixel absolut & terjemahkan ke koordinat dunia
-        const p = new L.Point(nwPoint.x + x, nwPoint.y + y);
+                    let r, g, b;
 
-        const latlng = this._map.unproject(p, coords.z);
-
-        const gX = Math.round(latlng.lng);
-        const gY = Math.round(latlng.lat);
-
-                    // 1. RUMUS CAKRAWALA: Membuat garis batas bukit siluet yang meliuk alami
-                    // Angka 250 adalah tinggi dasar cakrawala. Bisa kamu naik-turunkan sesuai selera.
+                    // 1. RUMUS CAKRAWALA: garis batas bukit siluet yang meliuk alami
                     const garisCakrawala = 250 + Math.sin(gX * 0.03) * 35 + Math.cos(gX * 0.08) * 12;
 
                     if (gY > garisCakrawala) {
-                        // ===================================================
-                        // ZONA LANGIT & CAKRAWALA SENJA (Paling Atas)
-                        // ===================================================
-                        // Hitung faktor ketinggian langit untuk efek gradasi fading (0 sampai 1)
-                        let batasLangit = (gY - garisCakrawala) / 500; 
+                        // ZONA LANGIT & CAKRAWALA SENJA — gradasi oranye bara ke ungu malam
+                        let batasLangit = (gY - garisCakrawala) / 500;
                         if (batasLangit > 1) batasLangit = 1;
                         if (batasLangit < 0) batasLangit = 0;
-
-                        // Interpolasi Warna Kustom: Dari Oranye Senja Bara memudar ke Ungu/Hitam Malam
-                        // Warna bawah (Dekat bukit): #bd5338 (Senja Menoreh) -> RGB(189, 83, 56)
-                        // Warna atas (Langit dalam): #050414 (Malam Pekat)  -> RGB(5, 4, 20)
-                        let r = Math.round(189 - (189 - 5) * batasLangit);
-                        let g = Math.round(83 - (83 - 4) * batasLangit);
-                        let b = Math.round(56 - (56 - 20) * batasLangit);
-
-                        ctx.fillStyle = `rgb(${r},${g},${b})`;
-                        ctx.fillRect(x, y, 32, 32);
-
+                        const t = smoothstep(batasLangit);
+                        [r, g, b] = lerpColor([189, 83, 56], [5, 4, 20], t);
                     } else {
-                        // ===================================================
-                        // ZONA DARATAN PEGUNUNGAN (Bawah Cakrawala)
-                        // ===================================================
+                        // ZONA DARATAN PEGUNUNGAN — warna terrain diinterpolasi halus
                         const v = getTwilightNoise(gX, gY);
-
-                        // Palet Gelap Senja Pegunungan Menoreh
-                        if (v < -0.3) ctx.fillStyle = '#050414';      // Jurang / Lembah Malam
-                        else if (v < 0.2) ctx.fillStyle = '#0b131a'; // Sawah Irigasi Twilight
-                        else if (v < 0.6) ctx.fillStyle = '#0e2417'; // Perkebunan Kopi Hijau Tua
-                        else ctx.fillStyle = '#21160a';              // Batuan Bukit Menoreh
-
-                        ctx.fillRect(x, y, 32, 32);
-
-                        // Garis grid tipis estetis petak tanah
-                        ctx.strokeStyle = 'rgba(212, 175, 55, 0.015)';
-                        ctx.strokeRect(x, y, 32, 32);
+                        [r, g, b] = warnaTerrain(v);
                     }
+
+                    const idx = (sy * SAMPLE + sx) * 4;
+                    imgData.data[idx] = r;
+                    imgData.data[idx + 1] = g;
+                    imgData.data[idx + 2] = b;
+                    imgData.data[idx + 3] = 255;
                 }
             }
+
+            sctx.putImageData(imgData, 0, 0);
+
+            // Gambar ulang membesar dengan smoothing supaya transisi warna menyatu, bukan berkotak
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(kanvasKecil, 0, 0, SAMPLE, SAMPLE, 0, 0, 256, 256);
+
             return tile;
         }
     });
@@ -269,7 +293,7 @@ for (let x = 0; x < 256; x += step) {
         const userId = localStorage.getItem('tof_user_id');
         document.getElementById('twilight-panel').style.display = 'block';
         document.getElementById('panel-coords').innerText = `Koordinat Lahan -> X: ${x}, Y: ${y}`;
-        
+
         // Cek kepemilikan lahan lama
         const { data: lahanLama } = await supabaseClient
             .from('lahan_desa')
@@ -294,8 +318,8 @@ for (let x = 0; x < 256; x += step) {
     }
 
     function tutupPanel() {
-        if(html5QrcodeScanner) { 
-            html5QrcodeScanner.clear().catch(err => console.log(err)); 
+        if(html5QrcodeScanner) {
+            html5QrcodeScanner.clear().catch(err => console.log(err));
         }
         document.getElementById('twilight-panel').style.display = 'none';
         document.getElementById('qr-reader').style.display = 'none';
@@ -336,7 +360,7 @@ for (let x = 0; x < 256; x += step) {
         } else {
             alert(`Selamat! Rumah @${profil.username} berhasil didirikan secara abadi di lokasi pilihan! 🌾`);
             tutupPanel();
-            muatSeluruhLahanDesa(); 
+            muatSeluruhLahanDesa();
         }
     }
 
@@ -362,7 +386,7 @@ for (let x = 0; x < 256; x += step) {
     let layerGroupRumah = L.layerGroup().addTo(map);
 
     async function muatSeluruhLahanDesa() {
-        layerGroupRumah.clearLayers(); 
+        layerGroupRumah.clearLayers();
 
         const { data: lahans, error } = await supabaseClient.from('lahan_desa').select('*');
         if (error || !lahans) return;
@@ -387,7 +411,7 @@ for (let x = 0; x < 256; x += step) {
 
             L.marker([lahan.y, lahan.x], { icon: kustomIcon }).addTo(layerGroupRumah)
              .on('click', (ev) => {
-                 L.DomEvent.stopPropagation(ev); 
+                 L.DomEvent.stopPropagation(ev);
                  window.location.href = `profile.html?id=${lahan.user_id}`;
              });
         });
