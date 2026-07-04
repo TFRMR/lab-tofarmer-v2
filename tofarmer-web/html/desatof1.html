@@ -127,21 +127,23 @@
 
 <header>
     <a class="brand" href="#">
-        <img class="logo" src="aset/logo.png" onerror="this.style.display='none'"/>
+        <img class="logo" src="/aset/logo.png" onerror="this.style.display='none'"/>
         <h2>ToFarmer</h2>
     </a>
 </header>
 
 <nav>
-    <a href="html/dashboard.html">Sumbang Ilmu</a>
+    <a href="html/dashboard.html" id="nav-sumbang">Sumbang Ilmu</a>
     <a href="html/fitur-ilmu.html">Fitur & Info</a>
-    <button onclick="logout()" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-weight:600; padding:0; font-size:13px; display:inline-block;">Logout</button>
+    <!-- TOMBOL AUTENTIKASI DINAMIS -->
+    <button id="auth-nav-btn" onclick="handleAuthNav()" style="background:none; border:none; color:#ff4d4d; cursor:pointer; font-weight:600; padding:0; font-size:13px; display:inline-block;">Logout</button>
 </nav>
 
 <div id="viewport">
     <div id="world" class="locked-mode"></div>
 </div>
 
+<!-- POP-UP CUSTOM PROFIL MODAL -->
 <div id="custom-modal" class="modal-overlay" onclick="closeModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <img id="m-avatar" class="modal-avatar" src="" />
@@ -172,6 +174,7 @@
     </div>
 </div>
 
+<!-- POP-UP CUSTOM MODAL PREMIUM: REQUEST DARATAN PULAU BARU -->
 <div id="island-modal" class="modal-overlay" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <span class="island-icon">🏝️</span>
@@ -181,7 +184,7 @@
         <p style="font-size: 12px; color: #cbd5e1; line-height: 1.5; margin: 10px 0 20px 0;">
             Apakah Anda ingin mengajukan pembukaan klaster **Daratan / Pulau Baru** di luar batas peta koordinat Menoreh saat ini?
             <br><br>
-            <span style="color: #fbbf24;">⚠️ Estimasi Biaya Konsensus: <strong>50,000 TOF</strong></span>
+            <span style="color: #fbbf24;">⚠️ Estimasi Biaya Konsensus: <strong>10 TOF</strong></span>
         </p>
         
         <div class="modal-buttons-group">
@@ -191,6 +194,7 @@
     </div>
 </div>
 
+<!-- POP-UP HUD AKSI UBIN (KLAIM & BANGUN) -->
 <div id="tile-hud" class="tile-action-hud">
     <div class="tile-info-text">
         <span id="hud-tile-coord">Ubin (X, Y)</span>
@@ -202,6 +206,7 @@
     </div>
 </div>
 
+<!-- POP-UP HUD EDIT TATA RUMAH -->
 <div id="edit-hud" class="edit-hud-banner">
     <div class="hud-title">🛠️ Mode Arsitek Desa</div>
     <p class="hud-desc">Sentuh dan geser (*drag & drop*) pada ikon rumah warga untuk mengatur tata letak desa Menoreh secara bebas & artistik.</p>
@@ -250,7 +255,46 @@
     function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.0); updateWorldTransform(); }
     function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
 
-    // MAP VIEWPORT CONTROL
+    // DETEKSI STATUS AKUN TAMU VS WARGA
+    function isGuestUser() {
+        const wallet = localStorage.getItem('tof_wallet');
+        const user = localStorage.getItem('tof_username');
+        return (!wallet || !user || user === "TAMU_MENOREH");
+    }
+
+    // UPDATE UI SEPANJANG AUTENTIKASI BERUBAH
+    function refreshAuthUI() {
+        const btn = document.getElementById('auth-nav-btn');
+        if (isGuestUser()) {
+            document.getElementById('auth-status').innerText = "Mode: Tamu (Hanya Lihat Peta)";
+            btn.innerText = "Login";
+            btn.style.color = "#4ade80"; 
+            document.getElementById('nav-sumbang').style.opacity = "0.4";
+            document.getElementById('nav-sumbang').onclick = (e) => { e.preventDefault(); alert("Silakan login untuk menyumbang ilmu!"); };
+        } else {
+            document.getElementById('auth-status').innerText = "Warga: @" + localStorage.getItem('tof_username');
+            btn.innerText = "Logout";
+            btn.style.color = "#ff4d4d";
+            document.getElementById('nav-sumbang').style.opacity = "1";
+            document.getElementById('nav-sumbang').onclick = null;
+        }
+    }
+
+    // MANAJEMEN TOMBOL AUTH NAVIGASI
+    function handleAuthNav() {
+        if (isGuestUser()) {
+            // Jika tamu klik "Login", lempar ke halaman login
+            window.location.href = 'html/login.html';
+        } else {
+            // Jika warga klik "Logout", hapus data lokal dan ubah status ke tamu secara instan
+            localStorage.removeItem('tof_wallet');
+            localStorage.setItem('tof_username', 'TAMU_MENOREH');
+            alert("Sesi ditutup. Anda sekarang berada dalam Mode Tamu.");
+            refreshAuthUI();
+        }
+    }
+
+    // MAP VIEWPORT CONTROL (Tamu & Warga bebas menggeser/navigasi)
     viewport.addEventListener('mousedown', (e) => {
         if(e.target.closest('header') || e.target.closest('nav') || e.target.closest('.controls') || e.target.closest('.modal-overlay') || e.target.closest('.house-container') || e.target.closest('#edit-hud') || e.target.closest('#tile-hud')) return;
         isDraggingView = true; startX = e.clientX - panX; startY = e.clientY - panY;
@@ -294,8 +338,9 @@
         return { x: Math.floor(Math.random()*(GRID_SIZE-2))+1, y: Math.floor(Math.random()*(GRID_SIZE-2))+1 };
     }
 
-    // MODAL EKSPANSI PULAU BARU CONTROL
+    // MODAL EKSPANSI PULAU BARU
     function openIslandModal() {
+        if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak memiliki otoritas sirkulasi makro. Silakan login!"); return; }
         closeTileHUD();
         document.getElementById('island-modal').classList.add('active');
     }
@@ -308,9 +353,7 @@
 
     // GRID SELEKSI UBIN
     function selectTile(x, y, event) {
-        // SOLUSI TOTAL: Jika mode edit aktif, fungsi seleksi ubin langsung dimatikan agar bebas drag!
         if (isEditMode) return;
-        
         event.stopPropagation();
         currentSelectedTile = { x, y };
         
@@ -329,25 +372,28 @@
         document.getElementById('tile-hud').classList.remove('active');
     }
 
-    // UTALITAS SIRKULASI TOF ACTIONS
+    // PROTEKSI AKSI SIRKULASI TOF
     function triggerClaimAction() {
+        if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa mengklaim lahan. Silakan masuk ke akun Anda!"); closeTileHUD(); return; }
         alert(`Sirkulasi TOF:\nKlaim Hak Pakai Ubin (${currentSelectedTile.x}, ${currentSelectedTile.y}) dikonfirmasi.\nData akan segera disinkronkan ke master database.`);
         closeTileHUD();
     }
 
     function triggerBuildAction() {
+        if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak diizinkan mendirikan konstruksi bangunan desa!"); closeTileHUD(); return; }
         alert(`Menu Konstruksi TOF:\nSilakan tentukan blueprint komponen/dekorasi untuk diletakkan pada titik koordinat (${currentSelectedTile.x}, ${currentSelectedTile.y}).`);
         closeTileHUD();
     }
 
-    // SINKRONISASI LINK PORTAL ILMU WARGA PRODUCTION READY
     function goToUserProfile() {
         if(currentSelectedUsername) {
             window.location.href = `https://www.tofarmer.xyz/profile.html?u=${currentSelectedUsername}`;
         }
     }
 
+    // PROTEKSI TATA ARSITEK RUMAH
     function enableEditMode() {
+        if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa menata letak rumah warga desa!"); return; }
         isEditMode = true;
         closeTileHUD(); 
         backupPositions = JSON.parse(JSON.stringify(housePositions)); 
@@ -374,7 +420,7 @@
         renderVillage();
     }
 
-    // RENDER VILLAGE
+    // RENDER VILLAGE ENGINE
     function renderVillage() {
         world.innerHTML = ''; 
         reservedTiles.clear();
@@ -528,12 +574,12 @@
     }
 
     async function init() {
-        // PERBAIKAN PROTEKSI: Dimatikan sementara agar Anda bebas testing UI tanpa terlempar error login page
-        // const wallet = localStorage.getItem('tof_wallet');
-        // if (!wallet) { window.location.href = 'html/login.html'; return; }
-        
-        let usernameWarga = localStorage.getItem('tof_username') || "TAMU_MENOREH";
-        document.getElementById('auth-status').innerText = "Warga: @" + usernameWarga;
+        // Jika tidak ada data wallet/user sama sekali di storage browser, default ke tamu tanpa macet
+        if(!localStorage.getItem('tof_username')) {
+            localStorage.setItem('tof_username', 'TAMU_MENOREH');
+        }
+
+        refreshAuthUI();
 
         const savedLayout = localStorage.getItem('tofarmer_custom_layout_v3');
         if (savedLayout) housePositions = JSON.parse(savedLayout);
@@ -549,7 +595,6 @@
         centerMapOnVillage();
     }
 
-    function logout() { localStorage.clear(); location.reload(); }
     init();
 </script>
 </body>
