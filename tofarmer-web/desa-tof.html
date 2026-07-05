@@ -45,9 +45,9 @@
 
         /* Sprite Alam */
         .sprite { position: absolute; bottom: 25px; height: 60px; pointer-events: none; transition: transform 0.2s ease; z-index: 2; }
-        .crop-value-badge { position: absolute; bottom: 55px; font-size: 9px; font-weight: 800; color: #052e16; background: var(--gold); padding: 1px 5px; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 6; box-shadow: 0 2px 4px rgba(0,0,0,0.5); animation: bob 1.6s ease-in-out infinite; }
-        @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-        .crop-warn-badge { position: absolute; bottom: 55px; font-size: 12px; pointer-events: none; z-index: 6; }
+        .crop-value-badge { position: absolute; left: 50%; bottom: 55px; font-size: 9px; font-weight: 800; color: #052e16; background: var(--gold); padding: 1px 5px; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 6; box-shadow: 0 2px 4px rgba(0,0,0,0.5); animation: bob 1.6s ease-in-out infinite; }
+        @keyframes bob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-4px); } }
+        .crop-warn-badge { position: absolute; left: 50%; transform: translateX(-50%); bottom: 55px; font-size: 12px; pointer-events: none; z-index: 6; }
         
         /* WADAH INTERAKSI RUMAH WARGA */
         .house-container { position: absolute; width: 100px; height: 140px; bottom: 10px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; pointer-events: auto; }
@@ -67,7 +67,7 @@
         .modal-overlay { position: fixed; inset: 0; background: rgba(2, 4, 3, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 20000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         
-        .modal-box { background: var(--glass); border: 1px solid var(--accent); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(74, 222, 128, 0.1); width: 90%; max-width: 340px; padding: 25px 20px 20px 20px; border-radius: 16px; text-align: center; transform: scale(0.85); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: #f8fafc; max-height: 82vh; overflow-y: auto; box-sizing: border-box; }
+        .modal-box { background: var(--glass); border: 1px solid var(--accent); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(74, 222, 128, 0.1); width: min(90vw, 340px); padding: 20px 18px 18px 18px; border-radius: 16px; text-align: center; transform: scale(0.85); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: #f8fafc; max-height: 85vh; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; }
         .modal-overlay.active .modal-box { transform: scale(1); }
         
         /* MODAL PULAU STYLING CUSTOMIZATION */
@@ -75,7 +75,8 @@
         .island-icon { font-size: 48px; margin-bottom: 10px; display: inline-block; animation: float 3s ease-in-out infinite; }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-        .modal-avatar { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--accent); margin: -60px auto 10px auto; display: block; background: #0f172a; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+        .modal-avatar-wrap { width: 100%; display: flex; justify-content: center; margin: -4px 0 8px 0; }
+        .modal-avatar { width: clamp(56px, 20vw, 76px); height: clamp(56px, 20vw, 76px); border-radius: 50%; border: 3px solid var(--accent); display: block; background: #0f172a; box-shadow: 0 8px 16px rgba(0,0,0,0.5); object-fit: cover; flex-shrink: 0; }
         .modal-username { font-size: 18px; margin: 5px 0; color: #fff; font-weight: 700; letter-spacing: 0.5px; }
         .modal-rank { font-size: 11px; background: rgba(74, 222, 128, 0.15); color: var(--accent); display: inline-block; padding: 2px 10px; border-radius: 20px; font-weight: 600; text-transform: uppercase; border: 1px solid rgba(74, 222, 128, 0.3); margin-bottom: 15px; }
         
@@ -140,13 +141,18 @@
         .btn-claim { background: #0284c7; color: white; }
         .btn-build { background: #eab308; color: #1e293b; }
 
-        /* UI CONTROLS NAVIGASI KAMERA */
-        .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; transition: opacity 0.3s; }
+        /* UI CONTROLS NAVIGASI KAMERA — FAB (satu tombol utama, submenu muncul saat diketuk) */
+        .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; z-index: 1000; transition: opacity 0.3s; }
         
         .edit-active-ui .controls,
         .tile-active-ui .controls { opacity: 0; pointer-events: none; }
 
+        .controls-sub { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; max-height: 0; overflow: hidden; opacity: 0; transform: translateY(8px); transition: max-height 0.3s ease, opacity 0.25s ease, transform 0.25s ease; pointer-events: none; }
+        .controls-sub.open { max-height: 70vh; opacity: 1; transform: translateY(0); pointer-events: auto; overflow-y: auto; }
+
         .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 9px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; text-align: center; min-width: 105px; box-sizing: border-box; }
+        .btn-fab-main { min-width: 66px; width: 66px; height: 66px; border-radius: 50%; font-size: 11px; background: linear-gradient(135deg, #166534, #052e10); border: 2px solid var(--accent); box-shadow: 0 6px 18px rgba(0,0,0,0.5); }
+        .btn-fab-main.open { background: linear-gradient(135deg, #7f1d1d, #450a0a); border-color: #f87171; }
         .btn-edit { background: linear-gradient(135deg, #1e3a1f, #051a08); border-color: #22c55e; color: #4ade80; }
         .btn-island { background: linear-gradient(135deg, #0f172a, #1e1b4b); border-color: #6366f1; color: #a5b4fc; }
         .btn-claim-toggle { background: linear-gradient(135deg, #0c4a6e, #082f49); border-color: #38bdf8; color: #7dd3fc; }
@@ -222,7 +228,7 @@
 
 <div id="custom-modal" class="modal-overlay" onclick="closeModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
-        <img id="m-avatar" class="modal-avatar" src="" />
+        <div class="modal-avatar-wrap"><img id="m-avatar" class="modal-avatar" src="" /></div>
         <div id="m-username" class="modal-username">@username</div>
         <div id="m-rank" class="modal-rank">Rank</div>
         
@@ -355,15 +361,18 @@
     <div class="xp-line"><span>🌿 Pupuk</span><span class="pupuk-value" id="hud-pupuk-value">0</span></div>
 </div>
 
-<div class="controls">
-    <button id="btn-claim-toggle" class="btn btn-claim-toggle" onclick="toggleClaimMode()">📍 Klaim Tanah</button>
-    <button class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
-    <button class="btn btn-farm" onclick="openFarmMenu()">🌾 Bertani</button>
-    <button class="btn btn-compost" onclick="openCompostMenu()">🧪 Kompos & Pupuk</button>
-    <button class="btn btn-island" onclick="openIslandModal()">🏝️ Bikin Pulau</button>
-    <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
-    <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
-    <button class="btn" onclick="rotateMap()">🔄 Putar Sisi</button>
+<div class="controls" id="controls-wrap">
+    <div class="controls-sub" id="controls-sub">
+        <button id="btn-claim-toggle" class="btn btn-claim-toggle" onclick="toggleClaimMode()">📍 Klaim Tanah</button>
+        <button class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
+        <button class="btn btn-farm" onclick="openFarmMenu()">🌾 Bertani</button>
+        <button class="btn btn-compost" onclick="openCompostMenu()">🧪 Kompos & Pupuk</button>
+        <button class="btn btn-island" onclick="openIslandModal()">🏝️ Bikin Pulau</button>
+        <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
+        <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
+        <button class="btn" onclick="rotateMap()">🔄 Putar Sisi</button>
+    </div>
+    <button class="btn btn-fab-main" id="btn-fab-main" onclick="toggleControlsMenu()">☰ Menu</button>
 </div>
 
 <script>
@@ -389,10 +398,31 @@
     let farms = {};          // "x,y" -> { ownerId, cropId, plantedAt(ms), waterCount, fertilizeCount, prunedCount, landState }
     let houseMeta = {};      // userId -> { houseStyleId, decorItems: [] }   (dari village_houses)
 
-    // Katalog dimuat dari Supabase saat init()
+    // Katalog dimuat dari Supabase saat init(). FALLBACK_* dipakai sebagai cadangan
+    // supaya game tetap bisa dimainkan walau fetch katalog sempat gagal/kosong.
     let CROP_TYPES = [];
     let DECOR_ITEMS = [];
     let HOUSE_STYLES = [];
+
+    const FALLBACK_CROPS = [
+        { id: 'padi', name: 'Padi', icon: '🌾', fruit_icon: '🌾', grow_seconds: 120, reward_xp: 8, plant_cost_xp: 2, water_required: 2, fertilize_required: 1, sort_order: 1 },
+        { id: 'jagung', name: 'Jagung', icon: '🌿', fruit_icon: '🌽', grow_seconds: 180, reward_xp: 14, plant_cost_xp: 3, water_required: 2, fertilize_required: 1, sort_order: 2 },
+        { id: 'cabai', name: 'Cabai', icon: '🌱', fruit_icon: '🌶️', grow_seconds: 150, reward_xp: 12, plant_cost_xp: 3, water_required: 3, fertilize_required: 1, sort_order: 3 },
+        { id: 'tomat', name: 'Tomat', icon: '🌱', fruit_icon: '🍅', grow_seconds: 210, reward_xp: 18, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 4 },
+    ];
+    const FALLBACK_HOUSE_STYLES = [
+        { id: 'basic', name: 'Gubuk Bambu', icon: '🛖', image_url: 'https://img.icons8.com/plasticine/100/home.png', tier: 1, cost_xp: 0, yield_bonus_pct: 0, speed_bonus_pct: 0, sort_order: 1 },
+    ];
+
+    function getCropDef(cropId) {
+        return CROP_TYPES.find(c => c.id === cropId) || FALLBACK_CROPS.find(c => c.id === cropId) || null;
+    }
+    function getAllCropDefs() {
+        return CROP_TYPES.length ? CROP_TYPES : FALLBACK_CROPS;
+    }
+    function getAllHouseStyles() {
+        return HOUSE_STYLES.length ? HOUSE_STYLES : FALLBACK_HOUSE_STYLES;
+    }
 
     let isDraggingView = false;
     let startX = 0, startY = 0;
@@ -414,6 +444,23 @@
     let housePositions = {};  // userId -> {x, y}  (dari village_houses, permanen bersama)
     let backupPositions = {};
     let backupHouseMetaMine = null;
+    let myHouseNeedsRegistration = false; // true jika posisi rumah saya baru dihitung & belum tersimpan di Supabase
+
+    // ============== FAB MENU (satu tombol utama membuka/menutup semua aksi) ==============
+    function toggleControlsMenu() {
+        const sub = document.getElementById('controls-sub');
+        const fab = document.getElementById('btn-fab-main');
+        const willOpen = !sub.classList.contains('open');
+        sub.classList.toggle('open', willOpen);
+        fab.classList.toggle('open', willOpen);
+        fab.innerText = willOpen ? '✖ Tutup' : '☰ Menu';
+    }
+    function closeControlsMenu() {
+        document.getElementById('controls-sub').classList.remove('open');
+        const fab = document.getElementById('btn-fab-main');
+        fab.classList.remove('open');
+        fab.innerText = '☰ Menu';
+    }
 
     function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.0); updateWorldTransform(); }
     function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
@@ -626,6 +673,7 @@
     function openIslandModal() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak memiliki otoritas sirkulasi makro. Silakan login!"); return; }
         closeTileHUD();
+        closeControlsMenu();
         document.getElementById('island-modal').classList.add('active');
     }
     function closeIslandModal(e) { if(e.target === document.getElementById('island-modal')) document.getElementById('island-modal').classList.remove('active'); }
@@ -648,6 +696,7 @@
         document.body.classList.toggle('claim-mode-active', claimModeActive);
         document.getElementById('btn-claim-toggle').classList.toggle('mode-active-btn', claimModeActive);
         if (!claimModeActive) closeTileHUD();
+        closeControlsMenu();
         showToast(claimModeActive ? "📍 Mode Klaim aktif — ketuk petak tanah untuk membuka opsi." : "Mode Klaim dinonaktifkan.");
     }
 
@@ -744,7 +793,7 @@
         let yieldPct = 0, speedPct = 0;
         const meta = houseMeta[userId];
         if (!meta) return { yieldPct, speedPct };
-        const style = HOUSE_STYLES.find(s => s.id === meta.houseStyleId);
+        const style = getAllHouseStyles().find(s => s.id === meta.houseStyleId);
         if (style) { yieldPct += Number(style.yield_bonus_pct || 0); speedPct += Number(style.speed_bonus_pct || 0); }
         (meta.decorItems || []).forEach(dId => {
             const d = DECOR_ITEMS.find(x => x.id === dId);
@@ -768,6 +817,7 @@
     // ============== MENU BERTANI ==============
     function openFarmMenu() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa bertani. Silakan login!"); return; }
+        closeControlsMenu();
         renderFarmList();
         document.getElementById('farm-modal').classList.add('active');
     }
@@ -786,7 +836,7 @@
             const farm = farms[key];
 
             if (!farm || farm.landState === 'fertile') {
-                const cropButtons = CROP_TYPES.map(c =>
+                const cropButtons = getAllCropDefs().map(c =>
                     `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name} (${c.plant_cost_xp} XP)</button>`
                 ).join('');
                 return `<div class="farm-plot-card"><strong>Petak Tanah (${key}) • Subur</strong><div class="farm-crop-row">${cropButtons}</div></div>`;
@@ -800,8 +850,11 @@
             }
 
             // planted
-            const cropDef = CROP_TYPES.find(c => c.id === farm.cropId);
-            if (!cropDef) return '';
+            const cropDef = getCropDef(farm.cropId);
+            if (!cropDef) {
+                console.warn('Crop definition tidak ditemukan untuk', farm.cropId);
+                return `<div class="farm-plot-card"><strong>Petak Tanah (${key})</strong><span class="farm-barren-text">⚠️ Data tanaman belum sinkron, coba tutup &amp; buka lagi menu ini.</span></div>`;
+            }
             const growMs = computeEffectiveGrowMs(cropDef, farm);
             const elapsed = Date.now() - farm.plantedAt;
             const timeReady = elapsed >= growMs;
@@ -908,6 +961,7 @@
     // ============== KOMPOS & PUPUK ==============
     function openCompostMenu() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa mengelola kompos. Silakan login!"); return; }
+        closeControlsMenu();
         renderCompostPanel();
         document.getElementById('compost-modal').classList.add('active');
     }
@@ -973,7 +1027,7 @@
     function renderStyleList() {
         const wrap = document.getElementById('style-list');
         const myStyleId = (myUser && myUser.house_style_id) || 'basic';
-        wrap.innerHTML = HOUSE_STYLES.map(s => `
+        wrap.innerHTML = getAllHouseStyles().map(s => `
             <div class="style-card ${s.id === myStyleId ? 'active' : ''}" onclick="upgradeHouseStyleAction('${s.id}')">
                 <span class="style-icon">${s.icon}</span>
                 <div class="style-info">
@@ -987,7 +1041,8 @@
 
     async function upgradeHouseStyleAction(styleId) {
         if (myUser && myUser.house_style_id === styleId) return;
-        const { data, error } = await db.rpc('fn_upgrade_house_style', { p_user: myUserId, p_style_id: styleId });
+        const myPos = housePositions[myUserId] || { x: 0, y: 0 };
+        const { data, error } = await db.rpc('fn_upgrade_house_style', { p_user: myUserId, p_style_id: styleId, p_fallback_x: myPos.x, p_fallback_y: myPos.y });
         if (error) { showToast('Gagal upgrade rumah: ' + error.message, true); return; }
         if (!data.success) { showToast(data.message || 'Gagal upgrade rumah.', true); return; }
         houseMeta[myUserId] = houseMeta[myUserId] || { houseStyleId: 'basic', decorItems: [] };
@@ -1016,7 +1071,8 @@
     async function toggleDecorItem(id, isCurrentlyActive) {
         if (!myUserId) return;
         const addMode = !isCurrentlyActive;
-        const { data, error } = await db.rpc('fn_toggle_decor', { p_user: myUserId, p_decor_id: id, p_add: addMode });
+        const myPos = housePositions[myUserId] || { x: 0, y: 0 };
+        const { data, error } = await db.rpc('fn_toggle_decor', { p_user: myUserId, p_decor_id: id, p_add: addMode, p_fallback_x: myPos.x, p_fallback_y: myPos.y });
         if (error) { showToast('Gagal: ' + error.message, true); return; }
         if (!data.success) { showToast(data.message || 'Gagal mengubah dekorasi.', true); return; }
 
@@ -1040,7 +1096,8 @@
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa menata letak rumah warga desa!"); return; }
         if (claimModeActive) { claimModeActive = false; document.body.classList.remove('claim-mode-active'); document.getElementById('btn-claim-toggle').classList.remove('mode-active-btn'); }
         isEditMode = true;
-        closeTileHUD(); 
+        closeTileHUD();
+        closeControlsMenu();
         backupPositions = JSON.parse(JSON.stringify(housePositions)); 
         backupHouseMetaMine = JSON.parse(JSON.stringify(houseMeta[myUserId] || { houseStyleId: 'basic', decorItems: [] }));
         world.className = "edit-mode";
@@ -1082,7 +1139,10 @@
     function createCropVisual(key, farmData) {
         const wrap = document.createElement('span');
         wrap.style.position = 'absolute';
+        wrap.style.left = '50%';
         wrap.style.zIndex = 6;
+        wrap.style.textAlign = 'center';
+        wrap.style.pointerEvents = 'none';
 
         if (!farmData || farmData.landState === 'fertile') return null;
 
@@ -1090,12 +1150,13 @@
             wrap.className = 'sprite';
             wrap.style.fontSize = '20px';
             wrap.style.bottom = '18px';
+            wrap.style.transform = 'translateX(-50%)';
             wrap.innerText = '🟤';
             return wrap;
         }
 
-        const cropDef = CROP_TYPES.find(c => c.id === farmData.cropId);
-        if (!cropDef) return null;
+        const cropDef = getCropDef(farmData.cropId);
+        if (!cropDef) { console.warn('createCropVisual: cropDef tidak ditemukan untuk', farmData.cropId); return null; }
         const growMs = computeEffectiveGrowMs(cropDef, farmData);
         const elapsed = Date.now() - farmData.plantedAt;
         const timeReady = elapsed >= growMs;
@@ -1104,6 +1165,7 @@
         wrap.className = 'sprite';
         wrap.style.fontSize = '22px';
         wrap.style.bottom = '18px';
+        wrap.style.transform = 'translateX(-50%)';
 
         if (timeReady && careReady) {
             wrap.innerText = cropDef.fruit_icon;
@@ -1117,7 +1179,7 @@
 
     function createCropBadge(farmData) {
         if (!farmData || farmData.landState !== 'planted') return null;
-        const cropDef = CROP_TYPES.find(c => c.id === farmData.cropId);
+        const cropDef = getCropDef(farmData.cropId);
         if (!cropDef) return null;
         const growMs = computeEffectiveGrowMs(cropDef, farmData);
         const elapsed = Date.now() - farmData.plantedAt;
@@ -1174,7 +1236,8 @@
     setInterval(refreshAllFarmVisuals, 8000);
 
     function getHouseImage(styleId) {
-        const style = HOUSE_STYLES.find(s => s.id === styleId) || HOUSE_STYLES[0];
+        const allStyles = getAllHouseStyles();
+        const style = allStyles.find(s => s.id === styleId) || allStyles[0];
         return style ? (style.image_url || 'https://img.icons8.com/plasticine/100/home.png') : 'https://img.icons8.com/plasticine/100/home.png';
     }
 
@@ -1306,6 +1369,7 @@
                 // secara sengaja lewat Mode Arsitek, yang baru disimpan permanen ke Supabase).
                 user.assignedCoord = findInitialEmptyTile(user.id);
                 housePositions[user.id] = user.assignedCoord;
+                if (user.id === myUserId) myHouseNeedsRegistration = true;
             }
             if (!houseMeta[user.id]) houseMeta[user.id] = { houseStyleId: user.house_style_id || 'basic', decorItems: [] };
             
@@ -1535,29 +1599,74 @@
             .subscribe();
     }
 
-    async function init() {
-        if(!localStorage.getItem('tof_username')) {
-            localStorage.setItem('tof_username', 'TAMU_MENOREH');
+    // Daftarkan rumah saya sendiri ke Supabase (GRATIS, bukan aksi berbayar) supaya
+    // warga lain langsung melihatnya & fitur hias/upgrade rumah langsung bisa dipakai
+    // tanpa harus menggeser rumah secara manual dahulu.
+    async function ensureMyHouseRow() {
+        if (!myUserId || !myHouseNeedsRegistration) return;
+        const pos = housePositions[myUserId];
+        if (!pos) return;
+        try {
+            const { error } = await db.rpc('fn_ensure_house', { p_user: myUserId, p_x: pos.x, p_y: pos.y });
+            if (error) { console.error('ensureMyHouseRow gagal:', error); return; }
+            myHouseNeedsRegistration = false;
+            houseMeta[myUserId] = houseMeta[myUserId] || { houseStyleId: (myUser && myUser.house_style_id) || 'basic', decorItems: [] };
+        } catch (e) {
+            console.error('ensureMyHouseRow error:', e);
         }
+    }
 
-        refreshAuthUI();
+    // Sinkron ringan cadangan (selain Realtime) supaya desa tetap konsisten meski koneksi
+    // sempat putus-nyambung di HP dengan jaringan lemah. Hanya menimpa data, TIDAK
+    // membangun ulang seluruh DOM supaya tetap ringan.
+    async function lightweightResync() {
+        try {
+            await loadWorldState();
+            refreshOwnershipVisuals();
+            Object.keys(farms).forEach(updateTileFarmVisual);
+            Object.keys(houseNodeMap).forEach(uid => updateHouseVisual(uid));
+            if (myUserId) await refreshMyProfile();
+        } catch (e) {
+            console.error('lightweightResync gagal:', e);
+        }
+    }
 
-        const { data: terrain } = await db.from('village_map').select('*');
-        rawTerrainData = terrain || [];
+    async function init() {
+        try {
+            if (!localStorage.getItem('tof_username')) {
+                localStorage.setItem('tof_username', 'TAMU_MENOREH');
+            }
 
-        const { data: users, error } = await db.from('profiles')
-            .select('id, username, level, xp, saldo_tof, rank, power, avatar_url, house_style_id, compost_level, compost_last_collect, fertilizer_count')
-            .order('created_at', { ascending: true });
-        if (error) return console.error(error);
-        rawUserData = users || [];
+            refreshAuthUI();
 
-        await loadCatalogs();
-        updateMyUserRef();
-        await loadWorldState();
+            const { data: terrain, error: terrainErr } = await db.from('village_map').select('*');
+            if (terrainErr) console.error('Gagal memuat village_map:', terrainErr);
+            rawTerrainData = terrain || [];
 
-        buildWorld();
-        centerMapOnVillage();
-        subscribeRealtime();
+            const { data: users, error } = await db.from('profiles')
+                .select('id, username, level, xp, saldo_tof, rank, power, avatar_url, house_style_id, compost_level, compost_last_collect, fertilizer_count')
+                .order('created_at', { ascending: true });
+            if (error) { console.error('Gagal memuat profiles:', error); showToast('Gagal memuat data warga. Coba muat ulang halaman.', true); return; }
+            rawUserData = users || [];
+
+            await loadCatalogs();
+            if (!CROP_TYPES.length) console.warn('crop_catalog kosong/gagal dimuat — memakai katalog cadangan bawaan.');
+            if (!HOUSE_STYLES.length) console.warn('house_style_catalog kosong/gagal dimuat — memakai katalog cadangan bawaan.');
+
+            updateMyUserRef();
+            await loadWorldState();
+
+            buildWorld();
+            centerMapOnVillage();
+            await ensureMyHouseRow();
+            subscribeRealtime();
+
+            // Cadangan sinkron tiap 45 detik (ringan, tanpa rebuild DOM total)
+            setInterval(lightweightResync, 45000);
+        } catch (e) {
+            console.error('Init gagal total:', e);
+            showToast('Terjadi kendala memuat desa. Coba muat ulang halaman.', true);
+        }
     }
 
     init();
