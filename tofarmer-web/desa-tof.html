@@ -1576,11 +1576,11 @@
     }
 
     function centerMapOnVillage() {
-        const centerCoords = getIsoCoords(Math.floor(GRID_SIZE/2), Math.floor(GRID_SIZE/2));
-        panX = -centerCoords.x;
-        panY = -centerCoords.y + 50; 
-        updateWorldTransform();
-    }
+    const centerCoords = getIsoCoords(Math.floor(GRID_SIZE/2), Math.floor(GRID_SIZE/2));
+    panX = -centerCoords.x * zoom;
+    panY = -centerCoords.y * zoom + 50; 
+    updateWorldTransform();
+}
 
     // ============== MUAT DATA DUNIA DARI SUPABASE (sumber kebenaran bersama) ==============
     async function loadCatalogs() {
