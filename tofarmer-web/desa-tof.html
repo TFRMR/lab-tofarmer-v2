@@ -1551,11 +1551,9 @@
         if (error) return console.error(error);
         rawUserData = users || [];
 
-        await supabase.rpc("fn_plant_crop", ...)
-
-await loadWorldState();   // WAJIB
-await updateMyUserRef();  // kalau user bisa berubah
-await loadCatalogs();     // opsional (jarang berubah)
+        await loadCatalogs();
+        updateMyUserRef();
+        await loadWorldState();
 
         buildWorld();
         centerMapOnVillage();
