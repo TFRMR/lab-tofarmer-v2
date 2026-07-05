@@ -395,7 +395,7 @@
             alert("Sesi ditutup. Anda sekarang berada dalam Mode Tamu.");
             refreshAuthUI();
             updateMyUserRef();
-            renderVillage();
+            refreshOwnershipVisuals();
         }
     }
 
@@ -478,7 +478,7 @@
                 }
                 startTouchAngle = currentAngle; // Reset jangkar sudut sentuh baru
                 lastRotationTriggerTime = now;
-                renderVillage();
+                repositionWorld();
             }
 
             updateWorldTransform();
@@ -622,7 +622,7 @@
         saveClaims();
         showToast(`✅ Berhasil klaim tanah (${x}, ${y})!`);
         updateTileHUDButtons(x, y);
-        renderVillage();
+        updateTileClaimVisual(key);
     }
 
     function triggerBuildAction() {
@@ -678,7 +678,7 @@
         saveFarms();
         showToast("🌱 Berhasil menanam! Tunggu sampai siap panen.");
         renderFarmList();
-        renderVillage();
+        updateTileFarmVisual(key);
     }
 
     function harvestCrop(key) {
@@ -691,7 +691,7 @@
         saveFarms();
         showToast(`🧺 Panen berhasil! +${cropDef.reward} TOF (simulasi).`);
         renderFarmList();
-        renderVillage();
+        updateTileFarmVisual(key);
     }
 
     // ============== DEKORASI RUMAH (MODE ARSITEK) ==============
@@ -712,7 +712,7 @@
         houseDecor[myUsername] = mine;
         saveDecor();
         renderDecorPalette();
-        renderVillage();
+        if (myUserId) renderHouseDecor(myUserId);
     }
 
     function goToUserProfile() {
@@ -742,7 +742,7 @@
         document.body.classList.remove('edit-active-ui');
         document.getElementById('edit-hud').classList.remove('active');
         saveLayout();
-        renderVillage();
+        // Posisi sudah benar secara visual dari proses drag, tidak perlu bangun ulang dunia.
     }
 
     function cancelEditMode() {
@@ -751,14 +751,111 @@
         document.body.classList.remove('edit-active-ui');
         document.getElementById('edit-hud').classList.remove('active');
         housePositions = JSON.parse(JSON.stringify(backupPositions)); 
-        renderVillage();
+        repositionHouses(); // kembalikan tampilan rumah ke posisi semula sebelum diedit
     }
 
-    function renderVillage() {
-        world.innerHTML = ''; 
-        reservedTiles.clear();
+    // ============================================================
+    // ENGINE RENDER DIOPTIMALKAN:
+    // - buildWorld() membuat semua node SEKALI SAJA (bukan tiap aksi).
+    // - Perubahan berikutnya (klaim, tanam, panen, dekorasi, geser
+    //   rumah, putar peta) hanya MENGUBAH node yang relevan lewat
+    //   fungsi update kecil di bawah, bukan hancur-bangun ulang 900 ubin.
+    // Tampilan & fitur 100% sama seperti sebelumnya, cuma jalur
+    // renderingnya jauh lebih ringan untuk HP spek rendah.
+    // ============================================================
 
-        // 1. Render Base Ground
+    let tileNodeMap = {};   // "x,y" -> { node, tileEl, cropIconEl }
+    let houseNodeMap = {};  // user.id -> { node, container, decorWrap, user }
+
+    function createCropIcon(farmData) {
+        const cropDef = CROP_TYPES.find(c => c.id === farmData.crop);
+        const cropIcon = document.createElement('span');
+        cropIcon.className = 'sprite';
+        cropIcon.style.fontSize = '22px';
+        cropIcon.style.bottom = '18px';
+        cropIcon.innerText = (cropDef && (Date.now() - farmData.plantedAt >= cropDef.growMs)) ? cropDef.icon : '🌱';
+        return cropIcon;
+    }
+
+    function updateTileClaimVisual(key) {
+        const entry = tileNodeMap[key];
+        if (!entry) return;
+        entry.tileEl.classList.remove('tile-claimed-mine', 'tile-claimed-other');
+        const owner = claimedTiles[key];
+        if (owner) entry.tileEl.classList.add(owner === myUsername ? 'tile-claimed-mine' : 'tile-claimed-other');
+    }
+
+    function refreshOwnershipVisuals() {
+        Object.keys(claimedTiles).forEach(key => updateTileClaimVisual(key));
+    }
+
+    function updateTileFarmVisual(key) {
+        const entry = tileNodeMap[key];
+        if (!entry) return;
+        if (entry.cropIconEl) { entry.cropIconEl.remove(); entry.cropIconEl = null; }
+        const farmData = farms[key];
+        if (farmData) {
+            entry.cropIconEl = createCropIcon(farmData);
+            entry.node.appendChild(entry.cropIconEl);
+        }
+    }
+
+    function renderHouseDecor(userId) {
+        const entry = houseNodeMap[userId];
+        if (!entry) return;
+        entry.decorWrap.innerHTML = '';
+        const decorList = houseDecor[entry.user.username] || [];
+        decorList.forEach((decorId, idx) => {
+            const d = DECOR_ITEMS.find(x => x.id === decorId);
+            if (!d) return;
+            const decorEl = document.createElement('span');
+            decorEl.style.position = 'absolute';
+            decorEl.style.fontSize = '16px';
+            decorEl.style.bottom = (2 + (idx % 3) * 14) + 'px';
+            if (idx % 2 === 0) decorEl.style.left = '2px'; else decorEl.style.right = '2px';
+            decorEl.style.pointerEvents = 'none';
+            decorEl.innerText = d.icon;
+            entry.decorWrap.appendChild(decorEl);
+        });
+    }
+
+    function repositionTiles() {
+        for (let x = 0; x < GRID_SIZE; x++) {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                const entry = tileNodeMap[`${x},${y}`];
+                if (!entry) continue;
+                const coords = getIsoCoords(x, y);
+                entry.node.style.left = coords.x + 'px';
+                entry.node.style.top = coords.y + 'px';
+                entry.node.style.zIndex = x + y;
+            }
+        }
+    }
+
+    function repositionHouses() {
+        Object.keys(houseNodeMap).forEach(userId => {
+            const entry = houseNodeMap[userId];
+            const pos = housePositions[userId];
+            if (!pos) return;
+            const coords = getIsoCoords(pos.x, pos.y);
+            entry.node.style.left = coords.x + 'px';
+            entry.node.style.top = coords.y + 'px';
+            entry.node.style.zIndex = pos.x + pos.y + 100;
+        });
+    }
+
+    function repositionWorld() {
+        repositionTiles();
+        repositionHouses();
+    }
+
+    function buildWorld() {
+        world.innerHTML = '';
+        reservedTiles.clear();
+        tileNodeMap = {};
+        houseNodeMap = {};
+
+        // 1. Bangun Ground / Ubin (SEKALI SAJA)
         for (let x = 0; x < GRID_SIZE; x++) {
             for (let y = 0; y < GRID_SIZE; y++) {
                 const node = document.createElement('div');
@@ -797,22 +894,18 @@
                     node.appendChild(icon);
                 }
 
+                let cropIconEl = null;
                 const farmData = farms[tileKey];
                 if (farmData) {
-                    const cropDef = CROP_TYPES.find(c => c.id === farmData.crop);
-                    if (cropDef) {
-                        const cropIcon = document.createElement('span');
-                        cropIcon.className = 'sprite';
-                        cropIcon.style.fontSize = '22px';
-                        cropIcon.style.bottom = '18px';
-                        cropIcon.innerText = (Date.now() - farmData.plantedAt >= cropDef.growMs) ? cropDef.icon : '🌱';
-                        node.appendChild(cropIcon);
-                    }
+                    cropIconEl = createCropIcon(farmData);
+                    node.appendChild(cropIconEl);
                 }
+
+                tileNodeMap[tileKey] = { node, tileEl: tile, cropIconEl };
             }
         }
 
-        // 2. Render Player Houses
+        // 2. Bangun Rumah Warga (SEKALI SAJA per warga)
         let layoutChanged = false;
         rawUserData.forEach(user => {
             if (housePositions[user.id]) {
@@ -850,28 +943,21 @@
                 </div>
             `;
 
-            // Render dekorasi milik warga ini di sekitar rumahnya
-            const decorList = houseDecor[user.username] || [];
-            decorList.forEach((decorId, idx) => {
-                const d = DECOR_ITEMS.find(x => x.id === decorId);
-                if (!d) return;
-                const decorEl = document.createElement('span');
-                decorEl.style.position = 'absolute';
-                decorEl.style.fontSize = '16px';
-                decorEl.style.bottom = (2 + (idx % 3) * 14) + 'px';
-                if (idx % 2 === 0) decorEl.style.left = '2px'; else decorEl.style.right = '2px';
-                decorEl.style.pointerEvents = 'none';
-                decorEl.innerText = d.icon;
-                container.appendChild(decorEl);
-            });
+            const decorWrap = document.createElement('div');
+            decorWrap.style.position = 'absolute';
+            decorWrap.style.inset = '0';
+            decorWrap.style.pointerEvents = 'none';
+            container.appendChild(decorWrap);
 
-            const isMine = !!(myUserId && user.id === myUserId);
             let dragActive = false;
             let lastInvalidToastTime = 0;
             
             const startDrag = (e) => {
                 if (!isEditMode) { openProfileModal(user); return; }
-                if (!isMine) { showToast("Hanya bisa menata rumah milik sendiri."); return; }
+                // Dicek langsung saat drag (bukan disimpan sekali di awal),
+                // supaya tetap valid walau warga login/logout tanpa reload penuh.
+                const isMineNow = !!(myUserId && user.id === myUserId);
+                if (!isMineNow) { showToast("Hanya bisa menata rumah milik sendiri."); return; }
                 dragActive = true;
                 e.preventDefault();
             };
@@ -911,7 +997,7 @@
                 }
             };
 
-            const endDrag = () => { if (dragActive) { dragActive = false; saveLayout(); renderVillage(); } };
+            const endDrag = () => { if (dragActive) { dragActive = false; saveLayout(); } };
 
             container.addEventListener('mousedown', startDrag);
             window.addEventListener('mousemove', moveDrag);
@@ -923,6 +1009,9 @@
 
             node.appendChild(container);
             world.appendChild(node);
+
+            houseNodeMap[user.id] = { node, container, decorWrap, user };
+            renderHouseDecor(user.id);
         });
 
         if (layoutChanged) saveLayout();
@@ -947,7 +1036,7 @@
     
     function rotateMap() { 
         currentRotationIndex = (currentRotationIndex + 1) % 4; 
-        renderVillage(); 
+        repositionWorld(); 
         centerMapOnVillage();
     }
 
@@ -986,7 +1075,7 @@
 
         updateMyUserRef();
 
-        renderVillage();
+        buildWorld();
         centerMapOnVillage();
     }
 
