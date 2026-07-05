@@ -31,10 +31,12 @@
         .iso-node { position: absolute; width: 100px; height: 50px; transform: translate(-50%, -50%); will-change: transform; display: flex; align-items: center; justify-content: center; }
         
         /* Ubin / Grid */
-        .tile { width: 98px; height: 48px; border: 1px solid rgba(74, 222, 128, 0.03); background: rgba(74, 222, 128, 0.01); box-sizing: border-box; transition: background 0.2s; }
-        .tile:hover { background: rgba(74, 222, 128, 0.08); cursor: pointer; }
+        .tile { width: 98px; height: 48px; border: 1px solid rgba(74, 222, 128, 0.03); background: rgba(74, 222, 128, 0.01); box-sizing: border-box; transition: background 0.2s; cursor: default; }
+        .claim-mode-active .tile:hover { background: rgba(56, 189, 248, 0.18); cursor: pointer; }
         .road { background: rgba(30, 41, 59, 0.85); border-color: rgba(74, 222, 128, 0.2); }
         .farm { background: rgba(120, 53, 4, 0.35); border-style: dashed; border-color: rgba(245, 158, 11, 0.3); }
+        .tile-claimed-mine { outline: 2px solid rgba(74, 222, 128, 0.7); outline-offset: -2px; }
+        .tile-claimed-other { outline: 2px solid rgba(248, 113, 113, 0.6); outline-offset: -2px; }
 
         /* Kunci interaksi hover ubin saat mode edit arsitek aktif */
         .edit-mode .tile { cursor: move !important; }
@@ -118,9 +120,31 @@
         .edit-active-ui #auth-status, .edit-active-ui .controls,
         .tile-active-ui #auth-status, .tile-active-ui .controls { opacity: 0; pointer-events: none; }
 
-        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: bold; text-align: center; min-width: 110px; box-sizing: border-box; }
+        .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 9px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; text-align: center; min-width: 105px; box-sizing: border-box; }
         .btn-edit { background: linear-gradient(135deg, #1e3a1f, #051a08); border-color: #22c55e; color: #4ade80; }
         .btn-island { background: linear-gradient(135deg, #0f172a, #1e1b4b); border-color: #6366f1; color: #a5b4fc; }
+        .btn-claim-toggle { background: linear-gradient(135deg, #0c4a6e, #082f49); border-color: #38bdf8; color: #7dd3fc; }
+        .btn-farm { background: linear-gradient(135deg, #3f2d0a, #1c1305); border-color: #eab308; color: #fde047; }
+        .mode-active-btn { outline: 2px solid #fff; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
+
+        /* TOAST NOTIF RINGAN (pengganti alert yang mengganggu) */
+        .toast-box { position: fixed; top: 68px; left: 50%; transform: translateX(-50%) translateY(-16px); background: rgba(10, 25, 15, 0.96); border: 1px solid var(--accent); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 12px; z-index: 30000; opacity: 0; pointer-events: none; transition: all 0.3s ease; max-width: 85%; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
+        .toast-box.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* PALET DEKORASI RUMAH (MODE ARSITEK) */
+        .hud-decor-section { border-top: 1px solid rgba(74,222,128,0.15); padding-top: 10px; margin-top: 2px; }
+        .decor-palette { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .decor-btn { flex: 1 1 28%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0; border-radius: 8px; padding: 7px 4px; font-size: 17px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
+        .decor-btn span { font-size: 8px; color: #cbd5e1; font-weight: 600; }
+        .decor-btn.active { border-color: var(--accent); background: rgba(74,222,128,0.15); box-shadow: 0 0 8px rgba(74,222,128,0.35); }
+
+        /* KARTU LAHAN PADA MODAL BERTANI */
+        .farm-plot-card { background: rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 10px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.08); text-align: left; }
+        .farm-plot-card strong { font-size: 12px; color: #fff; }
+        .farm-crop-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+        .btn-crop { padding: 6px 8px; font-size: 10px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #1e3a1f; color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+        .btn-harvest { padding: 7px 10px; font-size: 11px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #0284c7; color: #fff; margin-top: 6px; }
+        .farm-growing-text { font-size: 11px; color: #fbbf24; display: block; margin-top: 6px; }
     </style>
 </head>
 <body>
@@ -198,24 +222,44 @@
         <strong id="hud-tile-status">Tanah Kosong Desa</strong>
     </div>
     <div class="tile-buttons">
-        <button class="btn-tile-act btn-claim" onclick="triggerClaimAction()">Claim</button>
-        <button class="btn-tile-act btn-build" onclick="triggerBuildAction()">Bangun</button>
+        <button id="btn-tile-claim" class="btn-tile-act btn-claim" onclick="triggerClaimAction()">Claim</button>
+        <button id="btn-tile-build" class="btn-tile-act btn-build" onclick="triggerBuildAction()">Bangun</button>
     </div>
 </div>
 
 <div id="edit-hud" class="edit-hud-banner">
     <div class="hud-title">🛠️ Mode Arsitek Desa</div>
-    <p class="hud-desc">Sentuh dan geser (*drag & drop*) pada ikon rumah warga untuk mengatur tata letak desa Menoreh secara bebas & artistik.</p>
+    <p class="hud-desc">Sentuh dan geser (*drag & drop*) ikon rumah <strong>milik Anda sendiri</strong> ke petak tanah yang sudah Anda klaim untuk mengatur tata letaknya.</p>
+    <div class="hud-decor-section">
+        <div class="hud-title" style="font-size:12px;">🎨 Dekorasi Rumah</div>
+        <p class="hud-desc" style="margin:2px 0 0 0;">Pilih pernak-pernik untuk mempercantik rumah Anda.</p>
+        <div id="decor-palette" class="decor-palette"></div>
+    </div>
     <div class="hud-action-row">
         <button class="hud-btn hud-btn-cancel" onclick="cancelEditMode()">Batal</button>
         <button class="hud-btn hud-btn-save" onclick="saveAndLockMode()">🔒 Kunci Posisi</button>
     </div>
 </div>
 
+<div id="farm-modal" class="modal-overlay" onclick="closeFarmModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px;">
+        <span class="island-icon" style="font-size: 40px;">🌾</span>
+        <div class="modal-username" style="color:#fde047;">Lahan Pertanian Saya</div>
+        <div id="farm-list" style="text-align:left; max-height: 300px; overflow-y: auto; margin-top: 15px;"></div>
+        <div class="modal-buttons-group">
+            <button class="btn-modal-action btn-close-modal" onclick="document.getElementById('farm-modal').classList.remove('active')">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast-box" class="toast-box"></div>
+
 <div id="auth-status">Memeriksa session...</div>
 
 <div class="controls">
+    <button id="btn-claim-toggle" class="btn btn-claim-toggle" onclick="toggleClaimMode()">📍 Klaim Tanah</button>
     <button class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
+    <button class="btn btn-farm" onclick="openFarmMenu()">🌾 Bertani</button>
     <button class="btn btn-island" onclick="openIslandModal()">🏝️ Bikin Pulau</button>
     <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
     <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
@@ -232,9 +276,34 @@
     let panX = 0, panY = 0;
     let currentRotationIndex = 0; 
     let isEditMode = false;
+    let claimModeActive = false;
     let currentSelectedUsername = null; 
     let currentSelectedTile = { x: null, y: null };
     
+    let myUsername = null;
+    let myUser = null;
+    let myUserId = null;
+
+    let claimedTiles = {};   // "x,y" -> username pemilik
+    let farms = {};          // "x,y" -> { crop, plantedAt }
+    let houseDecor = {};     // username -> [decorId, ...]
+
+    const CROP_TYPES = [
+        { id: 'padi',   name: 'Padi',   icon: '🌾', growMs: 20000, reward: 5 },
+        { id: 'jagung', name: 'Jagung', icon: '🌽', growMs: 30000, reward: 8 },
+        { id: 'cabai',  name: 'Cabai',  icon: '🌶️', growMs: 25000, reward: 7 },
+        { id: 'tomat',  name: 'Tomat',  icon: '🍅', growMs: 35000, reward: 10 },
+    ];
+
+    const DECOR_ITEMS = [
+        { id: 'pagar',    name: 'Pagar',        icon: '🚧' },
+        { id: 'lampu',    name: 'Lampu Taman',  icon: '💡' },
+        { id: 'sumur',    name: 'Sumur',        icon: '⛲' },
+        { id: 'bunga',    name: 'Bunga',        icon: '🌸' },
+        { id: 'pohon',    name: 'Pohon Hias',   icon: '🌳' },
+        { id: 'bendera',  name: 'Bendera',      icon: '🚩' },
+    ];
+
     let isDraggingView = false;
     let startX = 0, startY = 0;
     
@@ -257,6 +326,42 @@
 
     function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.0); updateWorldTransform(); }
     function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
+
+    // ============== TOAST NOTIF (pengganti alert yang mengganggu) ==============
+    let toastTimer = null;
+    function showToast(msg) {
+        const box = document.getElementById('toast-box');
+        box.innerText = msg;
+        box.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => box.classList.remove('show'), 2600);
+    }
+
+    // ============== PENYIMPANAN LOKAL (persisten & konsisten) ==============
+    function saveLayout() { localStorage.setItem('tofarmer_custom_layout_v3', JSON.stringify(housePositions)); }
+    function saveClaims() { localStorage.setItem('tofarmer_claims_v1', JSON.stringify(claimedTiles)); }
+    function saveFarms() { localStorage.setItem('tofarmer_farms_v1', JSON.stringify(farms)); }
+    function saveDecor() { localStorage.setItem('tofarmer_decor_v1', JSON.stringify(houseDecor)); }
+
+    function updateMyUserRef() {
+        myUsername = localStorage.getItem('tof_username');
+        myUser = rawUserData.find(u => u.username === myUsername) || null;
+        myUserId = myUser ? myUser.id : null;
+    }
+
+    // PRNG dengan seed tetap berdasarkan ID warga, supaya posisi awal rumah
+    // selalu konsisten (tidak berpindah acak) di sesi/perangkat manapun
+    // selama warga belum memindahkannya sendiri.
+    function seededRandom(seedStr) {
+        let h = 0;
+        for (let i = 0; i < seedStr.length; i++) { h = (Math.imul(31, h) + seedStr.charCodeAt(i)) | 0; }
+        return function () {
+            h = Math.imul(h ^ (h >>> 15), 2246822519);
+            h = Math.imul(h ^ (h >>> 13), 3266489917);
+            h ^= h >>> 16;
+            return (h >>> 0) / 4294967296;
+        };
+    }
 
     function isGuestUser() {
         const wallet = localStorage.getItem('tof_wallet');
@@ -289,6 +394,8 @@
             localStorage.setItem('tof_username', 'TAMU_MENOREH');
             alert("Sesi ditutup. Anda sekarang berada dalam Mode Tamu.");
             refreshAuthUI();
+            updateMyUserRef();
+            renderVillage();
         }
     }
 
@@ -398,10 +505,11 @@
         return { x: (rx - ry) * (TILE_WIDTH / 2), y: (rx + ry) * (TILE_HEIGHT / 2) };
     }
 
-    function findInitialEmptyTile() {
+    function findInitialEmptyTile(seed) {
+        const rand = seededRandom(String(seed));
         for (let mencoba = 0; mencoba < 1000; mencoba++) {
-            let tx = Math.floor(Math.random() * (GRID_SIZE - 6)) + 3;
-            let ty = Math.floor(Math.random() * (GRID_SIZE - 6)) + 3;
+            let tx = Math.floor(rand() * (GRID_SIZE - 6)) + 3;
+            let ty = Math.floor(rand() * (GRID_SIZE - 6)) + 3;
             let key = `${tx},${ty}`;
             if (!reservedTiles.has(key)) {
                 let aman = true;
@@ -414,7 +522,7 @@
                 if (aman) { reservedTiles.add(key); return { x: tx, y: ty }; }
             }
         }
-        return { x: Math.floor(Math.random()*(GRID_SIZE-2))+1, y: Math.floor(Math.random()*(GRID_SIZE-2))+1 };
+        return { x: Math.floor(rand()*(GRID_SIZE-2))+1, y: Math.floor(rand()*(GRID_SIZE-2))+1 };
     }
 
     function openIslandModal() {
@@ -429,19 +537,65 @@
         document.getElementById('island-modal').classList.remove('active');
     }
 
+    // ============== MODE KLAIM TANAH (agar popup tidak muncul terus) ==============
+    function toggleClaimMode() {
+        if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa mengklaim lahan. Silakan masuk ke akun Anda!"); return; }
+        if (isEditMode) { showToast("Selesaikan dahulu Mode Arsitek (Tata Rumah)."); return; }
+        claimModeActive = !claimModeActive;
+        document.body.classList.toggle('claim-mode-active', claimModeActive);
+        document.getElementById('btn-claim-toggle').classList.toggle('mode-active-btn', claimModeActive);
+        if (!claimModeActive) closeTileHUD();
+        showToast(claimModeActive ? "📍 Mode Klaim aktif — ketuk petak tanah untuk membuka opsi." : "Mode Klaim dinonaktifkan.");
+    }
+
     function selectTile(x, y, event) {
         if (isEditMode) return;
+        if (!claimModeActive) return; // popup hanya muncul jika mode klaim diaktifkan lewat tombol
         event.stopPropagation();
         currentSelectedTile = { x, y };
         
+        const key = `${x},${y}`;
+        const owner = claimedTiles[key];
+
         document.getElementById('hud-tile-coord').innerText = `Koordinat: Sisi (${x}, ${y})`;
         const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
         let statusText = "Tanah Kosong Bebas";
         if (ground) statusText = ground.type === 'paved_road' ? 'Jalan Desa' : (ground.type === 'soil_farm' ? 'Lahan Pertanian' : 'Area Alam');
+        if (owner) statusText += owner === myUsername ? ' • Milik Anda' : ` • Milik @${owner}`;
         document.getElementById('hud-tile-status').innerText = statusText;
+
+        updateTileHUDButtons(x, y);
 
         document.body.classList.add('tile-active-ui');
         document.getElementById('tile-hud').classList.add('active');
+    }
+
+    function updateTileHUDButtons(x, y) {
+        const claimBtn = document.getElementById('btn-tile-claim');
+        const buildBtn = document.getElementById('btn-tile-build');
+        const key = `${x},${y}`;
+        const owner = claimedTiles[key];
+        const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+        const isNatural = ground && (ground.type === 'paved_road' || ground.type === 'mountain' || ground.type === 'tree');
+
+        if (isNatural) {
+            claimBtn.innerText = "Tak Bisa Diklaim";
+            claimBtn.disabled = true; claimBtn.style.opacity = 0.5;
+        } else if (!owner) {
+            claimBtn.innerText = "Claim";
+            claimBtn.disabled = false; claimBtn.style.opacity = 1;
+        } else if (owner === myUsername) {
+            claimBtn.innerText = "✅ Milik Anda";
+            claimBtn.disabled = true; claimBtn.style.opacity = 0.7;
+        } else {
+            claimBtn.innerText = "Milik Warga Lain";
+            claimBtn.disabled = true; claimBtn.style.opacity = 0.5;
+        }
+
+        const ownedByMe = owner === myUsername;
+        buildBtn.innerText = "Bangun";
+        buildBtn.disabled = !ownedByMe;
+        buildBtn.style.opacity = ownedByMe ? 1 : 0.5;
     }
 
     function closeTileHUD() {
@@ -451,14 +605,114 @@
 
     function triggerClaimAction() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa mengklaim lahan. Silakan masuk ke akun Anda!"); closeTileHUD(); return; }
-        alert(`Sirkulasi TOF:\nKlaim Hak Pakai Ubin (${currentSelectedTile.x}, ${currentSelectedTile.y}) dikonfirmasi.\nData akan segera disinkronkan ke master database.`);
-        closeTileHUD();
+        const { x, y } = currentSelectedTile;
+        const key = `${x},${y}`;
+        const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+
+        if (ground && (ground.type === 'paved_road' || ground.type === 'mountain' || ground.type === 'tree')) {
+            showToast("Tanah ini tidak bisa diklaim (jalan/area alam desa).");
+            return;
+        }
+        if (claimedTiles[key]) {
+            showToast(claimedTiles[key] === myUsername ? "Anda sudah memiliki tanah ini." : "Tanah ini sudah dimiliki warga lain.");
+            return;
+        }
+
+        claimedTiles[key] = myUsername;
+        saveClaims();
+        showToast(`✅ Berhasil klaim tanah (${x}, ${y})!`);
+        updateTileHUDButtons(x, y);
+        renderVillage();
     }
 
     function triggerBuildAction() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak diizinkan mendirikan konstruksi bangunan desa!"); closeTileHUD(); return; }
-        alert(`Menu Konstruksi TOF:\nSilakan tentukan blueprint komponen/dekorasi untuk diletakkan pada titik koordinat (${currentSelectedTile.x}, ${currentSelectedTile.y}).`);
+        const { x, y } = currentSelectedTile;
+        const key = `${x},${y}`;
+        if (claimedTiles[key] !== myUsername) {
+            showToast("Anda harus memiliki (klaim) tanah ini dahulu untuk membangun.");
+            return;
+        }
         closeTileHUD();
+        openFarmMenu();
+    }
+
+    // ============== MENU BERTANI ==============
+    function openFarmMenu() {
+        if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa bertani. Silakan login!"); return; }
+        renderFarmList();
+        document.getElementById('farm-modal').classList.add('active');
+    }
+    function closeFarmModal(e) { if (e.target === document.getElementById('farm-modal')) document.getElementById('farm-modal').classList.remove('active'); }
+
+    function renderFarmList() {
+        const list = document.getElementById('farm-list');
+        const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k] === myUsername);
+
+        if (myTiles.length === 0) {
+            list.innerHTML = `<p style="font-size:12px;color:#94a3b8;text-align:center;">Anda belum memiliki tanah. Klaim tanah dahulu lewat tombol 📍 Klaim Tanah.</p>`;
+            return;
+        }
+
+        list.innerHTML = myTiles.map(key => {
+            const farm = farms[key];
+            let inner;
+            if (!farm) {
+                inner = `<div class="farm-crop-row">` + CROP_TYPES.map(c =>
+                    `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name}</button>`
+                ).join('') + `</div>`;
+            } else {
+                const cropDef = CROP_TYPES.find(c => c.id === farm.crop);
+                const ready = Date.now() - farm.plantedAt >= cropDef.growMs;
+                inner = ready
+                    ? `<button class="btn-harvest" onclick="harvestCrop('${key}')">🧺 Panen ${cropDef.icon} (+${cropDef.reward} TOF)</button>`
+                    : `<span class="farm-growing-text">🌱 ${cropDef.name} sedang tumbuh, kembali lagi nanti...</span>`;
+            }
+            return `<div class="farm-plot-card"><strong>Petak Tanah (${key})</strong>${inner}</div>`;
+        }).join('');
+    }
+
+    function plantCrop(key, cropId) {
+        if (farms[key]) { showToast("Petak ini sudah ditanami."); return; }
+        farms[key] = { crop: cropId, plantedAt: Date.now() };
+        saveFarms();
+        showToast("🌱 Berhasil menanam! Tunggu sampai siap panen.");
+        renderFarmList();
+        renderVillage();
+    }
+
+    function harvestCrop(key) {
+        const farm = farms[key];
+        if (!farm) return;
+        const cropDef = CROP_TYPES.find(c => c.id === farm.crop);
+        const ready = Date.now() - farm.plantedAt >= cropDef.growMs;
+        if (!ready) { showToast("Belum siap panen."); return; }
+        delete farms[key];
+        saveFarms();
+        showToast(`🧺 Panen berhasil! +${cropDef.reward} TOF (simulasi).`);
+        renderFarmList();
+        renderVillage();
+    }
+
+    // ============== DEKORASI RUMAH (MODE ARSITEK) ==============
+    function renderDecorPalette() {
+        const palette = document.getElementById('decor-palette');
+        const mine = houseDecor[myUsername] || [];
+        palette.innerHTML = DECOR_ITEMS.map(d => `
+            <button class="decor-btn ${mine.includes(d.id) ? 'active' : ''}" onclick="toggleDecorItem('${d.id}')">
+                ${d.icon}<span>${d.name}</span>
+            </button>
+        `).join('');
+    }
+
+    function toggleDecorItem(id) {
+        if (!myUsername) return;
+        let mine = houseDecor[myUsername] || [];
+        if (mine.includes(id)) mine = mine.filter(x => x !== id); else mine.push(id);
+        houseDecor[myUsername] = mine;
+        saveDecor();
+        renderDecorPalette();
+        renderVillage();
     }
 
     function goToUserProfile() {
@@ -469,12 +723,17 @@
 
     function enableEditMode() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa menata letak rumah warga desa!"); return; }
+        if (claimModeActive) { claimModeActive = false; document.body.classList.remove('claim-mode-active'); document.getElementById('btn-claim-toggle').classList.remove('mode-active-btn'); }
         isEditMode = true;
         closeTileHUD(); 
         backupPositions = JSON.parse(JSON.stringify(housePositions)); 
         world.className = "edit-mode";
         document.body.classList.add('edit-active-ui');
+        renderDecorPalette();
         document.getElementById('edit-hud').classList.add('active');
+        if (!(claimedTiles && Object.values(claimedTiles).includes(myUsername))) {
+            showToast("Anda belum memiliki tanah. Rumah hanya bisa dipindah ke petak yang sudah Anda klaim.");
+        }
     }
 
     function saveAndLockMode() {
@@ -482,7 +741,7 @@
         world.className = "locked-mode";
         document.body.classList.remove('edit-active-ui');
         document.getElementById('edit-hud').classList.remove('active');
-        localStorage.setItem('tofarmer_custom_layout_v3', JSON.stringify(housePositions));
+        saveLayout();
         renderVillage();
     }
 
@@ -523,6 +782,10 @@
                     if (ground.type === 'soil_farm') tile.classList.add('farm');
                 }
 
+                const tileKey = `${x},${y}`;
+                const tileOwner = claimedTiles[tileKey];
+                if (tileOwner) tile.classList.add(tileOwner === myUsername ? 'tile-claimed-mine' : 'tile-claimed-other');
+
                 node.appendChild(tile);
                 world.appendChild(node);
 
@@ -533,17 +796,34 @@
                     icon.innerText = ground.type === 'mountain' ? '⛰️' : '🌳';
                     node.appendChild(icon);
                 }
+
+                const farmData = farms[tileKey];
+                if (farmData) {
+                    const cropDef = CROP_TYPES.find(c => c.id === farmData.crop);
+                    if (cropDef) {
+                        const cropIcon = document.createElement('span');
+                        cropIcon.className = 'sprite';
+                        cropIcon.style.fontSize = '22px';
+                        cropIcon.style.bottom = '18px';
+                        cropIcon.innerText = (Date.now() - farmData.plantedAt >= cropDef.growMs) ? cropDef.icon : '🌱';
+                        node.appendChild(cropIcon);
+                    }
+                }
             }
         }
 
         // 2. Render Player Houses
+        let layoutChanged = false;
         rawUserData.forEach(user => {
             if (housePositions[user.id]) {
                 user.assignedCoord = housePositions[user.id];
                 reservedTiles.add(`${user.assignedCoord.x},${user.assignedCoord.y}`);
             } else {
-                user.assignedCoord = findInitialEmptyTile();
+                // Posisi awal dihitung deterministik dari ID warga, jadi tetap sama
+                // di perangkat/sesi manapun selama warga belum memindahkannya sendiri.
+                user.assignedCoord = findInitialEmptyTile(user.id);
                 housePositions[user.id] = user.assignedCoord;
+                layoutChanged = true;
             }
             
             const node = document.createElement('div');
@@ -570,10 +850,28 @@
                 </div>
             `;
 
+            // Render dekorasi milik warga ini di sekitar rumahnya
+            const decorList = houseDecor[user.username] || [];
+            decorList.forEach((decorId, idx) => {
+                const d = DECOR_ITEMS.find(x => x.id === decorId);
+                if (!d) return;
+                const decorEl = document.createElement('span');
+                decorEl.style.position = 'absolute';
+                decorEl.style.fontSize = '16px';
+                decorEl.style.bottom = (2 + (idx % 3) * 14) + 'px';
+                if (idx % 2 === 0) decorEl.style.left = '2px'; else decorEl.style.right = '2px';
+                decorEl.style.pointerEvents = 'none';
+                decorEl.innerText = d.icon;
+                container.appendChild(decorEl);
+            });
+
+            const isMine = !!(myUserId && user.id === myUserId);
             let dragActive = false;
+            let lastInvalidToastTime = 0;
             
             const startDrag = (e) => {
                 if (!isEditMode) { openProfileModal(user); return; }
+                if (!isMine) { showToast("Hanya bisa menata rumah milik sendiri."); return; }
                 dragActive = true;
                 e.preventDefault();
             };
@@ -592,6 +890,17 @@
                 if (targetNode) {
                     let tx = parseInt(targetNode.getAttribute('data-tile-x'));
                     let ty = parseInt(targetNode.getAttribute('data-tile-y'));
+                    let tileKey = `${tx},${ty}`;
+
+                    // Rumah hanya boleh dipindah ke petak yang sudah diklaim oleh pemiliknya sendiri
+                    if (claimedTiles[tileKey] !== myUsername) {
+                        let now = Date.now();
+                        if (now - lastInvalidToastTime > 1500) {
+                            showToast("Rumah hanya bisa diletakkan di tanah milik sendiri yang sudah diklaim!");
+                            lastInvalidToastTime = now;
+                        }
+                        return;
+                    }
                     
                     let liveCoords = getIsoCoords(tx, ty);
                     node.style.left = liveCoords.x + 'px';
@@ -602,7 +911,7 @@
                 }
             };
 
-            const endDrag = () => { if (dragActive) { dragActive = false; renderVillage(); } };
+            const endDrag = () => { if (dragActive) { dragActive = false; saveLayout(); renderVillage(); } };
 
             container.addEventListener('mousedown', startDrag);
             window.addEventListener('mousemove', moveDrag);
@@ -615,6 +924,8 @@
             node.appendChild(container);
             world.appendChild(node);
         });
+
+        if (layoutChanged) saveLayout();
     }
 
     function openProfileModal(user) {
@@ -657,12 +968,23 @@
         const savedLayout = localStorage.getItem('tofarmer_custom_layout_v3');
         if (savedLayout) housePositions = JSON.parse(savedLayout);
 
+        const savedClaims = localStorage.getItem('tofarmer_claims_v1');
+        if (savedClaims) claimedTiles = JSON.parse(savedClaims);
+
+        const savedFarms = localStorage.getItem('tofarmer_farms_v1');
+        if (savedFarms) farms = JSON.parse(savedFarms);
+
+        const savedDecor = localStorage.getItem('tofarmer_decor_v1');
+        if (savedDecor) houseDecor = JSON.parse(savedDecor);
+
         const { data: terrain } = await db.from('village_map').select('*');
         rawTerrainData = terrain || [];
 
         const { data: users, error } = await db.from('profiles').select('id, username, level, xp, saldo_tof, rank, power, avatar_url').order('created_at', { ascending: true });
         if (error) return console.error(error);
         rawUserData = users || [];
+
+        updateMyUserRef();
 
         renderVillage();
         centerMapOnVillage();
