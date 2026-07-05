@@ -72,7 +72,7 @@
             }
 
             // B. Ambil Riwayat Transaksi Masuk
-            const resTx = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${TOF_ASSET_ID}/transactions?address=${WALLET_TOPLES}&address-role=receiver&limit=15`);
+            const resTx = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${TOF_ASSET_ID}/transactions?address=${WALLET_TOPLES}&address-role=receiver&limit=50`);
             if (resTx.ok) {
                 const txData = await resTx.json();
                 const transactions = txData.transactions || [];
