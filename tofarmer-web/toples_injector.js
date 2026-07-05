@@ -161,7 +161,7 @@ if (!profileData && inputWallet) {
         // ==========================================
         let persentaseIsi = (totalTofSekarang / TARGET_COMPOUNDING) * 100;
         let warnaBar = "#2f6f4e"; 
-        let teksPemberitahuan = `Menunggu akumulasi dana riil genap ${TARGET_COMPOUNDING} TOF sebelum dicairkan ke Aset Utama.`;
+        let teksPemberitahuan = `Menunggu akumulasi dana riil genap ${TARGET_COMPOUNDING} TOF sebelum disuntikkan ke Aset Utama.`;
 
         if (persentaseIsi >= 100) {
             warnaBar = "#d32f2f"; 
