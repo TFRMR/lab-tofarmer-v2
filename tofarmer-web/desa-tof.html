@@ -9,7 +9,7 @@
         :root { 
             --bg: #030704; --ui: rgba(12, 26, 18, 0.95); --accent: #4ade80; 
             --glass: rgba(15, 32, 22, 0.85); --border: rgba(74, 222, 128, 0.2);
-            --island-color: #818cf8;
+            --island-color: #818cf8; --gold: #fbbf24;
         }
         body { margin: 0; background: var(--bg); color: #fff; font-family: 'Inter', sans-serif; overflow: hidden; touch-action: none; }
         
@@ -37,6 +37,7 @@
         .farm { background: rgba(120, 53, 4, 0.35); border-style: dashed; border-color: rgba(245, 158, 11, 0.3); }
         .tile-claimed-mine { outline: 2px solid rgba(74, 222, 128, 0.7); outline-offset: -2px; }
         .tile-claimed-other { outline: 2px solid rgba(248, 113, 113, 0.6); outline-offset: -2px; }
+        .tile-barren { background: rgba(120, 72, 40, 0.55) !important; }
 
         /* Kunci interaksi hover ubin saat mode edit arsitek aktif */
         .edit-mode .tile { cursor: move !important; }
@@ -44,6 +45,9 @@
 
         /* Sprite Alam */
         .sprite { position: absolute; bottom: 25px; height: 60px; pointer-events: none; transition: transform 0.2s ease; z-index: 2; }
+        .crop-value-badge { position: absolute; bottom: 55px; font-size: 9px; font-weight: 800; color: #052e16; background: var(--gold); padding: 1px 5px; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 6; box-shadow: 0 2px 4px rgba(0,0,0,0.5); animation: bob 1.6s ease-in-out infinite; }
+        @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        .crop-warn-badge { position: absolute; bottom: 55px; font-size: 12px; pointer-events: none; z-index: 6; }
         
         /* WADAH INTERAKSI RUMAH WARGA */
         .house-container { position: absolute; width: 100px; height: 140px; bottom: 10px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; cursor: pointer; pointer-events: auto; }
@@ -63,7 +67,7 @@
         .modal-overlay { position: fixed; inset: 0; background: rgba(2, 4, 3, 0.75); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 20000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         
-        .modal-box { background: var(--glass); border: 1px solid var(--accent); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(74, 222, 128, 0.1); width: 90%; max-width: 340px; padding: 25px 20px 20px 20px; border-radius: 16px; text-align: center; transform: scale(0.85); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: #f8fafc; }
+        .modal-box { background: var(--glass); border: 1px solid var(--accent); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), inset 0 0 15px rgba(74, 222, 128, 0.1); width: 90%; max-width: 340px; padding: 25px 20px 20px 20px; border-radius: 16px; text-align: center; transform: scale(0.85); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); color: #f8fafc; max-height: 82vh; overflow-y: auto; box-sizing: border-box; }
         .modal-overlay.active .modal-box { transform: scale(1); }
         
         /* MODAL PULAU STYLING CUSTOMIZATION */
@@ -86,6 +90,7 @@
         .modal-buttons-group { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
         .btn-modal-action { width: 100%; padding: 11px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: background 0.2s, transform 0.1s; border: none; box-sizing: border-box; }
         .btn-modal-action:active { transform: scale(0.98); }
+        .btn-modal-action:disabled { opacity: 0.4; cursor: not-allowed; }
         .btn-visit-profile { background: rgba(74, 222, 128, 0.1); border: 1px solid var(--accent); color: var(--accent); }
         .btn-visit-profile:hover { background: rgba(74, 222, 128, 0.2); }
         .btn-close-modal { background: linear-gradient(135deg, #22c55e, #15803d); color: white; box-shadow: 0 4px 10px rgba(34,197,94,0.25); }
@@ -93,42 +98,31 @@
         .btn-island-submit { background: linear-gradient(135deg, #6366f1, #4338ca); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
         .btn-island-cancel { background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); }
 
+        /* HUD XP & DOMPET WARGA */
+        #xp-hud { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px 14px; border-radius: 10px; z-index: 1000; font-size: 11px; border: 1px solid rgba(74, 222, 128, 0.2); transition: opacity 0.3s; line-height: 1.6; min-width: 150px; }
+        #xp-hud .xp-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        #xp-hud .xp-value { color: var(--gold); font-weight: 800; }
+        #xp-hud .pupuk-value { color: #86efac; font-weight: 700; }
+        .edit-active-ui #xp-hud, .tile-active-ui #xp-hud { opacity: 0; pointer-events: none; }
+
         /* POP-UP HUD EDIT TATA RUMAH */
         .edit-hud-banner {
-    position: fixed;
-    left: 50%;
-    transform: translateX(-50%);
-    
-    width: 95%;
-    max-width: 400px;
-
-    /* FIX: jangan pakai bottom negatif */
-    bottom: calc(-100% - 40px);
-
-    max-height: min(72vh, 520px);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-
-    background: rgba(10, 25, 15, 0.92);
-    border: 1.5px solid var(--accent);
-    backdrop-filter: blur(10px);
-    padding: 15px 20px;
-    border-radius: 16px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.8);
-    z-index: 15000;
-
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2);
-    box-sizing: border-box;
-
-    will-change: transform;
-}
-       .edit-hud-banner.active {
-    bottom: calc(env(safe-area-inset-bottom) + 12px);
-} }
+            position: fixed; left: 50%; transform: translateX(-50%);
+            width: 95%; max-width: 400px;
+            bottom: calc(-100% - 40px);
+            max-height: min(78vh, 560px);
+            overflow-y: auto; -webkit-overflow-scrolling: touch;
+            background: rgba(10, 25, 15, 0.92);
+            border: 1.5px solid var(--accent);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px; border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+            z-index: 15000;
+            display: flex; flex-direction: column; gap: 12px;
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2);
+            box-sizing: border-box; will-change: transform;
+        }
+        .edit-hud-banner.active { bottom: calc(env(safe-area-inset-bottom) + 12px); }
         .hud-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: bold; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
         .hud-desc { font-size: 11px; color: #cbd5e1; line-height: 1.4; margin: 0; }
         .hud-action-row { display: flex; gap: 10px; width: 100%; position: sticky; bottom: -15px; background: rgba(9, 22, 13, 0.97); padding: 10px 20px; margin: 4px -20px -15px -20px; border-top: 1px solid rgba(74,222,128,0.15); border-radius: 0 0 16px 16px; box-sizing: border-box; }
@@ -147,37 +141,63 @@
         .btn-build { background: #eab308; color: #1e293b; }
 
         /* UI CONTROLS NAVIGASI KAMERA */
-        #auth-status { position: fixed; bottom: 20px; left: 20px; background: var(--ui); padding: 10px; border-radius: 8px; z-index: 1000; font-size: 12px; border: 1px solid rgba(74, 222, 128, 0.2); transition: opacity 0.3s; }
         .controls { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000; transition: opacity 0.3s; }
         
-        .edit-active-ui #auth-status, .edit-active-ui .controls,
-        .tile-active-ui #auth-status, .tile-active-ui .controls { opacity: 0; pointer-events: none; }
+        .edit-active-ui .controls,
+        .tile-active-ui .controls { opacity: 0; pointer-events: none; }
 
         .btn { background: var(--ui); border: 1px solid var(--accent); color: white; padding: 9px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold; text-align: center; min-width: 105px; box-sizing: border-box; }
         .btn-edit { background: linear-gradient(135deg, #1e3a1f, #051a08); border-color: #22c55e; color: #4ade80; }
         .btn-island { background: linear-gradient(135deg, #0f172a, #1e1b4b); border-color: #6366f1; color: #a5b4fc; }
         .btn-claim-toggle { background: linear-gradient(135deg, #0c4a6e, #082f49); border-color: #38bdf8; color: #7dd3fc; }
         .btn-farm { background: linear-gradient(135deg, #3f2d0a, #1c1305); border-color: #eab308; color: #fde047; }
+        .btn-compost { background: linear-gradient(135deg, #422006, #1c0f02); border-color: #a16207; color: #fbbf24; }
         .mode-active-btn { outline: 2px solid #fff; box-shadow: 0 0 12px rgba(255,255,255,0.6); }
 
         /* TOAST NOTIF RINGAN (pengganti alert yang mengganggu) */
         .toast-box { position: fixed; top: 68px; left: 50%; transform: translateX(-50%) translateY(-16px); background: rgba(10, 25, 15, 0.96); border: 1px solid var(--accent); color: #fff; padding: 10px 18px; border-radius: 10px; font-size: 12px; z-index: 30000; opacity: 0; pointer-events: none; transition: all 0.3s ease; max-width: 85%; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.5); }
         .toast-box.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast-box.error { border-color: #f87171; }
+
+        /* PALET GAYA RUMAH (MODE ARSITEK) */
+        .hud-style-section { border-top: 1px solid rgba(74,222,128,0.15); padding-top: 10px; }
+        .style-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+        .style-card { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; padding: 8px 10px; cursor: pointer; text-align: left; }
+        .style-card.active { border-color: var(--accent); background: rgba(74,222,128,0.14); box-shadow: 0 0 8px rgba(74,222,128,0.3); }
+        .style-card .style-icon { font-size: 24px; }
+        .style-card .style-info { flex: 1; }
+        .style-card .style-name { font-size: 12px; font-weight: 700; color: #fff; }
+        .style-card .style-bonus { font-size: 9px; color: #94a3b8; }
+        .style-card .style-cost { font-size: 11px; font-weight: 800; color: var(--gold); white-space: nowrap; }
 
         /* PALET DEKORASI RUMAH (MODE ARSITEK) */
         .hud-decor-section { border-top: 1px solid rgba(74,222,128,0.15); padding-top: 10px; margin-top: 2px; }
         .decor-palette { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-        .decor-btn { flex: 1 1 28%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0; border-radius: 8px; padding: 7px 4px; font-size: 17px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; }
-        .decor-btn span { font-size: 8px; color: #cbd5e1; font-weight: 600; }
+        .decor-btn { flex: 1 1 28%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0; border-radius: 8px; padding: 7px 4px; font-size: 17px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; position: relative; }
+        .decor-btn span.dname { font-size: 8px; color: #cbd5e1; font-weight: 600; }
+        .decor-btn span.dcost { font-size: 8px; color: var(--gold); font-weight: 800; }
         .decor-btn.active { border-color: var(--accent); background: rgba(74,222,128,0.15); box-shadow: 0 0 8px rgba(74,222,128,0.35); }
 
         /* KARTU LAHAN PADA MODAL BERTANI */
         .farm-plot-card { background: rgba(255,255,255,0.05); padding: 8px 10px; border-radius: 10px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.08); text-align: left; }
         .farm-plot-card strong { font-size: 12px; color: #fff; }
         .farm-crop-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
-        .btn-crop { padding: 6px 8px; font-size: 10px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #1e3a1f; color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
-        .btn-harvest { padding: 7px 10px; font-size: 11px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #0284c7; color: #fff; margin-top: 6px; }
+        .btn-crop { padding: 6px 8px; font-size: 10px; font-weight: bold; border-radius: 6px; cursor: pointer; background: #1e3a1f; color: #4ade80; border: 1px solid rgba(74,222,128,0.3); }
+        .btn-harvest { padding: 7px 10px; font-size: 11px; font-weight: bold; border-radius: 6px; border: none; cursor: pointer; background: #0284c7; color: #fff; margin-top: 6px; width: 100%; }
+        .btn-harvest:disabled { opacity: 0.5; cursor: not-allowed; }
         .farm-growing-text { font-size: 11px; color: #fbbf24; display: block; margin-top: 6px; }
+        .farm-barren-text { font-size: 11px; color: #fca5a5; display: block; margin-top: 6px; }
+        .care-btn-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+        .care-btn { padding: 6px 8px; font-size: 10px; font-weight: bold; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; background: rgba(255,255,255,0.06); color: #e2e8f0; }
+        .care-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .care-progress { font-size: 9px; color: #94a3b8; margin-top: 3px; }
+
+        /* MODAL KOMPOS & PUPUK */
+        .compost-row { display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 10px 12px; margin: 8px 0; text-align: left; }
+        .compost-row .c-label { font-size: 11px; color: #cbd5e1; }
+        .compost-row .c-value { font-size: 14px; font-weight: 800; color: #86efac; }
+        .buy-row { display: flex; gap: 6px; margin-top: 6px; }
+        .buy-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: linear-gradient(135deg,#a16207,#422006); color: #fde68a; }
     </style>
 </head>
 <body>
@@ -234,12 +254,12 @@
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <span class="island-icon">🏝️</span>
         <div class="modal-username" style="color: #a5b4fc;">Masterplan Peta</div>
-        <div id="m-rank" class="modal-rank" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border-color: rgba(99,102,241,0.3)">Fase Makro Sirkulasi</div>
+        <div class="modal-rank" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border-color: rgba(99,102,241,0.3)">Fase Makro Sirkulasi</div>
         
         <p style="font-size: 12px; color: #cbd5e1; line-height: 1.5; margin: 10px 0 20px 0;">
-            Apakah Anda ingin mengajukan pembukaan klaster **Daratan / Pulau Baru** di luar batas peta koordinat Menoreh saat ini?
+            Apakah Anda ingin mengajukan pembukaan klaster <strong>Daratan / Pulau Baru</strong> di luar batas peta koordinat Menoreh saat ini?
             <br><br>
-            <span style="color: #fbbf24;">⚠️ Estimasi Biaya Konsensus: <strong>10TOF</strong></span>
+            <span style="color: #fbbf24;">⚠️ Biaya Konsensus: <strong>10 XP</strong> (dipotong langsung dari saldo XP Anda)</span>
         </p>
         
         <div class="modal-buttons-group">
@@ -262,10 +282,17 @@
 
 <div id="edit-hud" class="edit-hud-banner">
     <div class="hud-title">🛠️ Mode Arsitek Desa</div>
-    <p class="hud-desc">Sentuh dan geser (*drag & drop*) ikon rumah <strong>milik Anda sendiri</strong> ke petak tanah yang sudah Anda klaim untuk mengatur tata letaknya.</p>
+    <p class="hud-desc">Sentuh dan geser (*drag & drop*) ikon rumah <strong>milik Anda sendiri</strong> ke petak tanah yang sudah Anda klaim. Memindah rumah memotong <strong>3 XP</strong>.</p>
+
+    <div class="hud-style-section">
+        <div class="hud-title" style="font-size:12px;">🏗️ Upgrade Gaya Rumah</div>
+        <p class="hud-desc" style="margin:2px 0 0 0;">Rumah lebih bagus = hasil panen lebih besar & tumbuh lebih cepat.</p>
+        <div id="style-list" class="style-list"></div>
+    </div>
+
     <div class="hud-decor-section">
         <div class="hud-title" style="font-size:12px;">🎨 Dekorasi Rumah</div>
-        <p class="hud-desc" style="margin:2px 0 0 0;">Pilih pernak-pernik untuk mempercantik rumah Anda.</p>
+        <p class="hud-desc" style="margin:2px 0 0 0;">Dekorasi permanen &amp; terlihat semua warga. Menambah sedikit bonus panen.</p>
         <div id="decor-palette" class="decor-palette"></div>
     </div>
     <div class="hud-action-row">
@@ -278,21 +305,61 @@
     <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px;">
         <span class="island-icon" style="font-size: 40px;">🌾</span>
         <div class="modal-username" style="color:#fde047;">Lahan Pertanian Saya</div>
-        <div id="farm-list" style="text-align:left; max-height: 300px; overflow-y: auto; margin-top: 15px;"></div>
+        <div id="farm-list" style="text-align:left; max-height: 340px; overflow-y: auto; margin-top: 15px;"></div>
         <div class="modal-buttons-group">
             <button class="btn-modal-action btn-close-modal" onclick="document.getElementById('farm-modal').classList.remove('active')">Tutup</button>
         </div>
     </div>
 </div>
 
+<div id="compost-modal" class="modal-overlay" onclick="closeCompostModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px;">
+        <span class="island-icon" style="font-size: 40px;">🧪</span>
+        <div class="modal-username" style="color:#fbbf24;">Gudang &amp; Kompos</div>
+        <p class="hud-desc" style="margin:2px 0 12px 0;">Pupuk wajib untuk merawat tanaman &amp; menyuburkan tanah tandus. Beli dengan XP, atau <strong>bikin sendiri gratis</strong> lewat alat kompos (hanya menunggu cooldown).</p>
+
+        <div class="compost-row">
+            <span class="c-label">🌿 Stok Pupuk</span>
+            <span class="c-value" id="compost-fert-count">0</span>
+        </div>
+        <div class="compost-row">
+            <span class="c-label">🧱 Level Alat Kompos</span>
+            <span class="c-value" id="compost-level-value">0 / 5</span>
+        </div>
+
+        <div id="compost-collect-status" style="font-size:11px; color:#94a3b8; margin: 6px 0;"></div>
+
+        <div class="modal-buttons-group" style="margin-top:8px;">
+            <button class="btn-modal-action btn-visit-profile" onclick="collectCompostAction()">🧺 Panen Kompos (Gratis)</button>
+            <button class="btn-modal-action btn-visit-profile" id="btn-upgrade-compost" onclick="upgradeCompostAction()">⬆️ Upgrade Alat Kompos</button>
+        </div>
+
+        <div class="hud-title" style="font-size:12px; margin-top:14px; text-align:left;">🛒 Beli Pupuk (Jalur Cepat)</div>
+        <div class="buy-row">
+            <button class="buy-btn" onclick="buyFertilizerAction(1)">+1 (3 XP)</button>
+            <button class="buy-btn" onclick="buyFertilizerAction(5)">+5 (15 XP)</button>
+            <button class="buy-btn" onclick="buyFertilizerAction(10)">+10 (30 XP)</button>
+        </div>
+
+        <div class="modal-buttons-group" style="margin-top:14px;">
+            <button class="btn-modal-action btn-close-modal" onclick="document.getElementById('compost-modal').classList.remove('active')">Tutup</button>
+        </div>
+    </div>
+</div>
+
 <div id="toast-box" class="toast-box"></div>
 
-<div id="auth-status">Memeriksa session...</div>
+<div id="xp-hud">
+    <div id="auth-status">Memeriksa session...</div>
+    <div class="xp-line"><span>💰 XP</span><span class="xp-value" id="hud-xp-value">0</span></div>
+    <div class="xp-line"><span>🌿 Pupuk</span><span class="pupuk-value" id="hud-pupuk-value">0</span></div>
+</div>
 
 <div class="controls">
     <button id="btn-claim-toggle" class="btn btn-claim-toggle" onclick="toggleClaimMode()">📍 Klaim Tanah</button>
     <button class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
     <button class="btn btn-farm" onclick="openFarmMenu()">🌾 Bertani</button>
+    <button class="btn btn-compost" onclick="openCompostMenu()">🧪 Kompos & Pupuk</button>
     <button class="btn btn-island" onclick="openIslandModal()">🏝️ Bikin Pulau</button>
     <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
     <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
@@ -314,28 +381,18 @@
     let currentSelectedTile = { x: null, y: null };
     
     let myUsername = null;
-    let myUser = null;
+    let myUser = null;      // baris profiles milik saya (termasuk xp, fertilizer_count, dst)
     let myUserId = null;
 
-    let claimedTiles = {};   // "x,y" -> username pemilik
-    let farms = {};          // "x,y" -> { crop, plantedAt }
-    let houseDecor = {};     // username -> [decorId, ...]
+    // ================= STATE DUNIA (semua bersumber dari Supabase, permanen & bersama) =================
+    let claimedTiles = {};   // "x,y" -> { ownerId, ownerUsername }
+    let farms = {};          // "x,y" -> { ownerId, cropId, plantedAt(ms), waterCount, fertilizeCount, prunedCount, landState }
+    let houseMeta = {};      // userId -> { houseStyleId, decorItems: [] }   (dari village_houses)
 
-    const CROP_TYPES = [
-        { id: 'padi',   name: 'Padi',   icon: '🌾', growMs: 20000, reward: 5 },
-        { id: 'jagung', name: 'Jagung', icon: '🌽', growMs: 30000, reward: 8 },
-        { id: 'cabai',  name: 'Cabai',  icon: '🌶️', growMs: 25000, reward: 7 },
-        { id: 'tomat',  name: 'Tomat',  icon: '🍅', growMs: 35000, reward: 10 },
-    ];
-
-    const DECOR_ITEMS = [
-        { id: 'pagar',    name: 'Pagar',        icon: '🚧' },
-        { id: 'lampu',    name: 'Lampu Taman',  icon: '💡' },
-        { id: 'sumur',    name: 'Sumur',        icon: '⛲' },
-        { id: 'bunga',    name: 'Bunga',        icon: '🌸' },
-        { id: 'pohon',    name: 'Pohon Hias',   icon: '🌳' },
-        { id: 'bendera',  name: 'Bendera',      icon: '🚩' },
-    ];
+    // Katalog dimuat dari Supabase saat init()
+    let CROP_TYPES = [];
+    let DECOR_ITEMS = [];
+    let HOUSE_STYLES = [];
 
     let isDraggingView = false;
     let startX = 0, startY = 0;
@@ -354,32 +411,47 @@
     let rawTerrainData = [];
     let rawUserData = [];
     const reservedTiles = new Set();
-    let housePositions = {}; 
+    let housePositions = {};  // userId -> {x, y}  (dari village_houses, permanen bersama)
     let backupPositions = {};
+    let backupHouseMetaMine = null;
 
     function adjustZoom(s) { zoom = Math.min(Math.max(zoom + s, 0.3), 2.0); updateWorldTransform(); }
     function updateWorldTransform() { world.style.transform = `translate3d(${panX}px, ${panY}px, 0) scale(${zoom})`; }
 
     // ============== TOAST NOTIF (pengganti alert yang mengganggu) ==============
     let toastTimer = null;
-    function showToast(msg) {
+    function showToast(msg, isError) {
         const box = document.getElementById('toast-box');
         box.innerText = msg;
+        box.classList.toggle('error', !!isError);
         box.classList.add('show');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => box.classList.remove('show'), 2600);
+        toastTimer = setTimeout(() => box.classList.remove('show'), 2800);
     }
-
-    // ============== PENYIMPANAN LOKAL (persisten & konsisten) ==============
-    function saveLayout() { localStorage.setItem('tofarmer_custom_layout_v3', JSON.stringify(housePositions)); }
-    function saveClaims() { localStorage.setItem('tofarmer_claims_v1', JSON.stringify(claimedTiles)); }
-    function saveFarms() { localStorage.setItem('tofarmer_farms_v1', JSON.stringify(farms)); }
-    function saveDecor() { localStorage.setItem('tofarmer_decor_v1', JSON.stringify(houseDecor)); }
 
     function updateMyUserRef() {
         myUsername = localStorage.getItem('tof_username');
         myUser = rawUserData.find(u => u.username === myUsername) || null;
         myUserId = myUser ? myUser.id : null;
+        renderXpHud();
+    }
+
+    function renderXpHud() {
+        document.getElementById('hud-xp-value').innerText = myUser ? (myUser.xp || 0).toLocaleString('id-ID') : '0';
+        document.getElementById('hud-pupuk-value').innerText = myUser ? (myUser.fertilizer_count || 0) : '0';
+    }
+
+    // Ambil ulang baris profil saya dari server (sumber kebenaran xp/pupuk/kompos)
+    async function refreshMyProfile() {
+        if (!myUserId) return;
+        const { data, error } = await db.from('profiles')
+            .select('id, username, level, xp, saldo_tof, rank, power, avatar_url, house_style_id, compost_level, compost_last_collect, fertilizer_count')
+            .eq('id', myUserId).single();
+        if (error || !data) return;
+        myUser = data;
+        const idx = rawUserData.findIndex(u => u.id === myUserId);
+        if (idx >= 0) rawUserData[idx] = { ...rawUserData[idx], ...data };
+        renderXpHud();
     }
 
     // PRNG dengan seed tetap berdasarkan ID warga, supaya posisi awal rumah
@@ -456,15 +528,13 @@
         closeTileHUD();
 
         if (e.touches.length === 1) {
-            // Kontrol Seret 1 Jari standar
             isMultiTouching = false;
             isDraggingView = true;
             startX = e.touches[0].clientX - panX;
             startY = e.touches[0].clientY - panY;
         } else if (e.touches.length === 2) {
-            // Masuk Mode 2 Jari (Zoom & Rotate Gestures)
             isMultiTouching = true;
-            isDraggingView = true; // Tetap izinkan geser kamera dengan titik tengah 2 jari jika mau
+            isDraggingView = true;
             startX = ((e.touches[0].clientX + e.touches[1].clientX) / 2) - panX;
             startY = ((e.touches[0].clientY + e.touches[1].clientY) / 2) - panY;
             
@@ -478,27 +548,23 @@
         if (!isDraggingView) return;
 
         if (e.touches.length === 1 && !isMultiTouching) {
-            // Pemrosesan Seret 1 Jari
             panX = e.touches[0].clientX - startX;
             panY = e.touches[0].clientY - startY;
             updateWorldTransform();
         } else if (e.touches.length === 2 && isMultiTouching) {
-            e.preventDefault(); // Menghentikan scroll browser bawaan
+            e.preventDefault();
             
-            // 1. Eksekusi Geser Kamera 2 Jari (titik tengah jari)
             let currentMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
             let currentMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
             panX = currentMidX - startX;
             panY = currentMidY - startY;
 
-            // 2. Eksekusi Pinch Zoom
             let currentDist = getTouchDistance(e.touches[0], e.touches[1]);
             if (startTouchDistance > 0) {
                 let factor = currentDist / startTouchDistance;
                 zoom = Math.min(Math.max(startZoomOnTouch * factor, 0.3), 2.0);
             }
 
-            // 3. Eksekusi Twist Rotate (Sensitivitas Putaran 2 Jari Aman)
             let currentAngle = getTouchAngle(e.touches[0], e.touches[1]);
             let angleDiff = currentAngle - startTouchAngle;
             let now = Date.now();
@@ -509,7 +575,7 @@
                 } else {
                     currentRotationIndex = (currentRotationIndex + 3) % 4;
                 }
-                startTouchAngle = currentAngle; // Reset jangkar sudut sentuh baru
+                startTouchAngle = currentAngle;
                 lastRotationTriggerTime = now;
                 repositionWorld();
             }
@@ -523,7 +589,6 @@
             isDraggingView = false;
             isMultiTouching = false;
         } else if (e.touches.length === 1) {
-            // Transisi halus kembali ke kontrol 1 jari jika salah satu jari diangkat
             isMultiTouching = false;
             startX = e.touches[0].clientX - panX;
             startY = e.touches[0].clientY - panY;
@@ -565,9 +630,14 @@
     }
     function closeIslandModal(e) { if(e.target === document.getElementById('island-modal')) document.getElementById('island-modal').classList.remove('active'); }
     
-    function submitIslandRequest() {
-        alert("Sistem Makro ToFarmer:\nPengajuan klaster pulau baru telah dikirim ke masterplan sirkulasi!");
+    async function submitIslandRequest() {
+        if (isGuestUser() || !myUserId) return;
+        const { data, error } = await db.rpc('fn_request_island', { p_user: myUserId, p_note: 'Pengajuan dari peta desa' });
+        if (error) { showToast('Gagal mengirim pengajuan: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal.', true); return; }
+        await refreshMyProfile();
         document.getElementById('island-modal').classList.remove('active');
+        showToast(`🏝️ Pengajuan dikirim! -${data.cost} XP.`);
     }
 
     // ============== MODE KLAIM TANAH (agar popup tidak muncul terus) ==============
@@ -581,6 +651,11 @@
         showToast(claimModeActive ? "📍 Mode Klaim aktif — ketuk petak tanah untuk membuka opsi." : "Mode Klaim dinonaktifkan.");
     }
 
+    function getClaimCostForTile(x, y) {
+        const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+        return ground && ground.claim_cost_xp != null ? ground.claim_cost_xp : 5;
+    }
+
     function selectTile(x, y, event) {
         if (isEditMode) return;
         if (!claimModeActive) return; // popup hanya muncul jika mode klaim diaktifkan lewat tombol
@@ -588,13 +663,13 @@
         currentSelectedTile = { x, y };
         
         const key = `${x},${y}`;
-        const owner = claimedTiles[key];
+        const claim = claimedTiles[key];
 
         document.getElementById('hud-tile-coord').innerText = `Koordinat: Sisi (${x}, ${y})`;
         const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
         let statusText = "Tanah Kosong Bebas";
         if (ground) statusText = ground.type === 'paved_road' ? 'Jalan Desa' : (ground.type === 'soil_farm' ? 'Lahan Pertanian' : 'Area Alam');
-        if (owner) statusText += owner === myUsername ? ' • Milik Anda' : ` • Milik @${owner}`;
+        if (claim) statusText += claim.ownerUsername === myUsername ? ' • Milik Anda' : ` • Milik @${claim.ownerUsername}`;
         document.getElementById('hud-tile-status').innerText = statusText;
 
         updateTileHUDButtons(x, y);
@@ -607,17 +682,17 @@
         const claimBtn = document.getElementById('btn-tile-claim');
         const buildBtn = document.getElementById('btn-tile-build');
         const key = `${x},${y}`;
-        const owner = claimedTiles[key];
+        const claim = claimedTiles[key];
         const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
         const isNatural = ground && (ground.type === 'paved_road' || ground.type === 'mountain' || ground.type === 'tree');
 
         if (isNatural) {
             claimBtn.innerText = "Tak Bisa Diklaim";
             claimBtn.disabled = true; claimBtn.style.opacity = 0.5;
-        } else if (!owner) {
-            claimBtn.innerText = "Claim";
+        } else if (!claim) {
+            claimBtn.innerText = `Claim (${getClaimCostForTile(x,y)} XP)`;
             claimBtn.disabled = false; claimBtn.style.opacity = 1;
-        } else if (owner === myUsername) {
+        } else if (claim.ownerUsername === myUsername) {
             claimBtn.innerText = "✅ Milik Anda";
             claimBtn.disabled = true; claimBtn.style.opacity = 0.7;
         } else {
@@ -625,8 +700,8 @@
             claimBtn.disabled = true; claimBtn.style.opacity = 0.5;
         }
 
-        const ownedByMe = owner === myUsername;
-        buildBtn.innerText = "Bangun";
+        const ownedByMe = claim && claim.ownerUsername === myUsername;
+        buildBtn.innerText = "Bangun / Tanam";
         buildBtn.disabled = !ownedByMe;
         buildBtn.style.opacity = ownedByMe ? 1 : 0.5;
     }
@@ -636,24 +711,18 @@
         document.getElementById('tile-hud').classList.remove('active');
     }
 
-    function triggerClaimAction() {
+    async function triggerClaimAction() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa mengklaim lahan. Silakan masuk ke akun Anda!"); closeTileHUD(); return; }
         const { x, y } = currentSelectedTile;
         const key = `${x},${y}`;
-        const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
 
-        if (ground && (ground.type === 'paved_road' || ground.type === 'mountain' || ground.type === 'tree')) {
-            showToast("Tanah ini tidak bisa diklaim (jalan/area alam desa).");
-            return;
-        }
-        if (claimedTiles[key]) {
-            showToast(claimedTiles[key] === myUsername ? "Anda sudah memiliki tanah ini." : "Tanah ini sudah dimiliki warga lain.");
-            return;
-        }
+        const { data, error } = await db.rpc('fn_claim_tile', { p_user: myUserId, p_x: x, p_y: y });
+        if (error) { showToast('Gagal klaim: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal klaim tanah.', true); return; }
 
-        claimedTiles[key] = myUsername;
-        saveClaims();
-        showToast(`✅ Berhasil klaim tanah (${x}, ${y})!`);
+        claimedTiles[key] = { ownerId: myUserId, ownerUsername: myUsername };
+        await refreshMyProfile();
+        showToast(`✅ Berhasil klaim tanah (${x}, ${y})! -${data.cost} XP.`);
         updateTileHUDButtons(x, y);
         updateTileClaimVisual(key);
     }
@@ -662,12 +731,38 @@
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak diizinkan mendirikan konstruksi bangunan desa!"); closeTileHUD(); return; }
         const { x, y } = currentSelectedTile;
         const key = `${x},${y}`;
-        if (claimedTiles[key] !== myUsername) {
+        if (!claimedTiles[key] || claimedTiles[key].ownerUsername !== myUsername) {
             showToast("Anda harus memiliki (klaim) tanah ini dahulu untuk membangun.");
             return;
         }
         closeTileHUD();
         openFarmMenu();
+    }
+
+    // ============== BONUS RUMAH + DEKORASI (dihitung di client untuk preview) ==============
+    function getUserBonus(userId) {
+        let yieldPct = 0, speedPct = 0;
+        const meta = houseMeta[userId];
+        if (!meta) return { yieldPct, speedPct };
+        const style = HOUSE_STYLES.find(s => s.id === meta.houseStyleId);
+        if (style) { yieldPct += Number(style.yield_bonus_pct || 0); speedPct += Number(style.speed_bonus_pct || 0); }
+        (meta.decorItems || []).forEach(dId => {
+            const d = DECOR_ITEMS.find(x => x.id === dId);
+            if (d) { yieldPct += Number(d.yield_bonus_pct || 0); speedPct += Number(d.speed_bonus_pct || 0); }
+        });
+        return { yieldPct: Math.min(yieldPct, 100), speedPct: Math.min(speedPct, 60) };
+    }
+
+    function computeEffectiveGrowMs(cropDef, farmData) {
+        const bonus = getUserBonus(farmData.ownerId);
+        let seconds = cropDef.grow_seconds * (1 - bonus.speedPct / 100) * (1 - (farmData.prunedCount * 0.1));
+        if (seconds < 10) seconds = 10;
+        return seconds * 1000;
+    }
+
+    function computeEffectiveReward(cropDef, farmData) {
+        const bonus = getUserBonus(farmData.ownerId);
+        return Math.round(cropDef.reward_xp * (1 + bonus.yieldPct / 100));
     }
 
     // ============== MENU BERTANI ==============
@@ -680,7 +775,7 @@
 
     function renderFarmList() {
         const list = document.getElementById('farm-list');
-        const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k] === myUsername);
+        const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername);
 
         if (myTiles.length === 0) {
             list.innerHTML = `<p style="font-size:12px;color:#94a3b8;text-align:center;">Anda belum memiliki tanah. Klaim tanah dahulu lewat tombol 📍 Klaim Tanah.</p>`;
@@ -689,63 +784,250 @@
 
         list.innerHTML = myTiles.map(key => {
             const farm = farms[key];
-            let inner;
-            if (!farm) {
-                inner = `<div class="farm-crop-row">` + CROP_TYPES.map(c =>
-                    `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name}</button>`
-                ).join('') + `</div>`;
-            } else {
-                const cropDef = CROP_TYPES.find(c => c.id === farm.crop);
-                const ready = Date.now() - farm.plantedAt >= cropDef.growMs;
-                inner = ready
-                    ? `<button class="btn-harvest" onclick="harvestCrop('${key}')">🧺 Panen ${cropDef.icon} (+${cropDef.reward} TOF)</button>`
-                    : `<span class="farm-growing-text">🌱 ${cropDef.name} sedang tumbuh, kembali lagi nanti...</span>`;
+
+            if (!farm || farm.landState === 'fertile') {
+                const cropButtons = CROP_TYPES.map(c =>
+                    `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name} (${c.plant_cost_xp} XP)</button>`
+                ).join('');
+                return `<div class="farm-plot-card"><strong>Petak Tanah (${key}) • Subur</strong><div class="farm-crop-row">${cropButtons}</div></div>`;
             }
-            return `<div class="farm-plot-card"><strong>Petak Tanah (${key})</strong>${inner}</div>`;
+
+            if (farm.landState === 'barren') {
+                return `<div class="farm-plot-card"><strong>Petak Tanah (${key}) • 🟤 Tandus</strong>
+                    <span class="farm-barren-text">Tanah habis unsur hara. Pupuk dahulu untuk menyuburkan kembali.</span>
+                    <div class="care-btn-row"><button class="care-btn" onclick="fertilizeBarrenAction('${key}')">🌿 Pupuk Tanah (butuh 1 pupuk)</button></div>
+                </div>`;
+            }
+
+            // planted
+            const cropDef = CROP_TYPES.find(c => c.id === farm.cropId);
+            if (!cropDef) return '';
+            const growMs = computeEffectiveGrowMs(cropDef, farm);
+            const elapsed = Date.now() - farm.plantedAt;
+            const timeReady = elapsed >= growMs;
+            const careReady = farm.waterCount >= cropDef.water_required && farm.fertilizeCount >= cropDef.fertilize_required;
+            const reward = computeEffectiveReward(cropDef, farm);
+
+            let statusLine;
+            if (timeReady && careReady) {
+                statusLine = `<button class="btn-harvest" onclick="harvestCropAction('${key}')">🧺 Panen ${cropDef.fruit_icon} (+${reward} XP)</button>`;
+            } else if (timeReady && !careReady) {
+                statusLine = `<span class="farm-barren-text">⚠️ Sudah waktunya, tapi perawatan belum cukup (siram/pupuk).</span>`;
+            } else {
+                const remainMin = Math.ceil((growMs - elapsed) / 60000);
+                statusLine = `<span class="farm-growing-text">🌱 ${cropDef.name} sedang tumbuh (~${remainMin} menit lagi)...</span>`;
+            }
+
+            return `<div class="farm-plot-card">
+                <strong>Petak Tanah (${key}) • ${cropDef.icon} ${cropDef.name}</strong>
+                <div class="care-progress">💧 Air: ${farm.waterCount}/${cropDef.water_required} &nbsp; 🌿 Pupuk: ${farm.fertilizeCount}/${cropDef.fertilize_required} &nbsp; ✂️ Pangkas: ${farm.prunedCount}/3</div>
+                <div class="care-btn-row">
+                    <button class="care-btn" onclick="waterCropAction('${key}')" ${farm.waterCount >= cropDef.water_required ? 'disabled' : ''}>💧 Siram (1 XP)</button>
+                    <button class="care-btn" onclick="fertilizeCropAction('${key}')" ${farm.fertilizeCount >= cropDef.fertilize_required ? 'disabled' : ''}>🌿 Pupuk (1 pupuk)</button>
+                    <button class="care-btn" onclick="pruneCropAction('${key}')" ${farm.prunedCount >= 3 ? 'disabled' : ''}>✂️ Pangkas (2 XP)</button>
+                </div>
+                ${statusLine}
+            </div>`;
         }).join('');
     }
 
-    function plantCrop(key, cropId) {
-        if (farms[key]) { showToast("Petak ini sudah ditanami."); return; }
-        farms[key] = { crop: cropId, plantedAt: Date.now() };
-        saveFarms();
-        showToast("🌱 Berhasil menanam! Tunggu sampai siap panen.");
+    async function plantCrop(key, cropId) {
+        const [x, y] = key.split(',').map(Number);
+        const { data, error } = await db.rpc('fn_plant_crop', { p_user: myUserId, p_x: x, p_y: y, p_crop_id: cropId });
+        if (error) { showToast('Gagal menanam: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal menanam.', true); return; }
+
+        farms[key] = { ownerId: myUserId, cropId, plantedAt: Date.now(), waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'planted' };
+        await refreshMyProfile();
+        showToast(`🌱 Berhasil menanam! -${data.cost} XP.`);
         renderFarmList();
         updateTileFarmVisual(key);
     }
 
-    function harvestCrop(key) {
-        const farm = farms[key];
-        if (!farm) return;
-        const cropDef = CROP_TYPES.find(c => c.id === farm.crop);
-        const ready = Date.now() - farm.plantedAt >= cropDef.growMs;
-        if (!ready) { showToast("Belum siap panen."); return; }
+    async function waterCropAction(key) {
+        const [x, y] = key.split(',').map(Number);
+        const { data, error } = await db.rpc('fn_water_crop', { p_user: myUserId, p_x: x, p_y: y });
+        if (error) { showToast('Gagal menyiram: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal menyiram.', true); return; }
+        if (farms[key]) farms[key].waterCount = data.water_count;
+        await refreshMyProfile();
+        showToast('💧 Tanaman disiram.');
+        renderFarmList();
+        updateTileFarmVisual(key);
+    }
+
+    async function fertilizeCropAction(key) {
+        const [x, y] = key.split(',').map(Number);
+        const { data, error } = await db.rpc('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y });
+        if (error) { showToast('Gagal memupuk: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal memupuk.', true); return; }
+        if (farms[key]) farms[key].fertilizeCount = data.fertilize_count;
+        await refreshMyProfile();
+        showToast('🌿 Tanaman dipupuk.');
+        renderFarmList();
+        updateTileFarmVisual(key);
+    }
+
+    async function fertilizeBarrenAction(key) {
+        const [x, y] = key.split(',').map(Number);
+        const { data, error } = await db.rpc('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y });
+        if (error) { showToast('Gagal memupuk: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal memupuk.', true); return; }
         delete farms[key];
-        saveFarms();
-        showToast(`🧺 Panen berhasil! +${cropDef.reward} TOF (simulasi).`);
+        await refreshMyProfile();
+        showToast('🌿 Tanah subur kembali! Siap ditanami.');
         renderFarmList();
         updateTileFarmVisual(key);
     }
 
-    // ============== DEKORASI RUMAH (MODE ARSITEK) ==============
-    function renderDecorPalette() {
-        const palette = document.getElementById('decor-palette');
-        const mine = houseDecor[myUsername] || [];
-        palette.innerHTML = DECOR_ITEMS.map(d => `
-            <button class="decor-btn ${mine.includes(d.id) ? 'active' : ''}" onclick="toggleDecorItem('${d.id}')">
-                ${d.icon}<span>${d.name}</span>
-            </button>
+    async function pruneCropAction(key) {
+        const [x, y] = key.split(',').map(Number);
+        const { data, error } = await db.rpc('fn_prune_crop', { p_user: myUserId, p_x: x, p_y: y });
+        if (error) { showToast('Gagal memangkas: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal memangkas.', true); return; }
+        if (farms[key]) farms[key].prunedCount = data.pruned_count;
+        await refreshMyProfile();
+        showToast(`✂️ Dipangkas. -2 XP.`);
+        renderFarmList();
+        updateTileFarmVisual(key);
+    }
+
+    async function harvestCropAction(key) {
+        const [x, y] = key.split(',').map(Number);
+        const { data, error } = await db.rpc('fn_harvest_crop', { p_user: myUserId, p_x: x, p_y: y });
+        if (error) { showToast('Gagal panen: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Belum bisa dipanen.', true); return; }
+
+        farms[key] = { ownerId: myUserId, cropId: null, plantedAt: null, waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'barren' };
+        await refreshMyProfile();
+        showToast(`🧺 Panen berhasil! +${data.reward} XP.`);
+        renderFarmList();
+        updateTileFarmVisual(key);
+    }
+
+    // ============== KOMPOS & PUPUK ==============
+    function openCompostMenu() {
+        if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa mengelola kompos. Silakan login!"); return; }
+        renderCompostPanel();
+        document.getElementById('compost-modal').classList.add('active');
+    }
+    function closeCompostModal(e) { if (e.target === document.getElementById('compost-modal')) document.getElementById('compost-modal').classList.remove('active'); }
+
+    function renderCompostPanel() {
+        if (!myUser) return;
+        document.getElementById('compost-fert-count').innerText = myUser.fertilizer_count || 0;
+        document.getElementById('compost-level-value').innerText = `${myUser.compost_level || 0} / 5`;
+
+        const statusEl = document.getElementById('compost-collect-status');
+        const level = myUser.compost_level || 0;
+        if (level <= 0) {
+            statusEl.innerText = 'Belum punya alat kompos. Upgrade dahulu untuk mulai membuat pupuk gratis.';
+        } else if (myUser.compost_last_collect) {
+            const cooldownMs = 30 * 60 * 1000;
+            const remaining = cooldownMs - (Date.now() - new Date(myUser.compost_last_collect).getTime());
+            statusEl.innerText = remaining > 0
+                ? `Kompos matang dalam ~${Math.ceil(remaining / 60000)} menit lagi.`
+                : `✅ Kompos siap dipanen! (+${level} pupuk gratis)`;
+        } else {
+            statusEl.innerText = `✅ Kompos siap dipanen! (+${level} pupuk gratis)`;
+        }
+
+        const nextCost = (level + 1) * 15;
+        const upBtn = document.getElementById('btn-upgrade-compost');
+        upBtn.innerText = level >= 5 ? 'Level Maksimal' : `⬆️ Upgrade Alat Kompos (${nextCost} XP)`;
+        upBtn.disabled = level >= 5;
+    }
+
+    async function collectCompostAction() {
+        const { data, error } = await db.rpc('fn_collect_compost', { p_user: myUserId });
+        if (error) { showToast('Gagal panen kompos: ' + error.message, true); return; }
+        if (!data.success) {
+            if (data.remaining_seconds) showToast(`Kompos belum matang, ~${Math.ceil(data.remaining_seconds/60)} menit lagi.`, true);
+            else showToast(data.message || 'Gagal.', true);
+            return;
+        }
+        await refreshMyProfile();
+        showToast(`🧺 Kompos dipanen! +${data.fertilizer_gained} pupuk (gratis).`);
+        renderCompostPanel();
+    }
+
+    async function upgradeCompostAction() {
+        const { data, error } = await db.rpc('fn_upgrade_compost', { p_user: myUserId });
+        if (error) { showToast('Gagal upgrade: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal upgrade.', true); return; }
+        await refreshMyProfile();
+        showToast(`🧱 Alat kompos naik ke level ${data.compost_level}! -${data.cost} XP.`);
+        renderCompostPanel();
+    }
+
+    async function buyFertilizerAction(qty) {
+        const { data, error } = await db.rpc('fn_buy_fertilizer', { p_user: myUserId, p_qty: qty });
+        if (error) { showToast('Gagal membeli: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal membeli.', true); return; }
+        await refreshMyProfile();
+        showToast(`🌿 +${data.fertilizer_gained} pupuk dibeli. -${data.cost} XP.`);
+        renderCompostPanel();
+    }
+
+    // ============== DEKORASI & GAYA RUMAH (MODE ARSITEK) ==============
+    function renderStyleList() {
+        const wrap = document.getElementById('style-list');
+        const myStyleId = (myUser && myUser.house_style_id) || 'basic';
+        wrap.innerHTML = HOUSE_STYLES.map(s => `
+            <div class="style-card ${s.id === myStyleId ? 'active' : ''}" onclick="upgradeHouseStyleAction('${s.id}')">
+                <span class="style-icon">${s.icon}</span>
+                <div class="style-info">
+                    <div class="style-name">${s.name}</div>
+                    <div class="style-bonus">+${s.yield_bonus_pct}% hasil • +${s.speed_bonus_pct}% cepat</div>
+                </div>
+                <div class="style-cost">${s.id === myStyleId ? '✅ Aktif' : (s.cost_xp + ' XP')}</div>
+            </div>
         `).join('');
     }
 
-    function toggleDecorItem(id) {
-        if (!myUsername) return;
-        let mine = houseDecor[myUsername] || [];
-        if (mine.includes(id)) mine = mine.filter(x => x !== id); else mine.push(id);
-        houseDecor[myUsername] = mine;
-        saveDecor();
+    async function upgradeHouseStyleAction(styleId) {
+        if (myUser && myUser.house_style_id === styleId) return;
+        const { data, error } = await db.rpc('fn_upgrade_house_style', { p_user: myUserId, p_style_id: styleId });
+        if (error) { showToast('Gagal upgrade rumah: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal upgrade rumah.', true); return; }
+        houseMeta[myUserId] = houseMeta[myUserId] || { houseStyleId: 'basic', decorItems: [] };
+        houseMeta[myUserId].houseStyleId = styleId;
+        await refreshMyProfile();
+        renderStyleList();
+        updateHouseVisual(myUserId);
+        showToast(`🏗️ Rumah diupgrade! -${data.cost} XP.`);
+    }
+
+    function renderDecorPalette() {
+        const palette = document.getElementById('decor-palette');
+        const meta = houseMeta[myUserId] || { decorItems: [] };
+        const mine = meta.decorItems || [];
+        palette.innerHTML = DECOR_ITEMS.map(d => {
+            const count = mine.filter(x => x === d.id).length;
+            const active = count > 0;
+            return `
+            <button class="decor-btn ${active ? 'active' : ''}" onclick="toggleDecorItem('${d.id}', ${active})">
+                ${d.icon}<span class="dname">${d.name}${d.max_qty > 1 ? ' x' + count : ''}</span><span class="dcost">${d.cost_xp} XP</span>
+            </button>
+        `;
+        }).join('');
+    }
+
+    async function toggleDecorItem(id, isCurrentlyActive) {
+        if (!myUserId) return;
+        const addMode = !isCurrentlyActive;
+        const { data, error } = await db.rpc('fn_toggle_decor', { p_user: myUserId, p_decor_id: id, p_add: addMode });
+        if (error) { showToast('Gagal: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal mengubah dekorasi.', true); return; }
+
+        const meta = houseMeta[myUserId] = houseMeta[myUserId] || { houseStyleId: 'basic', decorItems: [] };
+        if (addMode) meta.decorItems.push(id);
+        else { const i = meta.decorItems.indexOf(id); if (i >= 0) meta.decorItems.splice(i, 1); }
+
+        await refreshMyProfile();
         renderDecorPalette();
         if (myUserId) renderHouseDecor(myUserId);
+        showToast(addMode ? `🎨 Dekorasi ditambahkan!${data.cost ? ' -' + data.cost + ' XP.' : ''}` : 'Dekorasi dilepas.');
     }
 
     function goToUserProfile() {
@@ -760,11 +1042,14 @@
         isEditMode = true;
         closeTileHUD(); 
         backupPositions = JSON.parse(JSON.stringify(housePositions)); 
+        backupHouseMetaMine = JSON.parse(JSON.stringify(houseMeta[myUserId] || { houseStyleId: 'basic', decorItems: [] }));
         world.className = "edit-mode";
         document.body.classList.add('edit-active-ui');
+        renderStyleList();
         renderDecorPalette();
         document.getElementById('edit-hud').classList.add('active');
-        if (!(claimedTiles && Object.values(claimedTiles).includes(myUsername))) {
+        const ownsAnyTile = Object.values(claimedTiles).some(c => c.ownerUsername === myUsername);
+        if (!ownsAnyTile) {
             showToast("Anda belum memiliki tanah. Rumah hanya bisa dipindah ke petak yang sudah Anda klaim.");
         }
     }
@@ -774,8 +1059,7 @@
         world.className = "locked-mode";
         document.body.classList.remove('edit-active-ui');
         document.getElementById('edit-hud').classList.remove('active');
-        saveLayout();
-        // Posisi sudah benar secara visual dari proses drag, tidak perlu bangun ulang dunia.
+        // Posisi rumah sudah disimpan permanen ke Supabase saat drag selesai (lihat endDrag -> fn_move_house).
     }
 
     function cancelEditMode() {
@@ -784,38 +1068,82 @@
         document.body.classList.remove('edit-active-ui');
         document.getElementById('edit-hud').classList.remove('active');
         housePositions = JSON.parse(JSON.stringify(backupPositions)); 
-        repositionHouses(); // kembalikan tampilan rumah ke posisi semula sebelum diedit
+        repositionHouses(); // kembalikan tampilan rumah ke posisi semula sebelum diedit (jika drag gagal disimpan)
     }
 
     // ============================================================
-    // ENGINE RENDER DIOPTIMALKAN:
-    // - buildWorld() membuat semua node SEKALI SAJA (bukan tiap aksi).
-    // - Perubahan berikutnya (klaim, tanam, panen, dekorasi, geser
-    //   rumah, putar peta) hanya MENGUBAH node yang relevan lewat
-    //   fungsi update kecil di bawah, bukan hancur-bangun ulang 900 ubin.
-    // Tampilan & fitur 100% sama seperti sebelumnya, cuma jalur
-    // renderingnya jauh lebih ringan untuk HP spek rendah.
+    // ENGINE RENDER: buildWorld() sekali di awal, update-update kecil
+    // untuk klaim/tanam/dekorasi/rumah/putar peta sesudahnya.
     // ============================================================
 
-    let tileNodeMap = {};   // "x,y" -> { node, tileEl, cropIconEl }
-    let houseNodeMap = {};  // user.id -> { node, container, decorWrap, user }
+    let tileNodeMap = {};   // "x,y" -> { node, tileEl, cropIconEl, badgeEl }
+    let houseNodeMap = {};  // user.id -> { node, container, decorWrap, houseImgEl, user }
 
-    function createCropIcon(farmData) {
-        const cropDef = CROP_TYPES.find(c => c.id === farmData.crop);
-        const cropIcon = document.createElement('span');
-        cropIcon.className = 'sprite';
-        cropIcon.style.fontSize = '22px';
-        cropIcon.style.bottom = '18px';
-        cropIcon.innerText = (cropDef && (Date.now() - farmData.plantedAt >= cropDef.growMs)) ? cropDef.icon : '🌱';
-        return cropIcon;
+    function createCropVisual(key, farmData) {
+        const wrap = document.createElement('span');
+        wrap.style.position = 'absolute';
+        wrap.style.zIndex = 6;
+
+        if (!farmData || farmData.landState === 'fertile') return null;
+
+        if (farmData.landState === 'barren') {
+            wrap.className = 'sprite';
+            wrap.style.fontSize = '20px';
+            wrap.style.bottom = '18px';
+            wrap.innerText = '🟤';
+            return wrap;
+        }
+
+        const cropDef = CROP_TYPES.find(c => c.id === farmData.cropId);
+        if (!cropDef) return null;
+        const growMs = computeEffectiveGrowMs(cropDef, farmData);
+        const elapsed = Date.now() - farmData.plantedAt;
+        const timeReady = elapsed >= growMs;
+        const careReady = farmData.waterCount >= cropDef.water_required && farmData.fertilizeCount >= cropDef.fertilize_required;
+
+        wrap.className = 'sprite';
+        wrap.style.fontSize = '22px';
+        wrap.style.bottom = '18px';
+
+        if (timeReady && careReady) {
+            wrap.innerText = cropDef.fruit_icon;
+        } else if (timeReady && !careReady) {
+            wrap.innerText = cropDef.icon;
+        } else {
+            wrap.innerText = cropDef.icon === cropDef.fruit_icon ? '🌱' : cropDef.icon;
+        }
+        return wrap;
+    }
+
+    function createCropBadge(farmData) {
+        if (!farmData || farmData.landState !== 'planted') return null;
+        const cropDef = CROP_TYPES.find(c => c.id === farmData.cropId);
+        if (!cropDef) return null;
+        const growMs = computeEffectiveGrowMs(cropDef, farmData);
+        const elapsed = Date.now() - farmData.plantedAt;
+        const timeReady = elapsed >= growMs;
+        const careReady = farmData.waterCount >= cropDef.water_required && farmData.fertilizeCount >= cropDef.fertilize_required;
+
+        if (timeReady && careReady) {
+            const badge = document.createElement('span');
+            badge.className = 'crop-value-badge';
+            badge.innerText = `+${computeEffectiveReward(cropDef, farmData)} XP`;
+            return badge;
+        } else if (timeReady && !careReady) {
+            const badge = document.createElement('span');
+            badge.className = 'crop-warn-badge';
+            badge.innerText = '⚠️';
+            return badge;
+        }
+        return null;
     }
 
     function updateTileClaimVisual(key) {
         const entry = tileNodeMap[key];
         if (!entry) return;
         entry.tileEl.classList.remove('tile-claimed-mine', 'tile-claimed-other');
-        const owner = claimedTiles[key];
-        if (owner) entry.tileEl.classList.add(owner === myUsername ? 'tile-claimed-mine' : 'tile-claimed-other');
+        const claim = claimedTiles[key];
+        if (claim) entry.tileEl.classList.add(claim.ownerUsername === myUsername ? 'tile-claimed-mine' : 'tile-claimed-other');
     }
 
     function refreshOwnershipVisuals() {
@@ -826,18 +1154,44 @@
         const entry = tileNodeMap[key];
         if (!entry) return;
         if (entry.cropIconEl) { entry.cropIconEl.remove(); entry.cropIconEl = null; }
+        if (entry.badgeEl) { entry.badgeEl.remove(); entry.badgeEl = null; }
+
         const farmData = farms[key];
+        entry.tileEl.classList.toggle('tile-barren', !!(farmData && farmData.landState === 'barren'));
+
         if (farmData) {
-            entry.cropIconEl = createCropIcon(farmData);
-            entry.node.appendChild(entry.cropIconEl);
+            const visual = createCropVisual(key, farmData);
+            if (visual) { entry.cropIconEl = visual; entry.node.appendChild(visual); }
+            const badge = createCropBadge(farmData);
+            if (badge) { entry.badgeEl = badge; entry.node.appendChild(badge); }
         }
+    }
+
+    function refreshAllFarmVisuals() {
+        Object.keys(farms).forEach(key => updateTileFarmVisual(key));
+        if (document.getElementById('farm-modal').classList.contains('active')) renderFarmList();
+    }
+    setInterval(refreshAllFarmVisuals, 8000);
+
+    function getHouseImage(styleId) {
+        const style = HOUSE_STYLES.find(s => s.id === styleId) || HOUSE_STYLES[0];
+        return style ? (style.image_url || 'https://img.icons8.com/plasticine/100/home.png') : 'https://img.icons8.com/plasticine/100/home.png';
+    }
+
+    function updateHouseVisual(userId) {
+        const entry = houseNodeMap[userId];
+        if (!entry) return;
+        const meta = houseMeta[userId] || { houseStyleId: 'basic', decorItems: [] };
+        if (entry.houseImgEl) entry.houseImgEl.src = getHouseImage(meta.houseStyleId);
+        renderHouseDecor(userId);
     }
 
     function renderHouseDecor(userId) {
         const entry = houseNodeMap[userId];
         if (!entry) return;
         entry.decorWrap.innerHTML = '';
-        const decorList = houseDecor[entry.user.username] || [];
+        const meta = houseMeta[userId] || { decorItems: [] };
+        const decorList = meta.decorItems || [];
         decorList.forEach((decorId, idx) => {
             const d = DECOR_ITEMS.find(x => x.id === decorId);
             if (!d) return;
@@ -913,8 +1267,8 @@
                 }
 
                 const tileKey = `${x},${y}`;
-                const tileOwner = claimedTiles[tileKey];
-                if (tileOwner) tile.classList.add(tileOwner === myUsername ? 'tile-claimed-mine' : 'tile-claimed-other');
+                const claim = claimedTiles[tileKey];
+                if (claim) tile.classList.add(claim.ownerUsername === myUsername ? 'tile-claimed-mine' : 'tile-claimed-other');
 
                 node.appendChild(tile);
                 world.appendChild(node);
@@ -927,30 +1281,33 @@
                     node.appendChild(icon);
                 }
 
-                let cropIconEl = null;
                 const farmData = farms[tileKey];
+                if (farmData) tile.classList.toggle('tile-barren', farmData.landState === 'barren');
+
+                let cropIconEl = null, badgeEl = null;
                 if (farmData) {
-                    cropIconEl = createCropIcon(farmData);
-                    node.appendChild(cropIconEl);
+                    cropIconEl = createCropVisual(tileKey, farmData);
+                    if (cropIconEl) node.appendChild(cropIconEl);
+                    badgeEl = createCropBadge(farmData);
+                    if (badgeEl) node.appendChild(badgeEl);
                 }
 
-                tileNodeMap[tileKey] = { node, tileEl: tile, cropIconEl };
+                tileNodeMap[tileKey] = { node, tileEl: tile, cropIconEl, badgeEl };
             }
         }
 
         // 2. Bangun Rumah Warga (SEKALI SAJA per warga)
-        let layoutChanged = false;
         rawUserData.forEach(user => {
             if (housePositions[user.id]) {
                 user.assignedCoord = housePositions[user.id];
                 reservedTiles.add(`${user.assignedCoord.x},${user.assignedCoord.y}`);
             } else {
-                // Posisi awal dihitung deterministik dari ID warga, jadi tetap sama
-                // di perangkat/sesi manapun selama warga belum memindahkannya sendiri.
+                // Posisi awal dihitung deterministik dari ID warga (sampai warga memindah rumahnya
+                // secara sengaja lewat Mode Arsitek, yang baru disimpan permanen ke Supabase).
                 user.assignedCoord = findInitialEmptyTile(user.id);
                 housePositions[user.id] = user.assignedCoord;
-                layoutChanged = true;
             }
+            if (!houseMeta[user.id]) houseMeta[user.id] = { houseStyleId: user.house_style_id || 'basic', decorItems: [] };
             
             const node = document.createElement('div');
             node.className = 'iso-node';
@@ -962,14 +1319,14 @@
             node.style.zIndex = user.assignedCoord.x + user.assignedCoord.y + 50;
 
             const photoSrc = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
-            const houseImage = 'https://img.icons8.com/plasticine/100/home.png';
+            const houseImage = getHouseImage(houseMeta[user.id].houseStyleId);
 
             const container = document.createElement('div');
             container.className = 'house-container';
             container.setAttribute('draggable', 'false');
             
             container.innerHTML = `
-                <img class="sprite" src="${houseImage}" style="height: 55px;" />
+                <img class="sprite house-img" src="${houseImage}" style="height: 55px;" />
                 <div class="avatar-balloon">
                     <img class="avatar-img" src="${photoSrc}" />
                     <div class="nametag">@${user.username}</div>
@@ -987,8 +1344,6 @@
             
             const startDrag = (e) => {
                 if (!isEditMode) { openProfileModal(user); return; }
-                // Dicek langsung saat drag (bukan disimpan sekali di awal),
-                // supaya tetap valid walau warga login/logout tanpa reload penuh.
                 const isMineNow = !!(myUserId && user.id === myUserId);
                 if (!isMineNow) { showToast("Hanya bisa menata rumah milik sendiri."); return; }
                 dragActive = true;
@@ -1012,7 +1367,7 @@
                     let tileKey = `${tx},${ty}`;
 
                     // Rumah hanya boleh dipindah ke petak yang sudah diklaim oleh pemiliknya sendiri
-                    if (claimedTiles[tileKey] !== myUsername) {
+                    if (!claimedTiles[tileKey] || claimedTiles[tileKey].ownerUsername !== myUsername) {
                         let now = Date.now();
                         if (now - lastInvalidToastTime > 1500) {
                             showToast("Rumah hanya bisa diletakkan di tanah milik sendiri yang sudah diklaim!");
@@ -1030,7 +1385,23 @@
                 }
             };
 
-            const endDrag = () => { if (dragActive) { dragActive = false; saveLayout(); } };
+            const endDrag = async () => {
+                if (!dragActive) return;
+                dragActive = false;
+                const pos = housePositions[user.id];
+                if (!pos) return;
+                const { data, error } = await db.rpc('fn_move_house', { p_user: myUserId, p_x: pos.x, p_y: pos.y });
+                if (error) { showToast('Gagal memindah rumah: ' + error.message, true); housePositions[user.id] = backupPositions[user.id]; repositionHouses(); return; }
+                if (!data.success) {
+                    showToast(data.message || 'Gagal memindah rumah.', true);
+                    housePositions[user.id] = backupPositions[user.id];
+                    repositionHouses();
+                    return;
+                }
+                backupPositions[user.id] = { x: pos.x, y: pos.y };
+                await refreshMyProfile();
+                showToast(`🏠 Rumah dipindah! -${data.cost} XP.`);
+            };
 
             container.addEventListener('mousedown', startDrag);
             window.addEventListener('mousemove', moveDrag);
@@ -1043,11 +1414,9 @@
             node.appendChild(container);
             world.appendChild(node);
 
-            houseNodeMap[user.id] = { node, container, decorWrap, user };
+            houseNodeMap[user.id] = { node, container, decorWrap, houseImgEl: container.querySelector('.house-img'), user };
             renderHouseDecor(user.id);
         });
-
-        if (layoutChanged) saveLayout();
     }
 
     function openProfileModal(user) {
@@ -1080,6 +1449,92 @@
         updateWorldTransform();
     }
 
+    // ============== MUAT DATA DUNIA DARI SUPABASE (sumber kebenaran bersama) ==============
+    async function loadCatalogs() {
+        const [{ data: crops }, { data: decors }, { data: styles }] = await Promise.all([
+            db.from('crop_catalog').select('*').order('sort_order', { ascending: true }),
+            db.from('decor_catalog').select('*').order('sort_order', { ascending: true }),
+            db.from('house_style_catalog').select('*').order('sort_order', { ascending: true }),
+        ]);
+        CROP_TYPES = crops || [];
+        DECOR_ITEMS = decors || [];
+        HOUSE_STYLES = styles || [];
+    }
+
+    async function loadWorldState() {
+        const [{ data: claims }, { data: houses }, { data: farmRows }] = await Promise.all([
+            db.from('village_claims').select('tile_x, tile_y, owner_id, profiles!village_claims_owner_id_fkey(username)'),
+            db.from('village_houses').select('*'),
+            db.from('village_farms').select('*'),
+        ]);
+
+        claimedTiles = {};
+        (claims || []).forEach(c => {
+            const ownerUsername = (c.profiles && c.profiles.username) || (rawUserData.find(u => u.id === c.owner_id) || {}).username;
+            claimedTiles[`${c.tile_x},${c.tile_y}`] = { ownerId: c.owner_id, ownerUsername };
+        });
+
+        housePositions = {};
+        houseMeta = {};
+        (houses || []).forEach(h => {
+            housePositions[h.user_id] = { x: h.pos_x, y: h.pos_y };
+            houseMeta[h.user_id] = { houseStyleId: h.house_style_id || 'basic', decorItems: h.decor_items || [] };
+        });
+
+        farms = {};
+        (farmRows || []).forEach(f => {
+            farms[`${f.tile_x},${f.tile_y}`] = {
+                ownerId: f.owner_id,
+                cropId: f.crop_id,
+                plantedAt: f.planted_at ? new Date(f.planted_at).getTime() : null,
+                waterCount: f.water_count,
+                fertilizeCount: f.fertilize_count,
+                prunedCount: f.pruned_count,
+                landState: f.land_state,
+            };
+        });
+    }
+
+    // ============== REALTIME: semua warga melihat perubahan yang sama secara langsung ==============
+    function subscribeRealtime() {
+        db.channel('village-live')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'village_claims' }, (payload) => {
+                if (payload.eventType === 'DELETE') return;
+                const row = payload.new;
+                const key = `${row.tile_x},${row.tile_y}`;
+                const owner = rawUserData.find(u => u.id === row.owner_id);
+                claimedTiles[key] = { ownerId: row.owner_id, ownerUsername: owner ? owner.username : null };
+                updateTileClaimVisual(key);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'village_farms' }, (payload) => {
+                const row = payload.new || payload.old;
+                if (!row) return;
+                const key = `${row.tile_x},${row.tile_y}`;
+                if (payload.eventType === 'DELETE') { delete farms[key]; }
+                else {
+                    farms[key] = {
+                        ownerId: row.owner_id, cropId: row.crop_id,
+                        plantedAt: row.planted_at ? new Date(row.planted_at).getTime() : null,
+                        waterCount: row.water_count, fertilizeCount: row.fertilize_count,
+                        prunedCount: row.pruned_count, landState: row.land_state,
+                    };
+                }
+                updateTileFarmVisual(key);
+                if (document.getElementById('farm-modal').classList.contains('active')) renderFarmList();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'village_houses' }, (payload) => {
+                const row = payload.new;
+                if (!row) return;
+                housePositions[row.user_id] = { x: row.pos_x, y: row.pos_y };
+                houseMeta[row.user_id] = { houseStyleId: row.house_style_id || 'basic', decorItems: row.decor_items || [] };
+                if (houseNodeMap[row.user_id]) {
+                    repositionHouses();
+                    updateHouseVisual(row.user_id);
+                }
+            })
+            .subscribe();
+    }
+
     async function init() {
         if(!localStorage.getItem('tof_username')) {
             localStorage.setItem('tof_username', 'TAMU_MENOREH');
@@ -1087,29 +1542,22 @@
 
         refreshAuthUI();
 
-        const savedLayout = localStorage.getItem('tofarmer_custom_layout_v3');
-        if (savedLayout) housePositions = JSON.parse(savedLayout);
-
-        const savedClaims = localStorage.getItem('tofarmer_claims_v1');
-        if (savedClaims) claimedTiles = JSON.parse(savedClaims);
-
-        const savedFarms = localStorage.getItem('tofarmer_farms_v1');
-        if (savedFarms) farms = JSON.parse(savedFarms);
-
-        const savedDecor = localStorage.getItem('tofarmer_decor_v1');
-        if (savedDecor) houseDecor = JSON.parse(savedDecor);
-
         const { data: terrain } = await db.from('village_map').select('*');
         rawTerrainData = terrain || [];
 
-        const { data: users, error } = await db.from('profiles').select('id, username, level, xp, saldo_tof, rank, power, avatar_url').order('created_at', { ascending: true });
+        const { data: users, error } = await db.from('profiles')
+            .select('id, username, level, xp, saldo_tof, rank, power, avatar_url, house_style_id, compost_level, compost_last_collect, fertilizer_count')
+            .order('created_at', { ascending: true });
         if (error) return console.error(error);
         rawUserData = users || [];
 
+        await loadCatalogs();
         updateMyUserRef();
+        await loadWorldState();
 
         buildWorld();
         centerMapOnVillage();
+        subscribeRealtime();
     }
 
     init();
