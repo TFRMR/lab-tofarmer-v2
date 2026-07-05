@@ -204,7 +204,67 @@
         .compost-row .c-value { font-size: 14px; font-weight: 800; color: #86efac; }
         .buy-row { display: flex; gap: 6px; margin-top: 6px; }
         .buy-btn { flex: 1; padding: 8px; font-size: 11px; font-weight: bold; border-radius: 8px; border: none; cursor: pointer; background: linear-gradient(135deg,#a16207,#422006); color: #fde68a; }
-    </style>
+   /* ===== TOMBOL X UNIVERSAL ===== */
+.modal-box { position: relative; }
+.modal-close-x, .btn-tile-close {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #cbd5e1;
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.modal-close-x {
+    position: absolute; top: 8px; right: 8px;
+    z-index: 5;
+}
+
+/* ===== POPUP KLAIM TANAH: kecil, pojok kanan bawah ===== */
+.tile-hud-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.tile-action-hud {
+    left: auto; transform: none;
+    right: -280px; bottom: 90px;
+    width: min(65vw, 240px); max-width: 240px;
+    flex-direction: column; align-items: stretch;
+    transition: right 0.3s cubic-bezier(0.175,0.885,0.32,1.1);
+}
+.tile-action-hud.active { right: 12px; bottom: 90px; }
+.tile-buttons { justify-content: flex-end; }
+
+/* ===== MODAL BERTANI / KOMPOS / PULAU: kecil, pojok kanan, tidak nutup peta ===== */
+.modal-overlay.side-panel {
+    background: transparent;
+    backdrop-filter: none;
+    align-items: flex-end;
+    justify-content: flex-end;
+    padding: 0 12px 90px 0;
+}
+.modal-overlay.side-panel .modal-box {
+    width: min(72vw, 260px);
+    max-width: 260px;
+    max-height: 55vh;
+    padding: 16px 12px 12px 12px;
+    border-radius: 14px;
+    font-size: 12px;
+}
+.modal-overlay.side-panel .modal-username { font-size: 14px; }
+.modal-overlay.side-panel .island-icon { font-size: 30px; margin-bottom: 4px; }
+.modal-overlay.side-panel .modal-buttons-group { margin-top: 10px; gap: 6px; }
+.modal-overlay.side-panel .btn-modal-action { padding: 8px; font-size: 11px; }
+
+/* ===== MODE ARSITEK (Tata Rumah): kecil, pojok kanan, tidak halangi tengah peta ===== */
+.edit-hud-banner {
+    left: auto; transform: none;
+    right: -300px; bottom: 90px;
+    width: min(75vw, 270px); max-width: 270px;
+    max-height: min(58vh, 440px);
+    transition: right 0.35s cubic-bezier(0.175,0.885,0.32,1.2);
+}
+.edit-hud-banner.active { right: 12px; bottom: 90px; }
+ </style>
 </head>
 <body>
 
@@ -256,8 +316,9 @@
     </div>
 </div>
 
-<div id="island-modal" class="modal-overlay" onclick="closeIslandModal(event)">
+<div id="island-modal" class="modal-overlay side-panel" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
+        <button class="modal-close-x" onclick="document.getElementById('island-modal').classList.remove('active')">✕</button>
         <span class="island-icon">🏝️</span>
         <div class="modal-username" style="color: #a5b4fc;">Masterplan Peta</div>
         <div class="modal-rank" style="background: rgba(99,102,241,0.15); color: #a5b4fc; border-color: rgba(99,102,241,0.3)">Fase Makro Sirkulasi</div>
@@ -276,9 +337,12 @@
 </div>
 
 <div id="tile-hud" class="tile-action-hud">
-    <div class="tile-info-text">
-        <span id="hud-tile-coord">Ubin (X, Y)</span>
-        <strong id="hud-tile-status">Tanah Kosong Desa</strong>
+    <div class="tile-hud-top">
+        <div class="tile-info-text">
+            <span id="hud-tile-coord">Ubin (X, Y)</span>
+            <strong id="hud-tile-status">Tanah Kosong Desa</strong>
+        </div>
+        <button class="btn-tile-close" onclick="closeTileHUD()">✕</button>
     </div>
     <div class="tile-buttons">
         <button id="btn-tile-claim" class="btn-tile-act btn-claim" onclick="triggerClaimAction()">Claim</button>
@@ -287,7 +351,10 @@
 </div>
 
 <div id="edit-hud" class="edit-hud-banner">
-    <div class="hud-title">🛠️ Mode Arsitek Desa</div>
+    <div class="hud-title" style="justify-content:space-between;">
+        <span>🛠️ Mode Arsitek Desa</span>
+        <button class="btn-tile-close" onclick="cancelEditMode()">✕</button>
+    </div>
     <p class="hud-desc">Sentuh dan geser (*drag & drop*) ikon rumah <strong>milik Anda sendiri</strong> ke petak tanah yang sudah Anda klaim. Memindah rumah memotong <strong>3 XP</strong>.</p>
 
     <div class="hud-style-section">
@@ -307,8 +374,9 @@
     </div>
 </div>
 
-<div id="farm-modal" class="modal-overlay" onclick="closeFarmModal(event)">
+<div id="farm-modal" class="modal-overlay side-panel" onclick="closeFarmModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px;">
+        <button class="modal-close-x" onclick="document.getElementById('farm-modal').classList.remove('active')">✕</button>
         <span class="island-icon" style="font-size: 40px;">🌾</span>
         <div class="modal-username" style="color:#fde047;">Lahan Pertanian Saya</div>
         <div id="farm-list" style="text-align:left; max-height: 340px; overflow-y: auto; margin-top: 15px;"></div>
@@ -318,8 +386,9 @@
     </div>
 </div>
 
-<div id="compost-modal" class="modal-overlay" onclick="closeCompostModal(event)">
+<div id="compost-modal" class="modal-overlay side-panel" onclick="closeCompostModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px;">
+        <button class="modal-close-x" onclick="document.getElementById('compost-modal').classList.remove('active')">✕</button>
         <span class="island-icon" style="font-size: 40px;">🧪</span>
         <div class="modal-username" style="color:#fbbf24;">Gudang &amp; Kompos</div>
         <p class="hud-desc" style="margin:2px 0 12px 0;">Pupuk wajib untuk merawat tanaman &amp; menyuburkan tanah tandus. Beli dengan XP, atau <strong>bikin sendiri gratis</strong> lewat alat kompos (hanya menunggu cooldown).</p>
