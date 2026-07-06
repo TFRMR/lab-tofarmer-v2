@@ -859,6 +859,10 @@
     }
 
     // ============== BONUS RUMAH + DEKORASI (dihitung di client untuk preview) ==============
+    // Syarat "Rawat" (dulu disebut Pangkas) — berlaku sama untuk semua tanaman, dan
+    // WAJIB dipenuhi juga sebelum tombol Panen aktif (sebelumnya cuma siram+pupuk).
+    const CARE_TREAT_REQUIRED = 3;
+
     function getUserBonus(userId) {
         let yieldPct = 0, speedPct = 0;
         const meta = houseMeta[userId];
@@ -941,14 +945,14 @@
             // aktif padahal baru ditanam). Anggap saja baru ditanam (elapsed = 0) sampai data valid.
             const elapsed = farm.plantedAt ? (Date.now() - farm.plantedAt) : 0;
             const timeReady = elapsed >= growMs;
-            const careReady = (farm.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farm.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0);
+            const careReady = (farm.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farm.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farm.prunedCount || 0) >= CARE_TREAT_REQUIRED;
             const reward = computeEffectiveReward(cropDef, farm);
 
             let statusLine;
             if (timeReady && careReady) {
                 statusLine = `<button class="btn-harvest" onclick="harvestCropAction('${key}')">🧺 Panen ${cropDef.fruit_icon} (+${reward} XP)</button>`;
             } else if (timeReady && !careReady) {
-                statusLine = `<span class="farm-barren-text">⚠️ Sudah waktunya, tapi perawatan belum cukup (siram/pupuk).</span>`;
+                statusLine = `<span class="farm-barren-text">⚠️ Sudah waktunya, tapi perawatan belum cukup (siram/pupuk/rawat).</span>`;
             } else {
                 const remainMin = Math.ceil((growMs - elapsed) / 60000);
                 statusLine = `<span class="farm-growing-text">🌱 ${cropDef.name} sedang tumbuh (~${remainMin} menit lagi)...</span>`;
@@ -956,11 +960,11 @@
 
             return `<div class="farm-plot-card">
                 <strong>Petak Tanah (${key}) • ${cropDef.icon} ${cropDef.name}</strong>
-                <div class="care-progress">💧 Air: ${farm.waterCount}/${cropDef.water_required} &nbsp; 🌿 Pupuk: ${farm.fertilizeCount}/${cropDef.fertilize_required} &nbsp; ✂️ Pangkas: ${farm.prunedCount}/3</div>
+                <div class="care-progress">💧 Air: ${farm.waterCount}/${cropDef.water_required} &nbsp; 🌿 Pupuk: ${farm.fertilizeCount}/${cropDef.fertilize_required} &nbsp; ✂️ Rawat: ${farm.prunedCount}/${CARE_TREAT_REQUIRED}</div>
                 <div class="care-btn-row">
                     <button class="care-btn" onclick="waterCropAction('${key}')" ${farm.waterCount >= cropDef.water_required ? 'disabled' : ''}>💧 Siram (1 XP)</button>
                     <button class="care-btn" onclick="fertilizeCropAction('${key}')" ${farm.fertilizeCount >= cropDef.fertilize_required ? 'disabled' : ''}>🌿 Pupuk (1 pupuk)</button>
-                    <button class="care-btn" onclick="pruneCropAction('${key}')" ${farm.prunedCount >= 3 ? 'disabled' : ''}>✂️ Pangkas (2 XP)</button>
+                    <button class="care-btn" onclick="pruneCropAction('${key}')" ${farm.prunedCount >= CARE_TREAT_REQUIRED ? 'disabled' : ''}>✂️ Rawat (2 XP)</button>
                 </div>
                 ${statusLine}
             </div>`;
@@ -1027,7 +1031,7 @@
         if (!data.success) { showToast(data.message || 'Gagal memangkas.', true); return; }
         if (farms[key]) farms[key].prunedCount = data.pruned_count;
         await refreshMyProfile();
-        showToast(`✂️ Dipangkas. -2 XP.`);
+        showToast(`✂️ Dirawat. -2 XP.`);
         renderFarmList();
         updateTileFarmVisual(key);
     }
@@ -1243,7 +1247,7 @@
         const growMs = computeEffectiveGrowMs(cropDef, farmData);
         const elapsed = farmData.plantedAt ? (Date.now() - farmData.plantedAt) : 0;
         const timeReady = elapsed >= growMs;
-        const careReady = (farmData.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farmData.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0);
+        const careReady = (farmData.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farmData.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farmData.prunedCount || 0) >= CARE_TREAT_REQUIRED;
 
         wrap.className = 'sprite';
         wrap.style.fontSize = '22px';
@@ -1267,7 +1271,7 @@
         const growMs = computeEffectiveGrowMs(cropDef, farmData);
         const elapsed = farmData.plantedAt ? (Date.now() - farmData.plantedAt) : 0;
         const timeReady = elapsed >= growMs;
-        const careReady = (farmData.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farmData.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0);
+        const careReady = (farmData.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farmData.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farmData.prunedCount || 0) >= CARE_TREAT_REQUIRED;
 
         if (timeReady && careReady) {
             const badge = document.createElement('span');
