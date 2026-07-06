@@ -240,30 +240,61 @@
     backdrop-filter: none;
     align-items: flex-end;
     justify-content: flex-end;
-    padding: 0 12px 90px 0;
+    padding: 0 6px 90px 0;
 }
 .modal-overlay.side-panel .modal-box {
-    width: min(72vw, 260px);
-    max-width: 260px;
-    max-height: 55vh;
-    padding: 16px 12px 12px 12px;
+    width: min(58vw, 230px);
+    max-width: 230px;
+    max-height: 48vh;
+    padding: 14px 10px 10px 10px;
     border-radius: 14px;
-    font-size: 12px;
+    font-size: 11px;
 }
-.modal-overlay.side-panel .modal-username { font-size: 14px; }
-.modal-overlay.side-panel .island-icon { font-size: 30px; margin-bottom: 4px; }
-.modal-overlay.side-panel .modal-buttons-group { margin-top: 10px; gap: 6px; }
-.modal-overlay.side-panel .btn-modal-action { padding: 8px; font-size: 11px; }
+.modal-overlay.side-panel .modal-username { font-size: 13px; }
+.modal-overlay.side-panel .island-icon { font-size: 26px; margin-bottom: 4px; }
+.modal-overlay.side-panel .modal-buttons-group { margin-top: 8px; gap: 6px; }
+.modal-overlay.side-panel .btn-modal-action { padding: 7px; font-size: 10px; }
 
 /* ===== MODE ARSITEK (Tata Rumah): kecil, pojok kanan, tidak halangi tengah peta ===== */
 .edit-hud-banner {
     left: auto; transform: none;
     right: -300px; bottom: 90px;
-    width: min(75vw, 270px); max-width: 270px;
-    max-height: min(58vh, 440px);
+    width: min(60vw, 230px); max-width: 230px;
+    max-height: min(50vh, 380px);
+    padding: 12px 14px;
     transition: right 0.35s cubic-bezier(0.175,0.885,0.32,1.2);
 }
-.edit-hud-banner.active { right: 12px; bottom: 90px; }
+.edit-hud-banner.active { right: 6px; bottom: 90px; }
+
+/* ===== PENYESUAIAN KHUSUS LAYAR HP SEMPIT: makin kecil & makin mepet tepi ===== */
+@media (max-width: 480px) {
+    .modal-overlay.side-panel { padding: 0 4px 84px 0; }
+    .modal-overlay.side-panel .modal-box {
+        width: min(48vw, 190px);
+        max-width: 190px;
+        max-height: 42vh;
+        padding: 10px 8px 8px 8px;
+        font-size: 10px;
+    }
+    .modal-overlay.side-panel .modal-username { font-size: 12px; }
+    .modal-overlay.side-panel .island-icon { font-size: 22px; }
+    .modal-overlay.side-panel .btn-modal-action { padding: 6px; font-size: 9px; }
+    .farm-plot-card { padding: 6px 8px; }
+    .btn-crop, .care-btn { padding: 5px 6px; font-size: 9px; }
+
+    .edit-hud-banner {
+        width: min(52vw, 200px); max-width: 200px;
+        max-height: 44vh;
+        padding: 10px 12px;
+    }
+    .edit-hud-banner.active { right: 4px; bottom: 84px; }
+    .hud-title { font-size: 12px; }
+    .hud-desc { font-size: 9px; }
+    .decor-btn { flex: 1 1 45%; }
+
+    .tile-action-hud { width: min(50vw, 190px); }
+    .tile-action-hud.active { right: 6px; bottom: 84px; }
+}
  </style>
 </head>
 <body>
@@ -284,36 +315,6 @@
 
 <div id="viewport">
     <div id="world" class="locked-mode"></div>
-</div>
-
-<div id="custom-modal" class="modal-overlay" onclick="closeModal(event)">
-    <div class="modal-box" onclick="event.stopPropagation()">
-        <div class="modal-avatar-wrap"><img id="m-avatar" class="modal-avatar" src="" /></div>
-        <div id="m-username" class="modal-username">@username</div>
-        <div id="m-rank" class="modal-rank">Rank</div>
-        
-        <div class="modal-stats">
-            <div class="stat-item">
-                <span class="stat-label">Level</span>
-                <span id="m-level" class="stat-value">1</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">XP</span>
-                <span id="m-xp" class="stat-value">0</span>
-            </div>
-            <div class="stat-item">
-                <span class="stat-label">Aset TOF</span>
-                <span id="m-tof" class="stat-value tof">0</span>
-            </div>
-        </div>
-        
-        <div id="m-bakat" class="modal-bakat">Keahlian</div>
-        
-        <div class="modal-buttons-group">
-            <button class="btn-modal-action btn-visit-profile" onclick="goToUserProfile()">📖 Buka Portofolio Ilmu</button>
-            <button class="btn-modal-action btn-close-modal" onclick="document.getElementById('custom-modal').classList.remove('active')">Kembali ke Desa</button>
-        </div>
-    </div>
 </div>
 
 <div id="island-modal" class="modal-overlay side-panel" onclick="closeIslandModal(event)">
@@ -474,10 +475,10 @@
     let HOUSE_STYLES = [];
 
     const FALLBACK_CROPS = [
-        { id: 'padi', name: 'Padi', icon: '🌾', fruit_icon: '🌾', grow_seconds: 120, reward_xp: 8, plant_cost_xp: 2, water_required: 2, fertilize_required: 1, sort_order: 1 },
-        { id: 'jagung', name: 'Jagung', icon: '🌿', fruit_icon: '🌽', grow_seconds: 180, reward_xp: 14, plant_cost_xp: 3, water_required: 2, fertilize_required: 1, sort_order: 2 },
-        { id: 'cabai', name: 'Cabai', icon: '🌱', fruit_icon: '🌶️', grow_seconds: 150, reward_xp: 12, plant_cost_xp: 3, water_required: 3, fertilize_required: 1, sort_order: 3 },
-        { id: 'tomat', name: 'Tomat', icon: '🌱', fruit_icon: '🍅', grow_seconds: 210, reward_xp: 18, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 4 },
+        { id: 'padi', name: 'Padi', icon: '🌾', fruit_icon: '🌾', grow_seconds: 120, reward_xp: 50, plant_cost_xp: 2, water_required: 2, fertilize_required: 1, sort_order: 1 },
+        { id: 'jagung', name: 'Jagung', icon: '🌿', fruit_icon: '🌽', grow_seconds: 180, reward_xp: 55, plant_cost_xp: 3, water_required: 2, fertilize_required: 1, sort_order: 2 },
+        { id: 'cabai', name: 'Cabai', icon: '🌱', fruit_icon: '🌶️', grow_seconds: 150, reward_xp: 60, plant_cost_xp: 3, water_required: 3, fertilize_required: 1, sort_order: 3 },
+        { id: 'tomat', name: 'Tomat', icon: '🌱', fruit_icon: '🍅', grow_seconds: 210, reward_xp: 65, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 4 },
     ];
     const FALLBACK_HOUSE_STYLES = [
         { id: 'basic', name: 'Gubuk Bambu', icon: '🛖', image_url: 'https://img.icons8.com/plasticine/100/home.png', tier: 1, cost_xp: 0, yield_bonus_pct: 0, speed_bonus_pct: 0, sort_order: 1 },
@@ -878,9 +879,18 @@
         return seconds * 1000;
     }
 
+    // Game jangan pelit XP: hasil panen minimal 50 XP, dan minimal untung 100% dari total
+    // biaya XP yang dikeluarkan (biaya tanam + biaya siram, di luar pupuk yang dibayar
+    // pakai stok pupuk bukan XP). Ini hanya PREVIEW di client — nilai XP yang benar-benar
+    // ditambahkan tetap ditentukan oleh RPC fn_harvest_crop di server/Supabase, jadi
+    // reward_xp di tabel crop_catalog (dan/atau logika fn_harvest_crop) juga perlu
+    // disesuaikan supaya sama persis dengan aturan minimum ini.
     function computeEffectiveReward(cropDef, farmData) {
         const bonus = getUserBonus(farmData.ownerId);
-        return Math.round(cropDef.reward_xp * (1 + bonus.yieldPct / 100));
+        const baseReward = Math.round(cropDef.reward_xp * (1 + bonus.yieldPct / 100));
+        const totalCostXp = (Number(cropDef.plant_cost_xp) || 0) + (Number(cropDef.water_required) || 0) * 1;
+        const minReward = Math.max(50, totalCostXp * 2);
+        return Math.max(baseReward, minReward);
     }
 
     // ============== MENU BERTANI ==============
@@ -902,6 +912,7 @@
         }
 
         list.innerHTML = myTiles.map(key => {
+          try {
             const farm = farms[key];
 
             if (!farm || farm.landState === 'fertile') {
@@ -925,9 +936,12 @@
                 return `<div class="farm-plot-card"><strong>Petak Tanah (${key})</strong><span class="farm-barren-text">⚠️ Data tanaman belum sinkron, coba tutup &amp; buka lagi menu ini.</span></div>`;
             }
             const growMs = computeEffectiveGrowMs(cropDef, farm);
-            const elapsed = Date.now() - farm.plantedAt;
+            // PENTING: jika plantedAt belum tersinkron (null/undefined) dari server, JANGAN anggap
+            // waktu sudah lama berlalu (Date.now() - null jadi angka raksasa -> bug tombol panen
+            // aktif padahal baru ditanam). Anggap saja baru ditanam (elapsed = 0) sampai data valid.
+            const elapsed = farm.plantedAt ? (Date.now() - farm.plantedAt) : 0;
             const timeReady = elapsed >= growMs;
-            const careReady = farm.waterCount >= cropDef.water_required && farm.fertilizeCount >= cropDef.fertilize_required;
+            const careReady = (farm.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farm.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0);
             const reward = computeEffectiveReward(cropDef, farm);
 
             let statusLine;
@@ -950,6 +964,10 @@
                 </div>
                 ${statusLine}
             </div>`;
+          } catch (e) {
+            console.error('renderFarmList: gagal render petak', key, e);
+            return `<div class="farm-plot-card"><strong>Petak Tanah (${key})</strong><span class="farm-barren-text">⚠️ Gagal memuat data petak ini. Coba tutup &amp; buka lagi menu Bertani.</span></div>`;
+          }
         }).join('');
     }
 
@@ -1155,11 +1173,7 @@
         showToast(addMode ? `🎨 Dekorasi ditambahkan!${data.cost ? ' -' + data.cost + ' XP.' : ''}` : 'Dekorasi dilepas.');
     }
 
-    function goToUserProfile() {
-        if(currentSelectedUsername) {
-            window.location.href = `https://www.tofarmer.xyz/profile.html?u=${currentSelectedUsername}`;
-        }
-    }
+
 
     function enableEditMode() {
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa menata letak rumah warga desa!"); return; }
@@ -1227,9 +1241,9 @@
         const cropDef = getCropDef(farmData.cropId);
         if (!cropDef) { console.warn('createCropVisual: cropDef tidak ditemukan untuk', farmData.cropId); return null; }
         const growMs = computeEffectiveGrowMs(cropDef, farmData);
-        const elapsed = Date.now() - farmData.plantedAt;
+        const elapsed = farmData.plantedAt ? (Date.now() - farmData.plantedAt) : 0;
         const timeReady = elapsed >= growMs;
-        const careReady = farmData.waterCount >= cropDef.water_required && farmData.fertilizeCount >= cropDef.fertilize_required;
+        const careReady = (farmData.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farmData.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0);
 
         wrap.className = 'sprite';
         wrap.style.fontSize = '22px';
@@ -1251,9 +1265,9 @@
         const cropDef = getCropDef(farmData.cropId);
         if (!cropDef) return null;
         const growMs = computeEffectiveGrowMs(cropDef, farmData);
-        const elapsed = Date.now() - farmData.plantedAt;
+        const elapsed = farmData.plantedAt ? (Date.now() - farmData.plantedAt) : 0;
         const timeReady = elapsed >= growMs;
-        const careReady = farmData.waterCount >= cropDef.water_required && farmData.fertilizeCount >= cropDef.fertilize_required;
+        const careReady = (farmData.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farmData.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0);
 
         if (timeReady && careReady) {
             const badge = document.createElement('span');
@@ -1476,7 +1490,7 @@
             let lastInvalidToastTime = 0;
             
             const startDrag = (e) => {
-                if (!isEditMode) { openProfileModal(user); return; }
+                if (!isEditMode) { return; } // rumah hanya balon foto, tidak ada card/overlay saat diklik
                 const isMineNow = !!(myUserId && user.id === myUserId);
                 if (!isMineNow) { showToast("Hanya bisa menata rumah milik sendiri."); return; }
                 dragActive = true;
@@ -1552,22 +1566,8 @@
         });
     }
 
-    function openProfileModal(user) {
-        currentSelectedUsername = user.username; 
-        document.getElementById('m-avatar').src = user.avatar_url || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + user.username;
-        document.getElementById('m-username').innerText = `@${user.username}`;
-        document.getElementById('m-rank').innerText = user.rank || 'Warga Mandiri';
-        document.getElementById('m-level').innerText = user.level || '1';
-        document.getElementById('m-xp').innerText = user.xp || '0';
-        
-        const tofAset = user.saldo_tof !== undefined && user.saldo_tof !== null ? user.saldo_tof.toLocaleString('id-ID') : '0';
-        document.getElementById('m-tof').innerText = `${tofAset} TOF`;
-        document.getElementById('m-bakat').innerText = user.power ? `💡 Fokus Kompetensi: ${user.power}` : '🌱 Siap berkontribusi menyumbang ilmu di ekosistem Menoreh.';
-        
-        document.getElementById('custom-modal').classList.add('active');
-    }
-
-    function closeModal(e) { if(e.target === document.getElementById('custom-modal')) document.getElementById('custom-modal').classList.remove('active'); }
+    // Catatan: overlay/card profil warga saat rumah/foto diklik sudah dihilangkan.
+    // Rumah kini hanya menampilkan balon foto (avatar-balloon) tanpa interaksi klik.
     
     function rotateMap() { 
         currentRotationIndex = (currentRotationIndex + 1) % 4; 
