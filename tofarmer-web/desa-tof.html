@@ -975,7 +975,26 @@
         }).join('');
     }
 
+    // ============== PENGAMAN ANTI DOBEL-KLIK / RACE PER PETAK ==============
+    // Kalau user ngetuk tombol (panen/siram/pupuk/rawat) dua kali cepat-cepat di petak yang
+    // sama sebelum request pertama selesai, JANGAN kirim request kedua — supaya user tidak
+    // rugi XP dobel akibat aksi yang sama terkirim dua kali ke server.
+    const farmActionLocks = new Set();
+    async function runFarmActionLocked(lockKey, fn) {
+        if (farmActionLocks.has(lockKey)) {
+            showToast('Tunggu sebentar, aksi sebelumnya masih diproses...');
+            return;
+        }
+        farmActionLocks.add(lockKey);
+        try {
+            await fn();
+        } finally {
+            farmActionLocks.delete(lockKey);
+        }
+    }
+
     async function plantCrop(key, cropId) {
+      await runFarmActionLocked(`plant:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_plant_crop', { p_user: myUserId, p_x: x, p_y: y, p_crop_id: cropId });
         if (error) { showToast('Gagal menanam: ' + error.message, true); return; }
@@ -986,9 +1005,11 @@
         showToast(`🌱 Berhasil menanam! -${data.cost} XP.`);
         renderFarmList();
         updateTileFarmVisual(key);
+      });
     }
 
     async function waterCropAction(key) {
+      await runFarmActionLocked(`water:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_water_crop', { p_user: myUserId, p_x: x, p_y: y });
         if (error) { showToast('Gagal menyiram: ' + error.message, true); return; }
@@ -998,9 +1019,11 @@
         showToast('💧 Tanaman disiram.');
         renderFarmList();
         updateTileFarmVisual(key);
+      });
     }
 
     async function fertilizeCropAction(key) {
+      await runFarmActionLocked(`fertilize:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y });
         if (error) { showToast('Gagal memupuk: ' + error.message, true); return; }
@@ -1010,9 +1033,11 @@
         showToast('🌿 Tanaman dipupuk.');
         renderFarmList();
         updateTileFarmVisual(key);
+      });
     }
 
     async function fertilizeBarrenAction(key) {
+      await runFarmActionLocked(`fertilize:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y });
         if (error) { showToast('Gagal memupuk: ' + error.message, true); return; }
@@ -1022,9 +1047,11 @@
         showToast('🌿 Tanah subur kembali! Siap ditanami.');
         renderFarmList();
         updateTileFarmVisual(key);
+      });
     }
 
     async function pruneCropAction(key) {
+      await runFarmActionLocked(`prune:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_prune_crop', { p_user: myUserId, p_x: x, p_y: y });
         if (error) { showToast('Gagal memangkas: ' + error.message, true); return; }
@@ -1034,9 +1061,11 @@
         showToast(`✂️ Dirawat. -2 XP.`);
         renderFarmList();
         updateTileFarmVisual(key);
+      });
     }
 
     async function harvestCropAction(key) {
+      await runFarmActionLocked(`harvest:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_harvest_crop', { p_user: myUserId, p_x: x, p_y: y });
         if (error) { showToast('Gagal panen: ' + error.message, true); return; }
@@ -1047,6 +1076,7 @@
         showToast(`🧺 Panen berhasil! +${data.reward} XP.`);
         renderFarmList();
         updateTileFarmVisual(key);
+      });
     }
 
     // ============== KOMPOS & PUPUK ==============
@@ -1477,7 +1507,7 @@
             container.setAttribute('draggable', 'false');
             
             container.innerHTML = `
-                <img class="sprite house-img" src="${houseImage}" style="height: 55px;" />
+                <img class="sprite house-img" src="${houseImage}" style="height: 55px;" onerror="this.onerror=null;this.src='https://img.icons8.com/plasticine/100/home.png';" />
                 <div class="avatar-balloon">
                     <img class="avatar-img" src="${photoSrc}" />
                     <div class="nametag">@${user.username}</div>
