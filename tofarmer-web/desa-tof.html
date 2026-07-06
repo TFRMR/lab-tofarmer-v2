@@ -1530,30 +1530,7 @@
                     node.appendChild(icon);
                 }
 
-                // Pohon Beringin — landmark komunal penanda kesadaran air & alam desa.
-                // Dibuat RAKSASA (20x ukuran pohon biasa) supaya dominan secara visual dari
-                // kejauhan, dan diberi z-index tinggi + pointer-events:auto sendiri karena
-                // class .sprite bawaan sengaja pointer-events:none (biar klik tembus ke ubin
-                // di bawahnya) — tanpa override ini beringin tidak akan pernah bisa diklik.
-                // Warnanya agak layu (opacity turun) kalau lagi kurang dirawat warga.
-                if (ground && ground.type === 'beringin') {
-                    node.style.zIndex = 5000; // selalu di atas ubin lain manapun, berapapun x+y-nya
-                    const treeIcon = document.createElement('span');
-                    treeIcon.className = 'sprite';
-                    treeIcon.style.fontSize = '600px';
-                    treeIcon.style.lineHeight = '1';
-                    treeIcon.style.pointerEvents = 'auto';
-                    treeIcon.style.cursor = 'pointer';
-                    treeIcon.style.zIndex = '5000';
-                    treeIcon.style.filter = beringinHealthPct < 40 ? 'saturate(0.4) brightness(0.85)' : 'none';
-                    treeIcon.style.opacity = String(Math.max(0.55, beringinHealthPct / 100));
-                    treeIcon.title = 'Pohon Beringin — jaga bareng-bareng ya 🙏';
-                    treeIcon.innerText = '🌳';
-                    treeIcon.onclick = (e) => { e.stopPropagation(); openBeringinModal(); };
-                    node.appendChild(treeIcon);
-                }
 
-                const farmData = farms[tileKey];
                 if (farmData) tile.classList.toggle('tile-barren', farmData.landState === 'barren');
 
                 let cropIconEl = null, badgeEl = null;
@@ -1566,6 +1543,34 @@
 
                 tileNodeMap[tileKey] = { node, tileEl: tile, cropIconEl, badgeEl };
             }
+        }
+
+        // Pohon Beringin — landmark komunal, SENGAJA ditaruh di pojok LUAR grid petak
+        // (koordinat negatif, di luar 0..GRID_SIZE-1) supaya badannya yang raksasa TIDAK
+        // PERNAH menutupi tanah yang bisa diklaim ataupun rumah warga. Cuma dirender sekali,
+        // tidak tergantung data village_map, jadi tidak perlu insert baris apapun ke sana.
+        {
+            const beringinNode = document.createElement('div');
+            beringinNode.className = 'iso-node';
+            beringinNode.style.pointerEvents = 'none'; // node cuma wadah; tree-icon di dalamnya yang aktif
+            const coords = getIsoCoords(-4, -4);
+            beringinNode.style.left = coords.x + 'px';
+            beringinNode.style.top = coords.y + 'px';
+            beringinNode.style.zIndex = 5000; // selalu di atas ubin/rumah manapun
+
+            const treeIcon = document.createElement('span');
+            treeIcon.className = 'sprite';
+            treeIcon.style.fontSize = '300px';
+            treeIcon.style.lineHeight = '1';
+            treeIcon.style.pointerEvents = 'auto'; // .sprite bawaan pointer-events:none, ini pengecualiannya
+            treeIcon.style.cursor = 'pointer';
+            treeIcon.style.filter = beringinHealthPct < 40 ? 'saturate(0.4) brightness(0.85)' : 'none';
+            treeIcon.style.opacity = String(Math.max(0.55, beringinHealthPct / 100));
+            treeIcon.title = 'Pohon Beringin — jaga bareng-bareng ya 🙏';
+            treeIcon.innerText = '🌳';
+            treeIcon.onclick = (e) => { e.stopPropagation(); openBeringinModal(); };
+            beringinNode.appendChild(treeIcon);
+            world.appendChild(beringinNode);
         }
 
         // 2. Bangun Rumah Warga (SEKALI SAJA per warga)
