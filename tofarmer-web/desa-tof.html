@@ -1531,14 +1531,20 @@
                 }
 
                 // Pohon Beringin — landmark komunal penanda kesadaran air & alam desa.
-                // Ukurannya lebih besar dari pohon biasa, dan agak layu (opacity turun)
-                // kalau lagi kurang dirawat warga, supaya kelihatan kondisinya sekilas
-                // tanpa perlu buka menu apapun (tetap ringan: cuma 1 elemen di seluruh peta).
+                // Dibuat RAKSASA (20x ukuran pohon biasa) supaya dominan secara visual dari
+                // kejauhan, dan diberi z-index tinggi + pointer-events:auto sendiri karena
+                // class .sprite bawaan sengaja pointer-events:none (biar klik tembus ke ubin
+                // di bawahnya) — tanpa override ini beringin tidak akan pernah bisa diklik.
+                // Warnanya agak layu (opacity turun) kalau lagi kurang dirawat warga.
                 if (ground && ground.type === 'beringin') {
+                    node.style.zIndex = 5000; // selalu di atas ubin lain manapun, berapapun x+y-nya
                     const treeIcon = document.createElement('span');
                     treeIcon.className = 'sprite';
-                    treeIcon.style.fontSize = '52px';
+                    treeIcon.style.fontSize = '600px';
+                    treeIcon.style.lineHeight = '1';
+                    treeIcon.style.pointerEvents = 'auto';
                     treeIcon.style.cursor = 'pointer';
+                    treeIcon.style.zIndex = '5000';
                     treeIcon.style.filter = beringinHealthPct < 40 ? 'saturate(0.4) brightness(0.85)' : 'none';
                     treeIcon.style.opacity = String(Math.max(0.55, beringinHealthPct / 100));
                     treeIcon.title = 'Pohon Beringin — jaga bareng-bareng ya 🙏';
