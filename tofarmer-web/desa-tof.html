@@ -684,7 +684,7 @@
 
     // ============== CAIRKAN XP → TOF ASLI (gerbang ke Edge Function mesin-tofarmer) ==============
     // GANTI URL INI dengan URL Edge Function proyek Supabase kamu setelah di-deploy.
-    const MESIN_TOFARMER_URL = 'https://afpzddwuikvwsedzgsee.supabase.co/functions/v1/mesin-tofarmer';
+    const MESIN_TOFARMER_URL = 'https://PROYEK-ANDA.functions.supabase.co/mesin-tofarmer';
 
     function openCairkanModal() {
         if (isGuestUser()) { showToast('Login dulu untuk mencairkan XP.', true); return; }
@@ -693,6 +693,12 @@
         document.getElementById('cairkan-modal').classList.add('active');
     }
     function closeCairkanModal(e) { if (e.target === document.getElementById('cairkan-modal')) document.getElementById('cairkan-modal').classList.remove('active'); }
+
+    // Anon key project ini (SAMA seperti yang dipakai `db = supabase.createClient(...)` di atas).
+    // WAJIB disertakan karena Supabase secara default menolak (401) panggilan Edge Function
+    // yang tidak membawa API key/otorisasi apapun, walau function-nya sendiri tidak butuh
+    // login sungguhan (identitas tetap dicek manual lewat username+wallet di dalam function).
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
 
     async function submitCairkanTof() {
         const jumlah = Number(document.getElementById('cairkan-jumlah-xp').value);
@@ -705,7 +711,11 @@
             try {
                 const res = await fetch(MESIN_TOFARMER_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                        'apikey': SUPABASE_ANON_KEY,
+                    },
                     body: JSON.stringify({ action: 'cairkan_ke_blockchain', username, wallet, jumlahCairkan: jumlah }),
                 });
                 const data = await res.json();
@@ -1616,7 +1626,7 @@
             const beringinNode = document.createElement('div');
             beringinNode.className = 'iso-node';
             beringinNode.style.pointerEvents = 'none'; // node cuma wadah; tree-icon di dalamnya yang aktif
-            const coords = getIsoCoords(1, 1);
+            const coords = getIsoCoords(-4, -4);
             beringinNode.style.left = coords.x + 'px';
             beringinNode.style.top = coords.y + 'px';
             beringinNode.style.zIndex = 5000; // selalu di atas ubin/rumah manapun
@@ -1628,7 +1638,7 @@
             // raksasa itu tiap kali peta digeser/zoom). Pakai font-size kecil lalu
             // transform:scale() supaya digambar sekali dan diperbesar oleh GPU (compositing),
             // jauh lebih ringan walau hasil visualnya sama-sama besar (~20x ukuran pohon biasa).
-            treeIcon.style.fontSize = '20px';
+            treeIcon.style.fontSize = '30px';
             treeIcon.style.lineHeight = '1';
             treeIcon.style.transform = 'scale(20)';
             treeIcon.style.transformOrigin = 'center bottom';
@@ -1778,11 +1788,20 @@
     }
 
     function centerMapOnVillage() {
-    const centerCoords = getIsoCoords(Math.floor(GRID_SIZE/2), Math.floor(GRID_SIZE/2));
-    panX = -centerCoords.x * zoom;
-    panY = -centerCoords.y * zoom + 50; 
-    updateWorldTransform();
-}
+        const villageCenter = getIsoCoords(Math.floor(GRID_SIZE/2), Math.floor(GRID_SIZE/2));
+        // Pohon Beringin ada di pojok (-4,-4), jauh dari tengah desa. Supaya pemain langsung
+        // "ngeh" ada landmark di pojok situ tanpa harus geser jauh-jauh dulu, kamera dibuat
+        // sedikit condong ke arah situ (20%) + sedikit lebih zoom-out — desa tetap jadi fokus
+        // utama, tapi ujung pohonnya ikut kelihatan di pinggir layar saat pertama buka.
+        const treeCorner = getIsoCoords(-4, -4);
+        const biasedX = villageCenter.x * 0.8 + treeCorner.x * 0.2;
+        const biasedY = villageCenter.y * 0.8 + treeCorner.y * 0.2;
+
+        zoom = Math.max(zoom, 0.28); // sedikit lebih zoom-out dari default supaya jangkauan pandang lebih luas
+        panX = -biasedX * zoom;
+        panY = -biasedY * zoom + 50;
+        updateWorldTransform();
+    }
 
     // ============== MUAT DATA DUNIA DARI SUPABASE (sumber kebenaran bersama) ==============
     async function loadCatalogs() {
