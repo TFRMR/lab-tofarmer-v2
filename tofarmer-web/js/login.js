@@ -34,7 +34,11 @@ document.getElementById('login-btn').addEventListener('click', async () => {
         // Amankan sesi warga ke dalam LocalStorage browser
         localStorage.setItem('tof_wallet', data.id);
         localStorage.setItem('tof_username', data.username);
-        localStorage.setItem('tof_level', data.level || 1);
+        // Level dihitung dari XP + saldo dompet (bukan kolom profiles.level yang sudah usang),
+        // supaya level tidak jatuh cuma gara-gara warga rajin mencairkan XP jadi TOF asli.
+        const effectiveXp = (data.xp || 0) + (data.saldo_tof || 0) * 1000;
+        const computedLevel = Math.floor(Math.sqrt(effectiveXp / 100)) + 1;
+        localStorage.setItem('tof_level', computedLevel);
         localStorage.setItem('tof_rank', data.rank || 'Warga Mandiri');
         localStorage.setItem('tof_xp', data.xp || 0);
 
