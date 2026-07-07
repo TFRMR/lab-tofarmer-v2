@@ -33,6 +33,14 @@ function getTofLevel(xp) {
   return Math.min(eliteLevel, 100);
 }
 
+// Level sekarang dihitung dari XP + saldo dompet (bukan XP mentah), supaya rank/level
+// tidak jatuh cuma gara-gara warga rajin mencairkan XP jadi TOF asli. Konsisten dengan
+// rumus yang sama di app.js & login.js: 1 TOF di dompet = setara 1000 XP.
+const XP_PER_TOF_RANK = 1000;
+function hitungEffectiveXpRank(xp, saldoTof) {
+  return (Number(xp) || 0) + (Number(saldoTof) || 0) * XP_PER_TOF_RANK;
+}
+
 function getRankStats(users) {
   let grower = 0
   let pro = 0
@@ -40,8 +48,8 @@ function getRankStats(users) {
   let elite = 0
 
   users.forEach(u => {
-    const xp = u.xp || 0
-    const rank = getRank(xp)
+    const effectiveXp = hitungEffectiveXpRank(u.xp, u.saldo_tof)
+    const rank = getRank(effectiveXp)
 
     if (rank === "ELITE") elite++
     else if (rank === "SPECIALIST") specialist++
@@ -56,7 +64,7 @@ function getRankStats(users) {
 async function loadRankSummary() {
   const { data, error } = await supabaseClient
     .from("profiles")
-    .select("xp")
+    .select("xp, saldo_tof")
 
   if (error || !data) return
 
