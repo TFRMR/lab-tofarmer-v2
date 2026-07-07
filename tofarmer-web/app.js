@@ -587,7 +587,7 @@ async function renderPostsBatch(posts, feed) {
       <div style="display:flex; align-items:center; justify-content:between; gap:8px; width:100%;">
         <div style="display:flex; align-items:center; gap:8px; flex:1;">
           <img src="${avatar}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;" />
-          <div onclick="window.location.href='profile.html?id=${item.profiles?.id}'" style="font-weight:600;color:#2f6f4e;cursor:pointer;">@${username}</div>
+          <div onclick="window.location.href='profile.html?u=${username}'" style="font-weight:600;color:#2f6f4e;cursor:pointer;">@${username}</div>
         </div>
         
         ${isMyPost ? `
@@ -635,11 +635,11 @@ async function renderPostsBatch(posts, feed) {
             return `
               <div style="display:flex; align-items:flex-start; gap:8px; margin-top:6px;">
                 <img src="${cAvatar}" 
-                     onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
+                     onclick="if('${cUser}') window.location.href='profile.html?u=${cUser}'" 
                      style="width:24px; height:24px; border-radius:50%; object-fit:cover; cursor:pointer; border:1px solid rgba(0,0,0,0.08);" />
                 
                 <div style="background:#ffffff; padding:6px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.05); max-width:calc(100% - 32px);">
-                  <span onclick="if('${cUserId}') window.location.href='profile.html?id=${cUserId}'" 
+                  <span onclick="if('${cUser}') window.location.href='profile.html?u=${cUser}'" 
                         style="font-weight:700; color:#2f6f4e; cursor:pointer; margin-right:4px;">
                     @${cUser}
                   </span>
@@ -688,8 +688,11 @@ function renderProfile() {
     avatar.src = currentProfile.avatar_url || "https://via.placeholder.com/100"
   }
 
-  const calculatedLevel = typeof getTofLevel === "function" ? getTofLevel(currentProfile.xp || 0) : 1;
-  const calculatedRank = typeof getRank === "function" ? getRank(currentProfile.xp || 0) : "GROWER";
+  // Level & rank sekarang dihitung dari XP + saldo dompet (bukan XP mentah), supaya tidak
+  // jatuh cuma gara-gara warga rajin mencairkan XP jadi TOF asli.
+  const effectiveXpProfile = hitungEffectiveXp(currentProfile.xp, currentProfile.saldo_tof);
+  const calculatedLevel = typeof getTofLevel === "function" ? getTofLevel(effectiveXpProfile) : 1;
+  const calculatedRank = typeof getRank === "function" ? getRank(effectiveXpProfile) : "GROWER";
 
   let rankEmoji = "🌱";
   if (calculatedRank === "PRO") rankEmoji = "🥉";
@@ -705,7 +708,7 @@ function renderProfile() {
       <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#555;">XP: <b>${Math.floor(currentProfile.xp || 0)}</b></div>
       <div style="background:#fff8e1;border-radius:8px;padding:3px 8px;font-size:10px;color:#c9a227;">TOF: <b>${Number(currentProfile.saldo_tof || 0).toLocaleString("id-ID")}</b></div>
     </div>
-    <button onclick="window.location.href='profile.html?id=${currentWallet}'" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:11px;font-weight:600;cursor:pointer;">☕ Lihat Profil</button>
+    <button onclick="window.location.href='profile.html?u=${currentProfile.username}'" style="margin-top:8px;width:100%;padding:6px;border:none;border-radius:10px;background:linear-gradient(90deg,#4caf7a,#c9a227);color:white;font-size:11px;font-weight:600;cursor:pointer;">☕ Lihat Profil</button>
   `
 }
 
@@ -769,9 +772,7 @@ function convertMentions(text) {
   return result;
 }
 async function goToUsername(username) {
-  const { data, error } = await supabaseClient.from("profiles").select("id").eq("username", username).maybeSingle()
-  if (error || !data) { alert("Petani tidak ditemukan 🌱"); return; }
-  window.location.href = `profile.html?id=${data.id}`
+  window.location.href = `profile.html?u=${username}`
 }
 
 async function loadAvatarStack() {
@@ -785,7 +786,7 @@ async function loadAvatarStack() {
     img.src = user.avatar_url || "https://via.placeholder.com/100"
     img.className = "avatar-item"
     img.title = user.username
-    img.onclick = () => { window.location.href = `profile.html?id=${user.id}` }
+    img.onclick = () => { window.location.href = `profile.html?u=${user.username}` }
     container.appendChild(img)
   })
 }
@@ -982,8 +983,16 @@ function sharePost(postId, username, text) {
 }
 
 // 🟢 AWAL SISIPAN: FUNGSI MEMBACA PERINGKAT UNTUK RADAR CARD
-function getRadarRank(xp) {
-  const lvl = Math.floor(Math.sqrt(xp / 100)) + 1;
+// Level sekarang dihitung dari XP + saldo dompet (bukan XP doang), karena XP bisa berkurang
+// kalau warga mencairkan ke TOF asli (withdraw) — jadi levelnya tidak jatuh cuma gara-gara
+// rajin mencairkan. 1 TOF di dompet dihitung setara 1000 XP.
+const XP_PER_TOF = 1000;
+function hitungEffectiveXp(xp, saldoTof) {
+  return (Number(xp) || 0) + (Number(saldoTof) || 0) * XP_PER_TOF;
+}
+
+function getRadarRank(effectiveXp) {
+  const lvl = Math.floor(Math.sqrt(effectiveXp / 100)) + 1;
   if (lvl >= 50) return "👑 Mahaguru ladang";
   if (lvl >= 40) return "🧙‍♂️ Sesepuh Kebun";
   if (lvl >= 30) return "👨‍🌾 Penguasa Lahan";
@@ -1001,14 +1010,20 @@ async function loadRadarPeringkat() {
     // 🟢 SUDAH FIX: diganti menjadi 'supabaseClient'
     const { data: users, error } = await supabaseClient
       .from("profiles")
-      .select("username, xp")
+      .select("username, xp, saldo_tof")
       .order("xp", { ascending: false })
       .limit(10);
 
     if (error) throw error;
 
     if (users && users.length > 0) {
-      wadahRadar.innerHTML = users.map((user, indeks) => {
+      // Urutkan ulang berdasarkan effective_xp (xp + saldo dompet), bukan cuma xp mentah,
+      // supaya peringkat mencerminkan total kekayaan warga di ekosistem TOF.
+      const sorted = users
+        .map(u => ({ ...u, effectiveXp: hitungEffectiveXp(u.xp, u.saldo_tof) }))
+        .sort((a, b) => b.effectiveXp - a.effectiveXp);
+
+      wadahRadar.innerHTML = sorted.map((user, indeks) => {
         const posisi = indeks + 1;
         let medali = `${posisi}.`;
         if (posisi === 1) medali = "🥇";
@@ -1016,7 +1031,7 @@ async function loadRadarPeringkat() {
         if (posisi === 3) medali = "🥉";
 
         const xpUser = user.xp || 0;
-        const levelUser = Math.floor(Math.sqrt(xpUser / 100)) + 1;
+        const levelUser = Math.floor(Math.sqrt(user.effectiveXp / 100)) + 1;
 
         return `
           <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid #f1f5f9;padding:6px 10px;border-radius:8px;font-size:11px;">
@@ -1024,11 +1039,11 @@ async function loadRadarPeringkat() {
               <span style="font-weight:bold;color:#64748b;width:16px;flex-shrink:0;">${medali}</span>
               <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                 <strong style="color:#1e293b;">@${user.username}</strong>
-                <div style="font-size:9px;color:#64748b;">${getRadarRank(xpUser)}</div>
+                <div style="font-size:9px;color:#64748b;">${getRadarRank(user.effectiveXp)}</div>
               </div>
             </div>
             <div style="text-align:right;flex-shrink:0;font-weight:600;color:#2f6f4e;background:#eef7f1;padding:2px 6px;border-radius:999px;font-size:10px;margin-left:4px;">
-              Lvl ${levelUser} <span style="font-size:9px;font-weight:normal;color:#6f7f76;">(${xpUser})</span>
+              Lvl ${levelUser} <span style="font-size:9px;font-weight:normal;color:#6f7f76;">(${xpUser} XP)</span>
             </div>
           </div>
         `;
