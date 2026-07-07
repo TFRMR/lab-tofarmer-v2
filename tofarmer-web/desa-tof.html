@@ -337,6 +337,35 @@
     </div>
 </div>
 
+<div id="beringin-modal" class="modal-overlay side-panel" onclick="closeBeringinModal(event)">
+    <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
+        <button class="modal-close-x" onclick="document.getElementById('beringin-modal').classList.remove('active')">✕</button>
+        <span class="island-icon">🌳</span>
+        <div class="modal-username" style="color: #86efac;">Pohon Beringin Desa</div>
+        <div class="modal-rank" style="background: rgba(34,197,94,0.15); color: #86efac; border-color: rgba(34,197,94,0.3)">Penjaga Kesadaran Air &amp; Alam</div>
+
+        <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5; margin: 8px 0 10px 0;">
+            Pohon ini simbol sumber air &amp; kelestarian alam desa Menoreh. Kalau warga rajin merawatnya bersama-sama,
+            <strong>semua warga</strong> kebagian sedikit bonus panen (lebih cepat tumbuh, hasil sedikit lebih banyak).
+            Kalau kurang dirawat, tidak ada hukuman — cuma bonusnya belum aktif.
+        </p>
+
+        <div style="background: rgba(255,255,255,0.06); border-radius: 8px; padding: 8px; margin-bottom: 10px;">
+            <div style="display:flex; justify-content:space-between; font-size: 11px; color:#e2e8f0; margin-bottom:4px;">
+                <span>🌱 Kesehatan Pohon</span><span id="beringin-health-label">100%</span>
+            </div>
+            <div style="background: rgba(0,0,0,0.35); border-radius: 6px; height: 8px; overflow: hidden;">
+                <div id="beringin-health-bar" style="height:100%; width:100%; background: linear-gradient(90deg,#22c55e,#86efac); transition: width 0.4s;"></div>
+            </div>
+        </div>
+
+        <div class="modal-buttons-group">
+            <button class="btn-modal-action" onclick="careBeringinAction('pupuk')">🌿 Beri Pupuk (1 pupuk)</button>
+            <button class="btn-modal-action" onclick="careBeringinAction('sajen')">🙏 Sajen Syukur (5 XP)</button>
+        </div>
+    </div>
+</div>
+
 <div id="tile-hud" class="tile-action-hud">
     <div class="tile-hud-top">
         <div class="tile-info-text">
@@ -429,6 +458,29 @@
     <div id="auth-status">Memeriksa session...</div>
     <div class="xp-line"><span>💰 XP</span><span class="xp-value" id="hud-xp-value">0</span></div>
     <div class="xp-line"><span>🌿 Pupuk</span><span class="pupuk-value" id="hud-pupuk-value">0</span></div>
+    <button id="btn-cairkan-tof" onclick="openCairkanModal()" style="width:100%; margin-top:6px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:600; cursor:pointer;">☕ Cairkan ke TOF</button>
+</div>
+
+<div id="cairkan-modal" class="modal-overlay side-panel" onclick="closeCairkanModal(event)">
+    <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
+        <button class="modal-close-x" onclick="document.getElementById('cairkan-modal').classList.remove('active')">✕</button>
+        <span class="island-icon">☕</span>
+        <div class="modal-username" style="color:#c9a227;">Cairkan XP → TOF Asli</div>
+        <div class="modal-rank" style="background: rgba(201,162,39,0.15); color:#c9a227; border-color: rgba(201,162,39,0.3)">Kurs: 1000 XP = 1 TOF</div>
+
+        <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5; margin: 8px 0 10px 0;">
+            Saldo XP kamu: <strong id="cairkan-saldo-xp">0</strong> XP.
+            Dompet tujuan tetap alamat yang kamu pakai login — dana selalu balik ke dompetmu sendiri.
+            Kuota pencairan dibagi bersama semua warga dan terbatas tiap harinya.
+        </p>
+
+        <input id="cairkan-jumlah-xp" type="number" min="100" step="100" placeholder="Jumlah XP dicairkan (min 100)"
+               style="width:100%; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#e2e8f0; font-size:12px; margin-bottom:8px;" />
+
+        <div class="modal-buttons-group">
+            <button class="btn-modal-action" onclick="submitCairkanTof()">✅ Cairkan Sekarang</button>
+        </div>
+    </div>
 </div>
 
 <div class="controls" id="controls-wrap">
@@ -475,10 +527,19 @@
     let HOUSE_STYLES = [];
 
     const FALLBACK_CROPS = [
-        { id: 'padi', name: 'Padi', icon: '🌾', fruit_icon: '🌾', grow_seconds: 120, reward_xp: 50, plant_cost_xp: 2, water_required: 2, fertilize_required: 1, sort_order: 1 },
-        { id: 'jagung', name: 'Jagung', icon: '🌿', fruit_icon: '🌽', grow_seconds: 180, reward_xp: 55, plant_cost_xp: 3, water_required: 2, fertilize_required: 1, sort_order: 2 },
-        { id: 'cabai', name: 'Cabai', icon: '🌱', fruit_icon: '🌶️', grow_seconds: 150, reward_xp: 60, plant_cost_xp: 3, water_required: 3, fertilize_required: 1, sort_order: 3 },
-        { id: 'tomat', name: 'Tomat', icon: '🌱', fruit_icon: '🍅', grow_seconds: 210, reward_xp: 65, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 4 },
+        { id: 'padi', name: 'Padi', icon: '🌾', fruit_icon: '🌾', grow_seconds: 7200, reward_xp: 50, plant_cost_xp: 2, water_required: 2, fertilize_required: 1, sort_order: 1 },
+        { id: 'jagung', name: 'Jagung', icon: '🌿', fruit_icon: '🌽', grow_seconds: 5760, reward_xp: 55, plant_cost_xp: 3, water_required: 2, fertilize_required: 1, sort_order: 2 },
+        { id: 'cabai', name: 'Cabai', icon: '🌱', fruit_icon: '🌶️', grow_seconds: 4320, reward_xp: 60, plant_cost_xp: 3, water_required: 3, fertilize_required: 1, sort_order: 3 },
+        { id: 'tomat', name: 'Tomat', icon: '🌱', fruit_icon: '🍅', grow_seconds: 3600, reward_xp: 65, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 4 },
+        { id: 'ubi_jalar', name: 'Ubi Jalar', icon: '🌿', fruit_icon: '🍠', grow_seconds: 6480, reward_xp: 80, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 5 },
+        { id: 'singkong', name: 'Singkong', icon: '🌿', fruit_icon: '🥔', grow_seconds: 8640, reward_xp: 90, plant_cost_xp: 5, water_required: 3, fertilize_required: 2, sort_order: 6 },
+        { id: 'jahe', name: 'Empon-empon (Jahe)', icon: '🌿', fruit_icon: '🫚', grow_seconds: 10800, reward_xp: 120, plant_cost_xp: 6, water_required: 3, fertilize_required: 2, sort_order: 7 },
+        { id: 'pisang', name: 'Pisang', icon: '🌴', fruit_icon: '🍌', grow_seconds: 12960, reward_xp: 140, plant_cost_xp: 6, water_required: 4, fertilize_required: 2, sort_order: 8 },
+        { id: 'kopi', name: 'Kopi Menoreh', icon: '🌳', fruit_icon: '☕', grow_seconds: 17280, reward_xp: 220, plant_cost_xp: 8, water_required: 4, fertilize_required: 3, sort_order: 9 },
+        { id: 'mangga', name: 'Mangga', icon: '🌳', fruit_icon: '🥭', grow_seconds: 19440, reward_xp: 250, plant_cost_xp: 8, water_required: 4, fertilize_required: 3, sort_order: 10 },
+        { id: 'kakao', name: 'Kakao Menoreh', icon: '🌳', fruit_icon: '🍫', grow_seconds: 21600, reward_xp: 280, plant_cost_xp: 8, water_required: 5, fertilize_required: 3, sort_order: 11 },
+        { id: 'gayam', name: 'Pohon Gayam', icon: '🌳', fruit_icon: '🌰', grow_seconds: 23760, reward_xp: 310, plant_cost_xp: 9, water_required: 5, fertilize_required: 3, sort_order: 12 },
+        { id: 'durian', name: 'Durian Menoreh', icon: '🌳', fruit_icon: '🥁', grow_seconds: 25920, reward_xp: 350, plant_cost_xp: 10, water_required: 5, fertilize_required: 3, sort_order: 13 },
     ];
     const FALLBACK_HOUSE_STYLES = [
         { id: 'basic', name: 'Gubuk Bambu', icon: '🛖', image_url: 'https://img.icons8.com/plasticine/100/home.png', tier: 1, cost_xp: 0, yield_bonus_pct: 0, speed_bonus_pct: 0, sort_order: 1 },
@@ -621,6 +682,46 @@
         }
     }
 
+    // ============== CAIRKAN XP → TOF ASLI (gerbang ke Edge Function mesin-tofarmer) ==============
+    // GANTI URL INI dengan URL Edge Function proyek Supabase kamu setelah di-deploy.
+    const MESIN_TOFARMER_URL = 'https://PROYEK-ANDA.functions.supabase.co/mesin-tofarmer';
+
+    function openCairkanModal() {
+        if (isGuestUser()) { showToast('Login dulu untuk mencairkan XP.', true); return; }
+        document.getElementById('cairkan-saldo-xp').innerText = myUser ? (myUser.xp || 0).toLocaleString('id-ID') : '0';
+        document.getElementById('cairkan-jumlah-xp').value = '';
+        document.getElementById('cairkan-modal').classList.add('active');
+    }
+    function closeCairkanModal(e) { if (e.target === document.getElementById('cairkan-modal')) document.getElementById('cairkan-modal').classList.remove('active'); }
+
+    async function submitCairkanTof() {
+        const jumlah = Number(document.getElementById('cairkan-jumlah-xp').value);
+        if (!Number.isFinite(jumlah) || jumlah < 100) { showToast('Minimal cairkan 100 XP.', true); return; }
+        if (myUser && jumlah > (myUser.xp || 0)) { showToast('Saldo XP tidak cukup.', true); return; }
+
+        await runFarmActionLocked('cairkan-tof', async () => {
+            const username = localStorage.getItem('tof_username');
+            const wallet = localStorage.getItem('tof_wallet');
+            try {
+                const res = await fetch(MESIN_TOFARMER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'cairkan_ke_blockchain', username, wallet, jumlahCairkan: jumlah }),
+                });
+                const data = await res.json();
+                if (data.status === 'Sukses') {
+                    showToast(`✅ Berhasil! ${data.tofDikirim} TOF terkirim ke dompetmu.`);
+                    document.getElementById('cairkan-modal').classList.remove('active');
+                    await refreshMyProfile();
+                } else {
+                    showToast('Gagal: ' + (data.message || 'Terjadi kesalahan.'), true);
+                }
+            } catch (e) {
+                showToast('Gagal menghubungi mesin pencairan. Coba lagi nanti.', true);
+            }
+        });
+    }
+
     // UTALITAS KALKULASI JARAK & SUDUT 2 JARI
     function getTouchDistance(t1, t2) {
         return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
@@ -747,6 +848,28 @@
         document.getElementById('island-modal').classList.add('active');
     }
     function closeIslandModal(e) { if(e.target === document.getElementById('island-modal')) document.getElementById('island-modal').classList.remove('active'); }
+
+    // ============== POHON BERINGIN — landmark komunal, kesadaran air & alam ==============
+    function openBeringinModal() {
+        document.getElementById('beringin-health-label').innerText = Math.round(beringinHealthPct) + '%';
+        document.getElementById('beringin-health-bar').style.width = Math.max(0, Math.min(100, beringinHealthPct)) + '%';
+        document.getElementById('beringin-modal').classList.add('active');
+    }
+    function closeBeringinModal(e) { if(e.target === document.getElementById('beringin-modal')) document.getElementById('beringin-modal').classList.remove('active'); }
+
+    async function careBeringinAction(method) {
+        await runFarmActionLocked('beringin-care', async () => {
+            const { data, error } = await db.rpc('fn_care_beringin', { p_user: myUserId, p_method: method });
+            if (error) { showToast('Gagal merawat pohon: ' + error.message, true); return; }
+            if (!data.success) { showToast(data.message || 'Gagal merawat pohon.', true); return; }
+
+            beringinHealthPct = Number(data.health_pct);
+            document.getElementById('beringin-health-label').innerText = Math.round(beringinHealthPct) + '%';
+            document.getElementById('beringin-health-bar').style.width = Math.max(0, Math.min(100, beringinHealthPct)) + '%';
+            await refreshMyProfile();
+            showToast(method === 'pupuk' ? '🌿 Pohon beringin dipupuk, terima kasih sudah merawat alam 🙏' : '🙏 Sajen syukur diberikan, semoga air desa tetap lestari.');
+        });
+    }
     
     async function submitIslandRequest() {
         if (isGuestUser() || !myUserId) return;
@@ -863,16 +986,25 @@
     // WAJIB dipenuhi juga sebelum tombol Panen aktif (sebelumnya cuma siram+pupuk).
     const CARE_TREAT_REQUIRED = 3;
 
+    // Kesehatan Pohon Beringin (0-100) — komunal, dirawat bareng-bareng seluruh warga.
+    // Default optimis 100 sebelum data server termuat, supaya tidak ada "hukuman" tak berdasar.
+    let beringinHealthPct = 100;
+
     function getUserBonus(userId) {
         let yieldPct = 0, speedPct = 0;
         const meta = houseMeta[userId];
-        if (!meta) return { yieldPct, speedPct };
-        const style = getAllHouseStyles().find(s => s.id === meta.houseStyleId);
-        if (style) { yieldPct += Number(style.yield_bonus_pct || 0); speedPct += Number(style.speed_bonus_pct || 0); }
-        (meta.decorItems || []).forEach(dId => {
-            const d = DECOR_ITEMS.find(x => x.id === dId);
-            if (d) { yieldPct += Number(d.yield_bonus_pct || 0); speedPct += Number(d.speed_bonus_pct || 0); }
-        });
+        if (meta) {
+            const style = getAllHouseStyles().find(s => s.id === meta.houseStyleId);
+            if (style) { yieldPct += Number(style.yield_bonus_pct || 0); speedPct += Number(style.speed_bonus_pct || 0); }
+            (meta.decorItems || []).forEach(dId => {
+                const d = DECOR_ITEMS.find(x => x.id === dId);
+                if (d) { yieldPct += Number(d.yield_bonus_pct || 0); speedPct += Number(d.speed_bonus_pct || 0); }
+            });
+        }
+        // Berkah Pohon Beringin: kalau warga rajin merawat pohon (kesadaran air & alam),
+        // SEMUA warga kebagian bonus tipis ini. Bukan hukuman kalau kurang terawat — cuma
+        // bonus tambahan kalau terawat baik, biar tidak ada yang merasa dirugikan.
+        if (beringinHealthPct >= 70) { yieldPct += 5; speedPct += 5; }
         return { yieldPct: Math.min(yieldPct, 100), speedPct: Math.min(speedPct, 60) };
     }
 
@@ -1461,7 +1593,7 @@
                     node.appendChild(icon);
                 }
 
-                const farmData = farms[tileKey];
+
                 if (farmData) tile.classList.toggle('tile-barren', farmData.landState === 'barren');
 
                 let cropIconEl = null, badgeEl = null;
@@ -1474,6 +1606,42 @@
 
                 tileNodeMap[tileKey] = { node, tileEl: tile, cropIconEl, badgeEl };
             }
+        }
+
+        // Pohon Beringin — landmark komunal, SENGAJA ditaruh di pojok LUAR grid petak
+        // (koordinat negatif, di luar 0..GRID_SIZE-1) supaya badannya yang raksasa TIDAK
+        // PERNAH menutupi tanah yang bisa diklaim ataupun rumah warga. Cuma dirender sekali,
+        // tidak tergantung data village_map, jadi tidak perlu insert baris apapun ke sana.
+        {
+            const beringinNode = document.createElement('div');
+            beringinNode.className = 'iso-node';
+            beringinNode.style.pointerEvents = 'none'; // node cuma wadah; tree-icon di dalamnya yang aktif
+            const coords = getIsoCoords(-4, -4);
+            beringinNode.style.left = coords.x + 'px';
+            beringinNode.style.top = coords.y + 'px';
+            beringinNode.style.zIndex = 5000; // selalu di atas ubin/rumah manapun
+
+            const treeIcon = document.createElement('span');
+            treeIcon.className = 'sprite';
+            // PENTING untuk performa hape kentang: JANGAN pakai font-size literal raksasa
+            // (itu penyebab lag-nya kemarin — browser terpaksa merender ulang bitmap emoji
+            // raksasa itu tiap kali peta digeser/zoom). Pakai font-size kecil lalu
+            // transform:scale() supaya digambar sekali dan diperbesar oleh GPU (compositing),
+            // jauh lebih ringan walau hasil visualnya sama-sama besar (~20x ukuran pohon biasa).
+            treeIcon.style.fontSize = '30px';
+            treeIcon.style.lineHeight = '1';
+            treeIcon.style.transform = 'scale(20)';
+            treeIcon.style.transformOrigin = 'center bottom';
+            treeIcon.style.willChange = 'transform';
+            treeIcon.style.pointerEvents = 'auto'; // .sprite bawaan pointer-events:none, ini pengecualiannya
+            treeIcon.style.cursor = 'pointer';
+            treeIcon.style.filter = beringinHealthPct < 40 ? 'saturate(0.4) brightness(0.85)' : 'none';
+            treeIcon.style.opacity = String(Math.max(0.55, beringinHealthPct / 100));
+            treeIcon.title = 'Pohon Beringin — jaga bareng-bareng ya 🙏';
+            treeIcon.innerText = '🌳';
+            treeIcon.onclick = (e) => { e.stopPropagation(); openBeringinModal(); };
+            beringinNode.appendChild(treeIcon);
+            world.appendChild(beringinNode);
         }
 
         // 2. Bangun Rumah Warga (SEKALI SAJA per warga)
@@ -1618,14 +1786,19 @@
 
     // ============== MUAT DATA DUNIA DARI SUPABASE (sumber kebenaran bersama) ==============
     async function loadCatalogs() {
-        const [{ data: crops }, { data: decors }, { data: styles }] = await Promise.all([
+        const [{ data: crops }, { data: decors }, { data: styles }, { data: landmark }] = await Promise.all([
             db.from('crop_catalog').select('*').order('sort_order', { ascending: true }),
             db.from('decor_catalog').select('*').order('sort_order', { ascending: true }),
             db.from('house_style_catalog').select('*').order('sort_order', { ascending: true }),
+            db.from('village_landmark').select('*').eq('id', 'beringin').maybeSingle(),
         ]);
         CROP_TYPES = crops || [];
         DECOR_ITEMS = decors || [];
         HOUSE_STYLES = styles || [];
+        if (landmark) {
+            const hoursElapsed = (Date.now() - new Date(landmark.last_cared_at).getTime()) / 3600000;
+            beringinHealthPct = Math.max(0, Math.min(100, Number(landmark.health_pct) - hoursElapsed * 1.5));
+        }
     }
 
     async function loadWorldState() {
