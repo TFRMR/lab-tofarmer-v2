@@ -130,45 +130,14 @@ let targetProfileId = null
 // =====================
 // RANK SYSTEM
 // =====================
-
-function getRank(xp) {
-  const lvl = getTofLevel(xp);
-  
-  if (lvl >= 91) return "🥇 ELITE";       // Level 91-100: Tahap Mastermind/Petapa
-  if (lvl >= 31) return "🥈 SPECIALIST";  // Level 31-90: Tahap Ilmu Baku
-  if (lvl >= 11) return "🥉 PRO";         // Level 11-30: Tahap Kontribusi & Validasi
-  return "🌱 GROWER";                     // Level 1-10: Tahap Belajar & Adaptasi
-}
-
-function getTofLevel(xp) {
-  xp = xp || 0;
-
-  // 1. GROWER: Level 1 - 10 (XP: 0 - 2999)
-  if (xp < 3000) {
-    return Math.floor(xp / 300) + 1; 
-  }
-  
-  // 2. PRO: Level 11 - 30 (XP: 3000 - 8999)
-  if (xp < 9000) {
-    const proXp = xp - 3000;
-    return 11 + Math.floor(proXp / 300);
-  }
-  
-  // 3. SPECIALIST: Level 31 - 90 (XP: 9000 - 32999)
-  if (xp < 33000) {
-    const specXp = xp - 9000;
-    return 31 + Math.floor(specXp / 400); // Dibagi rentang 400 XP per level agar muat 60 tingkat
-  }
-  
-  // 4. ELITE: Level 91 - 100 (XP: 33000+)
-  const eliteXp = xp - 33000;
-  const eliteLevel = 91 + Math.floor(eliteXp / 1000);
-  return Math.min(eliteLevel, 100); // Dikunci maksimal di Level 100
-}
+// getRank, getTofLevel, dan hitungEffectiveXpRank sekarang SATU-SATUNYA didefinisikan di
+// rank.js (istilah kebun, threshold berbasis nilai TOF asli, level unlimited) — pastikan
+// <script src="rank.js"> dimuat SEBELUM profile.js di halaman profile.html.
 
 function generateProfileContext(profileData, recentPosts = []) {
-  const rank = getRank(profileData.xp || 0);
-  const lvl = getTofLevel(profileData.xp || 0);
+  const effectiveXp = hitungEffectiveXpRank(profileData.xp || 0, profileData.saldo_tof || 0);
+  const rank = getRank(effectiveXp);
+  const lvl = getTofLevel(effectiveXp);
   
   // Ambil maksimal 5 postingan terakhir, gabungkan jadi histori
   const riwayatTeks = recentPosts.slice(0, 5).map((post, index) => {
@@ -376,8 +345,8 @@ function renderProfileData(data) {
         font-size:12px;
         font-weight:600;
       ">
-        ${getRank(data.xp || 0)}
-        • Level ${getTofLevel(data.xp || 0)}
+        ${getRank(hitungEffectiveXpRank(data.xp || 0, data.saldo_tof || 0))}
+        • Level ${getTofLevel(hitungEffectiveXpRank(data.xp || 0, data.saldo_tof || 0))}
       </div>
 
       <div style="margin-top: 25px; text-align: left; border-top: 1px dashed #cbd5e1; padding-top: 15px;">
