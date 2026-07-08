@@ -688,21 +688,16 @@ function renderProfile() {
     avatar.src = currentProfile.avatar_url || "https://via.placeholder.com/100"
   }
 
-  // Level & rank sekarang dihitung dari XP + saldo dompet (bukan XP mentah), supaya tidak
-  // jatuh cuma gara-gara warga rajin mencairkan XP jadi TOF asli.
-  const effectiveXpProfile = hitungEffectiveXp(currentProfile.xp, currentProfile.saldo_tof);
+  // Level & rank sekarang dihitung dari XP + saldo dompet (bukan XP mentah), pakai satu-satunya
+  // sumber kebenaran di rank.js (istilah kebun, threshold berbasis nilai TOF asli, level unlimited).
+  const effectiveXpProfile = hitungEffectiveXpRank(currentProfile.xp, currentProfile.saldo_tof);
   const calculatedLevel = typeof getTofLevel === "function" ? getTofLevel(effectiveXpProfile) : 1;
-  const calculatedRank = typeof getRank === "function" ? getRank(effectiveXpProfile) : "GROWER";
-
-  let rankEmoji = "🌱";
-  if (calculatedRank === "PRO") rankEmoji = "🥉";
-  if (calculatedRank === "SPECIALIST") rankEmoji = "🥈";
-  if (calculatedRank === "ELITE") rankEmoji = "🥇";
+  const calculatedRank = typeof getRank === "function" ? getRank(effectiveXpProfile) : "🪵 Buruh Macul";
 
   userBox.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@${currentProfile.username}</div>
-      <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">${rankEmoji} Lv${calculatedLevel}</div>
+      <div style="background:#eef7f1;border-radius:999px;padding:3px 8px;color:#2f6f4e;font-size:10px;font-weight:600;">${calculatedRank} · Lv${calculatedLevel}</div>
     </div>
     <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;">
       <div style="background:#f5f5f5;border-radius:8px;padding:3px 8px;font-size:10px;color:#555;">XP: <b>${Math.floor(currentProfile.xp || 0)}</b></div>
@@ -986,21 +981,9 @@ function sharePost(postId, username, text) {
 // Level sekarang dihitung dari XP + saldo dompet (bukan XP doang), karena XP bisa berkurang
 // kalau warga mencairkan ke TOF asli (withdraw) — jadi levelnya tidak jatuh cuma gara-gara
 // rajin mencairkan. 1 TOF di dompet dihitung setara 1000 XP.
-const XP_PER_TOF = 1000;
-function hitungEffectiveXp(xp, saldoTof) {
-  return (Number(xp) || 0) + (Number(saldoTof) || 0) * XP_PER_TOF;
-}
-
-function getRadarRank(effectiveXp) {
-  const lvl = Math.floor(Math.sqrt(effectiveXp / 100)) + 1;
-  if (lvl >= 50) return "👑 Mahaguru ladang";
-  if (lvl >= 40) return "🧙‍♂️ Sesepuh Kebun";
-  if (lvl >= 30) return "👨‍🌾 Penguasa Lahan";
-  if (lvl >= 20) return "🌱 Petani Teladan";
-  if (lvl >= 10) return "🌿 Pembasmi Gulma";
-  if (lvl >= 5)  return "🍃 Penyiram Ulung";
-  return "🪵 Buruh Macul";
-}
+// Catatan: getRank, getTofLevel, dan hitungEffectiveXpRank sekarang SATU-SATUNYA didefinisikan
+// di rank.js (istilah kebun, threshold berbasis TOF asli, level unlimited) — app.js tinggal pakai,
+// tidak lagi punya sistem rank/level sendiri supaya tidak tabrakan lagi seperti sebelumnya.
 
 async function loadRadarPeringkat() {
   const wadahRadar = document.getElementById("radar-peringkat-list");
@@ -1020,7 +1003,7 @@ async function loadRadarPeringkat() {
       // Urutkan ulang berdasarkan effective_xp (xp + saldo dompet), bukan cuma xp mentah,
       // supaya peringkat mencerminkan total kekayaan warga di ekosistem TOF.
       const sorted = users
-        .map(u => ({ ...u, effectiveXp: hitungEffectiveXp(u.xp, u.saldo_tof) }))
+        .map(u => ({ ...u, effectiveXp: hitungEffectiveXpRank(u.xp, u.saldo_tof) }))
         .sort((a, b) => b.effectiveXp - a.effectiveXp);
 
       wadahRadar.innerHTML = sorted.map((user, indeks) => {
@@ -1031,7 +1014,7 @@ async function loadRadarPeringkat() {
         if (posisi === 3) medali = "🥉";
 
         const xpUser = user.xp || 0;
-        const levelUser = Math.floor(Math.sqrt(user.effectiveXp / 100)) + 1;
+        const levelUser = getTofLevel(user.effectiveXp);
 
         return `
           <div style="display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid #f1f5f9;padding:6px 10px;border-radius:8px;font-size:11px;">
@@ -1039,7 +1022,7 @@ async function loadRadarPeringkat() {
               <span style="font-weight:bold;color:#64748b;width:16px;flex-shrink:0;">${medali}</span>
               <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                 <strong style="color:#1e293b;">@${user.username}</strong>
-                <div style="font-size:9px;color:#64748b;">${getRadarRank(user.effectiveXp)}</div>
+                <div style="font-size:9px;color:#64748b;">${getRank(user.effectiveXp)}</div>
               </div>
             </div>
             <div style="text-align:right;flex-shrink:0;font-weight:600;color:#2f6f4e;background:#eef7f1;padding:2px 6px;border-radius:999px;font-size:10px;margin-left:4px;">

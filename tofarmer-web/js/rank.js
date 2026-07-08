@@ -1,63 +1,58 @@
-// ===================== RANK & LEVEL PROGRESSIVE (MAX LVL 100) =====================
+// ===================== RANK & LEVEL (berbasis nilai aset nyata: XP + saldo TOF) =====================
+// SATU-SATUNYA sumber kebenaran untuk rank & level di seluruh TOFarmer (dipakai app.js, login.js, dll).
+// Istilah GROWER/PRO/SPECIALIST/ELITE (gaya game) sudah dihapus — sekarang semua pakai istilah kebun.
+//
+// Rank ditentukan dari total nilai aset (XP + saldo TOF, dikonversi ke setara TOF: 1 TOF = 1000 XP),
+// bukan XP mentah — supaya benar-benar mencerminkan kekayaan warga di ekosistem TOF, termasuk yang
+// sudah dicairkan ke dompet asli. Ambang batasnya dalam satuan TOF (1 TOF ≈ Rp1.000):
+//   100 - 500 - 1.000 - 3.000 - 10.000 - 30.000 - 40.000 TOF
+// Rank tertinggi (40.000 TOF ke atas, setara aset nyata ±Rp40 juta) levelnya TIDAK dibatasi —
+// terus bertambah selama XP/saldo terus bertambah, tidak akan pernah mentok.
 
-function getRank(xp) {
-  if (xp >= 33000) return "ELITE"
-  if (xp >= 9000) return "SPECIALIST"
-  if (xp >= 3000) return "PRO"
-  return "GROWER"
-}
-
-function getTofLevel(xp) {
-  xp = xp || 0;
-
-  // 1. GROWER: Level 1 - 10 (XP: 0 - 2999)
-  if (xp < 3000) {
-    return Math.floor(xp / 300) + 1; 
-  }
-  
-  // 2. PRO: Level 11 - 30 (XP: 3000 - 8999)
-  if (xp < 9000) {
-    const proXp = xp - 3000;
-    return 11 + Math.floor(proXp / 300);
-  }
-  
-  // 3. SPECIALIST: Level 31 - 90 (XP: 9000 - 32999)
-  if (xp < 33000) {
-    const specXp = xp - 9000;
-    return 31 + Math.floor(specXp / 400);
-  }
-  
-  // 4. ELITE: Level 91 - 100 (XP: 33000+)
-  const eliteXp = xp - 33000;
-  const eliteLevel = 91 + Math.floor(eliteXp / 1000);
-  return Math.min(eliteLevel, 100);
-}
-
-// Level sekarang dihitung dari XP + saldo dompet (bukan XP mentah), supaya rank/level
-// tidak jatuh cuma gara-gara warga rajin mencairkan XP jadi TOF asli. Konsisten dengan
-// rumus yang sama di app.js & login.js: 1 TOF di dompet = setara 1000 XP.
 const XP_PER_TOF_RANK = 1000;
+
 function hitungEffectiveXpRank(xp, saldoTof) {
   return (Number(xp) || 0) + (Number(saldoTof) || 0) * XP_PER_TOF_RANK;
 }
 
+// Tabel tingkatan rank kebun, diurutkan dari ambang batas TERTINGGI ke terendah.
+const RANK_TIERS = [
+  { minTof: 40000, label: "🌟 Legenda Tani Menoreh" },
+  { minTof: 30000, label: "👑 Mahaguru Ladang" },
+  { minTof: 10000, label: "🧙‍♂️ Sesepuh Kebun" },
+  { minTof: 3000,  label: "👨‍🌾 Penguasa Lahan" },
+  { minTof: 1000,  label: "🌱 Petani Teladan" },
+  { minTof: 500,   label: "🌿 Pembasmi Gulma" },
+  { minTof: 100,   label: "🍃 Penyiram Ulung" },
+  { minTof: 0,     label: "🪵 Buruh Macul" },
+];
+
+// getRank menerima effectiveXp (bukan TOF langsung) supaya tetap konsisten dipanggil
+// dari mana saja seperti sebelumnya: getRank(effectiveXp).
+function getRank(effectiveXp) {
+  const tof = (Number(effectiveXp) || 0) / XP_PER_TOF_RANK;
+  const tier = RANK_TIERS.find(t => tof >= t.minTof);
+  return tier ? tier.label : RANK_TIERS[RANK_TIERS.length - 1].label;
+}
+
+// Level terus bertambah TANPA batas (tidak lagi mentok di level 100 seperti dulu),
+// dihitung langsung dari effectiveXp (XP + saldo TOF setara XP).
+function getTofLevel(effectiveXp) {
+  const xp = Number(effectiveXp) || 0;
+  return Math.floor(Math.sqrt(xp / 100)) + 1;
+}
+
 function getRankStats(users) {
-  let grower = 0
-  let pro = 0
-  let specialist = 0
-  let elite = 0
+  const stats = {};
+  RANK_TIERS.forEach(t => { stats[t.label] = 0; });
 
   users.forEach(u => {
-    const effectiveXp = hitungEffectiveXpRank(u.xp, u.saldo_tof)
-    const rank = getRank(effectiveXp)
+    const effectiveXp = hitungEffectiveXpRank(u.xp, u.saldo_tof);
+    const rank = getRank(effectiveXp);
+    stats[rank] = (stats[rank] || 0) + 1;
+  });
 
-    if (rank === "ELITE") elite++
-    else if (rank === "SPECIALIST") specialist++
-    else if (rank === "PRO") pro++
-    else grower++
-  })
-
-  return { grower, pro, specialist, elite }
+  return stats;
 }
 
 // Fungsi sinkronisasi render ringkasan pangkat di Beranda Ekonomi
@@ -72,6 +67,10 @@ async function loadRankSummary() {
   const growerCountEl = document.getElementById("rankSummary")
 
   if (growerCountEl) {
-    growerCountEl.innerHTML = `Total-${data.length} ( 🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite} )`
+    const ringkasan = RANK_TIERS
+      .slice().reverse()
+      .map(t => `${t.label} ${stats[t.label] || 0}`)
+      .join(" | ");
+    growerCountEl.innerHTML = `Total-${data.length} ( ${ringkasan} )`
   }
 }
