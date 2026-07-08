@@ -393,12 +393,13 @@ async function loadEconomy() {
     loadAvatarStack()
 
     // --- SINKRONISASI COUNTER BARIS ATAS ---
-    // Pakai label & urutan tier yang SAMA dari rank.js (RANK_TIERS), supaya tidak ada lagi
-    // istilah lama (grower/pro/specialist/elite) yang tertinggal tabrakan di halaman lain.
+    // Diringkas jadi ikon + angka saja (tanpa nama rank penuh), supaya card tidak penuh/berantakan.
     const growerEl = document.getElementById("rankSummary")
     if (growerEl && typeof getRankStats === "function" && typeof RANK_TIERS !== "undefined") {
       const stats = getRankStats(profiles)
-      const ringkasan = RANK_TIERS.slice().reverse().map(t => `${t.label} ${stats[t.label] || 0}`).join(" | ")
+      const ringkasan = RANK_TIERS.slice().reverse()
+        .map(t => `${t.label.split(' ')[0]}${stats[t.label] || 0}`)
+        .join(" ")
       growerEl.innerHTML = `Total-${profiles.length} ( ${ringkasan} )`
     }
   } catch (err) {

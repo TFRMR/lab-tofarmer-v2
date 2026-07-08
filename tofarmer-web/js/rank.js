@@ -69,8 +69,8 @@ async function loadRankSummary() {
   if (growerCountEl) {
     const ringkasan = RANK_TIERS
       .slice().reverse()
-      .map(t => `${t.label} ${stats[t.label] || 0}`)
-      .join(" | ");
+      .map(t => `${t.label.split(' ')[0]}${stats[t.label] || 0}`)
+      .join(" ");
     growerCountEl.innerHTML = `Total-${data.length} ( ${ringkasan} )`
   }
 }
