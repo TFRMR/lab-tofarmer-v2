@@ -130,9 +130,7 @@ let targetProfileId = null
 // =====================
 // RANK SYSTEM
 // =====================
-// getRank, getTofLevel, dan hitungEffectiveXpRank sekarang SATU-SATUNYA didefinisikan di
-// rank.js (istilah kebun, threshold berbasis nilai TOF asli, level unlimited) — pastikan
-// <script src="rank.js"> dimuat SEBELUM profile.js di halaman profile.html.
+
 
 function generateProfileContext(profileData, recentPosts = []) {
   const effectiveXp = hitungEffectiveXpRank(profileData.xp || 0, profileData.saldo_tof || 0);
