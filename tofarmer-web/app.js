@@ -392,11 +392,14 @@ async function loadEconomy() {
     setTimeout(() => { typeof updateFaseProgress === "function" && updateFaseProgress(totalFixed) }, 100)
     loadAvatarStack()
 
-    // --- SINKRONISASI COUTER BARIS ATAS ---
+    // --- SINKRONISASI COUNTER BARIS ATAS ---
+    // Pakai label & urutan tier yang SAMA dari rank.js (RANK_TIERS), supaya tidak ada lagi
+    // istilah lama (grower/pro/specialist/elite) yang tertinggal tabrakan di halaman lain.
     const growerEl = document.getElementById("rankSummary")
-    if (growerEl && typeof getRankStats === "function") {
+    if (growerEl && typeof getRankStats === "function" && typeof RANK_TIERS !== "undefined") {
       const stats = getRankStats(profiles)
-      growerEl.innerHTML = `Total-${profiles.length} ( 🌱${stats.grower} | 🥉${stats.pro} | 🥈${stats.specialist} | 🥇${stats.elite} )`
+      const ringkasan = RANK_TIERS.slice().reverse().map(t => `${t.label} ${stats[t.label] || 0}`).join(" | ")
+      growerEl.innerHTML = `Total-${profiles.length} ( ${ringkasan} )`
     }
   } catch (err) {
     console.log("ECONOMY ERROR:", err)
