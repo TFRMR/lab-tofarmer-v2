@@ -367,7 +367,7 @@ async function refreshUserBalance() {
 async function loadEconomy() {
   try {
     // Tarik id dan xp dari supabase
-    const { data: profiles, error } = await supabaseClient.from("profiles").select("id, xp")
+    const { data: profiles, error } = await supabaseClient.from("profiles").select("id, xp, saldo_tof")
     if (error || !profiles) return
 
     const totalAsset = document.getElementById("totalAsset")
