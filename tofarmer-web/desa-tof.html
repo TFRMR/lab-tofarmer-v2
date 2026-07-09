@@ -1131,7 +1131,7 @@
                 ${perennialInfo}
                 <div class="care-progress">💧 Air: ${farm.waterCount}/${cropDef.water_required} &nbsp; 🌿 Pupuk: ${farm.fertilizeCount}/${cropDef.fertilize_required} &nbsp; ✂️ Rawat: ${farm.prunedCount}/${CARE_TREAT_REQUIRED}</div>
                 <div class="care-btn-row">
-                    <button class="care-btn" onclick="waterCropAction('${key}')" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown) ? 'disabled' : ''}>💧 Siram (1 XP)${waterOnCooldown ? ' ⏳ ' + formatDuration(waterCooldownMs - (now - farm.lastWateredAt)) : ''}</button>
+                    <button class="care-btn" onclick="waterCropAction('${key}')" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown) ? 'disabled' : ''}>💧 Siram ${waterOnCooldown ? ' ⏳ ' + formatDuration(waterCooldownMs - (now - farm.lastWateredAt)) : ''}</button>
                     <button class="care-btn" onclick="fertilizeCropAction('${key}')" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk (1 pupuk)${fertilizeOnCooldown ? ' ⏳ ' + formatDuration(fertilizeCooldownMs - (now - farm.lastFertilizedAt)) : ''}</button>
                     <button class="care-btn" onclick="pruneCropAction('${key}')" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat (2 XP)${pruneOnCooldown ? ' ⏳ ' + formatDuration(pruneCooldownMs - (now - farm.lastPrunedAt)) : ''}</button>
                 </div>
