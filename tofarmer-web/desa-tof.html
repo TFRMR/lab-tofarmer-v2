@@ -527,19 +527,19 @@
     let HOUSE_STYLES = [];
 
     const FALLBACK_CROPS = [
-        { id: 'padi', name: 'Padi', icon: '🌾', fruit_icon: '🌾', grow_seconds: 7200, reward_xp: 50, plant_cost_xp: 2, water_required: 2, fertilize_required: 1, sort_order: 1 },
-        { id: 'jagung', name: 'Jagung', icon: '🌿', fruit_icon: '🌽', grow_seconds: 5760, reward_xp: 55, plant_cost_xp: 3, water_required: 2, fertilize_required: 1, sort_order: 2 },
-        { id: 'cabai', name: 'Cabai', icon: '🌱', fruit_icon: '🌶️', grow_seconds: 4320, reward_xp: 60, plant_cost_xp: 3, water_required: 3, fertilize_required: 1, sort_order: 3 },
-        { id: 'tomat', name: 'Tomat', icon: '🌱', fruit_icon: '🍅', grow_seconds: 3600, reward_xp: 65, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 4 },
-        { id: 'ubi_jalar', name: 'Ubi Jalar', icon: '🌿', fruit_icon: '🍠', grow_seconds: 6480, reward_xp: 80, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 5 },
-        { id: 'singkong', name: 'Singkong', icon: '🌿', fruit_icon: '🥔', grow_seconds: 8640, reward_xp: 90, plant_cost_xp: 5, water_required: 3, fertilize_required: 2, sort_order: 6 },
-        { id: 'jahe', name: 'Empon-empon (Jahe)', icon: '🌿', fruit_icon: '🫚', grow_seconds: 10800, reward_xp: 120, plant_cost_xp: 6, water_required: 3, fertilize_required: 2, sort_order: 7 },
-        { id: 'pisang', name: 'Pisang', icon: '🌴', fruit_icon: '🍌', grow_seconds: 12960, reward_xp: 140, plant_cost_xp: 6, water_required: 4, fertilize_required: 2, sort_order: 8 },
-        { id: 'kopi', name: 'Kopi Menoreh', icon: '🌳', fruit_icon: '☕', grow_seconds: 17280, reward_xp: 220, plant_cost_xp: 8, water_required: 4, fertilize_required: 3, sort_order: 9 },
-        { id: 'mangga', name: 'Mangga', icon: '🌳', fruit_icon: '🥭', grow_seconds: 19440, reward_xp: 250, plant_cost_xp: 8, water_required: 4, fertilize_required: 3, sort_order: 10 },
-        { id: 'kakao', name: 'Kakao Menoreh', icon: '🌳', fruit_icon: '🍫', grow_seconds: 21600, reward_xp: 280, plant_cost_xp: 8, water_required: 5, fertilize_required: 3, sort_order: 11 },
-        { id: 'gayam', name: 'Pohon Gayam', icon: '🌳', fruit_icon: '🌰', grow_seconds: 23760, reward_xp: 310, plant_cost_xp: 9, water_required: 5, fertilize_required: 3, sort_order: 12 },
-        { id: 'durian', name: 'Durian Menoreh', icon: '🌳', fruit_icon: '🥁', grow_seconds: 25920, reward_xp: 350, plant_cost_xp: 10, water_required: 5, fertilize_required: 3, sort_order: 13 },
+        { id: 'padi', name: 'Padi', icon: '🌾', fruit_icon: '🌾', grow_seconds: 7200, reward_xp: 50, plant_cost_xp: 2, water_required: 2, fertilize_required: 1, sort_order: 1, water_cooldown_seconds: 1800, fertilize_cooldown_seconds: 3600, prune_cooldown_seconds: 1200 },
+        { id: 'jagung', name: 'Jagung', icon: '🌿', fruit_icon: '🌽', grow_seconds: 5760, reward_xp: 55, plant_cost_xp: 3, water_required: 2, fertilize_required: 1, sort_order: 2, water_cooldown_seconds: 1440, fertilize_cooldown_seconds: 2880, prune_cooldown_seconds: 960 },
+        { id: 'cabai', name: 'Cabai', icon: '🌱', fruit_icon: '🌶️', grow_seconds: 4320, reward_xp: 60, plant_cost_xp: 3, water_required: 3, fertilize_required: 1, sort_order: 3, water_cooldown_seconds: 720, fertilize_cooldown_seconds: 2160, prune_cooldown_seconds: 720, is_perennial: true, max_harvest_count: 4, regrow_seconds: 1944 },
+        { id: 'tomat', name: 'Tomat', icon: '🌱', fruit_icon: '🍅', grow_seconds: 3600, reward_xp: 65, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 4, water_cooldown_seconds: 600, fertilize_cooldown_seconds: 900, prune_cooldown_seconds: 600, is_perennial: true, max_harvest_count: 4, regrow_seconds: 1620 },
+        { id: 'ubi_jalar', name: 'Ubi Jalar', icon: '🌿', fruit_icon: '🍠', grow_seconds: 6480, reward_xp: 80, plant_cost_xp: 4, water_required: 3, fertilize_required: 2, sort_order: 5, water_cooldown_seconds: 1080, fertilize_cooldown_seconds: 1620, prune_cooldown_seconds: 1080 },
+        { id: 'singkong', name: 'Singkong', icon: '🌿', fruit_icon: '🥔', grow_seconds: 8640, reward_xp: 90, plant_cost_xp: 5, water_required: 3, fertilize_required: 2, sort_order: 6, water_cooldown_seconds: 1440, fertilize_cooldown_seconds: 2160, prune_cooldown_seconds: 1440 },
+        { id: 'jahe', name: 'Empon-empon (Jahe)', icon: '🌿', fruit_icon: '🫚', grow_seconds: 10800, reward_xp: 120, plant_cost_xp: 6, water_required: 3, fertilize_required: 2, sort_order: 7, water_cooldown_seconds: 1800, fertilize_cooldown_seconds: 2700, prune_cooldown_seconds: 1800 },
+        { id: 'pisang', name: 'Pisang', icon: '🌴', fruit_icon: '🍌', grow_seconds: 12960, reward_xp: 140, plant_cost_xp: 6, water_required: 4, fertilize_required: 2, sort_order: 8, water_cooldown_seconds: 1620, fertilize_cooldown_seconds: 3240, prune_cooldown_seconds: 2160 },
+        { id: 'kopi', name: 'Kopi Menoreh', icon: '🌳', fruit_icon: '☕', grow_seconds: 17280, reward_xp: 220, plant_cost_xp: 8, water_required: 4, fertilize_required: 3, sort_order: 9, water_cooldown_seconds: 2160, fertilize_cooldown_seconds: 2880, prune_cooldown_seconds: 2880, is_perennial: true, max_harvest_count: 8, regrow_seconds: 5184 },
+        { id: 'mangga', name: 'Mangga', icon: '🌳', fruit_icon: '🥭', grow_seconds: 19440, reward_xp: 250, plant_cost_xp: 8, water_required: 4, fertilize_required: 3, sort_order: 10, water_cooldown_seconds: 2430, fertilize_cooldown_seconds: 3240, prune_cooldown_seconds: 3240, is_perennial: true, max_harvest_count: 12, regrow_seconds: 6804 },
+        { id: 'kakao', name: 'Kakao Menoreh', icon: '🌳', fruit_icon: '🍫', grow_seconds: 21600, reward_xp: 280, plant_cost_xp: 8, water_required: 5, fertilize_required: 3, sort_order: 11, water_cooldown_seconds: 2160, fertilize_cooldown_seconds: 3600, prune_cooldown_seconds: 3600, is_perennial: true, max_harvest_count: 8, regrow_seconds: 6480 },
+        { id: 'gayam', name: 'Pohon Gayam', icon: '🌳', fruit_icon: '🌰', grow_seconds: 23760, reward_xp: 310, plant_cost_xp: 9, water_required: 5, fertilize_required: 3, sort_order: 12, water_cooldown_seconds: 2376, fertilize_cooldown_seconds: 3960, prune_cooldown_seconds: 3960, is_perennial: true, max_harvest_count: 20, regrow_seconds: 9504 },
+        { id: 'durian', name: 'Durian Menoreh', icon: '🌳', fruit_icon: '🥁', grow_seconds: 25920, reward_xp: 350, plant_cost_xp: 10, water_required: 5, fertilize_required: 3, sort_order: 13, water_cooldown_seconds: 2592, fertilize_cooldown_seconds: 4320, prune_cooldown_seconds: 4320, is_perennial: true, max_harvest_count: 16, regrow_seconds: 10368 },
     ];
     const FALLBACK_HOUSE_STYLES = [
         { id: 'basic', name: 'Gubuk Bambu', icon: '🛖', image_url: 'https://img.icons8.com/plasticine/100/home.png', tier: 1, cost_xp: 0, yield_bonus_pct: 0, speed_bonus_pct: 0, sort_order: 1 },
@@ -994,6 +994,18 @@
     // ============== BONUS RUMAH + DEKORASI (dihitung di client untuk preview) ==============
     // Syarat "Rawat" (dulu disebut Pangkas) — berlaku sama untuk semua tanaman, dan
     // WAJIB dipenuhi juga sebelum tombol Panen aktif (sebelumnya cuma siram+pupuk).
+    // Format durasi ms jadi teks ramah (jam/menit, atau hari+jam kalau lebih dari sehari) --
+    // dipakai buat "sisa tumbuh" dan "sisa jeda siram/pupuk/rawat" sekarang skalanya jam-hari.
+    function formatDuration(ms) {
+        const totalMin = Math.max(1, Math.ceil(ms / 60000));
+        const hari = Math.floor(totalMin / 1440);
+        const jam = Math.floor((totalMin % 1440) / 60);
+        const menit = totalMin % 60;
+        if (hari > 0) return `${hari}h ${jam}j`;
+        if (jam > 0) return `${jam}j ${menit}m`;
+        return `${menit}m`;
+    }
+
     const CARE_TREAT_REQUIRED = 3;
 
     // Kesehatan Pohon Beringin (0-100) — komunal, dirawat bareng-bareng seluruh warga.
@@ -1090,23 +1102,38 @@
             const careReady = (farm.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farm.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farm.prunedCount || 0) >= CARE_TREAT_REQUIRED;
             const reward = computeEffectiveReward(cropDef, farm);
 
+            // Cek jeda waktu (cooldown) tiap jenis perawatan -- tombolnya nonaktif SELAMA
+            // dalam masa jeda, bukan cuma pas syaratnya sudah terpenuhi.
+            const now = Date.now();
+            const waterCooldownMs = (Number(cropDef.water_cooldown_seconds) || 0) * 1000;
+            const fertilizeCooldownMs = (Number(cropDef.fertilize_cooldown_seconds) || 0) * 1000;
+            const pruneCooldownMs = (Number(cropDef.prune_cooldown_seconds) || 0) * 1000;
+            const waterOnCooldown = farm.lastWateredAt && (now - farm.lastWateredAt) < waterCooldownMs;
+            const fertilizeOnCooldown = farm.lastFertilizedAt && (now - farm.lastFertilizedAt) < fertilizeCooldownMs;
+            const pruneOnCooldown = farm.lastPrunedAt && (now - farm.lastPrunedAt) < pruneCooldownMs;
+
             let statusLine;
             if (timeReady && careReady) {
                 statusLine = `<button class="btn-harvest" onclick="harvestCropAction('${key}')">🧺 Panen ${cropDef.fruit_icon} (+${reward} XP)</button>`;
             } else if (timeReady && !careReady) {
                 statusLine = `<span class="farm-barren-text">⚠️ Sudah waktunya, tapi perawatan belum cukup (siram/pupuk/rawat).</span>`;
             } else {
-                const remainMin = Math.ceil((growMs - elapsed) / 60000);
-                statusLine = `<span class="farm-growing-text">🌱 ${cropDef.name} sedang tumbuh (~${remainMin} menit lagi)...</span>`;
+                statusLine = `<span class="farm-growing-text">🌱 ${cropDef.name} sedang tumbuh (~${formatDuration(growMs - elapsed)} lagi)...</span>`;
             }
+
+            // Status khusus tanaman yang bisa panen berulang (cabai/tomat/pohon tahunan)
+            const perennialInfo = cropDef.is_perennial && farm.harvestCount > 0
+                ? `<div class="care-progress">🌳 Sudah panen ke-${farm.harvestCount}${cropDef.max_harvest_count ? ' dari maks ' + cropDef.max_harvest_count : ''} (masih produktif)</div>`
+                : '';
 
             return `<div class="farm-plot-card">
                 <strong>Petak Tanah (${key}) • ${cropDef.icon} ${cropDef.name}</strong>
+                ${perennialInfo}
                 <div class="care-progress">💧 Air: ${farm.waterCount}/${cropDef.water_required} &nbsp; 🌿 Pupuk: ${farm.fertilizeCount}/${cropDef.fertilize_required} &nbsp; ✂️ Rawat: ${farm.prunedCount}/${CARE_TREAT_REQUIRED}</div>
                 <div class="care-btn-row">
-                    <button class="care-btn" onclick="waterCropAction('${key}')" ${farm.waterCount >= cropDef.water_required ? 'disabled' : ''}>💧 Siram (1 XP)</button>
-                    <button class="care-btn" onclick="fertilizeCropAction('${key}')" ${farm.fertilizeCount >= cropDef.fertilize_required ? 'disabled' : ''}>🌿 Pupuk (1 pupuk)</button>
-                    <button class="care-btn" onclick="pruneCropAction('${key}')" ${farm.prunedCount >= CARE_TREAT_REQUIRED ? 'disabled' : ''}>✂️ Rawat (2 XP)</button>
+                    <button class="care-btn" onclick="waterCropAction('${key}')" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown) ? 'disabled' : ''}>💧 Siram (1 XP)${waterOnCooldown ? ' ⏳ ' + formatDuration(waterCooldownMs - (now - farm.lastWateredAt)) : ''}</button>
+                    <button class="care-btn" onclick="fertilizeCropAction('${key}')" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk (1 pupuk)${fertilizeOnCooldown ? ' ⏳ ' + formatDuration(fertilizeCooldownMs - (now - farm.lastFertilizedAt)) : ''}</button>
+                    <button class="care-btn" onclick="pruneCropAction('${key}')" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat (2 XP)${pruneOnCooldown ? ' ⏳ ' + formatDuration(pruneCooldownMs - (now - farm.lastPrunedAt)) : ''}</button>
                 </div>
                 ${statusLine}
             </div>`;
@@ -1142,7 +1169,7 @@
         if (error) { showToast('Gagal menanam: ' + error.message, true); return; }
         if (!data.success) { showToast(data.message || 'Gagal menanam.', true); return; }
 
-        farms[key] = { ownerId: myUserId, cropId, plantedAt: Date.now(), waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'planted' };
+        farms[key] = { ownerId: myUserId, cropId, plantedAt: Date.now(), waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'planted', harvestCount: 0, lastWateredAt: null, lastFertilizedAt: null, lastPrunedAt: null };
         await refreshMyProfile();
         showToast(`🌱 Berhasil menanam! -${data.cost} XP.`);
         renderFarmList();
@@ -1150,13 +1177,26 @@
       });
     }
 
+    // Pesan jeda waktu yang seragam, dipakai di siram/pupuk/rawat -- server yang punya angka
+    // pastinya (retry_after_seconds), client cuma menampilkan dengan format ramah.
+    function showCooldownToast(message, retryAfterSeconds) {
+        if (retryAfterSeconds && retryAfterSeconds > 0) {
+            const jam = Math.floor(retryAfterSeconds / 3600);
+            const menit = Math.ceil((retryAfterSeconds % 3600) / 60);
+            const sisa = jam > 0 ? `${jam} jam ${menit} menit` : `${menit} menit`;
+            showToast(`${message} (⏳ tunggu ±${sisa} lagi)`, true);
+        } else {
+            showToast(message, true);
+        }
+    }
+
     async function waterCropAction(key) {
       await runFarmActionLocked(`water:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_water_crop', { p_user: myUserId, p_x: x, p_y: y });
         if (error) { showToast('Gagal menyiram: ' + error.message, true); return; }
-        if (!data.success) { showToast(data.message || 'Gagal menyiram.', true); return; }
-        if (farms[key]) farms[key].waterCount = data.water_count;
+        if (!data.success) { showCooldownToast(data.message || 'Gagal menyiram.', data.retry_after_seconds); return; }
+        if (farms[key]) { farms[key].waterCount = data.water_count; farms[key].lastWateredAt = Date.now(); }
         await refreshMyProfile();
         showToast('💧 Tanaman disiram.');
         renderFarmList();
@@ -1169,8 +1209,8 @@
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y });
         if (error) { showToast('Gagal memupuk: ' + error.message, true); return; }
-        if (!data.success) { showToast(data.message || 'Gagal memupuk.', true); return; }
-        if (farms[key]) farms[key].fertilizeCount = data.fertilize_count;
+        if (!data.success) { showCooldownToast(data.message || 'Gagal memupuk.', data.retry_after_seconds); return; }
+        if (farms[key]) { farms[key].fertilizeCount = data.fertilize_count; farms[key].lastFertilizedAt = Date.now(); }
         await refreshMyProfile();
         showToast('🌿 Tanaman dipupuk.');
         renderFarmList();
@@ -1197,8 +1237,8 @@
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await db.rpc('fn_prune_crop', { p_user: myUserId, p_x: x, p_y: y });
         if (error) { showToast('Gagal memangkas: ' + error.message, true); return; }
-        if (!data.success) { showToast(data.message || 'Gagal memangkas.', true); return; }
-        if (farms[key]) farms[key].prunedCount = data.pruned_count;
+        if (!data.success) { showCooldownToast(data.message || 'Gagal memangkas.', data.retry_after_seconds); return; }
+        if (farms[key]) { farms[key].prunedCount = data.pruned_count; farms[key].lastPrunedAt = Date.now(); }
         await refreshMyProfile();
         showToast(`✂️ Dirawat. -2 XP.`);
         renderFarmList();
@@ -1213,9 +1253,16 @@
         if (error) { showToast('Gagal panen: ' + error.message, true); return; }
         if (!data.success) { showToast(data.message || 'Belum bisa dipanen.', true); return; }
 
-        farms[key] = { ownerId: myUserId, cropId: null, plantedAt: null, waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'barren' };
+        if (data.perennial_regrow) {
+            // Pohon tahunan: TETAP HIDUP, siap tumbuh lagi buat panen berikutnya.
+            const prevCrop = farms[key] ? farms[key].cropId : null;
+            farms[key] = { ownerId: myUserId, cropId: prevCrop, plantedAt: Date.now(), waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'planted', harvestCount: data.harvest_count, lastWateredAt: null, lastFertilizedAt: null, lastPrunedAt: null };
+            showToast(`🧺 Panen berhasil! +${data.reward} XP. 🌳 Pohon masih produktif (panen ke-${data.harvest_count}${data.max_harvest ? '/' + data.max_harvest : ''}).`);
+        } else {
+            farms[key] = { ownerId: myUserId, cropId: null, plantedAt: null, waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'barren', harvestCount: 0, lastWateredAt: null, lastFertilizedAt: null, lastPrunedAt: null };
+            showToast(`🧺 Panen berhasil! +${data.reward} XP.`);
+        }
         await refreshMyProfile();
-        showToast(`🧺 Panen berhasil! +${data.reward} XP.`);
         renderFarmList();
         updateTileFarmVisual(key);
       });
@@ -1850,6 +1897,10 @@
                 fertilizeCount: f.fertilize_count,
                 prunedCount: f.pruned_count,
                 landState: f.land_state,
+                harvestCount: f.harvest_count || 0,
+                lastWateredAt: f.last_watered_at ? new Date(f.last_watered_at).getTime() : null,
+                lastFertilizedAt: f.last_fertilized_at ? new Date(f.last_fertilized_at).getTime() : null,
+                lastPrunedAt: f.last_pruned_at ? new Date(f.last_pruned_at).getTime() : null,
             };
         });
     }
@@ -1876,6 +1927,10 @@
                         plantedAt: row.planted_at ? new Date(row.planted_at).getTime() : null,
                         waterCount: row.water_count, fertilizeCount: row.fertilize_count,
                         prunedCount: row.pruned_count, landState: row.land_state,
+                        harvestCount: row.harvest_count || 0,
+                        lastWateredAt: row.last_watered_at ? new Date(row.last_watered_at).getTime() : null,
+                        lastFertilizedAt: row.last_fertilized_at ? new Date(row.last_fertilized_at).getTime() : null,
+                        lastPrunedAt: row.last_pruned_at ? new Date(row.last_pruned_at).getTime() : null,
                     };
                 }
                 updateTileFarmVisual(key);
