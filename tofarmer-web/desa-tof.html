@@ -458,6 +458,7 @@
     <div id="auth-status">Memeriksa session...</div>
     <div class="xp-line"><span>💰 XP</span><span class="xp-value" id="hud-xp-value">0</span></div>
     <div class="xp-line"><span>🌿 Pupuk</span><span class="pupuk-value" id="hud-pupuk-value">0</span></div>
+    <div class="xp-line"><span>💧 Air</span><span class="pupuk-value" id="hud-water-value">0/5</span></div>
     <button id="btn-cairkan-tof" onclick="openCairkanModal()" style="width:100%; margin-top:6px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:600; cursor:pointer;">☕ Cairkan ke TOF</button>
 </div>
 
@@ -614,16 +615,48 @@
         renderXpHud();
     }
 
+    // Perkiraan stok air di sisi tampilan (cuma estimasi buat ditampilkan ke warga sebelum
+    // klik -- kepastian & potongan sesungguhnya SELALU dihitung ulang di server/fn_water_crop,
+    // ini cuma supaya HUD tidak kosong/menyesatkan).
+    const WATER_MAX_STOCK = 5;
+    function estimateWaterStock() {
+        if (!myUser) return 0;
+        const stock = Number(myUser.water_stock ?? WATER_MAX_STOCK);
+        const lastRegenAt = myUser.water_last_regen_at ? new Date(myUser.water_last_regen_at).getTime() : Date.now();
+        if (stock >= WATER_MAX_STOCK) return WATER_MAX_STOCK;
+
+        const hasOwnGayam = Object.values(farms || {}).some(f => f.ownerId === myUserId && f.cropId === 'gayam' && f.landState === 'planted');
+        let regenMin;
+        if (hasOwnGayam) {
+            regenMin = 5;
+        } else if (beringinHealthPct <= 0) {
+            regenMin = null; // berhenti total
+        } else if (beringinHealthPct < 30) {
+            regenMin = 360;
+        } else if (beringinHealthPct < 70) {
+            regenMin = 60;
+        } else {
+            regenMin = 5;
+        }
+
+        if (regenMin === null) return stock;
+        const elapsedMin = (Date.now() - lastRegenAt) / 60000;
+        const regenUnits = Math.floor(elapsedMin / regenMin);
+        return Math.min(WATER_MAX_STOCK, stock + Math.max(0, regenUnits));
+    }
+
     function renderXpHud() {
         document.getElementById('hud-xp-value').innerText = myUser ? (myUser.xp || 0).toLocaleString('id-ID') : '0';
         document.getElementById('hud-pupuk-value').innerText = myUser ? (myUser.fertilizer_count || 0) : '0';
+        const waterEl = document.getElementById('hud-water-value');
+        if (waterEl) waterEl.innerText = `${estimateWaterStock()}/${WATER_MAX_STOCK}`;
     }
 
     // Ambil ulang baris profil saya dari server (sumber kebenaran xp/pupuk/kompos)
     async function refreshMyProfile() {
         if (!myUserId) return;
         const { data, error } = await db.from('profiles')
-            .select('id, username, level, xp, saldo_tof, rank, power, avatar_url, house_style_id, compost_level, compost_last_collect, fertilizer_count')
+            .select('id, username, level, xp, saldo_tof, rank, power, avatar_url, house_style_id, compost_level, compost_last_collect, fertilizer_count, water_stock, water_last_regen_at')
             .eq('id', myUserId).single();
         if (error || !data) return;
         myUser = data;
@@ -1131,7 +1164,7 @@
                 ${perennialInfo}
                 <div class="care-progress">💧 Air: ${farm.waterCount}/${cropDef.water_required} &nbsp; 🌿 Pupuk: ${farm.fertilizeCount}/${cropDef.fertilize_required} &nbsp; ✂️ Rawat: ${farm.prunedCount}/${CARE_TREAT_REQUIRED}</div>
                 <div class="care-btn-row">
-                    <button class="care-btn" onclick="waterCropAction('${key}')" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown) ? 'disabled' : ''}>💧 Siram (1 XP)${waterOnCooldown ? ' ⏳ ' + formatDuration(waterCooldownMs - (now - farm.lastWateredAt)) : ''}</button>
+                    <button class="care-btn" onclick="waterCropAction('${key}')" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram (1 Air)${waterOnCooldown ? ' ⏳ ' + formatDuration(waterCooldownMs - (now - farm.lastWateredAt)) : (estimateWaterStock() < 1 ? ' (air habis)' : '')}</button>
                     <button class="care-btn" onclick="fertilizeCropAction('${key}')" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk (1 pupuk)${fertilizeOnCooldown ? ' ⏳ ' + formatDuration(fertilizeCooldownMs - (now - farm.lastFertilizedAt)) : ''}</button>
                     <button class="care-btn" onclick="pruneCropAction('${key}')" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat (2 XP)${pruneOnCooldown ? ' ⏳ ' + formatDuration(pruneCooldownMs - (now - farm.lastPrunedAt)) : ''}</button>
                 </div>
@@ -1197,8 +1230,9 @@
         if (error) { showToast('Gagal menyiram: ' + error.message, true); return; }
         if (!data.success) { showCooldownToast(data.message || 'Gagal menyiram.', data.retry_after_seconds); return; }
         if (farms[key]) { farms[key].waterCount = data.water_count; farms[key].lastWateredAt = Date.now(); }
+        if (myUser && data.water_stock_sisa != null) { myUser.water_stock = data.water_stock_sisa; myUser.water_last_regen_at = new Date().toISOString(); }
         await refreshMyProfile();
-        showToast('💧 Tanaman disiram.');
+        showToast(`💧 Tanaman disiram. Sisa air: ${data.water_stock_sisa ?? '?'}/${WATER_MAX_STOCK}`);
         renderFarmList();
         updateTileFarmVisual(key);
       });
@@ -1994,7 +2028,7 @@
             rawTerrainData = terrain || [];
 
             const { data: users, error } = await db.from('profiles')
-                .select('id, username, level, xp, saldo_tof, rank, power, avatar_url, house_style_id, compost_level, compost_last_collect, fertilizer_count')
+                .select('id, username, level, xp, saldo_tof, rank, power, avatar_url, house_style_id, compost_level, compost_last_collect, fertilizer_count, water_stock, water_last_regen_at')
                 .order('created_at', { ascending: true });
             if (error) { console.error('Gagal memuat profiles:', error); showToast('Gagal memuat data warga. Coba muat ulang halaman.', true); return; }
             rawUserData = users || [];
