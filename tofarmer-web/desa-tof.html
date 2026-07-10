@@ -841,10 +841,19 @@
         if (!viewportEl || !cursorEl) return;
         // Skip di HP/tablet (layar sentuh) -- konsep "kursor mengikuti pointer" memang untuk mouse.
         if (window.matchMedia('(pointer: coarse)').matches) return;
+        let cursorRafPending = false, lastCursorX = 0, lastCursorY = 0;
 
         viewportEl.addEventListener('mousemove', (e) => {
             cursorEl.style.display = 'block';
-            cursorEl.style.transform = `translate(-50%, -70%) translate(${e.clientX}px, ${e.clientY}px)`;
+            // Throttle ke requestAnimationFrame -- mouse bisa kirim event 60-120x/detik,
+            // jauh lebih sering dari yang perlu ditulis ke layar (cukup 1x per frame render).
+            if (cursorRafPending) return;
+            cursorRafPending = true;
+            requestAnimationFrame(() => {
+                cursorEl.style.transform = `translate(-50%, -70%) translate(${lastCursorX}px, ${lastCursorY}px)`;
+                cursorRafPending = false;
+            });
+            lastCursorX = e.clientX; lastCursorY = e.clientY;
         });
         viewportEl.addEventListener('mouseleave', () => { cursorEl.style.display = 'none'; });
     })();
