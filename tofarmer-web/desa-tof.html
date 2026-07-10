@@ -34,7 +34,7 @@
         #viewport { cursor: none; }
         #player-cursor {
             position: fixed; top: 0; left: 0; font-size: 26px; line-height: 1;
-            pointer-events: none; z-index: 40; transform: translate(-50%, -70%);
+            pointer-events: none; z-index: 600; transform: translate(-50%, -70%);
             will-change: transform; display: none;
             filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
         }
@@ -47,6 +47,32 @@
             transition: transform 4s linear;
             filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
         }
+
+        /* ============== JAM DUNIA (siang/malam) -- murni CSS, update class 1x/menit ============== */
+        #world-clock-tint {
+            position: fixed; inset: 0; pointer-events: none; z-index: 500;
+            transition: background 8s ease, opacity 8s ease;
+            background: transparent; opacity: 0;
+        }
+        body.phase-dawn #world-clock-tint   { background: linear-gradient(180deg, rgba(255,220,180,0.25), rgba(255,255,255,0.05)); opacity: 1; }
+        body.phase-day #world-clock-tint    { opacity: 0; }
+        body.phase-dusk #world-clock-tint   { background: linear-gradient(180deg, rgba(255,140,60,0.22), rgba(120,60,90,0.12)); opacity: 1; }
+        body.phase-night #world-clock-tint  { background: linear-gradient(180deg, rgba(10,15,40,0.45), rgba(5,8,25,0.55)); opacity: 1; }
+
+        /* Pohon bergoyang -- delay acak per-pohon diset inline (style="animation-delay:...") biar
+           tidak seragam/sinkron semua, CPU-nya tetap murah (cuma transform). */
+        @keyframes swayTree {
+            0%, 100% { transform: rotate(-2deg); }
+            50% { transform: rotate(2deg); }
+        }
+        .sprite-tree-sway { transform-origin: bottom center; animation: swayTree 4.5s ease-in-out infinite; }
+
+        /* Lampu rumah menyala pas malam -- cuma opacity sebuah span kecil, murah */
+        .house-light-glow {
+            position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%);
+            font-size: 14px; opacity: 0; transition: opacity 3s ease; pointer-events: none;
+        }
+        body.phase-night .house-light-glow, body.phase-dusk .house-light-glow { opacity: 1; }
         
         
         /* NODE ISOMETRIC */
@@ -336,6 +362,7 @@
 </nav>
 
 <div id="viewport">
+    <div id="world-clock-tint"></div>
     <span id="player-cursor">👨‍🌾</span>
     <div id="world" class="locked-mode"></div>
 </div>
@@ -1679,7 +1706,20 @@
         repositionHouses();
     }
 
-    // ============== NPC AMBIENT 🚶 (ilusi kehidupan, ringan) ==============
+    // ============== JAM DUNIA 🌦️ (siang/malam) -- murni toggle class, event-driven tiap 1 menit ==============
+    // Pakai jam asli perangkat (real time) supaya desa "hidup" mengikuti waktu nyata pemain,
+    // bukan siklus dipercepat -- sesuai jam: 05-07 fajar, 07-17 siang, 17-19 senja, 19-05 malam.
+    function updateWorldClock() {
+        const hour = new Date().getHours();
+        let phase;
+        if (hour >= 5 && hour < 7) phase = 'dawn';
+        else if (hour >= 7 && hour < 17) phase = 'day';
+        else if (hour >= 17 && hour < 19) phase = 'dusk';
+        else phase = 'night';
+
+        document.body.classList.remove('phase-dawn', 'phase-day', 'phase-dusk', 'phase-night');
+        document.body.classList.add('phase-' + phase);
+    }
     // Pool TETAP (tidak pernah dibuat/dihapus ulang), transform-only (GPU-cheap), dipindah lewat
     // setInterval tiap beberapa detik (event-driven) -- bukan requestAnimationFrame tiap frame.
     const NPC_EMOJIS = ['🚶', '👵', '🐓', '🐐'];
@@ -1761,6 +1801,10 @@
                     icon.className = 'sprite';
                     icon.style.fontSize = '30px';
                     icon.innerText = ground.type === 'mountain' ? '⛰️' : '🌳';
+                    if (ground.type === 'tree') {
+                        icon.classList.add('sprite-tree-sway');
+                        icon.style.animationDelay = (Math.random() * 4).toFixed(2) + 's';
+                    }
                     node.appendChild(icon);
                 }
 
@@ -1847,6 +1891,7 @@
             
             container.innerHTML = `
                 <img class="sprite house-img" src="${houseImage}" style="height: 55px;" onerror="this.onerror=null;this.src='https://img.icons8.com/plasticine/100/home.png';" />
+                <span class="house-light-glow">🏮</span>
                 <div class="avatar-balloon">
                     <img class="avatar-img" src="${photoSrc}" />
                     <div class="nametag">@${user.username}</div>
@@ -2123,6 +2168,8 @@
             buildWorld();
             centerMapOnVillage();
             initNpcAmbient();
+            updateWorldClock();
+            setInterval(updateWorldClock, 60000);
             await ensureMyHouseRow();
             subscribeRealtime();
 
