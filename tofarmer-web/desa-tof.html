@@ -26,6 +26,28 @@
         #viewport { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; cursor: grab; z-index: 1; margin-top: 100px; }
         #viewport:active { cursor: grabbing; }
         #world { position: absolute; width: 0; height: 0; transform-style: flat; will-change: transform; }
+
+        /* Kursor "petani" 👨‍🌾 di atas peta -- cuma efek visual ringan (1 elemen span kecil
+           yang ngikutin mousemove via transform). Listener JS-nya sengaja dipasang di
+           #viewport (bukan document), jadi otomatis tidak aktif saat modal/menu menutupi
+           peta -- tidak perlu trik CSS tambahan. */
+        #viewport { cursor: none; }
+        #player-cursor {
+            position: fixed; top: 0; left: 0; font-size: 26px; line-height: 1;
+            pointer-events: none; z-index: 40; transform: translate(-50%, -70%);
+            will-change: transform; display: none;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+        }
+
+        /* NPC ambient (ilusi kehidupan) -- transform-only movement, GPU-cheap, dipindah lewat
+           setInterval (event-driven, BUKAN requestAnimationFrame tiap frame). */
+        .npc-ambient {
+            position: absolute; top: 0; left: 0; font-size: 22px; line-height: 1;
+            pointer-events: none; will-change: transform;
+            transition: transform 4s linear;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
+        }
+        
         
         /* NODE ISOMETRIC */
         .iso-node { position: absolute; width: 100px; height: 50px; transform: translate(-50%, -50%); will-change: transform; display: flex; align-items: center; justify-content: center; }
@@ -314,6 +336,7 @@
 </nav>
 
 <div id="viewport">
+    <span id="player-cursor">👨‍🌾</span>
     <div id="world" class="locked-mode"></div>
 </div>
 
@@ -781,6 +804,23 @@
         closeTileHUD();
     });
     window.addEventListener('mousemove', (e) => { if (isDraggingView) { panX = e.clientX - startX; panY = e.clientY - startY; updateWorldTransform(); } });
+
+    // ============== KURSOR PETANI 👨‍🌾 (ringan: 1 elemen, transform-only, event-driven) ==============
+    // Listener dipasang di #viewport (bukan document/window) supaya OTOMATIS tidak muncul saat
+    // modal/menu menutupi peta -- event mousemove tidak akan "tembus" ke elemen di bawah modal.
+    (function initPlayerCursor() {
+        const viewportEl = document.getElementById('viewport');
+        const cursorEl = document.getElementById('player-cursor');
+        if (!viewportEl || !cursorEl) return;
+        // Skip di HP/tablet (layar sentuh) -- konsep "kursor mengikuti pointer" memang untuk mouse.
+        if (window.matchMedia('(pointer: coarse)').matches) return;
+
+        viewportEl.addEventListener('mousemove', (e) => {
+            cursorEl.style.display = 'block';
+            cursorEl.style.transform = `translate(-50%, -70%) translate(${e.clientX}px, ${e.clientY}px)`;
+        });
+        viewportEl.addEventListener('mouseleave', () => { cursorEl.style.display = 'none'; });
+    })();
     window.addEventListener('mouseup', () => isDraggingView = false);
 
     // ADVANCED MOBILE MULTI-TOUCH CONTROLS (HAPE)
@@ -1639,6 +1679,46 @@
         repositionHouses();
     }
 
+    // ============== NPC AMBIENT 🚶 (ilusi kehidupan, ringan) ==============
+    // Pool TETAP (tidak pernah dibuat/dihapus ulang), transform-only (GPU-cheap), dipindah lewat
+    // setInterval tiap beberapa detik (event-driven) -- bukan requestAnimationFrame tiap frame.
+    const NPC_EMOJIS = ['🚶', '👵', '🐓', '🐐'];
+    let npcPool = [];
+
+    function npcRandomTile() {
+        return { x: Math.floor(Math.random() * GRID_SIZE), y: Math.floor(Math.random() * GRID_SIZE) };
+    }
+
+    function moveNpcToRandomNearbyTile(npc) {
+        // Geser sedikit dari posisi sekarang (bukan lompat jauh acak) biar terasa "jalan", bukan teleport.
+        const range = 4;
+        const nx = Math.min(GRID_SIZE - 1, Math.max(0, npc.tileX + Math.floor((Math.random() - 0.5) * range * 2)));
+        const ny = Math.min(GRID_SIZE - 1, Math.max(0, npc.tileY + Math.floor((Math.random() - 0.5) * range * 2)));
+        npc.tileX = nx; npc.tileY = ny;
+        const coords = getIsoCoords(nx, ny);
+        npc.el.style.transform = `translate(${coords.x - 11}px, ${coords.y - 30}px)`;
+    }
+
+    function initNpcAmbient() {
+        if (npcPool.length) return; // sudah pernah diinisialisasi, jangan bikin ulang (object pooling)
+        NPC_EMOJIS.forEach(emoji => {
+            const el = document.createElement('span');
+            el.className = 'npc-ambient';
+            el.innerText = emoji;
+            world.appendChild(el);
+            const start = npcRandomTile();
+            const npc = { el, tileX: start.x, tileY: start.y };
+            const coords = getIsoCoords(start.x, start.y);
+            el.style.transform = `translate(${coords.x - 11}px, ${coords.y - 30}px)`;
+            npcPool.push(npc);
+        });
+
+        // Event-driven: cuma "ngecek & pindah" tiap 6 detik, bukan animasi tiap frame.
+        setInterval(() => {
+            npcPool.forEach(npc => { if (Math.random() < 0.7) moveNpcToRandomNearbyTile(npc); });
+        }, 6000);
+    }
+
     function buildWorld() {
         world.innerHTML = '';
         reservedTiles.clear();
@@ -2042,6 +2122,7 @@
 
             buildWorld();
             centerMapOnVillage();
+            initNpcAmbient();
             await ensureMyHouseRow();
             subscribeRealtime();
 
