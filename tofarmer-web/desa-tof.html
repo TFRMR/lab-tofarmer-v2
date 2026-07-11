@@ -1735,32 +1735,35 @@
     beringinNode.style.top = (coords.y + OFFSET_Y) + 'px';
     beringinNode.style.zIndex = 5000;
 
-   const hitbox = document.createElement('div');
-hitbox.style.position = 'absolute';
-hitbox.style.width = '60px';
-hitbox.style.height = '60px';
-hitbox.style.left = '50%';
-hitbox.style.bottom = '0';
-hitbox.style.transform = 'translateX(-50%)';
-hitbox.style.pointerEvents = 'auto';
-hitbox.style.cursor = 'pointer';
+    const treeIcon = document.createElement('span');
+    treeIcon.className = 'sprite';
 
-const treeIcon = document.createElement('span');
-treeIcon.className = 'sprite';
-treeIcon.style.pointerEvents = 'none'; // biarkan hitbox yang menerima klik
-treeIcon.style.fontSize = '30px';
-treeIcon.style.lineHeight = '1';
-treeIcon.style.transform = 'scale(20)';
-treeIcon.style.transformOrigin = 'center bottom';
-treeIcon.innerText = '🌳';
+    treeIcon.style.fontSize = '30px';
+    treeIcon.style.lineHeight = '1';
+    treeIcon.style.transform = 'scale(5)';
+    treeIcon.style.transformOrigin = 'center bottom';
+    treeIcon.style.willChange = 'transform';
 
-hitbox.onclick = (e) => {
-    e.stopPropagation();
-    openBeringinModal();
-};
+    treeIcon.style.pointerEvents = 'auto';
+    treeIcon.style.cursor = 'pointer';
 
-hitbox.appendChild(treeIcon);
-beringinNode.appendChild(hitbox);
+    treeIcon.style.filter =
+        beringinHealthPct < 40
+            ? 'saturate(0.4) brightness(0.85)'
+            : 'none';
+
+    treeIcon.style.opacity = String(Math.max(0.55, beringinHealthPct / 100));
+    treeIcon.title = 'Pohon Beringin — jaga bareng-bareng ya 🙏';
+    treeIcon.innerText = '🌳';
+
+    treeIcon.onclick = (e) => {
+        e.stopPropagation();
+        openBeringinModal();
+    };
+
+    beringinNode.appendChild(treeIcon);
+    world.appendChild(beringinNode);
+}
 
         // 2. Bangun Rumah Warga (SEKALI SAJA per warga)
         rawUserData.forEach(user => {
