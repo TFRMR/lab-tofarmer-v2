@@ -1913,58 +1913,132 @@
     }
 
     // ============== MUAT DATA DUNIA DARI SUPABASE (sumber kebenaran bersama) ==============
+    // ============== IndexedDB READ-CACHE (Fase 2 offline-first) ==============
+    // Prinsip: kalau online, perilaku SAMA PERSIS seperti sebelumnya (selalu pakai data
+    // TERBARU dari server, cache tidak pernah "menang" atas data live). Cache di sini
+    // CUMA dipakai sebagai jaring pengaman kalau network gagal/offline total, supaya
+    // peta/rumah/tanaman tetap kelihatan (dari data terakhir yang sempat berhasil dimuat)
+    // alih-alih layar kosong. Tidak menyimpan apapun yang berkaitan dengan keputusan XP/aset.
+    const IDB_NAME = 'tofarmer_cache';
+    const IDB_VERSION = 1;
+    const IDB_STORE = 'kv';
+
+    function idbOpen() {
+        return new Promise((resolve, reject) => {
+            if (!('indexedDB' in window)) { reject(new Error('IndexedDB tidak didukung')); return; }
+            const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+            req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function idbGet(key) {
+        try {
+            const dbConn = await idbOpen();
+            return await new Promise((resolve) => {
+                const tx = dbConn.transaction(IDB_STORE, 'readonly');
+                const req = tx.objectStore(IDB_STORE).get(key);
+                req.onsuccess = () => resolve(req.result ?? null);
+                req.onerror = () => resolve(null);
+            });
+        } catch { return null; }
+    }
+
+    async function idbSet(key, value) {
+        try {
+            const dbConn = await idbOpen();
+            await new Promise((resolve) => {
+                const tx = dbConn.transaction(IDB_STORE, 'readwrite');
+                tx.objectStore(IDB_STORE).put(value, key);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        } catch { /* diam-diam gagal, cache cuma "nice to have", jangan sampai bikin game error */ }
+    }
+
     async function loadCatalogs() {
-        const [{ data: crops }, { data: decors }, { data: styles }, { data: landmark }] = await Promise.all([
-            db.from('crop_catalog').select('*').order('sort_order', { ascending: true }),
-            db.from('decor_catalog').select('*').order('sort_order', { ascending: true }),
-            db.from('house_style_catalog').select('*').order('sort_order', { ascending: true }),
-            db.from('village_landmark').select('*').eq('id', 'beringin').maybeSingle(),
-        ]);
-        CROP_TYPES = crops || [];
-        DECOR_ITEMS = decors || [];
-        HOUSE_STYLES = styles || [];
-        if (landmark) {
-            const hoursElapsed = (Date.now() - new Date(landmark.last_cared_at).getTime()) / 3600000;
-            beringinHealthPct = Math.max(0, Math.min(100, Number(landmark.health_pct) - hoursElapsed * 1.5));
+        // Pasang dulu data cache (kalau ada) sebagai baseline, supaya kalau network di
+        // bawah gagal total (offline), variabel-variabel ini tidak kosong melompong.
+        const cached = await idbGet('catalogs');
+        if (cached) {
+            CROP_TYPES = cached.crops || [];
+            DECOR_ITEMS = cached.decors || [];
+            HOUSE_STYLES = cached.styles || [];
+        }
+
+        try {
+            const [{ data: crops }, { data: decors }, { data: styles }, { data: landmark }] = await Promise.all([
+                db.from('crop_catalog').select('*').order('sort_order', { ascending: true }),
+                db.from('decor_catalog').select('*').order('sort_order', { ascending: true }),
+                db.from('house_style_catalog').select('*').order('sort_order', { ascending: true }),
+                db.from('village_landmark').select('*').eq('id', 'beringin').maybeSingle(),
+            ]);
+            CROP_TYPES = crops || [];
+            DECOR_ITEMS = decors || [];
+            HOUSE_STYLES = styles || [];
+            if (landmark) {
+                const hoursElapsed = (Date.now() - new Date(landmark.last_cared_at).getTime()) / 3600000;
+                beringinHealthPct = Math.max(0, Math.min(100, Number(landmark.health_pct) - hoursElapsed * 1.5));
+            }
+            idbSet('catalogs', { crops: CROP_TYPES, decors: DECOR_ITEMS, styles: HOUSE_STYLES });
+        } catch (e) {
+            if (cached) { console.warn('Gagal muat katalog dari server, pakai cache offline terakhir.', e); }
+            else { throw e; }
         }
     }
 
     async function loadWorldState() {
-        const [{ data: claims }, { data: houses }, { data: farmRows }] = await Promise.all([
-            db.from('village_claims').select('tile_x, tile_y, owner_id, profiles!village_claims_owner_id_fkey(username)'),
-            db.from('village_houses').select('*'),
-            db.from('village_farms').select('*'),
-        ]);
+        const cached = await idbGet('world_state');
+        if (cached) {
+            claimedTiles = cached.claimedTiles || {};
+            housePositions = cached.housePositions || {};
+            houseMeta = cached.houseMeta || {};
+            farms = cached.farms || {};
+        }
 
-        claimedTiles = {};
-        (claims || []).forEach(c => {
-            const ownerUsername = (c.profiles && c.profiles.username) || (rawUserData.find(u => u.id === c.owner_id) || {}).username;
-            claimedTiles[`${c.tile_x},${c.tile_y}`] = { ownerId: c.owner_id, ownerUsername };
-        });
+        try {
+            const [{ data: claims }, { data: houses }, { data: farmRows }] = await Promise.all([
+                db.from('village_claims').select('tile_x, tile_y, owner_id, profiles!village_claims_owner_id_fkey(username)'),
+                db.from('village_houses').select('*'),
+                db.from('village_farms').select('*'),
+            ]);
 
-        housePositions = {};
-        houseMeta = {};
-        (houses || []).forEach(h => {
-            housePositions[h.user_id] = { x: h.pos_x, y: h.pos_y };
-            houseMeta[h.user_id] = { houseStyleId: h.house_style_id || 'basic', decorItems: h.decor_items || [] };
-        });
+            claimedTiles = {};
+            (claims || []).forEach(c => {
+                const ownerUsername = (c.profiles && c.profiles.username) || (rawUserData.find(u => u.id === c.owner_id) || {}).username;
+                claimedTiles[`${c.tile_x},${c.tile_y}`] = { ownerId: c.owner_id, ownerUsername };
+            });
 
-        farms = {};
-        (farmRows || []).forEach(f => {
-            farms[`${f.tile_x},${f.tile_y}`] = {
-                ownerId: f.owner_id,
-                cropId: f.crop_id,
-                plantedAt: f.planted_at ? new Date(f.planted_at).getTime() : null,
-                waterCount: f.water_count,
-                fertilizeCount: f.fertilize_count,
-                prunedCount: f.pruned_count,
-                landState: f.land_state,
-                harvestCount: f.harvest_count || 0,
-                lastWateredAt: f.last_watered_at ? new Date(f.last_watered_at).getTime() : null,
-                lastFertilizedAt: f.last_fertilized_at ? new Date(f.last_fertilized_at).getTime() : null,
-                lastPrunedAt: f.last_pruned_at ? new Date(f.last_pruned_at).getTime() : null,
-            };
-        });
+            housePositions = {};
+            houseMeta = {};
+            (houses || []).forEach(h => {
+                housePositions[h.user_id] = { x: h.pos_x, y: h.pos_y };
+                houseMeta[h.user_id] = { houseStyleId: h.house_style_id || 'basic', decorItems: h.decor_items || [] };
+            });
+
+            farms = {};
+            (farmRows || []).forEach(f => {
+                farms[`${f.tile_x},${f.tile_y}`] = {
+                    ownerId: f.owner_id,
+                    cropId: f.crop_id,
+                    plantedAt: f.planted_at ? new Date(f.planted_at).getTime() : null,
+                    waterCount: f.water_count,
+                    fertilizeCount: f.fertilize_count,
+                    prunedCount: f.pruned_count,
+                    landState: f.land_state,
+                    harvestCount: f.harvest_count || 0,
+                    lastWateredAt: f.last_watered_at ? new Date(f.last_watered_at).getTime() : null,
+                    lastFertilizedAt: f.last_fertilized_at ? new Date(f.last_fertilized_at).getTime() : null,
+                    lastPrunedAt: f.last_pruned_at ? new Date(f.last_pruned_at).getTime() : null,
+                };
+            });
+
+            idbSet('world_state', { claimedTiles, housePositions, houseMeta, farms });
+        } catch (e) {
+            if (cached) { console.warn('Gagal muat dunia dari server, pakai cache offline terakhir.', e); }
+            else { throw e; }
+        }
     }
 
     // ============== REALTIME: semua warga melihat perubahan yang sama secara langsung ==============
