@@ -1884,18 +1884,16 @@
     }
 
     function centerMapOnVillage() {
+        // Pohon Beringin sekarang di (-1,-1), sudah dekat dengan pojok atas pulau, jadi kamera
+        // tidak perlu lagi "dipaksa condong" ke arah situ (dulu perlu waktu pohonnya masih jauh
+        // di -4,-4 -- tapi itu sebenarnya saling meniadakan dengan pergeseran posisi pohon,
+        // makanya perpindahannya kemarin nyaris tidak kelihatan). Sekarang fokus normal ke
+        // tengah desa saja, ditambah sedikit zoom-out biar jangkauan pandang lebih luas.
         const villageCenter = getIsoCoords(Math.floor(GRID_SIZE/2), Math.floor(GRID_SIZE/2));
-        // Pohon Beringin ada di pojok (-1,-1), dekat ujung atas pulau. Supaya pemain langsung
-        // "ngeh" ada landmark di pojok situ tanpa harus geser jauh-jauh dulu, kamera dibuat
-        // sedikit condong ke arah situ (20%) + sedikit lebih zoom-out — desa tetap jadi fokus
-        // utama, tapi ujung pohonnya ikut kelihatan di pinggir layar saat pertama buka.
-        const treeCorner = getIsoCoords(-1, -1);
-        const biasedX = villageCenter.x * 0.8 + treeCorner.x * 0.2;
-        const biasedY = villageCenter.y * 0.8 + treeCorner.y * 0.2;
 
-        zoom = Math.max(zoom, 0.28); // sedikit lebih zoom-out dari default supaya jangkauan pandang lebih luas
-        panX = -biasedX * zoom;
-        panY = -biasedY * zoom + 50;
+        zoom = Math.max(zoom, 0.28);
+        panX = -villageCenter.x * zoom;
+        panY = -villageCenter.y * zoom + 50;
         updateWorldTransform();
     }
 
