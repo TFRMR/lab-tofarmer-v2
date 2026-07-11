@@ -1722,7 +1722,7 @@
             const beringinNode = document.createElement('div');
             beringinNode.className = 'iso-node';
             beringinNode.style.pointerEvents = 'none'; // node cuma wadah; tree-icon di dalamnya yang aktif
-            const coords = getIsoCoords(-4, -4);
+            const coords = getIsoCoords(-1, -1);
             beringinNode.style.left = coords.x + 'px';
             beringinNode.style.top = coords.y + 'px';
             beringinNode.style.zIndex = 5000; // selalu di atas ubin/rumah manapun
@@ -1885,11 +1885,11 @@
 
     function centerMapOnVillage() {
         const villageCenter = getIsoCoords(Math.floor(GRID_SIZE/2), Math.floor(GRID_SIZE/2));
-        // Pohon Beringin ada di pojok (-4,-4), jauh dari tengah desa. Supaya pemain langsung
+        // Pohon Beringin ada di pojok (-1,-1), dekat ujung atas pulau. Supaya pemain langsung
         // "ngeh" ada landmark di pojok situ tanpa harus geser jauh-jauh dulu, kamera dibuat
         // sedikit condong ke arah situ (20%) + sedikit lebih zoom-out — desa tetap jadi fokus
         // utama, tapi ujung pohonnya ikut kelihatan di pinggir layar saat pertama buka.
-        const treeCorner = getIsoCoords(-4, -4);
+        const treeCorner = getIsoCoords(-1, -1);
         const biasedX = villageCenter.x * 0.8 + treeCorner.x * 0.2;
         const biasedY = villageCenter.y * 0.8 + treeCorner.y * 0.2;
 
