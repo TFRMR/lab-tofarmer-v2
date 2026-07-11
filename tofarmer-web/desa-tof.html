@@ -628,7 +628,7 @@
     // Perkiraan stok air di sisi tampilan (cuma estimasi buat ditampilkan ke warga sebelum
     // klik -- kepastian & potongan sesungguhnya SELALU dihitung ulang di server/fn_water_crop,
     // ini cuma supaya HUD tidak kosong/menyesatkan).
-    const WATER_MAX_STOCK = 10;
+    const WATER_MAX_STOCK = 5;
     function estimateWaterStock() {
         if (!myUser) return 0;
         const stock = Number(myUser.water_stock ?? WATER_MAX_STOCK);
@@ -2041,6 +2041,17 @@
         } catch (e) {
             console.error('lightweightResync gagal:', e);
         }
+    }
+
+    // ============== SERVICE WORKER (Fase 1 offline-first) ==============
+    // Registrasi dilakukan di luar init() supaya tidak ikut ke-block kalau init() gagal,
+    // dan tidak menunggu apapun (fire-and-forget, tidak menghambat game mulai jalan).
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch((err) => {
+                console.warn('Service Worker gagal didaftarkan (game tetap jalan normal tanpa cache offline):', err);
+            });
+        });
     }
 
     async function init() {
