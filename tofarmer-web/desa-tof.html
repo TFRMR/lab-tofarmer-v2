@@ -27,52 +27,14 @@
         #viewport:active { cursor: grabbing; }
         #world { position: absolute; width: 0; height: 0; transform-style: flat; will-change: transform; }
 
-        /* Kursor "petani" 👨‍🌾 di atas peta -- cuma efek visual ringan (1 elemen span kecil
-           yang ngikutin mousemove via transform). Listener JS-nya sengaja dipasang di
-           #viewport (bukan document), jadi otomatis tidak aktif saat modal/menu menutupi
-           peta -- tidak perlu trik CSS tambahan. */
-        #viewport { cursor: none; }
-        #player-cursor {
-            position: fixed; top: 0; left: 0; font-size: 26px; line-height: 1;
-            pointer-events: none; z-index: 600; transform: translate(-50%, -70%);
-            will-change: transform; display: none;
-            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
-        }
-
-        /* NPC ambient (ilusi kehidupan) -- transform-only movement, GPU-cheap, dipindah lewat
-           setInterval (event-driven, BUKAN requestAnimationFrame tiap frame). */
-        .npc-ambient {
-            position: absolute; top: 0; left: 0; font-size: 22px; line-height: 1;
-            pointer-events: none; will-change: transform;
-            transition: transform 4s linear;
-            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.25));
-        }
-
-        /* ============== JAM DUNIA (siang/malam) -- murni CSS, update class 1x/menit ============== */
-        #world-clock-tint {
-            position: fixed; inset: 0; pointer-events: none; z-index: 500;
-            transition: background 8s ease, opacity 8s ease;
-            background: transparent; opacity: 0;
-        }
-        body.phase-dawn #world-clock-tint   { background: linear-gradient(180deg, rgba(255,220,180,0.25), rgba(255,255,255,0.05)); opacity: 1; }
-        body.phase-day #world-clock-tint    { opacity: 0; }
-        body.phase-dusk #world-clock-tint   { background: linear-gradient(180deg, rgba(255,140,60,0.22), rgba(120,60,90,0.12)); opacity: 1; }
-        body.phase-night #world-clock-tint  { background: linear-gradient(180deg, rgba(10,15,40,0.45), rgba(5,8,25,0.55)); opacity: 1; }
-
         /* Pohon bergoyang -- delay acak per-pohon diset inline (style="animation-delay:...") biar
-           tidak seragam/sinkron semua, CPU-nya tetap murah (cuma transform). */
+           tidak seragam/sinkron semua. Ini yang paling murah dari semua efek ambient (murni CSS,
+           tanpa JS jalan sama sekali), makanya satu-satunya yang dipertahankan. */
         @keyframes swayTree {
             0%, 100% { transform: rotate(-2deg); }
             50% { transform: rotate(2deg); }
         }
         .sprite-tree-sway { transform-origin: bottom center; animation: swayTree 4.5s ease-in-out infinite; }
-
-        /* Lampu rumah menyala pas malam -- cuma opacity sebuah span kecil, murah */
-        .house-light-glow {
-            position: absolute; bottom: 38px; left: 50%; transform: translateX(-50%);
-            font-size: 14px; opacity: 0; transition: opacity 3s ease; pointer-events: none;
-        }
-        body.phase-night .house-light-glow, body.phase-dusk .house-light-glow { opacity: 1; }
         
         
         /* NODE ISOMETRIC */
@@ -362,8 +324,6 @@
 </nav>
 
 <div id="viewport">
-    <div id="world-clock-tint"></div>
-    <span id="player-cursor">👨‍🌾</span>
     <div id="world" class="locked-mode"></div>
 </div>
 
@@ -832,31 +792,6 @@
     });
     window.addEventListener('mousemove', (e) => { if (isDraggingView) { panX = e.clientX - startX; panY = e.clientY - startY; updateWorldTransform(); } });
 
-    // ============== KURSOR PETANI 👨‍🌾 (ringan: 1 elemen, transform-only, event-driven) ==============
-    // Listener dipasang di #viewport (bukan document/window) supaya OTOMATIS tidak muncul saat
-    // modal/menu menutupi peta -- event mousemove tidak akan "tembus" ke elemen di bawah modal.
-    (function initPlayerCursor() {
-        const viewportEl = document.getElementById('viewport');
-        const cursorEl = document.getElementById('player-cursor');
-        if (!viewportEl || !cursorEl) return;
-        // Skip di HP/tablet (layar sentuh) -- konsep "kursor mengikuti pointer" memang untuk mouse.
-        if (window.matchMedia('(pointer: coarse)').matches) return;
-        let cursorRafPending = false, lastCursorX = 0, lastCursorY = 0;
-
-        viewportEl.addEventListener('mousemove', (e) => {
-            cursorEl.style.display = 'block';
-            // Throttle ke requestAnimationFrame -- mouse bisa kirim event 60-120x/detik,
-            // jauh lebih sering dari yang perlu ditulis ke layar (cukup 1x per frame render).
-            if (cursorRafPending) return;
-            cursorRafPending = true;
-            requestAnimationFrame(() => {
-                cursorEl.style.transform = `translate(-50%, -70%) translate(${lastCursorX}px, ${lastCursorY}px)`;
-                cursorRafPending = false;
-            });
-            lastCursorX = e.clientX; lastCursorY = e.clientY;
-        });
-        viewportEl.addEventListener('mouseleave', () => { cursorEl.style.display = 'none'; });
-    })();
     window.addEventListener('mouseup', () => isDraggingView = false);
 
     // ADVANCED MOBILE MULTI-TOUCH CONTROLS (HAPE)
@@ -1715,59 +1650,6 @@
         repositionHouses();
     }
 
-    // ============== JAM DUNIA 🌦️ (siang/malam) -- murni toggle class, event-driven tiap 1 menit ==============
-    // Pakai jam asli perangkat (real time) supaya desa "hidup" mengikuti waktu nyata pemain,
-    // bukan siklus dipercepat -- sesuai jam: 05-07 fajar, 07-17 siang, 17-19 senja, 19-05 malam.
-    function updateWorldClock() {
-        const hour = new Date().getHours();
-        let phase;
-        if (hour >= 5 && hour < 7) phase = 'dawn';
-        else if (hour >= 7 && hour < 17) phase = 'day';
-        else if (hour >= 17 && hour < 19) phase = 'dusk';
-        else phase = 'night';
-
-        document.body.classList.remove('phase-dawn', 'phase-day', 'phase-dusk', 'phase-night');
-        document.body.classList.add('phase-' + phase);
-    }
-    // Pool TETAP (tidak pernah dibuat/dihapus ulang), transform-only (GPU-cheap), dipindah lewat
-    // setInterval tiap beberapa detik (event-driven) -- bukan requestAnimationFrame tiap frame.
-    const NPC_EMOJIS = ['🚶', '👵', '🐓', '🐐'];
-    let npcPool = [];
-
-    function npcRandomTile() {
-        return { x: Math.floor(Math.random() * GRID_SIZE), y: Math.floor(Math.random() * GRID_SIZE) };
-    }
-
-    function moveNpcToRandomNearbyTile(npc) {
-        // Geser sedikit dari posisi sekarang (bukan lompat jauh acak) biar terasa "jalan", bukan teleport.
-        const range = 4;
-        const nx = Math.min(GRID_SIZE - 1, Math.max(0, npc.tileX + Math.floor((Math.random() - 0.5) * range * 2)));
-        const ny = Math.min(GRID_SIZE - 1, Math.max(0, npc.tileY + Math.floor((Math.random() - 0.5) * range * 2)));
-        npc.tileX = nx; npc.tileY = ny;
-        const coords = getIsoCoords(nx, ny);
-        npc.el.style.transform = `translate(${coords.x - 11}px, ${coords.y - 30}px)`;
-    }
-
-    function initNpcAmbient() {
-        if (npcPool.length) return; // sudah pernah diinisialisasi, jangan bikin ulang (object pooling)
-        NPC_EMOJIS.forEach(emoji => {
-            const el = document.createElement('span');
-            el.className = 'npc-ambient';
-            el.innerText = emoji;
-            world.appendChild(el);
-            const start = npcRandomTile();
-            const npc = { el, tileX: start.x, tileY: start.y };
-            const coords = getIsoCoords(start.x, start.y);
-            el.style.transform = `translate(${coords.x - 11}px, ${coords.y - 30}px)`;
-            npcPool.push(npc);
-        });
-
-        // Event-driven: cuma "ngecek & pindah" tiap 6 detik, bukan animasi tiap frame.
-        setInterval(() => {
-            npcPool.forEach(npc => { if (Math.random() < 0.7) moveNpcToRandomNearbyTile(npc); });
-        }, 6000);
-    }
-
     function buildWorld() {
         world.innerHTML = '';
         reservedTiles.clear();
@@ -1900,7 +1782,6 @@
             
             container.innerHTML = `
                 <img class="sprite house-img" src="${houseImage}" style="height: 55px;" onerror="this.onerror=null;this.src='https://img.icons8.com/plasticine/100/home.png';" />
-                <span class="house-light-glow">🏮</span>
                 <div class="avatar-balloon">
                     <img class="avatar-img" src="${photoSrc}" />
                     <div class="nametag">@${user.username}</div>
