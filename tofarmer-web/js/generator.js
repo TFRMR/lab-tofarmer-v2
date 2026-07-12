@@ -177,14 +177,14 @@ updateAdvice: async (trigger, text) => {
         const container = document.getElementById('micro-inputs-container');
         container.innerHTML = '';
         const templates = {
-            ladang: [{ id: 'objek', label: 'Apa yang dikerjakan? atau Tulis judulnya lagi aja kalau nggak mau ribet'}, { id: 'metode', label: 'Caranya gimana?' }, { id: 'kondisi', label: 'Situasi tempat kerjanya?' }],
-            alat: [{ id: 'fungsi', label: 'Alat ini buat apa?atau Tulis judulnya lagi aja kalau nggak mau ribet' }, { id: 'material', label: 'Bahannya dari apa?' }, { id: 'mekanisme', label: 'Cara pakainya gimana?' }],
-            jualan: [{ id: 'produk', label: 'Apa yang dijual?atau Tulis judulnya lagi aja kalau nggak mau ribet' }, { id: 'lokasi', label: 'Mau dijual di mana?' }, { id: 'metrik', label: 'Targetnya pengen gimana?' }, { id: 'modal', label: 'Berapa modalnya?' }],
-            konten: [{ id: 'platform', label: 'Main di platform apa?atau Tulis judulnya lagi aja kalau nggak mau ribet' }, { id: 'topik', label: 'Bahasan utamanya apa?' }, { id: 'audiens', label: 'Buat siapa kontennya?' }],
-            keuangan: [{ id: 'aset', label: 'Aset yang dikelola?atau Tulis judulnya lagi aja kalau nggak mau ribet' }, { id: 'strategi', label: 'Strategi kelolanya gimana?' }, { id: 'risiko', label: 'Batasan risikonya?' }],
-            digital: [{ id: 'teknologi', label: 'Teknologi yang dipakai?atau Tulis judulnya lagi aja kalau nggak mau ribet' }, { id: 'kasus', label: 'Buat keperluan apa?' }, { id: 'target', label: 'Hasil akhir yang dikejar?' }],
-            caracara: [{ id: 'tema', label: 'Apa yang dilakukan?atau Tulis judulnya lagi aja kalau nggak mau ribet' }, { id: 'metode', label: 'Caranya bagaimana?' }, { id: 'kondisi', label: 'Situasi tempat kerjanya?' }],
-            refleksi: [{ id: 'tema', label: 'Tema refleksinya?atau Tulis judulnya lagi aja kalau nggak mau ribet' }, { id: 'metode', label: 'Cara evaluasinya?' }, { id: 'durasi', label: 'Berapa sering dilakuin?' }]
+            ladang: [{ id: 'objek', label: 'Judul?'}, { id: 'metode', label: 'Caranya gimana?' }, { id: 'kondisi', label: 'Situasi tempat kerjanya?' }],
+            alat: [{ id: 'fungsi', label: 'Judul?' }, { id: 'material', label: 'Bahannya dari apa?' }, { id: 'mekanisme', label: 'Cara pakainya gimana?' }],
+            jualan: [{ id: 'produk', label: 'Judul?' }, { id: 'lokasi', label: 'Mau dijual di mana?' }, { id: 'metrik', label: 'Targetnya pengen gimana?' }, { id: 'modal', label: 'Berapa modalnya?' }],
+            konten: [{ id: 'platform', label: 'Judul?' }, { id: 'topik', label: 'Bahasan utamanya apa?' }, { id: 'audiens', label: 'Buat siapa kontennya?' }],
+            keuangan: [{ id: 'aset', label: 'Judul?'}, { id: 'strategi', label: 'Strategi kelolanya gimana?' }, { id: 'risiko', label: 'Batasan risikonya?' }],
+            digital: [{ id: 'teknologi', label: 'Judul?' }, { id: 'kasus', label: 'Buat keperluan apa?' }, { id: 'target', label: 'Hasil akhir yang dikejar?' }],
+            caracara: [{ id: 'tema', label: 'Judul?' }, { id: 'metode', label: 'Caranya bagaimana?' }, { id: 'kondisi', label: 'Situasi tempat kerjanya?' }],
+            refleksi: [{ id: 'tema', label: 'Judul?' }, { id: 'metode', label: 'Cara evaluasinya?' }, { id: 'durasi', label: 'Berapa sering dilakuin?' }]
         };
         if (templates[pilar]) {
             templates[pilar].forEach(field => {
