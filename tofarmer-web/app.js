@@ -610,8 +610,8 @@ async function renderPostsBatch(posts, feed) {
       <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
         <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">☕ ${item.sruput_count || 0} Sruput</span>
         <span onclick="reactPost('${item.id}','cangkul')" style="cursor:pointer;">⛏️ ${item.cangkul_count || 0} Cangkul</span>
+        <span onclick="sharePost('${item.id}', '${username}', \`${safeText}\`)" style="cursor:pointer;">📢 Bagikan</span>
       </div>
-      <div class="post-actions" style="margin-top:8px;"><button class="share-btn" onclick="sharePost('${item.id}', '${username}', \`${safeText}\`)" style="width:100%;padding:8px 12px;font-size:12px;border-radius:12px;border:1px solid #4caf7a;background:#f0faf6;color:#2f6f4e;font-weight:600;cursor:pointer;">📢 Bagikan Progres</button></div>
       <div style="margin-top:10px; padding-top:8px; border-top:1px solid #f0f0f0; display:flex; gap:16px; font-size:12px; color:#6f7f76;">
         <span onclick="toggleKomentarBox('${item.id}')" style="cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
           💬 ${postComments.length} Komentar
