@@ -1434,6 +1434,63 @@ if (currentWallet !== targetProfileId) return;
 }
 
 // =========================================================================
+// 🔔 FUNGSI: TANDAI SATU NOTIFIKASI DIBACA (Auto saat diklik)
+// =========================================================================
+async function markNotificationAsRead(notifId) {
+  if (!currentWallet || !notifId) return;
+
+  try {
+    await supabaseClient
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("id", notifId);
+    
+    // Update badge count
+    await checkUnreadNotifications();
+    
+    console.log(`✅ Notifikasi ${notifId} ditandai dibaca`);
+  } catch (err) {
+    console.error("Error mark notification as read:", err);
+  }
+}
+
+// =========================================================================
+// 🔔 FUNGSI: TANDAI SEMUA NOTIFIKASI DIBACA
+// =========================================================================
+async function tandaiSemuaNotifDibaca() {
+  if (!currentWallet) {
+    alert("Login dulu untuk tandai notifikasi! 🌱");
+    return;
+  }
+
+  try {
+    // Update semua notifikasi user menjadi is_read = true
+    const { error } = await supabaseClient
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", currentWallet)
+      .eq("is_read", false);
+
+    if (error) {
+      console.error("Error tandai dibaca:", error);
+      alert("Gagal tandai notifikasi sebagai dibaca");
+      return;
+    }
+
+    // Reload notifikasi untuk update UI
+    await loadNotifikasiUser();
+    
+    // Update badge
+    await checkUnreadNotifications();
+    
+    console.log("✅ Semua notifikasi sudah ditandai dibaca");
+  } catch (err) {
+    console.error("Error tandai semua notifikasi:", err);
+    alert("Terjadi error saat tandai notifikasi");
+  }
+}
+
+// =========================================================================
 // 🔔 FUNGSI: MEMUAT NOTIFIKASI USER & FIX BUG LINK ALTERNATIF
 // =========================================================================
 
@@ -1715,7 +1772,7 @@ async function loadNotifikasiUser() {
 
       return `
         <div 
-          onclick="${linkAksi}" 
+          onclick="markNotificationAsRead('${n.id}'); ${linkAksi}" 
           style="padding:12px; border-bottom:1px solid #eee; cursor:pointer; background:${bgWarna}; transition: background 0.2s;" 
           onmouseover="this.style.background='#f7faf8'" 
           onmouseout="this.style.background='${bgWarna}'"
