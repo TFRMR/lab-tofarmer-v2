@@ -886,9 +886,7 @@ function renderUserPostsBatch(data, box) {
       <div style="display:flex;gap:14px;font-size:12px;color:#666;margin-bottom:10px;">
         <span onclick="reactPost('${post.id}','sruput')" style="cursor:pointer;">☕ ${post.sruput_count || 0} Sruput</span>
         <span onclick="reactPost('${post.id}','cangkul')" style="cursor:pointer;">⛏️ ${post.cangkul_count || 0} Cangkul</span>
-      </div>
-      <div class="post-actions">
-        <button class="share-btn" onclick="sharePost('${post.id}', '${currentUsername}', '${encodeURIComponent(safeText)}')">📢 Bagikan Karya</button>
+        <span onclick="sharePost('${post.id}', '${currentUsername}', '${encodeURIComponent(safeText)}')" style="cursor:pointer;">📢 Bagikan</span>
       </div>
       <div style="margin-top:10px;margin-bottom:10px;font-size:12px;">
         <span id="comment-count-${post.id}" onclick="toggleCommentBox('${post.id}')" style="cursor:pointer;color:#2f6f4e;font-weight:600;user-select:none;">💬 Memuat jumlah komentar...</span>
