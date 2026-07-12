@@ -1851,7 +1851,7 @@ ${konteksLengkap}`
 /// =====================================================
 // 🎯 AUTO FOCUS TARGET POST DARI NOTIFIKASI ATAU SHARE
 // =====================================================
-function handleTargetPostFromNotification() {
+async function handleTargetPostFromNotification() {
   const urlParams = new URLSearchParams(window.location.search);
   const targetPost = urlParams.get("targetPost");
   const sharedPost = urlParams.get("post");
@@ -1859,9 +1859,13 @@ function handleTargetPostFromNotification() {
   const postId = targetPost || sharedPost;
   if (!postId) return;
 
-  setTimeout(() => {
-    const el = document.getElementById(`post-card-${postId}`);
+  // Tunggu sebentar biar render pertama selesai
+  await new Promise(resolve => setTimeout(resolve, 800));
 
+  // Fungsi helper: cari dan scroll ke post
+  function findAndScrollToPost() {
+    const el = document.getElementById(`post-card-${postId}`);
+    
     if (el) {
       el.scrollIntoView({
         behavior: "smooth",
@@ -1883,8 +1887,34 @@ function handleTargetPostFromNotification() {
           el.style.background = "";
         }, 3000);
       }
+      
+      return true; // Post ditemukan
     }
-  }, 800);
+    return false; // Post belum dimuat
+  }
+
+  // 1. Cek apakah post sudah ada di DOM
+  if (findAndScrollToPost()) return;
+
+  // 2. Kalau belum ada, terus load posts sampai ketemu atau sudah load semua
+  let maxAttempts = 10; // Cegah infinite loop
+  while (maxAttempts > 0 && !userPostAllLoaded) {
+    console.log(`🔄 Memuat posts untuk cari post ${postId}... (Attempt ${11 - maxAttempts}/10)`);
+    
+    // Load halaman posts berikutnya
+    await loadMoreUserPosts();
+    
+    // Cek apakah post sudah ada
+    if (findAndScrollToPost()) return;
+    
+    maxAttempts--;
+    
+    // Jeda sebentar sebelum load lagi
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  // 3. Kalau sudah load semua tapi belum ketemu, log warning
+  console.warn(`⚠️ Post ${postId} tidak ditemukan di profil`);
 }
 
 // Fungsi untuk mengecek jumlah notifikasi belum dibaca ke Supabase
@@ -1917,8 +1947,15 @@ async function updateNotificationUI(count) {
 // =====================================================
 // JALANKAN SATU KALI SAJA DI SINI:
 // =====================================================
-setTimeout(() => {
-  handleTargetPostFromNotification();
+setTimeout(async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("post")) {
+    // Kalau ada parameter ?post=, tunggu loading sampai ketemu
+    await handleTargetPostFromNotification();
+  } else {
+    // Kalau nggak ada, jalankan di background
+    handleTargetPostFromNotification().catch(err => console.error("Scroll error:", err));
+  }
   checkUnreadNotifications();
 }, 1000);
 

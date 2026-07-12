@@ -455,17 +455,21 @@ let feedLoading = false;
 let feedAllLoaded = false;
 
 // =====================================================
-// 🎯 AUTO SCROLL KE POST YANG DI-SHARE
+// 🎯 AUTO SCROLL KE POST YANG DI-SHARE (TERUS LOAD SAMPAI KETEMU)
 // =====================================================
-function handleScrollToSharedPost() {
+async function handleScrollToSharedPost() {
   const urlParams = new URLSearchParams(window.location.search);
   const sharedPostId = urlParams.get("post");
 
   if (!sharedPostId) return;
 
-  setTimeout(() => {
-    const el = document.getElementById(`post-card-${sharedPostId}`);
+  // Tunggu sebentar biar render pertama selesai
+  await new Promise(resolve => setTimeout(resolve, 800));
 
+  // Fungsi helper: cari post di DOM
+  function findAndScrollToPost() {
+    const el = document.getElementById(`post-card-${sharedPostId}`);
+    
     if (el) {
       el.scrollIntoView({
         behavior: "smooth",
@@ -482,8 +486,34 @@ function handleScrollToSharedPost() {
         el.style.border = "";
         el.style.background = "";
       }, 3000);
+      
+      return true; // Post ditemukan
     }
-  }, 800);
+    return false; // Post belum dimuat
+  }
+
+  // 1. Cek apakah post sudah ada di DOM
+  if (findAndScrollToPost()) return;
+
+  // 2. Kalau belum ada, terus load feed sampai ketemu atau sudah load semua
+  let maxAttempts = 10; // Cegah infinite loop
+  while (maxAttempts > 0 && !feedAllLoaded) {
+    console.log(`🔄 Memuat feed untuk cari post ${sharedPostId}... (Attempt ${11 - maxAttempts}/10)`);
+    
+    // Load halaman feed berikutnya
+    await loadMoreFeed();
+    
+    // Cek apakah post sudah ada
+    if (findAndScrollToPost()) return;
+    
+    maxAttempts--;
+    
+    // Jeda sebentar sebelum load lagi
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  // 3. Kalau sudah load semua tapi belum ketemu, log warning
+  console.warn(`⚠️ Post ${sharedPostId} tidak ditemukan di feed`);
 }
 
 function initFeedScroll() {
@@ -553,8 +583,15 @@ async function loadFeed() {
   await loadMoreFeed();
   initFeedScroll();
   
-  // 🟢 TRIGGER SCROLL KE POST YANG DI-SHARE
-  handleScrollToSharedPost();
+  // 🟢 TRIGGER SCROLL KE POST YANG DI-SHARE (TUNGU SAMPAI KETEMU)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("post")) {
+    // Kalau ada parameter ?post=, tunggu loading sampai ketemu
+    await handleScrollToSharedPost();
+  } else {
+    // Kalau nggak ada, jalankan di background
+    handleScrollToSharedPost().catch(err => console.error("Scroll error:", err));
+  }
 }
 
 async function renderPostsBatch(posts, feed) {
