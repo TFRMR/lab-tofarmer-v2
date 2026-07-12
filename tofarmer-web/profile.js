@@ -1849,16 +1849,18 @@ ${konteksLengkap}`
   }
 }
 /// =====================================================
-// 🎯 AUTO FOCUS TARGET POST DARI NOTIFIKASI
+// 🎯 AUTO FOCUS TARGET POST DARI NOTIFIKASI ATAU SHARE
 // =====================================================
 function handleTargetPostFromNotification() {
   const urlParams = new URLSearchParams(window.location.search);
   const targetPost = urlParams.get("targetPost");
-
-  if (!targetPost) return;
+  const sharedPost = urlParams.get("post");
+  
+  const postId = targetPost || sharedPost;
+  if (!postId) return;
 
   setTimeout(() => {
-    const el = document.getElementById(`post-card-${targetPost}`);
+    const el = document.getElementById(`post-card-${postId}`);
 
     if (el) {
       el.scrollIntoView({
@@ -1867,9 +1869,20 @@ function handleTargetPostFromNotification() {
       });
 
       // highlight biar keliatan targetnya
-      el.style.border = "2px solid #22c55e";
-      el.style.background = "#f0fdf4";
+      const highlightColor = sharedPost ? "#4caf7a" : "#22c55e";
+      const highlightBg = sharedPost ? "#f0faf6" : "#f0fdf4";
+      
+      el.style.border = `2px solid ${highlightColor}`;
+      el.style.background = highlightBg;
       el.style.transition = "0.3s ease";
+      
+      // Hapus highlight setelah 3 detik untuk shared posts
+      if (sharedPost) {
+        setTimeout(() => {
+          el.style.border = "";
+          el.style.background = "";
+        }, 3000);
+      }
     }
   }, 800);
 }

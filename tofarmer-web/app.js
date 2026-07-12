@@ -447,12 +447,37 @@ function updateFaseProgress(totalTof) {
   `
 }
 
-// ===================== RENDERING LINI MASA (FEED) =====================
-// --- INFINITE SCROLL SETUP ---
-let feedPage = 0;
-const FEED_PAGE_SIZE = 5;
-let feedLoading = false;
-let feedAllLoaded = false;
+// =====================================================
+// 🎯 AUTO SCROLL KE POST YANG DI-SHARE
+// =====================================================
+function handleScrollToSharedPost() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const sharedPostId = urlParams.get("post");
+
+  if (!sharedPostId) return;
+
+  setTimeout(() => {
+    const el = document.getElementById(`post-card-${sharedPostId}`);
+
+    if (el) {
+      el.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+
+      // Highlight biar keliatan post yang di-share
+      el.style.border = "2px solid #4caf7a";
+      el.style.background = "#f0faf6";
+      el.style.transition = "0.3s ease";
+      
+      // Hapus highlight setelah 3 detik
+      setTimeout(() => {
+        el.style.border = "";
+        el.style.background = "";
+      }, 3000);
+    }
+  }, 800);
+}
 
 function initFeedScroll() {
   const feed = document.getElementById("feed");
@@ -520,6 +545,9 @@ async function loadFeed() {
 
   await loadMoreFeed();
   initFeedScroll();
+  
+  // 🟢 TRIGGER SCROLL KE POST YANG DI-SHARE
+  handleScrollToSharedPost();
 }
 
 async function renderPostsBatch(posts, feed) {
