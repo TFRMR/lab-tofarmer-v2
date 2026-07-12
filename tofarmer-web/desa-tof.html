@@ -469,6 +469,7 @@
     <div class="xp-line"><span>💰 XP</span><span class="xp-value" id="hud-xp-value">0</span></div>
     <div class="xp-line"><span>🌿 Pupuk</span><span class="pupuk-value" id="hud-pupuk-value">0</span></div>
     <div class="xp-line"><span>💧 Air</span><span class="pupuk-value" id="hud-water-value">0/5</span></div>
+    <div id="offline-queue-badge" style="display:none; margin-top:4px; font-size:9px; color:#fbbf24; text-align:center;"></div>
     <button id="btn-cairkan-tof" onclick="openCairkanModal()" style="width:100%; margin-top:6px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:600; cursor:pointer;">☕ Cairkan ke TOF</button>
 </div>
 
@@ -628,7 +629,7 @@
     // Perkiraan stok air di sisi tampilan (cuma estimasi buat ditampilkan ke warga sebelum
     // klik -- kepastian & potongan sesungguhnya SELALU dihitung ulang di server/fn_water_crop,
     // ini cuma supaya HUD tidak kosong/menyesatkan).
-    const WATER_MAX_STOCK = 10;
+    const WATER_MAX_STOCK = 5;
     function estimateWaterStock() {
         if (!myUser) return 0;
         const stock = Number(myUser.water_stock ?? WATER_MAX_STOCK);
@@ -1188,6 +1189,91 @@
         }).join('');
     }
 
+    // ============== QUEUE NIAT + SYNC ENGINE (Fase 3 offline-first) ==============
+    // PRINSIP KEAMANAN YANG WAJIB DIJAGA (sama seperti kenapa kita menolak skema "Value
+    // Note" self-signed dulu): queue ini CUMA menyimpan NIAT ("coba siram petak X,Y"),
+    // TIDAK PERNAH menyimpan hasil/reward. Begitu online lagi, tiap niat dikirim ke fungsi
+    // RPC yang SAMA PERSIS seperti kalau online biasa -- server yang menghitung ulang dari
+    // nol apakah sah & berapa hasilnya. Jadi walau IndexedDB di HP diutak-atik manual lewat
+    // devtools, tidak ada gunanya sama sekali untuk curang -- server tetap sumber kebenaran.
+    async function getActionQueue() {
+        return (await idbGet('action_queue')) || [];
+    }
+    async function saveActionQueue(queue) {
+        await idbSet('action_queue', queue);
+    }
+
+    // Dipanggil oleh semua fungsi aksi (siram/pupuk/rawat/panen/tanam) sebagai pengganti
+    // db.rpc() langsung. Kalau online: perilaku identik seperti sebelumnya (panggil server
+    // langsung). Kalau offline (atau network gagal saat itu juga): simpan niatnya ke
+    // IndexedDB, jangan pura-pura berhasil, kasih tahu user jujur bahwa ini akan diproses
+    // nanti begitu online.
+    async function callRpcOrQueue(rpcName, params, deskripsiSingkat) {
+        if (navigator.onLine) {
+            try {
+                return await db.rpc(rpcName, params);
+            } catch (networkErr) {
+                // Gagal tengah jalan (sinyal putus mendadak) -- masih aman untuk antre,
+                // karena kita belum tahu apapun soal hasilnya dari sisi client.
+            }
+        }
+        const queue = await getActionQueue();
+        queue.push({ id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random())), rpcName, params, deskripsiSingkat, queuedAt: Date.now() });
+        await saveActionQueue(queue);
+        updateOfflineQueueBadge();
+        return { data: { success: false, queued: true, message: `📥 Disimpan offline: "${deskripsiSingkat}". Akan diproses otomatis begitu koneksi kembali.` }, error: null };
+    }
+
+    let isSyncingQueue = false;
+    async function processOfflineQueue() {
+        if (isSyncingQueue || !navigator.onLine) return;
+        isSyncingQueue = true;
+        try {
+            let queue = await getActionQueue();
+            if (!queue.length) return;
+
+            showToast(`🔄 Menyinkronkan ${queue.length} aksi offline...`);
+            const sisa = [];
+            for (const item of queue) {
+                try {
+                    // Panggil RPC yang SAMA PERSIS seperti online biasa -- server menghitung
+                    // ulang semuanya dari kondisi aslinya saat ini, bukan percaya apapun dari HP.
+                    const { data } = await db.rpc(item.rpcName, item.params);
+                    if (data && data.message) {
+                        showToast(`${data.success ? '✅' : '⚠️'} ${item.deskripsiSingkat}: ${data.message}`, !data.success);
+                    }
+                } catch (e) {
+                    // Masih gagal (network putus lagi di tengah sinkronisasi) -- simpan lagi
+                    // buat dicoba ulang nanti, JANGAN dibuang.
+                    sisa.push(item);
+                }
+            }
+            await saveActionQueue(sisa);
+            updateOfflineQueueBadge();
+            await refreshMyProfile();
+            await loadWorldState();
+            renderFarmList();
+        } finally {
+            isSyncingQueue = false;
+        }
+    }
+
+    function updateOfflineQueueBadge() {
+        getActionQueue().then(queue => {
+            const el = document.getElementById('offline-queue-badge');
+            if (!el) return;
+            if (queue.length > 0) {
+                el.style.display = 'block';
+                el.innerText = navigator.onLine ? `🔄 Menyinkronkan ${queue.length} aksi...` : `📥 ${queue.length} aksi menunggu koneksi`;
+            } else {
+                el.style.display = 'none';
+            }
+        });
+    }
+
+    window.addEventListener('online', processOfflineQueue);
+    setInterval(processOfflineQueue, 30000); // jaring pengaman kalau event 'online' tidak sempat terpicu
+
     // ============== PENGAMAN ANTI DOBEL-KLIK / RACE PER PETAK ==============
     // Kalau user ngetuk tombol (panen/siram/pupuk/rawat) dua kali cepat-cepat di petak yang
     // sama sebelum request pertama selesai, JANGAN kirim request kedua — supaya user tidak
@@ -1209,8 +1295,9 @@
     async function plantCrop(key, cropId) {
       await runFarmActionLocked(`plant:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
-        const { data, error } = await db.rpc('fn_plant_crop', { p_user: myUserId, p_x: x, p_y: y, p_crop_id: cropId });
+        const { data, error } = await callRpcOrQueue('fn_plant_crop', { p_user: myUserId, p_x: x, p_y: y, p_crop_id: cropId }, `Tanam ${cropId} di ${key}`);
         if (error) { showToast('Gagal menanam: ' + error.message, true); return; }
+        if (data.queued) { showToast(data.message); return; }
         if (!data.success) { showToast(data.message || 'Gagal menanam.', true); return; }
 
         farms[key] = { ownerId: myUserId, cropId, plantedAt: Date.now(), waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'planted', harvestCount: 0, lastWateredAt: null, lastFertilizedAt: null, lastPrunedAt: null };
@@ -1237,8 +1324,9 @@
     async function waterCropAction(key) {
       await runFarmActionLocked(`water:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
-        const { data, error } = await db.rpc('fn_water_crop', { p_user: myUserId, p_x: x, p_y: y });
+        const { data, error } = await callRpcOrQueue('fn_water_crop', { p_user: myUserId, p_x: x, p_y: y }, `Siram ${key}`);
         if (error) { showToast('Gagal menyiram: ' + error.message, true); return; }
+        if (data.queued) { showToast(data.message); return; }
         if (!data.success) { showCooldownToast(data.message || 'Gagal menyiram.', data.retry_after_seconds); return; }
         if (farms[key]) { farms[key].waterCount = data.water_count; farms[key].lastWateredAt = Date.now(); }
         if (myUser && data.water_stock_sisa != null) { myUser.water_stock = data.water_stock_sisa; myUser.water_last_regen_at = new Date().toISOString(); }
@@ -1252,8 +1340,9 @@
     async function fertilizeCropAction(key) {
       await runFarmActionLocked(`fertilize:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
-        const { data, error } = await db.rpc('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y });
+        const { data, error } = await callRpcOrQueue('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y }, `Pupuk ${key}`);
         if (error) { showToast('Gagal memupuk: ' + error.message, true); return; }
+        if (data.queued) { showToast(data.message); return; }
         if (!data.success) { showCooldownToast(data.message || 'Gagal memupuk.', data.retry_after_seconds); return; }
         if (farms[key]) { farms[key].fertilizeCount = data.fertilize_count; farms[key].lastFertilizedAt = Date.now(); }
         await refreshMyProfile();
@@ -1266,8 +1355,9 @@
     async function fertilizeBarrenAction(key) {
       await runFarmActionLocked(`fertilize:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
-        const { data, error } = await db.rpc('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y });
+        const { data, error } = await callRpcOrQueue('fn_fertilize_crop', { p_user: myUserId, p_x: x, p_y: y }, `Subur ulang ${key}`);
         if (error) { showToast('Gagal memupuk: ' + error.message, true); return; }
+        if (data.queued) { showToast(data.message); return; }
         if (!data.success) { showToast(data.message || 'Gagal memupuk.', true); return; }
         delete farms[key];
         await refreshMyProfile();
@@ -1280,8 +1370,9 @@
     async function pruneCropAction(key) {
       await runFarmActionLocked(`prune:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
-        const { data, error } = await db.rpc('fn_prune_crop', { p_user: myUserId, p_x: x, p_y: y });
+        const { data, error } = await callRpcOrQueue('fn_prune_crop', { p_user: myUserId, p_x: x, p_y: y }, `Rawat ${key}`);
         if (error) { showToast('Gagal memangkas: ' + error.message, true); return; }
+        if (data.queued) { showToast(data.message); return; }
         if (!data.success) { showCooldownToast(data.message || 'Gagal memangkas.', data.retry_after_seconds); return; }
         if (farms[key]) { farms[key].prunedCount = data.pruned_count; farms[key].lastPrunedAt = Date.now(); }
         await refreshMyProfile();
@@ -1294,8 +1385,9 @@
     async function harvestCropAction(key) {
       await runFarmActionLocked(`harvest:${key}`, async () => {
         const [x, y] = key.split(',').map(Number);
-        const { data, error } = await db.rpc('fn_harvest_crop', { p_user: myUserId, p_x: x, p_y: y });
+        const { data, error } = await callRpcOrQueue('fn_harvest_crop', { p_user: myUserId, p_x: x, p_y: y }, `Panen ${key}`);
         if (error) { showToast('Gagal panen: ' + error.message, true); return; }
+        if (data.queued) { showToast(data.message); return; }
         if (!data.success) { showToast(data.message || 'Belum bisa dipanen.', true); return; }
 
         if (data.perennial_regrow) {
@@ -2157,6 +2249,8 @@
             centerMapOnVillage();
             await ensureMyHouseRow();
             subscribeRealtime();
+            updateOfflineQueueBadge();
+            processOfflineQueue(); // proses sisa antrean dari sesi sebelumnya (kalau ada & sekarang online)
 
             // Cadangan sinkron tiap 45 detik (ringan, tanpa rebuild DOM total)
             setInterval(lightweightResync, 45000);
