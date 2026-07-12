@@ -447,6 +447,13 @@ function updateFaseProgress(totalTof) {
   `
 }
 
+// ===================== RENDERING LINI MASA (FEED) =====================
+// --- INFINITE SCROLL SETUP ---
+let feedPage = 0;
+const FEED_PAGE_SIZE = 5;
+let feedLoading = false;
+let feedAllLoaded = false;
+
 // =====================================================
 // 🎯 AUTO SCROLL KE POST YANG DI-SHARE
 // =====================================================
