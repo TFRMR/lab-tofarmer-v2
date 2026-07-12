@@ -471,6 +471,7 @@
     <div class="xp-line"><span>💧 Air</span><span class="pupuk-value" id="hud-water-value">0/5</span></div>
     <div id="offline-queue-badge" style="display:none; margin-top:4px; font-size:9px; color:#fbbf24; text-align:center;"></div>
     <button id="btn-cairkan-tof" onclick="openCairkanModal()" style="width:100%; margin-top:6px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:600; cursor:pointer;">☕ Cairkan ke TOF</button>
+    <button id="btn-pembibitan" onclick="openPembibitanModal()" style="width:100%; margin-top:4px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#6b8e4e,#3f6b2e); color:white; font-weight:600; cursor:pointer;">🌱 Pembibitan</button>
 </div>
 
 <div id="cairkan-modal" class="modal-overlay side-panel" onclick="closeCairkanModal(event)">
@@ -491,6 +492,25 @@
 
         <div class="modal-buttons-group">
             <button class="btn-modal-action" onclick="submitCairkanTof()">✅ Cairkan Sekarang</button>
+        </div>
+    </div>
+</div>
+
+<div id="pembibitan-modal" class="modal-overlay side-panel" onclick="closePembibitanModal(event)">
+    <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
+        <button class="modal-close-x" onclick="document.getElementById('pembibitan-modal').classList.remove('active')">✕</button>
+        <span class="island-icon">🌱</span>
+        <div class="modal-username" style="color:#8fce6b;">Pembibitan</div>
+        <div class="modal-rank" style="background: rgba(143,206,107,0.15); color:#8fce6b; border-color: rgba(143,206,107,0.3)">Dari nol jadi bibit siap tanam</div>
+
+        <div id="pembibitan-gudang" style="font-size:11px; color:#cbd5e1; margin:8px 0; padding:8px; background:rgba(255,255,255,0.06); border-radius:8px;">
+            Memuat gudang bibit...
+        </div>
+
+        <button class="btn-modal-action" onclick="mulaiPembibitan('bibit_ubi_jalar')" style="margin-bottom:8px;">🍠 Mulai Bibit Ubi Jalar (5 XP)</button>
+
+        <div id="pembibitan-list" style="max-height:180px; overflow-y:auto;">
+            Memuat proses pembibitan...
         </div>
     </div>
 </div>
@@ -773,6 +793,87 @@
             } catch (e) {
                 showToast('Gagal menghubungi mesin pencairan. Coba lagi nanti.', true);
             }
+        });
+    }
+
+    // ============== PEMBIBITAN 🌱 (dari nol jadi bibit siap tanam) ==============
+    async function openPembibitanModal() {
+        if (isGuestUser()) { showToast('Login dulu untuk mulai pembibitan.', true); return; }
+        document.getElementById('pembibitan-modal').classList.add('active');
+        await refreshPembibitanPanel();
+    }
+    function closePembibitanModal(e) { if (e.target === document.getElementById('pembibitan-modal')) document.getElementById('pembibitan-modal').classList.remove('active'); }
+
+    async function refreshPembibitanPanel() {
+        const gudangEl = document.getElementById('pembibitan-gudang');
+        const listEl = document.getElementById('pembibitan-list');
+        try {
+            const [{ data: gudang }, { data: proses }] = await Promise.all([
+                db.from('inventaris_bibit').select('bibit_id, qty, bibit_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
+                db.from('village_pembibitan').select('id, bibit_id, status, dilindungi, mulai_at, bibit_catalog(nama, waktu_tunas_seconds)').eq('owner_id', myUserId).eq('status', 'ditancapkan'),
+            ]);
+
+            gudangEl.innerHTML = (gudang && gudang.length)
+                ? '🎒 Gudang bibit: ' + gudang.map(g => `${(g.bibit_catalog && g.bibit_catalog.nama) || g.bibit_id} ×${g.qty}`).join(', ')
+                : '🎒 Gudang bibit masih kosong.';
+
+            if (!proses || !proses.length) {
+                listEl.innerHTML = '<p style="font-size:11px; color:#94a3b8; text-align:center;">Belum ada proses pembibitan berjalan.</p>';
+                return;
+            }
+
+            listEl.innerHTML = proses.map(p => {
+                const namaBibit = (p.bibit_catalog && p.bibit_catalog.nama) || p.bibit_id;
+                const waktuTunas = (p.bibit_catalog && p.bibit_catalog.waktu_tunas_seconds) || 0;
+                const elapsed = Date.now() - new Date(p.mulai_at).getTime();
+                const siap = elapsed >= waktuTunas * 1000;
+                return `<div class="farm-plot-card">
+                    <strong>${namaBibit}</strong>
+                    <div class="care-progress">${p.dilindungi ? '🛡️ Dilindungi (aman)' : '⚠️ Belum dilindungi (risiko dimakan hewan!)'}</div>
+                    <div class="care-progress">${siap ? '✅ Tunas siap dicek' : '🌱 ' + formatDuration(waktuTunas * 1000 - elapsed) + ' lagi'}</div>
+                    <div class="care-btn-row">
+                        ${!p.dilindungi ? `<button class="care-btn" onclick="pasangPelindungBibit('${p.id}')">🛡️ Pasang Pelindung (8 XP)</button>` : ''}
+                        <button class="care-btn" onclick="cekHasilBibit('${p.id}')" ${!siap ? 'disabled' : ''}>🔍 Cek Hasil</button>
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (e) {
+            gudangEl.innerText = 'Gagal memuat gudang bibit.';
+            listEl.innerHTML = '';
+        }
+    }
+
+    async function mulaiPembibitan(bibitId) {
+        await runFarmActionLocked('mulai-pembibitan', async () => {
+            const { data, error } = await callRpcOrQueue('fn_mulai_pembibitan', { p_user: myUserId, p_bibit_id: bibitId }, `Mulai ${bibitId}`);
+            if (error) { showToast('Gagal memulai pembibitan: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            if (!data.success) { showToast(data.message || 'Gagal memulai pembibitan.', true); return; }
+            showToast(`🌱 Pembibitan dimulai! -${data.cost} XP. Ingat pasang pelindung biar aman dari hewan liar 🛡️`);
+            await refreshMyProfile();
+            await refreshPembibitanPanel();
+        });
+    }
+
+    async function pasangPelindungBibit(pembibitanId) {
+        await runFarmActionLocked('pelindung-' + pembibitanId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_pasang_pelindung', { p_user: myUserId, p_pembibitan_id: pembibitanId }, `Pelindung ${pembibitanId}`);
+            if (error) { showToast('Gagal pasang pelindung: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            if (!data.success) { showToast(data.message || 'Gagal pasang pelindung.', true); return; }
+            showToast(`🛡️ Pelindung terpasang! -${data.cost} XP. Sekarang aman dari hewan liar.`);
+            await refreshMyProfile();
+            await refreshPembibitanPanel();
+        });
+    }
+
+    async function cekHasilBibit(pembibitanId) {
+        await runFarmActionLocked('cek-bibit-' + pembibitanId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_cek_hasil_pembibitan', { p_user: myUserId, p_pembibitan_id: pembibitanId }, `Cek bibit ${pembibitanId}`);
+            if (error) { showToast('Gagal mengecek: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            showToast(data.message || (data.hasil === 'berhasil' ? '🎉 Berhasil!' : '😢 Gagal.'), data.hasil === 'gagal');
+            await refreshPembibitanPanel();
         });
     }
 
