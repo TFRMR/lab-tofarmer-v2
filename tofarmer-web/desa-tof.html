@@ -549,6 +549,7 @@
 
     // ================= STATE DUNIA (semua bersumber dari Supabase, permanen & bersama) =================
     let claimedTiles = {};   // "x,y" -> { ownerId, ownerUsername }
+    let beringinTreeNode = null; // referensi elemen pohon Beringin, biar bisa direposisi pas putar peta
     let farms = {};          // "x,y" -> { ownerId, cropId, plantedAt(ms), waterCount, fertilizeCount, prunedCount, landState }
     let houseMeta = {};      // userId -> { houseStyleId, decorItems: [] }   (dari village_houses)
 
@@ -1838,9 +1839,21 @@
         });
     }
 
+    function repositionBeringin() {
+        if (!beringinTreeNode) return;
+        // Rumus SAMA PERSIS dengan yang dipakai pas dibuat (buildWorld), supaya posisi
+        // relatifnya konsisten walau peta diputar (getIsoCoords ikut currentRotationIndex).
+        const coords = getIsoCoords(-0.1, -0.1);
+        const OFFSET_X = 0;
+        const OFFSET_Y = 150;
+        beringinTreeNode.style.left = (coords.x + OFFSET_X) + 'px';
+        beringinTreeNode.style.top = (coords.y + OFFSET_Y) + 'px';
+    }
+
     function repositionWorld() {
         repositionTiles();
         repositionHouses();
+        repositionBeringin();
     }
 
     function buildWorld() {
@@ -1916,6 +1929,7 @@
     const beringinNode = document.createElement('div');
     beringinNode.className = 'iso-node';
     beringinNode.style.pointerEvents = 'none';
+    beringinTreeNode = beringinNode; // simpan referensinya biar bisa direposisi pas putar peta
 
     // Posisi dasar
     const coords = getIsoCoords(-0.1, -0.1);
