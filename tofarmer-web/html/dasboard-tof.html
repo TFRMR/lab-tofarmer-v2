@@ -284,6 +284,7 @@
             border-radius: 12px;
             border: 1px solid rgba(74, 222, 128, 0.15);
             background: #0a0f0b;
+            position: relative;
         }
         .chart-wrapper {
             position: relative;
@@ -295,6 +296,7 @@
             width: 100%;
             height: 100%;
             border: none;
+            pointer-events: none; /* Disable iframe interaction */
         }
         .chart-overlay-label {
             position: absolute;
@@ -310,6 +312,106 @@
             font-weight: 600;
             pointer-events: none;
             z-index: 5;
+        }
+        /* Connect Button Detector */
+        .chart-interact-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: auto;
+        }
+        .vestige-connect-detector {
+            position: absolute;
+            top: 220px;
+            right: 20px;
+            width: 90px;
+            height: 40px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .vestige-connect-detector:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .wallet-provider-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .wallet-provider-modal.active {
+            display: flex;
+        }
+        .provider-modal-content {
+            background: rgba(14, 28, 19, 0.95);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 16px;
+            padding: 32px 24px;
+            max-width: 380px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .provider-modal-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-weight: bold;
+            color: #fde047;
+            margin-bottom: 24px;
+        }
+        .provider-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .provider-btn {
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+            padding: 14px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .provider-btn:hover {
+            background: rgba(59, 130, 246, 0.35);
+            border-color: rgba(59, 130, 246, 0.7);
+            transform: translateY(-2px);
+        }
+        .provider-btn:active {
+            transform: translateY(0);
+        }
+        .provider-btn-cancel {
+            background: rgba(107, 114, 128, 0.2);
+            border-color: rgba(107, 114, 128, 0.4);
+            color: #d1d5db;
+        }
+        .provider-btn-cancel:hover {
+            background: rgba(107, 114, 128, 0.35);
+            border-color: rgba(107, 114, 128, 0.7);
         }
 
         /* ── SIDEBAR ── */
@@ -466,6 +568,10 @@
                         title="TOF Token Chart — Vestige.fi"
                         scrolling="no">
                     </iframe>
+                    <!-- Click Detector Layer untuk bypass iframe cross-origin -->
+                    <div class="chart-interact-layer">
+                        <div class="vestige-connect-detector" onclick="handleVestigeConnectClick(event)" title="Click untuk connect wallet"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -873,6 +979,45 @@ async function fetchKompasianaArticles() {
 document.addEventListener("DOMContentLoaded", fetchKompasianaArticles);
 
 // ═══════════════════════════════════════════════════════════════════
+// VESTIGE IFRAME CONNECT BUTTON DETECTOR
+// ═══════════════════════════════════════════════════════════════════
+function handleVestigeConnectClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log('🔗 Vestige Connect button detected');
+    showProviderModal();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PROVIDER MODAL MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════
+function showProviderModal() {
+    const modal = document.getElementById('wallet-provider-modal');
+    if (modal) {
+        modal.classList.add('active');
+    }
+}
+
+function closeProviderModal() {
+    const modal = document.getElementById('wallet-provider-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('wallet-provider-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeProviderModal();
+            }
+        });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // WALLET CONNECT/DISCONNECT (Active Implementation)
 // ═══════════════════════════════════════════════════════════════════
 let connectedWallet = null;
@@ -912,6 +1057,7 @@ async function connectWithMyAlgo() {
                 provider: 'MyAlgo'
             };
             updateWalletUI();
+            closeProviderModal();
             console.log('✓ Connected to MyAlgo:', connectedWallet.address);
         }
     } catch (err) {
@@ -931,11 +1077,23 @@ async function connectWithPera() {
                 provider: 'Pera'
             };
             updateWalletUI();
+            closeProviderModal();
             console.log('✓ Connected to Pera:', connectedWallet.address);
         }
     } catch (err) {
         console.error('Pera Connect Error:', err);
         alert('❌ Gagal connect ke Pera: ' + err.message);
+    }
+}
+
+async function connectWithWalletConnect() {
+    try {
+        // WalletConnect support (jika ada library tersedia)
+        alert('⏳ WalletConnect masih dalam pengembangan. Gunakan MyAlgo atau Pera Wallet untuk saat ini.');
+        closeProviderModal();
+    } catch (err) {
+        console.error('WalletConnect Error:', err);
+        alert('❌ Gagal connect ke WalletConnect: ' + err.message);
     }
 }
 
@@ -974,5 +1132,27 @@ window.addEventListener('DOMContentLoaded', () => {
 // ═══════════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', initDashboard);
 </script>
+
+<!-- Wallet Provider Selection Modal -->
+<div id="wallet-provider-modal" class="wallet-provider-modal">
+    <div class="provider-modal-content">
+        <div class="provider-modal-title">🔗 Pilih Wallet Provider</div>
+        <div class="provider-options">
+            <button class="provider-btn" onclick="connectWithMyAlgo()">
+                💳 MyAlgo Wallet (Recommended)
+            </button>
+            <button class="provider-btn" onclick="connectWithPera()">
+                📱 Pera Wallet
+            </button>
+            <button class="provider-btn" onclick="connectWithWalletConnect()">
+                🔐 WalletConnect
+            </button>
+        </div>
+        <button class="provider-btn provider-btn-cancel" onclick="closeProviderModal()">
+            ✕ Batal
+        </button>
+    </div>
+</div>
+
 </body>
 </html>
