@@ -116,7 +116,7 @@ body::before {
 .binary-choice-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    gap: 20px;
 }
 
 .choice-card {
@@ -125,49 +125,71 @@ body::before {
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(74, 222, 128, 0.15);
     border-bottom: 4px solid rgba(34, 197, 94, 0.3);
-    border-radius: 18px;
-    padding: 20px;
+    border-radius: 24px;
+    padding: 25px 15px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    text-align: center;
 }
 
 .choice-card:hover {
     background: rgba(20, 42, 28, 0.7);
     border-color: #4ade80;
-    transform: translateY(-2px);
+    transform: translateY(-4px);
 }
 
 .choice-card.selected {
     background: rgba(34, 197, 94, 0.15);
     border-color: #4ade80;
     border-bottom-width: 4px;
-    box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.3);
 }
 
+/* Penyesuaian Angka Dominan Besar & Mencolok */
 .bit-badge {
-    align-self: flex-start;
     font-family: monospace;
-    font-size: 1.5rem;
+    font-size: 4rem; /* Sangat besar dan dominan */
     font-weight: 800;
-    background: rgba(0,0,0,0.3);
+    line-height: 1;
+    background: transparent;
     color: #4ade80;
-    padding: 2px 14px;
-    border-radius: 8px;
-    border: 1px solid rgba(74, 222, 128, 0.3);
+    padding: 0;
+    border-radius: 0;
+    border: none;
+    text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+    transition: all 0.2s ease;
 }
 
 .choice-card.selected .bit-badge {
-    background: #4ade80;
-    color: #050b07;
+    color: #fef08a;
+    text-shadow: 0 0 30px rgba(234, 179, 8, 0.8);
 }
 
+/* Mengecilkan Teks Pendukung Agar Kalah Dominan */
 .bit-summary {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 700;
+    color: #cbd5e1; /* Warna dibuat sedikit lebih redup */
+}
+
+.choice-card.selected .bit-summary {
     color: #ffffff;
+}
+
+.bit-desc-text {
+    font-size: 0.72rem !important;
+    color: #64748b !important; /* Dibuat redup agar fokus ke angka */
+    line-height: 1.3;
+    max-width: 220px;
+}
+
+.choice-card.selected .bit-desc-text {
+    color: #94a3b8 !important;
 }
 
 /* Kotak Filter Pembantu Global */
@@ -396,7 +418,7 @@ body::before {
 </footer>
 
 <script>
-// Database Parameter Berdasarkan Bagan Pohon Utama & Kamus Tradisi Dunia
+// Database Parameter Berdasarkan Bagan Pohon Utama & Kustomisasi Penamaan Kamus Sirkuit ToFarmer
 const matrixTree = [
     {
         title: "DIGIT 1: PARAMETER MUATAN ENERGI BASAL",
@@ -405,9 +427,9 @@ const matrixTree = [
             { bit: 1, title: "Berat / Menekan / Dingin", desc: "Ada volume ketebalan di rongga tubuh, merinding tebal somatik, sensasi kaku di organ atau temperatur dingin setempat." }
         ],
         helper: {
-            jawa: "<b>Jawa:</b> Membedakan getaran <i>Roso Pangroso</i> (frekuensi batin/luhur) vs <i>Roso Sanubari</i> (somatik emosi bawah).",
-            china: "<b>Tiongkok:</b> Pemisahan kutub murni antara energi <b>Yang</b> (Langit/Cahaya/Ringan) dan <b>Yin</b> (Bumi/Materi/Berat).",
-            celtic: "<b>Celtic:</b> Deteksi tipe muatan atmosfer entitas murni vs residu kepadatan material organik atau batuan tua."
+            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Membedakan getaran <i>Roso Pangroso</i> (frekuensi batin/luhur) vs <i>Roso Sanubari</i> (somatik emosi bawah).",
+            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Pemisahan kutub murni antara energi <b>Yang</b> (Langit/Cahaya/Ringan) dan <b>Yin</b> (Bumi/Materi/Berat).",
+            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Deteksi tipe muatan atmosfer entitas murni vs residu kepadatan material organik atau batuan tua."
         }
     },
     {
@@ -417,9 +439,9 @@ const matrixTree = [
             { bit: 1, title: "Merambat / Berdenyut / Menusuk", d: "Sensasi menjalar horisontal/vertikal di kulit, kedutan ritmik (kedud), atau tusukan intensitas tinggi yang tajam." }
         ],
         helper: {
-            jawa: "<b>Jawa:</b> Identifikasi gerakan energi diam mengendap (<i>Manunggaling Roso</i>) vs energi luar bergeser dinamis.",
-            china: "<b>Tiongkok:</b> Mengukur stabilitas aliran <i>Qi</i> bumi. Energi statis/tenang menandakan wadah energi terkunci erat.",
-            celtic: "<b>Celtic:</b> Mengenali getaran statis khas penanda batas wilayah (<i>Genius Loci</i>) vs dinamika entitas transit."
+            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Identifikasi gerakan energi diam mengendap (<i>Manunggaling Roso</i>) vs energi luar bergeser dinamis.",
+            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Mengukur stabilitas aliran <i>Qi</i> bumi. Energi statis/tenang menandakan wadah energi terkunci erat.",
+            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Mengenali getaran statis khas penanda batas wilayah (<i>Genius Loci</i>) vs dinamika entitas transit."
         }
     },
     {
@@ -429,9 +451,9 @@ const matrixTree = [
             { bit: 1, title: "Area Kulit Luar / Rongga Tubuh", d: "Sensasi menyengat superficial kulit lengan, meremang punggung, atau himpitan di rongga dada & ulu hati." }
         ],
         helper: {
-            jawa: "<b>Jawa:</b> Pemetaan koordinat batin atas (Kening/Sirkuit Cipta) vs respon benteng pertahanan aura fisik tubuh bawah.",
-            china: "<b>Tiongkok:</b> Titik kontak via gerbang meridian utama atas (Baihui / Ajna) vs kontak somatik jalur meridian organ dalam.",
-            celtic: "<b>Celtic:</b> Kontak langsung pada sirkuit kognisi kesadaran mental vs efek kejutan somatosensoris tubuh di permukaan."
+            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Pemetaan koordinat batin atas (Kening/Sirkuit Cipta) vs respon benteng pertahanan aura fisik tubuh bawah.",
+            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Titik kontak via gerbang meridian utama atas (Baihui / Ajna) vs kontak somatik jalur meridian organ dalam.",
+            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Kontak langsung pada sirkuit kognisi kesadaran mental vs efek kejutan somatosensoris tubuh di permukaan."
         }
     },
     {
@@ -441,9 +463,9 @@ const matrixTree = [
             { bit: 1, title: "Gelap / Lembap / Pekat Kabur", d: "Atmosfer ruang berubah remang-pekat, ada rasa lembap menusuk pori, bayangan benda menebal (efek Siti Wingit)." }
         ],
         helper: {
-            jawa: "<b>Jawa:</b> Membaca pergeseran alam sekitar menuju spektrum <i>Wingit/Angker</i> akibat penumpukan memori/materi tua.",
-            china: "<b>Tiongkok:</b> Deteksi akumulasi energi tanah mati (*Sha Qi*) yang memicu penurunan kualitas kecerahan ruang/lokasi.",
-            celtic: "<b>Celtic:</b> Deteksi pergeseran akustik ruang menuju area <i>Dome Effect</i> (suara alam ter-mute tidak alami secara mendadak)."
+            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Membaca pergeseran alam sekitar menuju spektrum <i>Wingit/Angker</i> akibat penumpukan memori/materi tua.",
+            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Deteksi akumulasi energi tanah mati (*Sha Qi*) yang memicu penurunan kualitas kecerahan ruang/lokasi.",
+            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Deteksi pergeseran akustik ruang menuju area <i>Dome Effect</i> (suara alam ter-mute tidak alami secara mendadak)."
         }
     },
     {
@@ -453,9 +475,9 @@ const matrixTree = [
             { bit: 1, title: "Teritorial / Menetap di Koordinat Tanah", d: "Ajek menancap kuat di lokasi geografis yang sama, tidak hilang dengan alih fokus. Muncul instan saat lewati garis batas." }
         ],
         helper: {
-            jawa: "<b>Jawa:</b> Penanda getaran murni cipta rasa pribadi (Karya/Pikiran) vs getaran eksternal penguasa bumi teritorial tanah.",
-            china: "<b>Tiongkok:</b> Penentu koordinat simpul naga bumi (*Dragon Lines*) yang mengunci stabilitas kemakmuran energi spasial.",
-            celtic: "<b>Celtic:</b> Pembuktian otentik titik perpotongan garis energi bumi (*Ley Lines*) yang memiliki karakter permanen menetap."
+            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Penanda getaran murni cipta rasa pribadi (Karya/Pikiran) vs getaran eksternal penguasa bumi teritorial tanah.",
+            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Penentu koordinat simpul naga bumi (*Dragon Lines*) yang mengunci stabilitas kemakmuran energi spasial.",
+            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Pembuktian otentik titik perpotongan garis energi bumi (*Ley Lines*) yang memiliki karakter permanen menetap."
         }
     }
 ];
@@ -507,7 +529,7 @@ function renderCurrentStep() {
     const currentData = matrixTree[currentStep];
     document.getElementById('paramTitle').innerText = currentData.title;
 
-    // Render Dua Tombol Pilihan Utama
+    // Render Dua Tombol Pilihan Utama dengan Teks yang Diperkecil & Dilemahkan Dominasinya
     let htmlChoices = "";
     currentData.choices.forEach(ch => {
         let descText = ch.desc ? ch.desc : ch.d;
@@ -515,7 +537,7 @@ function renderCurrentStep() {
             <div class="choice-card" onclick="selectBitValue(${ch.bit}, this)">
                 <div class="bit-badge">${ch.bit}</div>
                 <div class="bit-summary">${ch.title}</div>
-                <div style="font-size:0.76rem; color:#94a3b8; line-height:1.4;">${descText}</div>
+                <div class="bit-desc-text">${descText}</div>
             </div>
         `;
     });
@@ -570,13 +592,11 @@ function processConclusion() {
     const matched = exactPackages[finalCode];
 
     if (matched) {
-        // Jika COCOK dengan 5 Paket Utama dari Cetak Biru
         document.getElementById('resTitle').innerText = matched.title;
         document.getElementById('resDesc').innerHTML = matched.desc;
         document.getElementById('resPositive').innerHTML = matched.positive;
         document.getElementById('resWarning').innerHTML = matched.warning;
     } else {
-        // Jika kombinasi ACAK BARU, gunakan kalkulator matriks modular terpadu
         document.getElementById('resTitle').innerText = "Matriks Spektrum Campuran Dinamis";
         
         let bits = finalCode.split('').map(Number);
@@ -588,7 +608,7 @@ function processConclusion() {
             : "Terdeteksi aliran frekuensi atas murni/Yang. Bersifat bersih, jernih, bebas dari muatan residu material masa lalu, dan sangat dekat korelasinya dengan aktivitas gelombang otak kreatif/spiritual.";
 
         // 2. Analisis Nilai Positif (Digit 2 & 3)
-        let countKognitif = (bits[1] === 1 ? 0 : 1) + (bits[2] === 0 ? 1 : 0); // Pola kecenderungan arah karya/mental
+        let countKognitif = (bits[1] === 1 ? 0 : 1) + (bits[2] === 0 ? 1 : 0);
         let positiveText = countKognitif >= 1
             ? "<b>Sinergi Produktif:</b> Sangat ideal dimanfaatkan sebagai bahan bakar gagasan kreatif, merenungkan metafora visual, atau mempertajam kalkulasi analitis (seperti membaca chart market GBP/USD). Salurkan akumulasi getaran ini langsung ke tindakan fisik produktif agar menjadi aset nyata."
             : "<b>Sinergi Produktif:</b> Sangat baik untuk melatih perluasan kepekaan somatik pertahanan tubuh. Medan energi luar ini bisa dimanfaatkan untuk memetakan tata letak ruang fisik makro (geomansi) atau mendeteksi batas aman teritorial wilayah kerja.";
@@ -618,7 +638,6 @@ function resetRadar() {
     renderCurrentStep();
 }
 
-// Jalankan inisialisasi awal
 renderCurrentStep();
 </script>
 
