@@ -507,7 +507,7 @@
             Memuat gudang bibit...
         </div>
 
-        <button class="btn-modal-action" onclick="mulaiPembibitan('bibit_ubi_jalar')" style="margin-bottom:8px;">🍠 Mulai Bibit Ubi Jalar (5 XP)</button>
+        <button class="btn-modal-action" onclick="beliBahanBibit('bibit_ubi_jalar')" style="margin-bottom:8px;">🍠 Beli Ubi Jalar Segar (2 XP)</button>
 
         <div id="pembibitan-list" style="max-height:180px; overflow-y:auto;">
             Memuat proses pembibitan...
@@ -811,7 +811,7 @@
         try {
             const [{ data: gudang }, { data: proses }] = await Promise.all([
                 db.from('inventaris_bibit').select('bibit_id, qty, bibit_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
-                db.from('village_pembibitan').select('id, bibit_id, status, dilindungi, mulai_at, bibit_catalog(nama, waktu_tunas_seconds)').eq('owner_id', myUserId).eq('status', 'ditancapkan'),
+                db.from('village_pembibitan').select('id, bibit_id, status, dilindungi, mulai_at, bibit_catalog(nama, waktu_tunas_seconds)').eq('owner_id', myUserId).in('status', ['punya_bahan', 'sudah_dipotong', 'ditancapkan']),
             ]);
 
             gudangEl.innerHTML = (gudang && gudang.length)
@@ -827,15 +827,31 @@
                 const namaBibit = (p.bibit_catalog && p.bibit_catalog.nama) || p.bibit_id;
                 const waktuTunas = (p.bibit_catalog && p.bibit_catalog.waktu_tunas_seconds) || 0;
                 const elapsed = Date.now() - new Date(p.mulai_at).getTime();
-                const siap = elapsed >= waktuTunas * 1000;
+                const siap = p.status === 'ditancapkan' && elapsed >= waktuTunas * 1000;
+
+                let tahapLabel, tombolHtml;
+                if (p.status === 'punya_bahan') {
+                    tahapLabel = '1/3 · Sudah punya bahan (ubi segar)';
+                    tombolHtml = `<button class="care-btn" onclick="potongBasahiBibit('${p.id}')">✂️ Potong &amp; Basahi (1 XP)</button>`;
+                } else if (p.status === 'sudah_dipotong') {
+                    tahapLabel = '2/3 · Sudah dipotong &amp; dibasahi';
+                    tombolHtml = `<button class="care-btn" onclick="tancapkanBibit('${p.id}')">🌱 Tancapkan ke Tanah (2 XP)</button>`;
+                } else {
+                    tahapLabel = '3/3 · Tertancap, ' + (p.dilindungi ? '🛡️ dilindungi (aman)' : '⚠️ belum dilindungi (risiko dimakan hewan!)');
+                    tombolHtml = `
+                        ${!p.dilindungi ? `<button class="care-btn" onclick="pasangPelindungBibit('${p.id}')">🛡️ Pasang Pelindung (8 XP)</button>` : ''}
+                        <button class="care-btn" onclick="cekHasilBibit('${p.id}')" ${!siap ? 'disabled' : ''}>🔍 Cek Hasil</button>`;
+                }
+
+                const statusWaktu = p.status === 'ditancapkan'
+                    ? (siap ? '✅ Tunas siap dicek' : '🌱 ' + formatDuration(waktuTunas * 1000 - elapsed) + ' lagi')
+                    : '';
+
                 return `<div class="farm-plot-card">
                     <strong>${namaBibit}</strong>
-                    <div class="care-progress">${p.dilindungi ? '🛡️ Dilindungi (aman)' : '⚠️ Belum dilindungi (risiko dimakan hewan!)'}</div>
-                    <div class="care-progress">${siap ? '✅ Tunas siap dicek' : '🌱 ' + formatDuration(waktuTunas * 1000 - elapsed) + ' lagi'}</div>
-                    <div class="care-btn-row">
-                        ${!p.dilindungi ? `<button class="care-btn" onclick="pasangPelindungBibit('${p.id}')">🛡️ Pasang Pelindung (8 XP)</button>` : ''}
-                        <button class="care-btn" onclick="cekHasilBibit('${p.id}')" ${!siap ? 'disabled' : ''}>🔍 Cek Hasil</button>
-                    </div>
+                    <div class="care-progress">${tahapLabel}</div>
+                    ${statusWaktu ? `<div class="care-progress">${statusWaktu}</div>` : ''}
+                    <div class="care-btn-row">${tombolHtml}</div>
                 </div>`;
             }).join('');
         } catch (e) {
@@ -844,13 +860,44 @@
         }
     }
 
-    async function mulaiPembibitan(bibitId) {
-        await runFarmActionLocked('mulai-pembibitan', async () => {
-            const { data, error } = await callRpcOrQueue('fn_mulai_pembibitan', { p_user: myUserId, p_bibit_id: bibitId }, `Mulai ${bibitId}`);
-            if (error) { showToast('Gagal memulai pembibitan: ' + error.message, true); return; }
+    // Tampilkan pesan hasil aksi SEKALIGUS teks edukasi kenapa tahap itu penting --
+    // ini yang jadi inti nilai edukasinya, bukan cuma "berhasil/gagal" doang.
+    function showToastWithEdukasi(pesanUtama, edukasi) {
+        showToast(pesanUtama);
+        if (edukasi) setTimeout(() => showToast(edukasi), 1800);
+    }
+
+    async function beliBahanBibit(bibitId) {
+        await runFarmActionLocked('beli-bibit', async () => {
+            const { data, error } = await callRpcOrQueue('fn_beli_bahan_bibit', { p_user: myUserId, p_bibit_id: bibitId }, `Beli bahan ${bibitId}`);
+            if (error) { showToast('Gagal membeli bahan: ' + error.message, true); return; }
             if (data.queued) { showToast(data.message); return; }
-            if (!data.success) { showToast(data.message || 'Gagal memulai pembibitan.', true); return; }
-            showToast(`🌱 Pembibitan dimulai! -${data.cost} XP. Ingat pasang pelindung biar aman dari hewan liar 🛡️`);
+            if (!data.success) { showToast(data.message || 'Gagal membeli bahan.', true); return; }
+            showToastWithEdukasi(`🍠 Ubi segar didapat! -${data.cost} XP.`, data.edukasi);
+            await refreshMyProfile();
+            await refreshPembibitanPanel();
+        });
+    }
+
+    async function potongBasahiBibit(pembibitanId) {
+        await runFarmActionLocked('potong-' + pembibitanId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_potong_basahi_bibit', { p_user: myUserId, p_pembibitan_id: pembibitanId }, `Potong bibit ${pembibitanId}`);
+            if (error) { showToast('Gagal memotong: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            if (!data.success) { showToast(data.message || 'Gagal memotong.', true); return; }
+            showToastWithEdukasi(`✂️ Ubi dipotong & dibasahi! -${data.cost} XP.`, data.edukasi);
+            await refreshMyProfile();
+            await refreshPembibitanPanel();
+        });
+    }
+
+    async function tancapkanBibit(pembibitanId) {
+        await runFarmActionLocked('tancap-' + pembibitanId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_tancapkan_bibit', { p_user: myUserId, p_pembibitan_id: pembibitanId }, `Tancapkan bibit ${pembibitanId}`);
+            if (error) { showToast('Gagal menancapkan: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            if (!data.success) { showToast(data.message || 'Gagal menancapkan.', true); return; }
+            showToastWithEdukasi(`🌱 Ditancapkan ke tanah! -${data.cost} XP. Timer tumbuh dimulai.`, data.edukasi);
             await refreshMyProfile();
             await refreshPembibitanPanel();
         });
@@ -862,7 +909,7 @@
             if (error) { showToast('Gagal pasang pelindung: ' + error.message, true); return; }
             if (data.queued) { showToast(data.message); return; }
             if (!data.success) { showToast(data.message || 'Gagal pasang pelindung.', true); return; }
-            showToast(`🛡️ Pelindung terpasang! -${data.cost} XP. Sekarang aman dari hewan liar.`);
+            showToastWithEdukasi(`🛡️ Pelindung terpasang! -${data.cost} XP.`, data.edukasi);
             await refreshMyProfile();
             await refreshPembibitanPanel();
         });
@@ -873,7 +920,7 @@
             const { data, error } = await callRpcOrQueue('fn_cek_hasil_pembibitan', { p_user: myUserId, p_pembibitan_id: pembibitanId }, `Cek bibit ${pembibitanId}`);
             if (error) { showToast('Gagal mengecek: ' + error.message, true); return; }
             if (data.queued) { showToast(data.message); return; }
-            showToast(data.message || (data.hasil === 'berhasil' ? '🎉 Berhasil!' : '😢 Gagal.'), data.hasil === 'gagal');
+            showToastWithEdukasi(data.message || (data.hasil === 'berhasil' ? '🎉 Berhasil!' : '😢 Gagal.'), data.edukasi);
             await refreshPembibitanPanel();
         });
     }
