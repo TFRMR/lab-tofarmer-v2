@@ -429,13 +429,12 @@ body::before {
 </footer>
 
 <script>
-// State Management Alur Baru
+// State Management Alur Baru (Fixed & Stabilized v4.1)
 let currentFlow = ""; // "vertikal" atau "horisontal"
 let vertikalSubMode = ""; // "ketuhanan" atau "semesta"
 let currentStep = 0; // Langkah parameter tambahan setelah gateway
 let matrixAnswers = []; // Menyimpan sisa bit pendukung
 
-// Struktur Parameter Pendukung (Skenario bawaan yang sudah ada)
 const subParameters = [
     {
         title: "PARAMETER : MUATAN ENERGI BASAL",
@@ -470,10 +469,16 @@ const subParameters = [
 let selectedValue = null; 
 
 function initGateway() {
+    currentFlow = "";
+    vertikalSubMode = "";
+    currentStep = 0;
+    matrixAnswers = [];
+    selectedValue = null;
+
     document.getElementById('inputInterface').style.display = 'block';
     document.getElementById('resultBox').style.display = 'none';
     
-    // Render Titik Progress Awal
+    // Render Titik Progress Awal (Langkah 0)
     document.getElementById('progressBar').innerHTML = `
         <div class="step-dot active"></div>
         <div class="step-dot"></div>
@@ -493,7 +498,6 @@ function initGateway() {
         </div>
     `;
     
-    selectedValue = null;
     document.getElementById('btnLock').disabled = true;
     document.getElementById('btnLock').innerText = "KUNCI GERBANG UTAMA ➔";
 }
@@ -507,36 +511,38 @@ function selectGatewayValue(val, element) {
 }
 
 function lockChoice() {
-    if (!selectedValue) return;
+    if (selectedValue === null || selectedValue === undefined) return;
 
-    // Percabangan Alur Pertama
+    // Alur Gerbang Utama (Langkah 0)
     if (currentFlow === "") {
         currentFlow = selectedValue;
+        selectedValue = null; // reset slot pilihan
         if (currentFlow === "vertikal") {
             goToVertikalSubGateway();
         } else {
-            // Jalur Horisontal langsung masuk ke parameter skenario
-            currentStep = 0;
-            matrixAnswers = [];
+            // Jalur Horisontal langsung masuk ke parameter skenario pendukung
             renderSubParameters();
         }
-    } else if (currentFlow === "vertikal" && vertikalSubMode === "") {
+        return;
+    } 
+
+    // Alur Sub-Gerbang Vertikal
+    if (currentFlow === "vertikal" && vertikalSubMode === "") {
         vertikalSubMode = selectedValue;
+        selectedValue = null; // reset slot pilihan
         if (vertikalSubMode === "ketuhanan") {
-            // Langput (Langsung Putuskan) Mode Berdoa langsung render hasil akhir
             renderKetuhananMutlak();
         } else {
-            // Vertikal versi Semesta masuk ke pemetaan parameter pendukung
-            currentStep = 0;
-            matrixAnswers = [];
             renderSubParameters();
         }
-    } else {
-        // Proses Penguncian Parameter Pendukung Skenario
-        matrixAnswers.push(selectedValue);
-        currentStep++;
-        renderSubParameters();
-    }
+        return;
+    } 
+
+    // Alur Parameter Skenario Bawaan (Matriks 4-Bit)
+    matrixAnswers.push(selectedValue);
+    selectedValue = null; // reset slot pilihan
+    currentStep++;
+    renderSubParameters();
 }
 
 function goToVertikalSubGateway() {
@@ -558,7 +564,6 @@ function goToVertikalSubGateway() {
             <div class="bit-desc-text">Inspirasi kosmos, lintasan ide kreatif berbobot tinggi, atau frekuensi atas yang bisa diolah menjadi karya lukis/sistem.</div>
         </div>
     `;
-    selectedValue = null;
     document.getElementById('btnLock').disabled = true;
     document.getElementById('btnLock').innerText = "KUNCI INTENSITAS VERTIKAL ➔";
 }
@@ -569,9 +574,10 @@ function renderSubParameters() {
         return;
     }
 
-    // Update Progress Dots (Gateway + 4 sub params = 5 total dots)
+    // Update Bar Progress Dinamis
     let dotsHtml = `<div class="step-dot filled"></div>`;
     if (currentFlow === "vertikal") dotsHtml += `<div class="step-dot filled"></div>`;
+    
     for(let i=0; i<subParameters.length; i++) {
         if(i === currentStep) dotsHtml += `<div class="step-dot active"></div>`;
         else if(i < currentStep) dotsHtml += `<div class="step-dot filled"></div>`;
@@ -585,7 +591,7 @@ function renderSubParameters() {
     let htmlChoices = "";
     data.choices.forEach(ch => {
         htmlChoices += `
-            <div class="choice-card" onclick="selectSubBitValue(${ch.bit}, this)">
+            <div class="choice-card" onclick="selectGatewayValue(${ch.bit}, this)">
                 <div class="bit-badge">${ch.bit}</div>
                 <div class="bit-summary">${ch.title}</div>
                 <div class="bit-desc-text">${ch.desc}</div>
@@ -594,17 +600,8 @@ function renderSubParameters() {
     });
     document.getElementById('choiceRow').innerHTML = htmlChoices;
 
-    selectedValue = null;
     document.getElementById('btnLock').disabled = true;
     document.getElementById('btnLock').innerText = `KUNCI PARAMETER ${currentStep + 1} ➔`;
-}
-
-function selectSubBitValue(bit, element) {
-    const cards = document.querySelectorAll('.choice-card');
-    cards.forEach(c => c.classList.remove('selected'));
-    element.classList.add('selected');
-    selectedValue = bit;
-    document.getElementById('btnLock').disabled = false;
 }
 
 function triggerIncognitoFlash() {
@@ -695,16 +692,12 @@ function compileFinalMatrix() {
 }
 
 function resetRadar() {
-    currentFlow = "";
-    vertikalSubMode = "";
-    currentStep = 0;
-    matrixAnswers = [];
-    selectedValue = null;
     initGateway();
 }
 
 // Jalankan Boot Awal
 initGateway();
+
 </script>
 
 </body>
