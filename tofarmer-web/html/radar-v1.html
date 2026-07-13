@@ -220,7 +220,40 @@ body::before {
 }
 .incognito-btn:hover { background: #38bdf8; color: #0f172a; }
 
-/* Action Button */
+/* Action Buttons Grid */
+.action-grid {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 12px;
+    width: 100%;
+}
+
+.btn-back {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-back:hover:not(:disabled) {
+    background: rgba(51, 65, 85, 0.9);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.btn-back:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 .btn-lock {
     width: 100%;
     background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
@@ -393,7 +426,11 @@ body::before {
                 </div>
             </div>
 
-            <button class="btn-lock" id="btnLock" onclick="lockChoice()" disabled>KUNCI & LANJUT ➔</button>
+            <!-- Tombol Aksi Bawah dengan Fungsi Kembali -->
+            <div class="action-grid">
+                <button class="btn-back" id="btnBack" onclick="goBackStep()" disabled>⬅</button>
+                <button class="btn-lock" id="btnLock" onclick="lockChoice()" disabled>KUNCI & LANJUT ➔</button>
+            </div>
         </div>
     </div>
 
@@ -487,28 +524,26 @@ function initGateway() {
     document.getElementById('paramTitle').innerText = "PINTU GERBANG UTAMA: PILIH ARAH KESADARAN RASA";
 
     document.getElementById('choiceRow').innerHTML = `
-        <div class="choice-card" onclick="selectGatewayValue('vertikal', this)">
+        <div class="choice-card" onclick="selectGatewayValueDirect('vertikal')">
             <div class="bit-badge">↕</div>
             <div class="bit-summary">JALUR VERTIKAL (Sambungan Atas)</div>
             <div class="bit-desc-text">Hubungan tegak lurus batin internal dengan Sang Pencipta, ketenangan jiwa, atau tarikan ide murni dari Semesta Makro.</div>
         </div>
-        <div class="choice-card" onclick="selectGatewayValue('horisontal', this)">
+        <div class="choice-card" onclick="selectGatewayValueDirect('horisontal')">
             <div class="bit-badge">↔</div>
             <div class="bit-summary">JALUR HORISONTAL (Sasmita Bumi)</div>
             <div class="bit-desc-text">Interaksi mendatar radar tubuh dengan atmosfer ruang, teritorial tanah, seliweran energi sekitar, dan kondisi lapangan fisik.</div>
         </div>
     `;
     
-    document.getElementById('btnLock').disabled = true;
-    document.getElementById('btnLock').innerText = "KUNCI PINTU GERBANG UTAMA ➔";
+    document.getElementById('btnBack').disabled = true;
+    document.getElementById('btnLock').style.display = 'none'; // Sembunyikan tombol kunci karena otomatis klik
 }
 
-function selectGatewayValue(val, element) {
-    const cards = document.querySelectorAll('.choice-card');
-    cards.forEach(c => c.classList.remove('selected'));
-    element.classList.add('selected');
+// Fungsi Sekali Klik Langsung Eksekusi Pilihan
+function selectGatewayValueDirect(val) {
     selectedValue = val;
-    document.getElementById('btnLock').disabled = false;
+    lockChoice();
 }
 
 function lockChoice() {
@@ -545,7 +580,38 @@ function lockChoice() {
     renderSubParameters();
 }
 
+// Fungsi Mundur ke Tahap Sebelumnya
+function goBackStep() {
+    // Jika berada di penjelas parameter skenario
+    if (matrixAnswers.length > 0) {
+        matrixAnswers.pop();
+        currentStep--;
+        renderSubParameters();
+        return;
+    }
+
+    // Jika di parameter 1 setelah sub-gerbang vertikal
+    if (currentFlow === "vertikal" && vertikalSubMode !== "" && currentStep === 0) {
+        vertikalSubMode = "";
+        goToVertikalSubGateway();
+        return;
+    }
+
+    // Jika di sub-gerbang vertikal menuju gerbang utama
+    if (currentFlow === "vertikal" && vertikalSubMode === "") {
+        initGateway();
+        return;
+    }
+
+    // Jika di parameter 1 setelah gerbang horisontal
+    if (currentFlow === "horisontal" && currentStep === 0) {
+        initGateway();
+        return;
+    }
+}
+
 function goToVertikalSubGateway() {
+    document.getElementById('btnBack').disabled = false;
     document.getElementById('progressBar').innerHTML = `
         <div class="step-dot filled"></div>
         <div class="step-dot active"></div>
@@ -553,19 +619,17 @@ function goToVertikalSubGateway() {
     document.getElementById('paramTitle').innerText = "SUB-GERBANG VERTIKAL: KLASIFIKASI HUBUNGAN BATIN";
     
     document.getElementById('choiceRow').innerHTML = `
-        <div class="choice-card" onclick="selectGatewayValue('hening', this)">
+        <div class="choice-card" onclick="selectGatewayValueDirect('hening')">
             <div class="bit-badge">🧎</div>
             <div class="bit-summary">Ketenangan / Berserah Murni</div>
             <div class="bit-desc-text">Sambungan sakral, sunyi total, pasrah sepasrah-pasrahnya tanpa ambisi duniawi. Sinyal batin untuk langsung berdoa.</div>
         </div>
-        <div class="choice-card" onclick="selectGatewayValue('ilham', this)">
+        <div class="choice-card" onclick="selectGatewayValueDirect('ilham')">
             <div class="bit-badge">🌌</div>
             <div class="bit-summary">Inspirasi / Gagasan Semesta</div>
             <div class="bit-desc-text">Lintasan petunjuk, ide jernih, solusi urusan, atau dorongan semangat kuat yang bisa diolah menjadi karya nyata atau keputusan hidup.</div>
         </div>
     `;
-    document.getElementById('btnLock').disabled = true;
-    document.getElementById('btnLock').innerText = "KUNCI KLASIFIKASI VERTIKAL ➔";
 }
 
 function renderSubParameters() {
@@ -573,6 +637,8 @@ function renderSubParameters() {
         compileFinalMatrix();
         return;
     }
+
+    document.getElementById('btnBack').disabled = false;
 
     // Update Indikator Kemajuan Titik Progress
     let dotsHtml = `<div class="step-dot filled"></div>`;
@@ -591,7 +657,7 @@ function renderSubParameters() {
     let htmlChoices = "";
     data.choices.forEach(ch => {
         htmlChoices += `
-            <div class="choice-card" onclick="selectGatewayValue(${ch.bit}, this)">
+            <div class="choice-card" onclick="selectGatewayValueDirect(${ch.bit})">
                 <div class="bit-badge">${ch.bit}</div>
                 <div class="bit-summary">${ch.title}</div>
                 <div class="bit-desc-text">${ch.desc}</div>
@@ -599,9 +665,6 @@ function renderSubParameters() {
         `;
     });
     document.getElementById('choiceRow').innerHTML = htmlChoices;
-
-    document.getElementById('btnLock').disabled = true;
-    document.getElementById('btnLock').innerText = `KUNCI PARAMETER ${currentStep + 1} ➔`;
 }
 
 function triggerIncognitoFlash() {
@@ -647,7 +710,7 @@ function compileFinalMatrix() {
         
         deskripsi = "Sinyal atas berhasil diterjemahkan oleh kesadaran kepala. Sinyal kencang di area ubun-ubun atau jidat ini bukan gangguan luar, melainkan momen 'Aha!' alias turunnya gagasan cemerlang, jawaban dari masalah lama, atau dorongan kreativitas tinggi.";
         
-        positif = "<b>Langkah Nyata Produktif:</b> Sangat disarankan untuk segera mengalirkan energi ini ke dalam aksi fisik riil. Jangan dipendam! Tulis idenya di kertas, eksekusi pekerjaan yang sempat tertunda, rapikan tata ruang rumah, atau buat perencanaan aksi nyata mumpung fokus sedang tajam-tajamnya.";
+        positif = "<b>Langkah Nyata Produktif:</b> Sangat disarankan untuk segera mengalirkan energi ini ke dalam aksi fisik riil. Jangan dipendam! Tulis idenya di kertas, eksekusi pekerjaan yang sempat tertunda, rapikan tata ruang rumah, atau buat perencanaan aksi nyata mumpung fokus sedang tajam-tamnya.";
         
         waspada = "<b>Jalan Tengah Penyelaras:</b> Jangan biarkan ide ini hanya berputar-putar di dalam kepala terlalu lama tanpa disalurkan secara fisik, karena bisa bikin pusing, mata tegang, atau gelisah. Netralkan ketegangan kepala dengan minum segelas air hangat.";
 
