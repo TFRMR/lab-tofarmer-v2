@@ -7,9 +7,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Wallet SDKs -->
-    <script src="https://cdn.jsdelivr.net/npm/@myalgo/connect@0.1.0"></script>
-    <script src="https://cdn.jsdelivr.net/gh/perawallet/pera-web-sdk@main/dist/index.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
 
@@ -100,43 +97,6 @@
             border-color: #eab308;
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
-        }
-        .btn-wallet-connect {
-            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
-            color: #ffffff;
-            text-decoration: none;
-            font-size: 0.78rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border: 1px solid #22c55e;
-            padding: 8px 16px;
-            border-radius: 30px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
-        }
-        .btn-wallet-connect:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
-        }
-        .btn-wallet-connect.connected {
-            background: rgba(34, 197, 94, 0.2);
-            border-color: #22c55e;
-        }
-        .wallet-status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #22c55e;
-            animation: pulse-wallet 2s ease-in-out infinite;
-        }
-        @keyframes pulse-wallet {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
         }
         .asa-badge {
             display: flex;
@@ -284,7 +244,6 @@
             border-radius: 12px;
             border: 1px solid rgba(74, 222, 128, 0.15);
             background: #0a0f0b;
-            position: relative;
         }
         .chart-wrapper {
             position: relative;
@@ -296,7 +255,6 @@
             width: 100%;
             height: 100%;
             border: none;
-            pointer-events: none; /* Disable iframe interaction */
         }
         .chart-overlay-label {
             position: absolute;
@@ -312,106 +270,6 @@
             font-weight: 600;
             pointer-events: none;
             z-index: 5;
-        }
-        /* Connect Button Detector */
-        .chart-interact-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-            pointer-events: auto;
-        }
-        .vestige-connect-detector {
-            position: absolute;
-            top: 220px;
-            right: 20px;
-            width: 90px;
-            height: 40px;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.2s;
-        }
-        .vestige-connect-detector:hover {
-            background: rgba(59, 130, 246, 0.1);
-        }
-        .wallet-provider-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            backdrop-filter: blur(4px);
-        }
-        .wallet-provider-modal.active {
-            display: flex;
-        }
-        .provider-modal-content {
-            background: rgba(14, 28, 19, 0.95);
-            border: 1px solid rgba(74, 222, 128, 0.3);
-            border-radius: 16px;
-            padding: 32px 24px;
-            max-width: 380px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            animation: slideUp 0.3s ease-out;
-        }
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .provider-modal-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 18px;
-            font-weight: bold;
-            color: #fde047;
-            margin-bottom: 24px;
-        }
-        .provider-options {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-        .provider-btn {
-            background: rgba(59, 130, 246, 0.2);
-            border: 1px solid rgba(59, 130, 246, 0.4);
-            color: #60a5fa;
-            padding: 14px 20px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .provider-btn:hover {
-            background: rgba(59, 130, 246, 0.35);
-            border-color: rgba(59, 130, 246, 0.7);
-            transform: translateY(-2px);
-        }
-        .provider-btn:active {
-            transform: translateY(0);
-        }
-        .provider-btn-cancel {
-            background: rgba(107, 114, 128, 0.2);
-            border-color: rgba(107, 114, 128, 0.4);
-            color: #d1d5db;
-        }
-        .provider-btn-cancel:hover {
-            background: rgba(107, 114, 128, 0.35);
-            border-color: rgba(107, 114, 128, 0.7);
         }
 
         /* ── SIDEBAR ── */
@@ -500,10 +358,6 @@
         <div class="nav-actions">
             <a href="../../" class="btn-nav-link">🏠 Ke Beranda</a>
             <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="btn-nav-link">⬅ Fitur &amp; Info</a>
-            <button id="btn-wallet-toggle" class="btn-wallet-connect" onclick="handleWalletToggle(event)">
-                <span class="wallet-status-dot" id="wallet-dot" style="display: none;"></span>
-                <span id="wallet-btn-text">🔗 Connect Wallet</span>
-            </button>
             <div class="asa-badge">
                 <span style="color:#9ca3af;">ASA ID:</span>
                 <span class="asa-id">3558306283</span>
@@ -568,10 +422,6 @@
                         title="TOF Token Chart — Vestige.fi"
                         scrolling="no">
                     </iframe>
-                    <!-- Click Detector Layer untuk bypass iframe cross-origin -->
-                    <div class="chart-interact-layer">
-                        <div class="vestige-connect-detector" onclick="handleVestigeConnectClick(event)" title="Click untuk connect wallet"></div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -977,182 +827,10 @@ async function fetchKompasianaArticles() {
 
 // Jalankan saat halaman selesai dimuat
 document.addEventListener("DOMContentLoaded", fetchKompasianaArticles);
-
-// ═══════════════════════════════════════════════════════════════════
-// VESTIGE IFRAME CONNECT BUTTON DETECTOR
-// ═══════════════════════════════════════════════════════════════════
-function handleVestigeConnectClick(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    console.log('🔗 Vestige Connect button detected');
-    showProviderModal();
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// PROVIDER MODAL MANAGEMENT
-// ═══════════════════════════════════════════════════════════════════
-function showProviderModal() {
-    const modal = document.getElementById('wallet-provider-modal');
-    if (modal) {
-        modal.classList.add('active');
-    }
-}
-
-function closeProviderModal() {
-    const modal = document.getElementById('wallet-provider-modal');
-    if (modal) {
-        modal.classList.remove('active');
-    }
-}
-
-// Close modal when clicking outside
-document.addEventListener('DOMContentLoaded', () => {
-    const modal = document.getElementById('wallet-provider-modal');
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeProviderModal();
-            }
-        });
-    }
-});
-
-// ═══════════════════════════════════════════════════════════════════
-// WALLET CONNECT/DISCONNECT (Active Implementation)
-// ═══════════════════════════════════════════════════════════════════
-let connectedWallet = null;
-
-async function handleWalletToggle(event) {
-    event.preventDefault();
-    
-    if (connectedWallet) {
-        // Disconnect
-        disconnectWallet();
-    } else {
-        // Show wallet provider options
-        showWalletProviderMenu();
-    }
-}
-
-function showWalletProviderMenu() {
-    const choice = confirm('Pilih Wallet Provider:\n\nOK = MyAlgo (Recommended)\nCancel = Pera Wallet');
-    
-    if (choice) {
-        connectWithMyAlgo();
-    } else {
-        connectWithPera();
-    }
-}
-
-async function connectWithMyAlgo() {
-    try {
-        const myAlgoConnect = new MyAlgoConnect();
-        const accounts = await myAlgoConnect.connect({
-            shouldShowSignMessage: false
-        });
-        
-        if (accounts && accounts.length > 0) {
-            connectedWallet = {
-                address: accounts[0].address,
-                provider: 'MyAlgo'
-            };
-            updateWalletUI();
-            closeProviderModal();
-            console.log('✓ Connected to MyAlgo:', connectedWallet.address);
-        }
-    } catch (err) {
-        console.error('MyAlgo Connect Error:', err);
-        alert('❌ Gagal connect ke MyAlgo: ' + err.message);
-    }
-}
-
-async function connectWithPera() {
-    try {
-        const peraWallet = new PeraWalletConnect();
-        const accounts = await peraWallet.connect();
-        
-        if (accounts && accounts.length > 0) {
-            connectedWallet = {
-                address: accounts[0],
-                provider: 'Pera'
-            };
-            updateWalletUI();
-            closeProviderModal();
-            console.log('✓ Connected to Pera:', connectedWallet.address);
-        }
-    } catch (err) {
-        console.error('Pera Connect Error:', err);
-        alert('❌ Gagal connect ke Pera: ' + err.message);
-    }
-}
-
-async function connectWithWalletConnect() {
-    try {
-        // WalletConnect support (jika ada library tersedia)
-        alert('⏳ WalletConnect masih dalam pengembangan. Gunakan MyAlgo atau Pera Wallet untuk saat ini.');
-        closeProviderModal();
-    } catch (err) {
-        console.error('WalletConnect Error:', err);
-        alert('❌ Gagal connect ke WalletConnect: ' + err.message);
-    }
-}
-
-function disconnectWallet() {
-    if (confirm('Disconnect dompet?')) {
-        connectedWallet = null;
-        updateWalletUI();
-        console.log('✓ Wallet disconnected');
-    }
-}
-
-function updateWalletUI() {
-    const btn = document.getElementById('btn-wallet-toggle');
-    const btnText = document.getElementById('wallet-btn-text');
-    const dot = document.getElementById('wallet-dot');
-    
-    if (connectedWallet) {
-        const shortAddr = connectedWallet.address.substring(0, 6) + '...' + connectedWallet.address.substring(connectedWallet.address.length - 4);
-        btnText.textContent = `✓ ${shortAddr}`;
-        btn.classList.add('connected');
-        dot.style.display = 'inline-block';
-    } else {
-        btnText.textContent = '🔗 Connect Wallet';
-        btn.classList.remove('connected');
-        dot.style.display = 'none';
-    }
-}
-
-// Restore wallet connection on page load
-window.addEventListener('DOMContentLoaded', () => {
-    updateWalletUI();
-});
-
 // ═══════════════════════════════════════════════════════════════════
 // START
 // ═══════════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', initDashboard);
 </script>
-
-<!-- Wallet Provider Selection Modal -->
-<div id="wallet-provider-modal" class="wallet-provider-modal">
-    <div class="provider-modal-content">
-        <div class="provider-modal-title">🔗 Pilih Wallet Provider</div>
-        <div class="provider-options">
-            <button class="provider-btn" onclick="connectWithMyAlgo()">
-                💳 MyAlgo Wallet (Recommended)
-            </button>
-            <button class="provider-btn" onclick="connectWithPera()">
-                📱 Pera Wallet
-            </button>
-            <button class="provider-btn" onclick="connectWithWalletConnect()">
-                🔐 WalletConnect
-            </button>
-        </div>
-        <button class="provider-btn provider-btn-cancel" onclick="closeProviderModal()">
-            ✕ Batal
-        </button>
-    </div>
-</div>
-
 </body>
 </html>
