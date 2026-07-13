@@ -429,39 +429,40 @@ body::before {
 </footer>
 
 <script>
-// State Management Alur Baru (Fixed & Stabilized v4.1)
+/// Pengelola Status Radar Rasa Nusantara (v4.2 - Edisi Umum & Terbuka)
 let currentFlow = ""; // "vertikal" atau "horisontal"
-let vertikalSubMode = ""; // "ketuhanan" atau "semesta"
-let currentStep = 0; // Langkah parameter tambahan setelah gateway
-let matrixAnswers = []; // Menyimpan sisa bit pendukung
+let vertikalSubMode = ""; // "hening" atau "ilham"
+let currentStep = 0; // Langkah parameter penjelas setelah pintu gerbang
+let matrixAnswers = []; // Menyimpan bit pendukung analisis rasa
 
+// Struktur Parameter Skenario Sensoris Alami (Bahasa Sederhana & Nusantara)
 const subParameters = [
     {
-        title: "PARAMETER : MUATAN ENERGI BASAL",
+        title: "PARAMETER 1 : BOBOT DAN SUHU RASA",
         choices: [
-            { bit: 0, title: "Light / Warm / Void", desc: "Sensasi ringan kosong, ulu hati rileks, atau kehangatan internal bersih." },
-            { bit: 1, title: "Dense / Heavy / Cold", desc: "Intervensi muatan padat, atmosfer kaku meremang, atau dingin setempat." }
+            { bit: 0, title: "Ringan / Hangat / Kosong Plong", desc: "Sensasi batin terasa lega, dada lapang, atau ada kehangatan alami yang menenangkan." },
+            { bit: 1, title: "Padat / Berat / Dingin Mak Gredeng", desc: "Atmosfer sekitar tiba-tiba kaku, udara menebal, atau ada rasa dingin yang janggal." }
         ]
     },
     {
-        title: "PARAMETER : DINAMIKA GERAK SENSORIS",
+        title: "PARAMETER 2 : POLA GERAKAN SENSOR",
         choices: [
-            { bit: 0, title: "Static / Constant", desc: "Sensasi diam mengunci di satu titik koordinat geografis tetap." },
-            { bit: 1, title: "Dynamic / Spreading", desc: "Energi menjalar merambat di kulit atau urat bergerak ritmik (kedud)." }
+            { bit: 0, title: "Menetap / Diam Mengunci", desc: "Sensasi getaran atau rasa kaku hanya diam di satu titik area atau bagian tubuh tertentu." },
+            { bit: 1, title: "Merambat / Kedutan Dinamis", desc: "Rasa merinding berjalan, bulu kuduk berdiri bergantian, atau urat bergerak ritmik." }
         ]
     },
     {
-        title: "PARAMETER : PUSAT FOKUS KOORDINAT",
+        title: "PARAMETER 3 : PUSAT PETA TUBUH",
         choices: [
-            { bit: 0, title: "Upper Circuit (Kepala/Ajna)", desc: "Sensasi kaku di kening, tarikan kelopak mata, atau ketukan kepala atas." },
-            { bit: 1, title: "Lower Circuit (Kulit/Rongga)", desc: "Merinding superficial tebal di pundak, punggung, atau rongga tubuh." }
+            { bit: 0, title: "Sirkuit Atas (Kening / Kepala)", desc: "Sensasi tegang di antara dua alis, kelopak mata berat, atau ubun-ubun terasa gatal/kencang." },
+            { bit: 1, title: "Sirkuit Bawah (Kulit / Rongga Tubuh)", desc: "Merinding tebal di area pundak, punggung belakang, lengan, atau ada rasa bergejolak di ulu hati." }
         ]
     },
     {
-        title: "PARAMETER : RETENSI RETRO-SPASIAL",
+        title: "PARAMETER 4 : SIFAT DAYA TAHAN RASA",
         choices: [
-            { bit: 0, title: "Temporary / Transit", desc: "Cair, melintas cepat, langsung buyar saat napas diatur & fokus dialihkan." },
-            { bit: 1, title: "Teritorial / Fixed Earth", desc: "Ajek menancap kuat pada satu titik koordinat tanah/bangunan fisik." }
+            { bit: 0, title: "Seliweran / Cuma Numpang Lewat", desc: "Sensasi langsung pudar atau buyar begitu kita tarik napas dalam dan alihkan pikiran." },
+            { bit: 1, title: "Nancep / Kuat di Lokasi Fisik", desc: "Rasa kaku tetap bertahan lama di koordinat tempat Anda berdiri, meskipun pikiran sudah dialihkan." }
         ]
     }
 ];
@@ -478,28 +479,28 @@ function initGateway() {
     document.getElementById('inputInterface').style.display = 'block';
     document.getElementById('resultBox').style.display = 'none';
     
-    // Render Titik Progress Awal (Langkah 0)
+    // Render Titik Progress Langkah Awal
     document.getElementById('progressBar').innerHTML = `
         <div class="step-dot active"></div>
         <div class="step-dot"></div>
     `;
-    document.getElementById('paramTitle').innerText = "GERBANG UTAMA: PILIH ORIENTASI KESADARAN";
+    document.getElementById('paramTitle').innerText = "PINTU GERBANG UTAMA: PILIH ARAH KESADARAN RASA";
 
     document.getElementById('choiceRow').innerHTML = `
         <div class="choice-card" onclick="selectGatewayValue('vertikal', this)">
             <div class="bit-badge">↕</div>
-            <div class="bit-summary">JALUR VERTIKAL</div>
-            <div class="bit-desc-text">Hubungan tegak lurus kesadaran internal dengan dimensi atas (Ruhani, Ide murni, Semesta Makro, Ketuhanan).</div>
+            <div class="bit-summary">JALUR VERTIKAL (Sambungan Atas)</div>
+            <div class="bit-desc-text">Hubungan tegak lurus batin internal dengan Sang Pencipta, ketenangan jiwa, atau tarikan ide murni dari Semesta Makro.</div>
         </div>
         <div class="choice-card" onclick="selectGatewayValue('horisontal', this)">
             <div class="bit-badge">↔</div>
-            <div class="bit-summary">JALUR HORISONTAL</div>
-            <div class="bit-desc-text">Interaksi mendatar dengan lingkungan fisik, atmosfer ruang, teritorial tanah, entitas transit, dan dinamika lapangan.</div>
+            <div class="bit-summary">JALUR HORISONTAL (Sasmita Bumi)</div>
+            <div class="bit-desc-text">Interaksi mendatar radar tubuh dengan atmosfer ruang, teritorial tanah, seliweran energi sekitar, dan kondisi lapangan fisik.</div>
         </div>
     `;
     
     document.getElementById('btnLock').disabled = true;
-    document.getElementById('btnLock').innerText = "KUNCI GERBANG UTAMA ➔";
+    document.getElementById('btnLock').innerText = "KUNCI PINTU GERBANG UTAMA ➔";
 }
 
 function selectGatewayValue(val, element) {
@@ -513,24 +514,23 @@ function selectGatewayValue(val, element) {
 function lockChoice() {
     if (selectedValue === null || selectedValue === undefined) return;
 
-    // Alur Gerbang Utama (Langkah 0)
+    // Eksekusi Pintu Gerbang Utama
     if (currentFlow === "") {
         currentFlow = selectedValue;
-        selectedValue = null; // reset slot pilihan
+        selectedValue = null; 
         if (currentFlow === "vertikal") {
             goToVertikalSubGateway();
         } else {
-            // Jalur Horisontal langsung masuk ke parameter skenario pendukung
             renderSubParameters();
         }
         return;
     } 
 
-    // Alur Sub-Gerbang Vertikal
+    // Eksekusi Cabang Sub-Gerbang Vertikal
     if (currentFlow === "vertikal" && vertikalSubMode === "") {
         vertikalSubMode = selectedValue;
-        selectedValue = null; // reset slot pilihan
-        if (vertikalSubMode === "ketuhanan") {
+        selectedValue = null; 
+        if (vertikalSubMode === "hening") {
             renderKetuhananMutlak();
         } else {
             renderSubParameters();
@@ -538,9 +538,9 @@ function lockChoice() {
         return;
     } 
 
-    // Alur Parameter Skenario Bawaan (Matriks 4-Bit)
+    // Eksekusi Penyimpanan Bit Parameter Skenario
     matrixAnswers.push(selectedValue);
-    selectedValue = null; // reset slot pilihan
+    selectedValue = null; 
     currentStep++;
     renderSubParameters();
 }
@@ -550,22 +550,22 @@ function goToVertikalSubGateway() {
         <div class="step-dot filled"></div>
         <div class="step-dot active"></div>
     `;
-    document.getElementById('paramTitle').innerText = "SUB-GERBANG VERTIKAL: KLASIFIKASI INTENSITAS";
+    document.getElementById('paramTitle').innerText = "SUB-GERBANG VERTIKAL: KLASIFIKASI HUBUNGAN BATIN";
     
     document.getElementById('choiceRow').innerHTML = `
-        <div class="choice-card" onclick="selectGatewayValue('ketuhanan', this)">
+        <div class="choice-card" onclick="selectGatewayValue('hening', this)">
             <div class="bit-badge">🧎</div>
-            <div class="bit-summary">Ketuhanan Murni</div>
-            <div class="bit-desc-text">Penyelarasan mutlak tak bercelah, sakral, keheningan total tanpa ego batin. Sinyal instruksi langsung berserah.</div>
+            <div class="bit-summary">Ketenangan / Berserah Murni</div>
+            <div class="bit-desc-text">Sambungan sakral, sunyi total, pasrah sepasrah-pasrahnya tanpa ambisi duniawi. Sinyal batin untuk langsung berdoa.</div>
         </div>
-        <div class="choice-card" onclick="selectGatewayValue('semesta', this)">
+        <div class="choice-card" onclick="selectGatewayValue('ilham', this)">
             <div class="bit-badge">🌌</div>
-            <div class="bit-summary">Versi Semesta / Makro</div>
-            <div class="bit-desc-text">Inspirasi kosmos, lintasan ide kreatif berbobot tinggi, atau frekuensi atas yang bisa diolah menjadi karya lukis/sistem.</div>
+            <div class="bit-summary">Inspirasi / Gagasan Semesta</div>
+            <div class="bit-desc-text">Lintasan petunjuk, ide jernih, solusi urusan, atau dorongan semangat kuat yang bisa diolah menjadi karya nyata atau keputusan hidup.</div>
         </div>
     `;
     document.getElementById('btnLock').disabled = true;
-    document.getElementById('btnLock').innerText = "KUNCI INTENSITAS VERTIKAL ➔";
+    document.getElementById('btnLock').innerText = "KUNCI KLASIFIKASI VERTIKAL ➔";
 }
 
 function renderSubParameters() {
@@ -574,7 +574,7 @@ function renderSubParameters() {
         return;
     }
 
-    // Update Bar Progress Dinamis
+    // Update Indikator Kemajuan Titik Progress
     let dotsHtml = `<div class="step-dot filled"></div>`;
     if (currentFlow === "vertikal") dotsHtml += `<div class="step-dot filled"></div>`;
     
@@ -608,24 +608,24 @@ function triggerIncognitoFlash() {
     const box = document.querySelector('.incognito-box');
     box.style.background = 'rgba(56, 189, 248, 0.3)';
     setTimeout(() => { box.style.background = 'rgba(15, 23, 42, 0.6)'; }, 200);
-    alert("Cache Kognitif Dibersihkan! Kembali ke kesadaran saksi mata netral.");
+    alert("Kesadaran Dinetralkan! Kembali ke posisi saksi mata fisik yang objektif.");
     resetRadar();
 }
 
 function renderKetuhananMutlak() {
     document.getElementById('inputInterface').style.display = 'none';
-    document.getElementById('resRoute').innerText = "Jalur Vertikal Mutlak";
-    document.getElementById('resTitle').innerText = "Penyelarasan Induk (Divine Alignment)";
-    document.getElementById('resCode').innerText = "[ ALL KNOTS ALIGNED ]";
+    document.getElementById('resRoute').innerText = "Jalur Sambungan Atas (Vertikal)";
+    document.getElementById('resTitle').innerText = "Penetapan Keheningan (Mode Pasrah)";
+    document.getElementById('resCode').innerText = "[ ELING LAN WASPODO ]";
     
-    document.getElementById('resDesc').innerText = "Sistem menangkap getaran sakral murni yang memutus rantai logika sebab-akibat horisontal. Sirkuit dekoder kepala mengalami force close karena kapasitas hardware manusia tidak dirancang untuk merender keagungan ini menjadi data kognitif serpihan.";
-    document.getElementById('resPositive').innerHTML = "<b>Filosofi Berserah:</b> Momentum pembersihan total dari segala ambisi ego proyeksi, ketakutan trading, atau kepanikan material. Jiwa dipaksa istirahat dalam poros paling aman.";
-    document.getElementById('resWarning').innerHTML = "<b>Rekomendasi Aksi:</b> Matikan semua layar, taruh gawai, rapikan posisi duduk, ambil air wudhu/bersuci, lalu lakukan doa atau zikir langsung secara khusyuk. Jalur ini selesai tanpa perlu didebat atau dianalisis wakaka.";
+    document.getElementById('resDesc').innerText = "Radar mendeteksi getaran ketenangan murni. Ini adalah saat di mana logika kepala diperintahkan untuk istirahat total. Tubuh tidak sedang dirancang untuk menganalisis data, melainkan untuk mengosongkan beban pikiran.";
+    document.getElementById('resPositive').innerHTML = "<b>Manfaat Nyata Jiwa:</b> Momentum pembersihan alami dari stres harian, rasa cemas, atau ambisi yang melelahkan fisik. Ruang batin kembali ke titik nol yang bersih.";
+    document.getElementById('resWarning').innerHTML = "<b>Saran Tindakan Praktis:</b> Segera taruh HP atau matikan layar. Ambil posisi duduk santai yang tegak, atur napas, bersuci (wudhu), lalu langsung berdoa, berzikir, atau bermeditasi sesuai keyakinan masing-masing. Jalur ini beres tanpa perlu dianalisis lagi.";
     
     document.getElementById('resCultural').innerHTML = `
-        <div class="cult-line"><b>Perspektif Javanese Roso:</b> Manunggaling Rasa murni, hilangnya batasan kawula lan Gusti dalam keheningan sepi pamrih.</div>
-        <div class="cult-line"><b>Perspektif Tao/Cina:</b> Wu Wei sejati. Berhenti berkehendak karena poros utama Dao sedang mengisi ulang baterai batinmu.</div>
-        <div class="cult-line"><b>Perspektif Celtic:</b> Berada di dalam 'The Sacred Center', titik nol poros pohon kehidupan luar ruang.</div>
+        <div class="cult-line"><b>Wawasan Nusantara (Jawa):</b> Manunggaling Roso, matinya keinginan ego ragawi demi bersatunya jiwa dengan kehendak Gusti Kang Akarya Jagad.</div>
+        <div class="cult-line"><b>Wawasan Lintas Budaya (Timur):</b> Wu Wei (Bertindak tanpa berkehendak). Berhenti memaksakan keadaan karena poros alam sedang mengisi ulang energi batinmu.</div>
+        <div class="cult-line"><b>Wawasan Penyelaras Alam (Celtic):</b> Berada di dalam 'Poros Tengah Sakral', mengakar kuat pada kedamaian hidup luar ruang bebas dari bising kota.</div>
     `;
     document.getElementById('resultBox').style.display = 'block';
 }
@@ -642,44 +642,44 @@ function compileFinalMatrix() {
     let culturalHtml = "";
 
     if (currentFlow === "vertikal") {
-        document.getElementById('resRoute').innerText = "Jalur Vertikal • Versi Semesta / Makro";
-        document.getElementById('resTitle').innerText = "Kompilasi Sinyal Karya & Cipta Semesta";
+        document.getElementById('resRoute').innerText = "Jalur Vertikal • Inspirasi & Gagasan";
+        document.getElementById('resTitle').innerText = "Kompilasi Ilham Pikiran Jernih";
         
-        deskripsi = "Sinyal vertikal diproses sukses oleh dekoder kepala. Ini adalah bentuk penyerapan frekuensi makro atas yang masuk menyentuh wilayah kesadaran aktif (Ajna/Mahkota). Bukan gangguan makhluk bawah, melainkan materialisasi energi pembentuk gagasan.";
+        deskripsi = "Sinyal atas berhasil diterjemahkan oleh kesadaran kepala. Sinyal kencang di area ubun-ubun atau jidat ini bukan gangguan luar, melainkan momen 'Aha!' alias turunnya gagasan cemerlang, jawaban dari masalah lama, atau dorongan kreativitas tinggi.";
         
-        positif = "<b>Aksi Produktif Karya:</b> Sangat direkomendasikan untuk langsung dialirkan ke media fisik. Ambil bubuk kopi ground, siapkan lem adhesive, hantam kanvas dalam durasi 4 jam penuh. Energi ini memiliki daya ledak tinggi untuk melahirkan guratan tradisional/spiritual berkarakter kuat!";
+        positif = "<b>Langkah Nyata Produktif:</b> Sangat disarankan untuk segera mengalirkan energi ini ke dalam aksi fisik riil. Jangan dipendam! Tulis idenya di kertas, eksekusi pekerjaan yang sempat tertunda, rapikan tata ruang rumah, atau buat perencanaan aksi nyata mumpung fokus sedang tajam-tajamnya.";
         
-        waspada = "<b>Jalan Tengah:</b> Jangan biarkan energi mengendap terlalu lama di sirkuit kepala tanpa penyaluran fisik karena bisa menyebabkan pusing, ketegangan kelopak mata, atau *performance anxiety*. Netralkan secara berkala dengan minum kopi hangat atau air putih hangat.";
+        waspada = "<b>Jalan Tengah Penyelaras:</b> Jangan biarkan ide ini hanya berputar-putar di dalam kepala terlalu lama tanpa disalurkan secara fisik, karena bisa bikin pusing, mata tegang, atau gelisah. Netralkan ketegangan kepala dengan minum segelas air hangat.";
 
         culturalHtml = `
-            <div class="cult-line"><b>Sirkuit Roso Sejati (Jawa):</b> Sinyal pembuka 'Serat Cipta'. Jidat atau mahkota yang kencang menandakan sirkuit batin sedang menangkap ilham orisinil (Pulung Karya).</div>
-            <div class="cult-line"><b>Sirkuit Pancer (Cina):</b> Energi Yang murni bergerak turun. Sangat bagus untuk mengeksekusi posisi trading GBP/USD secara objektif berdasarkan kejernihan analisis logika dingin tanpa intervensi cemas.</div>
-            <div class="cult-line"><b>Sirkuit Dekoder (Celtic):</b> Inspirasi dari Awen (api suci kreativitas). Ruang berpikir sedang bersih dari polusi emosi horisontal.</div>
+            <div class="cult-line"><b>Wawasan Nusantara (Jawa):</b> Menerima 'Pulung' atau 'Wahyu Cipta'. Jidat kencang menandakan sirkuit batin sedang tajam menangkap tuntunan petunjuk hidup yang orisinil.</div>
+            <div class="cult-line"><b>Wawasan Lintas Budaya (Timur):</b> Turunnya energi kreatif (Yang murni). Sangat pas untuk mengeksekusi keputusan-keputusan hidup secara jernih, objektif, dan bebas dari keraguan.</div>
+            <div class="cult-line"><b>Wawasan Penyelaras Alam (Celtic):</b> Aliran 'Awen' (api suci inspirasi). Pikiran sedang bersih dari polusi emosi lingkungan horisontal sekitar.</div>
         `;
     } else {
-        document.getElementById('resRoute').innerText = "Jalur Horisontal • Interaksi Lapangan Spasial";
+        document.getElementById('resRoute').innerText = "Jalur Horisontal • Interaksi Atmosfer Ruang";
         
         if (bitString === "1111") {
-            document.getElementById('resTitle').innerText = "Paket Teritorial: Kubah Tanah Menetap (Genius Loci)";
-            deskripsi = "Radar mendeteksi adanya 'Kubah Energi Menetap' yang mengunci koordinat geografis tempatmu berdiri. Atmosfer cenderung tebal, sunyi pekat, dan merupakan tanda residu energi tanah kuno (Yin Pekat).";
-            positif = "<b>Pemanfaatan Ruang:</b> Titik ini memiliki kestabilan spiritual yang sangat tinggi. Sangat baik jika digunakan sebagai pondasi galeri statis beraliran tradisional atau ruang penyimpanan karya sakral karena energinya menjaga keheningan batin.";
-            waspada = "<b>Waspada Lapangan:</b> Sifat areanya yang dingin dan sangat senyap rawan membuat fisik mengantuk. **Waspadai juga potensi pergerakan hewan liar (ular, serangga tanah berbisa)** yang menyukai titik tanah berenergi padat dan jarang terjamah langkah kaki bising manusia.";
+            document.getElementById('resTitle').innerText = "Karakter Ruang: Aura Tanah Padat / Wingit";
+            deskripsi = "Radar tubuh mendeteksi adanya zona energi menetap yang mengunci lokasi geografis tempat Anda berdiri. Atmosfer cenderung pekat, sunyi senyap, dan merupakan tanda sisa energi bawaan tanah/bangunan tua yang tebal.";
+            positif = "<b>Pemanfaatan Praktis:</b> Area seperti ini memiliki tingkat kestabilan batin yang sangat tinggi. Sangat cocok dijadikan ruang kontemplasi, tempat istirahat malam yang tenang, ruang meditasi, atau tempat menyimpan barang-barang penting karena energinya menjaga keheningan.";
+            waspada = "<b>Kewaspadaan Lapangan:</b> Suasana yang terlalu pekat dan dingin rawan membuat badan cepat mengantuk. **Tetap waspadai pergerakan satwa liar sekitar (ular, kalajengking, atau serangga berbisa)** yang menyukai titik tanah lembap, sunyi, dan jarang dilewati langkah kaki manusia.";
         } else if (bitString === "1110") {
-            document.getElementById('resTitle').innerText = "Paket Entitas Melintas (Astral Transit)";
-            deskripsi = "Terjadi gesekan somatosensoris berupa kulit merinding atau urat merambat akibat interaksi dengan fluktuasi entitas luar non-fisik yang sifatnya temporer/numgpan lewat.";
-            positif = "<b>Pelajaran Rasa:</b> Melatih ketangguhan sirkuit saraf tubuh agar fleksibel dan tidak kagetan terhadap perubahan suhu atau densitas udara sekitar secara mendadak.";
-            waspada = "<b>Saksi Lapangan:</b> Cukup bersikap tenang dan netral, ia akan menguap sendiri dalam hitungan menit. **Jika suasana alam sekitar mendadak sunyi total (mute), segera cek lingkungan fisik secara visual** untuk mendeteksi datangnya satwa liar atau bahaya material riil.";
+            document.getElementById('resTitle').innerText = "Karakter Ruang: Pergeseran Angin / Residu Melintas";
+            deskripsi = "Terjadi gesekan somatosensoris alami berupa kulit merinding mendadak atau otot bergetar. Ini indikasi tubuh sedang bergesekan dengan fluktuasi udara luar ruang atau residu energi lingkungan yang cuma menumpang lewat.";
+            positif = "<b>Latihan Kepekaan Rasa:</b> Melatih ketangguhan urat saraf tubuh agar fleksibel, beradaptasi cepat, dan tidak gampang kaget terhadap perubahan suhu atau kelembapan udara mendadak di alam bebas.";
+            waspada = "<b>Saksi Mata Objektif:</b> Tenang saja dan bersikap netral, sensasi ini akan menguap sendiri dalam hitungan menit. **Jika alam sekitar mendadak sunyi total tanpa suara burung/serangga, segera cek lingkungan secara visual** untuk memastikan keamanan perimeter fisik dari hewan liar.";
         } else {
-            document.getElementById('resTitle').innerText = "Matriks Campuran Spasial Horisontal";
-            deskripsi = `Kombinasi sensoris horisontal mendeteksi dinamika fluktuasi udara bebas. Kompilasi bit data (${bitString}) mengindikasikan adanya pergeseran sirkulasi energi luar ruang biasa.`;
-            positif = "<b>Strategi Praktis:</b> Bagus untuk memetakan tata letak bangunan fisik ekosistem (ToFarmer) secara dinamis, menguji ketahanan fisik di luar ruangan, serta melatih ketajaman panca indera langsung.";
-            waspada = "<b>Kewaspadaan:</b> Selalu gunakan prinsip saksi mata visual. Jika sirkuit bawah meremang kaku, segera lakukan grounding makro (bayangkan membuang muatan cache negatif langsung ke inti bumi makro) dan pastikan perimeter tempat kerjamu aman dari gangguan hewan liar.";
+            document.getElementById('resTitle').innerText = "Karakter Ruang: Matriks Dinamika Udara Bebas";
+            deskripsi = `Kombinasi sensoris horisontal mendeteksi adanya fluktuasi sirkulasi udara luar ruang yang wajar. Kompilasi data sensor (${bitString}) menunjukkan pergeseran suhu lingkungan biasa.`;
+            positif = "<b>Strategi Praktis:</b> Sangat baik untuk beraktivitas luar ruangan secara produktif, menguji kebugaran fisik, menata lingkungan pekarangan/kebun, atau sekadar jalan santai menyerap udara murni.";
+            waspada = "<b>Kewaspadaan Lapangan:</b> Selalu gunakan mata fisik sebagai saksi utama. Jika badan mulai meremang kaku akibat angin malam atau cuaca dingin, lakukan 'Grounding' (bayangkan membuang sisa muatan kaku dari tubuh langsung ke pusat bumi) dan pastikan perimeter tempat tinggal aman.";
         }
 
         culturalHtml = `
-            <div class="cult-line"><b>Sirkuit Roso Sejati (Jawa):</b> Membaca batas 'Siti Wingit' vs pelintasan makhluk halus (membedakan getaran menetap di tanah vs angin melintas).</div>
-            <div class="cult-line"><b>Sirkuit Pancer (Cina):</b> Menjaga keseimbangan energi Qi tubuh agar tidak tersedot oleh tingginya kadar kelembapan atau energi Yin pekat di lokasi luar ruangan.</div>
-            <div class="cult-line"><b>Sirkuit Dekoder (Celtic):</b> Deteksi garis 'Ley Lines' lokal atau batas teritorial penjaga alam liar (Faerie Radars).</div>
+            <div class="cult-line"><b>Wawasan Nusantara (Jawa):</b> Membaca batas 'Siti Wingit' (Tanah bergetaran kuat) vs angin seliweran (bisa membedakan mana getaran bawaan bumi mana getaran angin melintas).</div>
+            <div class="cult-line"><b>Wawasan Lintas Budaya (Timur):</b> Menjaga keseimbangan hawa tubuh (Qi) agar tidak gampang drop akibat kelembapan tinggi atau energi dingin dari luar.</div>
+            <div class="cult-line"><b>Wawasan Penyelaras Alam (Celtic):</b> Mendeteksi 'Ley Lines' (garis nadi bumi lokal) serta batas alami daerah kekuasaan satwa liar.</div>
         `;
     }
 
@@ -695,9 +695,8 @@ function resetRadar() {
     initGateway();
 }
 
-// Jalankan Boot Awal
+// Jalankan Boot Sistem Pertama Kali
 initGateway();
-
 </script>
 
 </body>
