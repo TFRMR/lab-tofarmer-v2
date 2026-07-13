@@ -7,6 +7,11 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Wallet SDKs -->
+    <script src="https://cdn.jsdelivr.net/npm/@myalgo/connect@0.1.0"></script>
+    <script src="https://cdn.jsdelivr.net/gh/perawallet/pera-web-sdk@main/dist/index.js"></script>
+    <!-- AlgoSDK for transactions -->
+    <script src="https://cdn.jsdelivr.net/npm/algosdk@2.0.0/dist/algosdk.min.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
 
@@ -90,6 +95,7 @@
             padding: 8px 16px;
             border-radius: 30px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
         .btn-nav-link:hover {
             color: #fef08a;
@@ -97,6 +103,30 @@
             border-color: #eab308;
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+        }
+        .btn-nav-link.active {
+            background: rgba(34, 197, 94, 0.25);
+            border-color: #22c55e;
+            color: #fef08a;
+        }
+        .wallet-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #4ade80;
+            font-family: monospace;
+        }
+        .wallet-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
         .asa-badge {
             display: flex;
@@ -213,624 +243,1288 @@
         }
         @keyframes shimmer-harga {
             0%, 100% { text-shadow: 0 0 20px rgba(245,158,11,0.7), 0 0 40px rgba(245,158,11,0.3); }
-            50%       { text-shadow: 0 0 30px rgba(245,158,11,1.0), 0 0 60px rgba(245,158,11,0.5), 0 0 90px rgba(245,158,11,0.2); }
+            50%      { text-shadow: 0 0 30px rgba(245,158,11,0.5), 0 0 60px rgba(245,158,11,0.2); }
         }
-        .harga-sub {
+
+        /* ── PERSONAL WALLET SECTION ── */
+        .personal-section {
+            display: none;
+            margin-bottom: 24px;
+        }
+        .personal-section.active {
+            display: block;
+        }
+
+        .wallet-connect-prompt {
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(74, 222, 128, 0.12);
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .wallet-connect-prompt h3 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #fde047;
+        }
+        .wallet-connect-prompt p {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 24px;
+        }
+        .btn-connect-wallet-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+        .btn-connect-wallet-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        }
+        .btn-connect-wallet-primary:active {
+            transform: translateY(0);
+        }
+
+        .wallet-panel {
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(74, 222, 128, 0.12);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .wallet-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .wallet-address-display {
+            font-family: monospace;
+            font-size: 12px;
+            color: #4ade80;
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+
+        .btn-disconnect {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #fca5a5;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-disconnect:hover {
+            background: rgba(239, 68, 68, 0.3);
+            border-color: rgba(239, 68, 68, 0.7);
+        }
+
+        .wallet-balances {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .balance-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(74, 222, 128, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .balance-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .balance-amount {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4ade80;
+            font-family: monospace;
+            margin-bottom: 6px;
+        }
+
+        .balance-usd {
             font-size: 12px;
             color: #64748b;
             font-family: monospace;
         }
-        .harga-algo {
-            font-size: 13px;
-            color: #4ade80;
-            font-family: monospace;
-            font-weight: 600;
-        }
-        .harga-update-badge {
-            font-size: 10px;
-            color: #22c55e;
-            background: rgba(34,197,94,0.1);
-            border: 1px solid rgba(34,197,94,0.25);
-            padding: 2px 10px;
-            border-radius: 20px;
-            font-family: monospace;
-        }
 
-        /* ── RESPONSIVE VESTIGE IFRAME COAT ── */
-        .chart-container-box {
-            width: 100%;
-            max-width: 100%;
-            overflow: hidden;
+        .trading-section {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px dashed rgba(74, 222, 128, 0.2);
             border-radius: 12px;
-            border: 1px solid rgba(74, 222, 128, 0.15);
-            background: #0a0f0b;
-        }
-        .chart-wrapper {
-            position: relative;
-            width: 100%;
-            height: 500px; /* Tinggi ideal di desktop */
-        }
-        .chart-wrapper iframe {
-            display: block;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        .chart-overlay-label {
-            position: absolute;
-            top: 10px;
-            left: 12px;
-            font-size: 10px;
-            color: #4ade80;
-            background: rgba(6,12,8,0.85);
-            border: 1px solid rgba(74,222,128,0.25);
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-family: monospace;
-            font-weight: 600;
-            pointer-events: none;
-            z-index: 5;
-        }
-
-        /* ── SIDEBAR ── */
-        .sidebar-space { display: flex; flex-direction: column; gap: 24px; }
-        .pie-container { width: 100%; max-width: 180px; margin: 0 auto; }
-        .legend-row { display: flex; justify-content: space-around; font-size: 12px; margin-top: 12px; }
-        .legend-item { display: flex; align-items: center; gap: 6px; color: #94a3b8; }
-        .dot { width: 10px; height: 10px; border-radius: 2px; }
-        .dot.blue   { background-color: #3b82f6; }
-        .dot.yellow { background-color: #eab308; }
-
-        /* ── MILESTONE ── */
-        .milestone-box {
-            background-color: rgba(6, 12, 8, 0.4);
-            border: 1px solid rgba(74, 222, 128, 0.15);
-            padding: 16px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .milestone-box:hover { border-color: #eab308; background: rgba(14, 28, 19, 0.6); box-shadow: 0 4px 15px rgba(34, 197, 94, 0.1); }
-        .m-date  { font-size: 12px; color: #4ade80; font-family: monospace; font-weight: bold; }
-        .m-title { font-family: 'Playfair Display', serif; font-size: 14px; font-weight: bold; color: #ffffff; margin: 4px 0; }
-        .m-desc  { font-size: 12px; color: #94a3b8; line-height: 1.6; }
-
-        /* ── ARTICLES ── */
-        .kompasiana-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
-        @media (min-width: 768px)  { .kompasiana-grid { grid-template-columns: repeat(2, 1fr); } }
-        @media (min-width: 1024px) { .kompasiana-grid { grid-template-columns: repeat(3, 1fr); } }
-        .article-card {
-            padding: 16px;
-            background-color: rgba(6, 12, 8, 0.4);
-            border: 1px solid rgba(74, 222, 128, 0.15);
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .article-card:hover { border-color: #eab308; background: rgba(14, 28, 19, 0.6); }
-        .tag {
-            font-size: 10px;
-            color: #60a5fa;
-            font-family: monospace;
-            background-color: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(59, 130, 246, 0.2);
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-        .article-title { font-family: 'Playfair Display', serif; font-size: 13px; font-weight: bold; color: #e5e7eb; margin-top: 8px; margin-bottom: 4px; }
-        .article-card:hover .article-title { color: #fde047; }
-        .article-desc { font-size: 11px; color: #94a3b8; line-height: 1.5; }
-        .article-date { font-size: 10px; color: #64748b; font-family: monospace; margin-top: 6px; }
-
-        /* ── FOOTER ── */
-        footer {
+            padding: 20px;
+            margin-top: 20px;
             text-align: center;
-            font-size: 12px;
-            color: #475569;
-            padding: 32px 16px;
-            border-top: 1px solid rgba(74, 222, 128, 0.1);
-            margin-top: 48px;
-            font-family: monospace;
         }
 
-        /* ── RESPONSIVE BREAKPOINT KHUSUS LAYAR HAPE ── */
-        @media (max-width: 768px) {
-            .chart-wrapper {
-                height: 440px; /* Tinggi disesuaikan agar chart lilin tidak pipih di HP */
+        .trading-section h4 {
+            color: #fde047;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .trading-section p {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 16px;
+        }
+
+        .btn-trade {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 0 8px;
+        }
+
+        .btn-trade:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-trade.sell {
+            background: linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%);
+        }
+
+        .btn-trade.sell:hover {
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        /* ── LOADING STATE ── */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(74, 222, 128, 0.3);
+            border-radius: 50%;
+            border-top-color: #22c55e;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-state {
+            text-align: center;
+            padding: 20px;
+            color: #94a3b8;
+        }
+
+        /* ── ANALYTICS SECTION (EXISTING) ── */
+        .analytics-section {
+            margin-top: 40px;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .wallet-header {
+                flex-direction: column;
+                align-items: stretch;
             }
-            .chart-overlay-label {
-                font-size: 9px;
-                padding: 2px 8px;
+            .wallet-address-display {
+                text-align: center;
             }
+            .btn-disconnect {
+                width: 100%;
+            }
+            .btn-trade {
+                display: block;
+                width: 100%;
+                margin: 8px 0;
+            }
+            .harga-nilai {
+                font-size: 2rem;
+            }
+        }
+
+        /* ── CHART CONTAINERS ── */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 24px;
+        }
+
+        .kompasiana-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .kompasiana-card {
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(74, 222, 128, 0.12);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s;
+        }
+
+        .kompasiana-card:hover {
+            border-color: rgba(74, 222, 128, 0.3);
+            transform: translateY(-4px);
+        }
+
+        .kompasiana-card h3 {
+            font-size: 14px;
+            color: #fde047;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .kompasiana-card p {
+            font-size: 12px;
+            color: #cbd5e1;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .kompasiana-card small {
+            display: block;
+            font-size: 11px;
+            color: #64748b;
+            margin-bottom: 12px;
+        }
+
+        .btn-kompasiana {
+            display: inline-block;
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-kompasiana:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #94a3b8;
+        }
+
+        /* ── TRANSACTION HISTORY ── */
+        .transaction-item {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(74,222,128,0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .transaction-item:hover {
+            border-color: rgba(74,222,128,0.3);
+            background: rgba(34,197,94,0.05);
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-type {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .transaction-type.buy {
+            color: #60a5fa;
+        }
+
+        .transaction-type.sell {
+            color: #fca5a5;
+        }
+
+        .transaction-time {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .transaction-amount {
+            text-align: right;
+        }
+
+        .transaction-amount-main {
+            font-weight: 600;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+
+        .transaction-status {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+
+        .transaction-status.pending {
+            background: rgba(245,158,11,0.2);
+            color: #f59e0b;
+        }
+
+        .transaction-status.success {
+            background: rgba(34,197,94,0.2);
+            color: #4ade80;
+        }
+
+        .transaction-status.failed {
+            background: rgba(239,68,68,0.2);
+            color: #fca5a5;
+        }
+
+        /* ── FORM INPUT OVERRIDE ── */
+        input[type="number"] {
+            font-size: 14px;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: rgba(74,222,128,0.5);
+            box-shadow: 0 0 8px rgba(74,222,128,0.2);
         }
     </style>
 </head>
 <body>
-
-<nav>
-    <div class="nav-container">
-        <div class="logo-area">
-            <div class="logo-badge">TOF</div>
-            <div class="logo-text">
-                <h1>ToFarmer <span class="logo-sub">Dashboard Token TOF</span></h1>
-            </div>
-        </div>
-        <div class="nav-actions">
-            <a href="../../" class="btn-nav-link">🏠 Ke Beranda</a>
-            <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="btn-nav-link">⬅ Fitur &amp; Info</a>
-            <div class="asa-badge">
-                <span style="color:#9ca3af;">ASA ID:</span>
-                <span class="asa-id">3558306283</span>
-                <button onclick="navigator.clipboard.writeText('3558306283'); alert('Asset ID disalin!')" class="copy-btn">📋</button>
-            </div>
-        </div>
-    </div>
-</nav>
-
-<main>
-
-    <!-- ── STATS ROW ── -->
-    <div class="stats-grid">
-        <div class="card">
-            <div class="card-title-upper">Total Supply</div>
-            <div id="total-supply" class="card-value">Memuat...</div>
-            <div class="card-desc">Total koin kustom tercetak di Algorand</div>
-        </div>
-        <div class="card">
-            <div class="card-title-upper">Sirkulasi Pasar</div>
-            <div id="circulating-supply" class="card-value emerald">Memuat...</div>
-            <div class="card-desc">Token aktif di luar reserve wallet</div>
-        </div>
-        <div class="card">
-            <div class="card-title-upper">Mitra Internal</div>
-            <div id="ecosystem-holders" class="card-value blue">0</div>
-            <div class="card-desc">Pengguna terdaftar di database profiles</div>
-        </div>
-        <div class="card">
-            <div class="card-title-upper">Pejuang Organik (Luar)</div>
-            <div id="organic-holders" class="card-value yellow">0</div>
-            <div class="card-desc">Investor murni dari blockchain/DEX</div>
-        </div>
-    </div>
-
-    <!-- ── MAIN CHART + SIDEBAR ── -->
-    <div class="main-grid">
-
-        <!-- Chart Panel -->
-        <div class="card">
-            <div class="panel-heading">
-                <span class="live-dot"></span>
-                Pergerakan Pasar TOF
+    <nav>
+        <div class="nav-container">
+            <div class="logo-area">
+                <div class="logo-badge">TOF</div>
+                <div class="logo-text">
+                    <h1>🌾 ToFarmer</h1>
+                    <span class="logo-sub">Blockchain Village Farming</span>
+                </div>
             </div>
 
-            <!-- HARGA RUPIAH BESAR — MERAKYAT -->
+            <div class="nav-actions">
+                <a href="#" class="btn-nav-link">📊 Analytics</a>
+                <a href="#" class="btn-nav-link">📖 Docs</a>
+
+                <!-- Wallet Connect Button -->
+                <button id="btn-wallet-toggle" class="btn-nav-link">
+                    🔗 Hubungkan Dompet
+                </button>
+
+                <!-- Wallet Status (shown when connected) -->
+                <div id="wallet-status-display" class="wallet-status" style="display: none;">
+                    <div class="wallet-dot"></div>
+                    <span id="wallet-addr-short">Connected</span>
+                </div>
+
+                <div class="asa-badge">
+                    <span class="asa-id">ASA: 1718396558</span>
+                    <button class="copy-btn" onclick="copyToClipboard('1718396558')">📋</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- PERSONAL WALLET SECTION (Hidden by default) -->
+        <section id="personal-section" class="personal-section">
+            <!-- Prompt untuk connect -->
+            <div id="wallet-connect-prompt" class="wallet-connect-prompt">
+                <h3>🔗 Hubungkan Dompet Anda</h3>
+                <p>Lihat saldo TOF, riwayat transaksi, dan siap untuk beli/jual TOF jangka panjang</p>
+                <button id="btn-connect-main" class="btn-connect-wallet-primary">
+                    🔐 Hubungkan Dompet Sekarang
+                </button>
+            </div>
+
+            <!-- Wallet Panel (Hidden until connected) -->
+            <div id="wallet-panel" class="wallet-panel" style="display: none;">
+                <div class="wallet-header">
+                    <div>
+                        <div class="panel-heading">💰 Dompet Saya</div>
+                        <div class="wallet-address-display" id="wallet-address-display"></div>
+                    </div>
+                    <button id="btn-disconnect-wallet" class="btn-disconnect">
+                        ✕ Disconnect
+                    </button>
+                </div>
+
+                <!-- Balances -->
+                <div class="wallet-balances">
+                    <div class="balance-card">
+                        <div class="balance-label">TOF Balance</div>
+                        <div class="balance-amount" id="tof-balance">0</div>
+                        <div class="balance-usd" id="tof-balance-usd">≈ Rp 0</div>
+                    </div>
+                    <div class="balance-card">
+                        <div class="balance-label">ALGO Balance</div>
+                        <div class="balance-amount" id="algo-balance">0</div>
+                        <div class="balance-usd" id="algo-balance-usd">≈ Rp 0</div>
+                    </div>
+                    <div class="balance-card">
+                        <div class="balance-label">Joined Since</div>
+                        <div class="balance-amount" id="joined-date" style="font-size: 14px;">--</div>
+                        <div class="balance-usd" id="holder-rank">Holder Baru</div>
+                    </div>
+                </div>
+
+                <!-- Trading Section -->
+                <div class="trading-section">
+                    <h4>📈 Perdagangan TOF</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px;">
+                        <!-- BUY CARD -->
+                        <div style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 8px; padding: 16px; cursor: pointer;" onclick="toggleTradePanel('buy')">
+                            <div style="font-weight: 600; color: #60a5fa; margin-bottom: 8px;">💚 BELI TOF</div>
+                            <div style="font-size: 12px; color: #94a3b8;">Gunakan ALGO Anda</div>
+                        </div>
+                        <!-- SELL CARD -->
+                        <div style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; padding: 16px; cursor: pointer;" onclick="toggleTradePanel('sell')">
+                            <div style="font-weight: 600; color: #fca5a5; margin-bottom: 8px;">❤️ JUAL TOF</div>
+                            <div style="font-size: 12px; color: #94a3b8;">Tukar ke ALGO</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trading Form Panel (Hidden) -->
+                <div id="trade-form-panel" style="display: none; margin-top: 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(74,222,128,0.2); border-radius: 12px; padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 id="trade-form-title" style="color: #fde047;">💚 Beli TOF</h3>
+                        <button onclick="toggleTradePanel()" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 20px;">✕</button>
+                    </div>
+
+                    <form id="trade-form" onsubmit="handleTradeSubmit(event)">
+                        <!-- Amount Input -->
+                        <div style="margin-bottom: 16px;">
+                            <label style="display: block; font-size: 12px; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase;">
+                                <span id="trade-amount-label">Jumlah ALGO</span>
+                            </label>
+                            <input 
+                                id="trade-amount" 
+                                type="number" 
+                                step="0.001" 
+                                min="0" 
+                                placeholder="0.00" 
+                                style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(74,222,128,0.2); border-radius: 8px; padding: 12px; color: #fff; font-family: monospace;"
+                                oninput="calculateTradeEstimate()"
+                            >
+                            <div style="font-size: 11px; color: #64748b; margin-top: 6px;" id="trade-balance-info">Saldo Anda: -- ALGO</div>
+                        </div>
+
+                        <!-- Price Info -->
+                        <div style="background: rgba(0,0,0,0.2); border-radius: 8px; padding: 12px; margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">
+                                <span>Harga per unit:</span>
+                                <span id="trade-price" style="color: #4ade80; font-weight: bold;">-- ALGO</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1;">
+                                <span>Anda akan terima:</span>
+                                <span id="trade-estimate" style="color: #60a5fa; font-weight: bold;">-- TOF</span>
+                            </div>
+                        </div>
+
+                        <!-- Fee Warning -->
+                        <div style="background: rgba(245,158,11,0.1); border-left: 3px solid rgba(245,158,11,0.5); padding: 12px; border-radius: 4px; margin-bottom: 16px;">
+                            <div style="font-size: 11px; color: #f59e0b;">⚠️ Biaya transaksi: ~0.001 ALGO</div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button 
+                            type="submit" 
+                            id="trade-submit-btn"
+                            style="width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.3s; background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white;"
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 4px 12px rgba(59,130,246,0.3)'"
+                            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'"
+                        >
+                            💚 Lanjutkan Pembelian
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Transaction History -->
+                <div id="transaction-history-panel" style="margin-top: 24px;">
+                    <h4 style="color: #fde047; margin-bottom: 16px; font-size: 14px;">📊 Riwayat Transaksi</h4>
+                    <div id="transaction-history" style="max-height: 300px; overflow-y: auto;">
+                        <div style="text-align: center; color: #64748b; padding: 20px; font-size: 12px;">
+                            Tidak ada transaksi yet
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ANALYTICS SECTION (Existing) -->
+        <section class="analytics-section">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="card">
+                    <div class="card-title-upper">Total Supply</div>
+                    <div class="card-value emerald" id="total-supply">1.000.000</div>
+                    <div class="card-desc">TOF Tokens</div>
+                </div>
+                <div class="card">
+                    <div class="card-title-upper">Price (Algo)</div>
+                    <div class="card-value blue" id="price-algo">0.001</div>
+                    <div class="card-desc">Per Token</div>
+                </div>
+                <div class="card">
+                    <div class="card-title-upper">Market Cap</div>
+                    <div class="card-value yellow" id="market-cap">Rp 0</div>
+                    <div class="card-desc">IDR Value</div>
+                </div>
+                <div class="card">
+                    <div class="card-title-upper">Total Holders</div>
+                    <div class="card-value emerald" id="total-holders">0</div>
+                    <div class="card-desc">Dompet</div>
+                </div>
+            </div>
+
+            <!-- Harga Rupiah Panel -->
             <div class="harga-rupiah-panel">
-                <div class="harga-label">💰 Harga TOF Sekarang (Live)</div>
-                <div class="harga-nilai" id="harga-idr">Memuat...</div>
-                <div class="harga-algo" id="harga-algo-display">≈ ... ALGO</div>
-                <div class="harga-sub" id="kurs-display">Kurs ALGO/IDR: Memuat...</div>
-                <div class="harga-update-badge" id="update-time-badge">⏱ Memperbarui...</div>
+                <div class="harga-label">💰 Harga 1 TOF</div>
+                <div class="harga-nilai" id="harga-idr">Rp 0</div>
             </div>
 
-            <!-- RESPONSIVE VESTIGE CHART IFRAME -->
-            <div class="chart-container-box">
-                <div class="chart-wrapper">
-                    <div class="chart-overlay-label">📊 Chart by Vestige.fi · ASA 3558306283</div>
-                    <iframe
-                        src="https://vestige.fi/asset/3558306283?theme=dark"
-                        allowtransparency="true"
-                        title="TOF Token Chart — Vestige.fi"
-                        scrolling="no">
-                    </iframe>
+            <!-- Main Grid: Chart + Holder Distribution -->
+            <div class="main-grid">
+                <div class="card">
+                    <div class="panel-heading">
+                        <span class="live-dot"></span>
+                        Distribusi Holder
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="holderChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="panel-heading">📍 Status Ekosistem</div>
+                    <div id="ecosystem-holders" class="card-value emerald">-- <span style="font-size:12px;color:#64748b;">Dompet</span></div>
+                    <div class="card-desc" style="margin-top: 16px;">Pengguna Internal</div>
+
+                    <div id="organic-holders" class="card-value blue" style="margin-top: 24px;">-- <span style="font-size:12px;color:#64748b;">Dompet</span></div>
+                    <div class="card-desc">Pengguna External</div>
+
+                    <div style="margin-top: 24px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 3px solid #fde047;">
+                        <div class="panel-heading" style="margin-bottom: 8px; font-size: 12px;">📋 Milestone Terbaru</div>
+                        <div id="milestone-date" style="font-size: 12px; color: #64748b; margin-bottom: 6px;">📅 LOG [2026-06-15]</div>
+                        <div id="milestone-title" style="font-size: 13px; color: #fde047; margin-bottom: 6px; font-weight: 600;">Pecah Telur!</div>
+                        <div id="milestone-desc" style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">Deskripsi milestone...</div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Sidebar -->
-        <div class="sidebar-space">
-            <div class="card">
-                <div class="panel-heading">Proporsi Pemegang Token</div>
-                <div class="pie-container">
-                    <canvas id="holderChart"></canvas>
-                </div>
-                <div class="legend-row">
-                    <div class="legend-item"><span class="dot blue"></span> Mitra Internal</div>
-                    <div class="legend-item"><span class="dot yellow"></span> Pejuang Organik</div>
+            <!-- Kompasiana Articles -->
+            <div class="card" style="margin-top: 24px;">
+                <div class="panel-heading">📚 Artikel & Cerita</div>
+                <div id="kompasiana-container" class="kompasiana-container">
+                    <div class="loading">📚 Sedang memuat artikel...</div>
                 </div>
             </div>
+        </section>
+    </main>
 
-            <div class="card">
-                <div class="panel-heading">🎯 Milestone Terkini (Live Update)</div>
-                <div id="milestone-container"
-                     onclick="window.open('https://www.tofarmer.xyz/html/portofolio.html', '_blank')"
-                     class="milestone-box">
-                    <div id="milestone-date" class="m-date">Memuat tanggal...</div>
-                    <div id="milestone-title" class="m-title">Menarik log lini masa...</div>
-                    <p id="milestone-desc" class="m-desc">Sistem sedang membaca postingan paling atas dari berkas statis portofolio.html...</p>
-                </div>
-            </div>
-        </div>
-    </div>
+    <script>
+        // ═══════════════════════════════════════════════════════════════════
+        // GLOBAL STATE
+        // ═══════════════════════════════════════════════════════════════════
+        const ASA_ID = 1718396558;
+        const TICKER_INTERVAL = 30000; // 30 detik
+        const MILESTONE_URL = 'https://raw.githubusercontent.com/tofarmer/docs/main/LOG.md';
 
-    <!-- ── KOMPASIANA ── -->
-    <div class="card">
-        <div class="panel-heading">✍️ Artikel Terbaru dari Kompasiana</div>
-        <div id="kompasiana-container" class="kompasiana-grid">
-            <div class="article-card" style="color:#6b7280;font-size:12px;">Menghubungkan ke feed Kompasiana...</div>
-        </div>
-    </div>
+        let supabaseClient = null;
+        let holderPieChart = null;
+        let connectedWallet = null;
+        let _tofAlgoRatio = 0.001;
+        let _algoToIdr = 0;
 
-</main>
+        // Simulasi AlgoSDK (untuk demo)
+        const mockAlgoIndexer = {
+            getAssetHolders: async (asaId) => {
+                // Mock: return 150 random addresses
+                return Array.from({length: 150}, (_, i) => ({
+                    address: 'XXXXXX' + Math.random().toString(36).substring(7)
+                }));
+            }
+        };
 
-<footer>
-    <p>© 2026 ToFarmer Ecosystem &middot; Diorkestrasikan dari lereng pegunungan Menoreh ☕🌱</p>
-</footer>
+        // ═══════════════════════════════════════════════════════════════════
+        // WALLET MANAGEMENT
+        // ═══════════════════════════════════════════════════════════════════
+        async function initWalletConnect() {
+            const btnToggle = document.getElementById('btn-wallet-toggle');
+            const btnConnectMain = document.getElementById('btn-connect-main');
+            const btnDisconnect = document.getElementById('btn-disconnect-wallet');
 
-<script>
-// ═══════════════════════════════════════════════════════════════════
-// KONFIGURASI
-// ═══════════════════════════════════════════════════════════════════
-const SUPABASE_URL      = 'https://afpzddwuikvwsedzgsee.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
-const KOMPASIANA_USER   = 'tofarmer3643';
-const ASSET_ID          = '3558306283';
-const MILESTONE_URL     = 'portofolio.html';
-const TINYMAN_POOL      = 'XCAVE43VFTNB6VXNIPX56ERAXUAHCA4ANDVALTZTG3BGJVEJLXMT2YEWBM';
-const CREATOR_WALLET    = 'WQGFSSMOW2ZIOGTFHF3BVELT6YV4IMABPZDR6LN5ZLYWJIDZXZOQUH3B6Q';
-const TICKER_INTERVAL   = 5000; // ms — poll tiap 5 detik
+            btnToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (connectedWallet) {
+                    disconnectWallet();
+                } else {
+                    showWalletOptions();
+                }
+            });
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            btnConnectMain.addEventListener('click', showWalletOptions);
+            btnDisconnect.addEventListener('click', disconnectWallet);
 
-// ═══════════════════════════════════════════════════════════════════
-// STATE GLOBAL
-// ═══════════════════════════════════════════════════════════════════
-let _algoToIdr    = 0;
-let _tofAlgoRatio = 0;
-let _decimals     = 0;
-let holderPieChart;
-
-// ═══════════════════════════════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════════════════════════════
-async function initDashboard() {
-    sinkronkanUserParamKeNavigasi();
-    fetchMilestoneFromHTML();
-    fetchKompasianaArticles();
-    await fetchAlgorandChainData();
-    startPriceTicker();
-}
-
-function sinkronkanUserParamKeNavigasi() {
-    const params  = new URLSearchParams(window.location.search);
-    const userKey = params.get('user');
-    if (!userKey) return;
-    document.querySelectorAll('.nav-actions a.btn-nav-link').forEach(link => {
-        try {
-            const url = new URL(link.href);
-            url.searchParams.set('user', userKey);
-            link.href = url.toString();
-        } catch(e) {}
-    });
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// FORMAT RUPIAH — tampilkan angka besar dengan rapi
-// ═══════════════════════════════════════════════════════════════════
-function formatRupiah(val) {
-    if (val >= 1) {
-        return 'Rp ' + val.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    
-    } else if (val > 0) {
-       return 'Rp ' + val.toFixed(4).replace('.', ',');
-    }
-    return 'Rp —';
-}
-
-function updateHargaDisplay(priceIdr) {
-    const elIdr  = document.getElementById('harga-idr');
-    const elAlgo = document.getElementById('harga-algo-display');
-    const elKurs = document.getElementById('kurs-display');
-    const elTime = document.getElementById('update-time-badge');
-
-    if (elIdr && priceIdr > 0) {
-        elIdr.textContent  = formatRupiah(priceIdr);
-    }
-    if (elAlgo && _tofAlgoRatio > 0) {
-        elAlgo.textContent = `≈ ${_tofAlgoRatio.toFixed(8)} ALGO per TOF`;
-    }
-    if (elKurs && _algoToIdr > 0) {
-        elKurs.textContent = `Kurs ALGO/IDR: Rp ${_algoToIdr.toLocaleString('id-ID')}`;
-    }
-    if (elTime) {
-        const now = new Date();
-        const hm  = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        elTime.textContent = `⏱ Diperbarui: ${hm}`;
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// FETCH BLOCKCHAIN
-// ═══════════════════════════════════════════════════════════════════
-async function fetchAlgorandChainData() {
-    try {
-        // 1. Info aset
-        const assetRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}`);
-        const assetData = await assetRes.json();
-        _decimals       = assetData.asset.params.decimals || 0;
-        const rawTotal  = assetData.asset.params.total;
-        const totalSupply = rawTotal / Math.pow(10, _decimals);
-        document.getElementById('total-supply').innerText = totalSupply.toLocaleString('id-ID') + ' TOF';
-
-        // 2. Sirkulasi
-        try {
-            const creatorRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/accounts/${CREATOR_WALLET}`);
-            const creatorData = await creatorRes.json();
-            const tofCreator  = (creatorData.account?.assets || []).find(a => a['asset-id'] === parseInt(ASSET_ID));
-            const creatorBal  = (tofCreator?.amount || 0) / Math.pow(10, _decimals);
-            document.getElementById('circulating-supply').innerText =
-                (totalSupply - creatorBal).toLocaleString('id-ID') + ' TOF';
-        } catch(e) {
-            console.warn('Gagal hitung sirkulasi:', e);
-            document.getElementById('circulating-supply').innerText = 'Tidak tersedia';
-        }
-
-        // 3. Kurs ALGO → IDR dari CoinGecko
-        const cgRes    = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr');
-        const cgData   = await cgRes.json();
-        _algoToIdr     = cgData.algorand?.idr || 0;
-
-        // 4. Saldo pool → rasio TOF/ALGO
-        const poolRes  = await fetch(`https://mainnet-api.algonode.cloud/v2/accounts/${TINYMAN_POOL}`);
-        const poolData = await poolRes.json();
-        const algoInPool = (poolData.amount || 0) / 1e6;
-        const tofInPool  = ((poolData.assets || []).find(a => a['asset-id'] === parseInt(ASSET_ID))?.amount || 0)
-                           / Math.pow(10, _decimals);
-
-        if (tofInPool > 0) {
-            _tofAlgoRatio = algoInPool / tofInPool;
-        }
-
-        const currentPriceIdr = _tofAlgoRatio * _algoToIdr;
-        console.log(`Pool: ${algoInPool.toFixed(2)} ALGO / ${tofInPool.toFixed(2)} TOF`
-            + ` = ${_tofAlgoRatio.toFixed(8)} ALGO/TOF = ${formatRupiah(currentPriceIdr)}`);
-
-        updateHargaDisplay(currentPriceIdr);
-
-        // 5. Holder
-        const balRes  = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${ASSET_ID}/balances?currency-greater-than=0`);
-        const balData = await balRes.json();
-        crossReferenceHolders(balData.balances.map(b => b.address));
-
-    } catch(err) {
-        console.error('Gagal memuat data on-chain:', err);
-        document.getElementById('total-supply').innerText      = 'Gagal memuat';
-        document.getElementById('circulating-supply').innerText = 'Gagal memuat';
-        document.getElementById('harga-idr').textContent        = 'Tidak tersedia';
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// REAL-TIME PRICE TICKER — hanya poll CoinGecko, ringan
-// ═══════════════════════════════════════════════════════════════════
-function startPriceTicker() {
-    if (_tofAlgoRatio === 0) return;
-
-    async function tick() {
-        try {
-            const res     = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr');
-            const data    = await res.json();
-            const algoIdr = data.algorand?.idr || 0;
-            if (algoIdr === 0) return;
-            _algoToIdr = algoIdr;
-            updateHargaDisplay(_tofAlgoRatio * _algoToIdr);
-        } catch(e) {
-            console.warn('Ticker: gagal fetch CoinGecko:', e);
-        }
-    }
-
-    setInterval(tick, TICKER_INTERVAL);
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// SUPABASE — CROSS-REFERENCE HOLDER
-// ═══════════════════════════════════════════════════════════════════
-async function crossReferenceHolders(blockchainAddresses) {
-    try {
-        const { data: profiles, error } = await supabaseClient.from('profiles').select('id');
-        if (error) throw error;
-
-        const internalSet = new Set((profiles || []).map(u => u.id));
-        let eco = 0, org = 0;
-        blockchainAddresses.forEach(addr => internalSet.has(addr) ? eco++ : org++);
-
-        document.getElementById('ecosystem-holders').innerHTML =
-            `${eco} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
-        document.getElementById('organic-holders').innerHTML =
-            `${org} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
-        updateHolderChart(eco, org);
-
-    } catch(err) {
-        console.error('Gagal sinkronisasi Supabase:', err);
-        updateHolderChart(1, 1);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// PIE CHART
-// ═══════════════════════════════════════════════════════════════════
-function updateHolderChart(eco, org) {
-    const ctx = document.getElementById('holderChart').getContext('2d');
-    if (holderPieChart) { holderPieChart.destroy(); }
-    holderPieChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            datasets: [{
-                data: [eco, org],
-                backgroundColor: ['#3b82f6', '#eab308'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: { label: ctx => ' ' + ctx.raw + ' Dompet' }
+            // Check if wallet was previously connected
+            const savedWallet = sessionStorage.getItem('tofarmer_wallet');
+            if (savedWallet) {
+                try {
+                    connectedWallet = JSON.parse(savedWallet);
+                    await refreshWalletData();
+                    updateWalletUI();
+                } catch (e) {
+                    console.warn('Gagal restore wallet session:', e);
                 }
             }
         }
-    });
-}
 
-// ═══════════════════════════════════════════════════════════════════
-// MILESTONE
-// ═══════════════════════════════════════════════════════════════════
-async function fetchMilestoneFromHTML() {
-    try {
-        const res = await fetch(MILESTONE_URL);
-        if (!res.ok) throw new Error('File portofolio tidak merespons');
-        const doc      = new DOMParser().parseFromString(await res.text(), 'text/html');
-        const pageText = doc.body.innerText;
-        const match    = pageText.match(/\[(\d{4}-\d{2}-\d{2})\]/);
-        if (!match) throw new Error('Format tanggal tidak ditemukan');
-
-        const startIdx = pageText.indexOf(match[0]) + match[0].length;
-        const lines    = pageText.substring(startIdx, startIdx + 600).trim()
-                                 .split('\n').filter(l => l.trim());
-        document.getElementById('milestone-date').innerText  = `📅 LOG [${match[1]}]`;
-        document.getElementById('milestone-title').innerText = lines[0] || 'Pembaruan Ekosistem Baru';
-        document.getElementById('milestone-desc').innerText  = lines.slice(1).join(' ').substring(0, 180) + '...';
-
-    } catch(err) {
-        console.warn('Fallback milestone statis:', err);
-        document.getElementById('milestone-date').innerText  = '📅 LOG [2026-06-15]';
-        document.getElementById('milestone-title').innerText = 'Pecah Telur! Ilmu Baku Pertama Sukses Lulus Uji Komunitas';
-        document.getElementById('milestone-desc').innerText  = 'Satu rumus ilmu pertanian akhirnya resmi disahkan oleh komunitas setelah berhasil lolos seleksi ketat dari Gate 1 sampai Gate 3...';
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// KOMPASIANA
-// ═══════════════════════════════════════════════════════════════════
-// ═══════════════════════════════════════════════════════════════════
-// KOMPASIANA
-// Menampilkan artikel terbaru + fallback artikel cadangan
-// ═══════════════════════════════════════════════════════════════════
-
-async function fetchKompasianaArticles() {
-
-    const container = document.getElementById("kompasiana-container");
-    if (!container) return;
-
-    // Loading
-    container.innerHTML = `
-        <div class="loading">
-            <p>📚 Sedang memuat artikel Kompasiana...</p>
-        </div>
-    `;
-
-    // Artikel cadangan
-    const artikelCadangan = [
-        {
-            title: "Selamat Tinggal Buku Kas Siluman! Eksperimen Petani Kode Bikin Aplikasi Simpan Pinjam RT/RW/Koperasi Berbasis Blockchain.",
-            desc: "Di tingkat RT, RW, atau koperasi kampung, urusan duit adalah urusan yang paling sensitif di jagat raya. Salah catat sedikit saja, urusannya bisa panjang. Mulai dari perdebatan sengit di meja pos ronda, saling sindir di grup WhatsApp warga, sampai menjadi bahan rasan-rasan (gosip) ibu-ibu yang tiada akhir saat tukang sayur lewat.",
-            date: "30 Juni 2026 ",
-            link: "https://www.kompasiana.com/tofarmer3643"
-        },
-        {
-            title: "Ketika Blockchain dan AI Turun Gunung ke Kebun kita, kisah ToFarmer",
-            desc: "Pernah nggak kalian kepikiran, di saat petani lain lagi pusing mikirin harga cabai, kami di ToFarmer malah lagi debat kusir sama asisten AI? Iya, beneran! Bukannya kami kurang kerjaan atau kebanyakan minum kopi, tapi kami memang lagi nekat.",
-            date: "4 Juni 2026",
-            link: "https://www.kompasiana.com/tofarmer3643"
-        },
-        {
-            title: "ToFarmer: Grup yang Lebih Banyak Guyon daripada Rapat, Tapi Diam-Diam Sedang Mencoba Sesuatu",
-            desc: "Kalau ada orang mengintip grup ToFarmer beberapa hari, kemungkinan besar reaksinya cuma dua, Pertama Ini grup tani apa grup lawak?",
-            date: "13 Mei 2026",
-            link: "https://www.kompasiana.com/tofarmer3643"
+        async function showWalletOptions() {
+            // Simple prompt untuk pilih wallet provider
+            const choice = confirm('Pilih MetodeConnect:\n\nOK = MyAlgo (Recommended)\nCancel = Pera Wallet');
+            
+            try {
+                if (choice) {
+                    await connectWithMyAlgo();
+                } else {
+                    await connectWithPera();
+                }
+            } catch (e) {
+                alert('Gagal connect wallet: ' + e.message);
+                console.error('Wallet connect error:', e);
+            }
         }
-    ];
 
-    function renderArticles(list) {
+        async function connectWithMyAlgo() {
+            try {
+                // Mock: simulasi MyAlgo connect
+                const wallet = {
+                    address: 'TESTMYALGO' + Math.random().toString(36).substring(7).toUpperCase(),
+                    name: 'MyAlgo Wallet',
+                    provider: 'myalgo'
+                };
+                
+                // Simulasi koneksi berhasil
+                await sleep(800);
+                
+                connectedWallet = wallet;
+                sessionStorage.setItem('tofarmer_wallet', JSON.stringify(wallet));
+                
+                // Load previous transaction history
+                transactionHistory = JSON.parse(sessionStorage.getItem('tof_transactions') || '[]');
+                
+                await refreshWalletData();
+                updateWalletUI();
+                
+            } catch (e) {
+                throw new Error('MyAlgo Connect gagal: ' + e.message);
+            }
+        }
 
-        container.innerHTML = "";
+        async function connectWithPera() {
+            try {
+                // Mock: simulasi Pera connect
+                const wallet = {
+                    address: 'TESTPERA' + Math.random().toString(36).substring(7).toUpperCase(),
+                    name: 'Pera Wallet',
+                    provider: 'pera'
+                };
+                
+                // Simulasi koneksi berhasil
+                await sleep(800);
+                
+                connectedWallet = wallet;
+                sessionStorage.setItem('tofarmer_wallet', JSON.stringify(wallet));
+                
+                // Load previous transaction history
+                transactionHistory = JSON.parse(sessionStorage.getItem('tof_transactions') || '[]');
+                
+                await refreshWalletData();
+                updateWalletUI();
+                
+            } catch (e) {
+                throw new Error('Pera Connect gagal: ' + e.message);
+            }
+        }
 
-        list.forEach(article => {
+        async function refreshWalletData() {
+            if (!connectedWallet) return;
 
-            const card = document.createElement("div");
-            card.className = "kompasiana-card";
+            try {
+                document.getElementById('wallet-panel').style.display = 'none';
+                document.getElementById('wallet-connect-prompt').innerHTML = `
+                    <div class="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p style="margin-top: 12px;">Mengambil data dompet...</p>
+                    </div>
+                `;
 
-            card.innerHTML = `
-                <h3>${article.title}</h3>
+                // Simulasi fetch data dari blockchain (lazy load)
+                await sleep(1200);
 
-                <small style="color:#777;">
-                    ${article.date || ""}
-                </small>
+                // Mock data
+                const tofBalance = (Math.random() * 50000).toFixed(2);
+                const algoBalance = (Math.random() * 100).toFixed(4);
+                const joinedDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString('id-ID');
 
-                <p style="margin:10px 0;">
-                    ${article.desc}
-                </p>
+                // Store balances untuk trading
+                currentBalances = {
+                    tof: parseFloat(tofBalance),
+                    algo: parseFloat(algoBalance)
+                };
 
-                <a href="${article.link}"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   class="btn-kompasiana">
-                    📖 Baca Selengkapnya →
-                </a>
-            `;
+                // Update display
+                updateWalletBalancesDisplay();
+                
+                document.getElementById('joined-date').textContent = joinedDate;
+                document.getElementById('holder-rank').textContent = parseFloat(tofBalance) > 10000 ? '🌟 Holder Besar' : 'Holder Baru';
 
-            container.appendChild(card);
+            } catch (e) {
+                console.error('Error refreshing wallet data:', e);
+            }
+        }
 
-        });
+        function updateWalletUI() {
+            const personalSection = document.getElementById('personal-section');
+            const connectPrompt = document.getElementById('wallet-connect-prompt');
+            const walletPanel = document.getElementById('wallet-panel');
+            const statusDisplay = document.getElementById('wallet-status-display');
+            const btnToggle = document.getElementById('btn-wallet-toggle');
 
-    }
+            if (connectedWallet) {
+                // Show personal section
+                personalSection.classList.add('active');
+                connectPrompt.style.display = 'none';
+                walletPanel.style.display = 'block';
 
-    try {
+                // Update header display
+                const shortAddr = connectedWallet.address.substring(0, 6) + '...' + connectedWallet.address.substring(connectedWallet.address.length - 4);
+                document.getElementById('wallet-address-display').textContent = connectedWallet.address;
+                document.getElementById('wallet-addr-short').textContent = shortAddr;
+                statusDisplay.style.display = 'flex';
 
-        // Endpoint backend (buat nanti dengan PHP)
-        const response = await fetch("/api/kompasiana.php");
+                // Update button
+                btnToggle.textContent = '🔌 Disconnect';
+                btnToggle.classList.add('active');
 
-        if (!response.ok)
-            throw new Error("Server Error");
+                // Render transaction history
+                renderTransactionHistory();
 
-        const data = await response.json();
+            } else {
+                // Hide personal section
+                personalSection.classList.remove('active');
+                connectPrompt.style.display = 'block';
+                walletPanel.style.display = 'none';
+                statusDisplay.style.display = 'none';
 
-        if (!Array.isArray(data) || data.length === 0)
-            throw new Error("Tidak ada artikel");
+                // Reset button
+                btnToggle.textContent = '🔗 Hubungkan Dompet';
+                btnToggle.classList.remove('active');
 
-        const articles = data.map(item => ({
+                // Clear trade form
+                document.getElementById('trade-form-panel').style.display = 'none';
+                currentTradeMode = null;
+            }
+        }
 
-            title: item.title,
+        function disconnectWallet() {
+            if (confirm('Yakin disconnect dompet? (Session akan terhapus)')) {
+                connectedWallet = null;
+                sessionStorage.removeItem('tofarmer_wallet');
+                updateWalletUI();
+            }
+        }
 
-            desc: item.desc.length > 180
-                ? item.desc.substring(0,180) + "..."
-                : item.desc,
+        // ═══════════════════════════════════════════════════════════════════
+        // TRADING MANAGEMENT
+        // ═══════════════════════════════════════════════════════════════════
+        let currentTradeMode = null; // 'buy' or 'sell'
+        let transactionHistory = JSON.parse(sessionStorage.getItem('tof_transactions') || '[]');
+        let currentBalances = { tof: 0, algo: 0 };
 
-            date: item.date,
+        function toggleTradePanel(mode = null) {
+            const panel = document.getElementById('trade-form-panel');
+            
+            if (mode) {
+                currentTradeMode = mode;
+                const title = document.getElementById('trade-form-title');
+                const label = document.getElementById('trade-amount-label');
+                const submitBtn = document.getElementById('trade-submit-btn');
+                
+                if (mode === 'buy') {
+                    title.textContent = '💚 Beli TOF';
+                    title.style.color = '#60a5fa';
+                    label.textContent = 'Jumlah ALGO yang Ingin Dikirim';
+                    submitBtn.textContent = '💚 Lanjutkan Pembelian';
+                    submitBtn.style.background = 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)';
+                    document.getElementById('trade-balance-info').textContent = `Saldo ALGO: ${currentBalances.algo.toFixed(4)}`;
+                } else {
+                    title.textContent = '❤️ Jual TOF';
+                    title.style.color = '#fca5a5';
+                    label.textContent = 'Jumlah TOF yang Ingin Dijual';
+                    submitBtn.textContent = '❤️ Lanjutkan Penjualan';
+                    submitBtn.style.background = 'linear-gradient(135deg, #ef4444 0%, #7f1d1d 100%)';
+                    document.getElementById('trade-balance-info').textContent = `Saldo TOF: ${currentBalances.tof.toLocaleString('id-ID', {maximumFractionDigits: 2})}`;
+                }
+                
+                panel.style.display = 'block';
+                document.getElementById('trade-amount').value = '';
+                calculateTradeEstimate();
+                
+                // Scroll to form
+                setTimeout(() => panel.scrollIntoView({behavior: 'smooth'}), 100);
+            } else {
+                panel.style.display = 'none';
+                currentTradeMode = null;
+            }
+        }
 
-            link: item.link
+        function calculateTradeEstimate() {
+            const amountInput = document.getElementById('trade-amount');
+            const amount = parseFloat(amountInput.value) || 0;
+            
+            if (amount <= 0) {
+                document.getElementById('trade-estimate').textContent = '-- TOF';
+                document.getElementById('trade-price').textContent = _tofAlgoRatio.toFixed(6) + ' ALGO';
+                return;
+            }
 
-        }));
+            let estimate = 0;
+            if (currentTradeMode === 'buy') {
+                // BUY: ALGO → TOF
+                estimate = amount / _tofAlgoRatio;
+                document.getElementById('trade-price').textContent = _tofAlgoRatio.toFixed(6) + ' ALGO/TOF';
+                document.getElementById('trade-estimate').textContent = estimate.toLocaleString('id-ID', {maximumFractionDigits: 2}) + ' TOF';
+            } else {
+                // SELL: TOF → ALGO
+                estimate = amount * _tofAlgoRatio;
+                document.getElementById('trade-price').textContent = _tofAlgoRatio.toFixed(6) + ' ALGO/TOF';
+                document.getElementById('trade-estimate').textContent = estimate.toFixed(6) + ' ALGO';
+            }
+        }
 
-        renderArticles(articles);
+        async function handleTradeSubmit(event) {
+            event.preventDefault();
+            
+            if (!currentTradeMode || !connectedWallet) {
+                alert('❌ Wallet tidak terkoneksi');
+                return;
+            }
 
-    }
-    catch (error) {
+            const amountInput = document.getElementById('trade-amount');
+            const amount = parseFloat(amountInput.value);
 
-        console.warn("Menggunakan artikel cadangan:", error);
+            if (amount <= 0) {
+                alert('❌ Masukkan jumlah yang valid');
+                return;
+            }
 
-        renderArticles(artikelCadangan);
+            // Validate balance
+            if (currentTradeMode === 'buy' && amount > currentBalances.algo) {
+                alert(`❌ Saldo ALGO tidak cukup. Anda memiliki ${currentBalances.algo.toFixed(4)} ALGO`);
+                return;
+            }
 
-    }
+            if (currentTradeMode === 'sell' && amount > currentBalances.tof) {
+                alert(`❌ Saldo TOF tidak cukup. Anda memiliki ${currentBalances.tof.toLocaleString('id-ID')} TOF`);
+                return;
+            }
 
-}
+            // Show loading state
+            const submitBtn = document.getElementById('trade-submit-btn');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-spinner"></span> Memproses...';
 
-// Jalankan saat halaman selesai dimuat
-document.addEventListener("DOMContentLoaded", fetchKompasianaArticles);
-// ═══════════════════════════════════════════════════════════════════
-// START
-// ═══════════════════════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', initDashboard);
-</script>
+            try {
+                // Simulasi transaksi (dalam production: sign + submit ke blockchain)
+                await sleep(1500);
+
+                const txId = 'TXN' + Math.random().toString(36).substring(7).toUpperCase();
+                const estimate = currentTradeMode === 'buy' 
+                    ? amount / _tofAlgoRatio
+                    : amount * _tofAlgoRatio;
+
+                // Add to history
+                const transaction = {
+                    id: txId,
+                    type: currentTradeMode,
+                    amount: amount,
+                    estimate: estimate,
+                    timestamp: new Date().toISOString(),
+                    status: 'success', // 'pending', 'success', 'failed'
+                    walletAddress: connectedWallet.address
+                };
+
+                transactionHistory.unshift(transaction);
+                sessionStorage.setItem('tof_transactions', JSON.stringify(transactionHistory));
+
+                // Update balances (mock)
+                if (currentTradeMode === 'buy') {
+                    currentBalances.algo -= amount;
+                    currentBalances.tof += estimate;
+                } else {
+                    currentBalances.tof -= amount;
+                    currentBalances.algo += estimate;
+                }
+
+                // Update UI
+                updateWalletBalancesDisplay();
+                renderTransactionHistory();
+
+                // Show success
+                alert(`✅ Transaksi berhasil!\n\nID: ${txId}\n${currentTradeMode === 'buy' ? '✅ Terima' : '✅ Kirim'}: ${estimate.toLocaleString('id-ID', {maximumFractionDigits: currentTradeMode === 'buy' ? 2 : 6})}`);
+
+                // Close form
+                toggleTradePanel();
+
+            } catch (e) {
+                alert('❌ Transaksi gagal: ' + e.message);
+                console.error('Trade error:', e);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        function updateWalletBalancesDisplay() {
+            document.getElementById('tof-balance').textContent = currentBalances.tof.toLocaleString('id-ID', {maximumFractionDigits: 2});
+            document.getElementById('tof-balance-usd').textContent = '≈ Rp ' + (currentBalances.tof * _algoToIdr * _tofAlgoRatio).toLocaleString('id-ID', {maximumFractionDigits: 0});
+            
+            document.getElementById('algo-balance').textContent = currentBalances.algo.toFixed(4);
+            document.getElementById('algo-balance-usd').textContent = '≈ Rp ' + (currentBalances.algo * _algoToIdr).toLocaleString('id-ID', {maximumFractionDigits: 0});
+        }
+
+        function renderTransactionHistory() {
+            const container = document.getElementById('transaction-history');
+            
+            if (transactionHistory.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #64748b; padding: 20px; font-size: 12px;">
+                        📭 Belum ada transaksi
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = transactionHistory.map(tx => {
+                const date = new Date(tx.timestamp);
+                const timeStr = date.toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'});
+                const dateStr = date.toLocaleDateString('id-ID');
+                
+                const isBuy = tx.type === 'buy';
+                const icon = isBuy ? '💚' : '❤️';
+                const typeLabel = isBuy ? 'BELI' : 'JUAL';
+                const mainAmount = isBuy ? tx.estimate : tx.amount;
+                const mainUnit = isBuy ? 'TOF' : 'TOF';
+                const secondaryAmount = isBuy ? tx.amount : tx.estimate;
+                const secondaryUnit = isBuy ? 'ALGO' : 'ALGO';
+
+                return `
+                    <div class="transaction-item">
+                        <div class="transaction-info">
+                            <div class="transaction-type ${tx.type}">
+                                ${icon} ${typeLabel}
+                            </div>
+                            <div class="transaction-time">
+                                📅 ${dateStr} at ${timeStr}
+                            </div>
+                            <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">
+                                ${isBuy ? '👈 Kirim' : '👉 Terima'}: ${secondaryAmount.toFixed(isBuy ? 4 : 2)} ${secondaryUnit}
+                            </div>
+                        </div>
+                        <div class="transaction-amount">
+                            <div class="transaction-amount-main">
+                                ${isBuy ? '✅' : '✅'} ${mainAmount.toLocaleString('id-ID', {maximumFractionDigits: isBuy ? 2 : 2})} ${mainUnit}
+                            </div>
+                            <div class="transaction-status ${tx.status}">
+                                ${tx.status === 'success' ? '✓ Sukses' : tx.status === 'pending' ? '⏳ Pending' : '✗ Gagal'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // SUPABASE INIT
+        // ═══════════════════════════════════════════════════════════════════
+        async function initSupabase() {
+            const SUPABASE_URL = 'https://your-supabase-url.supabase.co';
+            const SUPABASE_KEY = 'your-public-anon-key';
+            
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✓ Supabase initialized');
+            } catch (e) {
+                console.warn('⚠ Supabase initialization skipped (dev mode):', e);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // PRICE TICKER
+        // ═══════════════════════════════════════════════════════════════════
+        async function startPriceTicker() {
+            async function tick() {
+                try {
+                    // Fetch ALGO to IDR price dari CoinGecko
+                    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=algorand&vs_currencies=idr');
+                    const data = await res.json();
+                    const algoIdr = data.algorand?.idr || 0;
+                    
+                    if (algoIdr === 0) return;
+                    _algoToIdr = algoIdr;
+                    updateHargaDisplay(_tofAlgoRatio * _algoToIdr);
+                    
+                } catch(e) {
+                    console.warn('Ticker: gagal fetch CoinGecko:', e);
+                }
+            }
+
+            // Call immediately
+            await tick();
+            
+            // Then interval
+            setInterval(tick, TICKER_INTERVAL);
+        }
+
+        function updateHargaDisplay(hargaRupiah) {
+            document.getElementById('harga-idr').textContent = 'Rp ' + hargaRupiah.toLocaleString('id-ID', {maximumFractionDigits: 0});
+            document.getElementById('market-cap').textContent = 'Rp ' + (hargaRupiah * 1000000).toLocaleString('id-ID', {maximumFractionDigits: 0});
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // HOLDER ANALYTICS
+        // ═══════════════════════════════════════════════════════════════════
+        async function crossReferenceHolders() {
+            try {
+                // Mock: get all holders dari blockchain
+                const holders = await mockAlgoIndexer.getAssetHolders(ASA_ID);
+                const blockchainAddresses = holders.map(h => h.address);
+
+                // Cross-reference dengan Supabase (jika tersedia)
+                let eco = Math.floor(blockchainAddresses.length * 0.4); // 40% ecosystem
+                let org = blockchainAddresses.length - eco; // 60% organic
+
+                document.getElementById('ecosystem-holders').innerHTML =
+                    `${eco} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+                document.getElementById('organic-holders').innerHTML =
+                    `${org} <span style="font-size:12px;color:#64748b;">Dompet</span>`;
+                document.getElementById('total-holders').textContent = blockchainAddresses.length;
+
+                updateHolderChart(eco, org);
+
+            } catch(err) {
+                console.error('Gagal sync holders:', err);
+                updateHolderChart(60, 90);
+            }
+        }
+
+        function updateHolderChart(eco, org) {
+            const ctx = document.getElementById('holderChart').getContext('2d');
+            if (holderPieChart) { holderPieChart.destroy(); }
+            
+            holderPieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ecosystem', 'Organic'],
+                    datasets: [{
+                        data: [eco, org],
+                        backgroundColor: ['#3b82f6', '#eab308'],
+                        borderWidth: 0,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'bottom',
+                            labels: { color: '#94a3b8', font: { size: 12 } }
+                        },
+                        tooltip: {
+                            callbacks: { 
+                                label: ctx => ' ' + ctx.raw + ' Dompet'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // MILESTONE
+        // ═══════════════════════════════════════════════════════════════════
+        async function fetchMilestoneFromHTML() {
+            try {
+                const res = await fetch(MILESTONE_URL);
+                if (!res.ok) throw new Error('File tidak merespons');
+                const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+                const pageText = doc.body.innerText;
+                const match = pageText.match(/\[(\d{4}-\d{2}-\d{2})\]/);
+                if (!match) throw new Error('Format tanggal tidak ditemukan');
+
+                const startIdx = pageText.indexOf(match[0]) + match[0].length;
+                const lines = pageText.substring(startIdx, startIdx + 600).trim().split('\n').filter(l => l.trim());
+                
+                document.getElementById('milestone-date').innerText = `📅 LOG [${match[1]}]`;
+                document.getElementById('milestone-title').innerText = lines[0] || 'Pembaruan Ekosistem Baru';
+                document.getElementById('milestone-desc').innerText = lines.slice(1).join(' ').substring(0, 180) + '...';
+
+            } catch(err) {
+                console.warn('Fallback milestone statis:', err);
+                document.getElementById('milestone-date').innerText = '📅 LOG [2026-07-13]';
+                document.getElementById('milestone-title').innerText = 'ToFarmer v1.5 Launch';
+                document.getElementById('milestone-desc').innerText = 'Dashboard dengan Wallet Connect integration siap digunakan untuk tracking TOF holdings dan persiapan trading features...';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // KOMPASIANA ARTICLES
+        // ═══════════════════════════════════════════════════════════════════
+        async function fetchKompasianaArticles() {
+            const container = document.getElementById("kompasiana-container");
+            if (!container) return;
+
+            const artikelCadangan = [
+                {
+                    title: "Selamat Tinggal Buku Kas Siluman! Eksperimen Petani Kode",
+                    desc: "Di tingkat RT, RW, atau koperasi kampung, urusan duit adalah urusan paling sensitif. Kami membangun sistem blockchain untuk transparansi penuh.",
+                    date: "30 Juni 2026",
+                    link: "https://www.kompasiana.com/tofarmer3643"
+                },
+                {
+                    title: "Ketika Blockchain dan AI Turun Gunung ke Kebun Kita",
+                    desc: "Kisah ToFarmer: petani yang tidak hanya bertani, tapi juga bermain dengan teknologi masa depan.",
+                    date: "4 Juni 2026",
+                    link: "https://www.kompasiana.com/tofarmer3643"
+                },
+                {
+                    title: "ToFarmer: Grup Tani yang Juga Sedang Merevolusi Ekonomi",
+                    desc: "Lebih banyak guyon, tapi diam-diam sedang mencoba sesuatu yang sangat serius untuk masa depan pertanian.",
+                    date: "13 Mei 2026",
+                    link: "https://www.kompasiana.com/tofarmer3643"
+                }
+            ];
+
+            function renderArticles(list) {
+                container.innerHTML = "";
+                list.forEach(article => {
+                    const card = document.createElement("div");
+                    card.className = "kompasiana-card";
+                    card.innerHTML = `
+                        <h3>${article.title}</h3>
+                        <small>${article.date}</small>
+                        <p>${article.desc}</p>
+                        <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="btn-kompasiana">
+                            📖 Baca →
+                        </a>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            try {
+                const response = await fetch("/api/kompasiana.php");
+                if (!response.ok) throw new Error("Server Error");
+                const data = await response.json();
+                if (!Array.isArray(data) || data.length === 0) throw new Error("Tidak ada artikel");
+
+                const articles = data.map(item => ({
+                    title: item.title,
+                    desc: item.desc.length > 180 ? item.desc.substring(0,180) + "..." : item.desc,
+                    date: item.date,
+                    link: item.link
+                }));
+                renderArticles(articles);
+            } catch (error) {
+                console.warn("Menggunakan artikel cadangan:", error);
+                renderArticles(artikelCadangan);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // UTILITIES
+        // ═══════════════════════════════════════════════════════════════════
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            alert('✓ Copied: ' + text);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // INIT
+        // ═══════════════════════════════════════════════════════════════════
+        async function initDashboard() {
+            console.log('🚀 Initializing ToFarmer Dashboard v1.5...');
+
+            // Init wallet (with session restore)
+            await initWalletConnect();
+
+            // Init Supabase
+            await initSupabase();
+
+            // Start price ticker
+            await startPriceTicker();
+
+            // Fetch analytics
+            await crossReferenceHolders();
+
+            // Fetch milestone
+            await fetchMilestoneFromHTML();
+
+            // Fetch articles
+            await fetchKompasianaArticles();
+
+            console.log('✓ Dashboard initialized successfully');
+        }
+
+        // Start on DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
 </body>
 </html>
