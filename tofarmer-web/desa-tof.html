@@ -558,6 +558,8 @@
     let CROP_TYPES = [];
     let DECOR_ITEMS = [];
     let HOUSE_STYLES = [];
+    let BIBIT_CATALOG = [];  // daftar tanaman yang punya syarat bibit (id, crop_id, nama)
+    let myBibitStock = {};  // bibit_id -> qty punya saya, dipakai buat tampilkan stok di menu tanam
 
     const FALLBACK_CROPS = [
         { id: 'padi', name: 'Padi', icon: '🌾', fruit_icon: '🌾', grow_seconds: 7200, reward_xp: 50, plant_cost_xp: 2, water_required: 2, fertilize_required: 1, sort_order: 1, water_cooldown_seconds: 1800, fertilize_cooldown_seconds: 3600, prune_cooldown_seconds: 1200 },
@@ -682,6 +684,17 @@
         document.getElementById('hud-pupuk-value').innerText = myUser ? (myUser.fertilizer_count || 0) : '0';
         const waterEl = document.getElementById('hud-water-value');
         if (waterEl) waterEl.innerText = `${estimateWaterStock()}/${WATER_MAX_STOCK}`;
+    }
+
+    // Ambil ulang stok bibit saya, dipakai buat tampilkan angka di menu pilih tanaman
+    // SEBELUM diklik (bukan baru ketahuan gagal setelah coba tanam).
+    async function refreshMyBibitStock() {
+        if (!myUserId) return;
+        try {
+            const { data } = await db.from('inventaris_bibit').select('bibit_id, qty').eq('owner_id', myUserId);
+            myBibitStock = {};
+            (data || []).forEach(row => { myBibitStock[row.bibit_id] = row.qty; });
+        } catch (e) { /* diam-diam gagal, menu tanam tetap jalan tanpa info stok */ }
     }
 
     // Ambil ulang baris profil saya dari server (sumber kebenaran xp/pupuk/kompos)
@@ -922,6 +935,8 @@
             if (data.queued) { showToast(data.message); return; }
             showToastWithEdukasi(data.message || (data.hasil === 'berhasil' ? '🎉 Berhasil!' : '😢 Gagal.'), data.edukasi);
             await refreshPembibitanPanel();
+            await refreshMyBibitStock();
+            renderFarmList();
         });
     }
 
@@ -1268,9 +1283,17 @@
             const farm = farms[key];
 
             if (!farm || farm.landState === 'fertile') {
-                const cropButtons = getAllCropDefs().map(c =>
-                    `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name} (${c.plant_cost_xp} XP)</button>`
-                ).join('');
+                const cropButtons = getAllCropDefs().map(c => {
+                    const syaratBibit = BIBIT_CATALOG.find(b => b.crop_id === c.id);
+                    if (!syaratBibit) {
+                        return `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name} (${c.plant_cost_xp} XP)</button>`;
+                    }
+                    const stok = myBibitStock[syaratBibit.id] || 0;
+                    if (stok < 1) {
+                        return `<button class="btn-crop" disabled title="Buat dulu lewat menu Pembibitan" style="opacity:0.5;">${c.icon} ${c.name} — ⚠️ Butuh Bibit (0)</button>`;
+                    }
+                    return `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name} (${c.plant_cost_xp} XP) — 🎒 Bibit: ${stok}</button>`;
+                }).join('');
                 return `<div class="farm-plot-card"><strong>Petak Tanah (${key}) • Subur</strong><div class="farm-crop-row">${cropButtons}</div></div>`;
             }
 
@@ -1451,6 +1474,7 @@
 
         farms[key] = { ownerId: myUserId, cropId, plantedAt: Date.now(), waterCount: 0, fertilizeCount: 0, prunedCount: 0, landState: 'planted', harvestCount: 0, lastWateredAt: null, lastFertilizedAt: null, lastPrunedAt: null };
         await refreshMyProfile();
+        await refreshMyBibitStock();
         showToast(`🌱 Berhasil menanam! -${data.cost} XP.`);
         renderFarmList();
         updateTileFarmVisual(key);
@@ -2219,23 +2243,26 @@
             CROP_TYPES = cached.crops || [];
             DECOR_ITEMS = cached.decors || [];
             HOUSE_STYLES = cached.styles || [];
+            BIBIT_CATALOG = cached.bibits || [];
         }
 
         try {
-            const [{ data: crops }, { data: decors }, { data: styles }, { data: landmark }] = await Promise.all([
+            const [{ data: crops }, { data: decors }, { data: styles }, { data: landmark }, { data: bibits }] = await Promise.all([
                 db.from('crop_catalog').select('*').order('sort_order', { ascending: true }),
                 db.from('decor_catalog').select('*').order('sort_order', { ascending: true }),
                 db.from('house_style_catalog').select('*').order('sort_order', { ascending: true }),
                 db.from('village_landmark').select('*').eq('id', 'beringin').maybeSingle(),
+                db.from('bibit_catalog').select('id, crop_id, nama'),
             ]);
             CROP_TYPES = crops || [];
             DECOR_ITEMS = decors || [];
             HOUSE_STYLES = styles || [];
+            BIBIT_CATALOG = bibits || [];
             if (landmark) {
                 const hoursElapsed = (Date.now() - new Date(landmark.last_cared_at).getTime()) / 3600000;
                 beringinHealthPct = Math.max(0, Math.min(100, Number(landmark.health_pct) - hoursElapsed * 1.5));
             }
-            idbSet('catalogs', { crops: CROP_TYPES, decors: DECOR_ITEMS, styles: HOUSE_STYLES });
+            idbSet('catalogs', { crops: CROP_TYPES, decors: DECOR_ITEMS, styles: HOUSE_STYLES, bibits: BIBIT_CATALOG });
         } catch (e) {
             if (cached) { console.warn('Gagal muat katalog dari server, pakai cache offline terakhir.', e); }
             else { throw e; }
@@ -2405,6 +2432,7 @@
             if (!HOUSE_STYLES.length) console.warn('house_style_catalog kosong/gagal dimuat — memakai katalog cadangan bawaan.');
 
             updateMyUserRef();
+            await refreshMyBibitStock();
             await loadWorldState();
 
             buildWorld();
