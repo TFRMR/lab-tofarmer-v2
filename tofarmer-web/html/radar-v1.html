@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ToFarmer • Radar Rasa Matrix v2</title>
+<title>ToFarmer • Radar Rasa Matrix v3 (Incognito Engine)</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
 
@@ -150,16 +150,14 @@ body::before {
     box-shadow: 0 0 25px rgba(34, 197, 94, 0.3);
 }
 
-/* Penyesuaian Angka Dominan Besar & Mencolok */
 .bit-badge {
     font-family: monospace;
-    font-size: 4rem; /* Sangat besar dan dominan */
+    font-size: 4rem;
     font-weight: 800;
     line-height: 1;
     background: transparent;
     color: #4ade80;
     padding: 0;
-    border-radius: 0;
     border: none;
     text-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
     transition: all 0.2s ease;
@@ -170,11 +168,10 @@ body::before {
     text-shadow: 0 0 30px rgba(234, 179, 8, 0.8);
 }
 
-/* Mengecilkan Teks Pendukung Agar Kalah Dominan */
 .bit-summary {
     font-size: 0.85rem;
     font-weight: 700;
-    color: #cbd5e1; /* Warna dibuat sedikit lebih redup */
+    color: #cbd5e1;
 }
 
 .choice-card.selected .bit-summary {
@@ -183,7 +180,7 @@ body::before {
 
 .bit-desc-text {
     font-size: 0.72rem !important;
-    color: #64748b !important; /* Dibuat redup agar fokus ke angka */
+    color: #64748b !important;
     line-height: 1.3;
     max-width: 220px;
 }
@@ -192,7 +189,7 @@ body::before {
     color: #94a3b8 !important;
 }
 
-/* Kotak Filter Pembantu Global */
+/* Kotak Filter Pembantu Global & Protokol Incognito */
 .knowledge-helper {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 12px;
@@ -203,6 +200,16 @@ body::before {
     gap: 8px;
 }
 
+.incognito-box {
+    background: rgba(15, 23, 42, 0.6);
+    border-radius: 12px;
+    padding: 12px;
+    border-left: 3px solid #38bdf8;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
 .helper-title {
     font-size: 0.75rem;
     text-transform: uppercase;
@@ -211,7 +218,18 @@ body::before {
     font-weight: bold;
 }
 
-.helper-tabs {
+.incognito-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #38bdf8;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.helper-tabs, .incognito-tabs {
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -221,6 +239,23 @@ body::before {
 }
 
 .helper-tabs span b { color: #f8fafc; }
+.incognito-tabs span b { color: #bae6fd; }
+
+.incognito-btn {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.2s;
+}
+.incognito-btn:hover {
+    background: #38bdf8;
+    color: #0f172a;
+}
 
 /* Action Button */
 .btn-lock {
@@ -306,7 +341,6 @@ body::before {
     border-radius: 10px;
 }
 
-/* Grid Mindset & Filosofi */
 .phil-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -356,7 +390,7 @@ body::before {
 <div class="container">
 
     <div class="header">
-        <h1>Terawang Radar Rasa v2</h1>
+        <h1>Terawang Radar Rasa v3</h1>
         
         <!-- Progress Monitor -->
         <div class="progress-container">
@@ -367,7 +401,7 @@ body::before {
                 <div class="step-dot"></div>
                 <div class="step-dot"></div>
             </div>
-            <div class="current-param-title" id="paramTitle">Memuat Parameter Kognitif...</div>
+            <div class="current-param-title" id="paramTitle">Memuat Prosesor Kognitif...</div>
         </div>
     </div>
 
@@ -380,11 +414,24 @@ body::before {
                 <!-- Diisi otomatis via JavaScript -->
             </div>
 
-            <!-- Filter Komparatif Lintas Pengetahuan Dunia -->
+            <!-- Filter Sirkuit Internal ToFarmer -->
             <div class="knowledge-helper">
-                <div class="helper-title">🔍 Kamus Penyelaras Rasa (Saksi Lapangan)</div>
+                <div class="helper-title">⚙️ Translasi Sirkuit Dekoder Kepala</div>
                 <div class="helper-tabs" id="helperContent">
                     <!-- Diisi otomatis via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Protokol Pelindung Incognito Mode -->
+            <div class="incognito-box">
+                <div class="incognito-title">
+                    <span>🕶️ Protokol Incognito (Clear Background App)</span>
+                    <button class="incognito-btn" onclick="triggerIncognitoFlash()">FORCE CLEAR</button>
+                </div>
+                <div class="incognito-tabs" id="incognitoContent">
+                    <span>• <b>Tab Langit (Vertikal):</b> Melempar jangkar kesadaran ke skala semesta makro untuk mengerdilkan bias takut teritorial.</span>
+                    <span>• <b>Tab Visual (Horisontal):</b> Membandingkan data sensoris langsung dengan saksi mata riil (pohon, batu, tanah aktual).</span>
+                    <span>• <b>Tab Bumi Makro (Grounding):</b> Terhubung ke detak bumi global, menghapus cache & histori sisa ketakutan koordinat lokal.</span>
                 </div>
             </div>
 
@@ -399,10 +446,10 @@ body::before {
             <div class="result-code" id="resCode">[0 - 0 - 0 - 0 - 0]</div>
         </div>
 
-        <div class="section-title">🔮 Esensi Fenomena Sensoris</div>
+        <div class="section-title">🔮 Esensi Fenomena Sensoris (Hasil Rendering Bersih)</div>
         <div class="desc-text" id="resDesc">Memproses translasi data...</div>
 
-        <div class="section-title">🌿 Nilai Positif (Ambil Manfaat & Produktivitas)</div>
+        <div class="section-title">🌿 Nilai Positif (Manifestasi Karya & Produktivitas)</div>
         <div class="phil-card positive" id="resPositive">Strategi pemanfaatan energi...</div>
 
         <div class="section-title">⚠️ Jalan Tengah & Kewaspadaan Lapangan</div>
@@ -418,66 +465,66 @@ body::before {
 </footer>
 
 <script>
-// Database Parameter Berdasarkan Bagan Pohon Utama & Kustomisasi Penamaan Kamus Sirkuit ToFarmer
+// Database Parameter Tersinkronisasi dengan Struktur Tiga Sirkuit Internal & Sumbu Kesadaran ToFarmer
 const matrixTree = [
     {
         title: "DIGIT 1: PARAMETER MUATAN ENERGI BASAL",
         choices: [
-            { bit: 0, title: "Ringan / Hangat / Kosong", desc: "Sensasi hampa nyaman, ubun-ubun melonggar, atau kehangatan internal yang mengalir bersih tanpa desakan." },
-            { bit: 1, title: "Berat / Menekan / Dingin", desc: "Ada volume ketebalan di rongga tubuh, merinding tebal somatik, sensasi kaku di organ atau temperatur dingin setempat." }
+            { bit: 0, title: "Ringan / Hangat / Kosong", desc: "Sinyal bersih dari sumbu vertikal, ubun-ubun melonggar nyaman, atau kehangatan internal murni." },
+            { bit: 1, title: "Berat / Menekan / Dingin", desc: "Intervensi muatan eksternal, densitas atmosfer menebal somatik, kaku atau dingin setempat." }
         ],
         helper: {
-            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Membedakan getaran <i>Roso Pangroso</i> (frekuensi batin/luhur) vs <i>Roso Sanubari</i> (somatik emosi bawah).",
-            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Pemisahan kutub murni antara energi <b>Yang</b> (Langit/Cahaya/Ringan) dan <b>Yin</b> (Bumi/Materi/Berat).",
-            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Deteksi tipe muatan atmosfer entitas murni vs residu kepadatan material organik atau batuan tua."
+            jawa: "<b>Sirkuit Roso Sejati (Dada):</b> Membedakan pancaran frekuensi luhur murni dari sumbu batin vs distorsi emosional somatik horisontal.",
+            china: "<b>Sirkuit Pancer (Telak):</b> Menilai kesiapan navigasi diri dalam membelah polaritas getaran kosong/ringan vs getaran padat/isi.",
+            celtic: "<b>Sirkuit Dekoder (Kepala):</b> Memetakan data muatan awal untuk mencegah over-rendering sebelum logika terjangkit bias memori lama."
         }
     },
     {
         title: "DIGIT 2: PARAMETER DINAMIKA GERAK SENSORIS",
         choices: [
-            { bit: 0, title: "Diam / Konstan / Kedap", d: "Sensasi mengunci tenang di satu titik, tidak bergeser, konstan, atau memicu keheningan akustik lokal." },
-            { bit: 1, title: "Merambat / Berdenyut / Menusuk", d: "Sensasi menjalar horisontal/vertikal di kulit, kedutan ritmik (kedud), atau tusukan intensitas tinggi yang tajam." }
+            { bit: 0, title: "Diam / Konstan / Kedap", desc: "Sensasi mengunci tenang di satu titik geografis tetap, tidak bergerak, atau memicu keheningan akustik lokal." },
+            { bit: 1, title: "Merambat / Berdenyut / Menusuk", desc: "Energi dinamis menjalar di kulit, kedutan urat ritmik memanjang (kedud), atau gesekan intensitas tajam." }
         ],
         helper: {
-            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Identifikasi gerakan energi diam mengendap (<i>Manunggaling Roso</i>) vs energi luar bergeser dinamis.",
-            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Mengukur stabilitas aliran <i>Qi</i> bumi. Energi statis/tenang menandakan wadah energi terkunci erat.",
-            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Mengenali getaran statis khas penanda batas wilayah (<i>Genius Loci</i>) vs dinamika entitas transit."
+            jawa: "<b>Sirkuit Roso Sejati (Dada):</b> Membaca kedalaman keheningan mengendap (statis) vs fluktuasi gesekan frekuensi luar yang bergerak melintas.",
+            china: "<b>Sirkuit Pancer (Telak):</b> Memastikan apakah kemudi tindakan harus menahan posisi diam mengunci energi atau bergerak lincah mengikuti reflek.",
+            celtic: "<b>Sirkuit Dekoder (Kepala):</b> Mengidentifikasi tipe data konstan penanda batas wilayah teritorial vs dinamika energi transit/liar."
         }
     },
     {
         title: "DIGIT 3: PARAMETER PUSAT FOKUS KOORDINAT",
         choices: [
-            { bit: 0, title: "Area Kepala / Ajna / Mahkota", d: "Sensasi terpusat kaku seukuran jari di kening, mengambang di atas ubun-ubun, atau ketukan persepsi internal." },
-            { bit: 1, title: "Area Kulit Luar / Rongga Tubuh", d: "Sensasi menyengat superficial kulit lengan, meremang punggung, atau himpitan di rongga dada & ulu hati." }
+            { bit: 0, title: "Area Kepala / Ajna / Mahkota", desc: "Sensasi terpusat kaku seukuran jari di kening, tarikan kelopak mata, atau ketukan persepsi internal atas." },
+            { bit: 1, title: "Area Kulit Luar / Rongga Tubuh", desc: "Sensasi superficial kulit merinding tebal, meremang punggung, atau impaksi langsung di rongga dada/ulu hati." }
         ],
         helper: {
-            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Pemetaan koordinat batin atas (Kening/Sirkuit Cipta) vs respon benteng pertahanan aura fisik tubuh bawah.",
-            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Titik kontak via gerbang meridian utama atas (Baihui / Ajna) vs kontak somatik jalur meridian organ dalam.",
-            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Kontak langsung pada sirkuit kognisi kesadaran mental vs efek kejutan somatosensoris tubuh di permukaan."
+            jawa: "<b>Sirkuit Roso Sejati (Dada):</b> Deteksi benteng pertahanan aura tubuh bawah (horisontal) vs ketukan sirkuit cipta kognisi kesadaran atas.",
+            china: "<b>Sirkuit Pancer (Telak):</b> Koordinasi poros pusat untuk menjembatani kontak gerbang kening/mahkota vs respon somatosensoris fisik.",
+            celtic: "<b>Sirkuit Dekoder (Kepala):</b> Membaca apakah prosesor sedang dipicu oleh visualisasi internal pikiran sendiri atau murni gesekan objek luar."
         }
     },
     {
         title: "DIGIT 4: PARAMETER KARAKTER SUASANA SAKSI",
         choices: [
-            { bit: 0, title: "Terang / Jernih / Senyap Bening", d: "Pencahayaan non-fisik terasa bersih, kontras ruang tajam, sunyi natural, pikiran objektif terbebas dari kecemasan." },
-            { bit: 1, title: "Gelap / Lembap / Pekat Kabur", d: "Atmosfer ruang berubah remang-pekat, ada rasa lembap menusuk pori, bayangan benda menebal (efek Siti Wingit)." }
+            { bit: 0, title: "Terang / Jernih / Senyap Bening", desc: "Pikiran seimbang, kontras ruang tajam, sunyi natural, dekoder kepala bekerja objektif tanpa cemas." },
+            { bit: 1, title: "Gelap / Lembap / Pekat Kabur", desc: "Atmosfer ruang berubah remang-pekat, bayangan benda menebal, memicu efek 'Siti Wingit' lokal." }
         ],
         helper: {
-            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Membaca pergeseran alam sekitar menuju spektrum <i>Wingit/Angker</i> akibat penumpukan memori/materi tua.",
-            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Deteksi akumulasi energi tanah mati (*Sha Qi*) yang memicu penurunan kualitas kecerahan ruang/lokasi.",
-            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Deteksi pergeseran akustik ruang menuju area <i>Dome Effect</i> (suara alam ter-mute tidak alami secara mendadak)."
+            jawa: "<b>Sirkuit Roso Sejati (Dada):</b> Menjaga detak ketenangan batin ketika berhadapan dengan area pekat yang sarat penumpukan materi tua.",
+            china: "<b>Sirkuit Pancer (Telak):</b> Menjaga stabilitas logika komparatif material saat mendeteksi penurunan intensitas kecerahan ruang akibat energi mati.",
+            celtic: "<b>Sirkuit Dekoder (Kepala):</b> Memfilter efek 'Dome Effect' (suara alam ter-mute mendadak) agar tidak melahirkan proyeksi imajinasi horor."
         }
     },
     {
         title: "DIGIT 5: PARAMETER RETENSI RETRO-SPASIAL",
         choices: [
-            { bit: 0, title: "Temporer / Dipicu Pikiran / Transit", d: "Langsung buyar jika napas diatur ulang atau fokus dialihkan. Bersifat cair, melintas, atau terpicu imajinasi murni." },
-            { bit: 1, title: "Teritorial / Menetap di Koordinat Tanah", d: "Ajek menancap kuat di lokasi geografis yang sama, tidak hilang dengan alih fokus. Muncul instan saat lewati garis batas." }
+            { bit: 0, title: "Temporer / Dipicu Pikiran / Transit", desc: "Bersifat cair, melintas cepat, langsung buyar jika napas diatur ulang atau fokus dialihkan dari imajinasi." },
+            { bit: 1, title: "Teritorial / Menetap di Koordinat Tanah", desc: "Ajek menancap kuat pada satu titik koordinat bumi tetap, muncul instan setiap kali melintasi garis batasnya." }
         ],
         helper: {
-            jawa: "<b>Sirkuit Roso (Lokal-Kultural):</b> Penanda getaran murni cipta rasa pribadi (Karya/Pikiran) vs getaran eksternal penguasa bumi teritorial tanah.",
-            china: "<b>Sirkuit Polarisasi (Komparatif):</b> Penentu koordinat simpul naga bumi (*Dragon Lines*) yang mengunci stabilitas kemakmuran energi spasial.",
-            celtic: "<b>Sirkuit Spasial (Atmosferik):</b> Pembuktian otentik titik perpotongan garis energi bumi (*Ley Lines*) yang memiliki karakter permanen menetap."
+            jawa: "<b>Sirkuit Roso Sejati (Dada):</b> Memvalidasi getaran orisinil cipta rasa personal (Karya/Pikiran) vs getaran eksternal permanen penguasa bumi teritorial.",
+            china: "<b>Sirkuit Pancer (Telak):</b> Mengunci keputusan taktis jangka panjang jika sinyal menetap di tanah merupakan titik simpul naga bumi makro.",
+            celtic: "<b>Sirkuit Dekoder (Kepala):</b> Membedakan secara mutlak antara sisa muatan memori/cache internal otak vs realitas data spasial permanen di lapangan."
         }
     }
 ];
@@ -529,34 +576,29 @@ function renderCurrentStep() {
     const currentData = matrixTree[currentStep];
     document.getElementById('paramTitle').innerText = currentData.title;
 
-    // Render Dua Tombol Pilihan Utama dengan Teks yang Diperkecil & Dilemahkan Dominasinya
     let htmlChoices = "";
     currentData.choices.forEach(ch => {
-        let descText = ch.desc ? ch.desc : ch.d;
         htmlChoices += `
             <div class="choice-card" onclick="selectBitValue(${ch.bit}, this)">
                 <div class="bit-badge">${ch.bit}</div>
                 <div class="bit-summary">${ch.title}</div>
-                <div class="bit-desc-text">${descText}</div>
+                <div class="bit-desc-text">${ch.desc}</div>
             </div>
         `;
     });
     document.getElementById('choiceRow').innerHTML = htmlChoices;
 
-    // Render Teks Kamus Penyelaras Rasa (Filter Tradisi Dunia)
     let htmlHelper = `
-        <span>${currentData.helper.jawa}</span>
-        <span>${currentData.helper.china}</span>
-        <span>${currentData.helper.celtic}</span>
+        <span>• ${currentData.helper.jawa}</span>
+        <span>• ${currentData.helper.china}</span>
+        <span>• ${currentData.helper.celtic}</span>
     `;
     document.getElementById('helperContent').innerHTML = htmlHelper;
 
-    // Reset State per Digit
     currentSelectedBit = null;
     document.getElementById('btnLock').disabled = true;
     document.getElementById('btnLock').innerText = `KUNCI DIGIT ${currentStep + 1} ➔`;
 
-    // Update Progress Dots
     const dots = document.querySelectorAll('.step-dot');
     dots.forEach((dot, index) => {
         dot.className = "step-dot";
@@ -582,9 +624,27 @@ function lockBit() {
     renderCurrentStep();
 }
 
+function triggerIncognitoFlash() {
+    const box = document.querySelector('.incognito-box');
+    box.style.background = 'rgba(56, 189, 248, 0.3)';
+    box.style.transition = 'all 0.1s ease';
+    
+    // Reset pilihan kartu yang sedang aktif untuk simulasi clear cache pikiran
+    const cards = document.querySelectorAll('.choice-card');
+    cards.forEach(c => c.classList.remove('selected'));
+    currentSelectedBit = null;
+    document.getElementById('btnLock').disabled = true;
+
+    setTimeout(() => {
+        box.style.background = 'rgba(15, 23, 42, 0.6)';
+    }, 200);
+    
+    alert("Incognito Mode Active: Cache memori lokal dibersihkan, sirkuit kepala kembali ke setelan default pabrik murni.");
+}
+
 function processConclusion() {
     document.getElementById('inputInterface').style.display = 'none';
-    document.getElementById('paramTitle').innerText = "PROSES EKSPLORASI MATRIKS SELESAI";
+    document.getElementById('paramTitle').innerText = "RENDERING PROSESOR SELESAI";
     
     const formattedCode = `[ ${finalCode.split('').join(' - ')} ]`;
     document.getElementById('resCode').innerText = formattedCode;
@@ -601,27 +661,27 @@ function processConclusion() {
         
         let bits = finalCode.split('').map(Number);
         
-        // 1. Analisis Esensi Fenomena (Digit 1 & 4)
+        // 1. Analisis Esensi Fenomena (Digit 1 & 4) - Rendering Tanpa Bias
         let countYin = bits[0] + bits[3];
         let esensiText = countYin >= 1
-            ? "Terdeteksi gesekan frekuensi berdensitas padat/Yin di lapangan. Getaran ini cenderung mengikat materi, membawa sisa memori lingkungan tua, atau dipicu oleh perubahan kelembapan tekanan atmosfer setempat."
-            : "Terdeteksi aliran frekuensi atas murni/Yang. Bersifat bersih, jernih, bebas dari muatan residu material masa lalu, dan sangat dekat korelasinya dengan aktivitas gelombang otak kreatif/spiritual.";
+            ? "Terdeteksi gesekan frekuensi berdensitas padat/Yin di lapangan. Sinyal membawa sisa memori lingkungan tua atau pergeseran atmosfer lokal. Kepala wajib bertindak murni sebagai modem pembaca data objektif, matikan background app cerita horor."
+            : "Terdeteksi sirkulasi frekuensi atas murni/Yang. Sifatnya bersih, jernih, dan tidak memiliki muatan residu material masa lalu. Sangat sinkron untuk menangkap sinyal ide dari sumbu vertikal.";
 
-        // 2. Analisis Nilai Positif (Digit 2 & 3)
+        // 2. Analisis Nilai Positif / Karya (Digit 2 & 3)
         let countKognitif = (bits[1] === 1 ? 0 : 1) + (bits[2] === 0 ? 1 : 0);
         let positiveText = countKognitif >= 1
-            ? "<b>Sinergi Produktif:</b> Sangat ideal dimanfaatkan sebagai bahan bakar gagasan kreatif, merenungkan metafora visual, atau mempertajam kalkulasi analitis (seperti membaca chart market GBP/USD). Salurkan akumulasi getaran ini langsung ke tindakan fisik produktif agar menjadi aset nyata."
-            : "<b>Sinergi Produktif:</b> Sangat baik untuk melatih perluasan kepekaan somatik pertahanan tubuh. Medan energi luar ini bisa dimanfaatkan untuk memetakan tata letak ruang fisik makro (geomansi) atau mendeteksi batas aman teritorial wilayah kerja.";
+            ? "<b>Sinergi Produktif:</b> Sinyal sangat valid untuk dijadikan bahan bakar gagasan kreatif berbobot tinggi. Segera buka 'Mode Gaspol', salurkan getaran ini langsung menjadi eksekusi fisik (lukisan, penulisan skrip, atau pembacaan chart market GBP/USD) sebelum momentumnya menguap."
+            : "<b>Sinergi Produktif:</b> Sangat ideal untuk melatih kepekaan reflek dan proteksi sirkuit saraf tubuh. Medan luar ini bisa dipakai untuk memetakan koordinat spasial makro atau tata ruang ekosistem lapangan.";
 
-        // 3. Analisis Kewaspadaan / Jalan Tengah (Digit 5 + Gabungan Suasana)
+        // 3. Analisis Kewaspadaan / Jalan Tengah (Digit 5 + Deteksi Satwa)
         let warningText = "";
         if (bits[4] === 1) {
-            warningText = "<b>Aksi Taktis Lapangan:</b> Sifat getaran menetap di tanah ini. Jika kamu sedang beraktivitas di alam terbuka, **waspadai keberadaan hewan liar (ular/serangga berbisa)** yang kerap bersembunyi di petak tanah sunyi berenergi padat. Jaga kestabilan tubuh dengan pernapasan perut teratur.";
+            warningText = "<b>Aksi Taktis Lapangan:</b> Karakter energi ini mengunci dan menetap di tanah koordinat setempat. Jika berada di luar ruangan, **selalu waspadai pergerakan hewan liar (ular, serangga berbisa)** yang menyukai spot tanah sunyi berenergi padat. Jaga pernapasan perut agar kestabilan sirkuit pancer tetap terjaga.";
         } else {
-            warningText = "<b>Aksi Taktis Lapangan:</b> Getaran ini hanya melintas sesaat atau sekadar pantulan pikiran internalmu. Tidak perlu direspon secara berlebihan atau cemas. Cukup lakukan reset fokus dengan meminum air putih hangat dan menggerakkan fisik secara aktif.";
+            warningText = "<b>Aksi Taktis Lapangan:</b> Sinyal bersifat temporer, melintas cepat, atau sekadar pantulan sisa aktivitas pikiran internal. Tidak perlu direspon secara emosional. Cukup lakukan grounding makro cepat, minum air hangat, dan alihkan fokus ke urusan teknis dunia nyata.";
         }
 
-        document.getElementById('resDesc').innerHTML = `Kode biner ini merupakan variasi spektrum baru. Berdasarkan pola parameternya: <br><br>• ${esensiText}`;
+        document.getElementById('resDesc').innerHTML = `Kode biner ini menghasilkan kombinasi spektrum baru. Hasil kompilasi data bersih: <br><br>• ${esensiText}`;
         document.getElementById('resPositive').innerHTML = positiveText;
         document.getElementById('resWarning').innerHTML = warningText;
     }
