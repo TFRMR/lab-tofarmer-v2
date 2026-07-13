@@ -7,6 +7,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Wallet SDKs (untuk future implementation, tidak blocking Vestige) -->
+    <script src="https://cdn.jsdelivr.net/npm/@myalgo/connect@0.1.0" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/gh/perawallet/pera-web-sdk@main/dist/index.js" crossorigin="anonymous"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
 
@@ -828,9 +831,48 @@ async function fetchKompasianaArticles() {
 // Jalankan saat halaman selesai dimuat
 document.addEventListener("DOMContentLoaded", fetchKompasianaArticles);
 // ═══════════════════════════════════════════════════════════════════
-// START
+// WALLET CONNECTION SUPPORT (Minimal - let Vestige handle UI)
 // ═══════════════════════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', initDashboard);
+let connectedWallet = null;
+
+// Vestige chart SDK akan trigger wallet providers otomatis
+// Jika ada error atau SDK tidak tersedia, fallback handlers di bawah
+
+async function connectToWallet(provider = 'myalgo') {
+    try {
+        if (provider === 'myalgo') {
+            const myAlgoConnect = new MyAlgoConnect();
+            const accounts = await myAlgoConnect.connect({
+                shouldShowSignMessage: false
+            });
+            if (accounts && accounts.length > 0) {
+                connectedWallet = {
+                    address: accounts[0].address,
+                    provider: 'MyAlgo'
+                };
+                console.log('✓ Connected to MyAlgo:', connectedWallet.address);
+                return connectedWallet;
+            }
+        } else if (provider === 'pera') {
+            const peraWallet = new PeraWalletConnect();
+            const accounts = await peraWallet.connect();
+            if (accounts && accounts.length > 0) {
+                connectedWallet = {
+                    address: accounts[0],
+                    provider: 'Pera'
+                };
+                console.log('✓ Connected to Pera:', connectedWallet.address);
+                return connectedWallet;
+            }
+        }
+    } catch (err) {
+        console.error('Wallet connection error:', err);
+    }
+    return null;
+}
+
+console.log('✓ Wallet SDKs loaded. Vestige chart popup handles connection.');
+// ═══════════════════════════════════════════════════════════════════
 </script>
 </body>
 </html>
