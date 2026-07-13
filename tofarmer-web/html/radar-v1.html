@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ToFarmer • Alat Catat Radar Rasa</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+
+<style>
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background:
+        radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+        radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+        linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+    min-height: 100vh;
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Kabut Lembut Pegunungan Menoreh */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+    pointer-events: none;
+    animation: fog 14s ease-in-out infinite;
+}
+
+@keyframes fog {
+    0% { transform: translateX(-3%) }
+    50% { transform: translateX(3%) }
+    100% { transform: translateX(-3%) }
+}
+
+.container {
+    width: 100%;
+    max-width: 600px;
+    margin: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex-grow: 1;
+    justify-content: center;
+}
+
+/* =========================
+HEADER & PROGRESS MONITOR
+========================= */
+.header {
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 15px;
+}
+
+/* Indikator Langkah Biner */
+.progress-bar {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.step-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    transition: all 0.3s ease;
+}
+
+.step-dot.active {
+    background: #4ade80;
+    box-shadow: 0 0 10px #22c55e;
+}
+
+.step-dot.filled {
+    background: #eab308;
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.4);
+}
+
+/* Petunjuk Kecil (Tidak Dominan) */
+.guide-text {
+    font-size: 0.9rem;
+    color: #84a98c;
+    min-height: 40px;
+    line-height: 1.4;
+    padding: 0 10px;
+}
+
+/* =========================
+DUA TOMBOL BINER RAKSASA
+========================= */
+.binary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 15px 0;
+}
+
+.btn-binary {
+    background: rgba(14, 28, 19, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    border-bottom: 4px solid rgba(34, 197, 94, 0.4);
+    border-radius: 28px;
+    color: #f8fafc;
+    padding: 55px 0;
+    font-size: 4.5rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.btn-binary:hover {
+    background: rgba(22, 46, 31, 0.7);
+    border-color: #4ade80;
+    transform: translateY(-2px);
+}
+
+.btn-binary:active {
+    transform: scale(0.95);
+    border-bottom-width: 1px;
+}
+
+.btn-binary .btn-sub {
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+    margin-top: 5px;
+    font-weight: 600;
+}
+
+.btn-binary:hover .btn-sub {
+    color: #fde047;
+}
+
+/* =========================
+PANEL HASIL / KESIMPULAN
+========================= */
+.result-box {
+    background: rgba(14, 28, 19, 0.8);
+    backdrop-filter: blur(22px);
+    -webkit-backdrop-filter: blur(22px);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 24px;
+    padding: 25px;
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5);
+    display: none;
+    animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.result-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: #fde047;
+    margin-bottom: 12px;
+}
+
+.result-code {
+    display: inline-block;
+    font-family: monospace;
+    background: rgba(0,0,0,0.4);
+    padding: 4px 14px;
+    border-radius: 99px;
+    font-size: 1rem;
+    color: #4ade80;
+    margin-bottom: 15px;
+    letter-spacing: 2px;
+}
+
+.result-desc {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #cbd5e1;
+    text-align: left;
+    background: rgba(255,255,255,0.03);
+    padding: 15px;
+    border-radius: 14px;
+    border-left: 3px solid #22c55e;
+}
+
+/* Tombol Reset Kelam */
+.btn-reset {
+    margin-top: 20px;
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #94a3b8;
+    padding: 12px 30px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-reset:hover {
+    background: #eab308;
+    color: #050b07;
+    border-color: #fef08a;
+}
+
+/* Footer Harmoni */
+.footer {
+    padding: 20px;
+    text-align: center;
+    font-size: 0.72rem;
+    color: #475569;
+    letter-spacing: 0.5px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>Radar Rasa ToFarmer</h1>
+        
+        <!-- Indikator Langkah Biner -->
+        <div class="progress-bar" id="progressBar">
+            <div class="step-dot active"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+            <div class="step-dot"></div>
+        </div>
+
+        <!-- Panduan Kecil Membumi -->
+        <div class="guide-text" id="guideText">
+            Pilihan 1: Muatan Rasa
+        </div>
+    </div>
+
+    <!-- Dua Tombol Utama -->
+    <div class="binary-grid" id="inputInterface">
+        <button class="btn-binary" onclick="inputBit(0)">
+            0
+            <span class="btn-sub" id="sub0">Mulai</span>
+        </button>
+        <button class="btn-binary" onclick="inputBit(1)">
+            1
+            <span class="btn-sub" id="sub1">Mulai</span>
+        </button>
+    </div>
+
+    <!-- Kotak Hasil Kesimpulan -->
+    <div class="result-box" id="resultBox">
+        <div class="result-title" id="resTitle">Hasil Pembacaan</div>
+        <div class="result-code" id="resCode">[0 - 0 - 0 - 0 - 0]</div>
+        <div class="result-desc" id="resDesc">Menerjemahkan data rasa...</div>
+        <button class="btn-reset" onclick="resetRadar()">🔄 Mulai Ulang Radar</button>
+    </div>
+
+</div>
+
+<footer class="footer">
+    ToFarmer • Jagat Menoreh ☕🌱
+</footer>
+
+<script>
+// Panduan ringkas per langkah (Sederhana & Membumi)
+const stepGuides = [
+    { text: "<b>Langkah 1: Rasanya seperti apa?</b><br>[0] Ringan, hangat, nyaman | [1] Berat, adem/dingin, neken", sub0: "Ringan / Hangat", sub1: "Berat / Neken" },
+    { text: "<b>Langkah 2: Gerakannya bagaimana?</b><br>[0] Diem aja, anteng, kedap | [1] Jalar-jalar, nyetrum, kedutan", sub0: "Diem / Anteng", sub1: "Merambat / Nyetrum" },
+    { text: "<b>Langkah 3: Fokus kerasa di mana?</b><br>[0] Area kepala, jidat, ubun-ubun | [1] Kulit luar, dada, ulu hati", sub0: "Kepala / Jidat", sub1: "Kulit / Rongga Tubuh" },
+    { text: "<b>Langkah 4: Suasana sekitar gimana?</b><br>[0] Biasa aja, bening, senyap | [1] Berubah remang, lembap, pekat", sub0: "Bening / Senyap", sub1: "Remang / Lembap" },
+    { text: "<b>Langkah 5: Sifat areanya gimana?</b><br>[0] Lewat aja, gara-gara pikiran | [1] Ngetem, ajek di titik tanah itu", sub0: "Lewat / Pikiran", sub1: "Ngetem / Di Tanah" }
+];
+
+// Data Paket Baku yang Sudah Dikunci (Bahasa Membumi)
+const exactPackages = {
+    "10111": {
+        title: "Paket Lingkungan: Kubah Tanah Menetap",
+        desc: "Kamu lagi masuk ke wilayah 'kubah energi kuno' yang punya batas jelas. Sifatnya ajek menetap di tanah atau area geografis itu (seperti situs tua atau batas tanah pusaka lama). Bukan energi liar."
+    },
+    "11000": {
+        title: "Paket Objek: Ada Benda Bermuatan / Pusaka",
+        desc: "Ada benda fisik atau barang di sekitarmu yang punya isi/muatan aktif. Getarannya langsung nembak ke jidat (titik ajna) buat mindahin informasi atau cetak biru energinya ke kepalamu."
+    },
+    "11110": {
+        title: "Paket Melintas: Ada yang Numpang Lewat",
+        desc: "Ini cuma interaksi papasan jarak dekat sama energi atau mahluk non-fisik luar yang sifatnya sementara. Sifat energinya dinamis, nggak betah diam, dan cuma numpang lewat aja."
+    },
+    "01000": {
+        title: "Paket Karya: Imajinasi Padat / Ide Berbobot",
+        desc: "Gagasan, konsep, cerita, atau bayangan yang lagi lewat di pikiranmu punya frekuensi atas yang kuat banget. Ini tanda valid kalau idemu berbobot tinggi dan sudah matang buat langsung dituangin jadi karya nyata (Sangat cocok buat ngetes bahan lukisan kopi)."
+    },
+    "00000": {
+        title: "Paket Mutlak: Sambungan Selaras (Divine Alignment)",
+        desc: "Sistem sarafmu lagi bener-bener selaras sama frekuensi alam atas atau Kebenaran Hakiki. Biasanya ninggalin rasa penuh, mantap, dan hangat yang nyaman di tubuh setelahnya. Kunci keyakinanmu di sini."
+    }
+};
+
+let currentCode = "";
+let currentStep = 0;
+
+function updateUI() {
+    const dots = document.querySelectorAll('.step-dot');
+    
+    // Atur titik indikator atas
+    dots.forEach((dot, index) => {
+        dot.className = "step-dot";
+        if (index === currentStep) {
+            dot.classList.add('active');
+        } else if (index < currentStep) {
+            dot.classList.add('filled');
+        }
+    });
+
+    // Atur teks petunjuk tombol
+    if (currentStep < 5) {
+        document.getElementById('guideText').innerHTML = stepGuides[currentStep].text;
+        document.getElementById('sub0').innerText = stepGuides[currentStep].sub0;
+        document.getElementById('sub1').innerText = stepGuides[currentStep].sub1;
+    }
+}
+
+function inputBit(bit) {
+    if (currentStep >= 5) return;
+
+    currentCode += bit;
+    currentStep++;
+
+    if (currentStep === 5) {
+        processConclusion();
+    } else {
+        updateUI();
+    }
+}
+
+function processConclusion() {
+    document.getElementById('inputInterface').style.display = 'none';
+    document.getElementById('guideText').innerHTML = "Pencatatan selesai. Hasil dikunci.";
+    
+    const formattedCode = `[ ${currentCode.split('').join(' - ')} ]`;
+    document.getElementById('resCode').innerText = formattedCode;
+
+    const matched = exactPackages[currentCode];
+
+    if (matched) {
+        // Jika cocok dengan paket master
+        document.getElementById('resTitle').innerText = matched.title;
+        document.getElementById('resDesc').innerText = matched.desc;
+    } else {
+        // Jika acak, pakai logika hitung dominasi biner yang ramah/membumi
+        document.getElementById('resTitle').innerText = "Kombinasi Rasa Campuran";
+        
+        let bits = currentCode.split('').map(Number);
+        
+        // Cek sifat energi dasar (Digit 1, 4, 5)
+        let count1s = bits[0] + bits[3] + bits[4];
+        let energiText = count1s >= 2 
+            ? "<b>Sifat Energi: Bahan Bumi / Pasif.</b> Energinya kerasa padat, berat, agak tebel atau lembap. Biasanya bawa rekaman memori lama atau sisa muatan yang nempel di tanah/materi fisik."
+            : "<b>Sifat Energi: Aliran Atas / Bersih.</b> Energinya cenderung ringan, adem jernih, dan nggak ninggalin kesan seram. Lebih dekat ke urusan pikiran, gagasan, atau getaran spiritual bersih.";
+            
+        // Cek bentuk interaksi (Digit 2, 3)
+        let countInteractions = bits[1] + bits[2];
+        let interaksiText = countInteractions >= 2
+            ? "<b>Cara Kerjanya: Gesekan ke Fisik.</b> Getaran dari luar lagi kerasa langsung nyenggol badan, kulit, atau rongga dalam tubuhmu secara nyata."
+            : "<b>Cara Kerjanya: Ketukan ke Pikiran.</b> Getaran luar nggak terlalu nyerang fisik, tapi lebih mencoba nyamain frekuensi atau ngirim ide/petunjuk langsung ke pusat pemahaman (jidat/ubun-ubun).";
+
+        // Cek ketahanan ruang (Digit 5)
+        let spasialText = bits[4] === 1 
+            ? "Energi ini sifatnya **ngetem/menetap** di titik bumi tempat kamu berdiri sekarang." 
+            : "Sifat getarannya cuma **lewat sesaat** atau muncul karena kepancing fokus pikiranmu sendiri.";
+
+        document.getElementById('resDesc').innerHTML = `
+            Kode ini belum masuk daftar paket baku, tapi berdasarkan hitungan polanya, gejalanya mengarah ke sini: <br><br>
+            • ${energiText}<br><br>
+            • ${interaksiText}<br><br>
+            • <b>Catatan Tambahan:</b> ${spasialText}
+        `;
+    }
+
+    document.getElementById('resultBox').style.display = 'block';
+}
+
+function resetRadar() {
+    currentCode = "";
+    currentStep = 0;
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('inputInterface').style.display = 'grid';
+    updateUI();
+}
+
+// Jalankan sistem pertama kali
+updateUI();
+</script>
+
+</body>
+</html>
