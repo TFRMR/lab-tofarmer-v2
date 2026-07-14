@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToFarmer • Live Arsitek Logika (Mobile & Desktop)</title>
+    <title>ToFarmer • Live Arsitek Logika (Mobile & Desktop with Edit)</title>
     <!-- Memanggil library Mermaid lokal -->
     <script src="mermaid.min.js"></script>
     <style>
@@ -14,6 +14,7 @@
             --text-color: #e2e8f0;
             --accent-green: #4ade80;
             --accent-yellow: #fef08a;
+            --accent-blue: #38bdf8;
         }
 
         * {
@@ -73,7 +74,6 @@
             cursor: pointer;
         }
 
-        /* Navigasi Tab khusus HP */
         .tab-navigation {
             display: none;
             grid-template-columns: 1fr 1fr;
@@ -100,7 +100,6 @@
             color: var(--accent-green);
         }
 
-        /* Layout Utama */
         .main-layout {
             display: grid;
             grid-template-columns: 360px 1fr;
@@ -110,7 +109,6 @@
             min-height: 400px;
         }
 
-        /* Panel Kiri (Sidebar) */
         .sidebar {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
@@ -139,6 +137,14 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
+            border: 1px solid rgba(255,255,255,0.02);
+            transition: border-color 0.3s ease;
+        }
+
+        /* Gaya Khusus saat Mode Edit Aktif */
+        .node-form.edit-mode {
+            border-color: var(--accent-blue);
+            background: rgba(56, 189, 248, 0.05);
         }
 
         .form-row {
@@ -175,6 +181,20 @@
             margin-top: 5px;
         }
 
+        /* Tombol Batal Edit */
+        .btn-cancel-edit {
+            background: #1e293b;
+            border: 1px solid #475569;
+            color: #cbd5e1;
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            text-align: center;
+            display: none;
+            margin-top: 3px;
+        }
+
         .nodes-list {
             display: flex;
             flex-direction: column;
@@ -185,7 +205,7 @@
             background: rgba(255,255,255,0.02);
             border: 1px solid rgba(255,255,255,0.05);
             border-radius: 6px;
-            padding: 6px 8px;
+            padding: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -194,6 +214,26 @@
 
         .node-info b { color: var(--accent-green); font-family: monospace; }
         .node-parent-info { font-size: 0.65rem; color: #64748b; }
+
+        .node-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-edit {
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            color: var(--accent-blue);
+            padding: 1px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.65rem;
+        }
+
+        .btn-edit:hover {
+            background: var(--accent-blue);
+            color: #000;
+        }
 
         .btn-delete {
             background: rgba(239, 68, 68, 0.1);
@@ -205,7 +245,11 @@
             font-size: 0.65rem;
         }
 
-        /* Panel Kanan (Visual Preview) */
+        .btn-delete:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+
         .preview-area {
             background: #020617;
             border: 1px solid var(--border-color);
@@ -226,57 +270,34 @@
 
         .canvas-container {
             padding: 15px;
-            overflow: auto; /* Memungkinkan geser/scroll di HP jika bagan besar */
+            overflow: auto;
             display: flex;
-            align-items: flex-start; /* Agar tidak terpotong di layar HP */
+            align-items: flex-start;
             justify-content: center;
             background-image: radial-gradient(rgba(74, 222, 128, 0.05) 1px, transparent 1px);
             background-size: 15px 15px;
-            -webkit-overflow-scrolling: touch; /* Scroll halus di iOS/Android */
+            -webkit-overflow-scrolling: touch;
         }
 
         #mermaidCanvas {
-            min-width: 320px; /* Mencegah penciutan ekstrem */
+            min-width: 320px;
             text-align: center;
         }
 
         #markdownOutput { display: none; }
 
-        /* RESPONSIVITAS HP (MAKSIMAL 768px) */
         @media (max-width: 768px) {
-            body {
-                padding: 5px;
-                gap: 5px;
-            }
-
-            header {
-                padding: 8px;
-            }
-
-            .tab-navigation {
-                display: grid; /* Tampilkan tab di HP */
-            }
-
+            body { padding: 5px; gap: 5px; }
+            header { padding: 8px; }
+            .tab-navigation { display: grid; }
             .main-layout {
-                grid-template-columns: 1fr; /* Jadikan satu kolom tumpuk */
+                grid-template-columns: 1fr;
                 height: calc(100vh - 160px);
             }
-
-            /* Logika Sembunyikan/Tampilkan Panel Berdasarkan Tab Aktif */
-            .sidebar {
-                display: flex;
-            }
-            .preview-area {
-                display: none;
-            }
-
-            /* Saat Tab Visual Aktif */
-            body.show-visual .sidebar {
-                display: none;
-            }
-            body.show-visual .preview-area {
-                display: grid;
-            }
+            .sidebar { display: flex; }
+            .preview-area { display: none; }
+            body.show-visual .sidebar { display: none; }
+            body.show-visual .preview-area { display: grid; }
         }
     </style>
 </head>
@@ -285,7 +306,7 @@
     <header>
         <div class="header-main">
             <div class="header-title">
-                <h1>ToFarmer • Live Arsitek</h1>
+                <h1>ToFarmer • Live Arsitek v4</h1>
             </div>
             <div class="session-controls">
                 <button class="btn-sec" onclick="exportBackup()">Backup</button>
@@ -295,7 +316,6 @@
             </div>
         </div>
         
-        <!-- Tab Navigasi Khusus Layar HP -->
         <div class="tab-navigation">
             <button class="tab-btn active" id="btnTabInput" onclick="switchTab('input')">📝 Input Data</button>
             <button class="tab-btn" id="btnTabVisual" onclick="switchTab('visual')">👁️ Lihat Bagan</button>
@@ -306,10 +326,11 @@
         
         <!-- SIDEBAR INPUT (KIRI) -->
         <div class="sidebar" id="sidebarPanel">
-            <div class="section-title">🌱 Tambah Simpul Logika</div>
-            <div class="node-form">
+            <div class="section-title" id="formTitle">🌱 Tambah Simpul Logika</div>
+            <div class="node-form" id="nodeForm">
                 <div class="form-row">
                     <label for="nodeId">ID Simpul:</label>
+                    <!-- ID dikunci (readonly) saat proses edit berlangsung agar tidak merusak struktur relasi anak-anaknya -->
                     <input type="text" id="nodeId" placeholder="cth: a1, b2" oninput="cleanNodeId(this)">
                 </div>
                 <div class="form-row">
@@ -328,7 +349,8 @@
                     <label for="crossLabel">Ket. Silang:</label>
                     <input type="text" id="crossLabel" placeholder="Hubungan silang...">
                 </div>
-                <button class="btn" onclick="addNode()">Simpan & Update 🚀</button>
+                <button class="btn" id="btnSubmit" onclick="handleSubmit()">Simpan & Update 🚀</button>
+                <button class="btn-cancel-edit" id="btnCancelEdit" onclick="cancelEditMode()">Batal Edit</button>
             </div>
 
             <div class="section-title">📂 Daftar Simpul Aktif</div>
@@ -352,18 +374,15 @@
     <textarea id="markdownOutput" readonly></textarea>
 
     <script>
-        // Set tema gelap untuk Mermaid
         mermaid.initialize({ 
             startOnLoad: false, 
             theme: 'dark',
             securityLevel: 'loose',
-            flowchart: { 
-                useMaxWidth: false, /* Mencegah gambar mengecil paksa secara ekstrem */
-                htmlLabels: true 
-            }
+            flowchart: { useMaxWidth: false, htmlLabels: true }
         });
 
         let nodes = [];
+        let editIndex = null; // Menyimpan index simpul yang sedang diedit (-1 jika tambah baru)
 
         const defaultNodes = [
             { id: "gerbang", text: "Pintu Gerbang Utama", parentId: "", crossId: "", crossLabel: "" },
@@ -373,7 +392,6 @@
             { id: "ilham", text: "Gagasan Semesta (Kreatif)", parentId: "vertikal", crossId: "horisontal", crossLabel: "Sinergi Sektor" }
         ];
 
-        // Sistem Tab Switcher di HP
         function switchTab(tab) {
             const body = document.body;
             const btnInput = document.getElementById('btnTabInput');
@@ -383,7 +401,6 @@
                 body.classList.add('show-visual');
                 btnVisual.classList.add('active');
                 btnInput.classList.remove('active');
-                // Paksa render ulang visual saat tab visual dibuka di HP agar dimensinya pas
                 setTimeout(updateAndRenderGraph, 50); 
             } else {
                 body.classList.remove('show-visual');
@@ -393,12 +410,12 @@
         }
 
         function loadSession() {
-            const savedData = localStorage.getItem('tofarmer_live_nodes_v3');
+            const savedData = localStorage.getItem('tofarmer_live_nodes_v4');
             nodes = savedData ? JSON.parse(savedData) : [...defaultNodes];
         }
 
         function saveSession() {
-            localStorage.setItem('tofarmer_live_nodes_v3', JSON.stringify(nodes));
+            localStorage.setItem('tofarmer_live_nodes_v4', JSON.stringify(nodes));
         }
 
         function cleanNodeId(input) {
@@ -415,6 +432,9 @@
             crossSelect.innerHTML = '<option value="">-- Tidak Ada --</option>';
 
             nodes.forEach(node => {
+                // Jangan tampilkan simpul diri sendiri dalam opsi relasi jika sedang di-edit
+                if (editIndex !== null && node.id === nodes[editIndex].id) return;
+
                 const opt = `<option value="${node.id}">[${node.id}] ${node.text}</option>`;
                 parentSelect.insertAdjacentHTML('beforeend', opt);
                 crossSelect.insertAdjacentHTML('beforeend', opt);
@@ -438,7 +458,10 @@
                             <div><b>${node.id}</b>: ${node.text}</div>
                             <div class="node-parent-info">${parentText}${crossText}</div>
                         </div>
-                        <button class="btn-delete" onclick="deleteNode(${index})">Hapus</button>
+                        <div class="node-actions">
+                            <button class="btn-edit" onclick="startEdit(${index})">Edit</button>
+                            <button class="btn-delete" onclick="deleteNode(${index})">Hapus</button>
+                        </div>
                     </div>`;
                 container.insertAdjacentHTML('beforeend', item);
             });
@@ -477,13 +500,66 @@
                 const { svg } = await mermaid.render('graphSvg_' + Math.floor(Math.random() * 100000), graphDefinition);
                 canvas.innerHTML = svg;
             } catch (error) {
-                console.warn("Sedang memperbarui struktur logika...");
-                // Reset cache internal mermaid jika terjadi error sintaks sementara
-                canvas.innerHTML = "<div style='color:#f87171;font-size:0.8rem;padding:20px;'>Menghubungkan simpul... Tekan Simpan untuk refresh.</div>";
+                console.warn("Mereset tampilan grafik...");
+                canvas.innerHTML = "<div style='color:#f87171;font-size:0.8rem;padding:20px;'>Menghubungkan simpul... Silakan periksa kembali tautannya.</div>";
             }
         }
 
-        function addNode() {
+        // MEMASUKI MODE EDIT
+        function startEdit(index) {
+            editIndex = index;
+            const node = nodes[index];
+
+            // Ubah gaya form & judul panel
+            document.getElementById('nodeForm').classList.add('edit-mode');
+            document.getElementById('formTitle').innerText = `✏️ Edit Simpul: [${node.id}]`;
+            
+            // Masukkan data lama ke dalam Input Form
+            const idInput = document.getElementById('nodeId');
+            idInput.value = node.id;
+            idInput.readOnly = true; // Kunci ID agar tidak merusak relasi simpul lain
+            idInput.style.opacity = "0.5";
+
+            document.getElementById('nodeText').value = node.text;
+            
+            updateDropdowns(); // Perbarui opsi dropdown (mengecualikan diri sendiri)
+            
+            document.getElementById('parentSelect').value = node.parentId;
+            document.getElementById('crossSelect').value = node.crossId;
+            document.getElementById('crossLabel').value = node.crossLabel || '';
+
+            // Ubah teks tombol utama dan tampilkan tombol "Batal"
+            document.getElementById('btnSubmit').innerText = "Simpan Perubahan 💾";
+            document.getElementById('btnCancelEdit').style.display = "block";
+
+            // Scroll ke atas halaman agar form terlihat jelas di HP
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // BATALKAN MODE EDIT (KEMBALI KE INPUT BARU)
+        function cancelEditMode() {
+            editIndex = null;
+            
+            document.getElementById('nodeForm').classList.remove('edit-mode');
+            document.getElementById('formTitle').innerText = "🌱 Tambah Simpul Logika";
+            
+            const idInput = document.getElementById('nodeId');
+            idInput.value = '';
+            idInput.readOnly = false;
+            idInput.style.opacity = "1";
+
+            document.getElementById('nodeText').value = '';
+            document.getElementById('crossLabel').value = '';
+            
+            // Kembalikan Tombol ke Default
+            document.getElementById('btnSubmit').innerText = "Simpan & Update 🚀";
+            document.getElementById('btnCancelEdit').style.display = "none";
+
+            updateDropdowns();
+        }
+
+        // PENANGAN UTAMA SAAT KLIK TOMBOL SIMPAN
+        function handleSubmit() {
             const id = document.getElementById('nodeId').value.trim();
             const text = document.getElementById('nodeText').value.trim();
             const parentId = document.getElementById('parentSelect').value;
@@ -491,18 +567,24 @@
             const crossLabel = document.getElementById('crossLabel').value.trim();
 
             if (!id || !text) return alert("ID dan Narasi tidak boleh kosong!");
-            if (nodes.some(n => n.id === id)) return alert(`ID "${id}" sudah ada.`);
 
-            nodes.push({ id, text, parentId, crossId, crossLabel });
-            
-            document.getElementById('nodeId').value = '';
-            document.getElementById('nodeText').value = '';
-            document.getElementById('crossLabel').value = '';
+            if (editIndex !== null) {
+                // JIKA SEDANG EDIT DATA
+                nodes[editIndex] = { id, text, parentId, crossId, crossLabel };
+                editIndex = null; // keluar dari mode edit
+            } else {
+                // JIKA BUAT DATA BARU
+                if (nodes.some(n => n.id === id)) return alert(`ID "${id}" sudah terpakai.`);
+                nodes.push({ id, text, parentId, crossId, crossLabel });
+            }
+
+            // Bersihkan form & kembalikan keadaan form ke default
+            cancelEditMode();
             
             saveSession();
             syncApp();
 
-            // Di HP, setelah submit data, otomatis pindahkan tab ke Visual agar user bisa langsung lihat hasilnya
+            // Auto-pindah ke tab visual jika di HP agar bisa langsung dinilai hasilnya
             if (window.innerWidth <= 768) {
                 switchTab('visual');
             }
@@ -511,10 +593,17 @@
         function deleteNode(index) {
             const deletedId = nodes[index].id;
             if (confirm(`Hapus simpul [${deletedId}]?`)) {
+                // Jika simpul yang dihapus sedang diedit, batalkan dulu mode editnya
+                if (editIndex === index) {
+                    cancelEditMode();
+                }
+                
+                // Putuskan hubungan anak-anaknya agar tidak merujuk ke ID yang sudah mati
                 nodes.forEach(node => {
                     if (node.parentId === deletedId) node.parentId = "";
                     if (node.crossId === deletedId) node.crossId = "";
                 });
+                
                 nodes.splice(index, 1);
                 saveSession();
                 syncApp();
@@ -523,6 +612,7 @@
 
         function resetToDefault() {
             if (confirm("Reset ulang seluruh diagram?")) {
+                cancelEditMode();
                 nodes = [...defaultNodes];
                 saveSession();
                 syncApp();
@@ -548,6 +638,7 @@
                     const imported = JSON.parse(e.target.result);
                     if (Array.isArray(imported)) {
                         nodes = imported;
+                        cancelEditMode();
                         saveSession();
                         syncApp();
                     }
@@ -571,7 +662,7 @@
             updateAndRenderGraph();
         }
 
-        // Jalankan Inisialisasi
+        // Bootstrapping Jalur Utama
         loadSession();
         syncApp();
     </script>
