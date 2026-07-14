@@ -121,7 +121,7 @@ linear-gradient(
 135deg,
 #fef08a 0%,
 #4ade80 50%,
-#22c55e 100
+#22c55e 100%
 );
 -webkit-background-clip:text;
 -webkit-text-fill-color:transparent;
@@ -217,6 +217,7 @@ display:flex;
 align-items:center;
 gap:14px;
 margin-bottom:22px;
+flex-wrap: wrap;
 }
 
 .section-title span{
@@ -224,12 +225,12 @@ font-size:.82rem;
 font-weight:800;
 letter-spacing:2px;
 text-transform:uppercase;
-color:#fde047; /* Warna Sunset Elegan */
-white-space:nowrap;
+color:#fde047;
 }
 
 .line{
-width:100%;
+flex: 1;
+min-width: 30px;
 height:1px;
 background:
 linear-gradient(
@@ -247,8 +248,8 @@ GRID LAYOUT
 .grid{
 display:grid;
 grid-template-columns:
-repeat(auto-fit,minmax(200px,1fr));
-gap:20px;
+repeat(auto-fit, minmax(180px, 1fr));
+gap:18px;
 }
 
 /* =========================
@@ -270,6 +271,7 @@ border-left: 2px solid rgba(34, 197, 94, 0.15);
 box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
 transition: all .35s cubic-bezier(0.4, 0, 0.2, 1);
 overflow:hidden;
+min-height: 160px;
 }
 
 /* Efek Sentuhan Sejuk & Melayang */
@@ -355,13 +357,16 @@ opacity:.45;
 border-style:dashed;
 background: rgba(255, 255, 255, 0.01);
 border-color: rgba(255, 255, 255, 0.08);
+cursor: not-allowed;
 }
+
 .soon:hover {
 transform: none;
 box-shadow: none;
 background: rgba(255, 255, 255, 0.01);
 border-color: rgba(255, 255, 255, 0.08);
 }
+
 .soon:hover .label { color: #f8fafc; }
 .soon:hover .icon { transform: none; }
 
@@ -382,42 +387,19 @@ letter-spacing:.5px;
 }
 
 /* =========================
-MOBILE RESPONSIVE LAYOUT
+TABLET RESPONSIVE LAYOUT
 ========================= */
 
-@media(max-width:768px){
-
-.container{
-padding:14px;
-}
-
-.hero{
-padding:28px 10px 40px;
-}
-
-.hero h1{
-font-size:2.1rem;
-}
-
-.hero p{
-font-size:.9rem;
-line-height:1.7;
-}
-
-.main-box{
-padding:24px 18px;
-border-radius:26px;
-}
+@media(max-width:1024px){
 
 .grid{
-grid-template-columns:
-repeat(2,1fr);
-gap:14px;
+grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+gap:16px;
 }
 
 .card-btn{
-padding:24px 12px;
-border-radius:20px;
+padding:28px 16px;
+min-height: 150px;
 }
 
 .icon{
@@ -425,13 +407,157 @@ font-size:2.2rem;
 margin-bottom:12px;
 }
 
+}
+
+/* =========================
+MOBILE RESPONSIVE LAYOUT (Tablet Kecil & Ponsel)
+========================= */
+
+@media(max-width:768px){
+
+.container{
+padding:12px;
+}
+
+.hero{
+padding:24px 12px 35px;
+}
+
+.hero h1{
+font-size:2rem;
+}
+
+.hero p{
+font-size:.85rem;
+line-height:1.6;
+}
+
+.main-box{
+padding:20px 14px;
+border-radius:22px;
+}
+
+.section{
+margin-bottom:32px;
+}
+
+.section-title{
+gap:10px;
+margin-bottom:16px;
+}
+
+.section-title span{
+font-size:.7rem;
+letter-spacing:1.5px;
+}
+
+.line{
+min-width: 20px;
+}
+
+.grid{
+grid-template-columns: repeat(2, 1fr);
+gap:12px;
+}
+
+.card-btn{
+padding:20px 12px;
+border-radius:18px;
+min-height: 140px;
+}
+
+.icon{
+font-size:2rem;
+margin-bottom:10px;
+}
+
 .label{
-font-size:.74rem;
+font-size:.7rem;
+letter-spacing: 0.5px;
 }
 
 .desc{
-font-size:.68rem;
+font-size:.65rem;
 margin-top:6px;
+line-height:1.4;
+}
+
+}
+
+/* =========================
+MOBILE RESPONSIVENESS (Hape Kecil)
+========================= */
+
+@media(max-width:480px){
+
+.container{
+padding:10px;
+}
+
+.hero{
+padding:18px 8px 28px;
+}
+
+.hero h1{
+font-size:1.6rem;
+}
+
+.hero p{
+font-size:.8rem;
+line-height:1.5;
+}
+
+.logo{
+width:75px;
+height:75px;
+}
+
+.main-box{
+padding:16px 12px;
+border-radius:20px;
+}
+
+.section{
+margin-bottom:28px;
+}
+
+.section-title span{
+font-size:.65rem;
+letter-spacing:1px;
+}
+
+.grid{
+grid-template-columns: 1fr;
+gap:10px;
+}
+
+.card-btn{
+padding:18px 12px;
+border-radius:16px;
+min-height: 130px;
+}
+
+.icon{
+font-size:1.8rem;
+margin-bottom:8px;
+}
+
+.label{
+font-size:.65rem;
+}
+
+.desc{
+font-size:.6rem;
+margin-top:4px;
+}
+
+.top-btn{
+padding:12px 20px;
+font-size:.75rem;
+}
+
+.footer-text{
+font-size:.7rem;
 }
 
 }
@@ -532,51 +658,40 @@ dengan semangat kreatif dan keberanian belajar.
 <section class="section">
 
 <div class="section-title">
-<span>☕🎞️ Pilar 1: Komunitas & Narasi Kreatif (Penjaga Nilai & Gerakan)</span>
+<span>☕🎞️ Pilar 1: Komunitas & Narasi Kreatif</span>
 <div class="line"></div>
 </div>
 
 <div class="grid">
-
 <a href="/html/dasboard-tof.html" class="card-btn">
-
 <div class="icon">TOF</div>
 <div class="label">Dashboard TOF</div>
-<div class="desc">
-Ekosistem token .
-</div>
+<div class="desc">Ekosistem token</div>
 </a>
-<div class="grid">
+
 <a href="/html/dashboard.html" class="card-btn">
 <div class="icon">🧪</div>
-<div class="label">BUAT ILMU BAKU</div>
-<div class="desc">
-Pemandu Eksperimen.
-</div>
+<div class="label">Buat Ilmu Baku</div>
+<div class="desc">Pemandu Eksperimen</div>
 </a>
+
 <a href="/html/tentang.html" class="card-btn">
 <div class="icon">☕</div>
 <div class="label">Tentang</div>
-<div class="desc">
-Cerita dan visi ToFarmer.
-</div>
+<div class="desc">Cerita dan visi</div>
 </a>
+
 <a href="/desa-tof.html" class="card-btn">
-    <div class="icon">🏙️</div>
-    <div class="label">DESA TOF  (Game)</div>
-    <div class="desc">
-        Melihat langsung denyut nadi Desa TOF .
-    </div>
+<div class="icon">🏙️</div>
+<div class="label">Desa TOF (Game)</div>
+<div class="desc">Denyut nadi Desa</div>
 </a>
 
 <a href="/html/portofolio.html" class="card-btn">
 <div class="icon">🚀</div>
 <div class="label">Portofolio</div>
-<div class="desc">
-Eksperimen & perjalanan proyek.
-</div>
+<div class="desc">Eksperimen & proyek</div>
 </a>
-
 </div>
 
 </section>
@@ -584,47 +699,34 @@ Eksperimen & perjalanan proyek.
 <section class="section">
 
 <div class="section-title">
-<span>🛠🤖💻 Pilar 2: Inovasi & Rekayasa Teknologi (Solusi Fisik, Digital, & Robotika)</span>
+<span>🛠🤖💻 Pilar 2: Inovasi & Rekayasa Teknologi</span>
 <div class="line"></div>
 </div>
 
 <div class="grid">
-
-
-<div class="grid">
 <a href="/html/dashboard.html" class="card-btn">
 <div class="icon">🧪</div>
-<div class="label">BUAT ILMU BAKU</div>
-<div class="desc">
-Pemandu Eksperimen.
-</div>
+<div class="label">Buat Ilmu Baku</div>
+<div class="desc">Pemandu Eksperimen</div>
 </a>
-<div class="grid">
+
 <a href="/html/tofarmer-logic-tree.html" class="card-btn">
 <div class="icon">🧠</div>
-<div class="label"> Arsitek Logika Menoreh</div>
-<div class="desc">
-Pemandu membuat bagan alur dan skenario / mind maping.
-</div>
+<div class="label">Arsitek Logika</div>
+<div class="desc">Bagan & mind map</div>
 </a>
+
 <a href="" class="card-btn soon">
 <div class="icon">🧠</div>
 <div class="label">AI</div>
-<div class="desc">
-Belajar kecerdasan buatan.
-</div>
+<div class="desc">Belajar AI</div>
 </a>
 
 <a href="" class="card-btn soon">
 <div class="icon">💻</div>
 <div class="label">Coding</div>
-<div class="desc">
-Membangun dunia digital sendiri.
-</div>
+<div class="desc">Dunia digital</div>
 </a>
-
-
-
 </div>
 
 </section>
@@ -632,130 +734,104 @@ Membangun dunia digital sendiri.
 <section class="section">
 
 <div class="section-title">
-<span>🌾 Pilar 3: Ladang Belajar (Laboratorium Praktik & Bukti Nyata)</span>
+<span>🌾 Pilar 3: Ladang Belajar</span>
 <div class="line"></div>
 </div>
 
 <div class="grid">
 <a href="/html/dashboard.html" class="card-btn">
 <div class="icon">🧪</div>
-<div class="label">BUAT ILMU BAKU</div>
-<div class="desc">
-Pemandu Eksperimen.
-</div>
+<div class="label">Buat Ilmu Baku</div>
+<div class="desc">Pemandu Eksperimen</div>
 </a>
-
 
 <a href="" class="card-btn soon">
 <div class="icon">🌱</div>
 <div class="label">Pertanian</div>
-<div class="desc">
-Ilmu ladang & eksperimen tani.
-</div>
+<div class="desc">Ilmu & eksperimen</div>
 </a>
-
 </div>
 
 </section>
 
 <section class="section">
 
-
 <div class="section-title">
-<span>🧮📈 Pilar 4: Finansial & Investasi (Mesin Ekonomi Komunitas)</span>
+<span>🧮📈 Pilar 4: Finansial & Investasi</span>
 <div class="line"></div>
 </div>
 
 <div class="grid">
-<div class="grid">
 <a href="/html/dashboard.html" class="card-btn">
 <div class="icon">🧪</div>
-<div class="label">BUAT ILMU BAKU</div>
-<div class="desc">
-Pemandu Eksperimen.
-</div>
+<div class="label">Buat Ilmu Baku</div>
+<div class="desc">Pemandu Eksperimen</div>
 </a>
+
 <a href="/alat/kalkulator-compounding.html" class="card-btn">
 <div class="icon">🧮</div>
-<div class="label">TERAWANG MASA DEPAN ASET</div>
-<div class="desc">
-Simulasi compounding & strategi.
-</div>
+<div class="label">Terawang Aset</div>
+<div class="desc">Simulasi & strategi</div>
 </a>
+
 <a href="/html/transparansi.html" class="card-btn">
 <div class="icon">🏛️</div>
 <div class="label">Transparansi</div>
-<div class="desc">
-Melihat riwayat dan aliran data.
-</div>
+<div class="desc">Riwayat & data</div>
 </a>
+
 <a href="/apps/dashboard-tof.html" class="card-btn">
 <div class="icon">📊🌾</div>
-<div class="label">Dashboard TOF Asset</div>
-<div class="desc">
-Pantau pertumbuhan kolektif, fase Nabung Receh, dan statistik distribusi token sirkular.
-</div>
+<div class="label">Dashboard TOF</div>
+<div class="desc">Pertumbuhan token</div>
 </a>
 
 <a href="/html/simpan-pinjam-rt-blockchain.html" class="card-btn">
 <div class="icon">📓⛓️</div>
-<div class="label">Buku Simpan Pinjam Berbasis Blockchain</div>
-<div class="desc">
-Pencatatan keuangan rt/rw/koperasi umum terdesentralisasi, transparan, dan abadi.
-</div>
+<div class="label">Buku Simpan Pinjam</div>
+<div class="desc">Keuangan blockchain</div>
 </a>
 
 <a href="" class="card-btn soon">
 <div class="icon">🌱</div>
 <div class="label">Pertanian</div>
-<div class="desc">
-Ilmu ladang & eksperimen tani.
-</div>
+<div class="desc">Ilmu & eksperimen</div>
 </a>
-
 </div>
 
 </section>
 
 <section class="section">
 
-
 <div class="section-title">
-<span>🧠📡 Pilar 5: Refleksi Petapa (Penjaga Kompas & Kemanusiaan)</span>
+<span>🧠📡 Pilar 5: Refleksi Petapa</span>
 <div class="line"></div>
 </div>
-<div class="grid">
+
 <div class="grid">
 <a href="/html/dashboard.html" class="card-btn">
 <div class="icon">🧪</div>
-<div class="label">BUAT ILMU BAKU</div>
-<div class="desc">
-Pemandu Eksperimen.
-</div>
+<div class="label">Buat Ilmu Baku</div>
+<div class="desc">Pemandu Eksperimen</div>
 </a>
+
 <a href="/html/radar-v1.html" class="card-btn">
 <div class="icon">🧠📡</div>
 <div class="label">RADAR RASA</div>
-<div class="desc">
-Penerjemah isyarat biner sensoris tubuh.
-</div>
+<div class="desc">Penerjemah isyarat</div>
 </a>
+
 <a href="/html/menoreh2090-universe.html" class="card-btn">
 <div class="icon">🌌</div>
-<div class="label">Menoreh Universe 2090 (Game)</div>
-<div class="desc">
-Menoreh Universe 2090: Saat napas kearifan lokal berpadu dengan logika semesta yang abadi.
-</div>
+<div class="label">Menoreh Universe</div>
+<div class="desc">Game & kearifan</div>
 </a>
 
 <a href="" class="card-btn soon">
 <div class="icon">🌱</div>
 <div class="label">Pertanian</div>
-<div class="desc">
-Ilmu ladang & eksperimen tani.
-</div>
+<div class="desc">Ilmu & eksperimen</div>
 </a>
-
 </div>
 
 </section>
@@ -772,27 +848,19 @@ Ilmu ladang & eksperimen tani.
 <div class="card-btn soon">
 <div class="icon">🛰️</div>
 <div class="label">SPACE</div>
-<div class="desc">
-Eksperimen mandiri ToFarmer.
-</div>
+<div class="desc">Eksperimen mandiri</div>
 </div>
 
 <div class="card-btn soon">
 <div class="icon">🌾</div>
 <div class="label">Simulasi Ladang</div>
-<div class="desc">
-Algoritma dan ekosistem pangan.
+<div class="desc">Algoritma pangan</div>
 </div>
-</div>
-
-
 
 <div class="card-btn soon">
 <div class="icon">🏕️</div>
 <div class="label">Dewaguru</div>
-<div class="desc">
-Petani masa depan & komunitas.
-</div>
+<div class="desc">Petani & komunitas</div>
 </div>
 
 </div>
@@ -810,5 +878,6 @@ Membangun masa depan dari ladang, kopi, dan keberanian belajar.
 
 </div>
 
-<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script></body>
+<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+</body>
 </html>
