@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToFarmer - Ekosistem Bertani Cerdas</title>
+    <style>
+        :root {
+            --bg-color: #070e0a;
+            --panel-bg: rgba(14, 28, 19, 0.9);
+            --border-color: rgba(74, 222, 128, 0.2);
+            --text-color: #e2e8f0;
+            --accent-green: #4ade80;
+            --accent-yellow: #fef08a;
+            --accent-blue: #38bdf8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #070e0a 0%, #0d1e14 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Animated background */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            position: relative;
+            width: 90%;
+            max-width: 900px;
+            height: 90vh;
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 0 40px rgba(74, 222, 128, 0.2), inset 0 0 40px rgba(74, 222, 128, 0.05);
+            z-index: 2;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            padding: 40px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.8s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slide.active {
+            opacity: 1;
+            z-index: 10;
+        }
+
+        .slide h1 {
+            font-size: 2.8em;
+            margin-bottom: 30px;
+            color: var(--accent-yellow);
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
+            font-weight: 700;
+            letter-spacing: 2px;
+            min-height: 80px;
+        }
+
+        .slide h2 {
+            font-size: 2em;
+            color: var(--accent-green);
+            margin-bottom: 20px;
+        }
+
+        .slide p {
+            font-size: 1.3em;
+            line-height: 1.8;
+            margin: 15px 0;
+            color: #e0e0e0;
+            max-width: 800px;
+        }
+
+        .typing-text {
+            min-height: 100px;
+            font-size: 1.5em;
+            color: var(--accent-green);
+            font-weight: 500;
+            letter-spacing: 1px;
+        }
+
+        .emoji-container {
+            font-size: 100px;
+            margin: 30px 0;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .emoji {
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+
+        .emoji:nth-child(2) { animation-delay: 0.2s; }
+        .emoji:nth-child(3) { animation-delay: 0.4s; }
+        .emoji:nth-child(4) { animation-delay: 0.6s; }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-30px); }
+        }
+
+        .emoji-float {
+            position: absolute;
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-50px) rotate(5deg); opacity: 1; }
+        }
+
+        .pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .pilar {
+            display: inline-block;
+            margin: 15px 20px;
+            padding: 20px 25px;
+            background: rgba(74, 222, 128, 0.1);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            font-size: 1.1em;
+            color: var(--accent-green);
+            transition: all 0.4s ease;
+        }
+
+        .pilar:hover {
+            background: rgba(74, 222, 128, 0.2);
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.4);
+            border-color: var(--accent-green);
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        button {
+            padding: 12px 25px;
+            background: rgba(74, 222, 128, 0.2);
+            border: 2px solid var(--accent-green);
+            color: var(--accent-yellow);
+            font-size: 1em;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: rgba(74, 222, 128, 0.3);
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .slide-counter {
+            color: var(--accent-green);
+            font-size: 1.1em;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        .music-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 30;
+            padding: 10px 20px;
+            background: rgba(74, 222, 128, 0.2);
+            border: 2px solid var(--accent-green);
+            color: var(--accent-yellow);
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .music-toggle:hover {
+            background: rgba(74, 222, 128, 0.3);
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.5);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 25px;
+                height: 95vh;
+            }
+
+            .slide h1 {
+                font-size: 2em;
+            }
+
+            .slide p {
+                font-size: 1.1em;
+            }
+
+            .emoji-container {
+                font-size: 60px;
+                height: 80px;
+            }
+
+            .pilar {
+                font-size: 0.9em;
+                margin: 10px 10px;
+                padding: 15px 20px;
+            }
+
+            .controls {
+                bottom: 20px;
+                gap: 10px;
+            }
+
+            button {
+                padding: 10px 20px;
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated stars background -->
+    <div class="stars" id="starsContainer"></div>
+
+    <!-- Main container -->
+    <div class="container">
+        <!-- SLIDE 1: Opening -->
+        <div class="slide active">
+            <div class="emoji-container">
+                <span class="emoji">🌾</span>
+                <span class="emoji">💻</span>
+                <span class="emoji">🌱</span>
+            </div>
+            <h1>TOFARMER</h1>
+            <div class="typing-text" id="slide1-text"></div>
+            <p style="margin-top: 40px; font-size: 1.1em; color: var(--accent-yellow);">Ekosistem Pembelajaran Bertani Cerdas</p>
+        </div>
+
+        <!-- SLIDE 2: Filosofi -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">🧠</span>
+            </div>
+            <h1>Pertanian itu INTELEKTUAL</h1>
+            <div class="typing-text" id="slide2-text"></div>
+            <p style="margin-top: 40px; font-size: 1.1em; color: var(--accent-green);">Bukan hanya kerja tangan, tapi kerja pikiran & hati</p>
+        </div>
+
+        <!-- SLIDE 3: Visi -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">🏞️</span>
+            </div>
+            <h1>VISI: Pertanian Mandiri</h1>
+            <div class="typing-text" id="slide3-text"></div>
+            <p style="margin-top: 40px; font-size: 1.1em; color: var(--accent-green);">Petani jadi peneliti. Ladang jadi sekolah. Panen jadi konsekuensi.</p>
+        </div>
+
+        <!-- SLIDE 4: Proses > Hasil -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">📊</span>
+            </div>
+            <h1>PROSES > HASIL</h1>
+            <div class="typing-text" id="slide4-text"></div>
+            <p style="margin-top: 40px; font-size: 1.2em; color: var(--accent-yellow); font-weight: 700;">Perjalanan lebih penting daripada tujuan</p>
+        </div>
+
+        <!-- SLIDE 5: 5 Pilar Part 1 -->
+        <div class="slide">
+            <h1 style="margin-bottom: 20px;">5 PILAR ToFarmer</h1>
+            <div style="margin: 30px 0;">
+                <div class="pilar">🎨 Komunitas Kreatif</div>
+                <div class="pilar">🔧 Inovasi & Teknologi</div>
+            </div>
+            <div style="margin: 20px 0;">
+                <div class="pilar">🌻 Ladang Belajar</div>
+            </div>
+            <div style="margin: 20px 0;">
+                <div class="pilar">💰 Keuangan Transparan</div>
+                <div class="pilar">🧘 Refleksi Petapa</div>
+            </div>
+            <p style="margin-top: 40px; color: var(--accent-green);">Saling bekerja sama seperti jari-jari tangan</p>
+        </div>
+
+        <!-- SLIDE 6: Pilar 1 -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">🎨</span>
+            </div>
+            <h1>Komunitas Kreatif</h1>
+            <div class="typing-text" id="slide6-text"></div>
+            <p style="margin-top: 30px; color: var(--accent-green);">Penjaga ingatan, pendokumentasi ilmu dari ladang</p>
+        </div>
+
+        <!-- SLIDE 7: Pilar 2 -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">🔧</span>
+            </div>
+            <h1>Inovasi & Teknologi</h1>
+            <div class="typing-text" id="slide7-text"></div>
+            <p style="margin-top: 30px; color: var(--accent-green);">Teknologi mengikuti proses, bukan memerintah</p>
+        </div>
+
+        <!-- SLIDE 8: Pilar 3 -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">🌾</span>
+            </div>
+            <h1>Ladang Belajar</h1>
+            <div class="typing-text" id="slide8-text"></div>
+            <p style="margin-top: 30px; color: var(--accent-green);">Sumber data utama, laboratorium hidup</p>
+        </div>
+
+        <!-- SLIDE 9: Pilar 4 -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">💰</span>
+            </div>
+            <h1>Keuangan Transparan</h1>
+            <div class="typing-text" id="slide9-text"></div>
+            <p style="margin-top: 30px; color: #a8e6cf;">Penyangga waktu & keberlanjutan, bukan pengendali</p>
+        </div>
+
+        <!-- SLIDE 10: Pilar 5 -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">🧘</span>
+            </div>
+            <h1>Refleksi Petapa</h1>
+            <div class="typing-text" id="slide10-text"></div>
+            <p style="margin-top: 30px; color: #a8e6cf;">Penjaga etika, makna, dan arah jangka panjang</p>
+        </div>
+
+        <!-- SLIDE 11: Perjalanan Masuk -->
+        <div class="slide">
+            <h1>Jalan Masuk ToFarmer</h1>
+            <div style="margin: 40px 0;">
+                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1.2em;">
+                    💬 FASE 1: OBROLAN
+                    <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Diskusi santai, kenal nilai</p>
+                </div>
+                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1.2em;">
+                    🔥 FASE 2: AKSI
+                    <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Praktik nyata sesuai minat</p>
+                </div>
+                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1.2em;">
+                    ⚙️ FASE 3: INTEGRASI
+                    <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Siklus operasional formal</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 12: Etika & Prinsip -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 80px;">⚖️</span>
+            </div>
+            <h1>Etika & Prinsip</h1>
+            <div style="margin: 30px 0; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;">
+                <p>✓ Kejujuran Proses — data dari pengalaman nyata</p>
+                <p>✓ Tidak Memaksa — partisipasi sukarela</p>
+                <p>✓ Hormati Alam — pertanian = relasi ekologis</p>
+                <p>✓ Manusiawi — tetap selaras dengan nilai kemanusiaan</p>
+            </div>
+        </div>
+
+        <!-- SLIDE 13: Closing -->
+        <div class="slide">
+            <div class="emoji-container">
+                <span class="emoji" style="font-size: 100px; margin: 0 10px;">🌱</span>
+                <span class="emoji" style="font-size: 100px; margin: 0 10px;">✨</span>
+                <span class="emoji" style="font-size: 100px; margin: 0 10px;">🌾</span>
+            </div>
+            <h1>Mulai dari Sini</h1>
+            <p style="font-size: 1.3em; margin: 30px 0;">ToFarmer bukan hanya teknologi</p>
+            <p style="font-size: 1.3em; margin: 30px 0;">Ini adalah cara baru untuk BELAJAR, BERTANI, dan BERMAKNA</p>
+            <p style="margin-top: 50px; font-size: 1.2em; color: #ffd700; font-weight: 700;">Bergabunglah dengan kami di Menoreh 🏔️</p>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <button id="prevBtn">← SEBELUMNYA</button>
+        <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">13</span></span>
+        <button id="nextBtn">SELANJUTNYA →</button>
+    </div>
+
+    <!-- Music toggle -->
+    <button class="music-toggle" id="musicToggle">🔊 MUSIK ON</button>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let currentSlide = 0;
+        let autoplayInterval;
+        let isAutoplay = true;
+
+        // Typing animation data
+        const typingData = {
+            0: "Ekosistem pembelajaran agraris yang mengubah petani menjadi peneliti, dan ladang menjadi sekolah.",
+            1: "Kami percaya pertanian adalah aktivitas intelektual & ekologis, bukan sekadar kerja fisik atau bisnis pasar.",
+            2: "Terbentuknya ekosistem agraris mandiri di mana bertani menjadi gaya hidup dan aktivitas intelektual yang berkelanjutan.",
+            3: "Dokumentasi dan refleksi dari setiap proses nyata jauh lebih bernilai daripada hasil panen semata.",
+            5: "Dokumentasi, inspirasi, dan menjaga ingatan kolektif tentang pengetahuan dari lapangan.",
+            6: "Alat pembakuan ilmu, sistem digital, dan pendukung untuk memperkuat proses belajar.",
+            7: "Praktik tanah nyata, eksperimen hidup, dan sumber ilmu baku dari pengalaman langsung.",
+            8: "Mendukung waktu dan keberlanjutan agar proses punya ruang untuk tumbuh dan berkembang.",
+            9: "Menjaga konsistensi nilai, makna mendalam, dan arah jangka panjang untuk semua pilar."
+        };
+
+        // Typing animation function
+        function typeText(elementId, text) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            element.textContent = '';
+            let index = 0;
+            const speed = 30;
+
+            function type() {
+                if (index < text.length) {
+                    element.textContent += text[index];
+                    index++;
+                    setTimeout(type, speed);
+                }
+            }
+            type();
+        }
+
+        // Show slide function
+        function showSlide(n) {
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[n].classList.add('active');
+            document.getElementById('currentSlide').textContent = n + 1;
+
+            // Trigger typing animation if exists
+            if (typingData[n]) {
+                const typingElementId = `slide${n === 0 ? 1 : n === 4 ? '' : n}-text`;
+                if (typingElementId.includes('-text')) {
+                    typeText(typingElementId, typingData[n]);
+                }
+            }
+        }
+
+        // Next slide
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            showSlide(currentSlide);
+            resetAutoplay();
+        }
+
+        // Previous slide
+        function prevSlide() {
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            showSlide(currentSlide);
+            resetAutoplay();
+        }
+
+        // Autoplay function
+        function startAutoplay() {
+            autoplayInterval = setInterval(() => {
+                nextSlide();
+            }, 6000);
+        }
+
+        function resetAutoplay() {
+            if (isAutoplay) {
+                clearInterval(autoplayInterval);
+                startAutoplay();
+            }
+        }
+
+        // Music context (browser requires user interaction to play audio)
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let oscillator, gain;
+        let isPlaying = false;
+
+        function toggleMusic() {
+            const btn = document.getElementById('musicToggle');
+            if (!isPlaying) {
+                playAmbientMusic();
+                isPlaying = true;
+                btn.textContent = '🔇 MUSIK OFF';
+            } else {
+                stopAmbientMusic();
+                isPlaying = false;
+                btn.textContent = '🔊 MUSIK ON';
+            }
+        }
+
+        function playAmbientMusic() {
+            if (isPlaying) return;
+            
+            const now = audioContext.currentTime;
+            oscillator = audioContext.createOscillator();
+            gain = audioContext.createGain();
+            
+            oscillator.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            gain.gain.setValueAtTime(0.05, now);
+            oscillator.frequency.setValueAtTime(110, now);
+            oscillator.frequency.exponentialRampToValueAtTime(220, now + 4);
+            oscillator.frequency.exponentialRampToValueAtTime(110, now + 8);
+            
+            oscillator.start(now);
+            oscillator.stop(now + 8);
+            
+            // Loop
+            setTimeout(() => {
+                if (isPlaying) playAmbientMusic();
+            }, 7800);
+        }
+
+        function stopAmbientMusic() {
+            if (oscillator) {
+                oscillator.stop();
+            }
+        }
+
+        // Create stars
+        function createStars() {
+            const starsContainer = document.getElementById('starsContainer');
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starsContainer.appendChild(star);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('nextBtn').addEventListener('click', nextSlide);
+        document.getElementById('prevBtn').addEventListener('click', prevSlide);
+        document.getElementById('musicToggle').addEventListener('click', toggleMusic);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        // Initialize
+        createStars();
+        document.getElementById('totalSlides').textContent = totalSlides;
+        showSlide(0);
+        startAutoplay();
+
+        // Music requires user interaction
+        document.addEventListener('click', () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        });
+    </script>
+</body>
+</html>
