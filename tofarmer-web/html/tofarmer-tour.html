@@ -390,7 +390,7 @@
             </div>
             <h1>Keuangan Transparan</h1>
             <div class="typing-text" id="slide9-text"></div>
-            <p style="margin-top: 30px; color: #a8e6cf;">Penyangga waktu & keberlanjutan, bukan pengendali</p>
+            <p style="margin-top: 30px; color: var(--accent-green);">Penyangga waktu & keberlanjutan, bukan pengendali</p>
         </div>
 
         <!-- SLIDE 10: Pilar 5 -->
@@ -400,7 +400,7 @@
             </div>
             <h1>Refleksi Petapa</h1>
             <div class="typing-text" id="slide10-text"></div>
-            <p style="margin-top: 30px; color: #a8e6cf;">Penjaga etika, makna, dan arah jangka panjang</p>
+            <p style="margin-top: 30px; color: var(--accent-green);">Penjaga etika, makna, dan arah jangka panjang</p>
         </div>
 
         <!-- SLIDE 11: Perjalanan Masuk -->
@@ -429,10 +429,10 @@
             </div>
             <h1>Etika & Prinsip</h1>
             <div style="margin: 30px 0; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;">
-                <p>✓ Kejujuran Proses — data dari pengalaman nyata</p>
-                <p>✓ Tidak Memaksa — partisipasi sukarela</p>
-                <p>✓ Hormati Alam — pertanian = relasi ekologis</p>
-                <p>✓ Manusiawi — tetap selaras dengan nilai kemanusiaan</p>
+                <p style="color: var(--accent-green);">✓ Kejujuran Proses — data dari pengalaman nyata</p>
+                <p style="color: var(--accent-green);">✓ Tidak Memaksa — partisipasi sukarela</p>
+                <p style="color: var(--accent-green);">✓ Hormati Alam — pertanian = relasi ekologis</p>
+                <p style="color: var(--accent-green);">✓ Manusiawi — tetap selaras dengan nilai kemanusiaan</p>
             </div>
         </div>
 
@@ -446,7 +446,7 @@
             <h1>Mulai dari Sini</h1>
             <p style="font-size: 1.3em; margin: 30px 0;">ToFarmer bukan hanya teknologi</p>
             <p style="font-size: 1.3em; margin: 30px 0;">Ini adalah cara baru untuk BELAJAR, BERTANI, dan BERMAKNA</p>
-            <p style="margin-top: 50px; font-size: 1.2em; color: #ffd700; font-weight: 700;">Bergabunglah dengan kami di Menoreh 🏔️</p>
+            <p style="margin-top: 50px; font-size: 1.2em; color: var(--accent-yellow); font-weight: 700;">Bergabunglah dengan kami di Menoreh 🏔️</p>
         </div>
     </div>
 
@@ -542,51 +542,136 @@
             }
         }
 
-        // Music context (browser requires user interaction to play audio)
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let oscillator, gain;
+        // ============== MUSIK / WEB AUDIO API ==============
+        let audioContext = null;
+        let oscillators = [];
+        let gains = [];
         let isPlaying = false;
+        let musicEnabled = false;
 
-        function toggleMusic() {
-            const btn = document.getElementById('musicToggle');
-            if (!isPlaying) {
-                playAmbientMusic();
-                isPlaying = true;
-                btn.textContent = '🔇 MUSIK OFF';
-            } else {
-                stopAmbientMusic();
-                isPlaying = false;
-                btn.textContent = '🔊 MUSIK ON';
+        function initAudioContext() {
+            if (audioContext) return audioContext;
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('AudioContext initialized:', audioContext.state);
+                return audioContext;
+            } catch (e) {
+                console.error('AudioContext not supported:', e);
+                return null;
+            }
+        }
+
+        function resumeAudioContext() {
+            if (!audioContext) return;
+            if (audioContext.state === 'suspended') {
+                audioContext.resume().then(() => {
+                    console.log('AudioContext resumed');
+                }).catch(e => console.error('Resume failed:', e));
             }
         }
 
         function playAmbientMusic() {
+            if (!audioContext) {
+                initAudioContext();
+                if (!audioContext) return;
+            }
+
+            resumeAudioContext();
+
+            // Jangan play jika sudah playing
             if (isPlaying) return;
-            
-            const now = audioContext.currentTime;
-            oscillator = audioContext.createOscillator();
-            gain = audioContext.createGain();
-            
-            oscillator.connect(gain);
-            gain.connect(audioContext.destination);
-            
-            gain.gain.setValueAtTime(0.05, now);
-            oscillator.frequency.setValueAtTime(110, now);
-            oscillator.frequency.exponentialRampToValueAtTime(220, now + 4);
-            oscillator.frequency.exponentialRampToValueAtTime(110, now + 8);
-            
-            oscillator.start(now);
-            oscillator.stop(now + 8);
-            
-            // Loop
-            setTimeout(() => {
-                if (isPlaying) playAmbientMusic();
-            }, 7800);
+            isPlaying = true;
+
+            try {
+                const now = audioContext.currentTime;
+                
+                // Main melody oscillator
+                const osc1 = audioContext.createOscillator();
+                const gain1 = audioContext.createGain();
+                
+                osc1.type = 'sine';
+                osc1.connect(gain1);
+                gain1.connect(audioContext.destination);
+                
+                gain1.gain.setValueAtTime(0.08, now);
+                gain1.gain.exponentialRampToValueAtTime(0.01, now + 8);
+                
+                osc1.frequency.setValueAtTime(130, now);
+                osc1.frequency.exponentialRampToValueAtTime(195, now + 4);
+                osc1.frequency.exponentialRampToValueAtTime(130, now + 8);
+                
+                osc1.start(now);
+                osc1.stop(now + 8);
+                
+                oscillators.push(osc1);
+                gains.push(gain1);
+
+                // Harmonic overtone
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                
+                osc2.type = 'sine';
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                
+                gain2.gain.setValueAtTime(0.03, now);
+                gain2.gain.exponentialRampToValueAtTime(0.005, now + 8);
+                
+                osc2.frequency.setValueAtTime(260, now);
+                osc2.frequency.exponentialRampToValueAtTime(390, now + 4);
+                osc2.frequency.exponentialRampToValueAtTime(260, now + 8);
+                
+                osc2.start(now);
+                osc2.stop(now + 8);
+                
+                oscillators.push(osc2);
+                gains.push(gain2);
+
+                // Loop setelah 8 detik
+                setTimeout(() => {
+                    isPlaying = false;
+                    if (musicEnabled) {
+                        playAmbientMusic();
+                    }
+                }, 8000);
+
+            } catch (e) {
+                console.error('Error playing music:', e);
+                isPlaying = false;
+            }
         }
 
         function stopAmbientMusic() {
-            if (oscillator) {
-                oscillator.stop();
+            try {
+                oscillators.forEach(osc => {
+                    try { osc.stop(); } catch(e) {}
+                });
+                oscillators = [];
+                gains = [];
+                isPlaying = false;
+            } catch (e) {
+                console.error('Error stopping music:', e);
+            }
+        }
+
+        function toggleMusic() {
+            const btn = document.getElementById('musicToggle');
+            
+            if (!audioContext) {
+                initAudioContext();
+            }
+            
+            if (!musicEnabled) {
+                // Turn ON
+                musicEnabled = true;
+                resumeAudioContext();
+                playAmbientMusic();
+                btn.textContent = '🔇 MUSIK OFF';
+            } else {
+                // Turn OFF
+                musicEnabled = false;
+                stopAmbientMusic();
+                btn.textContent = '🔊 MUSIK ON';
             }
         }
 
@@ -612,20 +697,29 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight') nextSlide();
             if (e.key === 'ArrowLeft') prevSlide();
+            if (e.key === 'm' || e.key === 'M') toggleMusic();
         });
+
+        // Initialize audio on any user interaction
+        function setupAudioOnInteraction() {
+            if (!audioContext) {
+                initAudioContext();
+                resumeAudioContext();
+            }
+            document.removeEventListener('click', setupAudioOnInteraction);
+            document.removeEventListener('keydown', setupAudioOnInteraction);
+            document.removeEventListener('touchstart', setupAudioOnInteraction);
+        }
+
+        document.addEventListener('click', setupAudioOnInteraction);
+        document.addEventListener('keydown', setupAudioOnInteraction);
+        document.addEventListener('touchstart', setupAudioOnInteraction);
 
         // Initialize
         createStars();
         document.getElementById('totalSlides').textContent = totalSlides;
         showSlide(0);
         startAutoplay();
-
-        // Music requires user interaction
-        document.addEventListener('click', () => {
-            if (audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-        });
     </script>
 </body>
 </html>
