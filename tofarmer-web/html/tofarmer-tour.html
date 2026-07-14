@@ -37,34 +37,22 @@
             padding: 10px;
             overflow: hidden;
         }
-   .header-main {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            gap: 10px;
-        }
+  .header-main{
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    right: 20px;
+    z-index: 999;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+}
 
-        .btn-back {
-            background: rgba(107, 114, 128, 0.2);
-            border: 1px solid rgba(107, 114, 128, 0.5);
-            color: #d1d5db;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.2s ease;
-        }
-
-        .btn-back:hover {
-            background: rgba(107, 114, 128, 0.4);
-            border-color: rgba(107, 114, 128, 0.8);
-            color: #f3f4f6;
-        }
+.header-main .btn-back,
+.header-main .music-toggle{
+    pointer-events: auto;
+}
         
         /* Stars background */
         .stars {
@@ -263,21 +251,18 @@
             letter-spacing: 1px;
         }
 
-        .music-toggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 30;
-            padding: 10px 20px;
-            background: rgba(74, 222, 128, 0.2);
-            border: 2px solid var(--accent-green);
-            color: var(--accent-yellow);
-            border-radius: 50px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 700;
-            transition: all 0.3s ease;
-        }
+    .music-toggle{
+    position: static;
+    padding: 10px 20px;
+    background: rgba(74, 222, 128, 0.2);
+    border: 2px solid var(--accent-green);
+    color: var(--accent-yellow);
+    border-radius: 50px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 700;
+    transition: all .3s;
+}
 
         .music-toggle:hover {
             background: rgba(74, 222, 128, 0.3);
@@ -290,18 +275,66 @@
             width: 100%;
             gap: 10px;
         }
-        @media (max-width: 768px) {
-            body { padding: 5px; }
-            .container { width: 98%; padding: 30px 20px; height: 85vh; }
-            .slide { padding: 20px; }
-            .slide h1 { font-size: 1.8em; }
-            .slide p, .typing-text { font-size: 0.95em; }
-            .emoji-container { font-size: 50px; gap: 10px; }
-            .pilar { font-size: 0.8em; padding: 8px 12px; margin: 5px; }
-            .controls { bottom: 15px; gap: 10px; padding: 10px 15px; }
-            button { padding: 8px 15px; font-size: 0.85em; }
-            .music-toggle { padding: 8px 15px; font-size: 0.85em; }
-        }
+       @media (max-width:768px){
+
+    body{
+        padding:5px;
+    }
+
+    .header-main{
+        top:10px;
+        left:10px;
+        right:10px;
+    }
+
+    .container{
+        width:98%;
+        height:85vh;
+        padding:70px 20px 30px; /* atas kanan/kiri bawah */
+    }
+
+    .slide{
+        padding:20px;
+    }
+
+    .slide h1{
+        font-size:1.8em;
+    }
+
+    .slide p,
+    .typing-text{
+        font-size:.95em;
+    }
+
+    .emoji-container{
+        font-size:50px;
+        gap:10px;
+    }
+
+    .pilar{
+        font-size:.8em;
+        padding:8px 12px;
+        margin:5px;
+    }
+
+    .controls{
+        bottom:15px;
+        gap:10px;
+        padding:10px 15px;
+    }
+
+    button{
+        padding:8px 15px;
+        font-size:.85em;
+    }
+
+    .btn-back,
+    .music-toggle{
+        padding:8px 12px;
+        font-size:.8rem;
+    }
+
+}
     </style>
 </head>
 <body>
@@ -460,9 +493,12 @@
         <button id="nextBtn">SELANJUTNYA →</button>
     </div>
  <div class="header-main">
-            <a href="fitur-ilmu.html" class="btn-back">← Kembali</a>
-    <!-- Music toggle -->
-    <button class="music-toggle" id="musicToggle">🔊 MUSIK ON</button>
+    <a href="fitur-ilmu.html" class="btn-back">← Kembali</a>
+
+    <button class="music-toggle" id="musicToggle">
+        🔊 MUSIK ON
+    </button>
+</div>
 
     <!-- Audio -->
     <audio id="bgMusic" preload="auto" loop>
