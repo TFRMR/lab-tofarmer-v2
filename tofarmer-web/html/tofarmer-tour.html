@@ -460,6 +460,11 @@
     <!-- Music toggle -->
     <button class="music-toggle" id="musicToggle">🔊 MUSIK ON</button>
 
+    <!-- Audio element untuk musik -->
+    <audio id="bgMusic" preload="auto" loop>
+        <source src="/aset/moment-of-peace.mp3" type="audio/mpeg">
+    </audio>
+
     <script>
         const slides = document.querySelectorAll('.slide');
         const totalSlides = slides.length;
@@ -542,138 +547,40 @@
             }
         }
 
-        // ============== MUSIK / WEB AUDIO API ==============
-        let audioContext = null;
-        let oscillators = [];
-        let gains = [];
-        let isPlaying = false;
+        // ============== MUSIK CONTROL ==============
+        const bgMusic = document.getElementById('bgMusic');
         let musicEnabled = false;
-
-        function initAudioContext() {
-            if (audioContext) return audioContext;
-            try {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                console.log('AudioContext initialized:', audioContext.state);
-                return audioContext;
-            } catch (e) {
-                console.error('AudioContext not supported:', e);
-                return null;
-            }
-        }
-
-        function resumeAudioContext() {
-            if (!audioContext) return;
-            if (audioContext.state === 'suspended') {
-                audioContext.resume().then(() => {
-                    console.log('AudioContext resumed');
-                }).catch(e => console.error('Resume failed:', e));
-            }
-        }
-
-        function playAmbientMusic() {
-            if (!audioContext) {
-                initAudioContext();
-                if (!audioContext) return;
-            }
-
-            resumeAudioContext();
-
-            // Jangan play jika sudah playing
-            if (isPlaying) return;
-            isPlaying = true;
-
-            try {
-                const now = audioContext.currentTime;
-                
-                // Main melody oscillator
-                const osc1 = audioContext.createOscillator();
-                const gain1 = audioContext.createGain();
-                
-                osc1.type = 'sine';
-                osc1.connect(gain1);
-                gain1.connect(audioContext.destination);
-                
-                gain1.gain.setValueAtTime(0.08, now);
-                gain1.gain.exponentialRampToValueAtTime(0.01, now + 8);
-                
-                osc1.frequency.setValueAtTime(130, now);
-                osc1.frequency.exponentialRampToValueAtTime(195, now + 4);
-                osc1.frequency.exponentialRampToValueAtTime(130, now + 8);
-                
-                osc1.start(now);
-                osc1.stop(now + 8);
-                
-                oscillators.push(osc1);
-                gains.push(gain1);
-
-                // Harmonic overtone
-                const osc2 = audioContext.createOscillator();
-                const gain2 = audioContext.createGain();
-                
-                osc2.type = 'sine';
-                osc2.connect(gain2);
-                gain2.connect(audioContext.destination);
-                
-                gain2.gain.setValueAtTime(0.03, now);
-                gain2.gain.exponentialRampToValueAtTime(0.005, now + 8);
-                
-                osc2.frequency.setValueAtTime(260, now);
-                osc2.frequency.exponentialRampToValueAtTime(390, now + 4);
-                osc2.frequency.exponentialRampToValueAtTime(260, now + 8);
-                
-                osc2.start(now);
-                osc2.stop(now + 8);
-                
-                oscillators.push(osc2);
-                gains.push(gain2);
-
-                // Loop setelah 8 detik
-                setTimeout(() => {
-                    isPlaying = false;
-                    if (musicEnabled) {
-                        playAmbientMusic();
-                    }
-                }, 8000);
-
-            } catch (e) {
-                console.error('Error playing music:', e);
-                isPlaying = false;
-            }
-        }
-
-        function stopAmbientMusic() {
-            try {
-                oscillators.forEach(osc => {
-                    try { osc.stop(); } catch(e) {}
-                });
-                oscillators = [];
-                gains = [];
-                isPlaying = false;
-            } catch (e) {
-                console.error('Error stopping music:', e);
-            }
-        }
 
         function toggleMusic() {
             const btn = document.getElementById('musicToggle');
             
-            if (!audioContext) {
-                initAudioContext();
-            }
-            
             if (!musicEnabled) {
                 // Turn ON
                 musicEnabled = true;
-                resumeAudioContext();
-                playAmbientMusic();
+                bgMusic.volume = 0.4;
+                bgMusic.play().catch(e => {
+                    console.log('Musik autoplay blocked, tap screen dulu:', e);
+                });
                 btn.textContent = '🔇 MUSIK OFF';
             } else {
                 // Turn OFF
                 musicEnabled = false;
-                stopAmbientMusic();
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
                 btn.textContent = '🔊 MUSIK ON';
             }
         }
+
+        // Resume musik saat ada user interaction
+        function setupAudioOnInteraction() {
+            if (musicEnabled && bgMusic.paused) {
+                bgMusic.play().catch(e => console.log('Play error:', e));
+            }
+            bgMusic.volume = 0.4;
+        }
+
+        document.addEventListener('click', setupAudioOnInteraction);
+        document.addEventListener('keydown', setupAudioOnInteraction);
 
         // Create stars
         function createStars() {
@@ -693,27 +600,13 @@
         document.getElementById('prevBtn').addEventListener('click', prevSlide);
         document.getElementById('musicToggle').addEventListener('click', toggleMusic);
 
-        // Keyboard navigation
+        // Keyboard navigation & music shortcut
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight') nextSlide();
             if (e.key === 'ArrowLeft') prevSlide();
             if (e.key === 'm' || e.key === 'M') toggleMusic();
+            setupAudioOnInteraction(); // Resume music on any key
         });
-
-        // Initialize audio on any user interaction
-        function setupAudioOnInteraction() {
-            if (!audioContext) {
-                initAudioContext();
-                resumeAudioContext();
-            }
-            document.removeEventListener('click', setupAudioOnInteraction);
-            document.removeEventListener('keydown', setupAudioOnInteraction);
-            document.removeEventListener('touchstart', setupAudioOnInteraction);
-        }
-
-        document.addEventListener('click', setupAudioOnInteraction);
-        document.addEventListener('keydown', setupAudioOnInteraction);
-        document.addEventListener('touchstart', setupAudioOnInteraction);
 
         // Initialize
         createStars();
