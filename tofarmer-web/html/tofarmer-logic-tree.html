@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToFarmer • Arsitek Logika Menoreh (Mermaid Tree Generator)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <title>ToFarmer • Arsitek Logika Menoreh (Offline & Save Session)</title>
     <style>
         :root {
             --bg-color: #070e0a;
@@ -22,7 +21,7 @@
         }
 
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             background: 
                 radial-gradient(circle at top right, rgba(234, 179, 8, 0.05) 0%, transparent 40%),
                 linear-gradient(135deg, #070e0a 0%, #0d1e14 100%);
@@ -38,20 +37,44 @@
             text-align: center;
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        header h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 1.8rem;
+        .header-title h1 {
+            font-size: 1.6rem;
             background: linear-gradient(135deg, var(--accent-yellow) 0%, var(--accent-green) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        header p {
-            font-size: 0.85rem;
+        .header-title p {
+            font-size: 0.8rem;
             color: #84a98c;
-            margin-top: 5px;
+            margin-top: 3px;
+        }
+
+        /* Tombol Sesi Ekspor/Impor di Header */
+        .session-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-sec {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #cbd5e1;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-sec:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-green);
         }
 
         .main-layout {
@@ -67,7 +90,6 @@
             }
         }
 
-        /* Panel Kiri: Pembuat Simpul (Nodes) */
         .workspace {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
@@ -94,7 +116,6 @@
             align-items: center;
         }
 
-        /* Form Tambah Node */
         .node-form {
             background: rgba(0,0,0,0.3);
             padding: 15px;
@@ -118,7 +139,7 @@
             font-weight: bold;
         }
 
-        input, select, textarea {
+        input, select {
             background: rgba(15, 23, 42, 0.8);
             border: 1px solid var(--border-color);
             border-radius: 6px;
@@ -129,10 +150,9 @@
             width: 100%;
         }
 
-        input:focus, select:focus, textarea:focus {
+        input:focus, select:focus {
             outline: none;
             border-color: var(--accent-green);
-            box-shadow: 0 0 5px rgba(74, 222, 128, 0.3);
         }
 
         .btn {
@@ -153,7 +173,6 @@
             box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
         }
 
-        /* List Node Aktif */
         .nodes-list {
             display: flex;
             flex-direction: column;
@@ -197,7 +216,6 @@
             color: white;
         }
 
-        /* Panel Kanan: Output Markdown */
         .output-panel {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
@@ -245,22 +263,31 @@
             color: #38bdf8;
         }
 
-        .help-box {
-            background: rgba(56, 189, 248, 0.05);
-            border-left: 3px solid #38bdf8;
-            padding: 10px;
-            border-radius: 4px;
-            font-size: 0.78rem;
-            line-height: 1.4;
-            color: #cbd5e1;
+        .status-badge {
+            font-size: 0.75rem;
+            color: var(--accent-green);
+            background: rgba(74, 222, 128, 0.1);
+            padding: 3px 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            display: inline-block;
         }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>ToFarmer • Arsitek Logika Menoreh</h1>
-        <p>Alat Bantu Pemetaan Struktur Alur Sasmita Twilight Agritech</p>
+        <div class="header-title">
+            <h1>ToFarmer • Arsitek Logika Menoreh</h1>
+            <p>Drafting Board v2 — Offline Auto-Save</p>
+        </div>
+        <div class="session-controls">
+            <span class="status-badge" id="saveStatus">Tersimpan Otomatis</span>
+            <button class="btn-sec" onclick="exportBackup()">Ekspor Backup (.json)</button>
+            <button class="btn-sec" onclick="triggerImport()">Impor Backup</button>
+            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importBackup(this)">
+            <button class="btn-sec" style="color: #ef4444; border-color: rgba(239,68,68,0.2);" onclick="resetToDefault()">Reset Total</button>
+        </div>
     </header>
 
     <div class="main-layout">
@@ -279,55 +306,43 @@
                     <input type="text" id="nodeText" placeholder="Contoh: Jalur Horisontal / Merinding Gredeng">
                 </div>
                 <div class="form-row">
-                    <label for="parentSelect">Tautkan Ke (Induk Utama):</label>
+                    <label for="parentSelect">Tautkan Ke:</label>
                     <select id="parentSelect">
                         <option value="">-- Berdiri Sendiri / Pintu Masuk --</option>
                     </select>
                 </div>
                 <div class="form-row">
-                    <label for="crossSelect">Hubungkan juga ke (Garis Lain):</label>
+                    <label for="crossSelect">Hubungkan juga ke:</label>
                     <select id="crossSelect">
                         <option value="">-- Tidak Ada Sambungan Silang --</option>
                     </select>
                 </div>
                 <div class="form-row">
                     <label for="crossLabel">Teks Garis Silang:</label>
-                    <input type="text" id="crossLabel" placeholder="Misal: Jika gagal, lompat ke...">
+                    <input type="text" id="crossLabel" placeholder="Hubungan logika silang...">
                 </div>
                 <button class="btn" onclick="addNode()">Tambahkan Simpul ke Bagan</button>
             </div>
 
             <div class="section-title">📂 Daftar Simpul Terdaftar</div>
-            <div class="nodes-list" id="nodesList">
-                <!-- Node item akan muncul di sini secara dinamis -->
-            </div>
+            <div class="nodes-list" id="nodesList"></div>
         </div>
 
-        <!-- PANEL KANAN: OUTPUT MD & MERMAID -->
+        <!-- PANEL KANAN: OUTPUT MD -->
         <div class="output-panel">
             <div class="output-header">
                 <span class="section-title" style="border:none; padding:0;">📝 Output Bagan Markdown (Mermaid)</span>
                 <button class="btn-copy" onclick="copyMarkdown()">Salin ke Clipboard 📋</button>
             </div>
-            
-            <div class="help-box">
-                <b>💡 Cara Menggunakan:</b><br>
-                1. Daftarkan <b>ID Simpul</b> unik (contoh: <code>A</code>, <code>B</code>, <code>C</code>).<br>
-                2. Untuk membuat turunan, pilih <b>Tautkan Ke</b> saat mendaftarkan simpul baru.<br>
-                3. Jika ingin menyambung silang ke jalur lain, gunakan opsi <b>Hubungkan juga ke (Garis Lain)</b>.<br>
-                4. Salin kode di bawah dan tempel ke editor Markdown favorit Anda (Obsidian, GitHub, dll).
-            </div>
-
             <textarea class="markdown-area" id="markdownOutput" readonly></textarea>
         </div>
 
     </div>
 
     <script>
-        // Array untuk menyimpan data simpul
         let nodes = [];
 
-        // Standar Awal untuk ToFarmer
+        // Standar Awal ToFarmer jika memori kosong
         const defaultNodes = [
             { id: "gerbang", text: "Pintu Gerbang Utama", parentId: "", crossId: "", crossLabel: "" },
             { id: "vertikal", text: "Jalur Vertikal (Sambungan Atas)", parentId: "gerbang", crossId: "", crossLabel: "" },
@@ -336,8 +351,33 @@
             { id: "ilham", text: "Gagasan Semesta (Kreatif)", parentId: "vertikal", crossId: "", crossLabel: "" }
         ];
 
-        // Inisialisasi awal
-        nodes = [...defaultNodes];
+        // 1. Ambil data dari LocalStorage saat pertama kali dimuat
+        function loadSession() {
+            const savedData = localStorage.getItem('tofarmer_nodes');
+            if (savedData) {
+                try {
+                    nodes = JSON.parse(savedData);
+                } catch(e) {
+                    nodes = [...defaultNodes];
+                }
+            } else {
+                nodes = [...defaultNodes];
+            }
+        }
+
+        // 2. Simpan data ke LocalStorage
+        function saveSession() {
+            localStorage.setItem('tofarmer_nodes', JSON.stringify(nodes));
+            
+            // Beri umpan balik visual instan
+            const status = document.getElementById('saveStatus');
+            status.innerText = "Tersimpan 💾";
+            status.style.color = "#4ade80";
+            setTimeout(() => {
+                status.innerText = "Tersimpan Otomatis";
+                status.style.color = "";
+            }, 1000);
+        }
 
         function cleanNodeId(input) {
             input.value = input.value.replace(/[^a-zA-Z0-9]/g, '');
@@ -346,12 +386,9 @@
         function updateDropdowns() {
             const parentSelect = document.getElementById('parentSelect');
             const crossSelect = document.getElementById('crossSelect');
-            
-            // Simpan pilihan user saat ini
             const prevParent = parentSelect.value;
             const prevCross = crossSelect.value;
 
-            // Reset
             parentSelect.innerHTML = '<option value="">-- Berdiri Sendiri / Pintu Masuk --</option>';
             crossSelect.innerHTML = '<option value="">-- Tidak Ada Sambungan Silang --</option>';
 
@@ -367,7 +404,6 @@
                 crossSelect.appendChild(opt2);
             });
 
-            // Kembalikan pilihan jika masih ada di daftar
             parentSelect.value = prevParent;
             crossSelect.value = prevCross;
         }
@@ -379,7 +415,6 @@
             nodes.forEach((node, index) => {
                 const item = document.createElement('div');
                 item.className = 'node-item';
-                
                 let parentText = node.parentId ? `⬇ Induk: ${node.parentId}` : '⭐ Gerbang';
                 let crossText = node.crossId ? ` 🔗 Silang ke: ${node.crossId}` : '';
 
@@ -398,26 +433,17 @@
             let md = `### ToFarmer Arsitektur Logika Menoreh\n\n`;
             md += `\`\`\`mermaid\n`;
             md += `flowchart TD\n`;
-            
-            // Konfigurasi Warna Tema ToFarmer (Glow Green & Warm Gold)
             md += `    classDef default fill:#0e1c13,stroke:#4ade80,color:#fff,stroke-width:2px,rx:10px;\n`;
-            md += `    classDef gate fill:#ea580c,stroke:#fef08a,color:#fff,stroke-width:3px,rx:15px;\n`;
-            md += `    classDef spec fill:#1e3a8a,stroke:#38bdf8,color:#fff,stroke-width:2px,rx:10px;\n\n`;
+            md += `    classDef gate fill:#ea580c,stroke:#fef08a,color:#fff,stroke-width:3px,rx:15px;\n\n`;
 
-            // Render Nodes dan Hubungannya
             nodes.forEach(node => {
-                // Beri kelas CSS khusus untuk gerbang masuk utama
                 let nodeClass = (!node.parentId) ? `:::gate` : ``;
-                
-                // Tambahkan Deklarasi Node + Labelnya
                 md += `    ${node.id}["${node.text}"]${nodeClass}\n`;
                 
-                // Hubungan Induk -> Anak
                 if (node.parentId) {
                     md += `    ${node.parentId} --> ${node.id}\n`;
                 }
 
-                // Hubungan Silang Lintas Jalur (Kekuatan Utama DAG Graph)
                 if (node.crossId) {
                     if (node.crossLabel) {
                         md += `    ${node.id} -. "${node.crossLabel}" .-> ${node.crossId}\n`;
@@ -428,7 +454,6 @@
             });
 
             md += `\`\`\``;
-            
             document.getElementById('markdownOutput').value = md;
         }
 
@@ -440,58 +465,102 @@
             const crossLabel = document.getElementById('crossLabel').value.trim();
 
             if (!id || !text) {
-                alert("Harap isi ID Simpul dan Narasi terlebih dahulu!");
+                alert("ID Simpul dan Narasi harus diisi!");
                 return;
             }
 
-            // Validasi ID Duplikat
             if (nodes.some(n => n.id === id)) {
-                alert(`ID Simpul "${id}" sudah digunakan! Gunakan ID unik lain.`);
+                alert(`ID "${id}" sudah ada!`);
                 return;
             }
 
             nodes.push({ id, text, parentId, crossId, crossLabel });
             
-            // Reset Input Form
             document.getElementById('nodeId').value = '';
             document.getElementById('nodeText').value = '';
             document.getElementById('crossLabel').value = '';
             
-            // Sinkronisasi Antarmuka
-            updateDropdowns();
-            renderNodesList();
-            generateMarkdown();
+            saveSession();
+            syncApp();
         }
 
         function deleteNode(index) {
             const deletedNodeId = nodes[index].id;
-            
-            // Konfirmasi
-            if (confirm(`Yakin ingin menghapus simpul [${deletedNodeId}]?`)) {
-                // Bersihkan referensi parentId dan crossId di simpul lain yang menunjuk ke sini
+            if (confirm(`Hapus simpul [${deletedNodeId}]?`)) {
                 nodes.forEach(node => {
                     if (node.parentId === deletedNodeId) node.parentId = "";
                     if (node.crossId === deletedNodeId) node.crossId = "";
                 });
-
                 nodes.splice(index, 1);
-                updateDropdowns();
-                renderNodesList();
-                generateMarkdown();
+                saveSession();
+                syncApp();
             }
+        }
+
+        function resetToDefault() {
+            if (confirm("Apakah Anda yakin ingin menghapus SEMUA simpul dan kembali ke setelan default?")) {
+                nodes = [...defaultNodes];
+                saveSession();
+                syncApp();
+            }
+        }
+
+        // Fitur Ekspor File Cadangan (.json)
+        function exportBackup() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(nodes, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "tofarmer_logic_backup.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        // Fitur Impor File Cadangan (.json)
+        function importBackup(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedNodes = JSON.parse(e.target.result);
+                    if (Array.isArray(importedNodes)) {
+                        nodes = importedNodes;
+                        saveSession();
+                        syncApp();
+                        alert("Bagan berhasil diimpor!");
+                    } else {
+                        alert("Format backup tidak valid.");
+                    }
+                } catch (err) {
+                    alert("Gagal membaca file JSON.");
+                }
+            };
+            reader.readAsText(file);
+            input.value = ''; // Reset input file
         }
 
         function copyMarkdown() {
             const output = document.getElementById('markdownOutput');
             output.select();
             document.execCommand('copy');
-            alert('Bagan Mermaid Markdown berhasil disalin! Anda bisa langsung menempelkannya di Obsidian atau Editor Markdown Anda.');
+            alert('Bagan Mermaid berhasil disalin ke clipboard!');
         }
 
-        // Jalankan saat halaman dibuka pertama kali
-        updateDropdowns();
-        renderNodesList();
-        generateMarkdown();
+        function syncApp() {
+            updateDropdowns();
+            renderNodesList();
+            generateMarkdown();
+        }
+
+        // Bootstrapping aplikasi
+        loadSession();
+        syncApp();
     </script>
 </body>
 </html>
