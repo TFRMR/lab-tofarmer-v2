@@ -21,20 +21,24 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #070e0a 0%, #0d1e14 100%);
             color: var(--text-color);
-            min-height: 100vh;
-            overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: 15px;
+            padding: 10px;
+            overflow: hidden;
         }
 
-        /* Animated background */
+        /* Stars background */
         .stars {
             position: fixed;
             top: 0;
@@ -42,7 +46,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 1;
+            z-index: 0;
         }
 
         .star {
@@ -59,21 +63,29 @@
             50% { opacity: 1; }
         }
 
+        /* Container */
         .container {
             position: relative;
-            width: 90%;
+            width: 95%;
             max-width: 900px;
-            height: auto;
-            min-height: auto;
-            max-height: calc(100vh - 60px);
+            height: 85vh;
             background: var(--panel-bg);
             border: 2px solid var(--border-color);
             border-radius: 20px;
-            padding: 40px 30px 70px 30px;
+            padding: 50px 40px;
             box-shadow: 0 0 40px rgba(74, 222, 128, 0.2), inset 0 0 40px rgba(74, 222, 128, 0.05);
             z-index: 2;
-            overflow-y: auto;
-            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Slides */
+        .slides-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -81,10 +93,10 @@
         }
 
         .slide {
-            position: relative;
+            position: absolute;
             width: 100%;
-            min-height: auto;
-            padding: 20px;
+            height: 100%;
+            padding: 30px;
             text-align: center;
             opacity: 0;
             transition: opacity 0.8s ease-in-out;
@@ -93,53 +105,54 @@
             justify-content: center;
             align-items: center;
             gap: 15px;
+            pointer-events: none;
         }
 
         .slide.active {
             opacity: 1;
             z-index: 10;
+            pointer-events: auto;
         }
 
         .slide h1 {
-            font-size: 2.3em;
-            margin-bottom: 20px;
+            font-size: 2.5em;
             color: var(--accent-yellow);
             text-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
             font-weight: 700;
             letter-spacing: 2px;
-            min-height: auto;
+            margin: 0;
         }
 
         .slide h2 {
             font-size: 2em;
             color: var(--accent-green);
-            margin-bottom: 20px;
+            margin: 0;
         }
 
         .slide p {
             font-size: 1.1em;
             line-height: 1.6;
-            margin: 10px 0;
+            margin: 0;
             color: #e0e0e0;
             max-width: 800px;
         }
 
         .typing-text {
-            min-height: 80px;
-            font-size: 1em;
+            font-size: 1.2em;
             color: var(--accent-green);
             font-weight: 500;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            min-height: 60px;
+            max-width: 800px;
         }
 
         .emoji-container {
             font-size: 70px;
-            margin: 8px 0;
-            height: 90px;
             display: flex;
             justify-content: center;
             align-items: center;
-            position: relative;
+            gap: 15px;
+            margin: 0;
         }
 
         .emoji {
@@ -156,35 +169,16 @@
             50% { transform: translateY(-30px); }
         }
 
-        .emoji-float {
-            position: absolute;
-            animation: float 4s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
-            50% { transform: translateY(-50px) rotate(5deg); opacity: 1; }
-        }
-
-        .pulse {
-            animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
         .pilar {
             display: inline-block;
-            margin: 8px 12px;
+            margin: 8px;
             padding: 12px 18px;
             background: rgba(74, 222, 128, 0.1);
             border: 2px solid var(--border-color);
             border-radius: 15px;
             font-size: 0.95em;
             color: var(--accent-green);
-            transition: all 0.4s ease;
+            transition: all 0.3s ease;
         }
 
         .pilar:hover {
@@ -194,9 +188,10 @@
             border-color: var(--accent-green);
         }
 
+        /* Controls */
         .controls {
-            position: absolute;
-            bottom: 15px;
+            position: fixed;
+            bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 20;
@@ -204,17 +199,17 @@
             gap: 20px;
             align-items: center;
             background: rgba(14, 28, 19, 0.95);
-            padding: 12px 20px;
+            padding: 12px 25px;
             border: 1px solid rgba(74, 222, 128, 0.2);
             border-radius: 50px;
         }
 
         button {
-            padding: 12px 25px;
+            padding: 10px 20px;
             background: rgba(74, 222, 128, 0.2);
             border: 2px solid var(--accent-green);
             color: var(--accent-yellow);
-            font-size: 1em;
+            font-size: 0.95em;
             font-weight: 700;
             border-radius: 50px;
             cursor: pointer;
@@ -235,9 +230,9 @@
 
         .slide-counter {
             color: var(--accent-green);
-            font-size: 1.1em;
+            font-size: 1em;
             font-weight: 700;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
 
         .music-toggle {
@@ -262,201 +257,165 @@
         }
 
         @media (max-width: 768px) {
-            .container {
-                padding: 40px 25px;
-                height: 95vh;
-            }
-
-            .slide h1 {
-                font-size: 2em;
-            }
-
-            .slide p {
-                font-size: 1.1em;
-            }
-
-            .emoji-container {
-                font-size: 60px;
-                height: 80px;
-            }
-
-            .pilar {
-                font-size: 0.9em;
-                margin: 10px 10px;
-                padding: 15px 20px;
-            }
-
-            .controls {
-                bottom: 20px;
-                gap: 10px;
-            }
-
-            button {
-                padding: 10px 20px;
-                font-size: 0.85em;
-            }
+            body { padding: 5px; }
+            .container { width: 98%; padding: 30px 20px; height: 85vh; }
+            .slide { padding: 20px; }
+            .slide h1 { font-size: 1.8em; }
+            .slide p, .typing-text { font-size: 0.95em; }
+            .emoji-container { font-size: 50px; gap: 10px; }
+            .pilar { font-size: 0.8em; padding: 8px 12px; margin: 5px; }
+            .controls { bottom: 15px; gap: 10px; padding: 10px 15px; }
+            button { padding: 8px 15px; font-size: 0.85em; }
+            .music-toggle { padding: 8px 15px; font-size: 0.85em; }
         }
     </style>
 </head>
 <body>
-    <!-- Animated stars background -->
+    <!-- Stars background -->
     <div class="stars" id="starsContainer"></div>
 
     <!-- Main container -->
     <div class="container">
-        <!-- SLIDE 1: Opening -->
-        <div class="slide active">
-            <div class="emoji-container">
-                <span class="emoji">🌾</span>
-                <span class="emoji">💻</span>
-                <span class="emoji">🌱</span>
-            </div>
-            <h1>TOFARMER</h1>
-            <div class="typing-text" id="slide1-text"></div>
-            <p style="margin-top: 15px; font-size: 1em; color: var(--accent-yellow);">Ekosistem Pembelajaran Bertani Cerdas</p>
-        </div>
-
-        <!-- SLIDE 2: Filosofi -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">🧠</span>
-            </div>
-            <h1>Pertanian itu INTELEKTUAL</h1>
-            <div class="typing-text" id="slide2-text"></div>
-            <p style="margin-top: 15px; font-size: 1.1em; color: var(--accent-green);">Bukan hanya kerja tangan, tapi kerja pikiran & hati</p>
-        </div>
-
-        <!-- SLIDE 3: Visi -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">🏞️</span>
-            </div>
-            <h1>VISI: Pertanian Mandiri</h1>
-            <div class="typing-text" id="slide3-text"></div>
-            <p style="margin-top: 15px; font-size: 1.1em; color: var(--accent-green);">Petani jadi peneliti. Ladang jadi sekolah. Panen jadi konsekuensi.</p>
-        </div>
-
-        <!-- SLIDE 4: Proses > Hasil -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">📊</span>
-            </div>
-            <h1>PROSES > HASIL</h1>
-            <div class="typing-text" id="slide4-text"></div>
-            <p style="margin-top: 15px; font-size: 1em; color: var(--accent-yellow); font-weight: 700;">Perjalanan lebih penting daripada tujuan</p>
-        </div>
-
-        <!-- SLIDE 5: 5 Pilar Part 1 -->
-        <div class="slide">
-            <h1 style="margin-bottom: 20px;">5 PILAR ToFarmer</h1>
-            <div style="margin: 12px 0;">
-                <div class="pilar">🎨 Komunitas Kreatif</div>
-                <div class="pilar">🔧 Inovasi & Teknologi</div>
-            </div>
-            <div style="margin: 10px 0;">
-                <div class="pilar">🌻 Ladang Belajar</div>
-            </div>
-            <div style="margin: 10px 0;">
-                <div class="pilar">💰 Keuangan Transparan</div>
-                <div class="pilar">🧘 Refleksi Petapa</div>
-            </div>
-            <p style="margin-top: 15px; color: var(--accent-green);">Saling bekerja sama seperti jari-jari tangan</p>
-        </div>
-
-        <!-- SLIDE 6: Pilar 1 -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">🎨</span>
-            </div>
-            <h1>Komunitas Kreatif</h1>
-            <div class="typing-text" id="slide6-text"></div>
-            <p style="margin-top: 30px; color: var(--accent-green);">Penjaga ingatan, pendokumentasi ilmu dari ladang</p>
-        </div>
-
-        <!-- SLIDE 7: Pilar 2 -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">🔧</span>
-            </div>
-            <h1>Inovasi & Teknologi</h1>
-            <div class="typing-text" id="slide7-text"></div>
-            <p style="margin-top: 30px; color: var(--accent-green);">Teknologi mengikuti proses, bukan memerintah</p>
-        </div>
-
-        <!-- SLIDE 8: Pilar 3 -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">🌾</span>
-            </div>
-            <h1>Ladang Belajar</h1>
-            <div class="typing-text" id="slide8-text"></div>
-            <p style="margin-top: 30px; color: var(--accent-green);">Sumber data utama, laboratorium hidup</p>
-        </div>
-
-        <!-- SLIDE 9: Pilar 4 -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">💰</span>
-            </div>
-            <h1>Keuangan Transparan</h1>
-            <div class="typing-text" id="slide9-text"></div>
-            <p style="margin-top: 30px; color: var(--accent-green);">Penyangga waktu & keberlanjutan, bukan pengendali</p>
-        </div>
-
-        <!-- SLIDE 10: Pilar 5 -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">🧘</span>
-            </div>
-            <h1>Refleksi Petapa</h1>
-            <div class="typing-text" id="slide10-text"></div>
-            <p style="margin-top: 30px; color: var(--accent-green);">Penjaga etika, makna, dan arah jangka panjang</p>
-        </div>
-
-        <!-- SLIDE 11: Perjalanan Masuk -->
-        <div class="slide">
-            <h1>Jalan Masuk ToFarmer</h1>
-            <div style="margin: 15px 0;">
-                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1em;">
-                    💬 FASE 1: OBROLAN
-                    <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Diskusi santai, kenal nilai</p>
+        <!-- Slides wrapper -->
+        <div class="slides-wrapper">
+            <!-- SLIDE 1 -->
+            <div class="slide active">
+                <div class="emoji-container">
+                    <span class="emoji">🌾</span>
+                    <span class="emoji">💻</span>
+                    <span class="emoji">🌱</span>
                 </div>
-                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1em;">
-                    🔥 FASE 2: AKSI
-                    <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Praktik nyata sesuai minat</p>
+                <h1>TOFARMER</h1>
+                <div class="typing-text" id="slide0-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-yellow);">Ekosistem Pembelajaran Bertani Cerdas</p>
+            </div>
+
+            <!-- SLIDE 2 -->
+            <div class="slide">
+                <div class="emoji-container">
+                    <span class="emoji">🧠</span>
                 </div>
-                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1em;">
-                    ⚙️ FASE 3: INTEGRASI
-                    <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Siklus operasional formal</p>
+                <h1>Pertanian itu INTELEKTUAL</h1>
+                <div class="typing-text" id="slide1-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-green);">Bukan hanya kerja tangan, tapi kerja pikiran & hati</p>
+            </div>
+
+            <!-- SLIDE 3 -->
+            <div class="slide">
+                <div class="emoji-container">
+                    <span class="emoji">🏞️</span>
+                </div>
+                <h1>VISI: Pertanian Mandiri</h1>
+                <div class="typing-text" id="slide2-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-green);">Petani jadi peneliti. Ladang jadi sekolah. Panen jadi konsekuensi.</p>
+            </div>
+
+            <!-- SLIDE 4 -->
+            <div class="slide">
+                <div class="emoji-container">
+                    <span class="emoji">📊</span>
+                </div>
+                <h1>PROSES > HASIL</h1>
+                <div class="typing-text" id="slide3-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-yellow); font-weight: 700;">Perjalanan lebih penting daripada tujuan</p>
+            </div>
+
+            <!-- SLIDE 5 -->
+            <div class="slide">
+                <h1 style="margin-bottom: 10px;">5 PILAR ToFarmer</h1>
+                <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+                    <div class="pilar">🎨 Komunitas Kreatif</div>
+                    <div class="pilar">🔧 Inovasi & Teknologi</div>
+                    <div class="pilar">🌻 Ladang Belajar</div>
+                    <div class="pilar">💰 Keuangan Transparan</div>
+                    <div class="pilar">🧘 Refleksi Petapa</div>
+                </div>
+                <p style="margin-top: 15px; color: var(--accent-green);">Saling bekerja sama seperti jari-jari tangan</p>
+            </div>
+
+            <!-- SLIDE 6 -->
+            <div class="slide">
+                <div class="emoji-container"><span class="emoji">🎨</span></div>
+                <h1>Komunitas Kreatif</h1>
+                <div class="typing-text" id="slide5-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-green);">Penjaga ingatan, pendokumentasi ilmu dari ladang</p>
+            </div>
+
+            <!-- SLIDE 7 -->
+            <div class="slide">
+                <div class="emoji-container"><span class="emoji">🔧</span></div>
+                <h1>Inovasi & Teknologi</h1>
+                <div class="typing-text" id="slide6-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-green);">Teknologi mengikuti proses, bukan memerintah</p>
+            </div>
+
+            <!-- SLIDE 8 -->
+            <div class="slide">
+                <div class="emoji-container"><span class="emoji">🌾</span></div>
+                <h1>Ladang Belajar</h1>
+                <div class="typing-text" id="slide7-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-green);">Sumber data utama, laboratorium hidup</p>
+            </div>
+
+            <!-- SLIDE 9 -->
+            <div class="slide">
+                <div class="emoji-container"><span class="emoji">💰</span></div>
+                <h1>Keuangan Transparan</h1>
+                <div class="typing-text" id="slide8-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-green);">Penyangga waktu & keberlanjutan, bukan pengendali</p>
+            </div>
+
+            <!-- SLIDE 10 -->
+            <div class="slide">
+                <div class="emoji-container"><span class="emoji">🧘</span></div>
+                <h1>Refleksi Petapa</h1>
+                <div class="typing-text" id="slide9-text"></div>
+                <p style="margin-top: 15px; color: var(--accent-green);">Penjaga etika, makna, dan arah jangka panjang</p>
+            </div>
+
+            <!-- SLIDE 11 -->
+            <div class="slide">
+                <h1 style="margin-bottom: 10px;">Jalan Masuk ToFarmer</h1>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="pilar" style="display: block; font-size: 1.1em;">
+                        💬 FASE 1: OBROLAN
+                        <p style="font-size: 0.9em; color: #cbd5e1; margin-top: 5px;">Diskusi santai, kenal nilai</p>
+                    </div>
+                    <div class="pilar" style="display: block; font-size: 1.1em;">
+                        🔥 FASE 2: AKSI
+                        <p style="font-size: 0.9em; color: #cbd5e1; margin-top: 5px;">Praktik nyata sesuai minat</p>
+                    </div>
+                    <div class="pilar" style="display: block; font-size: 1.1em;">
+                        ⚙️ FASE 3: INTEGRASI
+                        <p style="font-size: 0.9em; color: #cbd5e1; margin-top: 5px;">Siklus operasional formal</p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- SLIDE 12: Etika & Prinsip -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 60px;">⚖️</span>
+            <!-- SLIDE 12 -->
+            <div class="slide">
+                <div class="emoji-container"><span class="emoji">⚖️</span></div>
+                <h1>Etika & Prinsip</h1>
+                <div style="margin: 15px 0; text-align: left; max-width: 700px;">
+                    <p style="color: var(--accent-green); text-align: left;">✓ Kejujuran Proses — data dari pengalaman nyata</p>
+                    <p style="color: var(--accent-green); text-align: left;">✓ Tidak Memaksa — partisipasi sukarela</p>
+                    <p style="color: var(--accent-green); text-align: left;">✓ Hormati Alam — pertanian = relasi ekologis</p>
+                    <p style="color: var(--accent-green); text-align: left;">✓ Manusiawi — tetap selaras dengan nilai kemanusiaan</p>
+                </div>
             </div>
-            <h1>Etika & Prinsip</h1>
-            <div style="margin: 12px 0; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;">
-                <p style="color: var(--accent-green);">✓ Kejujuran Proses — data dari pengalaman nyata</p>
-                <p style="color: var(--accent-green);">✓ Tidak Memaksa — partisipasi sukarela</p>
-                <p style="color: var(--accent-green);">✓ Hormati Alam — pertanian = relasi ekologis</p>
-                <p style="color: var(--accent-green);">✓ Manusiawi — tetap selaras dengan nilai kemanusiaan</p>
-            </div>
-        </div>
 
-        <!-- SLIDE 13: Closing -->
-        <div class="slide">
-            <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px; margin: 0 10px;">🌱</span>
-                <span class="emoji" style="font-size: 80px; margin: 0 10px;">✨</span>
-                <span class="emoji" style="font-size: 80px; margin: 0 10px;">🌾</span>
+            <!-- SLIDE 13 -->
+            <div class="slide">
+                <div class="emoji-container">
+                    <span class="emoji">🌱</span>
+                    <span class="emoji">✨</span>
+                    <span class="emoji">🌾</span>
+                </div>
+                <h1>Mulai dari Sini</h1>
+                <p style="margin: 8px 0;">ToFarmer bukan hanya teknologi</p>
+                <p style="margin: 8px 0;">Ini adalah cara baru untuk BELAJAR, BERTANI, dan BERMAKNA</p>
+                <p style="margin-top: 15px; color: var(--accent-yellow); font-weight: 700;">Bergabunglah dengan kami di Menoreh 🏔️</p>
             </div>
-            <h1>Mulai dari Sini</h1>
-            <p style="font-size: 1.1em; margin: 8px 0;">ToFarmer bukan hanya teknologi</p>
-            <p style="font-size: 1.1em; margin: 8px 0;">Ini adalah cara baru untuk BELAJAR, BERTANI, dan BERMAKNA</p>
-            <p style="margin-top: 20px; font-size: 1em; color: var(--accent-yellow); font-weight: 700;">Bergabunglah dengan kami di Menoreh 🏔️</p>
         </div>
     </div>
 
@@ -470,19 +429,19 @@
     <!-- Music toggle -->
     <button class="music-toggle" id="musicToggle">🔊 MUSIK ON</button>
 
-    <!-- Audio element untuk musik -->
+    <!-- Audio -->
     <audio id="bgMusic" preload="auto" loop>
         <source src="/aset/moment-of-peace.mp3" type="audio/mpeg">
     </audio>
 
     <script>
+        // Data
         const slides = document.querySelectorAll('.slide');
         const totalSlides = slides.length;
         let currentSlide = 0;
         let autoplayInterval;
         let isAutoplay = true;
 
-        // Typing animation data
         const typingData = {
             0: "Ekosistem pembelajaran agraris yang mengubah petani menjadi peneliti, dan ladang menjadi sekolah.",
             1: "Kami percaya pertanian adalah aktivitas intelektual & ekologis, bukan sekadar kerja fisik atau bisnis pasar.",
@@ -495,85 +454,64 @@
             9: "Menjaga konsistensi nilai, makna mendalam, dan arah jangka panjang untuk semua pilar."
         };
 
-        // Typing animation function
+        // Functions
         function typeText(elementId, text) {
             const element = document.getElementById(elementId);
             if (!element) return;
-            
             element.textContent = '';
             let index = 0;
-            const speed = 30;
-
             function type() {
                 if (index < text.length) {
                     element.textContent += text[index];
                     index++;
-                    setTimeout(type, speed);
+                    setTimeout(type, 30);
                 }
             }
             type();
         }
 
-        // Show slide function
         function showSlide(n) {
             slides.forEach(slide => slide.classList.remove('active'));
             slides[n].classList.add('active');
             document.getElementById('currentSlide').textContent = n + 1;
-
-            // Trigger typing animation if exists
             if (typingData[n]) {
-                const typingElementId = `slide${n === 0 ? 1 : n === 4 ? '' : n}-text`;
-                if (typingElementId.includes('-text')) {
-                    typeText(typingElementId, typingData[n]);
-                }
+                typeText(`slide${n}-text`, typingData[n]);
             }
         }
 
-        // Next slide
         function nextSlide() {
             currentSlide = (currentSlide + 1) % totalSlides;
             showSlide(currentSlide);
             resetAutoplay();
         }
 
-        // Previous slide
         function prevSlide() {
             currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
             showSlide(currentSlide);
             resetAutoplay();
         }
 
-        // Autoplay function
         function startAutoplay() {
-            autoplayInterval = setInterval(() => {
-                nextSlide();
-            }, 6000);
+            autoplayInterval = setInterval(() => nextSlide(), 6000);
         }
 
         function resetAutoplay() {
-            if (isAutoplay) {
-                clearInterval(autoplayInterval);
-                startAutoplay();
-            }
+            clearInterval(autoplayInterval);
+            if (isAutoplay) startAutoplay();
         }
 
-        // ============== MUSIK CONTROL ==============
+        // Music
         const bgMusic = document.getElementById('bgMusic');
         let musicEnabled = false;
 
         function toggleMusic() {
             const btn = document.getElementById('musicToggle');
-            
             if (!musicEnabled) {
-                // Turn ON
                 musicEnabled = true;
                 bgMusic.volume = 0.4;
-                bgMusic.play().catch(e => {
-                    console.log('Musik autoplay blocked, tap screen dulu:', e);
-                });
+                bgMusic.play().catch(e => console.log('Play blocked:', e));
                 btn.textContent = '🔇 MUSIK OFF';
             } else {
-                // Turn OFF
                 musicEnabled = false;
                 bgMusic.pause();
                 bgMusic.currentTime = 0;
@@ -581,18 +519,7 @@
             }
         }
 
-        // Resume musik saat ada user interaction
-        function setupAudioOnInteraction() {
-            if (musicEnabled && bgMusic.paused) {
-                bgMusic.play().catch(e => console.log('Play error:', e));
-            }
-            bgMusic.volume = 0.4;
-        }
-
-        document.addEventListener('click', setupAudioOnInteraction);
-        document.addEventListener('keydown', setupAudioOnInteraction);
-
-        // Create stars
+        // Stars
         function createStars() {
             const starsContainer = document.getElementById('starsContainer');
             for (let i = 0; i < 50; i++) {
@@ -605,20 +532,18 @@
             }
         }
 
-        // Event listeners
+        // Events
         document.getElementById('nextBtn').addEventListener('click', nextSlide);
         document.getElementById('prevBtn').addEventListener('click', prevSlide);
         document.getElementById('musicToggle').addEventListener('click', toggleMusic);
 
-        // Keyboard navigation & music shortcut
         document.addEventListener('keydown', (e) => {
             if (e.key === 'ArrowRight') nextSlide();
             if (e.key === 'ArrowLeft') prevSlide();
             if (e.key === 'm' || e.key === 'M') toggleMusic();
-            setupAudioOnInteraction(); // Resume music on any key
         });
 
-        // Initialize
+        // Init
         createStars();
         document.getElementById('totalSlides').textContent = totalSlides;
         showSlide(0);
