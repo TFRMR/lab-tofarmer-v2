@@ -472,6 +472,31 @@
     <div class="xp-line"><span>💧 Air</span><span class="pupuk-value" id="hud-water-value">0/5</span></div>
     <div id="offline-queue-badge" style="display:none; margin-top:4px; font-size:9px; color:#fbbf24; text-align:center;"></div>
     <button id="btn-cairkan-tof" onclick="openCairkanModal()" style="width:100%; margin-top:6px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:600; cursor:pointer;">☕ Cairkan ke TOF</button>
+    <button id="btn-pasar" onclick="openPasarModal()" style="width:100%; margin-top:4px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#c9932a,#8a5a1a); color:white; font-weight:600; cursor:pointer;">🛒 Pasar &amp; Olahan</button>
+</div>
+
+<div id="pasar-modal" class="modal-overlay side-panel" onclick="closePasarModal(event)">
+    <div class="modal-box island-modal-box" onclick="event.stopPropagation()" style="max-width:340px;">
+        <button class="modal-close-x" onclick="document.getElementById('pasar-modal').classList.remove('active')">✕</button>
+        <span class="island-icon">🛒</span>
+        <div class="modal-username" style="color:#e0ac4a;">Pasar &amp; Olahan</div>
+
+        <div id="pasar-gudang" style="font-size:11px; color:#cbd5e1; margin:8px 0; padding:8px; background:rgba(255,255,255,0.06); border-radius:8px;">Memuat gudang...</div>
+
+        <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">🔥 Olahan</div>
+        <button class="btn-modal-action" onclick="mulaiProsesProduksi('rebus_ubi_jalar')" style="margin-bottom:6px;">Rebus Ubi Jalar (2 mentah → 1 rebus, 2 XP)</button>
+        <div id="pasar-olahan-list"></div>
+
+        <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">🏪 Jual ke Koperasi (cepat, harga tetap)</div>
+        <div id="pasar-koperasi-list"></div>
+
+        <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">🤝 Pasar Bebas (harga bisa nego, tunggu pembeli)</div>
+        <div id="pasar-bebas-jual"></div>
+        <div id="pasar-bebas-list" style="max-height:160px; overflow-y:auto; margin-top:6px;"></div>
+
+        <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">😋 Makan Sendiri</div>
+        <button class="btn-modal-action" onclick="makanBarang('ubi_rebus', 1)">Makan 1 Ubi Rebus (+25 XP, lebih kecil dari jual)</button>
+    </div>
 </div>
 
 <div id="cairkan-modal" class="modal-overlay side-panel" onclick="closeCairkanModal(event)">
@@ -940,6 +965,156 @@
         });
     }
 
+    // ============== PASAR & OLAHAN 🛒 ==============
+    async function openPasarModal() {
+        if (isGuestUser()) { showToast('Login dulu untuk buka Pasar.', true); return; }
+        document.getElementById('pasar-modal').classList.add('active');
+        await refreshPasarPanel();
+    }
+    function closePasarModal(e) { if (e.target === document.getElementById('pasar-modal')) document.getElementById('pasar-modal').classList.remove('active'); }
+
+    async function refreshPasarPanel() {
+        const gudangEl = document.getElementById('pasar-gudang');
+        const olahanEl = document.getElementById('pasar-olahan-list');
+        const koperasiEl = document.getElementById('pasar-koperasi-list');
+        const bebasJualEl = document.getElementById('pasar-bebas-jual');
+        const bebasListEl = document.getElementById('pasar-bebas-list');
+
+        try {
+            const [{ data: gudang }, { data: proses }, { data: hargaKoperasi }, { data: listingOrang }] = await Promise.all([
+                db.from('inventaris_barang').select('barang_id, qty, barang_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
+                db.from('village_proses_produksi').select('id, proses_id, status, mulai_at, proses_produksi_catalog(nama, waktu_proses_seconds)').eq('owner_id', myUserId).eq('status', 'diproses'),
+                db.from('koperasi_harga').select('barang_id, harga_beli_xp, barang_catalog(nama)'),
+                db.from('pasar_bebas').select('id, penjual_id, barang_id, qty, harga_per_unit_xp, barang_catalog(nama), profiles(username)').eq('status', 'terbuka').neq('penjual_id', myUserId),
+            ]);
+
+            // Gudang
+            gudangEl.innerHTML = (gudang && gudang.length)
+                ? '🎒 Gudang: ' + gudang.map(g => `${(g.barang_catalog && g.barang_catalog.nama) || g.barang_id} ×${g.qty}`).join(', ')
+                : '🎒 Gudang masih kosong. Panen ubi jalar dulu ya.';
+
+            // Olahan berjalan
+            olahanEl.innerHTML = (proses && proses.length) ? proses.map(p => {
+                const nama = (p.proses_produksi_catalog && p.proses_produksi_catalog.nama) || p.proses_id;
+                const waktu = (p.proses_produksi_catalog && p.proses_produksi_catalog.waktu_proses_seconds) || 0;
+                const elapsed = Date.now() - new Date(p.mulai_at).getTime();
+                const siap = elapsed >= waktu * 1000;
+                return `<div class="farm-plot-card">
+                    <strong>${nama}</strong>
+                    <div class="care-progress">${siap ? '✅ Matang, siap diambil' : '🔥 ' + formatDuration(waktu * 1000 - elapsed) + ' lagi'}</div>
+                    <button class="care-btn" onclick="ambilHasilProduksi('${p.id}')" ${!siap ? 'disabled' : ''}>🍲 Ambil Hasil</button>
+                </div>`;
+            }).join('') : '';
+
+            // Jual cepat ke koperasi -- cuma tampilkan barang yang beneran ada di gudang
+            const gudangMap = {};
+            (gudang || []).forEach(g => { gudangMap[g.barang_id] = g.qty; });
+            koperasiEl.innerHTML = (hargaKoperasi || []).filter(h => gudangMap[h.barang_id] > 0).map(h => {
+                const nama = (h.barang_catalog && h.barang_catalog.nama) || h.barang_id;
+                return `<div class="care-btn-row" style="margin-bottom:4px;">
+                    <button class="care-btn" onclick="jualKeKoperasi('${h.barang_id}', ${gudangMap[h.barang_id]})">Jual semua ${nama} (×${gudangMap[h.barang_id]}) @ ${h.harga_beli_xp} XP/unit</button>
+                </div>`;
+            }).join('') || '<p style="font-size:10px; color:#94a3b8;">Belum ada barang buat dijual ke koperasi.</p>';
+
+            // Buat listing pasar bebas -- pakai barang yang ada di gudang
+            bebasJualEl.innerHTML = (gudang && gudang.length) ? gudang.map(g => `
+                <div style="display:flex; gap:4px; margin-bottom:4px;">
+                    <input id="jual-bebas-harga-${g.barang_id}" type="number" min="1" placeholder="Harga/unit XP" style="flex:1; padding:5px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#e2e8f0; font-size:10px;" />
+                    <button class="care-btn" onclick="pasangListingPasar('${g.barang_id}', ${g.qty})">Jual ${(g.barang_catalog && g.barang_catalog.nama) || g.barang_id} (×${g.qty})</button>
+                </div>
+            `).join('') : '';
+
+            // Listing orang lain
+            bebasListEl.innerHTML = (listingOrang && listingOrang.length) ? listingOrang.map(l => `
+                <div class="farm-plot-card">
+                    <strong>${(l.barang_catalog && l.barang_catalog.nama) || l.barang_id} ×${l.qty}</strong>
+                    <div class="care-progress">@${(l.profiles && l.profiles.username) || '???'} — ${l.harga_per_unit_xp} XP/unit</div>
+                    <button class="care-btn" onclick="beliDariPasar('${l.id}', ${l.qty})">Beli semua (${l.harga_per_unit_xp * l.qty} XP)</button>
+                </div>
+            `).join('') : '<p style="font-size:10px; color:#94a3b8;">Belum ada yang jual di pasar bebas.</p>';
+
+        } catch (e) {
+            gudangEl.innerText = 'Gagal memuat data pasar.';
+        }
+    }
+
+    async function mulaiProsesProduksi(prosesId) {
+        await runFarmActionLocked('proses-' + prosesId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_mulai_proses_produksi', { p_user: myUserId, p_proses_id: prosesId }, `Mulai ${prosesId}`);
+            if (error) { showToast('Gagal memulai proses: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            if (!data.success) { showToast(data.message || 'Gagal memulai proses.', true); return; }
+            showToast(`🔥 Proses dimulai! -${data.cost} XP.`);
+            await refreshMyProfile();
+            await refreshPasarPanel();
+        });
+    }
+
+    async function ambilHasilProduksi(instanceId) {
+        await runFarmActionLocked('ambil-' + instanceId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_ambil_hasil_produksi', { p_user: myUserId, p_instance_id: instanceId }, `Ambil hasil ${instanceId}`);
+            if (error) { showToast('Gagal mengambil: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            showToast(data.message || (data.success ? '🍲 Berhasil diambil!' : 'Belum matang.'), !data.success);
+            await refreshPasarPanel();
+        });
+    }
+
+    async function jualKeKoperasi(barangId, qty) {
+        await runFarmActionLocked('jual-koperasi-' + barangId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_jual_ke_koperasi', { p_user: myUserId, p_barang_id: barangId, p_qty: qty }, `Jual ${barangId} ke koperasi`);
+            if (error) { showToast('Gagal jual: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            showToast(data.message || (data.success ? 'Terjual!' : 'Gagal jual.'), !data.success);
+            await refreshMyProfile();
+            await refreshPasarPanel();
+        });
+    }
+
+    async function pasangListingPasar(barangId, qty) {
+        const hargaInput = document.getElementById(`jual-bebas-harga-${barangId}`);
+        const harga = Number(hargaInput ? hargaInput.value : 0);
+        if (!Number.isFinite(harga) || harga < 1) { showToast('Isi harga per unit dulu (angka > 0).', true); return; }
+
+        await runFarmActionLocked('listing-' + barangId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_buat_listing_pasar', { p_user: myUserId, p_barang_id: barangId, p_qty: qty, p_harga_per_unit: harga }, `Jual ${barangId} di pasar bebas`);
+            if (error) { showToast('Gagal pasang listing: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            if (!data.success) { showToast(data.message || 'Gagal pasang listing.', true); return; }
+            showToast('📌 Listing dipasang! Tunggu ada yang beli.');
+            await refreshPasarPanel();
+        });
+    }
+
+    async function beliDariPasar(listingId, qty) {
+        await runFarmActionLocked('beli-' + listingId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_beli_dari_pasar', { p_user: myUserId, p_listing_id: listingId, p_qty: qty }, `Beli dari pasar`);
+            if (error) { showToast('Gagal membeli: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            showToast(data.message || (data.success ? 'Berhasil beli!' : 'Gagal beli.'), !data.success);
+            await refreshMyProfile();
+            await refreshPasarPanel();
+        });
+    }
+
+    // Makan sendiri -- XP kecil dibanding jual, TAPI dilempar ke halaman terpisah buat
+    // animasi/bonus visual (biar game utama tetap ringan, tidak perlu animasi berat di sini).
+    async function makanBarang(barangId, qty) {
+        await runFarmActionLocked('makan-' + barangId, async () => {
+            const { data, error } = await callRpcOrQueue('fn_makan_barang', { p_user: myUserId, p_barang_id: barangId, p_qty: qty }, `Makan ${barangId}`);
+            if (error) { showToast('Gagal makan: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            if (!data.success) { showToast(data.message || 'Gagal makan.', true); return; }
+            await refreshMyProfile();
+            await refreshPasarPanel();
+            if (data.redirect_bonus) {
+                window.open(`celebrate.html?xp=${data.total_xp}&item=${encodeURIComponent(barangId)}`, '_blank');
+            } else {
+                showToast(data.message);
+            }
+        });
+    }
+
     // UTALITAS KALKULASI JARAK & SUDUT 2 JARI
     function getTouchDistance(t1, t2) {
         return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
@@ -1283,7 +1458,9 @@
             const farm = farms[key];
 
             if (!farm || farm.landState === 'fertile') {
-                const cropButtons = getAllCropDefs().map(c => {
+                // Sementara cuma ubi jalar yang bisa ditanam BARU (sudah ada SOP/ilmu bakunya).
+                // Tanaman lain menunggu SOP ditulis dulu -- konsisten dengan pengecekan di fn_plant_crop.
+                const cropButtons = getAllCropDefs().filter(c => c.id === 'ubi_jalar').map(c => {
                     const syaratBibit = BIBIT_CATALOG.find(b => b.crop_id === c.id);
                     if (!syaratBibit) {
                         return `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name} (${c.plant_cost_xp} XP)</button>`;
