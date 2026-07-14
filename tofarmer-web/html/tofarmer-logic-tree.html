@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToFarmer • Live Arsitek Logika Menoreh (100% Offline)</title>
+    <title>ToFarmer • Live Arsitek Logika (Mobile & Desktop)</title>
+    <!-- Memanggil library Mermaid lokal -->
     <script src="mermaid.min.js"></script>
     <style>
         :root {
             --bg-color: #070e0a;
-            --panel-bg: rgba(14, 28, 19, 0.85);
+            --panel-bg: rgba(14, 28, 19, 0.9);
             --border-color: rgba(74, 222, 128, 0.2);
             --text-color: #e2e8f0;
             --accent-green: #4ade80;
@@ -26,24 +27,31 @@
             background: linear-gradient(135deg, #070e0a 0%, #0d1e14 100%);
             color: var(--text-color);
             min-height: 100vh;
-            padding: 15px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            padding: 10px;
+            gap: 10px;
         }
 
         header {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            padding: 12px 20px;
+            padding: 10px 15px;
             border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .header-main {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            width: 100%;
         }
 
         .header-title h1 {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             background: linear-gradient(135deg, var(--accent-yellow) 0%, var(--accent-green) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -51,68 +59,97 @@
 
         .session-controls {
             display: flex;
-            gap: 8px;
-            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
         }
 
         .btn-sec {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.15);
             color: #cbd5e1;
-            padding: 6px 10px;
+            padding: 5px 8px;
             border-radius: 6px;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             cursor: pointer;
         }
 
-        .main-layout {
-            display: grid;
-            grid-template-columns: 380px 1fr;
-            gap: 15px;
-            flex-grow: 1;
-            height: calc(100vh - 90px);
+        /* Navigasi Tab khusus HP */
+        .tab-navigation {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            width: 100%;
+            margin-top: 5px;
         }
 
-        /* Panel Kontrol Kiri */
+        .tab-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #94a3b8;
+            padding: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background: rgba(74, 222, 128, 0.15);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        /* Layout Utama */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 10px;
+            flex-grow: 1;
+            height: calc(100vh - 140px);
+            min-height: 400px;
+        }
+
+        /* Panel Kiri (Sidebar) */
         .sidebar {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 15px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 12px;
             overflow-y: auto;
         }
 
         .section-title {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             color: var(--accent-yellow);
             font-weight: 800;
             border-bottom: 1px solid rgba(255,255,255,0.05);
-            padding-bottom: 5px;
+            padding-bottom: 4px;
         }
 
         .node-form {
             background: rgba(0,0,0,0.3);
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 6px;
         }
 
         .form-row {
             display: grid;
-            grid-template-columns: 85px 1fr;
+            grid-template-columns: 80px 1fr;
             align-items: center;
             gap: 5px;
         }
 
         label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #94a3b8;
         }
 
@@ -120,9 +157,10 @@
             background: rgba(15, 23, 42, 0.8);
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            padding: 6px 10px;
+            padding: 5px 8px;
             color: #fff;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            width: 100%;
         }
 
         .btn {
@@ -132,41 +170,42 @@
             padding: 8px;
             border-radius: 6px;
             font-weight: bold;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             cursor: pointer;
+            margin-top: 5px;
         }
 
         .nodes-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 5px;
         }
 
         .node-item {
             background: rgba(255,255,255,0.02);
             border: 1px solid rgba(255,255,255,0.05);
             border-radius: 6px;
-            padding: 6px 10px;
+            padding: 6px 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
         }
 
         .node-info b { color: var(--accent-green); font-family: monospace; }
-        .node-parent-info { font-size: 0.7rem; color: #64748b; }
+        .node-parent-info { font-size: 0.65rem; color: #64748b; }
 
         .btn-delete {
             background: rgba(239, 68, 68, 0.1);
             border: 1px solid rgba(239, 68, 68, 0.2);
             color: #ef4444;
-            padding: 1px 6px;
+            padding: 1px 5px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
         }
 
-        /* Panel Visual Kanan */
+        /* Panel Kanan (Visual Preview) */
         .preview-area {
             background: #020617;
             border: 1px solid var(--border-color);
@@ -178,45 +217,95 @@
 
         .preview-header {
             background: rgba(255,255,255,0.02);
-            padding: 10px 15px;
+            padding: 8px 12px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        /* Container tempat bagan digambar */
         .canvas-container {
-            padding: 20px;
-            overflow: auto;
+            padding: 15px;
+            overflow: auto; /* Memungkinkan geser/scroll di HP jika bagan besar */
             display: flex;
-            align-items: center;
+            align-items: flex-start; /* Agar tidak terpotong di layar HP */
             justify-content: center;
             background-image: radial-gradient(rgba(74, 222, 128, 0.05) 1px, transparent 1px);
-            background-size: 20px 20px;
+            background-size: 15px 15px;
+            -webkit-overflow-scrolling: touch; /* Scroll halus di iOS/Android */
         }
 
-        /* Menyembunyikan textarea markdown asli, kodenya siap dicopy lewat tombol */
+        #mermaidCanvas {
+            min-width: 320px; /* Mencegah penciutan ekstrem */
+            text-align: center;
+        }
+
         #markdownOutput { display: none; }
+
+        /* RESPONSIVITAS HP (MAKSIMAL 768px) */
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+                gap: 5px;
+            }
+
+            header {
+                padding: 8px;
+            }
+
+            .tab-navigation {
+                display: grid; /* Tampilkan tab di HP */
+            }
+
+            .main-layout {
+                grid-template-columns: 1fr; /* Jadikan satu kolom tumpuk */
+                height: calc(100vh - 160px);
+            }
+
+            /* Logika Sembunyikan/Tampilkan Panel Berdasarkan Tab Aktif */
+            .sidebar {
+                display: flex;
+            }
+            .preview-area {
+                display: none;
+            }
+
+            /* Saat Tab Visual Aktif */
+            body.show-visual .sidebar {
+                display: none;
+            }
+            body.show-visual .preview-area {
+                display: grid;
+            }
+        }
     </style>
 </head>
 <body>
 
     <header>
-        <div class="header-title">
-            <h1>ToFarmer • Live Arsitek Logika</h1>
+        <div class="header-main">
+            <div class="header-title">
+                <h1>ToFarmer • Live Arsitek</h1>
+            </div>
+            <div class="session-controls">
+                <button class="btn-sec" onclick="exportBackup()">Backup</button>
+                <button class="btn-sec" onclick="triggerImport()">Impor</button>
+                <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importBackup(this)">
+                <button class="btn-sec" style="color: #ef4444; border-color: rgba(239,68,68,0.15);" onclick="resetToDefault()">Reset</button>
+            </div>
         </div>
-        <div class="session-controls">
-            <button class="btn-sec" onclick="exportBackup()">Ekspor Backup (.json)</button>
-            <button class="btn-sec" onclick="triggerImport()">Impor Backup</button>
-            <input type="file" id="importFile" style="display: none;" accept=".json" onchange="importBackup(this)">
-            <button class="btn-sec" style="color: #ef4444;" onclick="resetToDefault()">Reset</button>
+        
+        <!-- Tab Navigasi Khusus Layar HP -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" id="btnTabInput" onclick="switchTab('input')">📝 Input Data</button>
+            <button class="tab-btn" id="btnTabVisual" onclick="switchTab('visual')">👁️ Lihat Bagan</button>
         </div>
     </header>
 
     <div class="main-layout">
         
-        <div class="sidebar">
+        <!-- SIDEBAR INPUT (KIRI) -->
+        <div class="sidebar" id="sidebarPanel">
             <div class="section-title">🌱 Tambah Simpul Logika</div>
             <div class="node-form">
                 <div class="form-row">
@@ -237,19 +326,20 @@
                 </div>
                 <div class="form-row">
                     <label for="crossLabel">Ket. Silang:</label>
-                    <input type="text" id="crossLabel" placeholder="Jika kondisi X...">
+                    <input type="text" id="crossLabel" placeholder="Hubungan silang...">
                 </div>
-                <button class="btn" onclick="addNode()">Update & Render Bagan 🚀</button>
+                <button class="btn" onclick="addNode()">Simpan & Update 🚀</button>
             </div>
 
             <div class="section-title">📂 Daftar Simpul Aktif</div>
             <div class="nodes-list" id="nodesList"></div>
         </div>
 
-        <div class="preview-area">
+        <!-- LIVE PREVIEW CANVAS (KANAN) -->
+        <div class="preview-area" id="previewPanel">
             <div class="preview-header">
-                <span class="section-title" style="border:none; padding:0;">👁️ Live Preview (Real-time Canvas)</span>
-                <button class="btn-sec" style="background: rgba(74, 222, 128, 0.1); border-color: var(--accent-green); color: var(--accent-green);" onclick="copyMarkdown()">Salin Teks Markdown 📋</button>
+                <span class="section-title" style="border:none; padding:0;">👁️ Live Preview</span>
+                <button class="btn-sec" style="background: rgba(74, 222, 128, 0.1); border-color: var(--accent-green); color: var(--accent-green);" onclick="copyMarkdown()">Salin Markdown 📋</button>
             </div>
             
             <div class="canvas-container">
@@ -262,12 +352,15 @@
     <textarea id="markdownOutput" readonly></textarea>
 
     <script>
-        // Menginisialisasi Engine Mermaid dengan tema Gelap (Dark)
+        // Set tema gelap untuk Mermaid
         mermaid.initialize({ 
             startOnLoad: false, 
             theme: 'dark',
             securityLevel: 'loose',
-            flowchart: { useMaxWidth: false, htmlLabels: true }
+            flowchart: { 
+                useMaxWidth: false, /* Mencegah gambar mengecil paksa secara ekstrem */
+                htmlLabels: true 
+            }
         });
 
         let nodes = [];
@@ -280,13 +373,32 @@
             { id: "ilham", text: "Gagasan Semesta (Kreatif)", parentId: "vertikal", crossId: "horisontal", crossLabel: "Sinergi Sektor" }
         ];
 
+        // Sistem Tab Switcher di HP
+        function switchTab(tab) {
+            const body = document.body;
+            const btnInput = document.getElementById('btnTabInput');
+            const btnVisual = document.getElementById('btnTabVisual');
+
+            if (tab === 'visual') {
+                body.classList.add('show-visual');
+                btnVisual.classList.add('active');
+                btnInput.classList.remove('active');
+                // Paksa render ulang visual saat tab visual dibuka di HP agar dimensinya pas
+                setTimeout(updateAndRenderGraph, 50); 
+            } else {
+                body.classList.remove('show-visual');
+                btnInput.classList.add('active');
+                btnVisual.classList.remove('active');
+            }
+        }
+
         function loadSession() {
-            const savedData = localStorage.getItem('tofarmer_live_nodes');
+            const savedData = localStorage.getItem('tofarmer_live_nodes_v3');
             nodes = savedData ? JSON.parse(savedData) : [...defaultNodes];
         }
 
         function saveSession() {
-            localStorage.setItem('tofarmer_live_nodes', JSON.stringify(nodes));
+            localStorage.setItem('tofarmer_live_nodes_v3', JSON.stringify(nodes));
         }
 
         function cleanNodeId(input) {
@@ -332,11 +444,15 @@
             });
         }
 
-        // FUNGSI INI AKAN LANGSUNG MERENDER VISUAL DI LAYAR BROWSER
         async function updateAndRenderGraph() {
+            if (nodes.length === 0) {
+                document.getElementById('mermaidCanvas').innerHTML = "<div style='padding:20px;color:#64748b;'>Belum ada simpul. Silakan buat simpul baru.</div>";
+                return;
+            }
+
             let graphDefinition = `flowchart TD\n`;
-            graphDefinition += `    classDef default fill:#0e1c13,stroke:#4ade80,color:#fff,stroke-width:2px,rx:8px;\n`;
-            graphDefinition += `    classDef gate fill:#ea580c,stroke:#fef08a,color:#fff,stroke-width:3px,rx:12px;\n\n`;
+            graphDefinition += `    classDef default fill:#0e1c13,stroke:#4ade80,color:#fff,stroke-width:2px,rx:6px;\n`;
+            graphDefinition += `    classDef gate fill:#ea580c,stroke:#fef08a,color:#fff,stroke-width:3px,rx:10px;\n\n`;
 
             nodes.forEach(node => {
                 let nodeClass = (!node.parentId) ? `:::gate` : ``;
@@ -352,20 +468,18 @@
                 }
             });
 
-            // Bungkus dalam teks Markdown untuk kebutuhan simpan teks
             document.getElementById('markdownOutput').value = `### ToFarmer Arsitektur Logika\n\n\`\`\`mermaid\n${graphDefinition}\`\`\``;
 
-            // Proses rendering visual langsung ke elemen HTML
             const canvas = document.getElementById('mermaidCanvas');
             canvas.removeAttribute('data-processed');
             
             try {
-                const { render } = mermaid;
-                const { svg } = await mermaid.render('graphSvg', graphDefinition);
+                const { svg } = await mermaid.render('graphSvg_' + Math.floor(Math.random() * 100000), graphDefinition);
                 canvas.innerHTML = svg;
             } catch (error) {
-                console.error("Gagal Render Grafik:", error);
-                // Jika error (misal siklus memutar tanpa arah), beri info di konsol
+                console.warn("Sedang memperbarui struktur logika...");
+                // Reset cache internal mermaid jika terjadi error sintaks sementara
+                canvas.innerHTML = "<div style='color:#f87171;font-size:0.8rem;padding:20px;'>Menghubungkan simpul... Tekan Simpan untuk refresh.</div>";
             }
         }
 
@@ -387,6 +501,11 @@
             
             saveSession();
             syncApp();
+
+            // Di HP, setelah submit data, otomatis pindahkan tab ke Visual agar user bisa langsung lihat hasilnya
+            if (window.innerWidth <= 768) {
+                switchTab('visual');
+            }
         }
 
         function deleteNode(index) {
@@ -443,7 +562,7 @@
             output.select();
             document.execCommand('copy');
             output.style.display = 'none';
-            alert('Teks Markdown Mermaid berhasil disalin ke clipboard!');
+            alert('Teks Markdown Mermaid berhasil disalin!');
         }
 
         function syncApp() {
@@ -452,7 +571,7 @@
             updateAndRenderGraph();
         }
 
-        // Mulai Aplikasi
+        // Jalankan Inisialisasi
         loadSession();
         syncApp();
     </script>
