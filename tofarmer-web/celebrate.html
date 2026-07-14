@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kenyang! 🍠 | TOFarmer</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        background: radial-gradient(circle at 50% 30%, #2d4a2b, #0f1f0e);
+        font-family: 'Segoe UI', sans-serif; overflow: hidden; position: relative;
+    }
+    .card {
+        background: rgba(255,255,255,0.08); backdrop-filter: blur(10px);
+        border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
+        padding: 36px 28px; text-align: center; max-width: 320px; z-index: 2;
+        animation: popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.4);
+    }
+    @keyframes popIn { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    .emoji-besar { font-size: 72px; animation: bounce 1.2s ease-in-out infinite; }
+    @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+    h1 { color: #fde68a; font-size: 20px; margin-top: 10px; }
+    .xp-tag {
+        display: inline-block; margin-top: 12px; padding: 8px 18px; border-radius: 999px;
+        background: linear-gradient(90deg,#4caf7a,#c9a227); color: white; font-weight: 700; font-size: 16px;
+    }
+    p.sub { color: #cbd5e1; font-size: 12px; margin-top: 14px; line-height: 1.5; }
+    button {
+        margin-top: 20px; padding: 10px 22px; border: none; border-radius: 10px;
+        background: rgba(255,255,255,0.12); color: white; font-size: 13px; cursor: pointer;
+    }
+    /* Confetti ringan -- cuma beberapa emoji jatuh, murni CSS, bukan library berat */
+    .confetti {
+        position: absolute; top: -10%; font-size: 22px; animation: jatuh linear infinite;
+        opacity: 0.9; z-index: 1;
+    }
+    @keyframes jatuh {
+        0% { transform: translateY(-10vh) rotate(0deg); }
+        100% { transform: translateY(110vh) rotate(360deg); }
+    }
+</style>
+</head>
+<body>
+    <div class="card">
+        <div class="emoji-besar">😋</div>
+        <h1>Kenyang &amp; Puas!</h1>
+        <div class="xp-tag" id="xp-label">+0 XP</div>
+        <p class="sub" id="pesan-sub">Kadang hasil kebun paling nikmat dinikmati sendiri, bukan cuma dijual.</p>
+        <button onclick="window.close()">Kembali ke Desa</button>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(location.search);
+        const xp = params.get('xp') || '0';
+        const item = params.get('item') || 'hasil kebun';
+
+        document.getElementById('xp-label').innerText = `+${xp} XP`;
+        document.getElementById('pesan-sub').innerText =
+            `Kamu makan ${item.replace(/_/g, ' ')} sendiri. Dapat XP lebih kecil dibanding kalau dijual -- ` +
+            `tapi kadang itu pilihan yang tepat: hemat, kenyang, dan hasil kebun sendiri terasa beda.`;
+
+        // Confetti ringan: cuma 12 elemen, CSS animation, tidak ada JS jalan tiap frame.
+        const emojiList = ['🍠', '✨', '🌟', '🍃'];
+        for (let i = 0; i < 12; i++) {
+            const el = document.createElement('div');
+            el.className = 'confetti';
+            el.innerText = emojiList[Math.floor(Math.random() * emojiList.length)];
+            el.style.left = Math.random() * 100 + 'vw';
+            el.style.animationDuration = (3 + Math.random() * 3) + 's';
+            el.style.animationDelay = (Math.random() * 2) + 's';
+            document.body.appendChild(el);
+        }
+    </script>
+</body>
+</html>
