@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToFarmer • Arsitek Logika Menoreh (Mermaid Tree Generator)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #070e0a;
+            --panel-bg: rgba(14, 28, 19, 0.7);
+            --border-color: rgba(74, 222, 128, 0.2);
+            --text-color: #e2e8f0;
+            --accent-green: #4ade80;
+            --accent-yellow: #fef08a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: 
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.05) 0%, transparent 40%),
+                linear-gradient(135deg, #070e0a 0%, #0d1e14 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+        }
+
+        header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            background: linear-gradient(135deg, var(--accent-yellow) 0%, var(--accent-green) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            font-size: 0.85rem;
+            color: #84a98c;
+            margin-top: 5px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+            flex-grow: 1;
+        }
+
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel Kiri: Pembuat Simpul (Nodes) */
+        .workspace {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .section-title {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent-yellow);
+            font-weight: 800;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Form Tambah Node */
+        .node-form {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            align-items: center;
+            gap: 10px;
+        }
+
+        label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-green);
+            box-shadow: 0 0 5px rgba(74, 222, 128, 0.3);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            border: 1px solid var(--accent-green);
+            color: #050b07;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            text-align: center;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        /* List Node Aktif */
+        .nodes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .node-item {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .node-info b {
+            color: var(--accent-green);
+            font-family: monospace;
+            margin-right: 5px;
+        }
+
+        .node-parent-info {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .btn-delete:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        /* Panel Kanan: Output Markdown */
+        .output-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 80vh;
+        }
+
+        .output-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-copy {
+            background: rgba(234, 179, 8, 0.1);
+            border: 1px solid var(--accent-yellow);
+            color: var(--accent-yellow);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-copy:hover {
+            background: var(--accent-yellow);
+            color: #000;
+        }
+
+        textarea.markdown-area {
+            flex-grow: 1;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            resize: none;
+            color: #38bdf8;
+        }
+
+        .help-box {
+            background: rgba(56, 189, 248, 0.05);
+            border-left: 3px solid #38bdf8;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            color: #cbd5e1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>ToFarmer • Arsitek Logika Menoreh</h1>
+        <p>Alat Bantu Pemetaan Struktur Alur Sasmita Twilight Agritech</p>
+    </header>
+
+    <div class="main-layout">
+        
+        <!-- PANEL KIRI: WORKSPACE INPUT -->
+        <div class="workspace">
+            <div class="section-title">🌱 Tambah Langkah / Simpul Baru</div>
+            
+            <div class="node-form">
+                <div class="form-row">
+                    <label for="nodeId">ID Simpul:</label>
+                    <input type="text" id="nodeId" placeholder="Misal: g1, p1, h2 (Tanpa Spasi)" oninput="cleanNodeId(this)">
+                </div>
+                <div class="form-row">
+                    <label for="nodeText">Narasi/Isi:</label>
+                    <input type="text" id="nodeText" placeholder="Contoh: Jalur Horisontal / Merinding Gredeng">
+                </div>
+                <div class="form-row">
+                    <label for="parentSelect">Tautkan Ke (Induk Utama):</label>
+                    <select id="parentSelect">
+                        <option value="">-- Berdiri Sendiri / Pintu Masuk --</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="crossSelect">Hubungkan juga ke (Garis Lain):</label>
+                    <select id="crossSelect">
+                        <option value="">-- Tidak Ada Sambungan Silang --</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label for="crossLabel">Teks Garis Silang:</label>
+                    <input type="text" id="crossLabel" placeholder="Misal: Jika gagal, lompat ke...">
+                </div>
+                <button class="btn" onclick="addNode()">Tambahkan Simpul ke Bagan</button>
+            </div>
+
+            <div class="section-title">📂 Daftar Simpul Terdaftar</div>
+            <div class="nodes-list" id="nodesList">
+                <!-- Node item akan muncul di sini secara dinamis -->
+            </div>
+        </div>
+
+        <!-- PANEL KANAN: OUTPUT MD & MERMAID -->
+        <div class="output-panel">
+            <div class="output-header">
+                <span class="section-title" style="border:none; padding:0;">📝 Output Bagan Markdown (Mermaid)</span>
+                <button class="btn-copy" onclick="copyMarkdown()">Salin ke Clipboard 📋</button>
+            </div>
+            
+            <div class="help-box">
+                <b>💡 Cara Menggunakan:</b><br>
+                1. Daftarkan <b>ID Simpul</b> unik (contoh: <code>A</code>, <code>B</code>, <code>C</code>).<br>
+                2. Untuk membuat turunan, pilih <b>Tautkan Ke</b> saat mendaftarkan simpul baru.<br>
+                3. Jika ingin menyambung silang ke jalur lain, gunakan opsi <b>Hubungkan juga ke (Garis Lain)</b>.<br>
+                4. Salin kode di bawah dan tempel ke editor Markdown favorit Anda (Obsidian, GitHub, dll).
+            </div>
+
+            <textarea class="markdown-area" id="markdownOutput" readonly></textarea>
+        </div>
+
+    </div>
+
+    <script>
+        // Array untuk menyimpan data simpul
+        let nodes = [];
+
+        // Standar Awal untuk ToFarmer
+        const defaultNodes = [
+            { id: "gerbang", text: "Pintu Gerbang Utama", parentId: "", crossId: "", crossLabel: "" },
+            { id: "vertikal", text: "Jalur Vertikal (Sambungan Atas)", parentId: "gerbang", crossId: "", crossLabel: "" },
+            { id: "horisontal", text: "Jalur Horisontal (Sasmita Bumi)", parentId: "gerbang", crossId: "", crossLabel: "" },
+            { id: "hening", text: "Ketenangan Murni (Pasrah)", parentId: "vertikal", crossId: "", crossLabel: "" },
+            { id: "ilham", text: "Gagasan Semesta (Kreatif)", parentId: "vertikal", crossId: "", crossLabel: "" }
+        ];
+
+        // Inisialisasi awal
+        nodes = [...defaultNodes];
+
+        function cleanNodeId(input) {
+            input.value = input.value.replace(/[^a-zA-Z0-9]/g, '');
+        }
+
+        function updateDropdowns() {
+            const parentSelect = document.getElementById('parentSelect');
+            const crossSelect = document.getElementById('crossSelect');
+            
+            // Simpan pilihan user saat ini
+            const prevParent = parentSelect.value;
+            const prevCross = crossSelect.value;
+
+            // Reset
+            parentSelect.innerHTML = '<option value="">-- Berdiri Sendiri / Pintu Masuk --</option>';
+            crossSelect.innerHTML = '<option value="">-- Tidak Ada Sambungan Silang --</option>';
+
+            nodes.forEach(node => {
+                const opt1 = document.createElement('option');
+                opt1.value = node.id;
+                opt1.innerText = `[${node.id}] ${node.text}`;
+                parentSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = node.id;
+                opt2.innerText = `[${node.id}] ${node.text}`;
+                crossSelect.appendChild(opt2);
+            });
+
+            // Kembalikan pilihan jika masih ada di daftar
+            parentSelect.value = prevParent;
+            crossSelect.value = prevCross;
+        }
+
+        function renderNodesList() {
+            const container = document.getElementById('nodesList');
+            container.innerHTML = '';
+
+            nodes.forEach((node, index) => {
+                const item = document.createElement('div');
+                item.className = 'node-item';
+                
+                let parentText = node.parentId ? `⬇ Induk: ${node.parentId}` : '⭐ Gerbang';
+                let crossText = node.crossId ? ` 🔗 Silang ke: ${node.crossId}` : '';
+
+                item.innerHTML = `
+                    <div class="node-info">
+                        <div><b>${node.id}</b>: ${node.text}</div>
+                        <div class="node-parent-info">${parentText}${crossText}</div>
+                    </div>
+                    <button class="btn-delete" onclick="deleteNode(${index})">Hapus</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function generateMarkdown() {
+            let md = `### ToFarmer Arsitektur Logika Menoreh\n\n`;
+            md += `\`\`\`mermaid\n`;
+            md += `flowchart TD\n`;
+            
+            // Konfigurasi Warna Tema ToFarmer (Glow Green & Warm Gold)
+            md += `    classDef default fill:#0e1c13,stroke:#4ade80,color:#fff,stroke-width:2px,rx:10px;\n`;
+            md += `    classDef gate fill:#ea580c,stroke:#fef08a,color:#fff,stroke-width:3px,rx:15px;\n`;
+            md += `    classDef spec fill:#1e3a8a,stroke:#38bdf8,color:#fff,stroke-width:2px,rx:10px;\n\n`;
+
+            // Render Nodes dan Hubungannya
+            nodes.forEach(node => {
+                // Beri kelas CSS khusus untuk gerbang masuk utama
+                let nodeClass = (!node.parentId) ? `:::gate` : ``;
+                
+                // Tambahkan Deklarasi Node + Labelnya
+                md += `    ${node.id}["${node.text}"]${nodeClass}\n`;
+                
+                // Hubungan Induk -> Anak
+                if (node.parentId) {
+                    md += `    ${node.parentId} --> ${node.id}\n`;
+                }
+
+                // Hubungan Silang Lintas Jalur (Kekuatan Utama DAG Graph)
+                if (node.crossId) {
+                    if (node.crossLabel) {
+                        md += `    ${node.id} -. "${node.crossLabel}" .-> ${node.crossId}\n`;
+                    } else {
+                        md += `    ${node.id} -.-> ${node.crossId}\n`;
+                    }
+                }
+            });
+
+            md += `\`\`\``;
+            
+            document.getElementById('markdownOutput').value = md;
+        }
+
+        function addNode() {
+            const id = document.getElementById('nodeId').value.trim();
+            const text = document.getElementById('nodeText').value.trim();
+            const parentId = document.getElementById('parentSelect').value;
+            const crossId = document.getElementById('crossSelect').value;
+            const crossLabel = document.getElementById('crossLabel').value.trim();
+
+            if (!id || !text) {
+                alert("Harap isi ID Simpul dan Narasi terlebih dahulu!");
+                return;
+            }
+
+            // Validasi ID Duplikat
+            if (nodes.some(n => n.id === id)) {
+                alert(`ID Simpul "${id}" sudah digunakan! Gunakan ID unik lain.`);
+                return;
+            }
+
+            nodes.push({ id, text, parentId, crossId, crossLabel });
+            
+            // Reset Input Form
+            document.getElementById('nodeId').value = '';
+            document.getElementById('nodeText').value = '';
+            document.getElementById('crossLabel').value = '';
+            
+            // Sinkronisasi Antarmuka
+            updateDropdowns();
+            renderNodesList();
+            generateMarkdown();
+        }
+
+        function deleteNode(index) {
+            const deletedNodeId = nodes[index].id;
+            
+            // Konfirmasi
+            if (confirm(`Yakin ingin menghapus simpul [${deletedNodeId}]?`)) {
+                // Bersihkan referensi parentId dan crossId di simpul lain yang menunjuk ke sini
+                nodes.forEach(node => {
+                    if (node.parentId === deletedNodeId) node.parentId = "";
+                    if (node.crossId === deletedNodeId) node.crossId = "";
+                });
+
+                nodes.splice(index, 1);
+                updateDropdowns();
+                renderNodesList();
+                generateMarkdown();
+            }
+        }
+
+        function copyMarkdown() {
+            const output = document.getElementById('markdownOutput');
+            output.select();
+            document.execCommand('copy');
+            alert('Bagan Mermaid Markdown berhasil disalin! Anda bisa langsung menempelkannya di Obsidian atau Editor Markdown Anda.');
+        }
+
+        // Jalankan saat halaman dibuka pertama kali
+        updateDropdowns();
+        renderNodesList();
+        generateMarkdown();
+    </script>
+</body>
+</html>
