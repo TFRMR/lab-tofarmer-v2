@@ -28,8 +28,10 @@
             min-height: 100vh;
             overflow: hidden;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
+            padding: 15px;
         }
 
         /* Animated background */
@@ -61,14 +63,17 @@
             position: relative;
             width: 90%;
             max-width: 900px;
-            height: 90vh;
+            height: auto;
+            min-height: auto;
+            max-height: calc(100vh - 60px);
             background: var(--panel-bg);
             border: 2px solid var(--border-color);
             border-radius: 20px;
-            padding: 60px 40px;
+            padding: 40px 30px 70px 30px;
             box-shadow: 0 0 40px rgba(74, 222, 128, 0.2), inset 0 0 40px rgba(74, 222, 128, 0.05);
             z-index: 2;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -76,10 +81,10 @@
         }
 
         .slide {
-            position: absolute;
+            position: relative;
             width: 100%;
-            height: 100%;
-            padding: 40px;
+            min-height: auto;
+            padding: 20px;
             text-align: center;
             opacity: 0;
             transition: opacity 0.8s ease-in-out;
@@ -87,6 +92,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            gap: 15px;
         }
 
         .slide.active {
@@ -95,13 +101,13 @@
         }
 
         .slide h1 {
-            font-size: 2.8em;
-            margin-bottom: 30px;
+            font-size: 2.3em;
+            margin-bottom: 20px;
             color: var(--accent-yellow);
             text-shadow: 0 0 20px rgba(74, 222, 128, 0.4);
             font-weight: 700;
             letter-spacing: 2px;
-            min-height: 80px;
+            min-height: auto;
         }
 
         .slide h2 {
@@ -111,25 +117,25 @@
         }
 
         .slide p {
-            font-size: 1.3em;
-            line-height: 1.8;
-            margin: 15px 0;
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin: 10px 0;
             color: #e0e0e0;
             max-width: 800px;
         }
 
         .typing-text {
-            min-height: 100px;
-            font-size: 1.5em;
+            min-height: 80px;
+            font-size: 1em;
             color: var(--accent-green);
             font-weight: 500;
             letter-spacing: 1px;
         }
 
         .emoji-container {
-            font-size: 100px;
-            margin: 30px 0;
-            height: 120px;
+            font-size: 70px;
+            margin: 8px 0;
+            height: 90px;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -171,12 +177,12 @@
 
         .pilar {
             display: inline-block;
-            margin: 15px 20px;
-            padding: 20px 25px;
+            margin: 8px 12px;
+            padding: 12px 18px;
             background: rgba(74, 222, 128, 0.1);
             border: 2px solid var(--border-color);
             border-radius: 15px;
-            font-size: 1.1em;
+            font-size: 0.95em;
             color: var(--accent-green);
             transition: all 0.4s ease;
         }
@@ -189,14 +195,18 @@
         }
 
         .controls {
-            position: fixed;
-            bottom: 30px;
+            position: absolute;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 20;
             display: flex;
             gap: 20px;
             align-items: center;
+            background: rgba(14, 28, 19, 0.95);
+            padding: 12px 20px;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 50px;
         }
 
         button {
@@ -303,60 +313,60 @@
             </div>
             <h1>TOFARMER</h1>
             <div class="typing-text" id="slide1-text"></div>
-            <p style="margin-top: 40px; font-size: 1.1em; color: var(--accent-yellow);">Ekosistem Pembelajaran Bertani Cerdas</p>
+            <p style="margin-top: 15px; font-size: 1em; color: var(--accent-yellow);">Ekosistem Pembelajaran Bertani Cerdas</p>
         </div>
 
         <!-- SLIDE 2: Filosofi -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">🧠</span>
+                <span class="emoji" style="font-size: 60px;">🧠</span>
             </div>
             <h1>Pertanian itu INTELEKTUAL</h1>
             <div class="typing-text" id="slide2-text"></div>
-            <p style="margin-top: 40px; font-size: 1.1em; color: var(--accent-green);">Bukan hanya kerja tangan, tapi kerja pikiran & hati</p>
+            <p style="margin-top: 15px; font-size: 1.1em; color: var(--accent-green);">Bukan hanya kerja tangan, tapi kerja pikiran & hati</p>
         </div>
 
         <!-- SLIDE 3: Visi -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">🏞️</span>
+                <span class="emoji" style="font-size: 60px;">🏞️</span>
             </div>
             <h1>VISI: Pertanian Mandiri</h1>
             <div class="typing-text" id="slide3-text"></div>
-            <p style="margin-top: 40px; font-size: 1.1em; color: var(--accent-green);">Petani jadi peneliti. Ladang jadi sekolah. Panen jadi konsekuensi.</p>
+            <p style="margin-top: 15px; font-size: 1.1em; color: var(--accent-green);">Petani jadi peneliti. Ladang jadi sekolah. Panen jadi konsekuensi.</p>
         </div>
 
         <!-- SLIDE 4: Proses > Hasil -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">📊</span>
+                <span class="emoji" style="font-size: 60px;">📊</span>
             </div>
             <h1>PROSES > HASIL</h1>
             <div class="typing-text" id="slide4-text"></div>
-            <p style="margin-top: 40px; font-size: 1.2em; color: var(--accent-yellow); font-weight: 700;">Perjalanan lebih penting daripada tujuan</p>
+            <p style="margin-top: 15px; font-size: 1em; color: var(--accent-yellow); font-weight: 700;">Perjalanan lebih penting daripada tujuan</p>
         </div>
 
         <!-- SLIDE 5: 5 Pilar Part 1 -->
         <div class="slide">
             <h1 style="margin-bottom: 20px;">5 PILAR ToFarmer</h1>
-            <div style="margin: 30px 0;">
+            <div style="margin: 12px 0;">
                 <div class="pilar">🎨 Komunitas Kreatif</div>
                 <div class="pilar">🔧 Inovasi & Teknologi</div>
             </div>
-            <div style="margin: 20px 0;">
+            <div style="margin: 10px 0;">
                 <div class="pilar">🌻 Ladang Belajar</div>
             </div>
-            <div style="margin: 20px 0;">
+            <div style="margin: 10px 0;">
                 <div class="pilar">💰 Keuangan Transparan</div>
                 <div class="pilar">🧘 Refleksi Petapa</div>
             </div>
-            <p style="margin-top: 40px; color: var(--accent-green);">Saling bekerja sama seperti jari-jari tangan</p>
+            <p style="margin-top: 15px; color: var(--accent-green);">Saling bekerja sama seperti jari-jari tangan</p>
         </div>
 
         <!-- SLIDE 6: Pilar 1 -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">🎨</span>
+                <span class="emoji" style="font-size: 60px;">🎨</span>
             </div>
             <h1>Komunitas Kreatif</h1>
             <div class="typing-text" id="slide6-text"></div>
@@ -366,7 +376,7 @@
         <!-- SLIDE 7: Pilar 2 -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">🔧</span>
+                <span class="emoji" style="font-size: 60px;">🔧</span>
             </div>
             <h1>Inovasi & Teknologi</h1>
             <div class="typing-text" id="slide7-text"></div>
@@ -376,7 +386,7 @@
         <!-- SLIDE 8: Pilar 3 -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">🌾</span>
+                <span class="emoji" style="font-size: 60px;">🌾</span>
             </div>
             <h1>Ladang Belajar</h1>
             <div class="typing-text" id="slide8-text"></div>
@@ -386,7 +396,7 @@
         <!-- SLIDE 9: Pilar 4 -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">💰</span>
+                <span class="emoji" style="font-size: 60px;">💰</span>
             </div>
             <h1>Keuangan Transparan</h1>
             <div class="typing-text" id="slide9-text"></div>
@@ -396,7 +406,7 @@
         <!-- SLIDE 10: Pilar 5 -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">🧘</span>
+                <span class="emoji" style="font-size: 60px;">🧘</span>
             </div>
             <h1>Refleksi Petapa</h1>
             <div class="typing-text" id="slide10-text"></div>
@@ -406,16 +416,16 @@
         <!-- SLIDE 11: Perjalanan Masuk -->
         <div class="slide">
             <h1>Jalan Masuk ToFarmer</h1>
-            <div style="margin: 40px 0;">
-                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1.2em;">
+            <div style="margin: 15px 0;">
+                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1em;">
                     💬 FASE 1: OBROLAN
                     <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Diskusi santai, kenal nilai</p>
                 </div>
-                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1.2em;">
+                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1em;">
                     🔥 FASE 2: AKSI
                     <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Praktik nyata sesuai minat</p>
                 </div>
-                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1.2em;">
+                <div class="pilar" style="display: block; margin: 15px auto; font-size: 1em;">
                     ⚙️ FASE 3: INTEGRASI
                     <p style="font-size: 0.9em; color: #e0e0e0; margin-top: 10px;">Siklus operasional formal</p>
                 </div>
@@ -425,10 +435,10 @@
         <!-- SLIDE 12: Etika & Prinsip -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 80px;">⚖️</span>
+                <span class="emoji" style="font-size: 60px;">⚖️</span>
             </div>
             <h1>Etika & Prinsip</h1>
-            <div style="margin: 30px 0; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;">
+            <div style="margin: 12px 0; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;">
                 <p style="color: var(--accent-green);">✓ Kejujuran Proses — data dari pengalaman nyata</p>
                 <p style="color: var(--accent-green);">✓ Tidak Memaksa — partisipasi sukarela</p>
                 <p style="color: var(--accent-green);">✓ Hormati Alam — pertanian = relasi ekologis</p>
@@ -439,14 +449,14 @@
         <!-- SLIDE 13: Closing -->
         <div class="slide">
             <div class="emoji-container">
-                <span class="emoji" style="font-size: 100px; margin: 0 10px;">🌱</span>
-                <span class="emoji" style="font-size: 100px; margin: 0 10px;">✨</span>
-                <span class="emoji" style="font-size: 100px; margin: 0 10px;">🌾</span>
+                <span class="emoji" style="font-size: 80px; margin: 0 10px;">🌱</span>
+                <span class="emoji" style="font-size: 80px; margin: 0 10px;">✨</span>
+                <span class="emoji" style="font-size: 80px; margin: 0 10px;">🌾</span>
             </div>
             <h1>Mulai dari Sini</h1>
-            <p style="font-size: 1.3em; margin: 30px 0;">ToFarmer bukan hanya teknologi</p>
-            <p style="font-size: 1.3em; margin: 30px 0;">Ini adalah cara baru untuk BELAJAR, BERTANI, dan BERMAKNA</p>
-            <p style="margin-top: 50px; font-size: 1.2em; color: var(--accent-yellow); font-weight: 700;">Bergabunglah dengan kami di Menoreh 🏔️</p>
+            <p style="font-size: 1.1em; margin: 8px 0;">ToFarmer bukan hanya teknologi</p>
+            <p style="font-size: 1.1em; margin: 8px 0;">Ini adalah cara baru untuk BELAJAR, BERTANI, dan BERMAKNA</p>
+            <p style="margin-top: 20px; font-size: 1em; color: var(--accent-yellow); font-weight: 700;">Bergabunglah dengan kami di Menoreh 🏔️</p>
         </div>
     </div>
 
