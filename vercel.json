@@ -4,20 +4,16 @@
     {
       "src": "tofarmer-web/server.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "tofarmer-api/wrangler.toml",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "tofarmer-api/$1"
+      "dest": "/tofarmer-web/server.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/tofarmer-web/$1"
+      "dest": "/tofarmer-web/index.html"
     }
   ]
 }
