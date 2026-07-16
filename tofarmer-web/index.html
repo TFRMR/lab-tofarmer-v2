@@ -1,1310 +1,827 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToFarmer - Tanam Ilmu, Tuai Ilmu (Mainnet Live)</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-    
-    
-    
-    <style>
-        /* ===================== RESET & BASE ===================== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #0a0e0b 0%, #0f1a14 50%, #050805 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        /* ===================== EMULATOR HP ===================== */
-        .phone-container {
-            width: 100%;
-            max-width: 430px;
-            height: 100vh;
-            max-height: 932px;
-            background: #0a0e0b;
-            border-radius: 50px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            border: 12px solid #1a1a1a;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .phone-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 280px;
-            height: 28px;
-            background: #1a1a1a;
-            border-radius: 0 0 40px 40px;
-            z-index: 100;
-        }
-
-        /* ===================== SCREEN ===================== */
-        .screen {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: hidden;
-            background: #060c08;
-            scroll-behavior: smooth;
-            padding-top: 10px;
-        }
-
-        .screen::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .screen::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .screen::-webkit-scrollbar-thumb {
-            background: rgba(74, 222, 128, 0.3);
-            border-radius: 3px;
-        }
-
-        /* ===================== PAGE ===================== */
-        .page {
-            display: none;
-            padding: 20px 16px 100px 16px;
-            min-height: 100%;
-            animation: fadeIn 0.3s ease-in;
-        }
-
-        .page.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ===================== HEADER ===================== */
-        .header {
-            text-align: center;
-            margin-bottom: 24px;
-            padding-top: 8px;
-        }
-
-        .header-title {
-            font-family: 'Playfair Display', serif;
-            font-size: 28px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 4px;
-        }
-
-        .header-subtitle {
-            color: #64748b;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .network-badge {
-            display: inline-block;
-            background: rgba(34, 197, 94, 0.2);
-            border: 1px solid rgba(34, 197, 94, 0.5);
-            color: #4ade80;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            margin-top: 8px;
-        }
-
-        /* ===================== CARD ===================== */
-        .card {
-            background: rgba(14, 28, 19, 0.5);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(74, 222, 128, 0.15);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 14px;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(234, 179, 8, 0.3);
-        }
-
-        .card-title {
-            color: #fde047;
-            font-size: 16px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .card-subtitle {
-            color: #cbd5e1;
-            font-size: 13px;
-            margin-bottom: 12px;
-        }
-
-        .card-value {
-            color: #4ade80;
-            font-size: 24px;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .card-helper {
-            color: #64748b;
-            font-size: 11px;
-        }
-
-        /* ===================== FORM ===================== */
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-label {
-            display: block;
-            color: #cbd5e1;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        input, select, textarea {
-            width: 100%;
-            padding: 12px 14px;
-            background: rgba(30, 30, 30, 0.7);
-            border: 1px solid rgba(74, 222, 128, 0.2);
-            border-radius: 10px;
-            color: #e2e8f0;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            background: rgba(30, 30, 30, 0.9);
-            border-color: rgba(74, 222, 128, 0.5);
-            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-
-        /* ===================== BUTTON ===================== */
-        .btn {
-            width: 100%;
-            padding: 14px 16px;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
-            color: white;
-            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.3);
-        }
-
-        .btn-primary:hover {
-            box-shadow: 0 12px 24px rgba(34, 197, 94, 0.4);
-        }
-
-        .btn-primary:active {
-            transform: scale(0.98);
-        }
-
-        .btn-secondary {
-            background: rgba(74, 222, 128, 0.15);
-            color: #4ade80;
-            border: 1px solid rgba(74, 222, 128, 0.3);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(74, 222, 128, 0.25);
-        }
-
-        .btn-wallet {
-            background: rgba(30, 30, 30, 0.7);
-            border: 1px solid rgba(74, 222, 128, 0.3);
-            color: #cbd5e1;
-            padding: 12px 14px;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .btn-wallet:hover {
-            background: rgba(30, 30, 30, 0.9);
-            border-color: rgba(74, 222, 128, 0.5);
-        }
-
-        .wallet-icon {
-            font-size: 24px;
-        }
-
-        .wallet-info {
-            flex: 1;
-            text-align: left;
-        }
-
-        .wallet-name {
-            font-weight: 700;
-            font-size: 14px;
-            color: #fde047;
-        }
-
-        .wallet-desc {
-            font-size: 11px;
-            color: #64748b;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-group .btn {
-            flex: 1;
-        }
-
-        /* ===================== NAV BOTTOM ===================== */
-        .nav-bottom {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 70px;
-            background: rgba(14, 28, 19, 0.8);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(74, 222, 128, 0.15);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            padding-bottom: 12px;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            padding: 8px 12px;
-            border-radius: 10px;
-            transition: all 0.2s;
-            color: #64748b;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .nav-item:hover,
-        .nav-item.active {
-            color: #fde047;
-            background: rgba(74, 222, 128, 0.1);
-        }
-
-        .nav-icon {
-            font-size: 24px;
-        }
-
-        /* ===================== STAT BOX ===================== */
-        .stat-box {
-            background: rgba(30, 30, 30, 0.6);
-            border: 1px solid rgba(74, 222, 128, 0.2);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .stat-label {
-            color: #cbd5e1;
-            font-size: 12px;
-        }
-
-        .stat-value {
-            color: #4ade80;
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        /* ===================== LIST ITEM ===================== */
-        .list-item {
-            background: rgba(30, 30, 30, 0.5);
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            border-left: 3px solid #fde047;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .list-item:hover {
-            background: rgba(30, 30, 30, 0.7);
-            transform: translateX(2px);
-        }
-
-        .list-item-title {
-            color: #fde047;
-            font-weight: 700;
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-
-        .list-item-subtitle {
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .list-item-value {
-            color: #4ade80;
-            font-weight: 700;
-            font-size: 16px;
-            text-align: right;
-        }
-
-        /* ===================== TOAST ===================== */
-        .toast {
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(22, 163, 74, 0.9);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            z-index: 50;
-            animation: slideUp 0.3s ease;
-            max-width: 300px;
-            text-align: center;
-        }
-
-        .toast.error {
-            background: rgba(220, 38, 38, 0.9);
-        }
-
-        .toast.warning {
-            background: rgba(251, 146, 60, 0.9);
-        }
-
-        @keyframes slideUp {
-            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px 20px;
-            color: #64748b;
-        }
-
-        .spinner {
-            width: 30px;
-            height: 30px;
-            border: 3px solid rgba(74, 222, 128, 0.2);
-            border-top-color: #4ade80;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 0 auto 12px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #0a0e0b;
-            border-radius: 20px;
-            padding: 30px;
-            max-width: 300px;
-            width: 90%;
-            border: 1px solid rgba(74, 222, 128, 0.2);
-        }
-
-        .modal-header {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        .modal-title {
-            color: #fde047;
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-
-        .modal-subtitle {
-            color: #64748b;
-            font-size: 13px;
-        }
-
-        @media (max-width: 480px) {
-            .phone-container {
-                border-radius: 40px;
-                border-width: 10px;
-                max-height: 100vh;
-            }
-        }
-    </style>
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title id="postTitle">ToFarmer</title>
+
+  <meta name="description" id="postDesc" content="Intip ide, progres, dan eksperimen seru di ekosistem ToFarmer.">
+
+<meta property="og:title" id="ogTitle" content="ToFarmer - Ruang Tanam Karya" />
+<meta property="og:description" id="ogDesc" content="Intip ide, progres, dan eksperimen seru di ekosistem ToFarmer." />
+<meta property="og:image" id="ogImage" content="https://afpzddwuikvwsedzgsee.supabase.co/storage/v1/object/public/profile-posts/tofarmer-kecil.png" />
+<meta property="og:type" content="website" />
+
+
+  <!-- FONT -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+
+  <!-- ALGOSDK -->
+  <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
+<link rel="icon" type="image/png" href="aset/favicon.png">
+  <style>
+    * {
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+      font-family:Inter,sans-serif;
+    }
+
+    /* 🌿 LIGHT FOREST TECH BASE */
+    body {
+      background: #f4f7f5; /* seperti Instagram putih soft */
+      color: #1c2b22;
+      overflow-x:hidden;
+    }
+
+    .container {
+      max-width:1100px;
+      margin:auto;
+      padding:1rem;
+    }
+
+    header {
+      text-align:center;
+      padding:2rem 1rem;
+    }
+
+    .brand {
+      display:inline-flex;
+      align-items:center;
+      gap:12px;
+      text-decoration:none;
+      color:#2f6f4e;
+      font-weight:600;
+    }
+
+    .logo {
+      width:70px;
+      height:70px;
+      border-radius:50%;
+      animation:pulse 4s infinite;
+      background: white;
+      border:2px solid rgba(47,111,78,0.2);
+    }
+
+    @keyframes pulse {
+      0%{filter:drop-shadow(0 0 6px rgba(47,111,78,0.25));}
+      50%{filter:drop-shadow(0 0 18px rgba(47,111,78,0.35));}
+      100%{filter:drop-shadow(0 0 6px rgba(47,111,78,0.25));}
+    }
+
+    /* NAV (clean instagram feel) */
+    nav {
+      display:flex;
+      justify-content:center;
+      gap:15px;
+      margin-bottom:20px;
+    }
+
+    nav a {
+      padding:10px 18px;
+      border:1px solid rgba(47,111,78,0.15);
+      border-radius:12px;
+      color:#2f6f4e;
+      text-decoration:none;
+      font-size:12px;
+      background:#ffffff;
+      transition:0.2s;
+    }
+
+    nav a:hover {
+      background:#e9f4ee;
+      transform: translateY(-1px);
+    }
+
+    /* LAYOUT */
+    .layout {
+      display:flex;
+      gap:20px;
+    }
+
+    .left { width:320px; }
+    .right { flex:1; }
+
+    /* CARD (instagram white card style) */
+    .card {
+      background:#ffffff;
+      border:1px solid rgba(0,0,0,0.06);
+      border-radius:16px;
+      padding:15px;
+      margin-bottom:15px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+    }
+
+    /* ECONOMY BAR */
+    .eco {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 15px;
+  background:#ffffff;
+  border-radius:16px;
+  margin-bottom:15px;
+  border:1px solid rgba(212,175,55,0.2);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+     
+
+    .eco span {
+      color:#6f7f76;
+      font-size:11px;
+    }
+
+    .eco b {
+      color:#c9a227; /* emas lebih soft */
+      font-size:18px;
+    }
+
+/* ===================== AVATAR STACK ===================== */
+.eco-avatars {
+  display:flex;
+  justify-content:flex-end;
+  overflow:hidden;
+}
+
+#avatarStack {
+  display:flex;
+  gap: -10px;
+  overflow-x:auto;
+  padding-right:10px;
+  scrollbar-width:none;
+}
+
+#avatarStack::-webkit-scrollbar {
+  display:none;
+}
+
+.avatar-item {
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  border:2px solid white;
+  object-fit:cover;
+  margin-left:-10px;
+  transition:0.25s;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+}
+
+.avatar-item:hover {
+  transform: translateY(-6px) scale(1.15);
+  z-index:10;
+}
+
+/* MOBILE RESPONSIVE */
+@media(max-width:850px){
+  .eco {
+    grid-template-columns: 1fr;
+    text-align:center;
+  }
+
+  .eco-avatars {
+    justify-content:center;
+  }
+
+  #avatarStack {
+    justify-content:center;
+  }
+}
+    /* FEED */
+    .feed {
+      max-height:600px;
+      overflow-y:auto;
+    }
+
+    .post {
+      background:#ffffff;
+      padding:12px;
+      border-left:3px solid #4caf7a;
+      margin-bottom:10px;
+      border-radius:14px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.04);
+    }
+
+    .user {
+      color:#2f6f4e;
+      font-size:12px;
+      margin-bottom:5px;
+      font-weight:600;
+    }
+
+    .text {
+      font-size:13px;
+      color:#2c3a33;
+    }
+
+/* 🌿 STYLE TOMBOL SHARE MINIMALIS ALA FB KEBUN TOFARMER */
+.post-actions {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04); /* Garis pembatas tipis */
+}
+
+.share-btn {
+  background: transparent;
+  border: none;
+  color: #6f7f76; /* Warna abu-abu daun teduh */
+  font-size: 11px; /* Ukuran kecil minimalis */
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.share-btn:hover {
+  background: rgba(76, 175, 122, 0.08); /* Highlight hijau lembut saat disentuh */
+  color: #2f6f4e; /* Berubah jadi hijau tua ToFarmer */
+}
+
+
+    /* INPUT (instagram-like clean box) */
+    textarea {
+  width:100%;
+  min-height:180px;
+  background:#ffffff;
+
+  border:2px solid
+    rgba(76,175,122,0.14);
+
+  color:#1c2b22;
+
+  padding:18px;
+
+  border-radius:22px;
+
+  resize:none;
+  outline:none;
+
+  font-size:14px;
+  line-height:1.7;
+
+  transition:0.25s;
+
+  box-shadow:
+    0 8px 28px
+    rgba(47,111,78,0.05);
+
+  overflow-y:auto;
+}
+
+   textarea:focus {
+
+  border-color:
+    rgba(76,175,122,0.45);
+
+  box-shadow:
+    0 0 0 5px
+      rgba(76,175,122,0.08),
+
+    0 10px 35px
+      rgba(47,111,78,0.08);
+
+  transform:
+    translateY(-1px);
+}
+
+    /* BUTTON (soft green gold blend) */
+    button {
+      margin-top:10px;
+      width:45%;
+      padding:10px;
+      background:linear-gradient(90deg,#4caf7a,#c9a227);
+      border:none;
+      border-radius:12px;
+      font-weight:bold;
+      cursor:pointer;
+      color:white;
+      transition:0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      opacity:0.95;
+    }
+
+    /* MOBILE */
+    @media(max-width:850px){
+      .layout{flex-direction:column;}
+      .left{width:100%;}
+    }
+/* ==========================
+   TOFARMER FLOATING WA
+========================== */
+
+.tof-wa-float {
+  position: fixed;
+  right: 18px;
+  left: auto;
+  bottom: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    radial-gradient(circle,
+    #5dff9d,
+    #24b45a);
+
+  box-shadow:
+    0 0 10px rgba(37,211,102,.45),
+    0 0 25px rgba(37,211,102,.28),
+    0 0 45px rgba(37,211,102,.16);
+
+  z-index: 99999;
+
+  animation:
+    tofGlow 2s infinite ease-in-out,
+    tofBlink 1.8s infinite;
+
+  transition: .25s;
+}
+
+.tof-wa-float:hover {
+  transform:
+    translateY(-4px)
+    scale(1.08);
+
+  box-shadow:
+    0 0 18px rgba(37,211,102,.6),
+    0 0 40px rgba(37,211,102,.35),
+    0 0 70px rgba(37,211,102,.22);
+}
+
+.tof-wa-float img {
+  width: 34px;
+  height: 34px;
+}
+
+@keyframes tofGlow {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes tofBlink {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .78;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+/* mobile */
+@media(max-width:850px) {
+  .tof-wa-float {
+    width: 58px;
+    height: 58px;
+    left: 14px;
+    bottom: 16px;
+  }
+
+  .tof-wa-float img {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media(max-width:850px){
+
+  /* kecilkan avatar profil */
+  #profileAvatar{
+    width:70px !important;
+    height:70px !important;
+  }
+
+  /* card profil lebih rapat */
+  .left .card{
+    padding:12px !important;
+  }
+
+  /* grid XP/TOF lebih kecil */
+  #profileInfo .card{
+    padding:8px !important;
+  }
+
+  /* font lebih hemat ruang */
+  #profileInfo div{
+    font-size:12px !important;
+  }
+}
+  </style>
 </head>
+
 <body>
 
-    <div class="phone-container">
-        <div class="screen" id="screen">
-
-            <!-- ==================== PAGE: DASHBOARD ==================== -->
-            <div class="page active" id="page-dashboard">
-                <div class="header">
-                    <div class="header-title">🌾 ToFarmer</div>
-                    <div class="header-subtitle">Tanam Ilmu, Tuai Ilmu</div>
-                    <div class="network-badge">✓ Mainnet Live</div>
-                </div>
-
-                <div id="loginPrompt" style="display: block;">
-                    <div class="card" style="text-align: center; margin-bottom: 20px;">
-                        <div style="font-size: 48px; margin-bottom: 12px;">🔗</div>
-                        <div style="color: #fde047; font-size: 18px; font-weight: 700; margin-bottom: 8px;">Login dengan Dompet</div>
-                        <div style="color: #64748b; font-size: 13px; margin-bottom: 20px;">Koneksikan dompet Algorand kamu</div>
-                        
-                        <div id="walletOptions">
-                            <!-- Pera Wallet -->
-                            <button class="btn-wallet" onclick="loginWithWallet('pera')">
-                                <div class="wallet-icon">🔐</div>
-                                <div class="wallet-info">
-                                    <div class="wallet-name">Pera Wallet</div>
-                                    <div class="wallet-desc">Paling populer di Indonesia</div>
-                                </div>
-                            </button>
-
-                            <!-- Lute Wallet -->
-                            <button class="btn-wallet" onclick="loginWithWallet('lute')">
-                                <div class="wallet-icon">🟣</div>
-                                <div class="wallet-info">
-                                    <div class="wallet-name">Lute Wallet</div>
-                                    <div class="wallet-desc">Simple & user-friendly</div>
-                                </div>
-                            </button>
-
-                            <!-- MyAlgo Wallet -->
-                            <button class="btn-wallet" onclick="loginWithWallet('myalgo')">
-                                <div class="wallet-icon">🌐</div>
-                                <div class="wallet-info">
-                                    <div class="wallet-name">MyAlgo Wallet</div>
-                                    <div class="wallet-desc">Via browser</div>
-                                </div>
-                            </button>
-
-                            <!-- Exodus Wallet -->
-                            <button class="btn-wallet" onclick="loginWithWallet('exodus')">
-                                <div class="wallet-icon">🚀</div>
-                                <div class="wallet-info">
-                                    <div class="wallet-name">Exodus Wallet</div>
-                                    <div class="wallet-desc">Multi-currency</div>
-                                </div>
-                            </button>
-
-                            <!-- Defly Wallet -->
-                            <button class="btn-wallet" onclick="loginWithWallet('defly')">
-                                <div class="wallet-icon">⚡</div>
-                                <div class="wallet-info">
-                                    <div class="wallet-name">Defly Wallet</div>
-                                    <div class="wallet-desc">Next-gen wallet</div>
-                                </div>
-                            </button>
-                        </div>
-
-                        <hr style="border: none; border-top: 1px solid rgba(74, 222, 128, 0.2); margin: 20px 0;">
-
-                        <button class="btn btn-secondary" onclick="loginAsDemo()" style="margin-bottom: 10px;">
-                            🎮 Demo Mode (Tanpa Dompet)
-                        </button>
-
-                        <div style="color: #64748b; font-size: 11px; margin-top: 12px; line-height: 1.6;">
-                            ⚠️ Demo mode untuk testing. Poin tidak tersimpan.<br>
-                            Butuh dompet ALGO? 
-                            <a href="https://tokocrypto.com" target="_blank" style="color: #4ade80; text-decoration: none;">Beli di Tokocrypto</a>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="dashboardContent" style="display: none;">
-                    <div class="card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <div class="card-subtitle">Selamat datang,</div>
-                                <div class="card-title" id="userName">Petani</div>
-                            </div>
-                            <div style="font-size: 32px;">👋</div>
-                        </div>
-                    </div>
-
-                    <div class="card">
-                        <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">Dompet Terhubung</div>
-                        <div id="walletDisplay" style="color: #4ade80; font-size: 12px; word-break: break-all; font-family: monospace; background: rgba(30, 30, 30, 0.5); padding: 8px; border-radius: 6px; margin-bottom: 8px;"></div>
-                        <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="logoutUser()">🚪 Logout</button>
-                    </div>
-
-                    <div class="stat-box">
-                        <div class="stat-label">💰 Saldo TOF</div>
-                        <div class="stat-value" id="tofBalance">0</div>
-                    </div>
-
-                    <div class="stat-box">
-                        <div class="stat-label">⭐ Total Poin</div>
-                        <div class="stat-value" id="totalPoints">0</div>
-                    </div>
-
-                    <div class="stat-box">
-                        <div class="stat-label">🏆 Peringkat</div>
-                        <div class="stat-value" id="userRank">#--</div>
-                    </div>
-
-                    <div style="text-align: center; margin: 20px 0; color: #4ade80; font-size: 13px;">
-                        📊 Kontribusi Bulan Ini
-                    </div>
-
-                    <div class="card">
-                        <div class="card-title">🌾 Catat Pengalaman</div>
-                        <div class="card-value" id="miningMemory">0</div>
-                        <div class="card-helper" id="miningMemoryCount">0 catatan</div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-title">🖥️ Hitung Laptop</div>
-                        <div class="card-value" id="miningCompute">0</div>
-                        <div class="card-helper" id="miningComputeCount">0 tugas</div>
-                    </div>
-
-                    <div class="card">
-                        <div class="card-title">✓ Verifikasi Lapangan</div>
-                        <div class="card-value" id="miningVerify">0</div>
-                        <div class="card-helper" id="miningVerifyCount">0 verifikasi</div>
-                    </div>
-
-                    <div style="text-align: center; margin-top: 20px; color: #64748b; font-size: 12px;">
-                        📝 Aktivitas Terbaru
-                    </div>
-
-                    <div id="recentActivities">
-                        <div class="list-item">
-                            <div class="list-item-title">Belum ada aktivitas</div>
-                            <div class="list-item-subtitle">Mulai catat pengalaman kamu!</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== PAGE: CATAT ==================== -->
-            <div class="page" id="page-catat">
-                <div class="header">
-                    <div class="header-title">📝 Catat</div>
-                    <div class="header-subtitle">Pengalaman Berkebun</div>
-                </div>
-
-                <div id="catatContent">
-                    <div class="form-group">
-                        <label class="form-label">Tanggal Catatan</label>
-                        <input type="date" id="catatTanggal">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Apa yang kamu tanam?</label>
-                        <select id="catatKomoditas">
-                            <option value="">-- Pilih --</option>
-                            <option value="bawang">🧅 Bawang</option>
-                            <option value="cabai">🌶️ Cabai</option>
-                            <option value="tomat">🍅 Tomat</option>
-                            <option value="wortel">🥕 Wortel</option>
-                            <option value="sawi">🥬 Sawi</option>
-                            <option value="padi">🌾 Padi</option>
-                            <option value="jagung">🌽 Jagung</option>
-                            <option value="singkong">🥔 Singkong</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Luas Lahan (m²)</label>
-                        <input type="number" id="catatLuas" placeholder="Contoh: 100" min="0">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Hasil Panen (kg)</label>
-                        <input type="number" id="catatHasil" placeholder="Contoh: 45" min="0" step="0.1">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">pH Tanah (opsional, range 6-7)</label>
-                        <input type="number" id="catatPH" placeholder="Contoh: 6.5" min="0" max="14" step="0.1">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Catatan Pengalaman</label>
-                        <textarea id="catatCatatan" placeholder="Ceritakan apa yang kamu alami... (hama, hasil, tips, dll)"></textarea>
-                    </div>
-
-                    <div class="form-group" style="text-align: center; color: #64748b; font-size: 12px;">
-                        💡 Semakin detail catatan, semakin tinggi poin yang didapat!
-                    </div>
-
-                    <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="draftCatat()">💾 Simpan Draft</button>
-                        <button class="btn btn-primary" onclick="kirimCatat()">✓ Kirim</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== PAGE: HITUNG ==================== -->
-            <div class="page" id="page-hitung">
-                <div class="header">
-                    <div class="header-title">🖥️ Hitung</div>
-                    <div class="header-subtitle">Tugas untuk Laptop</div>
-                </div>
-
-                <div id="hitungContent">
-                    <div class="card">
-                        <div class="card-title">✓ Laptop Siap</div>
-                        <div class="card-subtitle">Sistem kami siap menerima tugas komputasi dari laptop kamu</div>
-                    </div>
-
-                    <div style="color: #64748b; font-size: 13px; margin: 20px 0; text-align: center;">
-                        📋 Tugas Tersedia
-                    </div>
-
-                    <div id="hitungTasks">
-                        <div class="list-item">
-                            <div class="list-item-title">📊 Analisis Data Bawang</div>
-                            <div class="list-item-subtitle">Durasi: ~1 jam | Reward: 250 TOF</div>
-                            <div style="margin-top: 10px;">
-                                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="startTask('bawang-analysis')">Mulai</button>
-                            </div>
-                        </div>
-
-                        <div class="list-item">
-                            <div class="list-item-title">🌤️ Prediksi Cuaca Musim</div>
-                            <div class="list-item-subtitle">Durasi: ~30 menit | Reward: 150 TOF</div>
-                            <div style="margin-top: 10px;">
-                                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="startTask('weather-predict')">Mulai</button>
-                            </div>
-                        </div>
-
-                        <div class="list-item">
-                            <div class="list-item-title">📸 Klasifikasi Foto Tanah</div>
-                            <div class="list-item-subtitle">Durasi: ~45 menit | Reward: 200 TOF</div>
-                            <div style="margin-top: 10px;">
-                                <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px;" onclick="startTask('soil-classify')">Mulai</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="color: #4ade80; font-size: 13px; margin: 20px 0; text-align: center;">
-                        ⏳ Tugas Sedang Berjalan
-                    </div>
-
-                    <div id="hitungActive">
-                        <div class="list-item">
-                            <div class="list-item-title">📋 Tidak ada tugas aktif</div>
-                            <div class="list-item-subtitle">Klik "Mulai" untuk memulai tugas</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== PAGE: VERIFIKASI ==================== -->
-            <div class="page" id="page-verifikasi">
-                <div class="header">
-                    <div class="header-title">✓ Verifikasi</div>
-                    <div class="header-subtitle">Di Lapangan</div>
-                </div>
-
-                <div style="color: #64748b; font-size: 13px; margin: 16px 0; text-align: center;">
-                    📍 Lokasi Terdekat
-                </div>
-
-                <div id="verifikasiLocations">
-                    <div class="list-item">
-                        <div class="list-item-title">🗺️ Ladang Siti (2 km)</div>
-                        <div class="list-item-subtitle">Verifikasi: Tanam Bawang Musim Hujan</div>
-                        <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="color: #4ade80; font-size: 13px;">Reward: 400 TOF</span>
-                            <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; width: auto;" onclick="openVerifikasi('siti')">Mulai</button>
-                        </div>
-                    </div>
-
-                    <div class="list-item">
-                        <div class="list-item-title">🗺️ Sawah Budi (5 km)</div>
-                        <div class="list-item-subtitle">Verifikasi: Cabai Anti-Hama</div>
-                        <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="color: #4ade80; font-size: 13px;">Reward: 350 TOF</span>
-                            <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; width: auto;" onclick="openVerifikasi('budi')">Mulai</button>
-                        </div>
-                    </div>
-
-                    <div class="list-item">
-                        <div class="list-item-title">🗺️ Kebun Rini (8 km)</div>
-                        <div class="list-item-subtitle">Verifikasi: Tomat Organik</div>
-                        <div style="margin-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="color: #4ade80; font-size: 13px;">Reward: 300 TOF</span>
-                            <button class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; width: auto;" onclick="openVerifikasi('rini')">Mulai</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== PAGE: ILMU ==================== -->
-            <div class="page" id="page-ilmu">
-                <div class="header">
-                    <div class="header-title">📚 Ilmu</div>
-                    <div class="header-subtitle">Pertanian</div>
-                </div>
-
-                <div class="form-group">
-                    <input type="text" id="ilmuSearch" placeholder="🔍 Cari ilmu pertanian...">
-                </div>
-
-                <div style="color: #64748b; font-size: 13px; margin: 16px 0;">
-                    ⭐ Ilmu Populer
-                </div>
-
-                <div id="ilmuList">
-                    <div class="list-item">
-                        <div class="list-item-title">🌾 Tanam Bawang Musim Hujan</div>
-                        <div class="list-item-subtitle">⭐⭐⭐⭐⭐ (47 rating) • Budi ✓</div>
-                        <div style="margin-top: 6px; color: #64748b; font-size: 12px;">
-                            Hasil: 45-50 kg/ha
-                        </div>
-                    </div>
-
-                    <div class="list-item">
-                        <div class="list-item-title">🌶️ Cabai Anti-Hama Organik</div>
-                        <div class="list-item-subtitle">⭐⭐⭐⭐ (32 rating) • Siti ✓</div>
-                        <div style="margin-top: 6px; color: #64748b; font-size: 12px;">
-                            Hasil: 30-35 kg/ha
-                        </div>
-                    </div>
-
-                    <div class="list-item">
-                        <div class="list-item-title">🍅 Tomat Musim Kemarau</div>
-                        <div class="list-item-subtitle">⭐⭐⭐ (12 rating) • Rudi</div>
-                        <div style="margin-top: 6px; color: #64748b; font-size: 12px;">
-                            Hasil: 25-30 kg/ha
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== PAGE: LEADERBOARD ==================== -->
-            <div class="page" id="page-leaderboard">
-                <div class="header">
-                    <div class="header-title">🏆 Leaderboard</div>
-                    <div class="header-subtitle">Top Contributors Bulan Ini</div>
-                </div>
-
-                <div style="color: #64748b; font-size: 13px; margin: 16px 0; text-align: center;">
-                    Top 10 Kontributor
-                </div>
-
-                <div class="list-item">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div class="list-item-title">🥇 Budi Santoso</div>
-                            <div class="list-item-subtitle">45 catatan + 32 tugas + 28 verifikasi</div>
-                        </div>
-                        <div style="color: #fde047; font-weight: 700; font-size: 16px;">127.5k</div>
-                    </div>
-                </div>
-
-                <div class="list-item">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div class="list-item-title">🥈 Siti Nurhaliza</div>
-                            <div class="list-item-subtitle">38 catatan + 28 tugas + 25 verifikasi</div>
-                        </div>
-                        <div style="color: #fde047; font-weight: 700; font-size: 16px;">115.2k</div>
-                    </div>
-                </div>
-
-                <div class="list-item">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div class="list-item-title">🥉 Rini Wijaya</div>
-                            <div class="list-item-subtitle">35 catatan + 25 tugas + 22 verifikasi</div>
-                        </div>
-                        <div style="color: #fde047; font-weight: 700; font-size: 16px;">108.7k</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ==================== PAGE: PROFILE ==================== -->
-            <div class="page" id="page-profile">
-                <div class="header">
-                    <div class="header-title">👤 Profile</div>
-                    <div class="header-subtitle">Akun Kamu</div>
-                </div>
-
-                <div id="profileContent">
-                    <div class="card" style="text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 12px;">👨‍🌾</div>
-                        <div style="color: #fde047; font-size: 18px; font-weight: 700; margin-bottom: 4px;" id="profileName">Petani</div>
-                        <div style="color: #64748b; font-size: 13px;" id="profileLocation">Desa, Kulon Progo</div>
-                        <div style="color: #64748b; font-size: 11px; margin-top: 8px;" id="profileJoined">Bergabung: --</div>
-                    </div>
-
-                    <div class="stat-box">
-                        <div class="stat-label">Total Poin</div>
-                        <div class="stat-value" id="profileTotalPoints">0</div>
-                    </div>
-
-                    <div class="stat-box">
-                        <div class="stat-label">💰 Saldo TOF</div>
-                        <div class="stat-value" id="profileTOFBalance">0</div>
-                    </div>
-
-                    <div class="stat-box">
-                        <div class="stat-label">⭐ Reputasi</div>
-                        <div class="stat-value">⭐⭐⭐⭐⭐</div>
-                    </div>
-
-                    <div style="color: #4ade80; font-size: 13px; margin: 20px 0; text-align: center;">
-                        📊 Statistik
-                    </div>
-
-                    <div class="card">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: #cbd5e1;">📝 Catatan Dibuat</span>
-                            <span style="color: #fde047; font-weight: 700;" id="profileMemoryCount">0</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-                            <span style="color: #cbd5e1;">🖥️ Tugas Hitung Selesai</span>
-                            <span style="color: #fde047; font-weight: 700;" id="profileComputeCount">0</span>
-                        </div>
-                        <div style="display: flex; justify-content: space-between;">
-                            <span style="color: #cbd5e1;">✓ Verifikasi Lapangan</span>
-                            <span style="color: #fde047; font-weight: 700;" id="profileVerifyCount">0</span>
-                        </div>
-                    </div>
-
-                    <div style="color: #4ade80; font-size: 13px; margin: 20px 0; text-align: center;">
-                        ⚙️ Pengaturan
-                    </div>
-
-                    <button class="btn btn-secondary" style="margin-bottom: 10px;" onclick="editProfile()">✏️ Edit Profile</button>
-                    <button class="btn btn-secondary" style="margin-bottom: 10px;" onclick="viewWalletInfo()">💰 Info Dompet</button>
-                    <button class="btn btn-secondary" style="margin-bottom: 10px;" onclick="openSettings()">⚙️ Pengaturan</button>
-                    <button class="btn btn-secondary" onclick="logoutUser()">🚪 Keluar</button>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- ==================== NAV BOTTOM ==================== -->
-        <div class="nav-bottom">
-            <div class="nav-item active" onclick="switchPage('dashboard', this)">
-                <div class="nav-icon">🏠</div>
-                <div>Beranda</div>
-            </div>
-            <div class="nav-item" onclick="switchPage('catat', this)">
-                <div class="nav-icon">📝</div>
-                <div>Catat</div>
-            </div>
-            <div class="nav-item" onclick="switchPage('hitung', this)">
-                <div class="nav-icon">🖥️</div>
-                <div>Hitung</div>
-            </div>
-            <div class="nav-item" onclick="switchPage('verifikasi', this)">
-                <div class="nav-icon">✓</div>
-                <div>Verifikasi</div>
-            </div>
-            <div class="nav-item" onclick="switchPage('ilmu', this)">
-                <div class="nav-icon">📚</div>
-                <div>Ilmu</div>
-            </div>
-            <div class="nav-item" onclick="switchPage('leaderboard', this)">
-                <div class="nav-icon">🏆</div>
-                <div>Top</div>
-            </div>
-            <div class="nav-item" onclick="switchPage('profile', this)">
-                <div class="nav-icon">👤</div>
-                <div>Profile</div>
-            </div>
-        </div>
+<div class="container">
+
+  <!-- HEADER -->
+  <header>
+    <a class="brand" href="#">
+      <img class="logo" src="aset/logo.png"/>
+      <h2>ToFarmer</h2>
+    </a>
+  </header>
+
+  <!-- NAV -->
+  <nav>
+    <a href="html/dashboard.html">Sumbang Ilmu</a>
+    <a href="html/fitur-ilmu.html">Fitur & Info</a>
+<a href="/desa-tof.html">Mode Game</a>
+  </nav>
+
+  <!-- ECONOMY -->
+  <div class="eco eco-grid">
+
+  <!-- TOTAL ASSET -->
+  <div>
+    <span>Total Aset Ekosistem</span><br>
+    <b id="totalAsset">0 TOF</b>
+  </div>
+<div class="avatars" id="avatarStack"></div>
+  <!-- USERS -->
+  <div>
+    <span>Users</span><br>
+    <b id="rankSummary">0</b>
+  </div>
+
+  <!-- AVATAR STACK BARU -->
+  <div class="eco-avatars">
+   
+  </div>
+
+</div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- LEFT -->
+   <div class="left">
+
+  
+
+ <div class="card" style="padding:10px 12px;">
+
+  <div style="display:flex;align-items:center;gap:10px;">
+
+    <!-- Foto bulat kecil -->
+    <div style="position:relative;flex-shrink:0;">
+      <img
+        id="profileAvatar"
+        style="
+          display:none;
+          width:46px;
+          height:46px;
+          border-radius:50%;
+          object-fit:cover;
+          border:2px solid rgba(76,175,122,.25);
+          box-shadow:0 2px 8px rgba(0,0,0,.08);
+        "
+      >
+      <!-- tombol edit kecil -->
+      <label
+        id="editAvatarBtn"
+        for="avatarInput"
+        style="
+          display:flex;
+          visibility:hidden;
+          position:absolute;
+          right:-2px;
+          bottom:-2px;
+          width:16px;
+          height:16px;
+          border-radius:50%;
+          background:#4caf7a;
+          color:white;
+          cursor:pointer;
+          font-size:8px;
+          align-items:center;
+          justify-content:center;
+          box-shadow:0 1px 4px rgba(0,0,0,.15);
+        "
+      >✏️</label>
+      <input type="file" id="avatarInput" accept="image/*" style="display:none;">
     </div>
 
-    <script>
-        // ===================== CONFIG MAINNET =====================
-       const CONFIG = {
-    API_URL: 'https://tofarmer.xyz/api',
-            NETWORK: 'mainnet',
-            TOF_ASA_ID: 3558306283,
-            ALGOD_SERVER: 'https://mainnet-api.algonode.cloud',
-            SUPPORTED_WALLETS: ['pera', 'lute', 'myalgo', 'exodus', 'defly']
-        };
+    <!-- Info di samping foto -->
+    <div id="profileInfo" style="flex:1;min-width:0;">
+      <div style="font-weight:700;font-size:13px;color:#2f6f4e;">@guest</div>
+      <div style="display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;">
+        <div style="background:#f5f5f5;border-radius:6px;padding:2px 6px;font-size:10px;color:#555;">XP: <b>0</b></div>
+        <div style="background:#fff8e1;border-radius:6px;padding:2px 6px;font-size:10px;color:#c9a227;">TOF: <b>0</b></div>
+        <div style="background:#eef7f1;border-radius:6px;padding:2px 6px;font-size:10px;color:#2f6f4e;font-weight:600;">🌱 GROWER</div>
+      </div>
+    </div>
 
-        // ===================== GLOBAL STATE =====================
-        let currentUser = null;
-        let userWallet = null;
-        let userToken = null;
+  </div>
 
-        // ===================== UTILITY FUNCTIONS =====================
-        function switchPage(pageName, element) {
-            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
-            document.getElementById(`page-${pageName}`).classList.add('active');
-            
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            if (element) element.classList.add('active');
+</div>
+  <div class="card">
+    
+  </div>
 
-            document.getElementById('screen').scrollTop = 0;
-        }
+  <div class="card" id="walletCard">
+  <h4 style="color:#2f6f4e;font-size:12px;">Algorand wallet</h4>
 
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerText = message;
-            document.body.appendChild(toast);
+  <button id="connectBtn" onclick="connectWallet()">
+    🔑 MASUK / DAFTAR 🌿
+  </button>
 
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
-        }
+  <button id="logoutBtn" onclick="disconnectWallet()" style="display:none;">
+    🚪 LOGOUT
+  </button>
+</div>
 
-     async function loginWithWallet(walletType) {
-    showToast(`🔗 Menghubungkan ${walletType}...`, 'warning');
+  <div class="card">
+    <h4 style="color:#c9a227;font-size:12px;">FASE PROGRESS SEKARANG</h4>
+    <div style="height:6px;background:#eee;border-radius:5px;overflow:hidden;">
+      <div id="faseBar" style="width:20%;height:100%;background:linear-gradient(90deg,#4caf7a,#c9a227);"></div>
+    </div>
+   <p
+  id="faseText"
+  style="
+    font-size:10px;
+    margin-top:4px;
+    color:#6f7f76;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  "
+>
+  Loading...
+</p>
+  </div>
+<!-- ================= QLR RADAR ================= -->
+<div class="card" id="qlrCard">
+  <h4 style="color:#2f6f4e;font-size:12px;">
+    🌱 QUANTUM LIFE RADAR → 100K TOF
+  </h4>
 
-    try {
-        let address = null;
+  <p style="font-size:10px;color:#6f7f76;margin-bottom:10px;">
+    Estimasi waktu tiap user menuju 100.000 TOF (10% compounding/bulan)
+  </p>
+<div id="qlrContainer"></div>
+  <p style="font-size:10px;color:#6f7f76;text-align:center;margin-bottom:12px;">
+    Peringkat Energi dan KontribusiToFarmer
+  </p>
 
-        switch(walletType) {
-            case 'pera':
-                // Pera Wallet - check if available in browser
-                if (typeof PeraWalletConnect !== 'undefined') {
-                    const peraWallet = new PeraWalletConnect();
-                    const accts = await peraWallet.connect();
-                    address = accts[0];
-                } else if (window.algorand) {
-                    // Alternative: use window.algorand if available
-                    const accts = await window.algorand.connect();
-                    address = accts[0];
-                } else {
-                    showToast('Pera Wallet tidak ditemukan. Install dari https://perawallet.app', 'error');
-                    return;
-                }
-                break;
+  <div id="radar-peringkat-list" style="display:flex;flex-direction:column;gap:6px;max-height:185px;overflow-y:auto;padding-right:2px;">
+    <p style="font-size:8px;color:#94a3b8;text-align:center;font-style:italic;margin:0;">Memuat Data...</p>
+  </div>
+</div>
+</div>
 
-            case 'lute':
-                if (window.lute && typeof window.lute.connect === 'function') {
-                    const accts = await window.lute.connect();
-                    address = accts[0];
-                } else {
-                    showToast('Lute Wallet tidak ditemukan. Install dari https://lute.app', 'error');
-                    return;
-                }
-                break;
+    <!-- RIGHT -->
+    <div class="right">
 
-            case 'myalgo':
-                if (window.MyAlgoConnect) {
-                    const myalgo = new window.MyAlgoConnect();
-                    const myalgoAccounts = await myalgo.connect();
-                    address = myalgoAccounts[0].address;
-                } else {
-                    showToast('MyAlgo Wallet tidak ditemukan', 'error');
-                    return;
-                }
-                break;
+      <div
+  class="card"
+  style="
+    padding:20px;
+    border:1px solid
+      rgba(76,175,122,0.12);
 
-            default:
-                showToast('Wallet type tidak didukung', 'error');
-                return;
-        }
+    box-shadow:
+      0 12px 32px
+      rgba(47,111,78,0.06);
+  "
+>
 
-        if (!address) {
-            showToast('❌ Koneksi dompet gagal', 'error');
-            return;
-        }
 
-        // Rest of login logic...
-        const response = await fetch(`${CONFIG.API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                address, 
-                network: CONFIG.NETWORK,
-                walletType: walletType
-            })
-        });
+<textarea 
+  id="postBox" 
+  placeholder="Ada Progres apa? ide, atau keajaiban hari ini di ToFarmer? Tulis di sini..." 
+  style="
+    width: 100%; 
+    min-height: 120px;
+    padding: 16px; 
+    border-radius: 16px; 
+    
+    /* GANTI BAGIAN INI UNTUK EFEK TEGAS */
+    border: 3px solid #2f6f4e; 
+    outline: none;
+    box-shadow: 0px 0px 0px #c9a227;
+    font-size: 14px;
+    transition: all 0.3s ease;
+  "
+  onfocus="this.style.boxShadow='6px 6px 0px #c9a227';" 
+  onblur="this.style.boxShadow='4px 4px 0px #c9a227';"
+></textarea>
+<div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+ 
 
-        if (response.ok) {
-            const data = await response.json();
-            currentUser = data.user;
-            userWallet = address;
-            userToken = data.token;
-            
-            localStorage.setItem('userToken', userToken);
-            localStorage.setItem('userWallet', address);
-            localStorage.setItem('walletType', walletType);
-            
-            showToast('✅ Login berhasil!');
-            loadDashboard();
-        } else {
-            const error = await response.json();
-            showToast(`❌ ${error.error || 'Login gagal'}`, 'error');
-        }
-    } catch (error) {
-        console.error('Login error:', error);
-        showToast(`❌ ${error.message}`, 'error');
-    }
-}
-        async function loginAsDemo() {
-            currentUser = {
-                id: 'demo-user',
-                username: 'Demo Petani',
-                wallet: 'demo-wallet-addr',
-                points: 15500,
-                tofBalance: 25.5,
-                rank: 47
-            };
-            userWallet = 'demo-wallet-addr';
-            localStorage.setItem('userMode', 'demo');
-            
-            showToast('🎮 Demo mode aktif (poin tidak tersimpan)');
-            loadDashboard();
-        }
 
-        // ===================== LOAD DASHBOARD =====================
-        async function loadDashboard() {
-            if (!currentUser) return;
 
-            document.getElementById('loginPrompt').style.display = 'none';
-            document.getElementById('dashboardContent').style.display = 'block';
-            
-            // Update UI
-            document.getElementById('userName').innerText = currentUser.username || 'Petani';
-            document.getElementById('walletDisplay').innerText = userWallet.substring(0, 10) + '...' + userWallet.substring(userWallet.length - 10);
-            document.getElementById('totalPoints').innerText = (currentUser.points || 0).toLocaleString('id-ID');
-            document.getElementById('tofBalance').innerText = (currentUser.tofBalance || 0).toFixed(2);
-            document.getElementById('userRank').innerText = `#${currentUser.rank || '--'}`;
+  <label
+    for="imageInput"
+    style="
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:6px 10px;
+      border-radius:999px;
+      cursor:pointer;
 
-            // Load user stats
-            try {
-                const response = await fetch(`${CONFIG.API_URL}/users/${userWallet}/stats`, {
-                    headers: { 'Authorization': `Bearer ${userToken}` }
-                });
-                if (response.ok) {
-                    const stats = await response.json();
-                    document.getElementById('miningMemory').innerText = stats.memoryPoints.toLocaleString('id-ID');
-                    document.getElementById('miningMemoryCount').innerText = `${stats.memoryCount} catatan`;
-                    document.getElementById('miningCompute').innerText = stats.computePoints.toLocaleString('id-ID');
-                    document.getElementById('miningComputeCount').innerText = `${stats.computeCount} tugas`;
-                    document.getElementById('miningVerify').innerText = stats.verifyPoints.toLocaleString('id-ID');
-                    document.getElementById('miningVerifyCount').innerText = `${stats.verifyCount} verifikasi`;
-                }
-            } catch (error) {
-                console.error('Load stats error:', error);
-            }
-        }
+      background:
+        linear-gradient(
+          135deg,
+          rgba(76,175,122,.12),
+          rgba(201,162,39,.10)
+        );
 
-        // ===================== CATAT FUNCTIONS =====================
-        function draftCatat() {
-            const draft = {
-                tanggal: document.getElementById('catatTanggal').value,
-                komoditas: document.getElementById('catatKomoditas').value,
-                luas: document.getElementById('catatLuas').value,
-                hasil: document.getElementById('catatHasil').value,
-                ph: document.getElementById('catatPH').value,
-                catatan: document.getElementById('catatCatatan').value
-            };
-            localStorage.setItem('catatDraft', JSON.stringify(draft));
-            showToast('💾 Draft disimpan ke perangkatmu');
-        }
+      border:1px solid rgba(76,175,122,.16);
 
-        async function kirimCatat() {
-            const tanggal = document.getElementById('catatTanggal').value;
-            const komoditas = document.getElementById('catatKomoditas').value;
-            const luas = document.getElementById('catatLuas').value;
-            const hasil = document.getElementById('catatHasil').value;
+      color:#2f6f4e;
+      font-size:11px;
+      font-weight:600;
 
-            if (!tanggal || !komoditas || !hasil) {
-                showToast('⚠️ Isi semua field yang diperlukan', 'warning');
-                return;
-            }
+      transition:0.2s;
+      user-select:none;
+    "
+    onmouseover="
+      this.style.transform='translateY(-1px)';
+      this.style.boxShadow='0 4px 12px rgba(76,175,122,.12)';
+    "
+    onmouseout="
+      this.style.transform='translateY(0)';
+      this.style.boxShadow='none';
+    "
+  >
+     Foto
+  </label>
 
-            if (!userWallet) {
-                showToast('❌ Silakan login terlebih dahulu', 'error');
-                return;
-            }
+  <span
+    id="imagePreviewText"
+    style="
+      font-size:10px;
+      color:#8a938d;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      max-width:160px;
+    "
+  >
+    
+  </span>
 
-            showToast('📤 Mengirim...', 'warning');
+</div>
 
-            try {
-                const response = await fetch(`${CONFIG.API_URL}/mining/memory/submit`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${userToken}`
-                    },
-                    body: JSON.stringify({
-                        walletAddress: userWallet,
-                        data: {
-                            tanggal,
-                            komoditas,
-                            luas,
-                            hasil,
-                            ph: document.getElementById('catatPH').value,
-                            catatan: document.getElementById('catatCatatan').value
-                        }
-                    })
-                });
+<input
+  type="file"
+  id="imageInput"
+  accept="image/*"
+  style="display:none"
+/>
+  <button onclick="sendPost()">
+    KIRIM
+  </button>
 
-                if (response.ok) {
-                    const data = await response.json();
-                    showToast(`✅ Catatan diterima! Reward: ${data.reward} poin`);
-                    
-                    // Reset form
-                    document.getElementById('catatTanggal').value = '';
-                    document.getElementById('catatKomoditas').value = '';
-                    document.getElementById('catatLuas').value = '';
-                    document.getElementById('catatHasil').value = '';
-                    document.getElementById('catatPH').value = '';
-                    document.getElementById('catatCatatan').value = '';
-                    
-                    // Update dashboard
-                    if (currentUser) {
-                        currentUser.points += data.reward;
-                        loadDashboard();
-                    }
-                } else {
-                    const error = await response.json();
-                    showToast(`❌ ${error.error || 'Gagal mengirim'}`, 'error');
-                }
-            } catch (error) {
-                console.error('Submit error:', error);
-                showToast('❌ Terjadi kesalahan', 'error');
-            }
-        }
+</div>
 
-        // ===================== LOGOUT =====================
-        function logoutUser() {
-            currentUser = null;
-            userWallet = null;
-            userToken = null;
-            localStorage.removeItem('userToken');
-            localStorage.removeItem('userWallet');
-            localStorage.removeItem('walletType');
-            localStorage.removeItem('userMode');
-            
-            document.getElementById('loginPrompt').style.display = 'block';
-            document.getElementById('dashboardContent').style.display = 'none';
-            switchPage('dashboard', document.querySelector('.nav-item:first-child'));
-            showToast('👋 Logout berhasil');
-        }
+      <div class="feed" id="feed">
+        <div class="post">
+          <div class="user">@system</div>
+          <div class="text">ToFarmer engine initialized...</div>
+        </div>
+      </div>
 
-        // ===================== OTHER FUNCTIONS =====================
-        function startTask(taskId) {
-            showToast(`⏳ Tugas ${taskId} dimulai...`, 'warning');
-            setTimeout(() => {
-                showToast(`✅ Tugas selesai! Reward: 250 poin`);
-            }, 2000);
-        }
+    </div>
 
-        function openVerifikasi(location) {
-            showToast(`📍 Membuka lokasi ${location}...`, 'warning');
-        }
+  </div>
 
-        function editProfile() {
-            showToast('✏️ Fitur edit profile segera hadir!', 'warning');
-        }
+</div>
 
-        function viewWalletInfo() {
-            showToast(`💰 Dompet: ${userWallet}`, 'success');
-        }
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="js/rank.js"></script>
+<script src="js/reaction.js"></script>
+<script src="./js/comments.js"></script>
+<script src="js/share.js"></script>
+<script src="js/qlr.js"></script>
+<script src="js/ai-memory.js"></script> 
 
-        function openSettings() {
-            showToast('⚙️ Pengaturan segera hadir!', 'warning');
-        }
 
-        // ===================== INIT =====================
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set default date
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = String(today.getMonth() + 1).padStart(2, '0');
-            const day = String(today.getDate()).padStart(2, '0');
-            document.getElementById('catatTanggal').value = `${year}-${month}-${day}`;
+<script src="app.js"></script>
 
-            // Check if already logged in
-            const token = localStorage.getItem('userToken');
-            const wallet = localStorage.getItem('userWallet');
-            
-            if (token && wallet) {
-                // Restore session
-                currentUser = { username: 'Petani', points: 0, tofBalance: 0 };
-                userWallet = wallet;
-                userToken = token;
-                loadDashboard();
-            } else if (localStorage.getItem('userMode') === 'demo') {
-                loginAsDemo();
-            }
-        });
-    </script>
 
+<!-- ================= PILAR POPUP ================= -->
+<div
+  id="pilarModal"
+  style="
+    position:fixed;
+    inset:0;
+    background:rgba(20,30,25,.45);
+    backdrop-filter:blur(6px);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    padding:20px;
+  "
+>
+
+  <div
+    style="
+      width:100%;
+      max-width:420px;
+      background:rgba(255,255,255,.92);
+      border-radius:24px;
+      padding:22px;
+      border:1px solid rgba(76,175,122,.12);
+      box-shadow:0 20px 50px rgba(0,0,0,.12);
+    "
+  >
+
+    <div style="text-align:center; margin-bottom:18px;">
+
+      <div style="font-size:42px;">
+        🌿
+      </div>
+
+      <h3 style="
+        color:#2f6f4e;
+        font-size:20px;
+        margin-top:8px;
+      ">
+        Pilih Pilar Tulisan
+      </h3>
+
+      <p style="
+        font-size:12px;
+        color:#6f7f76;
+        margin-top:6px;
+      ">
+        Vibes tulisanmu hari ini apa? ☕
+      </p>
+
+    </div>
+
+    <div
+      id="pilarOptions"
+      style="
+        display:grid;
+        gap:10px;
+      "
+    ></div>
+
+  </div>
+</div>
+<!-- FLOATING WHATSAPP -->
+<a
+  href="https://wa.me/6285228028131?text=Halo%20Admin%20ToFarmer%20🌿"
+  class="tof-wa-float"
+  target="_blank"
+>
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/733/733585.png"
+    alt="WA"
+  />
+</a>
+<script>
+document.getElementById("imageInput").addEventListener("change", function (e) {
+  const file = e.target.files?.[0];
+  const previewText = document.getElementById("imagePreviewText");
+
+  if (!file) {
+    previewText.innerText = "";
+    return;
+  }
+
+  let name = file.name;
+
+  if (name.length > 18) {
+    name = name.substring(0, 18) + "...";
+  }
+
+  previewText.innerText = "📷 " + name;
+});
+</script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
