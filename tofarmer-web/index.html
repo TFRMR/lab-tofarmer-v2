@@ -8,8 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
     
-    <!-- ALGORAND WALLET CONNECT -->
-    <script src="https://cdn.jsdelivr.net/npm/@perawallet/connect@1.3.5/dist/perawallet-connect.umd.js"></script>
+    
     
     <style>
         /* ===================== RESET & BASE ===================== */
@@ -1028,100 +1027,92 @@
             }, 3000);
         }
 
-        // ===================== WALLET LOGIN =====================
-        async function loginWithWallet(walletType) {
-            showToast(`🔗 Menghubungkan ${walletType}...`, 'warning');
+     async function loginWithWallet(walletType) {
+    showToast(`🔗 Menghubungkan ${walletType}...`, 'warning');
 
-            try {
-                let provider = null;
-                let address = null;
+    try {
+        let address = null;
 
-                switch(walletType) {
-                    case 'pera':
-                        if (!window.peraWallet) {
-                            showToast('Pera Wallet tidak ditemukan. Install dari https://perawallet.app', 'error');
-                            return;
-                        }
-                        const peraAccounts = await window.peraWallet.connect();
-                        address = peraAccounts[0];
-                        break;
-
-                    case 'lute':
-                        if (!window.lute) {
-                            showToast('Lute Wallet tidak ditemukan. Install dari https://lute.app', 'error');
-                            return;
-                        }
-                        const luteAccounts = await window.lute.signIn();
-                        address = luteAccounts[0];
-                        break;
-
-                    case 'myalgo':
-                        if (!window.MyAlgoConnect) {
-                            showToast('MyAlgo Wallet tidak ditemukan. Buka https://wallet.myalgo.com', 'error');
-                            return;
-                        }
-                        const myalgo = new window.MyAlgoConnect();
-                        const myalgoAccounts = await myalgo.connect();
-                        address = myalgoAccounts[0].address;
-                        break;
-
-                    case 'exodus':
-                        if (!window.exodus || !window.exodus.algorand) {
-                            showToast('Exodus Wallet tidak ditemukan. Install dari https://exodus.com', 'error');
-                            return;
-                        }
-                        const exodusAccounts = await window.exodus.algorand.enable();
-                        address = exodusAccounts[0];
-                        break;
-
-                    case 'defly':
-                        if (!window.deflyWallet) {
-                            showToast('Defly Wallet tidak ditemukan. Install dari https://defly.app', 'error');
-                            return;
-                        }
-                        const deflyAccounts = await window.deflyWallet.connect();
-                        address = deflyAccounts[0];
-                        break;
-                }
-
-                if (!address) {
-                    showToast('❌ Koneksi dompet gagal', 'error');
+        switch(walletType) {
+            case 'pera':
+                // Pera Wallet - check if available in browser
+                if (typeof PeraWalletConnect !== 'undefined') {
+                    const peraWallet = new PeraWalletConnect();
+                    const accts = await peraWallet.connect();
+                    address = accts[0];
+                } else if (window.algorand) {
+                    // Alternative: use window.algorand if available
+                    const accts = await window.algorand.connect();
+                    address = accts[0];
+                } else {
+                    showToast('Pera Wallet tidak ditemukan. Install dari https://perawallet.app', 'error');
                     return;
                 }
+                break;
 
-                // Send to backend for authentication
-                const response = await fetch(`${CONFIG.API_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        address, 
-                        network: CONFIG.NETWORK,
-                        walletType: walletType
-                    })
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    currentUser = data.user;
-                    userWallet = address;
-                    userToken = data.token;
-                    
-                    localStorage.setItem('userToken', userToken);
-                    localStorage.setItem('userWallet', address);
-                    localStorage.setItem('walletType', walletType);
-                    
-                    showToast('✅ Login berhasil!');
-                    loadDashboard();
+            case 'lute':
+                if (window.lute && typeof window.lute.connect === 'function') {
+                    const accts = await window.lute.connect();
+                    address = accts[0];
                 } else {
-                    const error = await response.json();
-                    showToast(`❌ ${error.error || 'Login gagal'}`, 'error');
+                    showToast('Lute Wallet tidak ditemukan. Install dari https://lute.app', 'error');
+                    return;
                 }
-            } catch (error) {
-                console.error('Login error:', error);
-                showToast(`❌ ${error.message}`, 'error');
-            }
+                break;
+
+            case 'myalgo':
+                if (window.MyAlgoConnect) {
+                    const myalgo = new window.MyAlgoConnect();
+                    const myalgoAccounts = await myalgo.connect();
+                    address = myalgoAccounts[0].address;
+                } else {
+                    showToast('MyAlgo Wallet tidak ditemukan', 'error');
+                    return;
+                }
+                break;
+
+            default:
+                showToast('Wallet type tidak didukung', 'error');
+                return;
         }
 
+        if (!address) {
+            showToast('❌ Koneksi dompet gagal', 'error');
+            return;
+        }
+
+        // Rest of login logic...
+        const response = await fetch(`${CONFIG.API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                address, 
+                network: CONFIG.NETWORK,
+                walletType: walletType
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentUser = data.user;
+            userWallet = address;
+            userToken = data.token;
+            
+            localStorage.setItem('userToken', userToken);
+            localStorage.setItem('userWallet', address);
+            localStorage.setItem('walletType', walletType);
+            
+            showToast('✅ Login berhasil!');
+            loadDashboard();
+        } else {
+            const error = await response.json();
+            showToast(`❌ ${error.error || 'Login gagal'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Login error:', error);
+        showToast(`❌ ${error.message}`, 'error');
+    }
+}
         async function loginAsDemo() {
             currentUser = {
                 id: 'demo-user',
