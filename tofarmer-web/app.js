@@ -38,6 +38,7 @@ function showPinSetupModal(username, walletId) {
   return new Promise((resolve) => {
     const modal = document.createElement("div");
     let pinInput = "";
+    let displayTimeout = null;
     
     modal.innerHTML = `
     <div style="
@@ -149,7 +150,7 @@ function showPinSetupModal(username, walletId) {
       btn.onclick = () => {
         if (pinInput.length < 6) {
           pinInput += i;
-          updatePinDisplay();
+          updatePinDisplay(true); // Show digit briefly
         }
       };
       keypad.appendChild(btn);
@@ -174,18 +175,33 @@ function showPinSetupModal(username, walletId) {
     backspaceBtn.onmouseout = () => backspaceBtn.style.background = "#fff";
     backspaceBtn.onclick = () => {
       pinInput = pinInput.slice(0, -1);
-      updatePinDisplay();
+      updatePinDisplay(false);
     };
     keypad.appendChild(backspaceBtn);
     
-    function updatePinDisplay() {
+    function updatePinDisplay(showLastDigit = false) {
       const display = modal.querySelector("#pinDisplay");
-      display.textContent = "•".repeat(pinInput.length) + "•".repeat(6 - pinInput.length);
+      
+      // Clear previous timeout
+      if (displayTimeout) clearTimeout(displayTimeout);
+      
+      if (showLastDigit && pinInput.length > 0) {
+        // Show semua digit sebentar
+        display.textContent = pinInput + "•".repeat(6 - pinInput.length);
+        
+        // Auto-hide ke bullet setelah 0.5 detik
+        displayTimeout = setTimeout(() => {
+          display.textContent = "•".repeat(pinInput.length) + "•".repeat(6 - pinInput.length);
+        }, 500);
+      } else {
+        // Show semua bullet
+        display.textContent = "•".repeat(pinInput.length) + "•".repeat(6 - pinInput.length);
+      }
     }
     
     modal.querySelector("#clearPinBtn").onclick = () => {
       pinInput = "";
-      updatePinDisplay();
+      updatePinDisplay(false);
     };
     
     modal.querySelector("#confirmPinBtn").onclick = async () => {
@@ -211,11 +227,123 @@ function showPinSetupModal(username, walletId) {
   });
 }
 
+// Modal Forgot PIN - Instruksi Manual Reset
+function showForgotPinModal() {
+  const modal = document.createElement("div");
+  
+  modal.innerHTML = `
+  <div style="
+    position:fixed;
+    inset:0;
+    background:rgba(16,25,20,.65);
+    backdrop-filter:blur(12px);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:99999;
+    padding:20px;
+  ">
+    <div style="
+      width:100%;
+      max-width:480px;
+      background:#fff;
+      border-radius:28px;
+      padding:24px;
+      max-height:85vh;
+      overflow-y:auto;
+    ">
+      <div style="text-align:center;">
+        <div style="font-size:50px;">🔐❓</div>
+        <h2 style="color:#2f6f4e;">Lupa PIN?</h2>
+        <p style="font-size:12px;color:#666;margin-top:8px;">
+          Hubungi admin untuk reset PIN Anda
+        </p>
+      </div>
+      
+      <div style="
+        margin-top:20px;
+        padding:16px;
+        background:#fff3cd;
+        border-radius:14px;
+        border-left:4px solid #ffc107;
+      ">
+        <p style="font-size:12px;color:#856404;margin:0;font-weight:600;">
+          📝 Informasi Anda:
+        </p>
+        <p style="font-size:13px;color:#333;margin:8px 0 0 0;font-family:monospace;word-break:break-all;">
+          Username: <strong id="forgotPinUsername">-</strong>
+        </p>
+      </div>
+      
+      <div style="
+        margin-top:16px;
+        padding:16px;
+        background:#e7f3ff;
+        border-radius:14px;
+        border-left:4px solid #2196F3;
+      ">
+        <p style="font-size:12px;color:#1565c0;margin:0;font-weight:600;">
+          💬 Hubungi Admin Dengan:
+        </p>
+        <p style="font-size:12px;color:#333;margin:8px 0 0 0;line-height:1.6;">
+          "Halo admin, saya lupa PIN. Username saya: <strong id="forgotPinUsernameMsg">-</strong>"
+        </p>
+        <p style="font-size:11px;color:#666;margin:8px 0 0 0;font-style:italic;">
+          Admin akan mereset PIN Anda dalam beberapa menit.
+        </p>
+      </div>
+      
+      <div style="
+        margin-top:16px;
+        padding:16px;
+        background:#f0faf6;
+        border-radius:14px;
+      ">
+        <p style="font-size:12px;color:#2f6f4e;margin:0;font-weight:600;">
+          ✓ Setelah Admin Reset:
+        </p>
+        <ol style="font-size:12px;color:#333;margin:8px 0 0 0;padding-left:20px;">
+          <li style="margin:4px 0;">Admin akan bilang "sudah direset"</li>
+          <li style="margin:4px 0;">Kamu login lagi dengan username + password</li>
+          <li style="margin:4px 0;">Buat PIN baru saat diminta</li>
+          <li style="margin:4px 0;">Selesai! ✓</li>
+        </ol>
+      </div>
+      
+      <button id="closeForgotPinBtn" style="
+        width:100%;
+        margin-top:16px;
+        padding:12px;
+        border:none;
+        border-radius:14px;
+        background:#4caf7a;
+        color:white;
+        font-weight:600;
+        cursor:pointer;
+        font-size:12px;
+      ">Mengerti, Tutup</button>
+    </div>
+  </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Get current username dari login modal (store saat login)
+  const currentUsername = localStorage.getItem("tof_login_username") || "???";
+  modal.querySelector("#forgotPinUsername").textContent = currentUsername;
+  modal.querySelector("#forgotPinUsernameMsg").textContent = currentUsername;
+  
+  modal.querySelector("#closeForgotPinBtn").onclick = () => {
+    document.body.removeChild(modal);
+  };
+}
+
 // Modal PIN Verify (untuk user yang sudah punya PIN)
 function showPinVerifyModal() {
   return new Promise((resolve) => {
     const modal = document.createElement("div");
     let pinInput = "";
+    let displayTimeout = null;
     
     modal.innerHTML = `
     <div style="
@@ -298,6 +426,19 @@ function showPinVerifyModal() {
           font-size:12px;
         ">✓ Verifikasi PIN</button>
         
+        <button id="forgotPinBtn" style="
+          width:100%;
+          margin-top:8px;
+          padding:8px;
+          border:none;
+          border-radius:10px;
+          background:#fff3cd;
+          color:#856404;
+          font-weight:600;
+          cursor:pointer;
+          font-size:11px;
+        ">❓ Lupa PIN?</button>
+        
         <button id="cancelBtn" style="
           width:100%;
           margin-top:10px;
@@ -337,7 +478,7 @@ function showPinVerifyModal() {
       btn.onclick = () => {
         if (pinInput.length < 6) {
           pinInput += i;
-          updatePinDisplay();
+          updatePinDisplay(true); // Show digit briefly
         }
       };
       keypad.appendChild(btn);
@@ -362,18 +503,33 @@ function showPinVerifyModal() {
     backspaceBtn.onmouseout = () => backspaceBtn.style.background = "#fff";
     backspaceBtn.onclick = () => {
       pinInput = pinInput.slice(0, -1);
-      updatePinDisplay();
+      updatePinDisplay(false);
     };
     keypad.appendChild(backspaceBtn);
     
-    function updatePinDisplay() {
+    function updatePinDisplay(showLastDigit = false) {
       const display = modal.querySelector("#pinDisplay");
-      display.textContent = "•".repeat(pinInput.length) + "•".repeat(6 - pinInput.length);
+      
+      // Clear previous timeout
+      if (displayTimeout) clearTimeout(displayTimeout);
+      
+      if (showLastDigit && pinInput.length > 0) {
+        // Show semua digit sebentar
+        display.textContent = pinInput + "•".repeat(6 - pinInput.length);
+        
+        // Auto-hide ke bullet setelah 0.5 detik
+        displayTimeout = setTimeout(() => {
+          display.textContent = "•".repeat(pinInput.length) + "•".repeat(6 - pinInput.length);
+        }, 500);
+      } else {
+        // Show semua bullet
+        display.textContent = "•".repeat(pinInput.length) + "•".repeat(6 - pinInput.length);
+      }
     }
     
     modal.querySelector("#clearPinBtn").onclick = () => {
       pinInput = "";
-      updatePinDisplay();
+      updatePinDisplay(false);
     };
     
     modal.querySelector("#submitPinBtn").onclick = () => {
@@ -389,6 +545,10 @@ function showPinVerifyModal() {
       
       document.body.removeChild(modal);
       resolve({ pin: pinInput });
+    };
+    
+    modal.querySelector("#forgotPinBtn").onclick = () => {
+      showForgotPinModal();
     };
     
     modal.querySelector("#cancelBtn").onclick = () => {
@@ -618,6 +778,9 @@ function showLoginModal() {
         return;
       }
 
+      // Simpan username untuk forgot PIN modal nanti
+      localStorage.setItem("tof_login_username", username);
+      
       document.body.removeChild(modal);
       resolve({ username, password });
     };
