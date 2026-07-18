@@ -594,6 +594,98 @@ async function loadFeed() {
   }
 }
 
+// ===================== 🎥 FITUR VIDEO EMBED =====================
+// Fungsi untuk ekstrak Video ID dari berbagai platform
+function extractVideoEmbed(text) {
+  if (!text) return { text, videos: [] };
+
+  const videos = [];
+  let processedText = text;
+
+  // 1. YouTube - support berbagai format URL
+  const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/)?([a-zA-Z0-9_-]{11})/g;
+  let youtubeMatch;
+  while ((youtubeMatch = youtubeRegex.exec(text)) !== null) {
+    videos.push({
+      type: 'youtube',
+      id: youtubeMatch[1],
+      url: youtubeMatch[0]
+    });
+    processedText = processedText.replace(youtubeMatch[0], `[VIDEO_YOUTUBE_${youtubeMatch[1]}]`);
+  }
+
+  // 2. TikTok - support berbagai format
+  const tiktokRegex = /(?:https?:\/\/)?(?:www\.)?(?:tiktok\.com|vm\.tiktok\.com)\/([a-zA-Z0-9@_\-\.]+)/g;
+  let tiktokMatch;
+  while ((tiktokMatch = tiktokRegex.exec(text)) !== null) {
+    const videoId = tiktokMatch[1].split('?')[0];
+    videos.push({
+      type: 'tiktok',
+      id: videoId,
+      url: tiktokMatch[0]
+    });
+    processedText = processedText.replace(tiktokMatch[0], `[VIDEO_TIKTOK_${videoId}]`);
+  }
+
+  // 3. Vimeo
+  const vimeoRegex = /(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(\d+)/g;
+  let vimeoMatch;
+  while ((vimeoMatch = vimeoRegex.exec(text)) !== null) {
+    videos.push({
+      type: 'vimeo',
+      id: vimeoMatch[1],
+      url: vimeoMatch[0]
+    });
+    processedText = processedText.replace(vimeoMatch[0], `[VIDEO_VIMEO_${vimeoMatch[1]}]`);
+  }
+
+  return { text: processedText, videos };
+}
+
+// Fungsi untuk render embedded video player
+function getVideoEmbedHtml(video) {
+  let html = '';
+  
+  if (video.type === 'youtube') {
+    html = `
+      <div style="margin-top:12px;display:flex;justify-content:center;border-radius:14px;overflow:hidden;background:#000;">
+        <iframe 
+          width="100%" 
+          height="320" 
+          src="https://www.youtube.com/embed/${video.id}?rel=0&modestbranding=1" 
+          frameborder="0" 
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+          allowfullscreen
+          style="max-width:100%;border:none;"
+        ></iframe>
+      </div>
+    `;
+  } 
+  else if (video.type === 'tiktok') {
+    html = `
+      <div style="margin-top:12px;display:flex;justify-content:center;border-radius:14px;overflow:auto;">
+        <blockquote class="tiktok-embed" data-url="https://www.tiktok.com/@${video.id}" style="max-width:100%;"></blockquote>
+      </div>
+    `;
+  }
+  else if (video.type === 'vimeo') {
+    html = `
+      <div style="margin-top:12px;display:flex;justify-content:center;border-radius:14px;overflow:hidden;background:#000;position:relative;padding-bottom:56.25%;height:0;">
+        <iframe 
+          src="https://player.vimeo.com/video/${video.id}" 
+          frameborder="0" 
+          allow="autoplay; fullscreen; picture-in-picture" 
+          allowfullscreen
+          style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
+        ></iframe>
+      </div>
+    `;
+  }
+
+  return html;
+}
+// ===================== END VIDEO EMBED =====================
+
 async function renderPostsBatch(posts, feed) {
   const loadingMore = document.getElementById("feedLoadingMore");
 
@@ -659,6 +751,15 @@ async function renderPostsBatch(posts, feed) {
     // KUNCI FB: Cek apakah postingan ini milik user yang sedang login sekarang
     const isMyPost = item.profiles?.id === currentWallet;
 
+    // 🟢 EKSTRAK VIDEO DARI TEKS (VIDEO EMBED FEATURE)
+    const { text: cleanText, videos } = extractVideoEmbed(item.deskripsi_proses || "");
+
+    // 🟢 RENDER VIDEO HTML
+    let videoHtml = '';
+    if (videos && videos.length > 0) {
+      videoHtml = videos.map(v => getVideoEmbedHtml(v)).join('');
+    }
+
     div.innerHTML = `
       <div style="display:flex; align-items:center; justify-content:between; gap:8px; width:100%;">
         <div style="display:flex; align-items:center; gap:8px; flex:1;">
@@ -677,7 +778,8 @@ async function renderPostsBatch(posts, feed) {
         ` : ''}
       </div>
       <div style="font-size:11px;color:#6f7f76;margin-bottom:6px;">${date}</div>
-      <div class="text" style="margin-top:6px;">${convertMentions(item.deskripsi_proses || "")}</div>
+      <div class="text" style="margin-top:6px;">${convertMentions(cleanText)}</div>
+      ${videoHtml}
       ${item.image_url ? `<div style="margin-top:10px;display:flex;justify-content:center;"><img src="${item.image_url}" style="max-width:100%;max-height:420px;border-radius:14px;border:1px solid rgba(0,0,0,0.08);" /></div>` : ""}
       <div style="margin-top:4px;display:flex;gap:12px;font-size:12px;color:#666;">
         <span onclick="reactPost('${item.id}','sruput')" style="cursor:pointer;">☕ ${item.sruput_count || 0} Sruput</span>
