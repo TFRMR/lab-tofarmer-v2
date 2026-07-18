@@ -11,11 +11,557 @@ function checkLoginStatus() {
 }
 checkLoginStatus();
 
+// ===================== PIN SECURITY (6 DIGIT) =====================
+// Hash PIN menggunakan SHA-256 (browser built-in crypto API)
+async function hashPin(pin) {
+  if (!pin || pin.length !== 6 || !/^\d+$/.test(pin)) {
+    throw new Error("PIN harus 6 digit angka");
+  }
+  const encoded = new TextEncoder().encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoded);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Verify PIN dengan compare hash
+async function verifyPin(inputPin, storedHash) {
+  try {
+    const inputHash = await hashPin(inputPin);
+    return inputHash === storedHash;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Modal PIN Setup (untuk user baru atau reset PIN)
+function showPinSetupModal(username, walletId) {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
+    let pinInput = "";
+    
+    modal.innerHTML = `
+    <div style="
+      position:fixed;
+      inset:0;
+      background:rgba(16,25,20,.65);
+      backdrop-filter:blur(12px);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:99999;
+      padding:20px;
+    ">
+      <div style="
+        width:100%;
+        max-width:420px;
+        background:#fff;
+        border-radius:28px;
+        padding:24px;
+      ">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">🔐</div>
+          <h2 style="color:#2f6f4e;">Setup PIN Keamanan</h2>
+          <p style="font-size:12px;color:#666;margin-top:8px;">
+            Buat PIN 6 digit untuk melindungi akun Anda
+          </p>
+          <p style="font-size:11px;color:#999;margin-top:4px;">
+            PIN akan diminta setiap kali login
+          </p>
+        </div>
+        
+        <div id="pinDisplay" style="
+          margin-top:20px;
+          padding:16px;
+          background:#f0faf6;
+          border-radius:14px;
+          text-align:center;
+          font-size:28px;
+          letter-spacing:8px;
+          font-weight:bold;
+          color:#2f6f4e;
+          font-family:'Courier New', monospace;
+          height:50px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+        ">
+          ••••••
+        </div>
+        
+        <div style="
+          margin-top:16px;
+          display:grid;
+          grid-template-columns:repeat(3, 1fr);
+          gap:8px;
+        " id="pinKeypad">
+          <!-- Will be filled with number buttons -->
+        </div>
+        
+        <button id="clearPinBtn" style="
+          width:100%;
+          margin-top:16px;
+          padding:10px;
+          border:none;
+          border-radius:10px;
+          background:#ffebee;
+          color:#c62828;
+          font-weight:600;
+          cursor:pointer;
+          font-size:12px;
+        ">🗑️ Hapus Semua</button>
+        
+        <button id="confirmPinBtn" style="
+          width:100%;
+          margin-top:10px;
+          padding:10px;
+          border:none;
+          border-radius:10px;
+          background:#4caf7a;
+          color:white;
+          font-weight:600;
+          cursor:pointer;
+          font-size:12px;
+        ">✓ Confirm PIN</button>
+      </div>
+    </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Create numeric keypad
+    const keypad = modal.querySelector("#pinKeypad");
+    for (let i = 0; i <= 9; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      btn.style.cssText = `
+        padding:16px;
+        border:1px solid #e0e0e0;
+        border-radius:10px;
+        background:#fff;
+        color:#2f6f4e;
+        font-size:18px;
+        font-weight:bold;
+        cursor:pointer;
+        transition:0.2s;
+      `;
+      btn.onmouseover = () => btn.style.background = "#f0faf6";
+      btn.onmouseout = () => btn.style.background = "#fff";
+      btn.onclick = () => {
+        if (pinInput.length < 6) {
+          pinInput += i;
+          updatePinDisplay();
+        }
+      };
+      keypad.appendChild(btn);
+    }
+    
+    // Backspace button
+    const backspaceBtn = document.createElement("button");
+    backspaceBtn.textContent = "⌫";
+    backspaceBtn.style.cssText = `
+      grid-column: 3;
+      padding:16px;
+      border:1px solid #e0e0e0;
+      border-radius:10px;
+      background:#fff;
+      color:#c62828;
+      font-size:18px;
+      font-weight:bold;
+      cursor:pointer;
+      transition:0.2s;
+    `;
+    backspaceBtn.onmouseover = () => backspaceBtn.style.background = "#ffebee";
+    backspaceBtn.onmouseout = () => backspaceBtn.style.background = "#fff";
+    backspaceBtn.onclick = () => {
+      pinInput = pinInput.slice(0, -1);
+      updatePinDisplay();
+    };
+    keypad.appendChild(backspaceBtn);
+    
+    function updatePinDisplay() {
+      const display = modal.querySelector("#pinDisplay");
+      display.textContent = "•".repeat(pinInput.length) + "•".repeat(6 - pinInput.length);
+    }
+    
+    modal.querySelector("#clearPinBtn").onclick = () => {
+      pinInput = "";
+      updatePinDisplay();
+    };
+    
+    modal.querySelector("#confirmPinBtn").onclick = async () => {
+      if (pinInput.length !== 6) {
+        alert("PIN harus 6 digit! 🔐");
+        return;
+      }
+      
+      if (!/^\d+$/.test(pinInput)) {
+        alert("PIN hanya boleh angka! 🔐");
+        return;
+      }
+      
+      try {
+        const pinHash = await hashPin(pinInput);
+        document.body.removeChild(modal);
+        resolve({ pin: pinInput, pinHash });
+      } catch (err) {
+        alert("Error setup PIN: " + err.message);
+        resolve(null);
+      }
+    };
+  });
+}
+
+// Modal PIN Verify (untuk user yang sudah punya PIN)
+function showPinVerifyModal() {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
+    let pinInput = "";
+    
+    modal.innerHTML = `
+    <div style="
+      position:fixed;
+      inset:0;
+      background:rgba(16,25,20,.65);
+      backdrop-filter:blur(12px);
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      z-index:99999;
+      padding:20px;
+    ">
+      <div style="
+        width:100%;
+        max-width:420px;
+        background:#fff;
+        border-radius:28px;
+        padding:24px;
+      ">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">🔑</div>
+          <h2 style="color:#2f6f4e;">Verifikasi PIN</h2>
+          <p style="font-size:12px;color:#666;margin-top:8px;">
+            Masukkan PIN 6 digit Anda
+          </p>
+        </div>
+        
+        <div id="pinDisplay" style="
+          margin-top:20px;
+          padding:16px;
+          background:#f0faf6;
+          border-radius:14px;
+          text-align:center;
+          font-size:28px;
+          letter-spacing:8px;
+          font-weight:bold;
+          color:#2f6f4e;
+          font-family:'Courier New', monospace;
+          height:50px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+        ">
+          ••••••
+        </div>
+        
+        <div style="
+          margin-top:16px;
+          display:grid;
+          grid-template-columns:repeat(3, 1fr);
+          gap:8px;
+        " id="pinKeypad">
+          <!-- Will be filled with number buttons -->
+        </div>
+        
+        <button id="clearPinBtn" style="
+          width:100%;
+          margin-top:16px;
+          padding:10px;
+          border:none;
+          border-radius:10px;
+          background:#ffebee;
+          color:#c62828;
+          font-weight:600;
+          cursor:pointer;
+          font-size:12px;
+        ">🗑️ Hapus Semua</button>
+        
+        <button id="submitPinBtn" style="
+          width:100%;
+          margin-top:10px;
+          padding:10px;
+          border:none;
+          border-radius:10px;
+          background:#4caf7a;
+          color:white;
+          font-weight:600;
+          cursor:pointer;
+          font-size:12px;
+        ">✓ Verifikasi PIN</button>
+        
+        <button id="cancelBtn" style="
+          width:100%;
+          margin-top:10px;
+          padding:10px;
+          border:none;
+          border-radius:10px;
+          background:#eee;
+          color:#666;
+          font-weight:600;
+          cursor:pointer;
+          font-size:12px;
+        ">Batal</button>
+      </div>
+    </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Create numeric keypad
+    const keypad = modal.querySelector("#pinKeypad");
+    for (let i = 0; i <= 9; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = i;
+      btn.style.cssText = `
+        padding:16px;
+        border:1px solid #e0e0e0;
+        border-radius:10px;
+        background:#fff;
+        color:#2f6f4e;
+        font-size:18px;
+        font-weight:bold;
+        cursor:pointer;
+        transition:0.2s;
+      `;
+      btn.onmouseover = () => btn.style.background = "#f0faf6";
+      btn.onmouseout = () => btn.style.background = "#fff";
+      btn.onclick = () => {
+        if (pinInput.length < 6) {
+          pinInput += i;
+          updatePinDisplay();
+        }
+      };
+      keypad.appendChild(btn);
+    }
+    
+    // Backspace button
+    const backspaceBtn = document.createElement("button");
+    backspaceBtn.textContent = "⌫";
+    backspaceBtn.style.cssText = `
+      grid-column: 3;
+      padding:16px;
+      border:1px solid #e0e0e0;
+      border-radius:10px;
+      background:#fff;
+      color:#c62828;
+      font-size:18px;
+      font-weight:bold;
+      cursor:pointer;
+      transition:0.2s;
+    `;
+    backspaceBtn.onmouseover = () => backspaceBtn.style.background = "#ffebee";
+    backspaceBtn.onmouseout = () => backspaceBtn.style.background = "#fff";
+    backspaceBtn.onclick = () => {
+      pinInput = pinInput.slice(0, -1);
+      updatePinDisplay();
+    };
+    keypad.appendChild(backspaceBtn);
+    
+    function updatePinDisplay() {
+      const display = modal.querySelector("#pinDisplay");
+      display.textContent = "•".repeat(pinInput.length) + "•".repeat(6 - pinInput.length);
+    }
+    
+    modal.querySelector("#clearPinBtn").onclick = () => {
+      pinInput = "";
+      updatePinDisplay();
+    };
+    
+    modal.querySelector("#submitPinBtn").onclick = () => {
+      if (pinInput.length !== 6) {
+        alert("PIN harus 6 digit! 🔐");
+        return;
+      }
+      
+      if (!/^\d+$/.test(pinInput)) {
+        alert("PIN hanya boleh angka! 🔐");
+        return;
+      }
+      
+      document.body.removeChild(modal);
+      resolve({ pin: pinInput });
+    };
+    
+    modal.querySelector("#cancelBtn").onclick = () => {
+      document.body.removeChild(modal);
+      resolve(null);
+    };
+  });
+}
+
 // ===================== WALLET =====================
 async function connectWallet() {
   return new Promise((resolve) => {
+    // STEP 1: Login Modal (Username + Password)
+    showLoginModal().then(async (credentials) => {
+      if (!credentials) {
+        resolve(null);
+        return;
+      }
 
-    const modal = document.createElement("div")
+      const { username, password } = credentials;
+      
+      // Validasi wallet address
+      try {
+        const decoded = algosdk.decodeAddress(password);
+        if (!decoded) throw new Error("Wallet tidak valid");
+      } catch {
+        alert("Password (Alamat Wallet) tidak valid / bukan Algorand 😄");
+        resolve(null);
+        return;
+      }
+
+      // STEP 2: Cek user di database (username + password/id cocok)
+      const { data: existingUser, error: queryError } = await supabaseClient
+        .from("profiles")
+        .select("*")
+        .eq("username", username)
+        .maybeSingle();
+
+      if (queryError) {
+        alert("Error verifikasi: " + queryError.message);
+        resolve(null);
+        return;
+      }
+
+      // CASE 1: User sudah terdaftar
+      if (existingUser) {
+        // Verifikasi password (id) cocok
+        if (existingUser.id !== password) {
+          alert("Username atau Password salah ❌");
+          resolve(null);
+          return;
+        }
+
+        // STEP 3: Cek PIN hash
+        const pinHashKey = `tof_pin_hash_${existingUser.id}`;
+        let pinHashFromDB = existingUser.pin_hash; // From database
+        let savedPinHash = localStorage.getItem(pinHashKey); // From localStorage
+
+        // SCENARIO: User sudah ada tapi belum setup PIN (migration case)
+        if (!pinHashFromDB || pinHashFromDB === '') {
+          // Wajib setup PIN sebelum login
+          const pinSetupResult = await showPinSetupModal(username, existingUser.id);
+          if (!pinSetupResult) {
+            resolve(null);
+            return;
+          }
+
+          // Simpan PIN hash ke DATABASE
+          const { error: updateError } = await supabaseClient
+            .from("profiles")
+            .update({ pin_hash: pinSetupResult.pinHash })
+            .eq("id", existingUser.id);
+
+          if (updateError) {
+            alert("Error menyimpan PIN: " + updateError.message);
+            resolve(null);
+            return;
+          }
+
+          // Simpan juga ke localStorage
+          localStorage.setItem(pinHashKey, pinSetupResult.pinHash);
+        } 
+        // SCENARIO: User sudah ada dan sudah setup PIN
+        else {
+          // Verifikasi PIN
+          const pinResult = await showPinVerifyModal();
+          if (!pinResult) {
+            resolve(null);
+            return;
+          }
+
+          // Verify PIN dengan DB hash (atau localStorage jika ada)
+          const hashToCompare = pinHashFromDB || savedPinHash;
+          const isPinValid = await verifyPin(pinResult.pin, hashToCompare);
+          
+          if (!isPinValid) {
+            alert("PIN salah ❌");
+            resolve(null);
+            return;
+          }
+
+          // Update localStorage dengan hash dari DB (untuk sync device)
+          localStorage.setItem(pinHashKey, pinHashFromDB);
+        }
+
+        // Login berhasil
+        currentWallet = existingUser.id;
+        localStorage.setItem("tof_wallet", existingUser.id);
+
+        await syncProfile(existingUser.id);
+        updateWalletUI();
+        renderProfile();
+
+        showWelcomePopup();
+        resolve(existingUser.id);
+        return;
+      }
+
+      // CASE 2: User belum terdaftar - register baru
+      const pinSetupResult = await showPinSetupModal(username, password);
+      if (!pinSetupResult) {
+        resolve(null);
+        return;
+      }
+
+      // Create profile baru dengan all fields + PIN hash
+      const { error: insertError } = await supabaseClient
+        .from("profiles")
+        .insert([
+          {
+            id: password,
+            username: username,
+            pin_hash: pinSetupResult.pinHash, // Simpan PIN hash ke DB
+            xp: 0,
+            saldo_tof: 0,
+            level: 1,
+            power: 0,
+            avatar_url: "https://www.tofarmer.xyz/aset/favicon.png",
+            compost_level: 0,
+            fertilizer_count: 0,
+            water_stock: 100
+          }
+        ]);
+
+      if (insertError) {
+        console.log(insertError);
+        alert("Gagal daftar: " + insertError.message);
+        resolve(null);
+        return;
+      }
+
+      // Simpan PIN hash ke localStorage
+      const pinHashKey = `tof_pin_hash_${password}`;
+      localStorage.setItem(pinHashKey, pinSetupResult.pinHash);
+
+      // Login berhasil
+      currentWallet = password;
+      localStorage.setItem("tof_wallet", password);
+
+      await syncProfile(password);
+      updateWalletUI();
+      renderProfile();
+
+      showWelcomePopup();
+      resolve(password);
+    });
+  });
+}
+
+// Modal Login (Username + Password)
+function showLoginModal() {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
 
     modal.innerHTML = `
     <div style="
@@ -39,83 +585,48 @@ async function connectWallet() {
         <div style="text-align:center;">
           <div style="font-size:50px;">🌿</div>
           <h2 style="color:#2f6f4e;">Login/Daftar ToFarmer</h2>
-          <p style="font-size:12px;color:#666;margin-top:8px;">Nama + Wallet Algorand</p>
-<p style="font-size:12px;color:#666;margin-top:8px;">
-  Daftar pakai Nama | Alamat Dompet Algorand<br>
-  Bikin dompet dulu di Pera Wallet/Defly
-</p>
+          <p style="font-size:12px;color:#666;margin-top:8px;">
+            Username + Password (Alamat Wallet)
+          </p>
+          <p style="font-size:11px;color:#999;margin-top:4px;">
+            Bikin dompet dulu di Pera Wallet/Defly
+          </p>
         </div>
-        <input id="tofName" placeholder="Nama pengguna" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
-        <input id="tofWallet" placeholder="Wallet Algorand" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;" />
-        <button id="registerBtn" style="width:100%;">Masuk ke Ladang 🚀</button>
+
+        <input id="loginUsername" placeholder="Username" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" />
+        <input id="loginPassword" placeholder="Password (Alamat Wallet Algorand)" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" type="password" />
+        
+        <button id="loginBtn" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:600;cursor:pointer;">Masuk ke Ladang 🚀</button>
         <button id="cancelBtn" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
       </div>
     </div>
-    `
+    `;
 
-    document.body.appendChild(modal)
+    document.body.appendChild(modal);
 
-    modal.querySelector("#registerBtn").onclick = async () => {
-      const username = document.getElementById("tofName").value.trim()
-      const wallet = document.getElementById("tofWallet").value.trim()
+    modal.querySelector("#loginBtn").onclick = () => {
+      const username = document.getElementById("loginUsername").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
 
       if (!username) {
-        alert("Nama wajib diisi 🌱")
-        return
+        alert("Username wajib diisi 🌱");
+        return;
       }
 
-      try {
-        const decoded = algosdk.decodeAddress(wallet)
-        if (!decoded) throw new Error()
-      } catch {
-        alert("Wallet tidak valid / bukan Algorand 😄")
-        return
+      if (!password) {
+        alert("Password (Wallet Address) wajib diisi 🌱");
+        return;
       }
 
-      const { data: existingUser } = await supabaseClient
-        .from("profiles")
-        .select("*")
-        .eq("id", wallet)
-        .maybeSingle()
-
-      if (!existingUser) {
-        const { error } = await supabaseClient
-          .from("profiles")
-          .insert([
-            {
-              id: wallet,
-              username: username,
-              xp: 0,
-              saldo_tof: 0,
-              level: 1,
-              avatar_url: "https://www.tofarmer.xyz/aset/favicon.png"
-            }
-          ])
-
-        if (error) {
-          console.log(error)
-          alert("Gagal daftar")
-          return
-        }
-      }
-
-      currentWallet = wallet
-      localStorage.setItem("tof_wallet", wallet)
-
-      await syncProfile(wallet)
-      updateWalletUI()
-      renderProfile()
-
-      document.body.removeChild(modal)
-      showWelcomePopup()
-      resolve(wallet)
-    }
+      document.body.removeChild(modal);
+      resolve({ username, password });
+    };
 
     modal.querySelector("#cancelBtn").onclick = () => {
-      document.body.removeChild(modal)
-      resolve(null)
-    }
-  })
+      document.body.removeChild(modal);
+      resolve(null);
+    };
+  });
 }
 
 function showWelcomePopup() {
