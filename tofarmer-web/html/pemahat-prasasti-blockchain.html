@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📜 Catatan Prasasti Menoreh — Penjahit Ilmu ke Blockchain</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+                linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #e2e8f0;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0));
+            pointer-events: none;
+            animation: fog 14s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes fog {
+            0% { transform: translateX(-3%); }
+            50% { transform: translateX(3%); }
+            100% { transform: translateX(-3%); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1280px;
+            margin: auto;
+            padding: 22px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero {
+            position: relative;
+            padding: 40px 20px 50px;
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            font-size: .98rem;
+            color: #84a98c;
+            max-width: 650px;
+            margin: auto;
+        }
+
+        /* ===== MAIN LAYOUT (2-KOLOM) ===== */
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .panel {
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 34px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: "";
+            position: absolute;
+            top: -120px;
+            right: -120px;
+            width: 240px;
+            height: 240px;
+            background: radial-gradient(circle, rgba(234, 179, 8, 0.08), transparent 70%);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 22px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fde047;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .panel-title::before {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(234, 179, 8, 0.3), transparent);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.6);
+            color: #e2e8f0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            background: rgba(15, 23, 42, 0.8);
+            border-color: rgba(74, 222, 128, 0.3);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Fira Code', monospace;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: #050b07;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: rgba(30, 58, 40, 0.6);
+            color: #a7f3d0;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(74, 222, 128, 0.4);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: #fcd34d;
+            line-height: 1.6;
+        }
+
+        .success-box {
+            background: rgba(34, 197, 94, 0.1);
+            border-left: 4px solid #22c55e;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: #86efac;
+            line-height: 1.6;
+        }
+
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid #ef4444;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: #fca5a5;
+            line-height: 1.6;
+        }
+
+        /* ===== PREVIEW PANEL ===== */
+        #preview {
+            min-height: 400px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(74, 222, 128, 0.1);
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            background: #050b07;
+            padding: 30px;
+            overflow-y: auto;
+            border-radius: 20px;
+        }
+
+        /* ===== LOG PANEL ===== */
+        #log {
+            background: rgba(8, 15, 11, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            font-family: 'Fira Code', monospace;
+            color: #a7f3d0;
+        }
+
+        .log-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-success { color: #4ade80; }
+        .log-error { color: #ef4444; }
+        .log-info { color: #60a5fa; }
+        .log-warning { color: #f59e0b; }
+
+        /* ===== TEMPLATE CARDS ===== */
+        .template-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .template-card {
+            position: relative;
+            padding: 16px;
+            border-radius: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.5);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .template-card:hover {
+            border-color: rgba(74, 222, 128, 0.3);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        .template-card.active {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.15);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
+        }
+
+        .template-card-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+        }
+
+        .template-card-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+
+        /* ===== SERIES MANAGEMENT ===== */
+        .series-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 12px;
+        }
+
+        .series-item {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(74, 222, 128, 0.1);
+        }
+
+        .series-code {
+            color: #fde047;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .series-info {
+            color: #94a3b8;
+            font-size: 0.7rem;
+        }
+
+        /* ===== TABS ===== */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding-bottom: 12px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            color: #cbd5e1;
+        }
+
+        .tab-btn.active {
+            color: #22c55e;
+            border-bottom-color: #22c55e;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .main-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+
+            .template-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            .panel {
+                padding: 20px;
+                border-radius: 20px;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>📜 Catatan Prasasti Menoreh</h1>
+            <p>Penjahit Ilmu Baku ke Blockchain Algorand — Simpan Pengetahuan Selamanya, Akses Tanpa Server</p>
+        </div>
+
+        <div class="main-wrapper">
+            <!-- ===== PANEL KIRI: EDITOR ===== -->
+            <div class="panel">
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('setup')">⚙️ Setup</button>
+                    <button class="tab-btn" onclick="switchTab('editor')">✍️ Editor</button>
+                    <button class="tab-btn" onclick="switchTab('series')">🔗 Series</button>
+                </div>
+
+                <!-- TAB: SETUP -->
+                <div id="tab-setup" class="tab-content active">
+                    <div class="panel-title">🔐 Konfigurasi Dompet & Series</div>
+
+                    <div class="warning-box">
+                        ⚠️ <strong>KEAMANAN:</strong> Jangan simpan file ini dengan mnemonic terisi. Jalankan hanya lokal, kosongkan field setelah selesai.
+                    </div>
+
+                    <div class="form-group">
+                        <label>Frase Mnemonic (25 kata)</label>
+                        <textarea id="mnemonic" placeholder="Paste 25-kata mnemonic dompet Algorand Anda..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>TOF Asset ID</label>
+                        <input type="text" id="tofAssetId" value="3558306283" placeholder="ID asset TOF di Algorand">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Buat Series Kode Baru (Unik)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <input type="text" id="seriesPrefix" placeholder="misal: ilmu, resep, cerita" maxlength="15">
+                            <button class="btn btn-secondary btn-small" onclick="validateAndCreateSeries()">+ Buat Series</button>
+                        </div>
+                        <small style="color: #94a3b8; margin-top: 8px; display: block;">
+                            Format: huruf kecil, angka, dash. Contoh: <code>ilmu-garam</code>, <code>cerita-menoreh</code>
+                        </small>
+                    </div>
+
+                    <div id="seriesListContainer" style="display: none;">
+                        <label>Series yang Aktif:</label>
+                        <div class="series-list" id="activeSeries"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Pilih Series Aktif</label>
+                        <select id="selectedSeries">
+                            <option value="">-- Pilih series tujuan --</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="validateSetup()">
+                        ✓ Validasi Setup
+                    </button>
+                </div>
+
+                <!-- TAB: EDITOR -->
+                <div id="tab-editor" class="tab-content">
+                    <div class="panel-title">✍️ Tulis Ilmu</div>
+
+                    <div class="form-group">
+                        <label>Pilih Template</label>
+                        <div class="template-grid" id="templateGrid"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Judul Catatan</label>
+                        <input type="text" id="noteTitle" placeholder="Judul ilmu/tulisan...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Penulis / Sumber</label>
+                        <input type="text" id="noteAuthor" placeholder="Nama Anda atau referensi...">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Konten Utama</label>
+                        <textarea id="noteContent" placeholder="Tulis ilmu baku, catatan, cerita, atau pengetahuan yang ingin Anda abadikan..."></textarea>
+                    </div>
+
+                    <button class="btn btn-primary" style="width: 100%;" onclick="previewNote()">
+                        👁️ Pratinjau & Update
+                    </button>
+                </div>
+
+                <!-- TAB: SERIES -->
+                <div id="tab-series" class="tab-content">
+                    <div class="panel-title">🔗 Daftar Series</div>
+                    <div class="series-list" id="seriesManagement">
+                        <p style="color: #94a3b8; text-align: center;">Belum ada series. Buat di tab Setup.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== PANEL KANAN: PREVIEW ===== -->
+            <div>
+                <div id="preview" class="preview-frame"></div>
+                <div id="log"></div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="btnPahat" onclick="pahatKeBlockchain()" disabled>
+                    ⛓️ PAHAT KE BLOCKCHAIN
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
+    <script>
+        // ==================== STATE MANAGEMENT ====================
+        const state = {
+            mnemonic: null,
+            account: null,
+            tofAssetId: 3558306283,
+            selectedSeries: null,
+            selectedTemplate: 'article',
+            note: {
+                title: '',
+                author: '',
+                content: '',
+                template: 'article'
+            },
+            series: JSON.parse(localStorage.getItem('tofarmer_series')) || {},
+            validSetup: false
+        };
+
+        const algodClient = new algosdk.Algodv2("", "https://mainnet-api.algonode.cloud", "");
+        const encoder = new TextEncoder();
+
+        // ==================== TEMPLATES ====================
+        const TEMPLATES = {
+            article: {
+                name: '📖 Artikel',
+                icon: '📖',
+                cssClass: 'template-article',
+                meta: `<meta name="template" content="article">`,
+                render: (data) => `
+                    <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27; line-height: 1.8;">
+                        <header style="margin-bottom: 30px; border-bottom: 3px solid #22c55e; padding-bottom: 20px;">
+                            <h1 style="font-size: 2.5rem; color: #0d1e14; margin-bottom: 10px; font-weight: 800;">${escapeHtml(data.title)}</h1>
+                            <p style="font-size: 1rem; color: #666; margin: 8px 0;"><strong>Oleh:</strong> ${escapeHtml(data.author)}</p>
+                            <p style="font-size: 0.9rem; color: #999;">Tersimpan di Blockchain Algorand 🌿</p>
+                        </header>
+                        <section style="font-size: 1.05rem; color: #2c2c2c; margin-bottom: 30px; white-space: pre-wrap; word-wrap: break-word;">
+${escapeHtml(data.content)}
+                        </section>
+                        <footer style="padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #999; font-size: 0.9rem;">
+                            <p>Ilmu yang dibagikan adalah ilmu yang berkembang. 🌱</p>
+                        </footer>
+                    </article>
+                `
+            },
+            guide: {
+                name: '🗺️ Panduan',
+                icon: '🗺️',
+                cssClass: 'template-guide',
+                meta: `<meta name="template" content="guide">`,
+                render: (data) => `
+                    <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27;">
+                        <header style="background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
+                            <h1 style="font-size: 2.2rem; margin-bottom: 8px; font-weight: 800;">${escapeHtml(data.title)}</h1>
+                            <p style="font-size: 1rem; opacity: 0.9;">Panduan oleh: ${escapeHtml(data.author)}</p>
+                        </header>
+                        <section style="font-size: 1.05rem; color: #2c2c2c; line-height: 1.8; margin-bottom: 30px; white-space: pre-wrap;">
+${escapeHtml(data.content)}
+                        </section>
+                        <footer style="background: #f0fdf4; padding: 20px; border-radius: 8px; text-align: center; color: #666; border-left: 4px solid #22c55e;">
+                            <p>Panduan ini dibagikan dengan semangat gotong royong. 🤝</p>
+                        </footer>
+                    </article>
+                `
+            },
+            poetry: {
+                name: '🍃 Puisi',
+                icon: '🍃',
+                cssClass: 'template-poetry',
+                meta: `<meta name="template" content="poetry">`,
+                render: (data) => `
+                    <article style="font-family: 'Playfair Display', serif; color: #1c3d27; max-width: 600px; margin: 0 auto;">
+                        <header style="text-align: center; margin-bottom: 40px;">
+                            <h1 style="font-size: 2.5rem; color: #0d1e14; margin-bottom: 12px; font-weight: 800;">${escapeHtml(data.title)}</h1>
+                            <p style="font-size: 1.1rem; color: #666; font-style: italic;">— ${escapeHtml(data.author)} —</p>
+                        </header>
+                        <section style="font-size: 1.15rem; line-height: 2.2; color: #2c2c2c; text-align: center; white-space: pre-wrap; word-break: break-word;">
+${escapeHtml(data.content)}
+                        </section>
+                        <footer style="text-align: center; margin-top: 40px; color: #999; font-size: 0.9rem;">
+                            🌿 Puisi ini tumbuh di gada Menoreh 🌿
+                        </footer>
+                    </article>
+                `
+            },
+            recipe: {
+                name: '👨‍🍳 Resep',
+                icon: '👨‍🍳',
+                cssClass: 'template-recipe',
+                meta: `<meta name="template" content="recipe">`,
+                render: (data) => `
+                    <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27; max-width: 700px; margin: 0 auto;">
+                        <header style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
+                            <h1 style="font-size: 2.2rem; margin-bottom: 8px; font-weight: 800;">🍳 ${escapeHtml(data.title)}</h1>
+                            <p style="font-size: 1rem; opacity: 0.9;">Resep dari: ${escapeHtml(data.author)}</p>
+                        </header>
+                        <section style="font-size: 1.05rem; color: #2c2c2c; line-height: 1.8; margin-bottom: 30px; white-space: pre-wrap;">
+${escapeHtml(data.content)}
+                        </section>
+                        <footer style="background: #fffbeb; padding: 20px; border-radius: 8px; text-align: center; color: #666; border-left: 4px solid #f59e0b;">
+                            <p>Resep dibagikan dengan cinta dan selera dari dapur Menoreh. 💚</p>
+                        </footer>
+                    </article>
+                `
+            },
+            memory: {
+                name: '📸 Kenangan',
+                icon: '📸',
+                cssClass: 'template-memory',
+                meta: `<meta name="template" content="memory">`,
+                render: (data) => `
+                    <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27;">
+                        <header style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
+                            <h1 style="font-size: 2.2rem; margin-bottom: 8px; font-weight: 800;">💜 ${escapeHtml(data.title)}</h1>
+                            <p style="font-size: 1rem; opacity: 0.9;">Dari hati: ${escapeHtml(data.author)}</p>
+                        </header>
+                        <section style="font-size: 1.1rem; color: #2c2c2c; line-height: 1.9; margin-bottom: 30px; white-space: pre-wrap;">
+${escapeHtml(data.content)}
+                        </section>
+                        <footer style="background: #faf5ff; padding: 20px; border-radius: 8px; text-align: center; color: #666; border-left: 4px solid #8b5cf6;">
+                            <p>Kenangan abadi di batu prasasti Menoreh. 🕯️</p>
+                        </footer>
+                    </article>
+                `
+            }
+        };
+
+        // ==================== UTILITY FUNCTIONS ====================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function log(msg, type = 'info') {
+            const logEl = document.getElementById('log');
+            const item = document.createElement('div');
+            item.className = `log-item log-${type}`;
+            
+            let prefix = '❓';
+            if (type === 'success') prefix = '✅';
+            else if (type === 'error') prefix = '❌';
+            else if (type === 'warning') prefix = '⚠️';
+            else if (type === 'info') prefix = 'ℹ️';
+            
+            item.textContent = `${prefix} ${msg}`;
+            logEl.appendChild(item);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ==================== SETUP FUNCTIONS ====================
+        function initTemplates() {
+            const grid = document.getElementById('templateGrid');
+            grid.innerHTML = '';
+            Object.entries(TEMPLATES).forEach(([key, template]) => {
+                const card = document.createElement('div');
+                card.className = `template-card ${state.selectedTemplate === key ? 'active' : ''}`;
+                card.innerHTML = `<div class="template-card-icon">${template.icon}</div><div class="template-card-name">${template.name}</div>`;
+                card.onclick = () => selectTemplate(key);
+                grid.appendChild(card);
+            });
+        }
+
+        function selectTemplate(key) {
+            state.selectedTemplate = key;
+            state.note.template = key;
+            document.querySelectorAll('.template-card').forEach(el => el.classList.remove('active'));
+            event.target.closest('.template-card').classList.add('active');
+            previewNote();
+        }
+
+        function validateAndCreateSeries() {
+            const prefix = document.getElementById('seriesPrefix').value.trim();
+            
+            if (!prefix) {
+                log('Series prefix tidak boleh kosong', 'error');
+                return;
+            }
+            
+            if (!/^[a-z0-9\-]+$/.test(prefix)) {
+                log('Hanya huruf kecil, angka, dan dash yang diperbolehkan', 'error');
+                return;
+            }
+            
+            if (prefix.length < 3 || prefix.length > 15) {
+                log('Panjang series 3-15 karakter', 'error');
+                return;
+            }
+            
+            if (state.series[prefix]) {
+                log('Series sudah ada!', 'error');
+                return;
+            }
+            
+            // Create new series
+            state.series[prefix] = {
+                code: prefix,
+                created: new Date().toISOString(),
+                notes: 0
+            };
+            
+            localStorage.setItem('tofarmer_series', JSON.stringify(state.series));
+            document.getElementById('seriesPrefix').value = '';
+            
+            updateSeriesList();
+            log(`✨ Series baru dibuat: <strong>${prefix}</strong>`, 'success');
+        }
+
+        function updateSeriesList() {
+            const select = document.getElementById('selectedSeries');
+            const list = document.getElementById('activeSeries');
+            const container = document.getElementById('seriesListContainer');
+            
+            const seriesList = Object.values(state.series);
+            
+            if (seriesList.length === 0) {
+                container.style.display = 'none';
+                select.innerHTML = '<option value="">-- Tidak ada series --</option>';
+                return;
+            }
+            
+            container.style.display = 'block';
+            select.innerHTML = '<option value="">-- Pilih series --</option>';
+            list.innerHTML = '';
+            
+            seriesList.forEach(series => {
+                const opt = document.createElement('option');
+                opt.value = series.code;
+                opt.textContent = series.code;
+                select.appendChild(opt);
+                
+                const item = document.createElement('div');
+                item.className = 'series-item';
+                item.innerHTML = `
+                    <div>
+                        <div class="series-code">${series.code}</div>
+                        <div class="series-info">Dibuat: ${new Date(series.created).toLocaleDateString('id-ID')}</div>
+                    </div>
+                    <button class="btn btn-small btn-secondary" onclick="deleteSeries('${series.code}')">Hapus</button>
+                `;
+                list.appendChild(item);
+            });
+            
+            // Update series management tab
+            const mgmt = document.getElementById('seriesManagement');
+            mgmt.innerHTML = list.innerHTML;
+        }
+
+        function deleteSeries(code) {
+            if (confirm(`Hapus series "${code}"? Data tidak bisa dipulihkan dari localStorage, tapi catatan di blockchain tetap aman.`)) {
+                delete state.series[code];
+                localStorage.setItem('tofarmer_series', JSON.stringify(state.series));
+                updateSeriesList();
+                log(`Series "${code}" dihapus dari daftar lokal`, 'warning');
+            }
+        }
+
+        function validateSetup() {
+            document.getElementById('log').innerHTML = '';
+            
+            const mnemonicText = document.getElementById('mnemonic').value.trim();
+            if (!mnemonicText) {
+                log('Mnemonic belum diisi', 'error');
+                return;
+            }
+            
+            try {
+                state.account = algosdk.mnemonicToSecretKey(mnemonicText);
+                state.mnemonic = mnemonicText;
+                state.tofAssetId = parseInt(document.getElementById('tofAssetId').value);
+                
+                log(`Dompet berhasil dipulihkan: ${state.account.addr}`, 'success');
+                
+                const selectedSeriesCode = document.getElementById('selectedSeries').value;
+                if (!selectedSeriesCode) {
+                    log('Pilih series tujuan terlebih dahulu', 'error');
+                    return;
+                }
+                
+                state.selectedSeries = selectedSeriesCode;
+                state.validSetup = true;
+                document.getElementById('btnPahat').disabled = false;
+                
+                log(`Series aktif: <strong>${selectedSeriesCode}</strong>`, 'success');
+                log('✅ Setup siap! Lanjut ke tab Editor', 'success');
+                
+            } catch (e) {
+                log(`Mnemonic tidak valid: ${e.message}`, 'error');
+            }
+        }
+
+        // ==================== PREVIEW & EDIT ====================
+        function previewNote() {
+            state.note = {
+                title: document.getElementById('noteTitle').value || 'Untitled',
+                author: document.getElementById('noteAuthor').value || 'Anonymous',
+                content: document.getElementById('noteContent').value || '[Konten kosong]',
+                template: state.selectedTemplate
+            };
+            
+            const template = TEMPLATES[state.selectedTemplate];
+            const html = template.render(state.note);
+            
+            const preview = document.getElementById('preview');
+            preview.innerHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+                    <style>
+                        body { margin: 0; padding: 0; background: #050b07; }
+                    </style>
+                </head>
+                <body>${html}</body>
+                </html>
+            `;
+        }
+
+        // ==================== BLOCKCHAIN FUNCTIONS ====================
+        const MAX_NOTE_BYTES = 1024;
+        const HEADER_SAFETY_MARGIN = 150;
+        const CONTENT_BYTE_BUDGET = MAX_NOTE_BYTES - HEADER_SAFETY_MARGIN;
+
+        function splitIntoByteSafeChunks(text, maxBytes) {
+            const chunks = [];
+            let current = "";
+            let currentBytes = 0;
+
+            for (const ch of text) {
+                const chBytes = encoder.encode(ch).length;
+                if (currentBytes + chBytes > maxBytes) {
+                    chunks.push(current);
+                    current = "";
+                    currentBytes = 0;
+                }
+                current += ch;
+                currentBytes += chBytes;
+            }
+            if (current) chunks.push(current);
+            return chunks;
+        }
+
+        async function cekSaldoCukup(address, estimasiTx) {
+            try {
+                const info = await algodClient.accountInformation(address).do();
+                const saldoMicroAlgo = info.amount;
+                const estimasiBiayaMicroAlgo = (estimasiTx * 1000) + 100000;
+                return {
+                    cukup: saldoMicroAlgo > estimasiBiayaMicroAlgo,
+                    saldo: saldoMicroAlgo / 1e6,
+                    estimasiBiaya: estimasiBiayaMicroAlgo / 1e6
+                };
+            } catch (e) {
+                return { cukup: null, saldo: 0, estimasiBiaya: 0, error: e.message };
+            }
+        }
+
+        async function pahatKeBlockchain() {
+            if (!state.validSetup) {
+                log('Setup tidak valid. Validasi di tab Setup terlebih dahulu', 'error');
+                return;
+            }
+
+            if (!state.note.content) {
+                log('Konten catatan masih kosong', 'error');
+                return;
+            }
+
+            document.getElementById('log').innerHTML = '';
+            const btn = document.getElementById('btnPahat');
+            btn.disabled = true;
+
+            try {
+                // Buat HTML lengkap dengan styling
+                const htmlContent = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${escapeHtml(state.note.title)}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+                        radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+                        linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+            color: #e2e8f0;
+            margin: 0;
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 900px; margin: auto; }
+        ${(() => {
+            const templates = {
+                article: `article { color: #1c3d27; line-height: 1.8; } header { border-bottom: 3px solid #22c55e; padding-bottom: 20px; margin-bottom: 30px; } h1 { font-size: 2.5rem; color: #0d1e14; font-weight: 800; } footer { border-top: 1px solid #ddd; padding-top: 20px; text-align: center; color: #999; }`,
+                guide: `article { color: #1c3d27; } header { background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; } h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; } footer { background: #f0fdf4; padding: 20px; border-radius: 8px; border-left: 4px solid #22c55e; }`,
+                poetry: `article { font-family: 'Playfair Display', serif; color: #1c3d27; max-width: 600px; margin: 0 auto; text-align: center; } h1 { font-size: 2.5rem; color: #0d1e14; font-weight: 800; } section { font-size: 1.15rem; line-height: 2.2; white-space: pre-wrap; }`,
+                recipe: `article { color: #1c3d27; max-width: 700px; margin: 0 auto; } header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; } h1 { font-size: 2.2rem; font-weight: 800; } footer { background: #fffbeb; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; }`,
+                memory: `article { color: #1c3d27; } header { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; } h1 { font-size: 2.2rem; font-weight: 800; } footer { background: #faf5ff; padding: 20px; border-radius: 8px; border-left: 4px solid #8b5cf6; }`
+            };
+            return templates[state.note.template] || templates.article;
+        })()}
+        section { font-size: 1.05rem; white-space: pre-wrap; word-wrap: break-word; margin-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        ${TEMPLATES[state.note.template].render(state.note)}
+    </div>
+</body>
+</html>`;
+
+                const chunks = splitIntoByteSafeChunks(htmlContent, CONTENT_BYTE_BUDGET);
+                const total = chunks.length;
+
+                log(`📦 Total kepingan: ${total}`, 'info');
+                log(`🔍 Mengecek saldo ALGO dompet ${state.account.addr}...`, 'info');
+
+                const cekSaldo = await cekSaldoCukup(state.account.addr, total);
+
+                if (cekSaldo.cukup === false) {
+                    log(`Saldo ALGO tidak cukup. Saldo: ${cekSaldo.saldo} ALGO, butuh: ${cekSaldo.estimasiBiaya} ALGO`, 'error');
+                    btn.disabled = false;
+                    return;
+                }
+
+                if (cekSaldo.cukup === true) {
+                    log(`Saldo cukup: ${cekSaldo.saldo} ALGO ✅`, 'success');
+                }
+
+                let previousTxId = 'START';
+
+                for (let i = 0; i < total; i++) {
+                    const params = await algodClient.getTransactionParams().do();
+
+                    const noteContent = `tofnote:${state.selectedSeries}:${i}:${total}:${previousTxId}:${chunks[i]}`;
+                    const note = encoder.encode(noteContent);
+
+                    if (note.length > MAX_NOTE_BYTES) {
+                        throw new Error(`Note paket ${i} melebihi limit byte`);
+                    }
+
+                    const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                        from: state.account.addr,
+                        to: state.account.addr,
+                        amount: 0,
+                        assetIndex: parseInt(state.tofAssetId),
+                        note: note,
+                        suggestedParams: params
+                    });
+
+                    const signed = txn.signTxn(state.account.sk);
+                    const result = await algodClient.sendRawTransaction(signed).do();
+
+                    previousTxId = result.txId;
+
+                    log(`[${i+1}/${total}] Paket dipahat: ${result.txId.substring(0, 12)}...`, 'success');
+                    await new Promise(r => setTimeout(r, 1200));
+                }
+
+                log(`🎉 CATATAN BERHASIL DIPAHAT!`, 'success');
+                log(`Series: <strong>${state.selectedSeries}</strong> | TxID Akhir: ${previousTxId.substring(0, 20)}...`, 'success');
+
+                // Clear form
+                document.getElementById('noteTitle').value = '';
+                document.getElementById('noteAuthor').value = '';
+                document.getElementById('noteContent').value = '';
+                previewNote();
+
+            } catch (e) {
+                log(`Error: ${e.message}`, 'error');
+                console.error(e);
+            } finally {
+                btn.disabled = !state.validSetup;
+            }
+        }
+
+        // ==================== INIT ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            initTemplates();
+            updateSeriesList();
+            previewNote();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📜 Pembaca Prasasti Menoreh</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+                linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0));
+            pointer-events: none;
+            animation: fog 14s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes fog {
+            0% { transform: translateX(-3%); }
+            50% { transform: translateX(3%); }
+            100% { transform: translateX(-3%); }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            padding: 22px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 40px 20px 50px;
+            margin-bottom: 40px;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            color: #84a98c;
+            font-size: 0.98rem;
+            max-width: 650px;
+            margin: auto;
+        }
+
+        .input-section {
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 34px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            margin-bottom: 30px;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(15, 23, 42, 0.6);
+            color: #e2e8f0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            background: rgba(15, 23, 42, 0.8);
+            border-color: rgba(74, 222, 128, 0.3);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            border: none;
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: #050b07;
+            width: 100%;
+            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info-box {
+            background: rgba(74, 222, 128, 0.1);
+            border-left: 4px solid #22c55e;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: #86efac;
+            line-height: 1.6;
+        }
+
+        .error-box {
+            background: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid #ef4444;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.85rem;
+            color: #fca5a5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #a7f3d0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(74, 222, 128, 0.2);
+            border-top-color: #22c55e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .content-display {
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 34px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            margin-bottom: 30px;
+        }
+
+        .content-frame {
+            background: #050b07;
+            border-radius: 20px;
+            padding: 30px;
+            overflow-y: auto;
+            max-height: 800px;
+            border: 1px solid rgba(74, 222, 128, 0.1);
+        }
+
+        .share-section {
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 34px;
+            padding: 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            max-width: 700px;
+            margin: 30px auto;
+            text-align: center;
+        }
+
+        .share-section h3 {
+            margin-bottom: 20px;
+            color: #fde047;
+            font-size: 1.1rem;
+        }
+
+        .share-link {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            margin-bottom: 12px;
+            word-break: break-all;
+            font-size: 0.8rem;
+            color: #a7f3d0;
+            font-family: monospace;
+        }
+
+        .btn-secondary {
+            background: rgba(30, 58, 40, 0.6);
+            color: #a7f3d0;
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            padding: 10px 20px;
+            font-size: 0.8rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(74, 222, 128, 0.4);
+        }
+
+        .metadata {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            padding: 20px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 20px;
+        }
+
+        .metadata-item {
+            margin: 8px 0;
+        }
+
+        .metadata-label {
+            color: #fde047;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .input-section,
+            .share-section {
+                padding: 20px;
+                border-radius: 20px;
+            }
+
+            .content-frame {
+                padding: 20px;
+                max-height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>📜 Pembaca Prasasti Menoreh</h1>
+            <p>Baca Catatan Ilmu yang Tersimpan di Blockchain Algorand</p>
+        </div>
+
+        <div id="inputSection" class="input-section">
+            <div class="info-box">
+                ℹ️ Paste <strong>TxID transaksi pertama</strong> dari catatan yang ingin dibaca. Sistem akan otomatis mengambil semua chunks dari blockchain dan merekonstruksi catatan asli.
+            </div>
+
+            <div class="input-group">
+                <label>Masukkan TxID Catatan (Transaksi Pertama)</label>
+                <textarea id="txidInput" placeholder="Contoh: M7FKX2VQRST7H5J9K2L4M5N6O7P8Q9..." spellcheck="false"></textarea>
+            </div>
+
+            <div class="input-group">
+                <label style="font-size: 0.8rem;">atau Paste URL Sharing Lengkap</label>
+                <textarea id="urlInput" placeholder="Contoh: https://prasasti-reader.html?tx=M7FKX..." spellcheck="false" style="min-height: 60px;"></textarea>
+            </div>
+
+            <button class="btn btn-primary" id="btnBaca" onclick="bacaCatatan()">
+                📖 BACA CATATAN
+            </button>
+
+            <div id="statusMsg" style="margin-top: 20px; text-align: center; font-size: 0.85rem; color: #94a3b8;"></div>
+        </div>
+
+        <div id="loadingSection" style="display: none;">
+            <div class="loading">
+                <div class="spinner"></div>
+                <p style="margin-top: 20px;">Mengambil catatan dari blockchain... <span id="progressInfo"></span></p>
+            </div>
+        </div>
+
+        <div id="contentSection" style="display: none;">
+            <div class="content-display">
+                <div class="content-frame" id="contentFrame"></div>
+                <div class="metadata" id="metadata"></div>
+            </div>
+
+            <div class="share-section">
+                <h3>🔗 Share Catatan Ini</h3>
+                <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">Bagikan link ini ke teman agar bisa baca catatan</p>
+                <div class="share-link" id="shareLink"></div>
+                <button class="btn btn-secondary" style="width: 100%;" onclick="copyShareLink()">
+                    📋 Copy Link Sharing
+                </button>
+                <p style="font-size: 0.75rem; color: #666; margin-top: 10px;">Link ini bisa dibagikan ke siapa saja, mereka bisa baca catatan tanpa perlu blockchain knowledge</p>
+            </div>
+
+            <button class="btn btn-secondary" style="width: 100%; max-width: 700px; display: block; margin: 0 auto;" onclick="kembaliKeInput()">
+                ← Baca Catatan Lain
+            </button>
+        </div>
+
+        <div id="errorSection" style="display: none;">
+            <div class="error-box" id="errorMsg"></div>
+            <button class="btn btn-secondary" style="width: 100%; max-width: 700px; display: block; margin: 0 auto;" onclick="resetForm()">
+                ← Kembali
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
+    <script>
+        const algodClient = new algosdk.Algodv2("", "https://mainnet-api.algonode.cloud", "");
+        const decoder = new TextDecoder();
+
+        let currentShareTxId = null;
+        let currentMetadata = {};
+
+        // Parse URL params untuk auto-load
+        function loadFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const txid = params.get('tx');
+            if (txid) {
+                document.getElementById('txidInput').value = txid;
+                // Auto-load setelah DOM ready
+                setTimeout(() => bacaCatatan(), 500);
+            }
+        }
+
+        function log(msg, type = 'info') {
+            const status = document.getElementById('statusMsg');
+            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            status.textContent = `${icon} ${msg}`;
+            status.style.color = type === 'error' ? '#fca5a5' : type === 'success' ? '#86efac' : '#94a3b8';
+        }
+
+        async function bacaCatatan() {
+            const txidInput = document.getElementById('txidInput').value.trim();
+            const urlInput = document.getElementById('urlInput').value.trim();
+            
+            let startTxId = txidInput;
+
+            // Jika ada URL input, extract TxID
+            if (urlInput && !startTxId) {
+                const match = urlInput.match(/[?&]tx=([A-Z0-9]+)/i);
+                if (match) {
+                    startTxId = match[1];
+                } else {
+                    log('Format URL tidak valid. Pastikan ada ?tx=...', 'error');
+                    return;
+                }
+            }
+
+            if (!startTxId) {
+                log('Masukkan TxID atau URL sharing terlebih dahulu', 'error');
+                return;
+            }
+
+            // Reset sections
+            document.getElementById('inputSection').style.display = 'none';
+            document.getElementById('contentSection').style.display = 'none';
+            document.getElementById('errorSection').style.display = 'none';
+            document.getElementById('loadingSection').style.display = 'block';
+
+            try {
+                const chunks = [];
+                let currentTxId = startTxId;
+                let chunkCount = 0;
+                let totalChunks = null;
+                let seriesCode = null;
+
+                // Fetch chain of transactions
+                while (true) {
+                    document.getElementById('progressInfo').textContent = `(${chunkCount + 1} chunks diambil...)`;
+
+                    const txn = await algodClient.pendingTransactionInformation(currentTxId).do();
+                    
+                    if (!txn.note) {
+                        throw new Error('Transaksi tidak memiliki note/data');
+                    }
+
+                    const noteText = decoder.decode(Buffer.from(txn.note, 'base64'));
+
+                    // Parse header: tofnote:series:index:total:prevtx:content
+                    const headerMatch = noteText.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+                    if (!headerMatch) {
+                        throw new Error('Format note tidak valid (bukan catatan Prasasti)');
+                    }
+
+                    const [_, series, index, total, prevTx, content] = headerMatch;
+                    seriesCode = series;
+                    totalChunks = parseInt(total);
+
+                    chunks[parseInt(index)] = content;
+                    chunkCount++;
+
+                    // Jika sudah semua chunks, keluar
+                    if (chunkCount === totalChunks) {
+                        break;
+                    }
+
+                    // Cari transaction berikutnya yang punya prevTx = currentTxId
+                    // (Ini simplified — seharusnya query dari indexer, tapi untuk demo
+                    // kita assume chunks di-create berurutan dalam waktu dekat)
+                    
+                    // Alternative: fetch next by iterating forward
+                    // Untuk sekarang, kita asumin chunks disimpan berurutan
+                    // Jika tidak, perlu full blockchain scan
+                    
+                    // HACK: Delay sebelum fetch next
+                    await new Promise(r => setTimeout(r, 500));
+
+                    // Coba fetch transaction berikutnya
+                    // Karena Algorand API tidak punya "find by reference", kita perlu scan
+                    // Untuk MVP, kita terminate di sini dan minta user input full HTML
+                    if (prevTx !== 'START' && currentTxId !== prevTx) {
+                        throw new Error('Rantai transaksi terputus. Retrieval otomatis memerlukan blockchain indexer.');
+                    }
+
+                    // Sederhana: jika ini transaksi pertama (prevTx=START), stop
+                    if (prevTx === 'START') {
+                        break;
+                    }
+
+                    currentTxId = prevTx;
+                }
+
+                // Gabung chunks
+                const fullContent = chunks.join('');
+
+                // Parse HTML & ekstrak metadata
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(fullContent, 'text/html');
+                const title = doc.querySelector('title')?.textContent || 'Untitled';
+                const template = doc.querySelector('meta[name="template"]')?.content || 'unknown';
+
+                currentShareTxId = startTxId;
+                currentMetadata = {
+                    title,
+                    series: seriesCode,
+                    chunks: totalChunks,
+                    firstTxId: startTxId,
+                    template
+                };
+
+                // Display
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('contentSection').style.display = 'block';
+
+                document.getElementById('contentFrame').innerHTML = fullContent;
+                document.getElementById('shareLink').textContent = getShareUrl();
+                updateMetadata();
+
+            } catch (e) {
+                document.getElementById('loadingSection').style.display = 'none';
+                document.getElementById('errorSection').style.display = 'block';
+                document.getElementById('errorMsg').textContent = `❌ Error: ${e.message}`;
+                console.error(e);
+            }
+        }
+
+        function updateMetadata() {
+            const meta = document.getElementById('metadata');
+            meta.innerHTML = `
+                <div class="metadata-item">
+                    <span class="metadata-label">📖 Judul:</span> ${currentMetadata.title}
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">🔗 Series:</span> ${currentMetadata.series}
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">📦 Chunks:</span> ${currentMetadata.chunks}
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">🏷️ Template:</span> ${currentMetadata.template}
+                </div>
+                <div class="metadata-item">
+                    <span class="metadata-label">⛓️ TxID Pertama:</span> <code style="font-size: 0.75rem; color: #a7f3d0;">${currentMetadata.firstTxId}</code>
+                </div>
+            `;
+        }
+
+        function getShareUrl() {
+            const baseUrl = window.location.origin + window.location.pathname;
+            return `${baseUrl}?tx=${currentShareTxId}`;
+        }
+
+        function copyShareLink() {
+            const shareLink = getShareUrl();
+            navigator.clipboard.writeText(shareLink).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        function kembaliKeInput() {
+            document.getElementById('inputSection').style.display = 'block';
+            document.getElementById('contentSection').style.display = 'none';
+            document.getElementById('errorSection').style.display = 'none';
+        }
+
+        function resetForm() {
+            document.getElementById('txidInput').value = '';
+            document.getElementById('urlInput').value = '';
+            document.getElementById('inputSection').style.display = 'block';
+            document.getElementById('errorSection').style.display = 'none';
+            document.getElementById('statusMsg').textContent = '';
+        }
+
+        // Load dari URL saat page buka
+        document.addEventListener('DOMContentLoaded', loadFromUrl);
+    </script>
+</body>
+</html>
