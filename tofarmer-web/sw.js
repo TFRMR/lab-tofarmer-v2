@@ -64,8 +64,17 @@ async function networkFirstThenCache(request) {
     const fresh = await fetch(request);
     // Simpan salinan terbaru ke cache buat cadangan offline nanti (stale-while-revalidate
     // ringan: tidak menunggu ini selesai untuk merespons ke browser).
-    const cache = await caches.open(CACHE_NAME);
-    cache.put(request, fresh.clone());
+    // Tapi: cuma cache URL dengan scheme http/https; chrome-extension://, data:, dll
+    // tidak bisa di-cache dan akan throw error. Skip dengan diam-diam.
+    if (request.url.startsWith('http://') || request.url.startsWith('https://')) {
+      try {
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(request, fresh.clone());
+      } catch (cacheErr) {
+        // Kalau cache.put() gagal, jangan hentikan flow -- tetap return fresh response
+        console.warn('[SW] Cache put failed:', cacheErr.message);
+      }
+    }
     return fresh;
   } catch (err) {
     // Gagal konek (offline) -- baru pakai cache sebagai cadangan.
