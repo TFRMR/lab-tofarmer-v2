@@ -367,6 +367,7 @@
     <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
     <script>
         const algodClient = new algosdk.Algodv2("", "https://mainnet-api.algonode.cloud", "");
+        const indexerClient = new algosdk.Indexer("", "https://mainnet-idx.algonode.cloud", "");
         const decoder = new TextDecoder();
 
         let currentShareTxId = null;
@@ -388,6 +389,183 @@
             const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
             status.textContent = `${icon} ${msg}`;
             status.style.color = type === 'error' ? '#fca5a5' : type === 'success' ? '#86efac' : '#94a3b8';
+        }
+
+        async function fetchTransactionWithRetry(txId, maxRetries = 3) {
+            // Try indexer first (untuk confirmed transactions)
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const result = await indexerClient.searchForTransactions()
+                        .txid(txId)
+                        .do();
+                    
+                    if (result.transactions && result.transactions.length > 0) {
+                        return result.transactions[0];
+                    }
+                } catch (e) {
+                    console.log(`Indexer attempt ${attempt + 1} failed:`, e.message);
+                }
+                
+                // Delay sebelum retry
+                await new Promise(r => setTimeout(r, 800));
+            }
+
+            // Fallback: try pending transaction pool
+            try {
+                return await algodClient.pendingTransactionInformation(txId).do();
+            } catch (e) {
+                console.log('Pending transaction fetch failed:', e.message);
+            }
+
+            throw new Error('Tidak bisa ambil transaksi dari blockchain (indexer & pending pool keduanya tidak punya)');
+        }
+
+        async function fetchChunksBySeriesAndStartTx(startTxId) {
+            // ===== STEP 1: Fetch transaksi pertama untuk dapat series code =====
+            console.log(`[1] Fetching first transaction: ${startTxId}`);
+            const firstTxn = await fetchTransactionWithRetry(startTxId);
+            const noteB64_1 = firstTxn.note || firstTxn.txn?.txn?.note || firstTxn.txn?.note;
+            
+            if (!noteB64_1) {
+                throw new Error('❌ Transaksi pertama tidak memiliki note. Pastikan TxID benar dan ini asset transfer dengan catatan Prasasti.');
+            }
+
+            let noteText_1 = '';
+            try {
+                const noteBytes_1 = Uint8Array.from(atob(noteB64_1), c => c.charCodeAt(0));
+                noteText_1 = decoder.decode(noteBytes_1);
+            } catch (e) {
+                throw new Error(`❌ Gagal decode note TX pertama: ${e.message}`);
+            }
+            
+            const headerMatch = noteText_1.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+            if (!headerMatch) {
+                throw new Error('❌ Format note tidak valid. Bukan catatan Prasasti (ekspektasi: tofnote:series:index:total:...)');
+            }
+
+            const [_, seriesCode, idx0, totalStr, prevTx0, content0] = headerMatch;
+            const totalChunks = parseInt(totalStr);
+
+            console.log(`[1] ✅ Series: "${seriesCode}", Total chunks: ${totalChunks}`);
+
+            // Single chunk? Return immediately
+            if (totalChunks === 1) {
+                const chunks = [];
+                chunks[parseInt(idx0)] = content0;
+                return { chunks, series: seriesCode, totalChunks };
+            }
+
+            // ===== STEP 2: Batch query indexer untuk semua chunks series ini =====
+            console.log(`[2] Batch querying indexer untuk series "${seriesCode}"...`);
+            
+            const senderAddr = firstTxn.sender || firstTxn['sender-address'];
+            if (!senderAddr) {
+                throw new Error('❌ Tidak bisa ambil sender address dari transaksi pertama');
+            }
+
+            const chunks = [];
+            chunks[parseInt(idx0)] = content0; // Add first chunk
+            let batchFetched = 1;
+
+            try {
+                // Query semua transaksi dari sender ini yang asset transfer
+                // Filter manual by series code di client side (indexer API terbatas)
+                const response = await indexerClient.searchForTransactions()
+                    .addressRole('sender')
+                    .address(senderAddr)
+                    .txType('axfer')
+                    .limit(200) // Max limit indexer
+                    .do();
+
+                if (response.transactions) {
+                    console.log(`[2] Found ${response.transactions.length} asset transfer TXs from sender`);
+                    
+                    for (const tx of response.transactions) {
+                        const nb64 = tx.note || tx.txn?.txn?.note || tx.txn?.note;
+                        if (!nb64) continue;
+
+                        let nText = '';
+                        try {
+                            const nBytes = Uint8Array.from(atob(nb64), c => c.charCodeAt(0));
+                            nText = decoder.decode(nBytes);
+                        } catch (e) {
+                            continue;
+                        }
+
+                        // Parse header dan filter by series code
+                        const nm = nText.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+                        if (!nm) continue;
+
+                        const [_, series, chunkIdx, chunkTotal, _, chunkContent] = nm;
+
+                        // Filter: hanya ambil chunks dari series yang sama
+                        if (series === seriesCode) {
+                            const idx = parseInt(chunkIdx);
+                            if (!chunks[idx]) {
+                                chunks[idx] = chunkContent;
+                                batchFetched++;
+                                console.log(`  [+] Chunk ${idx}/${chunkTotal}`);
+                            }
+                        }
+                    }
+                }
+
+                console.log(`[2] ✅ Berhasil batch fetch ${batchFetched}/${totalChunks} chunks`);
+
+            } catch (e) {
+                console.log(`[2] ⚠️ Batch query error (akan validasi hasil):`, e.message);
+            }
+
+            // ===== STEP 3: Validasi completeness =====
+            const fetchedArray = chunks.filter(c => c);
+            console.log(`[3] Validasi: ${fetchedArray.length}/${totalChunks} chunks tersedia`);
+
+            if (fetchedArray.length < totalChunks) {
+                console.warn(`⚠️ Hanya ${fetchedArray.length}/${totalChunks} chunks ditemukan.`);
+                console.warn(`   Kemungkinan: (1) Chunks belum finalized, (2) Query limit terlampaui, (3) Rantai incomplete`);
+                
+                // Coba fallback: follow rantai dengan retry
+                if (prevTx0 !== 'START') {
+                    console.log(`[3] Fallback: Mencoba follow rantai dari transaksi pertama...`);
+                    let currentTxId = startTxId;
+                    let retryCount = 0;
+                    const maxRetry = totalChunks + 3;
+
+                    while (fetchedArray.filter(c => c).length < totalChunks && retryCount < maxRetry) {
+                        retryCount++;
+                        
+                        try {
+                            const txn = await fetchTransactionWithRetry(currentTxId);
+                            const nb64 = txn.note || txn.txn?.txn?.note || txn.txn?.note;
+                            
+                            if (nb64) {
+                                const nBytes = Uint8Array.from(atob(nb64), c => c.charCodeAt(0));
+                                const nText = decoder.decode(nBytes);
+                                const nm = nText.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+                                
+                                if (nm) {
+                                    const idx = parseInt(nm[2]);
+                                    if (!chunks[idx]) {
+                                        chunks[idx] = nm[5];
+                                        console.log(`  [+] Chain follow: Chunk ${idx}`);
+                                    }
+                                    currentTxId = nm[4]; // prevTxId
+                                }
+                            }
+
+                            if (nm && nm[4] === 'START') break;
+
+                        } catch (e) {
+                            console.log(`  ❌ Chain follow failed at retry ${retryCount}:`, e.message);
+                            break;
+                        }
+
+                        await new Promise(r => setTimeout(r, 300)); // Shorter delay
+                    }
+                }
+            }
+
+            return { chunks, series: seriesCode, totalChunks };
         }
 
         async function bacaCatatan() {
@@ -419,70 +597,21 @@
             document.getElementById('loadingSection').style.display = 'block';
 
             try {
-                const chunks = [];
-                let currentTxId = startTxId;
-                let chunkCount = 0;
-                let totalChunks = null;
-                let seriesCode = null;
+                document.getElementById('progressInfo').textContent = `(Fetching dari blockchain + indexer...)`;
 
-                // Fetch chain of transactions
-                while (true) {
-                    document.getElementById('progressInfo').textContent = `(${chunkCount + 1} chunks diambil...)`;
+                // Fetch semua chunks menggunakan smart indexer batch query
+                const { chunks, series, totalChunks } = await fetchChunksBySeriesAndStartTx(startTxId);
+                
+                log(`📦 ${chunks.filter(c => c).length}/${totalChunks} chunks siap diramu...`, 'info');
+                
+                document.getElementById('progressInfo').textContent = `(${chunks.filter(c => c).length}/${totalChunks} chunks dirakit...)`;
 
-                    const txn = await algodClient.pendingTransactionInformation(currentTxId).do();
-                    
-                    if (!txn.note) {
-                        throw new Error('Transaksi tidak memiliki note/data');
-                    }
+                // Gabung chunks - filter undefined/null
+                const fullContent = chunks.filter(c => c).join('');
 
-                    const noteText = decoder.decode(Buffer.from(txn.note, 'base64'));
-
-                    // Parse header: tofnote:series:index:total:prevtx:content
-                    const headerMatch = noteText.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
-                    if (!headerMatch) {
-                        throw new Error('Format note tidak valid (bukan catatan Prasasti)');
-                    }
-
-                    const [_, series, index, total, prevTx, content] = headerMatch;
-                    seriesCode = series;
-                    totalChunks = parseInt(total);
-
-                    chunks[parseInt(index)] = content;
-                    chunkCount++;
-
-                    // Jika sudah semua chunks, keluar
-                    if (chunkCount === totalChunks) {
-                        break;
-                    }
-
-                    // Cari transaction berikutnya yang punya prevTx = currentTxId
-                    // (Ini simplified — seharusnya query dari indexer, tapi untuk demo
-                    // kita assume chunks di-create berurutan dalam waktu dekat)
-                    
-                    // Alternative: fetch next by iterating forward
-                    // Untuk sekarang, kita asumin chunks disimpan berurutan
-                    // Jika tidak, perlu full blockchain scan
-                    
-                    // HACK: Delay sebelum fetch next
-                    await new Promise(r => setTimeout(r, 500));
-
-                    // Coba fetch transaction berikutnya
-                    // Karena Algorand API tidak punya "find by reference", kita perlu scan
-                    // Untuk MVP, kita terminate di sini dan minta user input full HTML
-                    if (prevTx !== 'START' && currentTxId !== prevTx) {
-                        throw new Error('Rantai transaksi terputus. Retrieval otomatis memerlukan blockchain indexer.');
-                    }
-
-                    // Sederhana: jika ini transaksi pertama (prevTx=START), stop
-                    if (prevTx === 'START') {
-                        break;
-                    }
-
-                    currentTxId = prevTx;
+                if (!fullContent || fullContent.trim() === '') {
+                    throw new Error('Konten catatan kosong setelah digabung. Chunks mungkin tidak lengkap.');
                 }
-
-                // Gabung chunks
-                const fullContent = chunks.join('');
 
                 // Parse HTML & ekstrak metadata
                 const parser = new DOMParser();
@@ -493,11 +622,13 @@
                 currentShareTxId = startTxId;
                 currentMetadata = {
                     title,
-                    series: seriesCode,
+                    series: series || 'unknown',
                     chunks: totalChunks,
                     firstTxId: startTxId,
                     template
                 };
+
+                log(`✅ Berhasil ambil ${chunks.filter(c => c).length}/${totalChunks} chunks!`, 'success');
 
                 // Display
                 document.getElementById('loadingSection').style.display = 'none';
@@ -510,8 +641,8 @@
             } catch (e) {
                 document.getElementById('loadingSection').style.display = 'none';
                 document.getElementById('errorSection').style.display = 'block';
-                document.getElementById('errorMsg').textContent = `❌ Error: ${e.message}`;
-                console.error(e);
+                document.getElementById('errorMsg').textContent = `❌ ${e.message}`;
+                console.error('Full error:', e);
             }
         }
 
