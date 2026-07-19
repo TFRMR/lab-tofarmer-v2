@@ -78,6 +78,143 @@ async function kompresGambar(file, maxWidth = 1200, kualitas = 0.82) {
     reader.onerror = () => reject(new Error("Gagal membaca file"));
   });
 }
+
+// ============================================================
+// FUNGSI DETEKSI & EMBED VIDEO (YouTube, Vimeo, dll)
+// ============================================================
+
+/**
+ * Extract video info dari URL (YouTube, Vimeo, Instagram Reels, TikTok, dll)
+ */
+function extractVideoInfo(text) {
+  const videos = [];
+
+  // YouTube (youtube.com/watch?v=, youtu.be/, youtube.com/shorts/)
+  const youtubeRegex = /(?:youtube.com/watch?v=([a-zA-Z0-9_-]{11})|youtu.be/([a-zA-Z0-9_-]{11})|youtube.com/shorts/([a-zA-Z0-9_-]{11}))/g;
+  let match;
+  while ((match = youtubeRegex.exec(text)) !== null) {
+    const videoId = match[1] || match[2] || match[3];
+    if (videoId && !videos.find(v => v.id === videoId && v.type === 'youtube')) {
+      videos.push({ type: 'youtube', id: videoId, url: match[0] });
+    }
+  }
+
+  // Vimeo (vimeo.com/)
+  const vimeoRegex = /vimeo.com/(d+)/g;
+  while ((match = vimeoRegex.exec(text)) !== null) {
+    const videoId = match[1];
+    if (videoId && !videos.find(v => v.id === videoId && v.type === 'vimeo')) {
+      videos.push({ type: 'vimeo', id: videoId, url: match[0] });
+    }
+  }
+
+  // TikTok (tiktok.com/@username/video/id atau vm.tiktok.com/)
+  const tiktokRegex = /(?:tiktok.com/@[w.-]+/video/(d+)|vm.tiktok.com/([a-zA-Z0-9]+)|vt.tiktok.com/([a-zA-Z0-9]+))/g;
+  while ((match = tiktokRegex.exec(text)) !== null) {
+    const videoId = match[1] || match[2] || match[3];
+    if (videoId && !videos.find(v => v.id === videoId && v.type === 'tiktok')) {
+      videos.push({ type: 'tiktok', id: videoId, url: match[0] });
+    }
+  }
+
+  // Instagram (instagram.com/p/id atau instagram.com/reel/id)
+  const instagramRegex = /instagram.com/(?:p|reel)/([a-zA-Z0-9_-]+)/g;
+  while ((match = instagramRegex.exec(text)) !== null) {
+    const postId = match[1];
+    if (postId && !videos.find(v => v.id === postId && v.type === 'instagram')) {
+      videos.push({ type: 'instagram', id: postId, url: match[0] });
+    }
+  }
+
+  return videos;
+}
+
+/**
+ * Generate HTML embed untuk setiap video platform
+ */
+function generateVideoEmbed(videoInfo) {
+  const containerStyle = "width:100%;display:flex;justify-content:center;margin:12px 0;";
+  const iframeStyle = "border-radius:12px;border:1px solid rgba(0,0,0,.08);box-shadow:0 4px 12px rgba(0,0,0,.08);";
+
+  switch (videoInfo.type) {
+    case 'youtube':
+      return `
+        <div style="${containerStyle}">
+          <iframe 
+            width="100%" 
+            height="315" 
+            style="max-width:560px;${iframeStyle}"
+            src="https://www.youtube.com/embed/${videoInfo.id}" 
+            title="YouTube video" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            allowfullscreen>
+          </iframe>
+        </div>
+      `;
+
+    case 'vimeo':
+      return `
+        <div style="${containerStyle}">
+          <iframe 
+            width="100%" 
+            height="315" 
+            style="max-width:560px;${iframeStyle}"
+            src="https://player.vimeo.com/video/${videoInfo.id}" 
+            title="Vimeo video" 
+            frameborder="0" 
+            allow="autoplay; fullscreen; picture-in-picture" 
+            allowfullscreen>
+          </iframe>
+        </div>
+      `;
+
+    case 'tiktok':
+      return `
+        <div style="${containerStyle}">
+          <iframe 
+            width="100%" 
+            height="600" 
+            style="max-width:400px;${iframeStyle}"
+            src="https://www.tiktok.com/embed/v2/${videoInfo.id}" 
+            title="TikTok video" 
+            frameborder="0" 
+            allow="autoplay; encrypted-media" 
+            allowfullscreen>
+          </iframe>
+        </div>
+      `;
+
+    case 'instagram':
+      return `
+        <div style="${containerStyle}">
+          <iframe 
+            width="100%" 
+            height="500" 
+            style="max-width:540px;${iframeStyle}"
+            src="https://www.instagram.com/p/${videoInfo.id}/embed/" 
+            title="Instagram post" 
+            frameborder="0" 
+            allow="autoplay" 
+            allowfullscreen>
+          </iframe>
+        </div>
+      `;
+
+    default:
+      return '';
+  }
+}
+
+/**
+ * Generate semua video embeds dari text
+ */
+function generateAllVideoEmbeds(text) {
+  const videos = extractVideoInfo(text);
+  return videos.map(v => generateVideoEmbed(v)).join('');
+}
+
+
 const currentWallet = localStorage.getItem("tof_wallet")
 
 // =====================
@@ -847,6 +984,114 @@ async function loadUserPosts() {
   initUserPostScroll();
 }
 
+function initUserPostScroll() {
+  window.addEventListener("scroll", () => {
+    if (userPostLoading || userPostAllLoaded) return;
+    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 200;
+    if (nearBottom) loadMoreUserPosts();
+  });
+}
+
+async function loadMoreUserPosts() {
+  if (userPostLoading || userPostAllLoaded || !targetProfileId) return;
+  userPostLoading = true;
+
+  const box = document.getElementById("userPosts");
+  let loadingEl = document.getElementById("userPostLoadingMore");
+  if (loadingEl) loadingEl.style.display = "block";
+
+  const from = userPostPage * USER_POST_PAGE_SIZE;
+  const to = from + USER_POST_PAGE_SIZE - 1;
+
+  const { data, error } = await supabaseClient
+    .from("contributions")
+    .select(`*, profiles(username)`)
+    .eq("user_id", targetProfileId)
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (loadingEl) loadingEl.style.display = "none";
+
+  if (error || !data || data.length === 0) {
+    userPostAllLoaded = true;
+    userPostLoading = false;
+    if (box && userPostPage > 0) {
+      const endMsg = document.createElement("div");
+      endMsg.style.cssText = "text-align:center;padding:10px;font-size:11px;color:#aaa;";
+      endMsg.innerText = "🌾 Semua karya sudah ditampilkan";
+      box.appendChild(endMsg);
+    } else if (box && userPostPage === 0) {
+      box.innerHTML = `<div class="card" style="text-align:center;color:#888;">Belum ada karya 🌱</div>`;
+    }
+    return;
+  }
+
+  if (data.length < USER_POST_PAGE_SIZE) userPostAllLoaded = true;
+  userPostPage++;
+
+  // Meta tag sync hanya untuk batch pertama
+  if (userPostPage === 1) {
+    try {
+      const postIdParam = urlParams.get("post");
+      if (postIdParam) {
+        const matchedPost = data.find(p => String(p.id) === String(postIdParam));
+        if (matchedPost) {
+          const petikTeks = matchedPost.deskripsi_proses ? matchedPost.deskripsi_proses.substring(0, 100) + "..." : "Intip progres kebun karya di ToFarmer.";
+          const namaPetani = matchedPost.profiles?.username || "Petani";
+          document.title = `Karya @${namaPetani} | ToFarmer`;
+          const metaDesc = document.getElementById("postDesc");
+          const ogTitle = document.getElementById("ogTitle");
+          const ogDesc = document.getElementById("ogDesc");
+          const ogImage = document.getElementById("ogImage");
+          if (metaDesc) metaDesc.setAttribute("content", petikTeks);
+          if (ogTitle) ogTitle.setAttribute("content", `🌿 Catatan Karya @${namaPetani}`);
+          if (ogDesc) ogDesc.setAttribute("content", petikTeks);
+          if (matchedPost.image_url && ogImage) ogImage.setAttribute("content", matchedPost.image_url);
+        }
+      }
+    } catch (metaErr) { console.log("Gagal memperbarui Meta Tag di Profil:", metaErr); }
+  }
+
+  renderUserPostsBatch(data, box);
+  userPostLoading = false;
+
+  // Auto-scroll ke post target (hanya batch pertama)
+  if (userPostPage === 1) {
+    setTimeout(async () => {
+      const postIdParam = urlParams.get("post");
+      if (postIdParam) {
+        const targetCard = document.getElementById(`post-card-${postIdParam}`);
+        if (targetCard) {
+          await toggleCommentBox(postIdParam);
+          targetCard.scrollIntoView({ behavior: "smooth", block: "center" });
+          targetCard.style.transition = "all 0.5s ease";
+          targetCard.style.boxShadow = "0 0 15px rgba(47, 111, 78, 0.35)";
+          targetCard.style.borderColor = "#2f6f4e";
+        }
+      }
+    }, 300);
+  }
+}
+
+async function loadUserPosts() {
+  const box = document.getElementById("userPosts");
+  if (!targetProfileId || !box) return;
+
+  box.innerHTML = "";
+  userPostPage = 0;
+  userPostLoading = false;
+  userPostAllLoaded = false;
+
+  const loadingMore = document.createElement("div");
+  loadingMore.id = "userPostLoadingMore";
+  loadingMore.style.cssText = "text-align:center;padding:10px;font-size:11px;color:#aaa;display:none;";
+  loadingMore.innerText = "⏳ Memuat karya berikutnya...";
+  box.appendChild(loadingMore);
+
+  await loadMoreUserPosts();
+  initUserPostScroll();
+}
+
 function renderUserPostsBatch(data, box) {
   const loadingMore = document.getElementById("userPostLoadingMore");
 
@@ -857,6 +1102,7 @@ function renderUserPostsBatch(data, box) {
     const safeText = (post.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
     const currentUsername = profileUsername || "Petani";
     const isMyPost = currentWallet === targetProfileId;
+    const videoEmbeds = generateAllVideoEmbeds(post.deskripsi_proses || "");
 
     const div = document.createElement("div");
     div.id = `post-card-${post.id}`;
@@ -878,6 +1124,7 @@ function renderUserPostsBatch(data, box) {
         ` : ''}
       </div>
       <div style="font-size:13px;line-height:1.7;margin-bottom:10px;">${convertMentions(post.deskripsi_proses || "")}</div>
+      ${videoEmbeds ? `<div style="margin:12px 0;">${videoEmbeds}</div>` : ""}
       ${post.image_url ? `
         <div style="width:100%;display:flex;justify-content:center;margin-bottom:12px;">
           <img src="${post.image_url}" style="max-width:100%;max-height:420px;width:auto;height:auto;object-fit:contain;border-radius:16px;border:1px solid rgba(0,0,0,.06);box-shadow:0 4px 12px rgba(0,0,0,.08);" />
