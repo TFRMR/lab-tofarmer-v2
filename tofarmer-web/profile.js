@@ -90,7 +90,7 @@ function extractVideoInfo(text) {
   const videos = [];
 
   // YouTube (youtube.com/watch?v=, youtu.be/, youtube.com/shorts/)
-  const youtubeRegex = /(?:youtube.com/watch?v=([a-zA-Z0-9_-]{11})|youtu.be/([a-zA-Z0-9_-]{11})|youtube.com/shorts/([a-zA-Z0-9_-]{11}))/g;
+  const youtubeRegex = /(?:youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})|youtu\.be\/([a-zA-Z0-9_-]{11})|youtube\.com\/shorts\/([a-zA-Z0-9_-]{11}))/gi;
   let match;
   while ((match = youtubeRegex.exec(text)) !== null) {
     const videoId = match[1] || match[2] || match[3];
@@ -100,7 +100,7 @@ function extractVideoInfo(text) {
   }
 
   // Vimeo (vimeo.com/)
-  const vimeoRegex = /vimeo.com/(d+)/g;
+  const vimeoRegex = /vimeo\.com\/(\d+)/gi;
   while ((match = vimeoRegex.exec(text)) !== null) {
     const videoId = match[1];
     if (videoId && !videos.find(v => v.id === videoId && v.type === 'vimeo')) {
@@ -109,7 +109,7 @@ function extractVideoInfo(text) {
   }
 
   // TikTok (tiktok.com/@username/video/id atau vm.tiktok.com/)
-  const tiktokRegex = /(?:tiktok.com/@[w.-]+/video/(d+)|vm.tiktok.com/([a-zA-Z0-9]+)|vt.tiktok.com/([a-zA-Z0-9]+))/g;
+  const tiktokRegex = /(?:tiktok\.com\/@[\w.-]+\/video\/(\d+)|vm\.tiktok\.com\/([a-zA-Z0-9]+)|vt\.tiktok\.com\/([a-zA-Z0-9]+))/gi;
   while ((match = tiktokRegex.exec(text)) !== null) {
     const videoId = match[1] || match[2] || match[3];
     if (videoId && !videos.find(v => v.id === videoId && v.type === 'tiktok')) {
@@ -118,7 +118,7 @@ function extractVideoInfo(text) {
   }
 
   // Instagram (instagram.com/p/id atau instagram.com/reel/id)
-  const instagramRegex = /instagram.com/(?:p|reel)/([a-zA-Z0-9_-]+)/g;
+  const instagramRegex = /instagram\.com\/(?:p|reel)\/([a-zA-Z0-9_-]+)/gi;
   while ((match = instagramRegex.exec(text)) !== null) {
     const postId = match[1];
     if (postId && !videos.find(v => v.id === postId && v.type === 'instagram')) {
