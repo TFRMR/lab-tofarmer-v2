@@ -443,7 +443,7 @@
                 throw new Error('❌ Format note tidak valid. Bukan catatan Prasasti (ekspektasi: tofnote:series:index:total:...)');
             }
 
-            const [_, seriesCode, idx0, totalStr, prevTx0, content0] = headerMatch;
+            const [, seriesCode, idx0, totalStr, prevTx0, content0] = headerMatch;
             const totalChunks = parseInt(totalStr);
 
             console.log(`[1] ✅ Series: "${seriesCode}", Total chunks: ${totalChunks}`);
@@ -496,7 +496,7 @@
                         const nm = nText.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
                         if (!nm) continue;
 
-                        const [_, series, chunkIdx, chunkTotal, _, chunkContent] = nm;
+                        const [, series, chunkIdx, chunkTotal, , chunkContent] = nm;
 
                         // Filter: hanya ambil chunks dari series yang sama
                         if (series === seriesCode) {
