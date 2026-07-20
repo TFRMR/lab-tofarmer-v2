@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📜 Catatan Prasasti Menoreh — Penjahit Ilmu ke Blockchain</title>
+    <title>⛓️ Pemahat Prasasti Blockchain — TOF Utility Layer</title>
     <style>
         * {
             margin: 0;
@@ -14,184 +14,155 @@
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             background:
-                radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
-                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
-                linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+                radial-gradient(circle at top right, rgba(13, 148, 136, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.08) 0%, transparent 35%),
+                linear-gradient(135deg, #0a0f0c 0%, #0d1e14 50%, #050b07 100%);
             min-height: 100vh;
-            overflow-x: hidden;
             color: #e2e8f0;
             position: relative;
+            overflow-x: hidden;
         }
 
         body::before {
             content: "";
             position: fixed;
             inset: 0;
-            background: linear-gradient(120deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0));
+            background: linear-gradient(120deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, 0));
             pointer-events: none;
-            animation: fog 14s ease-in-out infinite;
+            animation: mist 16s ease-in-out infinite;
             z-index: 1;
         }
 
-        @keyframes fog {
-            0% { transform: translateX(-3%); }
-            50% { transform: translateX(3%); }
-            100% { transform: translateX(-3%); }
+        @keyframes mist {
+            0% { transform: translateX(-5%); }
+            50% { transform: translateX(5%); }
+            100% { transform: translateX(-5%); }
         }
 
         .container {
-            width: 100%;
             max-width: 1280px;
-            margin: auto;
-            padding: 22px;
+            margin: 0 auto;
+            padding: 24px;
             position: relative;
             z-index: 2;
         }
 
-        .hero {
-            position: relative;
-            padding: 40px 20px 50px;
-            text-align: center;
-            margin-bottom: 50px;
-        }
-
-        .hero h1 {
-            font-family: 'Playfair Display', serif;
-            font-size: 3rem;
-            font-weight: 800;
-            letter-spacing: -1px;
-            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 12px;
-        }
-
-        .hero p {
-            font-size: .98rem;
-            color: #84a98c;
-            max-width: 650px;
-            margin: auto;
-        }
-
-        /* ===== MAIN LAYOUT (2-KOLOM) ===== */
-        .main-wrapper {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 40px;
-        }
-
-        .panel {
-            background: rgba(14, 28, 19, 0.45);
-            backdrop-filter: blur(22px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 34px;
-            padding: 35px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .panel::before {
-            content: "";
-            position: absolute;
-            top: -120px;
-            right: -120px;
-            width: 240px;
-            height: 240px;
-            background: radial-gradient(circle, rgba(234, 179, 8, 0.08), transparent 70%);
-        }
-
-        .panel-title {
+        /* ===== LOGIN SCREEN ===== */
+        .login-screen {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 22px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #fde047;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
+            justify-content: center;
+            min-height: 100vh;
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #0a0f0c 0%, #0d1e14 100%);
+            z-index: 1000;
+            backdrop-filter: blur(10px);
         }
 
-        .panel-title::before {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(234, 179, 8, 0.3), transparent);
+        .login-screen.hidden {
+            display: none;
+        }
+
+        .login-card {
+            background: rgba(14, 28, 19, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(13, 148, 136, 0.3);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(13, 148, 136, 0.2);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .login-header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #a7f3d0;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #cbd5e1;
+            font-size: 0.95rem;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
         }
 
         .form-group label {
-            display: block;
             font-size: 0.85rem;
             font-weight: 600;
-            color: #cbd5e1;
+            color: #a7f3d0;
             margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
-        input[type="text"],
-        input[type="password"],
-        input[type="email"],
-        select,
-        textarea {
-            width: 100%;
+        textarea,
+        input[type="text"] {
             padding: 12px 16px;
             border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(13, 148, 136, 0.3);
             background: rgba(15, 23, 42, 0.6);
             color: #e2e8f0;
-            font-family: inherit;
+            font-family: 'Fira Code', monospace;
             font-size: 0.9rem;
             transition: all 0.3s;
         }
 
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        select:focus,
-        textarea:focus {
+        textarea:focus,
+        input[type="text"]:focus {
             outline: none;
-            background: rgba(15, 23, 42, 0.8);
-            border-color: rgba(74, 222, 128, 0.3);
-            box-shadow: 0 0 12px rgba(34, 197, 94, 0.15);
+            border-color: rgba(13, 148, 136, 0.6);
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 15px rgba(13, 148, 136, 0.2);
         }
 
         textarea {
+            min-height: 100px;
             resize: vertical;
-            min-height: 120px;
-            font-family: 'Fira Code', monospace;
         }
 
         .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 14px 28px;
+            padding: 14px 24px;
             border-radius: 12px;
             border: none;
-            font-size: 0.9rem;
             font-weight: 700;
-            letter-spacing: 0.5px;
+            font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.3s;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
-            color: #050b07;
-            box-shadow: 0 8px 24px rgba(34, 197, 94, 0.3);
+            background: linear-gradient(135deg, #0d9488 0%, #0d7b3d 100%);
+            color: #ecfdf5;
+            box-shadow: 0 8px 24px rgba(13, 148, 136, 0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 12px 32px rgba(34, 197, 94, 0.4);
+            box-shadow: 0 12px 32px rgba(13, 148, 136, 0.4);
         }
 
         .btn-primary:disabled {
@@ -200,178 +171,92 @@
             transform: none;
         }
 
-        .btn-secondary {
-            background: rgba(30, 58, 40, 0.6);
-            color: #a7f3d0;
-            border: 1px solid rgba(74, 222, 128, 0.2);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(34, 197, 94, 0.15);
-            border-color: rgba(74, 222, 128, 0.4);
-        }
-
-        .btn-small {
-            padding: 8px 16px;
+        .login-hint {
             font-size: 0.8rem;
+            color: #64748b;
+            text-align: center;
+            margin-top: 15px;
         }
 
-        .warning-box {
-            background: rgba(245, 158, 11, 0.1);
-            border-left: 4px solid #f59e0b;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
-            color: #fcd34d;
-            line-height: 1.6;
-        }
-
-        .success-box {
-            background: rgba(34, 197, 94, 0.1);
-            border-left: 4px solid #22c55e;
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
-            color: #86efac;
-            line-height: 1.6;
-        }
-
-        .error-box {
+        .error-msg {
             background: rgba(239, 68, 68, 0.1);
-            border-left: 4px solid #ef4444;
-            padding: 16px;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 12px;
             border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.85rem;
             color: #fca5a5;
-            line-height: 1.6;
-        }
-
-        /* ===== PREVIEW PANEL ===== */
-        #preview {
-            min-height: 400px;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(74, 222, 128, 0.1);
-        }
-
-        .preview-frame {
-            width: 100%;
-            height: 100%;
-            background: #050b07;
-            padding: 30px;
-            overflow-y: auto;
-            border-radius: 20px;
-        }
-
-        /* ===== LOG PANEL ===== */
-        #log {
-            background: rgba(8, 15, 11, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 16px;
-            padding: 20px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 20px;
             font-size: 0.85rem;
-            font-family: 'Fira Code', monospace;
-            color: #a7f3d0;
+            display: none;
         }
 
-        .log-item {
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        .error-msg.show {
+            display: block;
         }
 
-        .log-item:last-child {
-            border-bottom: none;
+        /* ===== MAIN APP ===== */
+        .app-screen {
+            display: none;
         }
 
-        .log-success { color: #4ade80; }
-        .log-error { color: #ef4444; }
-        .log-info { color: #60a5fa; }
-        .log-warning { color: #f59e0b; }
-
-        /* ===== TEMPLATE CARDS ===== */
-        .template-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
+        .app-screen.active {
+            display: block;
         }
 
-        .template-card {
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px;
             position: relative;
-            padding: 16px;
-            border-radius: 12px;
-            border: 2px solid rgba(255, 255, 255, 0.08);
-            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .user-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            background: rgba(13, 148, 136, 0.2);
+            border: 1px solid rgba(13, 148, 136, 0.4);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: #a7f3d0;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #a7f3d0 0%, #0d9488 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #84a98c;
+            font-size: 1rem;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 8px 16px;
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            font-size: 0.8rem;
             cursor: pointer;
             transition: all 0.3s;
-            text-align: center;
         }
 
-        .template-card:hover {
-            border-color: rgba(74, 222, 128, 0.3);
-            background: rgba(15, 23, 42, 0.8);
-        }
-
-        .template-card.active {
-            border-color: #22c55e;
-            background: rgba(34, 197, 94, 0.15);
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.2);
-        }
-
-        .template-card-icon {
-            font-size: 2rem;
-            margin-bottom: 8px;
-        }
-
-        .template-card-name {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #cbd5e1;
-        }
-
-        /* ===== SERIES MANAGEMENT ===== */
-        .series-list {
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 12px;
-        }
-
-        .series-item {
-            background: rgba(15, 23, 42, 0.6);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 0.8rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border: 1px solid rgba(74, 222, 128, 0.1);
-        }
-
-        .series-code {
-            color: #fde047;
-            font-weight: 600;
-            font-family: monospace;
-        }
-
-        .series-info {
-            color: #94a3b8;
-            font-size: 0.7rem;
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.25);
         }
 
         /* ===== TABS ===== */
         .tabs {
             display: flex;
             gap: 8px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(13, 148, 136, 0.2);
             padding-bottom: 12px;
         }
 
@@ -392,8 +277,8 @@
         }
 
         .tab-btn.active {
-            color: #22c55e;
-            border-bottom-color: #22c55e;
+            color: #0d9488;
+            border-bottom-color: #0d9488;
         }
 
         .tab-content {
@@ -404,25 +289,153 @@
             display: block;
         }
 
-        /* ===== RESPONSIVE TABLET ===== */
+        /* ===== MAIN LAYOUT ===== */
+        .main-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .panel {
+            background: rgba(14, 28, 19, 0.5);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(13, 148, 136, 0.15);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .panel-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #a7f3d0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(13, 148, 136, 0.2);
+            background: rgba(15, 23, 42, 0.6);
+            color: #e2e8f0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: rgba(13, 148, 136, 0.5);
+            background: rgba(15, 23, 42, 0.9);
+            box-shadow: 0 0 12px rgba(13, 148, 136, 0.15);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .btn-secondary {
+            background: rgba(13, 148, 136, 0.15);
+            color: #a7f3d0;
+            border: 1px solid rgba(13, 148, 136, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(13, 148, 136, 0.25);
+            border-color: rgba(13, 148, 136, 0.5);
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            width: auto;
+        }
+
+        /* ===== PREVIEW ===== */
+        #preview {
+            min-height: 400px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(13, 148, 136, 0.1);
+        }
+
+        .preview-frame {
+            width: 100%;
+            height: 100%;
+            background: #050b07;
+            padding: 25px;
+            overflow-y: auto;
+            border-radius: 16px;
+        }
+
+        /* ===== LOG ===== */
+        #log {
+            background: rgba(8, 15, 11, 0.8);
+            border: 1px solid rgba(13, 148, 136, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            font-family: 'Fira Code', monospace;
+            color: #a7f3d0;
+        }
+
+        .log-item {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(13, 148, 136, 0.1);
+        }
+
+        .log-item:last-child {
+            border-bottom: none;
+        }
+
+        .log-success { color: #86efac; }
+        .log-error { color: #fca5a5; }
+        .log-info { color: #a7f3d0; }
+
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 1024px) {
             .main-wrapper {
                 grid-template-columns: 1fr;
             }
 
-            .hero h1 {
-                font-size: 2.2rem;
-            }
-
-            .template-grid {
-                grid-template-columns: 1fr 1fr;
+            .header h1 {
+                font-size: 2rem;
             }
         }
 
-        /* ===== RESPONSIVE MOBILE ===== */
         @media (max-width: 768px) {
             .container {
-                padding: 10px;
+                padding: 12px;
             }
 
             .panel {
@@ -430,68 +443,12 @@
                 border-radius: 16px;
             }
 
-            .panel-title {
-                font-size: 0.95rem;
-            }
-
-            .hero h1 {
+            .header h1 {
                 font-size: 1.8rem;
-                line-height: 1.3;
             }
 
-            .hero p {
-                font-size: 0.9rem;
-            }
-
-            .template-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-            }
-
-            .template-card {
-                padding: 14px;
-            }
-
-            .template-card-icon {
-                font-size: 1.8rem;
-                margin-bottom: 6px;
-            }
-
-            .template-card-name {
-                font-size: 0.85rem;
-            }
-
-            .tabs {
-                flex-wrap: wrap;
-                gap: 6px;
-            }
-
-            .tab-btn {
-                padding: 6px 12px;
-                font-size: 0.8rem;
-            }
-
-            .form-group label {
-                font-size: 0.75rem;
-            }
-
-            input[type="text"],
-            textarea {
-                padding: 10px 12px;
-                font-size: 0.9rem;
-            }
-
-            textarea {
-                min-height: 100px;
-            }
-
-            .btn {
-                padding: 12px 20px;
-                font-size: 0.85rem;
-            }
-
-            .main-wrapper {
-                gap: 16px;
+            .login-card {
+                padding: 25px;
             }
 
             #preview {
@@ -500,26 +457,13 @@
 
             .preview-frame {
                 padding: 16px;
-                font-size: 0.9rem;
             }
 
-            #log {
-                max-height: 200px;
-                font-size: 0.75rem;
-                padding: 12px;
-            }
-
-            .series-list {
-                max-height: 150px;
-            }
-
-            .series-item {
-                padding: 8px;
-                font-size: 0.75rem;
+            .tabs {
+                flex-wrap: wrap;
             }
         }
 
-        /* ===== RESPONSIVE SMALL PHONE ===== */
         @media (max-width: 480px) {
             .container {
                 padding: 8px;
@@ -527,96 +471,20 @@
 
             .panel {
                 padding: 12px;
-                border-radius: 12px;
             }
 
-            .hero {
-                padding: 20px 10px 30px;
+            .header h1 {
+                font-size: 1.4rem;
             }
 
-            .hero h1 {
-                font-size: 1.5rem;
-                font-weight: 700;
-            }
-
-            .hero p {
-                font-size: 0.8rem;
-            }
-
-            .panel-title {
-                font-size: 0.85rem;
-                gap: 8px;
-            }
-
-            .form-group {
-                margin-bottom: 15px;
-            }
-
-            .form-group label {
-                font-size: 0.7rem;
-                margin-bottom: 6px;
-            }
-
-            input[type="text"],
-            textarea {
-                padding: 8px 10px;
-                font-size: 0.85rem;
-                border-radius: 8px;
+            .login-card {
+                padding: 16px;
+                border-radius: 16px;
             }
 
             textarea {
                 min-height: 80px;
-                font-size: 0.8rem;
-            }
-
-            .template-grid {
-                grid-template-columns: 1fr;
-                gap: 8px;
-            }
-
-            .template-card {
-                padding: 12px;
-                border-radius: 10px;
-            }
-
-            .template-card-icon {
-                font-size: 1.6rem;
-                margin-bottom: 4px;
-            }
-
-            .template-card-name {
-                font-size: 0.8rem;
-                line-height: 1.2;
-            }
-
-            .btn {
-                padding: 10px 16px;
-                font-size: 0.8rem;
-                gap: 6px;
-            }
-
-            .btn-small {
-                padding: 6px 12px;
-                font-size: 0.7rem;
-            }
-
-            .tab-btn {
-                padding: 5px 10px;
-                font-size: 0.75rem;
-                margin: 0 2px;
-            }
-
-            .warning-box,
-            .success-box,
-            .error-box {
-                padding: 12px;
-                font-size: 0.75rem;
-                margin-bottom: 15px;
-            }
-
-            .info-box {
-                padding: 12px;
-                font-size: 0.75rem;
+                font-size: 14px;
             }
 
             #preview {
@@ -625,300 +493,255 @@
 
             .preview-frame {
                 padding: 12px;
-                font-size: 0.85rem;
-            }
-
-            #log {
-                max-height: 150px;
-                font-size: 0.7rem;
-                padding: 10px;
-            }
-
-            .log-item {
-                padding: 6px 0;
-            }
-
-            .series-list {
-                max-height: 120px;
-            }
-
-            .series-item {
-                padding: 6px;
-                font-size: 0.7rem;
-                margin-bottom: 6px;
-            }
-
-            .metadata {
-                font-size: 0.75rem;
-            }
-
-            .metadata-item {
-                margin: 6px 0;
+                font-size: 0.9rem;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="hero">
-            <h1>📜 Catatan Prasasti Menoreh</h1>
-            <p>Penjahit Ilmu Baku ke Blockchain Algorand — Simpan Pengetahuan Selamanya, Akses Tanpa Server</p>
+    <!-- LOGIN SCREEN -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon">⛓️</div>
+                <h1>Pemahat Prasasti</h1>
+                <p>Login dengan 25-kata mnemonic Algorand Anda</p>
+            </div>
+            <div class="login-form">
+                <div class="form-group">
+                    <label>25-Kata Mnemonic</label>
+                    <textarea id="mnemonicInput" placeholder="Paste 25 kata mnemonic dompet Algorand Anda..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>User ID Unik (Custom)</label>
+                    <input type="text" id="userIdInput" placeholder="Contoh: suryadi, pak_hendra, etc (a-z, underscore, no spaces)" maxlength="20">
+                </div>
+                <button class="btn btn-primary" onclick="loginWithMnemonic()">🔓 MASUK SEBAGAI PEMAHAT</button>
+                <div class="error-msg" id="errorMsg"></div>
+                <div class="login-hint">
+                    💡 Mnemonic disimpan hanya di browser ini. Jangan pernah share! Kosongkan setelah selesai.
+                </div>
+            </div>
         </div>
+    </div>
 
-        <div class="main-wrapper">
-            <!-- ===== PANEL KIRI: EDITOR ===== -->
-            <div class="panel">
-                <div class="tabs">
-                    <button class="tab-btn active" onclick="switchTab('setup')">⚙️ Setup</button>
-                    <button class="tab-btn" onclick="switchTab('editor')">✍️ Editor</button>
-                    <button class="tab-btn" onclick="switchTab('series')">🔗 Series</button>
-                </div>
+    <!-- APP SCREEN -->
+    <div class="app-screen" id="appScreen">
+        <div class="container">
+            <div class="header">
+                <span class="user-badge">👤 <span id="userDisplay">User</span></span>
+                <h1>⛓️ Pemahat Prasasti</h1>
+                <p>Tulis ilmu baku & pahat ke blockchain Algorand</p>
+                <button class="logout-btn" onclick="logout()">🚪 Keluar</button>
+            </div>
 
-                <!-- TAB: SETUP -->
-                <div id="tab-setup" class="tab-content active">
-                    <div class="panel-title">🔐 Konfigurasi Dompet & Series</div>
+            <!-- TABS -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('write')">✍️ Tulis Prasasti</button>
+                <button class="tab-btn" onclick="switchTab('series')">🔗 Series Saya</button>
+                <button class="tab-btn" onclick="switchTab('info')">ℹ️ Info</button>
+            </div>
 
-                    <div class="warning-box">
-                        ⚠️ <strong>KEAMANAN:</strong> Jangan simpan file ini dengan mnemonic terisi. Jalankan hanya lokal, kosongkan field setelah selesai.
-                    </div>
+            <!-- TAB: WRITE -->
+            <div id="tab-write" class="tab-content active">
+                <div class="main-wrapper">
+                    <div class="panel">
+                        <div class="panel-title">✍️ Tulis Ilmu Baku</div>
 
-                    <div class="form-group">
-                        <label>Frase Mnemonic (25 kata)</label>
-                        <textarea id="mnemonic" placeholder="Paste 25-kata mnemonic dompet Algorand Anda..."></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>TOF Asset ID</label>
-                        <input type="text" id="tofAssetId" value="3558306283" placeholder="ID asset TOF di Algorand">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Buat Series Kode Baru (Unik)</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <input type="text" id="seriesPrefix" placeholder="misal: ilmu, resep, cerita" maxlength="15">
-                            <button class="btn btn-secondary btn-small" onclick="validateAndCreateSeries()">+ Buat Series</button>
+                        <div class="form-group">
+                            <label>Judul Prasasti</label>
+                            <input type="text" id="noteTitle" placeholder="Judul ilmu yang ingin diabadikan...">
                         </div>
-                        <small style="color: #94a3b8; margin-top: 8px; display: block;">
-                            Format: huruf kecil, angka, dash. Contoh: <code>ilmu-garam</code>, <code>cerita-menoreh</code>
-                        </small>
+
+                        <div class="form-group">
+                            <label>Series (Kategori)</label>
+                            <input type="text" id="noteSeries" placeholder="Contoh: ilmu-garam, resep-nusantara, cerita-menoreh" list="seriesList">
+                            <datalist id="seriesList"></datalist>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Konten Utama</label>
+                            <textarea id="noteContent" placeholder="Tulis ilmu, cerita, atau pengetahuan yang ingin Anda abadikan selamanya di blockchain..."></textarea>
+                        </div>
+
+                        <button class="btn btn-primary" style="width: 100%;" onclick="previewNote()">
+                            👁️ PREVIEW
+                        </button>
                     </div>
 
-                    <div id="seriesListContainer" style="display: none;">
-                        <label>Series yang Aktif:</label>
-                        <div class="series-list" id="activeSeries"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Pilih Series Aktif</label>
-                        <select id="selectedSeries">
-                            <option value="">-- Pilih series tujuan --</option>
-                        </select>
-                    </div>
-
-                    <button class="btn btn-secondary" style="width: 100%;" onclick="validateSetup()">
-                        ✓ Validasi Setup
-                    </button>
-                </div>
-
-                <!-- TAB: EDITOR -->
-                <div id="tab-editor" class="tab-content">
-                    <div class="panel-title">✍️ Tulis Ilmu</div>
-
-                    <div class="form-group">
-                        <label>Pilih Template</label>
-                        <div class="template-grid" id="templateGrid"></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Judul Catatan</label>
-                        <input type="text" id="noteTitle" placeholder="Judul ilmu/tulisan...">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Penulis / Sumber</label>
-                        <input type="text" id="noteAuthor" placeholder="Nama Anda atau referensi...">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Konten Utama</label>
-                        <textarea id="noteContent" placeholder="Tulis ilmu baku, catatan, cerita, atau pengetahuan yang ingin Anda abadikan..."></textarea>
-                    </div>
-
-                    <button class="btn btn-primary" style="width: 100%;" onclick="previewNote()">
-                        👁️ Pratinjau & Update
-                    </button>
-                </div>
-
-                <!-- TAB: SERIES -->
-                <div id="tab-series" class="tab-content">
-                    <div class="panel-title">🔗 Daftar Series</div>
-                    <div class="series-list" id="seriesManagement">
-                        <p style="color: #94a3b8; text-align: center;">Belum ada series. Buat di tab Setup.</p>
+                    <div>
+                        <div id="preview" class="preview-frame"></div>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="btnPahat" onclick="pahatKeBlockchain()" disabled>
+                            ⛓️ PAHAT KE BLOCKCHAIN
+                        </button>
+                        <div id="log"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== PANEL KANAN: PREVIEW ===== -->
-            <div>
-                <div id="preview" class="preview-frame"></div>
-                <div id="log"></div>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="btnPahat" onclick="pahatKeBlockchain()" disabled>
-                    ⛓️ PAHAT KE BLOCKCHAIN
-                </button>
+            <!-- TAB: SERIES -->
+            <div id="tab-series" class="tab-content">
+                <div class="panel" style="max-width: 500px;">
+                    <div class="panel-title">🔗 Series yang Telah Dibuat</div>
+                    <div id="seriesManagement" style="color: #94a3b8;">
+                        <p>Loading series dari blockchain...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: INFO -->
+            <div id="tab-info" class="tab-content">
+                <div class="panel" style="max-width: 600px;">
+                    <div class="panel-title">ℹ️ Informasi Blockchain</div>
+                    
+                    <div style="display: grid; gap: 16px; font-size: 0.9rem;">
+                        <div>
+                            <strong style="color: #a7f3d0;">Dompet Anda:</strong>
+                            <div style="color: #cbd5e1; font-family: monospace; word-break: break-all; margin-top: 8px;" id="walletDisplay">-</div>
+                        </div>
+
+                        <div>
+                            <strong style="color: #a7f3d0;">User ID:</strong>
+                            <div style="color: #cbd5e1; margin-top: 8px;" id="userIdDisplay">-</div>
+                        </div>
+
+                        <div>
+                            <strong style="color: #a7f3d0;">ASA ID TOF (Permanent):</strong>
+                            <div style="color: #a7f3d0; font-family: monospace; margin-top: 8px;">3558306283</div>
+                        </div>
+
+                        <div>
+                            <strong style="color: #a7f3d0;">Format Note:</strong>
+                            <div style="color: #cbd5e1; font-family: monospace; margin-top: 8px; background: rgba(15,23,42,0.6); padding: 12px; border-radius: 8px;">
+                                tf:pr|userid|1|chunks|series|content
+                            </div>
+                            <div style="color: #64748b; font-size: 0.8rem; margin-top: 8px;">
+                                Contoh: tf:pr|suryadi|1|5|ilmu-garam|[html content]
+                            </div>
+                        </div>
+
+                        <div>
+                            <strong style="color: #a7f3d0;">Keuntungan:</strong>
+                            <div style="color: #cbd5e1; margin-top: 8px; line-height: 1.8;">
+                                ✅ Sepenuhnya terdesentralisasi (blockchain = database)<br>
+                                ✅ Tidak butuh server atau hosting<br>
+                                ✅ TOF token = utility nyata (gas fee untuk pahat)<br>
+                                ✅ Data permanen & immutable<br>
+                                ✅ Profile auto-generated dari transactions<br>
+                                ✅ Series auto-indexed dari blockchain
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
     <script>
-        // ==================== STATE MANAGEMENT ====================
+        // ==================== CONSTANTS ====================
+        const ASA_ID_TOF = 3558306283;
+        const ALGORAND_MAINNET = "https://mainnet-api.algonode.cloud";
+
+        // ==================== STATE ====================
         const state = {
-            mnemonic: null,
             account: null,
-            tofAssetId: 3558306283,
-            selectedSeries: null,
-            selectedTemplate: 'article',
+            userId: null,
+            mnemonic: null,
+            series: [],
             note: {
                 title: '',
-                author: '',
-                content: '',
-                template: 'article'
-            },
-            series: JSON.parse(localStorage.getItem('tofarmer_series')) || {},
-            validSetup: false
-        };
-
-        const algodClient = new algosdk.Algodv2("", "https://mainnet-api.algonode.cloud", "");
-        const encoder = new TextEncoder();
-
-        // ==================== TEMPLATES ====================
-        const TEMPLATES = {
-            article: {
-                name: '📖 Artikel',
-                icon: '📖',
-                cssClass: 'template-article',
-                meta: `<meta name="template" content="article">`,
-                render: (data) => `
-                    <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27; line-height: 1.8;">
-                        <header style="margin-bottom: 30px; border-bottom: 3px solid #22c55e; padding-bottom: 20px;">
-                            <h1 style="font-size: 2.5rem; color: #0d1e14; margin-bottom: 10px; font-weight: 800;">${escapeHtml(data.title)}</h1>
-                            <p style="font-size: 1rem; color: #666; margin: 8px 0;"><strong>Oleh:</strong> ${escapeHtml(data.author)}</p>
-                            <p style="font-size: 0.9rem; color: #999;">Tersimpan di Blockchain Algorand 🌿</p>
-                        </header>
-                        <section style="font-size: 1.05rem; color: #2c2c2c; margin-bottom: 30px; white-space: pre-wrap; word-wrap: break-word;">
-${escapeHtml(data.content)}
-                        </section>
-                        <footer style="padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #999; font-size: 0.9rem;">
-                            <p>Ilmu yang dibagikan adalah ilmu yang berkembang. 🌱</p>
-                        </footer>
-                    </article>
-                `
-            },
-            ilmu: {
-                name: '✨ Ilmu Baku',
-                icon: '✨',
-                cssClass: 'template-ilmu',
-                meta: `<meta name="template" content="ilmu">`,
-                render: (data) => `
-                    <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27;">
-                        <header style="background: linear-gradient(135deg, #065f46 0%, #0d9488 100%); color: #ecfdf5; padding: 30px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(13, 148, 136, 0.2);">
-                            <h1 style="font-size: 2.2rem; margin-bottom: 8px; font-weight: 800;">${escapeHtml(data.title)}</h1>
-                            <p style="font-size: 1rem; opacity: 0.95;">Ilmu baku dari: ${escapeHtml(data.author)}</p>
-                        </header>
-                        <section style="font-size: 1.05rem; color: #1c3d27; line-height: 1.9; margin-bottom: 30px; white-space: pre-wrap; word-break: break-word; background: linear-gradient(to right, rgba(13, 148, 136, 0.08), transparent); padding: 25px; border-left: 5px solid #0d9488; border-radius: 8px;">
-${escapeHtml(data.content)}
-                        </section>
-                        <footer style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 8px; text-align: center; color: #065f46; border-left: 4px solid #0d9488; font-weight: 600;">
-                            <p>🌾 Ilmu Menoreh yang tersimpan selamanya di batu prasasti blockchain 🌾</p>
-                        </footer>
-                    </article>
-                `
-            },
-            poetry: {
-                name: '🍃 Puisi',
-                icon: '🍃',
-                cssClass: 'template-poetry',
-                meta: `<meta name="template" content="poetry">`,
-                render: (data) => `
-                    <article style="font-family: 'Playfair Display', serif; color: #1c3d27; max-width: 600px; margin: 0 auto;">
-                        <header style="text-align: center; margin-bottom: 40px;">
-                            <h1 style="font-size: 2.5rem; color: #0d1e14; margin-bottom: 12px; font-weight: 800;">${escapeHtml(data.title)}</h1>
-                            <p style="font-size: 1.1rem; color: #666; font-style: italic;">— ${escapeHtml(data.author)} —</p>
-                        </header>
-                        <section style="font-size: 1.15rem; line-height: 2.2; color: #2c2c2c; text-align: center; white-space: pre-wrap; word-break: break-word;">
-${escapeHtml(data.content)}
-                        </section>
-                        <footer style="text-align: center; margin-top: 40px; color: #999; font-size: 0.9rem;">
-                            🌿 Puisi ini tumbuh di gada Menoreh 🌿
-                        </footer>
-                    </article>
-                `
-            },
-            recipe: {
-                name: '👨‍🍳 Resep',
-                icon: '👨‍🍳',
-                cssClass: 'template-recipe',
-                meta: `<meta name="template" content="recipe">`,
-                render: (data) => `
-                    <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27; max-width: 700px; margin: 0 auto;">
-                        <header style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
-                            <h1 style="font-size: 2.2rem; margin-bottom: 8px; font-weight: 800;">🍳 ${escapeHtml(data.title)}</h1>
-                            <p style="font-size: 1rem; opacity: 0.9;">Resep dari: ${escapeHtml(data.author)}</p>
-                        </header>
-                        <section style="font-size: 1.05rem; color: #2c2c2c; line-height: 1.8; margin-bottom: 30px; white-space: pre-wrap;">
-${escapeHtml(data.content)}
-                        </section>
-                        <footer style="background: #fffbeb; padding: 20px; border-radius: 8px; text-align: center; color: #666; border-left: 4px solid #f59e0b;">
-                            <p>Resep dibagikan dengan cinta dan selera dari dapur Menoreh. 💚</p>
-                        </footer>
-                    </article>
-                `
-            },
-            memory: {
-                name: '📸 Kenangan',
-                icon: '📸',
-                cssClass: 'template-memory',
-                meta: `<meta name="template" content="memory">`,
-                render: (data) => `
-                    <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27;">
-                        <header style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px;">
-                            <h1 style="font-size: 2.2rem; margin-bottom: 8px; font-weight: 800;">💜 ${escapeHtml(data.title)}</h1>
-                            <p style="font-size: 1rem; opacity: 0.9;">Dari hati: ${escapeHtml(data.author)}</p>
-                        </header>
-                        <section style="font-size: 1.1rem; color: #2c2c2c; line-height: 1.9; margin-bottom: 30px; white-space: pre-wrap;">
-${escapeHtml(data.content)}
-                        </section>
-                        <footer style="background: #faf5ff; padding: 20px; border-radius: 8px; text-align: center; color: #666; border-left: 4px solid #8b5cf6;">
-                            <p>Kenangan abadi di batu prasasti Menoreh. 🕯️</p>
-                        </footer>
-                    </article>
-                `
+                series: '',
+                content: ''
             }
         };
 
-        // ==================== UTILITY FUNCTIONS ====================
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        const algodClient = new algosdk.Algodv2("", ALGORAND_MAINNET, "");
+        const encoder = new TextEncoder();
+
+        // ==================== LOGIN ====================
+        function loginWithMnemonic() {
+            const mnemonicText = document.getElementById('mnemonicInput').value.trim();
+            const userIdText = document.getElementById('userIdInput').value.trim().toLowerCase();
+            const errorMsg = document.getElementById('errorMsg');
+
+            errorMsg.classList.remove('show');
+
+            if (!mnemonicText) {
+                showError('Masukkan 25-kata mnemonic terlebih dahulu');
+                return;
+            }
+
+            if (!userIdText) {
+                showError('Masukkan user ID unik Anda');
+                return;
+            }
+
+            if (!/^[a-z0-9_]+$/.test(userIdText)) {
+                showError('User ID hanya boleh berisi huruf kecil, angka, dan underscore');
+                return;
+            }
+
+            if (userIdText.length < 3 || userIdText.length > 20) {
+                showError('User ID harus 3-20 karakter');
+                return;
+            }
+
+            try {
+                state.account = algosdk.mnemonicToSecretKey(mnemonicText);
+                state.mnemonic = mnemonicText;
+                state.userId = userIdText;
+
+                // Hide login, show app
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('appScreen').classList.add('active');
+
+                // Update UI
+                document.getElementById('userDisplay').textContent = state.userId;
+                document.getElementById('walletDisplay').textContent = state.account.addr;
+                document.getElementById('userIdDisplay').textContent = state.userId;
+
+                log(`✅ Login berhasil sebagai ${state.userId}`, 'success');
+                log(`📍 Dompet: ${state.account.addr.substring(0, 12)}...`, 'info');
+
+                // Load series
+                loadSeriesFromBlockchain();
+
+            } catch (e) {
+                showError('Mnemonic tidak valid: ' + e.message);
+            }
         }
 
+        function showError(msg) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('show');
+        }
+
+        function logout() {
+            if (confirm('Yakin mau logout? Pastikan mnemonic sudah dihapus dari memory.')) {
+                state.account = null;
+                state.userId = null;
+                state.mnemonic = null;
+                document.getElementById('mnemonicInput').value = '';
+                document.getElementById('userIdInput').value = '';
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('appScreen').classList.remove('active');
+                document.getElementById('log').innerHTML = '';
+            }
+        }
+
+        // ==================== LOGGING ====================
         function log(msg, type = 'info') {
             const logEl = document.getElementById('log');
             const item = document.createElement('div');
             item.className = `log-item log-${type}`;
-            
-            let prefix = '❓';
-            if (type === 'success') prefix = '✅';
-            else if (type === 'error') prefix = '❌';
-            else if (type === 'warning') prefix = '⚠️';
-            else if (type === 'info') prefix = 'ℹ️';
-            
-            item.textContent = `${prefix} ${msg}`;
+            item.textContent = msg;
             logEl.appendChild(item);
             logEl.scrollTop = logEl.scrollHeight;
         }
 
+        // ==================== TABS ====================
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -926,179 +749,52 @@ ${escapeHtml(data.content)}
             event.target.classList.add('active');
         }
 
-        // ==================== SETUP FUNCTIONS ====================
-        function initTemplates() {
-            const grid = document.getElementById('templateGrid');
-            grid.innerHTML = '';
-            Object.entries(TEMPLATES).forEach(([key, template]) => {
-                const card = document.createElement('div');
-                card.className = `template-card ${state.selectedTemplate === key ? 'active' : ''}`;
-                card.innerHTML = `<div class="template-card-icon">${template.icon}</div><div class="template-card-name">${template.name}</div>`;
-                card.onclick = () => selectTemplate(key);
-                grid.appendChild(card);
-            });
+        // ==================== SERIES MANAGEMENT ====================
+        function loadSeriesFromBlockchain() {
+            log('🔍 Mengecek series dari blockchain...', 'info');
+            // TODO: Query blockchain untuk series user
+            // Untuk sekarang, biarkan kosong, nanti di-populate saat tulis prasasti
         }
 
-        function selectTemplate(key) {
-            state.selectedTemplate = key;
-            state.note.template = key;
-            document.querySelectorAll('.template-card').forEach(el => el.classList.remove('active'));
-            event.target.closest('.template-card').classList.add('active');
-            previewNote();
-        }
-
-        function validateAndCreateSeries() {
-            const prefix = document.getElementById('seriesPrefix').value.trim();
-            
-            if (!prefix) {
-                log('Series prefix tidak boleh kosong', 'error');
-                return;
-            }
-            
-            if (!/^[a-z0-9\-]+$/.test(prefix)) {
-                log('Hanya huruf kecil, angka, dan dash yang diperbolehkan', 'error');
-                return;
-            }
-            
-            if (prefix.length < 3 || prefix.length > 15) {
-                log('Panjang series 3-15 karakter', 'error');
-                return;
-            }
-            
-            if (state.series[prefix]) {
-                log('Series sudah ada!', 'error');
-                return;
-            }
-            
-            // Create new series
-            state.series[prefix] = {
-                code: prefix,
-                created: new Date().toISOString(),
-                notes: 0
-            };
-            
-            localStorage.setItem('tofarmer_series', JSON.stringify(state.series));
-            document.getElementById('seriesPrefix').value = '';
-            
-            updateSeriesList();
-            log(`✨ Series baru dibuat: <strong>${prefix}</strong>`, 'success');
-        }
-
-        function updateSeriesList() {
-            const select = document.getElementById('selectedSeries');
-            const list = document.getElementById('activeSeries');
-            const container = document.getElementById('seriesListContainer');
-            
-            const seriesList = Object.values(state.series);
-            
-            if (seriesList.length === 0) {
-                container.style.display = 'none';
-                select.innerHTML = '<option value="">-- Tidak ada series --</option>';
-                return;
-            }
-            
-            container.style.display = 'block';
-            select.innerHTML = '<option value="">-- Pilih series --</option>';
-            list.innerHTML = '';
-            
-            seriesList.forEach(series => {
-                const opt = document.createElement('option');
-                opt.value = series.code;
-                opt.textContent = series.code;
-                select.appendChild(opt);
-                
-                const item = document.createElement('div');
-                item.className = 'series-item';
-                item.innerHTML = `
-                    <div>
-                        <div class="series-code">${series.code}</div>
-                        <div class="series-info">Dibuat: ${new Date(series.created).toLocaleDateString('id-ID')}</div>
-                    </div>
-                    <button class="btn btn-small btn-secondary" onclick="deleteSeries('${series.code}')">Hapus</button>
-                `;
-                list.appendChild(item);
-            });
-            
-            // Update series management tab
-            const mgmt = document.getElementById('seriesManagement');
-            mgmt.innerHTML = list.innerHTML;
-        }
-
-        function deleteSeries(code) {
-            if (confirm(`Hapus series "${code}"? Data tidak bisa dipulihkan dari localStorage, tapi catatan di blockchain tetap aman.`)) {
-                delete state.series[code];
-                localStorage.setItem('tofarmer_series', JSON.stringify(state.series));
-                updateSeriesList();
-                log(`Series "${code}" dihapus dari daftar lokal`, 'warning');
-            }
-        }
-
-        function validateSetup() {
-            document.getElementById('log').innerHTML = '';
-            
-            const mnemonicText = document.getElementById('mnemonic').value.trim();
-            if (!mnemonicText) {
-                log('Mnemonic belum diisi', 'error');
-                return;
-            }
-            
-            try {
-                state.account = algosdk.mnemonicToSecretKey(mnemonicText);
-                state.mnemonic = mnemonicText;
-                state.tofAssetId = parseInt(document.getElementById('tofAssetId').value);
-                
-                log(`Dompet berhasil dipulihkan: ${state.account.addr}`, 'success');
-                
-                const selectedSeriesCode = document.getElementById('selectedSeries').value;
-                if (!selectedSeriesCode) {
-                    log('Pilih series tujuan terlebih dahulu', 'error');
-                    return;
-                }
-                
-                state.selectedSeries = selectedSeriesCode;
-                state.validSetup = true;
-                document.getElementById('btnPahat').disabled = false;
-                
-                log(`Series aktif: <strong>${selectedSeriesCode}</strong>`, 'success');
-                log('✅ Setup siap! Lanjut ke tab Editor', 'success');
-                
-            } catch (e) {
-                log(`Mnemonic tidak valid: ${e.message}`, 'error');
-            }
-        }
-
-        // ==================== PREVIEW & EDIT ====================
+        // ==================== PREVIEW ====================
         function previewNote() {
             state.note = {
                 title: document.getElementById('noteTitle').value || 'Untitled',
-                author: document.getElementById('noteAuthor').value || 'Anonymous',
-                content: document.getElementById('noteContent').value || '[Konten kosong]',
-                template: state.selectedTemplate
+                series: document.getElementById('noteSeries').value || 'uncategorized',
+                content: document.getElementById('noteContent').value || '[Konten kosong]'
             };
-            
-            const template = TEMPLATES[state.selectedTemplate];
-            const html = template.render(state.note);
-            
-            const preview = document.getElementById('preview');
-            preview.innerHTML = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
-                    <style>
-                        body { margin: 0; padding: 0; background: #050b07; }
-                    </style>
-                </head>
-                <body>${html}</body>
-                </html>
+
+            const html = `
+            <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27;">
+                <header style="background: linear-gradient(135deg, #065f46 0%, #0d9488 100%); color: #ecfdf5; padding: 25px; border-radius: 12px; margin-bottom: 25px;">
+                    <h1 style="font-size: 2rem; margin-bottom: 8px; font-weight: 800;">${escapeHtml(state.note.title)}</h1>
+                    <p style="font-size: 0.95rem; opacity: 0.95;">Oleh: <strong>${escapeHtml(state.userId)}</strong></p>
+                    <p style="font-size: 0.85rem; opacity: 0.85;">Series: <code>${escapeHtml(state.note.series)}</code></p>
+                </header>
+                <section style="font-size: 1rem; color: #1c3d27; line-height: 1.9; margin-bottom: 25px; white-space: pre-wrap; word-break: break-word; background: linear-gradient(to right, rgba(13, 148, 136, 0.08), transparent); padding: 20px; border-left: 4px solid #0d9488; border-radius: 8px;">
+${escapeHtml(state.note.content)}
+                </section>
+                <footer style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 16px; border-radius: 8px; text-align: center; color: #065f46; border-left: 4px solid #0d9488; font-weight: 600; font-size: 0.9rem;">
+                    🌾 Ilmu Baku Selamanya di Blockchain Algorand 🌾
+                </footer>
+            </article>
             `;
+
+            document.getElementById('preview').innerHTML = html;
+            document.getElementById('btnPahat').disabled = false;
+            log('✅ Preview siap untuk di-pahat', 'success');
         }
 
-        // ==================== BLOCKCHAIN FUNCTIONS ====================
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== PAHAT KE BLOCKCHAIN ====================
         const MAX_NOTE_BYTES = 1024;
-        const HEADER_SAFETY_MARGIN = 150;
-        const CONTENT_BYTE_BUDGET = MAX_NOTE_BYTES - HEADER_SAFETY_MARGIN;
+        const HEADER_BYTES = 100;
+        const CONTENT_BYTES = MAX_NOTE_BYTES - HEADER_BYTES;
 
         function splitIntoByteSafeChunks(text, maxBytes) {
             const chunks = [];
@@ -1119,29 +815,14 @@ ${escapeHtml(data.content)}
             return chunks;
         }
 
-        async function cekSaldoCukup(address, estimasiTx) {
-            try {
-                const info = await algodClient.accountInformation(address).do();
-                const saldoMicroAlgo = info.amount;
-                const estimasiBiayaMicroAlgo = (estimasiTx * 1000) + 100000;
-                return {
-                    cukup: saldoMicroAlgo > estimasiBiayaMicroAlgo,
-                    saldo: saldoMicroAlgo / 1e6,
-                    estimasiBiaya: estimasiBiayaMicroAlgo / 1e6
-                };
-            } catch (e) {
-                return { cukup: null, saldo: 0, estimasiBiaya: 0, error: e.message };
-            }
-        }
-
         async function pahatKeBlockchain() {
-            if (!state.validSetup) {
-                log('Setup tidak valid. Validasi di tab Setup terlebih dahulu', 'error');
+            if (!state.account) {
+                log('❌ Belum login', 'error');
                 return;
             }
 
             if (!state.note.content) {
-                log('Konten catatan masih kosong', 'error');
+                log('❌ Konten masih kosong', 'error');
                 return;
             }
 
@@ -1150,8 +831,8 @@ ${escapeHtml(data.content)}
             btn.disabled = true;
 
             try {
-                // Buat HTML lengkap dengan styling responsive
-                const htmlContent = `<!DOCTYPE html>
+                // Buat HTML lengkap
+                const html = `<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -1162,102 +843,52 @@ ${escapeHtml(data.content)}
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background: radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
-                        radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
-                        linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+            background: linear-gradient(135deg, #0a0f0c 0%, #0d1e14 100%);
             color: #e2e8f0;
-            margin: 0;
-            padding: 20px 16px;
+            padding: 20px;
             min-height: 100vh;
-            line-height: 1.6;
         }
         .container { max-width: 900px; margin: auto; }
         article { color: #1c3d27; }
-        h1 { word-break: break-word; }
-        section { word-break: break-word; word-wrap: break-word; overflow-wrap: break-word; }
-        
-        ${(() => {
-            const templates = {
-                article: `
-                    header { border-bottom: 3px solid #22c55e; padding-bottom: 20px; margin-bottom: 30px; line-height: 1.6; }
-                    h1 { font-size: 2rem; color: #0d1e14; font-weight: 800; margin-bottom: 12px; line-height: 1.3; }
-                    p { font-size: 0.95rem; color: #666; margin: 8px 0; }
-                    section { font-size: 1rem; color: #2c2c2c; line-height: 1.8; margin-bottom: 30px; }
-                    footer { border-top: 1px solid #ddd; padding-top: 20px; text-align: center; color: #999; font-size: 0.9rem; }
-                `,
-                ilmu: `
-                    header { background: linear-gradient(135deg, #065f46 0%, #0d9488 100%); color: #ecfdf5; padding: 25px 20px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 8px 24px rgba(13, 148, 136, 0.2); }
-                    h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; line-height: 1.3; }
-                    p { font-size: 0.95rem; opacity: 0.95; }
-                    section { font-size: 1.05rem; color: #1c3d27; line-height: 1.9; margin-bottom: 30px; background: linear-gradient(to right, rgba(13, 148, 136, 0.08), transparent); padding: 20px; border-left: 5px solid #0d9488; border-radius: 8px; }
-                    footer { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 8px; text-align: center; color: #065f46; border-left: 4px solid #0d9488; font-weight: 600; }
-                `,
-                poetry: `
-                    header { text-align: center; margin-bottom: 40px; }
-                    h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: #0d1e14; font-weight: 800; margin-bottom: 12px; }
-                    .author { font-style: italic; color: #666; }
-                    section { font-family: 'Playfair Display', serif; font-size: 1.1rem; line-height: 2; color: #2c2c2c; text-align: center; white-space: pre-wrap; max-width: 600px; margin: 0 auto 30px; }
-                    footer { text-align: center; color: #999; font-size: 0.9rem; margin-top: 40px; }
-                `,
-                recipe: `
-                    header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 30px; }
-                    h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
-                    p { font-size: 0.95rem; opacity: 0.95; }
-                    section { font-size: 1.05rem; color: #2c2c2c; line-height: 1.9; margin-bottom: 30px; }
-                    footer { background: #fffbeb; padding: 20px; border-radius: 8px; text-align: center; color: #666; border-left: 4px solid #f59e0b; }
-                `,
-                memory: `
-                    header { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; padding: 25px 20px; border-radius: 12px; margin-bottom: 30px; }
-                    h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
-                    p { font-size: 0.95rem; opacity: 0.95; }
-                    section { font-size: 1.05rem; color: #2c2c2c; line-height: 1.9; margin-bottom: 30px; }
-                    footer { background: #faf5ff; padding: 20px; border-radius: 8px; text-align: center; color: #666; border-left: 4px solid #8b5cf6; }
-                `
-            };
-            return templates[state.note.template] || templates.article;
-        })()}
-        
-        @media (max-width: 768px) {
-            body { padding: 16px 12px; }
-            .container { max-width: 100%; }
-            h1 { font-size: 1.6rem !important; }
-            section { font-size: 0.95rem !important; }
-            header { padding: 20px 16px !important; }
-            footer { padding: 16px !important; }
-        }
-        
-        @media (max-width: 480px) {
-            body { padding: 12px 10px; }
-            h1 { font-size: 1.4rem !important; }
-            section { font-size: 0.9rem !important; padding: 16px !important; }
-            header { padding: 16px 12px !important; border-radius: 10px; }
-            footer { padding: 12px !important; }
-        }
+        header { background: linear-gradient(135deg, #065f46 0%, #0d9488 100%); color: #ecfdf5; padding: 25px; border-radius: 12px; margin-bottom: 25px; }
+        h1 { font-size: 2rem; margin-bottom: 8px; font-weight: 800; }
+        section { font-size: 1rem; color: #1c3d27; line-height: 1.9; margin-bottom: 25px; white-space: pre-wrap; word-break: break-word; background: rgba(13, 148, 136, 0.08); padding: 20px; border-left: 4px solid #0d9488; border-radius: 8px; }
+        footer { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 16px; border-radius: 8px; text-align: center; color: #065f46; border-left: 4px solid #0d9488; font-weight: 600; }
+        @media (max-width: 768px) { h1 { font-size: 1.5rem; } section { font-size: 0.9rem; } }
     </style>
 </head>
 <body>
     <div class="container">
-        ${TEMPLATES[state.note.template].render(state.note)}
+        <article>
+            <header>
+                <h1>${escapeHtml(state.note.title)}</h1>
+                <p style="opacity: 0.95;">Oleh: <strong>${escapeHtml(state.userId)}</strong></p>
+                <p style="font-size: 0.85rem; opacity: 0.85;">Series: <code>${escapeHtml(state.note.series)}</code></p>
+            </header>
+            <section>${escapeHtml(state.note.content)}</section>
+            <footer>🌾 Ilmu Baku Selamanya di Blockchain Algorand 🌾</footer>
+        </article>
     </div>
 </body>
 </html>`;
 
-                const chunks = splitIntoByteSafeChunks(htmlContent, CONTENT_BYTE_BUDGET);
+                const chunks = splitIntoByteSafeChunks(html, CONTENT_BYTES);
                 const total = chunks.length;
 
-                log(`📦 Total kepingan: ${total}`, 'info');
-                log(`🔍 Mengecek saldo ALGO dompet ${state.account.addr}...`, 'info');
+                log(`📦 Total chunks: ${total}`, 'info');
+                log(`🔍 Mengecek saldo ALGO...`, 'info');
 
-                const cekSaldo = await cekSaldoCukup(state.account.addr, total);
+                const info = await algodClient.accountInformation(state.account.addr).do();
+                const balance = info.amount;
+                const estimatedCost = (total * 1000) + 100000;
 
-                if (cekSaldo.cukup === false) {
-                    log(`Saldo ALGO tidak cukup. Saldo: ${cekSaldo.saldo} ALGO, butuh: ${cekSaldo.estimasiBiaya} ALGO`, 'error');
+                log(`💰 Saldo: ${(balance / 1e6).toFixed(2)} ALGO`, 'info');
+                log(`💸 Estimasi biaya: ${(estimatedCost / 1e6).toFixed(4)} ALGO`, 'info');
+
+                if (balance < estimatedCost) {
+                    log(`❌ Saldo ALGO tidak cukup`, 'error');
                     btn.disabled = false;
                     return;
-                }
-
-                if (cekSaldo.cukup === true) {
-                    log(`Saldo cukup: ${cekSaldo.saldo} ALGO ✅`, 'success');
                 }
 
                 let previousTxId = 'START';
@@ -1265,18 +896,22 @@ ${escapeHtml(data.content)}
                 for (let i = 0; i < total; i++) {
                     const params = await algodClient.getTransactionParams().do();
 
-                    const noteContent = `tofnote:${state.selectedSeries}:${i}:${total}:${previousTxId}:${chunks[i]}`;
+                    // Format: tf:pr|userid|1|chunks|series|content
+                    const noteHeader = `tf:pr|${state.userId}|1|${total}|${state.note.series}|`;
+                    const noteContent = noteHeader + chunks[i];
                     const note = encoder.encode(noteContent);
 
                     if (note.length > MAX_NOTE_BYTES) {
-                        throw new Error(`Note paket ${i} melebihi limit byte`);
+                        log(`❌ Note chunk ${i} terlalu besar`, 'error');
+                        btn.disabled = false;
+                        return;
                     }
 
                     const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
                         from: state.account.addr,
                         to: state.account.addr,
                         amount: 0,
-                        assetIndex: parseInt(state.tofAssetId),
+                        assetIndex: ASA_ID_TOF,
                         note: note,
                         suggestedParams: params
                     });
@@ -1284,35 +919,31 @@ ${escapeHtml(data.content)}
                     const signed = txn.signTxn(state.account.sk);
                     const result = await algodClient.sendRawTransaction(signed).do();
 
-                    previousTxId = result.txId;
+                    log(`[${i+1}/${total}] ⛓️ ${result.txId.substring(0, 16)}...`, 'success');
 
-                    log(`[${i+1}/${total}] Paket dipahat: ${result.txId.substring(0, 12)}...`, 'success');
-                    await new Promise(r => setTimeout(r, 1200));
+                    if (i === 0) {
+                        previousTxId = result.txId;
+                    }
+
+                    await new Promise(r => setTimeout(r, 1000));
                 }
 
-                log(`🎉 CATATAN BERHASIL DIPAHAT!`, 'success');
-                log(`Series: <strong>${state.selectedSeries}</strong> | TxID Akhir: ${previousTxId.substring(0, 20)}...`, 'success');
+                log(`🎉 PRASASTI BERHASIL DIPAHAT!`, 'success');
+                log(`📍 TxID Pertama: ${previousTxId}`, 'info');
+                log(`💾 Silakan copy TxID untuk dibagikan`, 'info');
 
                 // Clear form
                 document.getElementById('noteTitle').value = '';
-                document.getElementById('noteAuthor').value = '';
+                document.getElementById('noteSeries').value = '';
                 document.getElementById('noteContent').value = '';
                 previewNote();
 
             } catch (e) {
-                log(`Error: ${e.message}`, 'error');
-                console.error(e);
+                log(`❌ ${e.message}`, 'error');
             } finally {
-                btn.disabled = !state.validSetup;
+                btn.disabled = false;
             }
         }
-
-        // ==================== INIT ====================
-        document.addEventListener('DOMContentLoaded', () => {
-            initTemplates();
-            updateSeriesList();
-            previewNote();
-        });
     </script>
 </body>
 </html>
