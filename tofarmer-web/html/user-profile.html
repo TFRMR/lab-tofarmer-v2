@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👤 Profil Pemahat Prasasti — Blockchain</title>
+    <title>👤 User Profile - TOFarmer</title>
     <style>
         * {
             margin: 0;
@@ -11,234 +11,292 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg: #0f1419;
+            --fg: #e0e6ed;
+            --primary: #00d4ff;
+            --secondary: #7c3aed;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --muted: #6b7280;
+            --border: #1f2937;
+            --hover: #1e293b;
+        }
+
         body {
-            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            background:
-                radial-gradient(circle at top right, rgba(13, 148, 136, 0.1) 0%, transparent 40%),
-                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.08) 0%, transparent 35%),
-                linear-gradient(135deg, #0a0f0c 0%, #0d1e14 50%, #050b07 100%);
+            background: var(--bg);
+            color: var(--fg);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
             min-height: 100vh;
-            color: #e2e8f0;
-            position: relative;
-            overflow-x: hidden;
+            padding-bottom: 2rem;
         }
 
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(120deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, 0));
-            pointer-events: none;
-            animation: mist 16s ease-in-out infinite;
-            z-index: 1;
+        header {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        @keyframes mist {
-            0% { transform: translateX(-5%); }
-            50% { transform: translateX(5%); }
-            100% { transform: translateX(-5%); }
-        }
-
-        .container {
-            max-width: 1000px;
+        .header-content {
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 24px;
-            position: relative;
-            z-index: 2;
         }
 
-        /* ===== BACK BUTTON ===== */
         .back-btn {
             display: inline-block;
-            margin-bottom: 20px;
-            padding: 8px 16px;
-            background: rgba(13, 148, 136, 0.2);
-            border: 1px solid rgba(13, 148, 136, 0.3);
-            color: #a7f3d0;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
             text-decoration: none;
-            border-radius: 8px;
-            font-size: 0.85rem;
+            margin-bottom: 1rem;
             cursor: pointer;
+            border: none;
+            font-weight: 600;
             transition: all 0.3s;
         }
 
         .back-btn:hover {
-            background: rgba(13, 148, 136, 0.35);
-            border-color: rgba(13, 148, 136, 0.5);
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-4px);
         }
 
-        /* ===== PROFILE HEADER ===== */
-        .profile-header {
-            background: rgba(14, 28, 19, 0.5);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(13, 148, 136, 0.15);
-            border-radius: 20px;
-            padding: 40px;
-            margin-bottom: 30px;
-            text-align: center;
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Profile Card */
+        .profile-card {
+            background: var(--hover);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 2rem;
+            align-items: center;
         }
 
         .profile-avatar {
-            font-size: 4rem;
-            margin-bottom: 20px;
+            font-size: 5rem;
+            text-align: center;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            border-radius: 50%;
+            flex-shrink: 0;
         }
 
-        .profile-name {
-            font-size: 2.2rem;
-            font-weight: 800;
-            color: #ecfdf5;
-            margin-bottom: 8px;
+        .profile-info h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
         }
 
-        .profile-bio {
-            font-size: 1rem;
-            color: #a7f3d0;
-            margin-bottom: 20px;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-            line-height: 1.6;
+        .profile-address {
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            color: var(--primary);
+            margin-bottom: 1rem;
+            max-width: 100%;
         }
 
-        .profile-stats {
+        /* Stats Grid */
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
 
-        .stat-card {
-            background: rgba(13, 148, 136, 0.15);
-            border: 1px solid rgba(13, 148, 136, 0.2);
-            border-radius: 12px;
-            padding: 20px;
+        .stat-box {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
             text-align: center;
         }
 
-        .stat-number {
+        .stat-value {
             font-size: 2rem;
-            font-weight: 800;
-            color: #0d9488;
-            display: block;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
         }
 
         .stat-label {
+            color: var(--muted);
             font-size: 0.85rem;
-            color: #94a3b8;
-            margin-top: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .wallet-address {
-            background: rgba(15, 23, 42, 0.6);
-            border: 1px solid rgba(13, 148, 136, 0.2);
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.8rem;
-            word-break: break-all;
-            color: #cbd5e1;
-            margin-top: 15px;
-        }
-
-        /* ===== SECTIONS ===== */
-        .section {
-            background: rgba(14, 28, 19, 0.5);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(13, 148, 136, 0.15);
-            border-radius: 16px;
-            padding: 25px;
-            margin-bottom: 25px;
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: #a7f3d0;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
         }
 
-        /* ===== PRASASTI LIST ===== */
-        .prasasti-list {
-            display: grid;
-            gap: 15px;
+        .asset-info {
+            background: var(--border);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
         }
 
-        .prasasti-item {
-            background: rgba(13, 148, 136, 0.1);
-            border: 1px solid rgba(13, 148, 136, 0.2);
-            padding: 16px;
-            border-radius: 12px;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-
-        .prasasti-item:hover {
-            background: rgba(13, 148, 136, 0.15);
-            border-color: rgba(13, 148, 136, 0.4);
-            transform: translateX(4px);
-        }
-
-        .prasasti-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #ecfdf5;
-            margin-bottom: 6px;
-        }
-
-        .prasasti-meta {
-            font-size: 0.8rem;
-            color: #94a3b8;
+        .asset-line {
             display: flex;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--hover);
         }
 
-        .prasasti-series {
-            display: inline-block;
-            padding: 2px 8px;
-            background: rgba(13, 148, 136, 0.2);
-            border-radius: 12px;
-            font-size: 0.75rem;
-            color: #0d9488;
+        .asset-line:last-child {
+            border-bottom: none;
+        }
+
+        .asset-label {
+            color: var(--muted);
+        }
+
+        .asset-value {
             font-weight: 600;
+            color: var(--success);
+            font-size: 1.1rem;
         }
 
-        /* ===== EMPTY STATE ===== */
-        .empty-state {
+        /* Prasasti Section */
+        .section-title {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary);
+            display: inline-block;
+        }
+
+        .prasasti-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .prasasti-card {
+            background: var(--hover);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prasasti-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--primary);
+            box-shadow: 0 12px 30px rgba(0, 212, 255, 0.1);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            padding: 1.5rem;
+            color: white;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+
+        .card-series {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .card-body {
+            padding: 1rem;
+            flex: 1;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 1rem;
+        }
+
+        .btn-read {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: var(--bg);
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 0.5rem;
+        }
+
+        .btn-read:hover {
+            background: #00a8cc;
+            transform: scale(1.02);
+        }
+
+        /* Empty State */
+        .empty {
             text-align: center;
-            padding: 40px;
-            color: #64748b;
+            padding: 3rem 1rem;
+            color: var(--muted);
+            grid-column: 1/-1;
         }
 
         .empty-icon {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
-            opacity: 0.6;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
         }
 
-        /* ===== LOADING ===== */
+        /* Loading */
         .loading {
             text-align: center;
-            padding: 40px;
-            color: #a7f3d0;
+            padding: 3rem;
+            color: var(--muted);
         }
 
         .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
             width: 40px;
             height: 40px;
-            border: 3px solid rgba(13, 148, 136, 0.2);
-            border-top: 3px solid #0d9488;
-            border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 20px auto;
+            margin: 0 auto 1rem;
         }
 
         @keyframes spin {
@@ -246,332 +304,284 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* ===== FOOTER ===== */
-        .footer {
-            text-align: center;
-            padding: 20px;
-            color: #64748b;
-            font-size: 0.85rem;
-            margin-top: 40px;
+        .error {
+            background: var(--danger);
+            color: white;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
         }
 
-        /* ===== RESPONSIVE ===== */
+        /* Responsive */
         @media (max-width: 768px) {
-            .container {
-                padding: 12px;
-            }
-
-            .profile-header {
-                padding: 25px;
-            }
-
-            .profile-name {
-                font-size: 1.8rem;
+            .profile-card {
+                grid-template-columns: 1fr;
+                text-align: center;
             }
 
             .profile-avatar {
-                font-size: 3rem;
+                margin: 0 auto;
             }
 
-            .profile-stats {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .section {
-                padding: 16px;
-            }
-
-            .prasasti-meta {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .container {
-                padding: 8px;
-            }
-
-            .profile-header {
-                padding: 16px;
-                border-radius: 16px;
-            }
-
-            .profile-name {
-                font-size: 1.5rem;
-            }
-
-            .profile-avatar {
-                font-size: 2.5rem;
-            }
-
-            .profile-stats {
+            .prasasti-grid {
                 grid-template-columns: 1fr;
             }
 
-            .stat-card {
-                padding: 14px;
+            h1 {
+                font-size: 1.5rem;
             }
 
-            .section {
-                padding: 12px;
-                border-radius: 12px;
-            }
-
-            .prasasti-item {
-                padding: 12px;
-            }
-
-            .prasasti-title {
-                font-size: 0.95rem;
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <button class="back-btn" onclick="history.back()">← Kembali ke Galeri</button>
-
-        <!-- PROFILE HEADER -->
-        <div class="profile-header" id="profileHeader">
-            <div class="loading">
-                <div class="spinner"></div>
-                <p>📍 Loading profil...</p>
-            </div>
+    <header>
+        <div class="header-content">
+            <button class="back-btn" onclick="goToGallery()">← Kembali ke Gallery</button>
+            <h1>👤 PROFIL PENGGUNA</h1>
+            <p class="subtitle">Melihat karya dan aset TOF</p>
         </div>
+    </header>
 
-        <!-- PRASASTI SECTION -->
-        <div class="section" id="prasastiSection">
-            <div class="section-title">📚 Prasasti yang Dibuat</div>
-            <div class="loading">
-                <div class="spinner"></div>
-                <p>📖 Loading prasasti...</p>
-            </div>
-        </div>
-
-        <!-- SERIES SECTION -->
-        <div class="section" id="seriesSection" style="display:none;">
-            <div class="section-title">🔗 Series Penulis</div>
-            <div id="seriesList"></div>
+    <div class="container" id="mainContent">
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Memuat profil...</p>
         </div>
     </div>
 
-    <!-- FOOTER -->
-    <div class="footer">
-        <p>🌿 Profil Tergenerate Otomatis dari Blockchain Algorand 🌿</p>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/algosdk@2.4.0/dist/browser/algosdk.min.js"></script>
     <script>
-        // ==================== CONSTANTS ====================
         const ASA_ID_TOF = 3558306283;
-        const ALGORAND_INDEXER = "https://mainnet-idx.algonode.cloud";
-
-        // ==================== STATE ====================
+        const ALGORAND_NODE = 'https://mainnet-idx.algonode.cloud';
+        const ALGO_NODE = 'https://mainnet-api.algonode.cloud';
+        
         const state = {
-            userId: null,
-            profile: {
-                name: '',
-                bio: '',
-                avatar: '👤'
-            },
+            userAddress: '',
             prasasti: [],
-            series: new Set()
+            balance: 0,
+            assetHoldings: {}
         };
 
-        // ==================== INITIALIZATION ====================
-        document.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            state.userId = params.get('user');
-
-            if (!state.userId) {
-                showError('User ID tidak ditemukan');
-                return;
-            }
-
-            loadProfileData();
-        });
-
-        // ==================== LOAD DATA ====================
-        async function loadProfileData() {
+        // ============ INITIALIZATION ============
+        async function init() {
             try {
-                console.log(`📍 Loading profile untuk ${state.userId}...`);
-                
-                const indexerClient = new algosdk.Indexer("", ALGORAND_INDEXER, "");
-                
-                // Query all transactions for this user (by note marker)
-                // Note: This is a simplified approach. In production, you'd parse metadata differently
-                const result = await indexerClient
-                    .searchForTransactions()
-                    .assetID(ASA_ID_TOF)
-                    .txType('axfer')
-                    .limit(1000)
-                    .do();
+                // Get user address from URL parameter
+                const params = new URLSearchParams(window.location.search);
+                state.userAddress = params.get('user');
 
-                // Filter transactions yang match user ID
-                const userTransactions = result.transactions.filter(txn => {
-                    const note = txn.note ? atob(txn.note) : '';
-                    return note.includes(`|${state.userId}|`);
-                });
+                if (!state.userAddress) {
+                    showError('❌ User address tidak ditemukan. Silakan kembali ke gallery.');
+                    return;
+                }
 
-                console.log(`Found ${userTransactions.length} transactions for ${state.userId}`);
+                // Load data concurrently
+                await Promise.all([
+                    loadUserPrasasti(),
+                    loadUserBalance(),
+                    loadAssetHoldings()
+                ]);
 
-                // Parse profile data dan prasasti
-                parseUserData(userTransactions);
-
-                // Render
                 renderProfile();
-                renderPrasasti();
-
-            } catch (e) {
-                console.error('❌ Error:', e);
-                showError(e.message);
+            } catch (error) {
+                console.error('Init error:', error);
+                showError('❌ Gagal memuat profil: ' + error.message);
             }
         }
 
-        function parseUserData(transactions) {
-            const prasastiMap = new Map(); // Group by series, keep only chunk 0
-            
-            for (const txn of transactions) {
+        // ============ DATA LOADING ============
+        async function loadUserPrasasti() {
+            try {
+                const response = await fetch(
+                    `${ALGORAND_NODE}/v2/transactions?asset-id=${ASA_ID_TOF}&limit=1000&sort=desc`,
+                    { headers: { 'User-Agent': 'TOFarmer' } }
+                );
+
+                if (!response.ok) throw new Error(`API error: ${response.status}`);
+                
+                const result = await response.json();
+                const transactions = result.transactions || [];
+
+                // Parse all, filter by sender
+                const parsePromises = transactions.map(txn => parsePrasastiTxn(txn));
+                const parsed = await Promise.all(parsePromises);
+                
+                // Filter by user + chunk 0 only
+                const prasastiMap = new Map();
+                for (const prasasti of parsed) {
+                    if (prasasti && prasasti.sender === state.userAddress && prasasti.chunkIndex === 0) {
+                        const key = `${prasasti.series}|${prasasti.sender}`;
+                        if (!prasastiMap.has(key) || new Date(prasasti.date) > new Date(prasastiMap.get(key).date)) {
+                            prasastiMap.set(key, prasasti);
+                        }
+                    }
+                }
+
+                state.prasasti = Array.from(prasastiMap.values()).sort((a, b) => 
+                    new Date(b.date) - new Date(a.date)
+                );
+
+                console.log(`✅ Loaded ${state.prasasti.length} prasasti for user`);
+            } catch (error) {
+                console.error('Load prasasti error:', error);
+                state.prasasti = [];
+            }
+        }
+
+        async function parsePrasastiTxn(txn) {
+            try {
                 const note = txn.note ? atob(txn.note) : '';
                 
-                // ONLY parse new format: tofnote:series:index:total:prevtxid:content
-                // Old format (tf:pr|) is NOT displayed (deprecated)
                 if (note.startsWith('tofnote:')) {
                     const match = note.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
                     if (match) {
                         const [, series, chunkIndex, totalChunks, prevTxId, content] = match;
-                        const index = parseInt(chunkIndex);
-                        
-                        // Only keep first chunk (index 0) of each series
-                        if (index === 0) {
-                            const sender = txn.sender || 'unknown';
-                            
-                            // Check if this is user's prasasti
-                            if (sender === state.userId) {
-                                const key = `${series}|${sender}`;
-                                const prasasti = {
-                                    title: extractTitle(content),
-                                    series: series,
-                                    txid: txn.id,
-                                    date: new Date(txn['confirmed-round'] * 1000).toISOString(),
-                                    chunks: parseInt(totalChunks)
-                                };
-                                
-                                // Keep most recent version
-                                if (!prasastiMap.has(key) || new Date(prasasti.date) > new Date(prasastiMap.get(key).date)) {
-                                    prasastiMap.set(key, prasasti);
-                                }
-                                
-                                state.series.add(series);
-                            }
-                        }
+                        return {
+                            title: extractTitle(content),
+                            series: series || 'uncategorized',
+                            txid: txn.id,
+                            sender: txn.sender || 'unknown',
+                            chunks: parseInt(totalChunks),
+                            chunkIndex: parseInt(chunkIndex),
+                            date: new Date(txn['confirmed-round'] * 1000).toISOString(),
+                        };
                     }
                 }
-                // NOTE: Old format (tf:pr|) notes are intentionally skipped
-
-                // Parse format: tf:bio|userid|1|nama|bio_text
-                if (note.startsWith('tf:bio|')) {
-                    const parts = note.split('|');
-                    if (parts.length >= 4) {
-                        const userid = parts[1];
-                        if (userid === state.userId) {
-                            state.profile.name = parts[3] || state.userId;
-                            state.profile.bio = parts.slice(4).join('|') || '';
-                        }
-                    }
-                }
-
-                // Parse format: tf:av|userid|1|emoji
-                if (note.startsWith('tf:av|')) {
-                    const parts = note.split('|');
-                    if (parts.length >= 4) {
-                        const userid = parts[1];
-                        if (userid === state.userId) {
-                            state.profile.avatar = parts[3] || '👤';
-                        }
-                    }
-                }
+            } catch (e) {
+                console.warn('Parse error:', e);
             }
-
-            // Convert prasasti map to array (deduplicated by series)
-            state.prasasti = Array.from(prasastiMap.values());
-
-            // Default name
-            if (!state.profile.name) {
-                state.profile.name = state.userId;
-            }
-
-            // Sort prasasti
-            state.prasasti.sort((a, b) => new Date(b.date) - new Date(a.date));
+            return null;
         }
 
+        async function loadUserBalance() {
+            try {
+                const response = await fetch(`${ALGO_NODE}/v2/accounts/${state.userAddress}`, {
+                    headers: { 'User-Agent': 'TOFarmer' }
+                });
+
+                if (response.ok) {
+                    const account = await response.json();
+                    state.balance = account.account?.amount || 0;
+                    console.log(`✅ Loaded balance: ${state.balance} microAlgo`);
+                } else {
+                    console.warn('Could not load balance');
+                    state.balance = 0;
+                }
+            } catch (error) {
+                console.error('Load balance error:', error);
+                state.balance = 0;
+            }
+        }
+
+        async function loadAssetHoldings() {
+            try {
+                const response = await fetch(`${ALGO_NODE}/v2/accounts/${state.userAddress}`, {
+                    headers: { 'User-Agent': 'TOFarmer' }
+                });
+
+                if (response.ok) {
+                    const account = await response.json();
+                    const assets = account.account?.assets || [];
+                    
+                    for (const asset of assets) {
+                        if (asset['asset-id'] === ASA_ID_TOF) {
+                            state.assetHoldings = {
+                                id: asset['asset-id'],
+                                amount: asset.amount,
+                                frozen: asset['is-frozen'] || false
+                            };
+                            console.log(`✅ Loaded TOF holdings: ${asset.amount}`);
+                            break;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Load assets error:', error);
+            }
+        }
+
+        // ============ RENDERING ============
+        function renderProfile() {
+            const mainContent = document.getElementById('mainContent');
+
+            const algoBalance = (state.balance / 1e6).toFixed(6);
+            const tofBalance = state.assetHoldings.amount || 0;
+
+            mainContent.innerHTML = `
+                <div class="profile-card">
+                    <div class="profile-avatar">👤</div>
+                    <div class="profile-info">
+                        <h2>Profil Pengguna</h2>
+                        <div class="profile-address">${state.userAddress}</div>
+                        <div class="asset-info">
+                            <div class="asset-line">
+                                <span class="asset-label">💰 ALGO Balance</span>
+                                <span class="asset-value">${formatNumber(algoBalance)}</span>
+                            </div>
+                            <div class="asset-line">
+                                <span class="asset-label">🌾 TOF Holdings</span>
+                                <span class="asset-value">${formatNumber(tofBalance)}</span>
+                            </div>
+                            <div class="asset-line">
+                                <span class="asset-label">📚 Prasasti Created</span>
+                                <span class="asset-value">${state.prasasti.length}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="section-title">📚 Prasasti Saya</h2>
+                <div class="prasasti-grid" id="prasastiGrid">
+                    ${renderPrasastiCards()}
+                </div>
+            `;
+        }
+
+        function renderPrasastiCards() {
+            if (state.prasasti.length === 0) {
+                return `
+                    <div class="empty">
+                        <div class="empty-icon">📭</div>
+                        <h3>Belum ada prasasti</h3>
+                        <p>Mulai tulis prasasti Anda sekarang!</p>
+                    </div>
+                `;
+            }
+
+            return state.prasasti.map(p => `
+                <div class="prasasti-card">
+                    <div class="card-header">
+                        <div class="card-title">${escapeHtml(p.title)}</div>
+                        <div class="card-series">🔗 ${escapeHtml(p.series)}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-meta">
+                            <span>📦 ${p.chunks} chunk${p.chunks !== 1 ? 's' : ''}</span>
+                            <span>${formatDate(p.date)}</span>
+                        </div>
+                        <button class="btn-read" onclick="goToReader('${p.txid}')">📖 BACA</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============ NAVIGATION ============
+        function goToGallery() {
+            window.location.href = 'prasasti-gallery.html';
+        }
+
+        function goToReader(txid) {
+            window.location.href = `prasasti-reader.html?txid=${txid}&author=${state.userAddress}`;
+        }
+
+        // ============ UTILITIES ============
         function extractTitle(content) {
             const match = content.match(/<title>([^<]+)<\/title>/i);
             if (match) return match[1];
             const text = content.replace(/<[^>]*>/g, '').trim();
             return text.substring(0, 50) + (text.length > 50 ? '...' : '');
-        }
-
-        // ==================== RENDER ====================
-        function renderProfile() {
-            const header = document.getElementById('profileHeader');
-            
-            header.innerHTML = `
-                <div class="profile-avatar">${state.profile.avatar}</div>
-                <div class="profile-name">${escapeHtml(state.profile.name)}</div>
-                ${state.profile.bio ? `<div class="profile-bio">${escapeHtml(state.profile.bio)}</div>` : ''}
-                <div class="profile-stats">
-                    <div class="stat-card">
-                        <span class="stat-number">${state.prasasti.length}</span>
-                        <span class="stat-label">Prasasti</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-number">${state.series.size}</span>
-                        <span class="stat-label">Series</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-number">🔗</span>
-                        <span class="stat-label">Member</span>
-                    </div>
-                </div>
-                <div class="wallet-address">
-                    👤 ${state.userId}
-                </div>
-            `;
-        }
-
-        function renderPrasasti() {
-            const section = document.getElementById('prasastiSection');
-            
-            if (state.prasasti.length === 0) {
-                section.innerHTML = `
-                    <div class="section-title">📚 Prasasti yang Dibuat</div>
-                    <div class="empty-state">
-                        <div class="empty-icon">📜</div>
-                        <p>Belum ada prasasti yang dibuat</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const html = `
-                <div class="section-title">📚 Prasasti yang Dibuat (${state.prasasti.length})</div>
-                <div class="prasasti-list">
-                    ${state.prasasti.map(p => `
-                        <div class="prasasti-item" onclick="openReader('${p.txid}')">
-                            <div class="prasasti-title">${escapeHtml(p.title)}</div>
-                            <div class="prasasti-meta">
-                                <span class="prasasti-series">🔗 ${escapeHtml(p.series)}</span>
-                                <span>📅 ${new Date(p.date).toLocaleDateString('id-ID')}</span>
-                                <span>⛓️ ${p.txid.substring(0, 8)}...</span>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-
-            section.innerHTML = html;
         }
 
         function escapeHtml(text) {
@@ -580,20 +590,37 @@
             return div.innerHTML;
         }
 
-        function showError(msg) {
-            const header = document.getElementById('profileHeader');
-            header.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">❌</div>
-                    <p>${msg}</p>
-                </div>
-            `;
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            if (days === 0) return 'Hari ini';
+            if (days === 1) return 'Kemarin';
+            if (days < 7) return `${days} hari lalu`;
+            if (days < 30) return `${Math.floor(days / 7)} minggu lalu`;
+            
+            return date.toLocaleDateString('id-ID');
         }
 
-        // ==================== ACTIONS ====================
-        function openReader(txid) {
-            window.open(`prasasti-reader.html?tx=${txid}`, '_blank');
+        function formatNumber(num) {
+            if (typeof num === 'number') {
+                return new Intl.NumberFormat('id-ID', {
+                    minimumFractionDigits: num % 1 === 0 ? 0 : 6,
+                    maximumFractionDigits: 6
+                }).format(num);
+            }
+            return num;
         }
+
+        function showError(msg) {
+            const mainContent = document.getElementById('mainContent');
+            mainContent.innerHTML = `<div class="error" style="margin: 1rem 0;">${msg}</div>`;
+        }
+
+        // ============ START ============
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
