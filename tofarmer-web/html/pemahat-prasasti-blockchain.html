@@ -219,6 +219,16 @@
             margin-bottom: 15px;
         }
 
+        #lockBadge {
+            animation: lockPulse 2s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        @keyframes lockPulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+
         .header h1 {
             font-size: 2.5rem;
             font-weight: 800;
@@ -521,6 +531,18 @@
                 <div class="login-hint">
                     💡 Mnemonic disimpan hanya di browser ini. Jangan pernah share! Kosongkan setelah selesai.
                 </div>
+                <div style="background: rgba(13, 148, 136, 0.2); border: 1px solid rgba(13, 148, 136, 0.3); padding: 14px; border-radius: 10px; margin-top: 15px; font-size: 0.8rem; line-height: 1.6; color: #a7f3d0;">
+                    <strong>⚠️ PERHATIAN: User ID PERMANENT & IMMUTABLE</strong><br><br>
+                    ✅ User ID yang Anda pilih akan TERKUNCI ke wallet ini selamanya<br>
+                    ✅ Tidak bisa diubah (immutable by blockchain design)<br>
+                    ✅ Satu wallet = satu authentic identity<br><br>
+                    Ini untuk mencegah:<br>
+                    • Satu orang punya banyak identitas (gaming)<br>
+                    • Artificial inflation of users<br>
+                    • Abuse reputation system<br><br>
+                    <strong>Pilih User ID dengan hati-hati!</strong>
+                    Contoh baik: nama_depan, inisial, username_anda
+                </div>
             </div>
         </div>
     </div>
@@ -529,7 +551,7 @@
     <div class="app-screen" id="appScreen">
         <div class="container">
             <div class="header">
-                <span class="user-badge">👤 <span id="userDisplay">User</span></span>
+                <span class="user-badge">👤 <span id="userDisplay">User</span> <span id="lockBadge" style="margin-left: 8px; font-size: 0.8rem; opacity: 0.7;">🔐</span></span>
                 <h1>⛓️ Pemahat Prasasti</h1>
                 <p>Tulis ilmu baku & pahat ke blockchain Algorand</p>
                 <button class="logout-btn" onclick="logout()">🚪 Keluar</button>
@@ -601,8 +623,16 @@
                         </div>
 
                         <div>
-                            <strong style="color: #a7f3d0;">User ID:</strong>
-                            <div style="color: #cbd5e1; margin-top: 8px;" id="userIdDisplay">-</div>
+                            <strong style="color: #a7f3d0;">User ID Status:</strong>
+                            <div style="color: #cbd5e1; margin-top: 8px; padding: 12px; background: rgba(13, 148, 136, 0.2); border-radius: 8px; border-left: 4px solid #0d9488;">
+                                <span id="lockStatus" style="font-weight: 600; font-size: 1.05rem;">🔐 BARU TERKUNCI</span>
+                                <p style="font-size: 0.8rem; margin-top: 8px; color: #a7f3d0;">
+                                    ✅ User ID ini terkunci PERMANENT ke wallet Anda<br>
+                                    ✅ Tidak bisa diubah (immutable by design)<br>
+                                    ✅ Mencegah: 1 orang banyak identity, gaming, abuse<br>
+                                    ✅ 1 wallet = 1 authentic identity selamanya
+                                </p>
+                            </div>
                         </div>
 
                         <div>
@@ -689,6 +719,46 @@
 
             try {
                 state.account = algosdk.mnemonicToSecretKey(mnemonicText);
+                const walletAddr = state.account.addr;
+                
+                // ===== 🔐 STRICT LOCK CHECK =====
+                const lockKey = `tofarmer_user_id_lock_${walletAddr}`;
+                const lockedUserId = localStorage.getItem(lockKey);
+
+                if (lockedUserId) {
+                    // Wallet sudah terdaftar sebelumnya
+                    if (lockedUserId !== userIdText) {
+                        showError(`
+❌ WALLET SUDAH TERDAFTAR
+
+Wallet ini sudah menggunakan User ID: "${lockedUserId}"
+
+User ID adalah PERMANENT & IMMUTABLE (tidak bisa diubah).
+
+Opsi Anda:
+1️⃣ Gunakan User ID yang sama: "${lockedUserId}"
+2️⃣ Buat Algorand wallet BARU untuk user ID berbeda
+3️⃣ Paham akan keputusan ini, lanjutkan dengan User ID lama
+
+🔒 Ini untuk mencegah:
+   • Satu orang punya banyak identitas (gaming)
+   • Artificial inflation of users
+   • Abuse reputation system
+   
+Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
+                        `);
+                        return;
+                    }
+                    log(`🔓 Login dengan User ID yang sama: "${userIdText}"`, 'info');
+                    log(`🔐 Status: TERDAFTAR (User ID immutable)`, 'info');
+                } else {
+                    // Wallet baru, LOCK user ID sekarang (PERMANENT)
+                    localStorage.setItem(lockKey, userIdText);
+                    log(`✅ User ID "${userIdText}" TERKUNCI ke wallet ini`, 'success');
+                    log(`🔐 Status: PERTAMA KALI (User ID sekarang immutable)`, 'info');
+                    log(`📝 Perhatian: User ID tidak bisa diubah lagi!`, 'info');
+                }
+
                 state.mnemonic = mnemonicText;
                 state.userId = userIdText;
 
@@ -700,6 +770,10 @@
                 document.getElementById('userDisplay').textContent = state.userId;
                 document.getElementById('walletDisplay').textContent = state.account.addr;
                 document.getElementById('userIdDisplay').textContent = state.userId;
+
+                // Show lock status
+                document.getElementById('lockStatus').textContent = lockedUserId ? '🔒 TERKUNCI' : '🔐 BARU TERKUNCI';
+                document.getElementById('lockStatus').style.color = '#86efac';
 
                 log(`✅ Login berhasil sebagai ${state.userId}`, 'success');
                 log(`📍 Dompet: ${state.account.addr.substring(0, 12)}...`, 'info');
