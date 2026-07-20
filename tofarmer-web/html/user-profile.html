@@ -430,29 +430,45 @@
         }
 
         function parseUserData(transactions) {
+            const prasastiMap = new Map(); // Group by series, keep only chunk 0
+            
             for (const txn of transactions) {
                 const note = txn.note ? atob(txn.note) : '';
                 
-                // Parse format: tf:pr|userid|1|chunks|series|content
-                if (note.startsWith('tf:pr|')) {
-                    const parts = note.split('|');
-                    if (parts.length >= 5) {
-                        const userid = parts[1];
-                        const series = parts[4];
-                        const content = parts.slice(5).join('|');
+                // ONLY parse new format: tofnote:series:index:total:prevtxid:content
+                // Old format (tf:pr|) is NOT displayed (deprecated)
+                if (note.startsWith('tofnote:')) {
+                    const match = note.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+                    if (match) {
+                        const [, series, chunkIndex, totalChunks, prevTxId, content] = match;
+                        const index = parseInt(chunkIndex);
                         
-                        if (userid === state.userId) {
-                            state.prasasti.push({
-                                title: extractTitle(content),
-                                series: series,
-                                txid: txn.id,
-                                date: new Date(txn['confirmed-round'] * 1000).toISOString()
-                            });
-
-                            state.series.add(series);
+                        // Only keep first chunk (index 0) of each series
+                        if (index === 0) {
+                            const sender = txn.sender || 'unknown';
+                            
+                            // Check if this is user's prasasti
+                            if (sender === state.userId) {
+                                const key = `${series}|${sender}`;
+                                const prasasti = {
+                                    title: extractTitle(content),
+                                    series: series,
+                                    txid: txn.id,
+                                    date: new Date(txn['confirmed-round'] * 1000).toISOString(),
+                                    chunks: parseInt(totalChunks)
+                                };
+                                
+                                // Keep most recent version
+                                if (!prasastiMap.has(key) || new Date(prasasti.date) > new Date(prasastiMap.get(key).date)) {
+                                    prasastiMap.set(key, prasasti);
+                                }
+                                
+                                state.series.add(series);
+                            }
                         }
                     }
                 }
+                // NOTE: Old format (tf:pr|) notes are intentionally skipped
 
                 // Parse format: tf:bio|userid|1|nama|bio_text
                 if (note.startsWith('tf:bio|')) {
@@ -477,6 +493,9 @@
                     }
                 }
             }
+
+            // Convert prasasti map to array (deduplicated by series)
+            state.prasasti = Array.from(prasastiMap.values());
 
             // Default name
             if (!state.profile.name) {

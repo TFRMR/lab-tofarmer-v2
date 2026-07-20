@@ -575,39 +575,33 @@
                 console.log(`📦 Found ${result.transactions.length} transactions`);
 
                 // Parse transactions
-                state.prasasti = [];
-                const seriesMap = new Map(); // Group by series, keep only first chunk
-                
-                for (const txn of result.transactions) {
-                    const note = txn.note ? atob(txn.note) : '';
-                    
-                    // Parse format: tofnote:series:index:total:prevtxid:content (NEW)
-                    // or tf:pr|userid|1|chunks|series|content (OLD - backwards compat)
-                    let parsed = null;
-                    if (note.startsWith('tofnote:')) {
-                        parsed = parsePrasastiNote(note, txn);
-                        if (parsed) {
-                            // Only keep the first chunk (index 0) of each series/package
-                            if (parsed.chunkIndex === 0) {
-                                const key = `${parsed.series}|${parsed.sender}`;
-                                if (!seriesMap.has(key) || new Date(parsed.date) > new Date(seriesMap.get(key).date)) {
-                                    seriesMap.set(key, parsed);
-                                }
+              // Parse transactions
+             state.prasasti = [];
+               const seriesMap = new Map(); // Group by series, keep only first chunk
+               
+               for (const txn of result.transactions) {
+                   const note = txn.note ? atob(txn.note) : '';
+                   
+                   // ONLY parse new format: tofnote:series:index:total:prevtxid:content
+                   // OLD format (tf:pr|) is NOT displayed (deprecated)
+                  if (note.startsWith('tofnote:')) {
+                     const parsed = parsePrasastiNote(note, txn);
+                      if (parsed) {
+                           // Only keep the first chunk (index 0) of each series/package
+                          if (parsed.chunkIndex === 0) {
+                              const key = `${parsed.series}|${parsed.sender}`;
+                             if (!seriesMap.has(key) || new Date(parsed.date) > new Date(seriesMap.get(key).date)) {
+                                 seriesMap.set(key, parsed);
                             }
+                          }
                             state.series.add(parsed.series);
-                        }
-                    } else if (note.startsWith('tf:pr|')) {
-                        // Backwards compatibility for old format
-                        parsed = parsePrasastiNoteOld(note, txn);
-                        if (parsed) {
-                            state.prasasti.push(parsed);
-                            state.series.add(parsed.series);
-                        }
-                    }
-                }
-                
-                // Convert map to array and merge with old format
-                state.prasasti = Array.from(seriesMap.values()).concat(state.prasasti);
+                       }
+                  }
+                    // NOTE: Old format (tf:pr|) notes are intentionally skipped
+              }
+              
+                // Convert map to array
+              state.prasasti = Array.from(seriesMap.values());
 
                 console.log(`✅ Indexed ${state.prasasti.length} prasasti`);
 
