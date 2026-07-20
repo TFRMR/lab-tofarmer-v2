@@ -966,12 +966,14 @@ ${escapeHtml(state.note.content)}
                 }
 
                 let previousTxId = 'START';
+                let firstTxId = null;
 
                 for (let i = 0; i < total; i++) {
                     const params = await algodClient.getTransactionParams().do();
 
-                    // Format: tf:pr|userid|1|chunks|series|content
-                    const noteHeader = `tf:pr|${state.userId}|1|${total}|${state.note.series}|`;
+                    // Format: tofnote:series:index:total:prevtxid:content
+                    // Example: tofnote:ilmu-garam:0:3:START:content_part1
+                    const noteHeader = `tofnote:${state.note.series}:${i}:${total}:${previousTxId}:`;
                     const noteContent = noteHeader + chunks[i];
                     const note = encoder.encode(noteContent);
 
@@ -995,15 +997,17 @@ ${escapeHtml(state.note.content)}
 
                     log(`[${i+1}/${total}] ⛓️ ${result.txId.substring(0, 16)}...`, 'success');
 
+                    // Track first TxID for sharing, update previousTxId for chain linking
                     if (i === 0) {
-                        previousTxId = result.txId;
+                        firstTxId = result.txId;
                     }
+                    previousTxId = result.txId;
 
                     await new Promise(r => setTimeout(r, 1000));
                 }
 
                 log(`🎉 PRASASTI BERHASIL DIPAHAT!`, 'success');
-                log(`📍 TxID Pertama: ${previousTxId}`, 'info');
+                log(`📍 TxID Pertama: ${firstTxId}`, 'info');
                 log(`💾 Silakan copy TxID untuk dibagikan`, 'info');
 
                 // Clear form

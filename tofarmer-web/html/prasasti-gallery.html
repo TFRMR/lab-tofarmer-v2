@@ -576,19 +576,38 @@
 
                 // Parse transactions
                 state.prasasti = [];
+                const seriesMap = new Map(); // Group by series, keep only first chunk
                 
                 for (const txn of result.transactions) {
                     const note = txn.note ? atob(txn.note) : '';
                     
-                    // Parse format: tf:pr|userid|1|chunks|series|content
-                    if (note.startsWith('tf:pr|')) {
-                        const parsed = parsePrasastiNote(note, txn);
+                    // Parse format: tofnote:series:index:total:prevtxid:content (NEW)
+                    // or tf:pr|userid|1|chunks|series|content (OLD - backwards compat)
+                    let parsed = null;
+                    if (note.startsWith('tofnote:')) {
+                        parsed = parsePrasastiNote(note, txn);
+                        if (parsed) {
+                            // Only keep the first chunk (index 0) of each series/package
+                            if (parsed.chunkIndex === 0) {
+                                const key = `${parsed.series}|${parsed.sender}`;
+                                if (!seriesMap.has(key) || new Date(parsed.date) > new Date(seriesMap.get(key).date)) {
+                                    seriesMap.set(key, parsed);
+                                }
+                            }
+                            state.series.add(parsed.series);
+                        }
+                    } else if (note.startsWith('tf:pr|')) {
+                        // Backwards compatibility for old format
+                        parsed = parsePrasastiNoteOld(note, txn);
                         if (parsed) {
                             state.prasasti.push(parsed);
                             state.series.add(parsed.series);
                         }
                     }
                 }
+                
+                // Convert map to array and merge with old format
+                state.prasasti = Array.from(seriesMap.values()).concat(state.prasasti);
 
                 console.log(`✅ Indexed ${state.prasasti.length} prasasti`);
 
@@ -616,13 +635,38 @@
 
         function parsePrasastiNote(note, txn) {
             try {
+                // Format: tofnote:series:index:total:prevtxid:content
+                // Example: tofnote:ilmu-garam:0:3:START:content_here
+                const match = note.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+                if (!match) return null;
+
+                const [, series, chunkIndex, totalChunks, prevTxId, content] = match;
+                const index = parseInt(chunkIndex);
+                const total = parseInt(totalChunks);
+                
+                return {
+                    title: extractTitle(content),
+                    author: txn.sender || 'unknown',
+                    series: series || 'uncategorized',
+                    txid: txn.id,
+                    chunks: total,
+                    chunkIndex: index,
+                    date: new Date(txn['confirmed-round'] * 1000).toISOString(),
+                    sender: txn.sender
+                };
+            } catch (e) {
+                console.warn('Failed to parse note:', e);
+                return null;
+            }
+        }
+
+        function parsePrasastiNoteOld(note, txn) {
+            try {
+                // Old format: tf:pr|userid|1|chunks|series|content
                 const parts = note.split('|');
                 if (parts.length < 6) return null;
 
-                // Format: tf:pr|userid|1|chunks|series|content
-                const marker = parts[0]; // tf:pr
                 const userid = parts[1];
-                const version = parts[2];
                 const chunks = parseInt(parts[3]) || 1;
                 const series = parts[4];
                 
@@ -632,11 +676,12 @@
                     series: series || 'uncategorized',
                     txid: txn.id,
                     chunks: chunks,
+                    chunkIndex: undefined,
                     date: new Date(txn['confirmed-round'] * 1000).toISOString(),
                     sender: txn.sender
                 };
             } catch (e) {
-                console.warn('Failed to parse note:', e);
+                console.warn('Failed to parse old note:', e);
                 return null;
             }
         }

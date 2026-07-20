@@ -440,7 +440,8 @@
             
             const headerMatch = noteText_1.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
             if (!headerMatch) {
-                throw new Error('❌ Format note tidak valid. Bukan catatan Prasasti (ekspektasi: tofnote:series:index:total:...)');
+                console.error('Note text:', noteText_1.substring(0, 100));
+                throw new Error('❌ Format note tidak valid. Pastikan menggunakan format baru: tofnote:series:index:total:prevtxid:content\n\nCatatan lama tidak kompatibel. Silakan buat ulang prasasti di Pemahat Blockchain.');
             }
 
             const [, seriesCode, idx0, totalStr, prevTx0, content0] = headerMatch;
