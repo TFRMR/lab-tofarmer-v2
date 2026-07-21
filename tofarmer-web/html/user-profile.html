@@ -198,7 +198,7 @@ const ALGOD   = 'https://mainnet-api.algonode.cloud';
 const P = {
   userId: '', sender: '',
   prasasti: [], profile: { name:'', bio:'', avatar:'🌿' },
-  algoBalance: 0, tofBalance: 0,
+  tofBalance: 0,
 };
 
 async function init() {
@@ -291,18 +291,29 @@ async function loadPrasasti() {
 }
 
 // ═══════════════════════════════════════════════
-//  LOAD BALANCE — ALGO + TOF
+//  LOAD BALANCE — TOF asset saja
 // ═══════════════════════════════════════════════
 async function loadBalance() {
   if (!P.sender) return;
   try {
-    const r = await fetch(`${ALGOD}/v2/accounts/${P.sender}`);
-    if (!r.ok) return;
-    const d = await r.json();
+    // Fetch account info dan asset decimals secara concurrent
+    const [accRes, assetRes] = await Promise.all([
+      fetch(`${ALGOD}/v2/accounts/${P.sender}`),
+      fetch(`${IDXR}/v2/assets/${ASA_TOF}`)
+    ]);
+
+    const decimals = assetRes.ok
+      ? ((await assetRes.json()).asset?.params?.decimals ?? 0)
+      : 0;
+    const divisor = Math.pow(10, decimals);
+
+    if (!accRes.ok) return;
+    const d = await accRes.json();
     const acc = d.account || {};
-    P.algoBalance = (acc.amount || 0) / 1e6;
     const tofAsset = (acc.assets||[]).find(a => a['asset-id'] === ASA_TOF);
-    P.tofBalance = tofAsset ? tofAsset.amount : 0;
+    const rawAmount = tofAsset ? tofAsset.amount : 0;
+    P.tofBalance = divisor > 1 ? Math.floor(rawAmount / divisor) : rawAmount;
+    console.log(`✅ TOF balance: ${P.tofBalance} (decimals: ${decimals})`);
   } catch(e) {
     console.warn('Balance error:', e);
   }
@@ -347,15 +358,15 @@ function render() {
     <div class="stats-grid">
       <div class="stat-box">
         <div class="stat-val">${P.prasasti.length}</div>
-        <div class="stat-lbl">📜 Prasasti</div>
+        <div class="stat-lbl">📜 Prasasti Terpahat</div>
       </div>
       <div class="stat-box">
         <div class="stat-val">${fmtNum(P.tofBalance)}</div>
         <div class="stat-lbl">🌾 TOF Dimiliki</div>
       </div>
       <div class="stat-box">
-        <div class="stat-val">${P.algoBalance.toFixed(3)}</div>
-        <div class="stat-lbl">💎 ALGO Balance</div>
+        <div class="stat-val">${P.tofBalance > 0 ? rankTOF(P.tofBalance) : '—'}</div>
+        <div class="stat-lbl">🏅 Kasta Pemahat</div>
       </div>
     </div>
 
@@ -366,6 +377,16 @@ function render() {
 
 function goReader(txid) {
   location.href = `prasasti-reader.html?txid=${txid}&userId=${encodeURIComponent(P.userId)}&sender=${encodeURIComponent(P.sender)}`;
+}
+
+// ─── RANK berdasarkan TOF ───
+function rankTOF(tof) {
+  if (tof >= 1_000_000) return '🌳 Pohon Tua';
+  if (tof >= 100_000)  return '🌲 Beringin';
+  if (tof >= 10_000)   return '🌿 Bambu';
+  if (tof >= 1_000)    return '🌱 Tunas';
+  if (tof >= 100)      return '🍃 Kecambah';
+  return '🌾 Benih';
 }
 
 // ─── UTILS ───

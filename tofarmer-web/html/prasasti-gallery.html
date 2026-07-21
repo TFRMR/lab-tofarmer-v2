@@ -361,8 +361,14 @@ async function loadStats() {
   document.getElementById('sUserCount').textContent = S.authors.size;
   document.getElementById('sPrasastiCount').textContent = S.all.length;
 
-  // 2. Total TOF di semua wallet pemahat — fetch account per userId sender concurrently
+  // 2. Total TOF di semua wallet pemahat — concurrent fetch
   try {
+    // Ambil decimals TOF dulu
+    const assetInfo = await fetch(`${IDXR}/v2/assets/${ASA_TOF}`)
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+    const decimals = assetInfo?.asset?.params?.decimals ?? 0;
+    const divisor  = Math.pow(10, decimals);
+
     const senders = [...new Set(S.all.map(p => p.sender).filter(Boolean))];
     const balFetches = senders.map(addr =>
       fetch(`${ALGOD}/v2/accounts/${addr}`)
@@ -376,9 +382,11 @@ async function loadStats() {
         .catch(() => 0)
     );
     const balances = await Promise.all(balFetches);
-    const total = balances.reduce((s,v)=>s+v, 0);
-    document.getElementById('sTOFCount').textContent = fmtNum(total);
+    const totalRaw = balances.reduce((s,v) => s+v, 0);
+    const total    = divisor > 1 ? totalRaw / divisor : totalRaw;
+    document.getElementById('sTOFCount').textContent = fmtNum(Math.floor(total));
   } catch(e) {
+    console.warn('TOF stats error:', e);
     document.getElementById('sTOFCount').textContent = '—';
   }
 }
