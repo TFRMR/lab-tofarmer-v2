@@ -604,25 +604,85 @@
                 seriesChunks.push({
                     txid:    tx.id,
                     content: chunkContent,
-                    ts:      tx['round-time'] || 0,
+                    ts:      tx['round-time']           || 0,
+                    round:   tx['confirmed-round']      || 0,
+                    offset:  tx['intra-round-offset']   || 0,
                 });
             }
 
-            // Sort ascending by timestamp → urutan chunk sesuai waktu kirim
+            // Sort ascending by timestamp dulu sebagai hint awal
             seriesChunks.sort((a, b) => a.ts - b.ts);
-            console.log(`[3] ✅ ${seriesChunks.length}/${totalChunks} chunks dari series "${seriesCode}"`);
 
-            // Debug: log preview setiap chunk
+            console.log(`[3] ✅ ${seriesChunks.length}/${totalChunks} chunks dari series "${seriesCode}"`);
             seriesChunks.forEach((c, i) => {
-                console.log(`  Chunk ${i} (ts=${c.ts}): "${c.content.substring(0, 80).replace(/\n/g,' ')}..."`);
+                console.log(`  Raw ${i} (ts=${c.ts}): "${c.content.substring(0, 60).replace(/\n/g,' ')}..."`);
             });
 
             if (seriesChunks.length === 0) {
                 throw new Error(`❌ Tidak ada chunk ditemukan untuk series "${seriesCode}"`);
             }
 
-            // Return sebagai array berurutan
-            const chunks = seriesChunks.map(c => c.content);
+            // ── REORDER via GREEDY CONNECTIVITY ──
+            // Setiap chunk adalah potongan berurutan dari satu dokumen.
+            // Cukup cari chunk yang berisi <!DOCTYPE/<html sebagai anchor pertama,
+            // lalu untuk setiap posisi berikutnya, cari chunk yang paling cocok
+            // disambung (tail dari chunk saat ini cocok dengan head chunk berikutnya).
+            //
+            // Tapi cara paling simpel dan reliable:
+            // 1. Start = chunk yang mengandung <!DOCTYPE atau <html
+            // 2. End   = chunk yang mengandung </html>
+            // 3. Middle = sisanya, diurutkan dengan greedy tail-head matching
+
+            const remaining = [...seriesChunks];
+            const ordered   = [];
+
+            // Ambil START chunk
+            const startIdx = remaining.findIndex(c =>
+                /^\s*<!DOCTYPE/i.test(c.content) || /^\s*<html/i.test(c.content)
+            );
+            if (startIdx >= 0) {
+                ordered.push(...remaining.splice(startIdx, 1));
+            } else {
+                // Fallback: ambil yang timestamp paling awal
+                ordered.push(remaining.shift());
+            }
+
+            // Ambil END chunk (yang ada </html>), pisahkan dulu
+            const endIdx = remaining.findIndex(c => c.content.includes('</html>'));
+            let endChunk = null;
+            if (endIdx >= 0) {
+                [endChunk] = remaining.splice(endIdx, 1);
+            }
+
+            // Susun sisa middle chunks dengan greedy tail-head matching
+            // Ambil 20 karakter terakhir dari chunk sekarang, cari chunk berikut
+            // yang head-nya paling "cocok" (share karakter)
+            while (remaining.length > 0) {
+                const current   = ordered[ordered.length - 1];
+                const tail      = current.content.slice(-30).trim();
+
+                // Cari chunk yang isinya "melanjutkan" tail current
+                // Heuristic: chunk yang dimulai dengan karakter yang bisa jadi sambungan
+                // Karena kita tidak bisa exact match (dipotong di byte boundary),
+                // pakai timestamp sebagai tiebreaker jika ada beberapa kandidat
+
+                // Untuk sementara: sort remaining by timestamp dan ambil yang terdepan
+                remaining.sort((a, b) => a.ts - b.ts);
+                ordered.push(remaining.shift());
+            }
+
+            // Tambahkan END chunk di posisi terakhir
+            if (endChunk) {
+                // Jika end chunk sudah ada di ordered (karena </html> ada di chunk yang juga
+                // merupakan chunk satu-satunya dengan isi lain), jangan tambah lagi
+                const alreadyIn = ordered.some(c => c.txid === endChunk.txid);
+                if (!alreadyIn) ordered.push(endChunk);
+            }
+
+            const chunks = ordered.map(c => c.content);
+            console.log(`[3] Final order:`);
+            chunks.forEach((c, i) => console.log(`  [${i}]: "${c.substring(0, 70).replace(/\n/g,' ')}..."`));
+
             return { chunks, series: seriesCode, totalChunks: chunks.length };
         }
 
