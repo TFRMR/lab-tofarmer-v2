@@ -612,6 +612,11 @@
             seriesChunks.sort((a, b) => a.ts - b.ts);
             console.log(`[3] ✅ ${seriesChunks.length}/${totalChunks} chunks dari series "${seriesCode}"`);
 
+            // Debug: log preview setiap chunk
+            seriesChunks.forEach((c, i) => {
+                console.log(`  Chunk ${i} (ts=${c.ts}): "${c.content.substring(0, 80).replace(/\n/g,' ')}..."`);
+            });
+
             if (seriesChunks.length === 0) {
                 throw new Error(`❌ Tidak ada chunk ditemukan untuk series "${seriesCode}"`);
             }
@@ -676,6 +681,13 @@
                 currentMetadata  = { title, series: series || 'unknown', chunks: totalChunks, firstTxId: startTxId, template };
 
                 log(`✅ Berhasil rakit ${chunks.length} chunks → ${fullContent.length} karakter`, 'success');
+                console.log(`[4] fullContent preview (pertama 200 char): "${fullContent.substring(0,200).replace(/\n/g,' ')}"`);
+                console.log(`[4] fullContent terakhir 100 char: "...${fullContent.slice(-100).replace(/\n/g,' ')}"`);
+                console.log(`[4] Starts with <html? ${fullContent.trim().startsWith('<html') || fullContent.trim().startsWith('<!DOCTYPE')}`);
+                console.log(`[4] Contains </html>? ${fullContent.includes('</html>')}`);
+                console.log(`[4] Contains <body>? ${fullContent.includes('<body>')}`);
+                console.log(`[4] Contains <style>? ${fullContent.includes('<style>')}`);
+                console.log(`[4] First tag found:`, fullContent.match(/<[a-z!][^>]*>/i)?.[0]);
 
                 // Render via iframe srcdoc — tanpa allow-same-origin (aman)
                 // Inject resize script ke dalam konten agar iframe bisa kirim tinggi via postMessage
