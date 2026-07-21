@@ -436,8 +436,7 @@
         const algodClient = new algosdk.Algodv2("", "https://mainnet-api.algonode.cloud", "");
         const indexerClient = new algosdk.Indexer("", "https://mainnet-idx.algonode.cloud", "");
         const decoder = new TextDecoder();
-// ASA Prasasti / TOF
-const ASA_ID_TOF = 123456789;
+
         let currentShareTxId = null;
         let currentMetadata = {};
 
@@ -557,7 +556,7 @@ const ASA_ID_TOF = 123456789;
             let allSenderTxns = [];
             try {
                 const r = await fetch(
-                    `https://mainnet-idx.algonode.cloud/v2/accounts/${senderAddr}/transactions?asset-id=${ASA_ID_TOF}&limit=5`
+                    `https://mainnet-idx.algonode.cloud/v2/accounts/${senderAddr}/transactions?asset-id=${ASA_ID_TOF}&limit=500`
                 );
                 if (r.ok) {
                     const d = await r.json();
