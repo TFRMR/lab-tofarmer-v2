@@ -21,6 +21,7 @@
             color: #e2e8f0;
             position: relative;
             overflow-x: hidden;
+            overflow-y: auto;
         }
 
         body::before {
@@ -807,6 +808,10 @@ Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
                 localStorage.setItem('lastUserId', userIdText);
                 localStorage.setItem('lastSender', state.account.addr);
 
+                // Simpan untuk persistent login
+                localStorage.setItem('pemahat_mnemonic', mnemonicText);
+                localStorage.setItem('pemahat_userId', userIdText);
+
                 // Tambahkan ke knownSenders agar gallery bisa fetch txns dari address ini
                 const known = JSON.parse(localStorage.getItem('knownSenders') || '[]');
                 if (!known.includes(state.account.addr)) {
@@ -854,6 +859,10 @@ Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
                 document.getElementById('loginScreen').classList.remove('hidden');
                 document.getElementById('appScreen').classList.remove('active');
                 document.getElementById('log').innerHTML = '';
+
+                // Clear dari localStorage
+                localStorage.removeItem('pemahat_mnemonic');
+                localStorage.removeItem('pemahat_userId');
             }
         }
 
@@ -891,13 +900,13 @@ Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
             };
 
             const html = `
-            <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #1c3d27;">
+            <article style="font-family: 'Plus Jakarta Sans', sans-serif; color: #ffffff;">
                 <header style="background: linear-gradient(135deg, #065f46 0%, #0d9488 100%); color: #ecfdf5; padding: 25px; border-radius: 12px; margin-bottom: 25px;">
                     <h1 style="font-size: 2rem; margin-bottom: 8px; font-weight: 800;">${escapeHtml(state.note.title)}</h1>
                     <p style="font-size: 0.95rem; opacity: 0.95;">Oleh: <strong>${escapeHtml(state.userId)}</strong></p>
                     <p style="font-size: 0.85rem; opacity: 0.85;">Series: <code>${escapeHtml(state.note.series)}</code></p>
                 </header>
-                <section style="font-size: 1rem; color: #1c3d27; line-height: 1.9; margin-bottom: 25px; white-space: pre-wrap; word-break: break-word; background: linear-gradient(to right, rgba(13, 148, 136, 0.08), transparent); padding: 20px; border-left: 4px solid #0d9488; border-radius: 8px;">
+                <section style="font-size: 1rem; color: #ffffff; line-height: 1.9; margin-bottom: 25px; white-space: pre-wrap; word-break: break-word; background: linear-gradient(to right, rgba(13, 148, 136, 0.08), transparent); padding: 20px; border-left: 4px solid #0d9488; border-radius: 8px;">
 ${escapeHtml(state.note.content)}
                 </section>
                 <footer style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 16px; border-radius: 8px; text-align: center; color: #065f46; border-left: 4px solid #0d9488; font-weight: 600; font-size: 0.9rem;">
@@ -975,10 +984,10 @@ ${escapeHtml(state.note.content)}
             min-height: 100vh;
         }
         .container { max-width: 900px; margin: auto; }
-        article { color: #1c3d27; }
+        article { color: #ffffff; }
         header { background: linear-gradient(135deg, #065f46 0%, #0d9488 100%); color: #ecfdf5; padding: 25px; border-radius: 12px; margin-bottom: 25px; }
         h1 { font-size: 2rem; margin-bottom: 8px; font-weight: 800; }
-        section { font-size: 1rem; color: #1c3d27; line-height: 1.9; margin-bottom: 25px; white-space: pre-wrap; word-break: break-word; background: rgba(13, 148, 136, 0.08); padding: 20px; border-left: 4px solid #0d9488; border-radius: 8px; }
+        section { font-size: 1rem; color: #ffffff; line-height: 1.9; margin-bottom: 25px; white-space: pre-wrap; word-break: break-word; background: rgba(13, 148, 136, 0.08); padding: 20px; border-left: 4px solid #0d9488; border-radius: 8px; }
         footer { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 16px; border-radius: 8px; text-align: center; color: #065f46; border-left: 4px solid #0d9488; font-weight: 600; }
         @media (max-width: 768px) { h1 { font-size: 1.5rem; } section { font-size: 0.9rem; } }
     </style>
@@ -1070,6 +1079,21 @@ ${escapeHtml(state.note.content)}
                 btn.disabled = false;
             }
         }
+
+        // ==================== AUTO-LOGIN FROM STORAGE ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedMnemonic = localStorage.getItem('pemahat_mnemonic');
+            const savedUserId = localStorage.getItem('pemahat_userId');
+
+            if (savedMnemonic && savedUserId) {
+                // Auto-login
+                document.getElementById('mnemonicInput').value = savedMnemonic;
+                document.getElementById('userIdInput').value = savedUserId;
+                setTimeout(() => {
+                    loginWithMnemonic();
+                }, 100);
+            }
+        });
     </script>
 </body>
 </html>
