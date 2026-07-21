@@ -404,7 +404,7 @@
 
         <div id="contentSection" style="display: none;">
             <div class="content-display">
-                <div class="content-frame" id="contentFrame"></div>
+                <iframe class="content-frame" id="contentFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms" style="width:100%;border:none;min-height:600px;background:#fff;display:block;" frameborder="0"></iframe>
                 <div class="metadata" id="metadata"></div>
             </div>
 
@@ -656,35 +656,45 @@
                 
                 document.getElementById('progressInfo').textContent = `(${chunks.filter(c => c).length}/${totalChunks} chunks dirakit...)`;
 
-                // Gabung chunks - filter undefined/null
-                const fullContent = chunks.filter(c => c).join('');
+                // Gabung semua chunks jadi satu dokumen utuh
+                const fullContent = chunks.join('');
 
                 if (!fullContent || fullContent.trim() === '') {
-                    throw new Error('Konten catatan kosong setelah digabung. Chunks mungkin tidak lengkap.');
+                    throw new Error('Konten catatan kosong setelah digabung.');
                 }
 
                 // Parse HTML & ekstrak metadata
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(fullContent, 'text/html');
-                const title = doc.querySelector('title')?.textContent || 'Untitled';
+                const title    = doc.querySelector('title')?.textContent || series;
                 const template = doc.querySelector('meta[name="template"]')?.content || 'unknown';
 
                 currentShareTxId = startTxId;
-                currentMetadata = {
-                    title,
-                    series: series || 'unknown',
-                    chunks: totalChunks,
-                    firstTxId: startTxId,
-                    template
+                currentMetadata  = { title, series: series || 'unknown', chunks: totalChunks, firstTxId: startTxId, template };
+
+                log(`✅ Berhasil rakit ${chunks.length} chunks → ${fullContent.length} karakter`, 'success');
+
+                // Render via iframe srcdoc agar CSS/JS dalam dokumen tidak bentrok
+                document.getElementById('loadingSection').style.display  = 'none';
+                document.getElementById('contentSection').style.display  = 'block';
+
+                const frame = document.getElementById('contentFrame');
+                // Gunakan srcdoc jika tersedia (semua modern browser), fallback blob URL
+                if ('srcdoc' in frame) {
+                    frame.srcdoc = fullContent;
+                } else {
+                    const blob = new Blob([fullContent], { type: 'text/html' });
+                    frame.src  = URL.createObjectURL(blob);
+                }
+
+                // Auto-resize iframe sesuai konten
+                frame.onload = () => {
+                    try {
+                        const h = frame.contentDocument?.body?.scrollHeight || 600;
+                        frame.style.height = Math.max(h + 40, 600) + 'px';
+                    } catch(e) { frame.style.height = '800px'; }
                 };
 
-                log(`✅ Berhasil ambil ${chunks.filter(c => c).length}/${totalChunks} chunks!`, 'success');
-
-                // Display
-                document.getElementById('loadingSection').style.display = 'none';
-                document.getElementById('contentSection').style.display = 'block';
-
-                document.getElementById('contentFrame').innerHTML = fullContent;
                 document.getElementById('shareLink').textContent = getShareUrl();
                 updateMetadata();
 

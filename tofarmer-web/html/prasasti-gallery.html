@@ -274,17 +274,37 @@ const S = { all: [], filtered: [], authors: new Set(), series: new Set() };
 // ═══════════════════════════════════════════════
 async function init() {
   try {
-    // Fetch dengan dua strategi concurrent:
-    // 1. Global (mungkin kosong note-nya tapi dapat daftar sender)
-    // 2. Langsung dari known senders jika ada di localStorage
     const txns = await fetchTxns();
+
+    if (txns.length === 0) {
+      // Belum ada pemahat terdaftar di device ini
+      document.getElementById('gallery').innerHTML = `
+        <div class="empty" style="grid-column:1/-1">
+          <div class="empty-icon">🔑</div>
+          <h3>Belum Ada Data Pemahat</h3>
+          <p style="margin-bottom:1.25rem;max-width:400px;margin-left:auto;margin-right:auto">
+            Login ke <strong>Pemahat Prasasti</strong> terlebih dahulu.<br>
+            Address Anda akan tersimpan dan prasasti akan muncul di sini.
+          </p>
+          <button onclick="location.href='pemahat-prasasti-blockchain.html'" style="
+            padding:0.75rem 2rem;
+            background:linear-gradient(135deg,var(--gold-mid),var(--gold-bright));
+            color:var(--bg-deep);border:none;border-radius:8px;
+            font-weight:700;cursor:pointer;font-size:1rem;font-family:inherit;">
+            ✍️ Pergi ke Pemahat Prasasti
+          </button>
+        </div>`;
+      document.getElementById('countBadge').textContent = '0 prasasti';
+      return;
+    }
+
     parseAll(txns);
     populateFilters();
     renderGallery(S.all);
     loadStats();
   } catch(e) {
     document.getElementById('gallery').innerHTML =
-      `<div class="error-box">❌ Gagal memuat data: ${e.message}<br><small>${e.stack||''}</small></div>`;
+      `<div class="error-box">❌ Gagal memuat data: ${e.message}</div>`;
     console.error(e);
   }
 }
@@ -297,9 +317,6 @@ async function init() {
 //  untuk setiap address yang dikenal.
 // ═══════════════════════════════════════════════
 async function fetchTxns() {
-  // Kumpulkan semua candidate senders:
-  // - Dari localStorage (pemahat yang pernah login di device ini)
-  // - Bisa dikembangkan: dari supabase registry nanti
   const savedSenders = JSON.parse(localStorage.getItem('knownSenders') || '[]');
   const lastSender   = localStorage.getItem('lastSender') || '';
   if (lastSender) savedSenders.push(lastSender);
@@ -308,49 +325,27 @@ async function fetchTxns() {
   let allTxns = [];
 
   if (uniqueSenders.length > 0) {
-    // Fetch per-address concurrent — ini yang return note dengan benar
+    // Fetch per-address concurrent
     const fetches = uniqueSenders.map(addr =>
       fetch(`${IDXR}/v2/accounts/${addr}/transactions?asset-id=${ASA_TOF}&limit=500`)
         .then(r => r.ok ? r.json() : null)
         .then(d => {
           if (!d) return [];
           const txns = d.transactions || [];
-          // Track sender untuk stats
-          txns.forEach(t => { if (t.sender) KNOWN_SENDERS.add(t.sender); });
-          return txns;
+          // PENTING: hanya ambil txn yang DIKIRIM dari address ini (bukan yang diterima)
+          return txns.filter(t => t.sender === addr);
         })
         .catch(e => { console.warn(`Fetch error ${addr}:`, e); return []; })
     );
     const results = await Promise.all(fetches);
     allTxns = results.flat();
-  } else {
-    // Fallback: global fetch tapi note mungkin kosong
-    // Tampilkan pesan agar user login ke pemahat dulu
-    console.warn('Tidak ada known senders di localStorage. Login ke Pemahat Prasasti dulu.');
-    document.getElementById('gallery').innerHTML = `
-      <div class="empty" style="grid-column:1/-1">
-        <div class="empty-icon">🔑</div>
-        <h3>Belum Ada Pemahat Terdaftar</h3>
-        <p style="margin-bottom:1rem">Untuk melihat prasasti, login dulu ke Pemahat Prasasti.<br>
-        Setelah login, address Anda akan tersimpan dan prasasti akan tampil di sini.</p>
-        <button onclick="location.href='pemahat-prasasti-blockchain.html'" style="
-          padding:0.75rem 2rem;background:linear-gradient(135deg,var(--gold-mid),var(--gold-bright));
-          color:var(--bg-deep);border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">
-          ✍️ Login ke Pemahat Prasasti
-        </button>
-      </div>
-    `;
-    // Tetap coba fetch global sebagai best-effort
-    try {
-      const r = await fetch(`${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=200`);
-      if (r.ok) {
-        const d = await r.json();
-        allTxns = d.transactions || [];
-      }
-    } catch(e) { /* silent */ }
+    console.log(`📦 Total outgoing txns from known senders: ${allTxns.length}`);
   }
 
-  console.log(`📦 Total raw txns fetched: ${allTxns.length}`);
+  return allTxns;
+}
+
+  console.log(`📦 Total outgoing txns: ${allTxns.length}`);
   return allTxns;
 }
 
