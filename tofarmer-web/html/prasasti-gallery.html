@@ -324,14 +324,30 @@ async function fetchTxns() {
     const results = await Promise.all(fetches);
     allTxns = results.flat();
   } else {
-    // Fallback: coba global dulu, meski mungkin note kosong
-    // Tapi tetap coba — untuk detect sender baru
-    console.warn('Tidak ada known senders, coba global fetch...');
-    const r = await fetch(`${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=200`);
-    if (r.ok) {
-      const d = await r.json();
-      allTxns = d.transactions || [];
-    }
+    // Fallback: global fetch tapi note mungkin kosong
+    // Tampilkan pesan agar user login ke pemahat dulu
+    console.warn('Tidak ada known senders di localStorage. Login ke Pemahat Prasasti dulu.');
+    document.getElementById('gallery').innerHTML = `
+      <div class="empty" style="grid-column:1/-1">
+        <div class="empty-icon">🔑</div>
+        <h3>Belum Ada Pemahat Terdaftar</h3>
+        <p style="margin-bottom:1rem">Untuk melihat prasasti, login dulu ke Pemahat Prasasti.<br>
+        Setelah login, address Anda akan tersimpan dan prasasti akan tampil di sini.</p>
+        <button onclick="location.href='pemahat-prasasti-blockchain.html'" style="
+          padding:0.75rem 2rem;background:linear-gradient(135deg,var(--gold-mid),var(--gold-bright));
+          color:var(--bg-deep);border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;">
+          ✍️ Login ke Pemahat Prasasti
+        </button>
+      </div>
+    `;
+    // Tetap coba fetch global sebagai best-effort
+    try {
+      const r = await fetch(`${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=200`);
+      if (r.ok) {
+        const d = await r.json();
+        allTxns = d.transactions || [];
+      }
+    } catch(e) { /* silent */ }
   }
 
   console.log(`📦 Total raw txns fetched: ${allTxns.length}`);
@@ -458,12 +474,13 @@ async function loadStats() {
     }
 
     const balFetches = senders.map(addr =>
+      // Coba algod dulu, fallback indexer
       fetch(`${ALGOD}/v2/accounts/${addr}`)
-        .then(r => r.ok ? r.json() : null)
+        .then(r => r.ok ? r.json() : fetch(`${IDXR}/v2/accounts/${addr}`).then(r2 => r2.ok ? r2.json() : null))
         .then(d => {
           if (!d) return 0;
-          const assets = d.account?.assets || [];
-          const tof = assets.find(a => a['asset-id'] === ASA_TOF);
+          const assets = d.account?.assets || d.assets || [];
+          const tof = assets.find(a => (a['asset-id'] ?? a.assetId) === ASA_TOF);
           return tof ? tof.amount : 0;
         })
         .catch(() => 0)

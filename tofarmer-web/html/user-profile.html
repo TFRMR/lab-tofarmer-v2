@@ -312,13 +312,26 @@ async function loadPrasasti() {
 async function loadBalance() {
   if (!P.sender) return;
   try {
+    // Coba algod dulu, fallback ke indexer
+    let assets = [];
+
     const r = await fetch(`${ALGOD}/v2/accounts/${P.sender}`);
-    if (!r.ok) return;
-    const d   = await r.json();
-    const acc = d.account || {};
-    const tof = (acc.assets || []).find(a => a['asset-id'] === ASA_TOF);
+    if (r.ok) {
+      const d = await r.json();
+      // algod response: d.account.assets atau d.assets
+      assets = (d.account?.assets || d.assets || []);
+    } else {
+      // Fallback: indexer
+      const r2 = await fetch(`${IDXR}/v2/accounts/${P.sender}`);
+      if (r2.ok) {
+        const d2 = await r2.json();
+        assets = (d2.account?.assets || []);
+      }
+    }
+
+    const tof = assets.find(a => (a['asset-id'] ?? a.assetId) === ASA_TOF);
     P.tofBalance = tof ? Math.floor(tof.amount / TOF_DIV) : 0;
-    console.log(`✅ TOF: ${P.tofBalance}`);
+    console.log(`✅ TOF balance raw: ${tof?.amount}, display: ${P.tofBalance}`);
   } catch(e) {
     console.warn('Balance error:', e);
   }
@@ -369,10 +382,14 @@ function render() {
         <div class="stat-val">${fmtNum(P.tofBalance)}</div>
         <div class="stat-lbl">🌾 TOF Dimiliki</div>
       </div>
-      <div class="stat-box">
-        <div class="stat-val">${P.tofBalance > 0 ? rankTOF(P.tofBalance) : '—'}</div>
+      <div class="stat-box" title="Kasta ditentukan dari jumlah TOF: Benih &lt;100 · Kecambah &lt;1K · Tunas &lt;10K · Bambu &lt;100K · Beringin &lt;1jt · Pohon Tua ≥1jt">
+        <div class="stat-val">${rankTOF(P.tofBalance)}</div>
         <div class="stat-lbl">🏅 Kasta Pemahat</div>
       </div>
+    </div>
+
+    <div class="kasta-scale">
+      ${kastaScale(P.tofBalance)}
     </div>
 
     <div class="section-head"><h2>📚 Prasasti Karya ${esc(P.profile.name)}</h2></div>
@@ -384,7 +401,7 @@ function goReader(txid) {
   location.href = `prasasti-reader.html?txid=${txid}&userId=${encodeURIComponent(P.userId)}&sender=${encodeURIComponent(P.sender)}`;
 }
 
-// ─── RANK berdasarkan TOF ───
+// ─── RANK berdasarkan TOF (display amount setelah dibagi TOF_DIV) ───
 function rankTOF(tof) {
   if (tof >= 1_000_000) return '🌳 Pohon Tua';
   if (tof >= 100_000)  return '🌲 Beringin';
@@ -392,6 +409,37 @@ function rankTOF(tof) {
   if (tof >= 1_000)    return '🌱 Tunas';
   if (tof >= 100)      return '🍃 Kecambah';
   return '🌾 Benih';
+}
+
+function kastaScale(tof) {
+  const levels = [
+    { label: '🌾 Benih',    min: 0,       max: 99 },
+    { label: '🍃 Kecambah', min: 100,     max: 999 },
+    { label: '🌱 Tunas',    min: 1000,    max: 9999 },
+    { label: '🌿 Bambu',    min: 10000,   max: 99999 },
+    { label: '🌲 Beringin', min: 100000,  max: 999999 },
+    { label: '🌳 Pohon Tua',min: 1000000, max: Infinity },
+  ];
+  const active = levels.findIndex(l => tof >= l.min && tof <= l.max);
+  return `
+    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1.5rem">
+      ${levels.map((l, i) => `
+        <div style="
+          flex:1;min-width:80px;padding:0.5rem 0.6rem;
+          background:${i === active ? 'var(--green-mid)' : 'var(--bg-panel)'};
+          border:1px solid ${i === active ? 'var(--gold-bright)' : 'var(--border)'};
+          border-radius:8px;text-align:center;font-size:0.78rem;
+          color:${i === active ? 'var(--gold-pale)' : 'var(--text-dim)'};
+          transition:all 0.3s;
+          ${i < active ? 'opacity:0.5' : ''}
+        ">
+          <div style="font-size:1.1rem;margin-bottom:0.2rem">${l.label.split(' ')[0]}</div>
+          <div style="font-weight:${i===active?'700':'400'}">${l.label.split(' ').slice(1).join(' ')}</div>
+          <div style="font-size:0.7rem;opacity:0.6;margin-top:0.2rem">${l.min >= 1000000 ? '≥1jt' : l.min === 0 ? '<100' : '≥'+fmtNum(l.min)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
 }
 
 // ─── UTILS ───
