@@ -1,654 +1,483 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 Prasasti Gallery - TOFarmer Blockchain</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📜 Prasasti Gallery — TOFarmer Menoreh</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-deep:#0a1a0f;--bg-dark:#0f2318;--bg-mid:#152d1e;--bg-panel:#1a3626;
+  --bg-card:#1f3d2c;--bg-hover:#264835;
+  --green-mid:#2d6e47;--green-light:#3d8f5c;--green-glow:#52c47c;--green-mist:#6edfa0;
+  --gold-mid:#b8860b;--gold-bright:#d4af37;--gold-glow:#ffd700;--gold-pale:#f5e6a3;
+  --primary:#d4af37;--accent:#52c47c;
+  --text:#d4e8dc;--text-dim:#8aad98;
+  --border:#2a4a35;--border-glow:rgba(82,196,124,0.25);--border-gold:rgba(212,175,55,0.3);
+  --mist:rgba(200,230,210,0.06);
+}
+body{
+  background:var(--bg-deep);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;
+  background-image:
+    radial-gradient(ellipse at 20% 50%,rgba(45,110,71,0.08) 0%,transparent 60%),
+    radial-gradient(ellipse at 80% 20%,rgba(212,175,55,0.05) 0%,transparent 50%);
+}
 
-        :root {
-            --bg: #0f1419;
-            --fg: #e0e6ed;
-            --primary: #00d4ff;
-            --secondary: #7c3aed;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --muted: #6b7280;
-            --border: #1f2937;
-            --hover: #1e293b;
-        }
+/* ─── HEADER ─── */
+header{
+  background:linear-gradient(135deg,var(--bg-dark) 0%,var(--green-deep,#1a4a2e) 50%,var(--bg-dark) 100%);
+  border-bottom:1px solid var(--border-gold);
+  padding:1.25rem 1.5rem;position:sticky;top:0;z-index:100;
+  box-shadow:0 4px 30px rgba(212,175,55,0.08),0 0 60px rgba(0,0,0,0.6);
+}
+.header-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+.logo{display:flex;align-items:center;gap:0.75rem}
+.logo-icon{font-size:2rem;filter:drop-shadow(0 0 8px rgba(212,175,55,0.5))}
+.logo-text h1{font-size:1.4rem;font-weight:800;
+  background:linear-gradient(135deg,var(--gold-glow),var(--green-mist));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  letter-spacing:0.05em}
+.logo-text p{font-size:0.78rem;color:var(--text-dim);letter-spacing:0.1em;text-transform:uppercase}
+.nav-links{display:flex;gap:0.5rem;flex-wrap:wrap}
+.nav-btn{
+  padding:0.45rem 1rem;border:1px solid var(--border);border-radius:6px;
+  background:transparent;color:var(--text-dim);cursor:pointer;font-size:0.85rem;
+  transition:all 0.25s;font-family:inherit;
+}
+.nav-btn:hover,.nav-btn.active{
+  background:var(--bg-hover);border-color:var(--primary);color:var(--primary);
+  box-shadow:0 0 12px var(--border-gold);
+}
+.nav-btn.cta{background:linear-gradient(135deg,var(--gold-mid),var(--gold-bright));
+  color:var(--bg-deep);border-color:var(--gold-bright);font-weight:700;}
+.nav-btn.cta:hover{box-shadow:0 0 20px rgba(212,175,55,0.4);}
 
-        body {
-            background: var(--bg);
-            color: var(--fg);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+/* ─── STATS BAR ─── */
+.stats-bar{
+  background:var(--bg-dark);border-bottom:1px solid var(--border);
+  padding:1rem 1.5rem;
+}
+.stats-inner{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem}
+.stat{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;
+  padding:1rem 1.25rem;position:relative;overflow:hidden;
+  transition:all 0.3s;
+}
+.stat::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--green-glow),var(--gold-bright));
+}
+.stat:hover{border-color:var(--border-glow);box-shadow:0 0 20px var(--border-glow)}
+.stat-val{font-size:2rem;font-weight:800;
+  background:linear-gradient(135deg,var(--gold-bright),var(--green-mist));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.stat-lbl{font-size:0.78rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-top:0.25rem}
 
-        header {
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+/* ─── SEARCH / FILTER ─── */
+.controls{
+  background:var(--bg-mid);border-bottom:1px solid var(--border);
+  padding:0.75rem 1.5rem;
+}
+.controls-inner{max-width:1400px;margin:0 auto;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center}
+.search-box{
+  flex:1;min-width:200px;padding:0.6rem 1rem;
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-size:0.9rem;transition:all 0.25s;
+}
+.search-box:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(82,196,124,0.15)}
+.search-box::placeholder{color:var(--text-dim)}
+select.filter{
+  padding:0.6rem 1rem;background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:8px;color:var(--text);cursor:pointer;transition:all 0.25s;
+}
+select.filter:focus{outline:none;border-color:var(--accent)}
+.count-badge{
+  padding:0.5rem 1rem;background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:8px;font-size:0.85rem;color:var(--text-dim);white-space:nowrap;
+}
 
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            font-weight: 700;
-        }
+/* ─── GALLERY GRID ─── */
+.gallery{
+  max-width:1400px;margin:0 auto;width:100%;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+  gap:1.5rem;padding:1.5rem;flex:1;
+}
+.card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;display:flex;flex-direction:column;
+  transition:all 0.3s;position:relative;
+}
+.card::after{
+  content:'';position:absolute;inset:0;border-radius:12px;
+  box-shadow:inset 0 0 0 1px rgba(82,196,124,0);
+  transition:box-shadow 0.3s;pointer-events:none;
+}
+.card:hover{transform:translateY(-6px);border-color:var(--green-light);}
+.card:hover::after{box-shadow:inset 0 0 0 1px rgba(82,196,124,0.3)}
 
-        .subtitle {
-            opacity: 0.9;
-            font-size: 0.95rem;
-        }
+.card-top{
+  background:linear-gradient(135deg,var(--bg-mid) 0%,var(--green-deep,#1a4a2e) 100%);
+  padding:1.25rem;border-bottom:1px solid var(--border);
+  position:relative;overflow:hidden;
+}
+.card-top::before{
+  content:'';position:absolute;top:-30px;right:-30px;width:80px;height:80px;
+  border-radius:50%;background:radial-gradient(circle,rgba(212,175,55,0.15),transparent);
+}
+.card-series{
+  font-size:0.75rem;color:var(--gold-bright);text-transform:uppercase;
+  letter-spacing:0.12em;margin-bottom:0.5rem;font-weight:600;
+}
+.card-title{
+  font-size:1.1rem;font-weight:700;color:var(--text);line-height:1.3;
+  word-break:break-word;
+}
+.card-body{padding:1.1rem;flex:1;display:flex;flex-direction:column;gap:0.5rem}
+.meta-row{display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;color:var(--text-dim)}
+.meta-pill{
+  display:inline-flex;align-items:center;gap:0.35rem;
+  background:var(--bg-panel);border:1px solid var(--border);
+  padding:0.3rem 0.7rem;border-radius:20px;font-size:0.78rem;color:var(--text-dim);
+}
+.author-row{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;
+  padding:0.6rem 0.9rem;cursor:pointer;transition:all 0.25s;
+  display:flex;align-items:center;gap:0.5rem;
+}
+.author-row:hover{border-color:var(--accent);color:var(--accent);background:var(--bg-hover)}
+.author-id{font-weight:700;color:var(--green-mist);font-family:monospace}
+.card-footer{
+  display:flex;gap:0.6rem;padding:1rem;background:var(--bg-mid);
+  border-top:1px solid var(--border);
+}
+.btn-baca{
+  flex:2;padding:0.65rem;border:none;border-radius:8px;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold-mid),var(--gold-bright));
+  color:var(--bg-deep);font-weight:700;font-size:0.9rem;font-family:inherit;
+  transition:all 0.25s;
+}
+.btn-baca:hover{box-shadow:0 0 20px rgba(212,175,55,0.4);transform:scale(1.02)}
+.btn-profil{
+  flex:1;padding:0.65rem;border:1px solid var(--border);border-radius:8px;cursor:pointer;
+  background:transparent;color:var(--text-dim);font-weight:600;font-size:0.85rem;
+  font-family:inherit;transition:all 0.25s;
+}
+.btn-profil:hover{border-color:var(--accent);color:var(--accent);background:var(--bg-hover)}
 
-        /* Navigation */
-        .nav-bar {
-            display: flex;
-            gap: 1rem;
-            padding: 1rem;
-            background: var(--border);
-            justify-content: center;
-            flex-wrap: wrap;
-        }
+/* ─── LOADING / EMPTY / ERROR ─── */
+.loading,.empty{
+  grid-column:1/-1;text-align:center;padding:4rem 2rem;
+}
+.spinner{
+  width:48px;height:48px;border:3px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin 1s linear infinite;margin:0 auto 1rem;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{color:var(--text-dim);font-size:0.95rem}
+.empty-icon{font-size:3.5rem;opacity:0.3;margin-bottom:1rem}
+.empty h3{color:var(--text-dim);font-size:1.2rem;margin-bottom:0.5rem}
+.empty p{color:var(--text-dim);font-size:0.9rem;opacity:0.7}
+.error-box{
+  grid-column:1/-1;background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.4);
+  border-radius:10px;padding:1.5rem;color:#fca5a5;text-align:center;margin:1rem;
+}
 
-        .nav-btn {
-            padding: 0.5rem 1.5rem;
-            background: var(--secondary);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+/* ─── MIST EFFECT ─── */
+.mist-line{
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(110,223,160,0.3),rgba(212,175,55,0.2),transparent);
+}
 
-        .nav-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-        }
-
-        /* Stats Section */
-        .stats-section {
-            background: var(--hover);
-            padding: 1.5rem;
-            margin: 1rem;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .stat-card {
-            background: var(--bg);
-            padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 4px solid var(--primary);
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            color: var(--muted);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        /* Search & Filter */
-        .controls {
-            padding: 1rem;
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-            align-items: center;
-            background: var(--border);
-        }
-
-        .search-box {
-            flex: 1;
-            min-width: 200px;
-            padding: 0.75rem;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--fg);
-            font-size: 0.95rem;
-        }
-
-        .search-box::placeholder {
-            color: var(--muted);
-        }
-
-        select {
-            padding: 0.75rem;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            color: var(--fg);
-            cursor: pointer;
-        }
-
-        /* Gallery Grid */
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-            padding: 1.5rem;
-            flex: 1;
-        }
-
-        .prasasti-card {
-            background: var(--hover);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .prasasti-card:hover {
-            transform: translateY(-6px);
-            border-color: var(--primary);
-            box-shadow: 0 12px 30px rgba(0, 212, 255, 0.1);
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
-            padding: 1.5rem;
-            color: white;
-        }
-
-        .card-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            word-break: break-word;
-        }
-
-        .card-series {
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-
-        .card-body {
-            padding: 1.5rem;
-            flex: 1;
-        }
-
-        .card-meta {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
-            color: var(--muted);
-        }
-
-        .card-author {
-            background: var(--border);
-            padding: 0.75rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
-            word-break: break-all;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .card-author:hover {
-            background: var(--primary);
-            color: var(--bg);
-        }
-
-        .card-footer {
-            display: flex;
-            gap: 0.75rem;
-            padding: 1rem;
-            background: var(--bg);
-            border-top: 1px solid var(--border);
-        }
-
-        .btn-read {
-            flex: 1;
-            padding: 0.75rem;
-            background: var(--primary);
-            color: var(--bg);
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-read:hover {
-            background: #00a8cc;
-            transform: scale(1.05);
-        }
-
-        .btn-profile {
-            flex: 1;
-            padding: 0.75rem;
-            background: var(--secondary);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-profile:hover {
-            background: #6d28d9;
-            transform: scale(1.05);
-        }
-
-        /* Loading & Messages */
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--muted);
-        }
-
-        .spinner {
-            border: 3px solid var(--border);
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error {
-            background: var(--danger);
-            color: white;
-            padding: 1rem;
-            border-radius: 6px;
-            margin: 1rem;
-        }
-
-        .empty {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--muted);
-        }
-
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            .gallery {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-section {
-                grid-template-columns: 1fr;
-            }
-
-            .nav-bar {
-                gap: 0.5rem;
-            }
-
-            .nav-btn {
-                padding: 0.4rem 1rem;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
+@media(max-width:768px){
+  .header-inner{flex-direction:column;align-items:flex-start}
+  .gallery{grid-template-columns:1fr;padding:1rem}
+  .stats-inner{grid-template-columns:repeat(2,1fr)}
+  .controls-inner{flex-direction:column}
+  .search-box{min-width:100%}
+}
+</style>
 </head>
 <body>
-    <header>
-        <h1>📚 PRASASTI GALLERY</h1>
-        <p class="subtitle">Koleksi Ilmu di Blockchain TOFarmer</p>
-    </header>
 
-    <div class="nav-bar">
-        <button class="nav-btn" onclick="goToGallery()">🏠 Gallery</button>
-        <button class="nav-btn" onclick="goToPemahat()">✍️ Tulis Prasasti</button>
-        <button class="nav-btn" onclick="goToMyProfile()">👤 Profil Saya</button>
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">🌿</div>
+      <div class="logo-text">
+        <h1>PRASASTI GALLERY</h1>
+        <p>Ilmu Terpahat di Blockchain Menoreh</p>
+      </div>
     </div>
+    <nav class="nav-links">
+      <button class="nav-btn active" onclick="location.href='prasasti-gallery.html'">🏛️ Gallery</button>
+      <button class="nav-btn" onclick="goMyProfile()">👤 Profil Saya</button>
+      <button class="nav-btn cta" onclick="location.href='pemahat-prasasti-blockchain.html'">✍️ Pahat Prasasti</button>
+    </nav>
+  </div>
+</header>
 
-    <div class="stats-section" id="statsSection">
-        <div class="stat-card">
-            <div class="stat-value" id="userCount">0</div>
-            <div class="stat-label">Users Terdaftar</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="prasastiCount">0</div>
-            <div class="stat-label">Total Prasasti</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value" id="totalTOF">0</div>
-            <div class="stat-label">Total TOF</div>
-        </div>
+<div class="mist-line"></div>
+
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat">
+      <div class="stat-val" id="sUserCount">—</div>
+      <div class="stat-lbl">👥 Pemahat Terdaftar</div>
     </div>
-
-    <div class="controls">
-        <input type="text" id="searchBox" class="search-box" placeholder="🔍 Cari prasasti...">
-        <select id="seriesFilter">
-            <option value="">Semua Series</option>
-        </select>
+    <div class="stat">
+      <div class="stat-val" id="sPrasastiCount">—</div>
+      <div class="stat-lbl">📜 Total Prasasti</div>
     </div>
+    <div class="stat">
+      <div class="stat-val" id="sTOFCount">—</div>
+      <div class="stat-lbl">🌾 Total TOF di Komunitas</div>
+    </div>
+  </div>
+</div>
 
-    <div class="gallery" id="gallery">
-        <div class="loading">
-            <div class="spinner"></div>
-            <p>Memuat prasasti...</p>
+<div class="controls">
+  <div class="controls-inner">
+    <input id="searchBox" class="search-box" type="text" placeholder="🔍 Cari judul, series, atau pemahat...">
+    <select id="seriesFilter" class="filter">
+      <option value="">Semua Series</option>
+    </select>
+    <select id="authorFilter" class="filter">
+      <option value="">Semua Pemahat</option>
+    </select>
+    <div class="count-badge" id="countBadge">Memuat...</div>
+  </div>
+</div>
+
+<div class="gallery" id="gallery">
+  <div class="loading"><div class="spinner"></div><p class="loading-txt">Membaca prasasti dari blockchain...</p></div>
+</div>
+
+<script>
+const ASA_TOF = 3558306283;
+const IDXR    = 'https://mainnet-idx.algonode.cloud';
+const ALGOD   = 'https://mainnet-api.algonode.cloud';
+
+const S = { all: [], filtered: [], authors: new Set(), series: new Set() };
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+async function init() {
+  try {
+    const [txns] = await Promise.all([fetchAllTxns()]);
+    parseAll(txns);
+    populateFilters();
+    renderGallery(S.all);
+    loadStats();           // background: stats kita load terpisah (nggak block render)
+  } catch(e) {
+    document.getElementById('gallery').innerHTML =
+      `<div class="error-box">❌ Gagal memuat data: ${e.message}</div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  FETCH — satu request, concurrent parse
+// ═══════════════════════════════════════════════
+async function fetchAllTxns() {
+  const url = `${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=1000`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Indexer ${r.status}`);
+  const d = await r.json();
+  return d.transactions || [];
+}
+
+// ═══════════════════════════════════════════════
+//  PARSE — format tf:pr|userId|chunkIdx|total|series|content
+// ═══════════════════════════════════════════════
+function parseAll(txns) {
+  // Parse semua transaksi concurrent (sync sudah cukup, tidak ada I/O)
+  const map = new Map(); // key = userId:series → simpan hanya chunk 0
+
+  for (const txn of txns) {
+    const note = decodeNote(txn.note);
+    if (!note || !note.startsWith('tf:pr|')) continue;
+
+    const p = note.split('|');
+    // Format: tf:pr|userId|chunkIdx|totalChunks|series|content...
+    if (p.length < 6) continue;
+    const [, userId, chunkIdxStr, totalStr, series, ...rest] = p;
+    const chunkIdx = parseInt(chunkIdxStr);
+    const total    = parseInt(totalStr);
+    const content  = rest.join('|');
+
+    if (!userId || !series || isNaN(chunkIdx) || isNaN(total)) continue;
+
+    // Hanya ambil chunk index 0 (awal paket)
+    if (chunkIdx !== 0) continue;
+
+    const key = `${userId}::${series}`;
+    const item = {
+      userId,
+      title: extractTitle(content) || series,
+      series,
+      txid: txn.id,
+      sender: txn.sender || '',
+      chunks: total,
+      chunkIdx,
+      ts: txn['round-time'] || 0,
+      date: txn['round-time'] ? new Date(txn['round-time']*1000).toISOString() : null,
+    };
+
+    // Simpan yang terbaru per key
+    if (!map.has(key) || item.ts > map.get(key).ts) {
+      map.set(key, item);
+    }
+
+    S.authors.add(userId);
+    S.series.add(series);
+  }
+
+  S.all = Array.from(map.values()).sort((a,b) => b.ts - a.ts);
+  document.getElementById('countBadge').textContent = `${S.all.length} prasasti`;
+}
+
+function decodeNote(b64) {
+  if (!b64) return '';
+  try { return new TextDecoder().decode(Uint8Array.from(atob(b64), c=>c.charCodeAt(0))); }
+  catch { return ''; }
+}
+
+function extractTitle(content) {
+  const m = content.match(/<title>([^<]+)<\/title>/i);
+  if (m) return m[1].trim();
+  const plain = content.replace(/<[^>]*>/g,'').trim();
+  return plain.substring(0,60) + (plain.length>60?'…':'');
+}
+
+// ═══════════════════════════════════════════════
+//  STATS — load di background, non-blocking
+// ═══════════════════════════════════════════════
+async function loadStats() {
+  // 1. User terdaftar = unique userId dari prasasti yang sudah terindeks
+  document.getElementById('sUserCount').textContent = S.authors.size;
+  document.getElementById('sPrasastiCount').textContent = S.all.length;
+
+  // 2. Total TOF di semua wallet pemahat — fetch account per userId sender concurrently
+  try {
+    const senders = [...new Set(S.all.map(p => p.sender).filter(Boolean))];
+    const balFetches = senders.map(addr =>
+      fetch(`${ALGOD}/v2/accounts/${addr}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d) return 0;
+          const assets = d.account?.assets || [];
+          const tof = assets.find(a => a['asset-id'] === ASA_TOF);
+          return tof ? tof.amount : 0;
+        })
+        .catch(() => 0)
+    );
+    const balances = await Promise.all(balFetches);
+    const total = balances.reduce((s,v)=>s+v, 0);
+    document.getElementById('sTOFCount').textContent = fmtNum(total);
+  } catch(e) {
+    document.getElementById('sTOFCount').textContent = '—';
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  FILTERS
+// ═══════════════════════════════════════════════
+function populateFilters() {
+  const sf = document.getElementById('seriesFilter');
+  const af = document.getElementById('authorFilter');
+  [...S.series].sort().forEach(s => sf.innerHTML += `<option value="${esc(s)}">${esc(s)}</option>`);
+  [...S.authors].sort().forEach(a => af.innerHTML += `<option value="${esc(a)}">${esc(a)}</option>`);
+  sf.addEventListener('change', applyFilter);
+  af.addEventListener('change', applyFilter);
+  document.getElementById('searchBox').addEventListener('input', applyFilter);
+}
+
+function applyFilter() {
+  const q  = document.getElementById('searchBox').value.toLowerCase();
+  const sf = document.getElementById('seriesFilter').value;
+  const af = document.getElementById('authorFilter').value;
+  S.filtered = S.all.filter(p =>
+    (!q || p.title.toLowerCase().includes(q) || p.series.toLowerCase().includes(q) || p.userId.toLowerCase().includes(q)) &&
+    (!sf || p.series === sf) &&
+    (!af || p.userId === af)
+  );
+  document.getElementById('countBadge').textContent = `${S.filtered.length} prasasti`;
+  renderGallery(S.filtered);
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════
+function renderGallery(list) {
+  const g = document.getElementById('gallery');
+  if (!list.length) {
+    g.innerHTML = `<div class="empty"><div class="empty-icon">🌿</div><h3>Belum ada prasasti</h3><p>Jadilah yang pertama mengukir ilmu di blockchain Menoreh</p></div>`;
+    return;
+  }
+  g.innerHTML = list.map(p => `
+    <div class="card">
+      <div class="card-top">
+        <div class="card-series">📜 ${esc(p.series)}</div>
+        <div class="card-title">${esc(p.title)}</div>
+      </div>
+      <div class="card-body">
+        <div class="meta-row">
+          <span class="meta-pill">📦 ${p.chunks} bagian</span>
+          <span class="meta-pill">🕰️ ${fmtDate(p.ts)}</span>
         </div>
+        <div class="author-row" onclick="goProfile('${esc(p.userId)}','${esc(p.sender)}')">
+          <span>✍️</span>
+          <span class="author-id">${esc(p.userId)}</span>
+          <span style="margin-left:auto;font-size:0.75rem;opacity:0.5">lihat profil →</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button class="btn-baca" onclick="goReader('${esc(p.txid)}','${esc(p.userId)}','${esc(p.sender)}')">📖 BACA PRASASTI</button>
+        <button class="btn-profil" onclick="goProfile('${esc(p.userId)}','${esc(p.sender)}')">👤</button>
+      </div>
     </div>
+  `).join('');
+}
 
-    <script>
-        const ASA_ID_TOF = 3558306283;
-        const ALGORAND_NODE = 'https://mainnet-idx.algonode.cloud';
-        
-        const state = {
-            prasasti: [],
-            series: new Set(),
-            userAddress: localStorage.getItem('userAddress') || '',
-            filteredPrasasti: []
-        };
+// ═══════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════
+function goReader(txid, userId, sender) {
+  location.href = `prasasti-reader.html?txid=${txid}&userId=${encodeURIComponent(userId)}&sender=${encodeURIComponent(sender)}`;
+}
+function goProfile(userId, sender) {
+  location.href = `user-profile.html?userId=${encodeURIComponent(userId)}&sender=${encodeURIComponent(sender)}`;
+}
+function goMyProfile() {
+  const uid = localStorage.getItem('lastUserId') || '';
+  const snd = localStorage.getItem('lastSender') || '';
+  if (!uid) { alert('Silakan login dulu di Pemahat Prasasti'); return; }
+  goProfile(uid, snd);
+}
 
-        // ============ INITIALIZATION ============
-        async function init() {
-            try {
-                await loadPrasasti();
-                await loadStats();
-                setupListeners();
-                renderGallery(state.prasasti);
-            } catch (error) {
-                console.error('Init error:', error);
-                showError('Gagal memuat data: ' + error.message);
-            }
-        }
+// ═══════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════
+function esc(s) {
+  const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;
+}
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts*1000), now = new Date();
+  const dy = Math.floor((now-d)/86400000);
+  if (dy===0) return 'Hari ini';
+  if (dy===1) return 'Kemarin';
+  if (dy<7)   return `${dy} hari lalu`;
+  if (dy<30)  return `${Math.floor(dy/7)} minggu lalu`;
+  return d.toLocaleDateString('id-ID');
+}
+function fmtNum(n) { return new Intl.NumberFormat('id-ID').format(n); }
 
-        // ============ DATA LOADING (CONCURRENT) ============
-        async function loadPrasasti() {
-            const gallery = document.getElementById('gallery');
-            gallery.innerHTML = '<div class="loading"><div class="spinner"></div><p>Memuat prasasti...</p></div>';
-
-            try {
-                // Fetch all transactions (not paginated for simplicity)
-                const response = await fetch(`${ALGORAND_NODE}/v2/transactions?asset-id=${ASA_ID_TOF}&limit=1000&sort=desc`, {
-                    headers: { 'User-Agent': 'TOFarmer' }
-                });
-
-                if (!response.ok) throw new Error(`API error: ${response.status}`);
-                
-                const result = await response.json();
-                const transactions = result.transactions || [];
-
-                // CONCURRENT PARSING with Promise.all()
-                const parsePromises = transactions.map(txn => parsePrasastiTxn(txn));
-                const parsed = await Promise.all(parsePromises);
-                
-                // Filter valid prasasti
-                const prasastiMap = new Map();
-                for (const prasasti of parsed) {
-                    if (prasasti) {
-                        // Group by series + sender, keep only chunk 0
-                        if (prasasti.chunkIndex === 0) {
-                            const key = `${prasasti.series}|${prasasti.sender}`;
-                            if (!prasastiMap.has(key) || new Date(prasasti.date) > new Date(prasastiMap.get(key).date)) {
-                                prasastiMap.set(key, prasasti);
-                            }
-                        }
-                        state.series.add(prasasti.series);
-                    }
-                }
-
-                state.prasasti = Array.from(prasastiMap.values()).sort((a, b) => 
-                    new Date(b.date) - new Date(a.date)
-                );
-
-                console.log(`✅ Loaded ${state.prasasti.length} prasasti from ${prasastiMap.size} packages`);
-            } catch (error) {
-                console.error('Load error:', error);
-                showError('Gagal memuat prasasti');
-            }
-        }
-
-        async function parsePrasastiTxn(txn) {
-            try {
-                const note = txn.note ? atob(txn.note) : '';
-                
-                if (note.startsWith('tofnote:')) {
-                    const match = note.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
-                    if (match) {
-                        const [, series, chunkIndex, totalChunks, prevTxId, content] = match;
-                        return {
-                            title: extractTitle(content),
-                            series: series || 'uncategorized',
-                            txid: txn.id,
-                            sender: txn.sender || 'unknown',
-                            chunks: parseInt(totalChunks),
-                            chunkIndex: parseInt(chunkIndex),
-                            date: new Date(txn['confirmed-round'] * 1000).toISOString(),
-                            prevTxId: prevTxId
-                        };
-                    }
-                }
-            } catch (e) {
-                console.warn('Parse error:', e);
-            }
-            return null;
-        }
-
-        // ============ STATS ============
-        async function loadStats() {
-            try {
-                // Unique users count
-                const uniqueUsers = new Set(state.prasasti.map(p => p.sender)).size;
-                document.getElementById('userCount').textContent = uniqueUsers;
-
-                // Total prasasti
-                document.getElementById('prasastiCount').textContent = state.prasasti.length;
-
-                // Try to load total TOF (needs indexer API)
-                try {
-                    const totalTOF = await getTotalTOFSupply();
-                    document.getElementById('totalTOF').textContent = formatNumber(totalTOF);
-                } catch (e) {
-                    console.warn('Could not load TOF supply:', e);
-                    document.getElementById('totalTOF').textContent = '---';
-                }
-            } catch (error) {
-                console.error('Stats error:', error);
-            }
-        }
-
-        async function getTotalTOFSupply() {
-            // Query asset info
-            const response = await fetch(`${ALGORAND_NODE}/v2/assets/${ASA_ID_TOF}`, {
-                headers: { 'User-Agent': 'TOFarmer' }
-            });
-            const data = await response.json();
-            return data.asset?.params?.total || 0;
-        }
-
-        // ============ UI RENDERING ============
-        function renderGallery(prasastiList) {
-            const gallery = document.getElementById('gallery');
-            
-            if (prasastiList.length === 0) {
-                gallery.innerHTML = `
-                    <div class="empty" style="grid-column: 1/-1;">
-                        <div class="empty-icon">📭</div>
-                        <h3>Belum ada prasasti</h3>
-                        <p>Mulai tulis prasasti Anda sekarang!</p>
-                    </div>
-                `;
-                return;
-            }
-
-            gallery.innerHTML = prasastiList.map(p => `
-                <div class="prasasti-card">
-                    <div class="card-header">
-                        <div class="card-title">${escapeHtml(p.title)}</div>
-                        <div class="card-series">🔗 ${escapeHtml(p.series)}</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="card-meta">
-                            <span>📦 ${p.chunks} chunk${p.chunks !== 1 ? 's' : ''}</span>
-                            <span>${formatDate(p.date)}</span>
-                        </div>
-                        <div class="card-author" onclick="goToProfile('${p.sender}')">
-                            👤 ${formatAddress(p.sender)}
-                        </div>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn-read" onclick="goToReader('${p.txid}', '${p.sender}')">📖 BACA</button>
-                        <button class="btn-profile" onclick="goToProfile('${p.sender}')">👤 PROFIL</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // ============ SEARCH & FILTER ============
-        function setupListeners() {
-            document.getElementById('searchBox').addEventListener('input', (e) => {
-                filterPrasasti();
-            });
-
-            document.getElementById('seriesFilter').addEventListener('change', () => {
-                populateSeriesFilter();
-                filterPrasasti();
-            });
-
-            populateSeriesFilter();
-        }
-
-        function populateSeriesFilter() {
-            const select = document.getElementById('seriesFilter');
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">Semua Series</option>';
-            
-            Array.from(state.series).sort().forEach(series => {
-                select.innerHTML += `<option value="${series}">${series}</option>`;
-            });
-            
-            select.value = currentValue;
-        }
-
-        function filterPrasasti() {
-            const search = document.getElementById('searchBox').value.toLowerCase();
-            const series = document.getElementById('seriesFilter').value;
-
-            state.filteredPrasasti = state.prasasti.filter(p => {
-                const matchSearch = p.title.toLowerCase().includes(search) || 
-                                   p.series.toLowerCase().includes(search) ||
-                                   p.sender.toLowerCase().includes(search);
-                const matchSeries = !series || p.series === series;
-                return matchSearch && matchSeries;
-            });
-
-            renderGallery(state.filteredPrasasti);
-        }
-
-        // ============ NAVIGATION ============
-        function goToGallery() {
-            window.location.href = 'prasasti-gallery.html';
-        }
-
-        function goToReader(txid, author) {
-            window.location.href = `prasasti-reader.html?txid=${txid}&author=${author}`;
-        }
-
-        function goToProfile(userAddress) {
-            window.location.href = `user-profile.html?user=${userAddress}`;
-        }
-
-        function goToMyProfile() {
-            if (!state.userAddress) {
-                alert('Silakan login dulu atau buka profile dari kartu prasasti');
-                return;
-            }
-            goToProfile(state.userAddress);
-        }
-
-        function goToPemahat() {
-            window.location.href = 'pemahat-prasasti-blockchain.html';
-        }
-
-        // ============ UTILITIES ============
-        function extractTitle(content) {
-            const match = content.match(/<title>([^<]+)<\/title>/i);
-            if (match) return match[1];
-            const text = content.replace(/<[^>]*>/g, '').trim();
-            return text.substring(0, 50) + (text.length > 50 ? '...' : '');
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function formatAddress(addr) {
-            if (!addr) return 'Unknown';
-            return addr.substring(0, 8) + '...' + addr.substring(addr.length - 8);
-        }
-
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            const now = new Date();
-            const diff = now - date;
-            
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            if (days === 0) return 'Hari ini';
-            if (days === 1) return 'Kemarin';
-            if (days < 7) return `${days} hari lalu`;
-            if (days < 30) return `${Math.floor(days / 7)} minggu lalu`;
-            
-            return date.toLocaleDateString('id-ID');
-        }
-
-        function formatNumber(num) {
-            return new Intl.NumberFormat('id-ID').format(num);
-        }
-
-        function showError(msg) {
-            const gallery = document.getElementById('gallery');
-            gallery.innerHTML = `<div class="error" style="grid-column: 1/-1;">${msg}</div>`;
-        }
-
-        // ============ START ============
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>

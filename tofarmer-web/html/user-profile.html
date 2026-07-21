@@ -1,626 +1,397 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👤 User Profile - TOFarmer</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>👤 Profil Pemahat — TOFarmer Menoreh</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg-deep:#0a1a0f;--bg-dark:#0f2318;--bg-mid:#152d1e;--bg-panel:#1a3626;
+  --bg-card:#1f3d2c;--bg-hover:#264835;
+  --green-mid:#2d6e47;--green-light:#3d8f5c;--green-glow:#52c47c;--green-mist:#6edfa0;
+  --gold-mid:#b8860b;--gold-bright:#d4af37;--gold-glow:#ffd700;--gold-pale:#f5e6a3;
+  --primary:#d4af37;--accent:#52c47c;
+  --text:#d4e8dc;--text-dim:#8aad98;
+  --border:#2a4a35;--border-glow:rgba(82,196,124,0.25);--border-gold:rgba(212,175,55,0.3);
+}
+body{
+  background:var(--bg-deep);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  min-height:100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 50%,rgba(45,110,71,0.08) 0%,transparent 60%),
+    radial-gradient(ellipse at 80% 20%,rgba(212,175,55,0.05) 0%,transparent 50%);
+}
 
-        :root {
-            --bg: #0f1419;
-            --fg: #e0e6ed;
-            --primary: #00d4ff;
-            --secondary: #7c3aed;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --muted: #6b7280;
-            --border: #1f2937;
-            --hover: #1e293b;
-        }
+header{
+  background:linear-gradient(135deg,var(--bg-dark) 0%,#1a4a2e 50%,var(--bg-dark) 100%);
+  border-bottom:1px solid var(--border-gold);padding:1.1rem 1.5rem;
+  position:sticky;top:0;z-index:100;
+  box-shadow:0 4px 30px rgba(212,175,55,0.08);
+}
+.header-inner{max-width:1000px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.back-btn{
+  display:flex;align-items:center;gap:0.5rem;
+  background:transparent;border:1px solid var(--border);border-radius:8px;
+  color:var(--text-dim);padding:0.5rem 1rem;cursor:pointer;
+  font-size:0.85rem;font-family:inherit;transition:all 0.25s;
+}
+.back-btn:hover{border-color:var(--primary);color:var(--primary)}
+.header-title{text-align:center}
+.header-title h1{
+  font-size:1.3rem;font-weight:800;
+  background:linear-gradient(135deg,var(--gold-glow),var(--green-mist));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.header-title p{font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.1em}
+.header-actions{display:flex;gap:0.5rem}
+.nav-btn{
+  padding:0.45rem 1rem;border:1px solid var(--border);border-radius:6px;
+  background:transparent;color:var(--text-dim);cursor:pointer;font-size:0.8rem;
+  transition:all 0.25s;font-family:inherit;
+}
+.nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.nav-btn.cta{
+  background:linear-gradient(135deg,var(--gold-mid),var(--gold-bright));
+  color:var(--bg-deep);border-color:var(--gold-bright);font-weight:700;
+}
 
-        body {
-            background: var(--bg);
-            color: var(--fg);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            line-height: 1.6;
-            min-height: 100vh;
-            padding-bottom: 2rem;
-        }
+.mist-line{height:1px;background:linear-gradient(90deg,transparent,rgba(110,223,160,0.3),rgba(212,175,55,0.2),transparent)}
 
-        header {
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
-            padding: 1rem;
-            text-align: center;
-            box-shadow: 0 4px 20px rgba(0, 212, 255, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+/* ─── MAIN ─── */
+.container{max-width:1000px;margin:0 auto;padding:2rem 1.5rem}
 
-        .header-content {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+/* ─── PROFILE CARD ─── */
+.profile-card{
+  background:var(--bg-panel);border:1px solid var(--border-gold);
+  border-radius:16px;padding:2rem;margin-bottom:2rem;
+  position:relative;overflow:hidden;
+}
+.profile-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--green-glow),var(--gold-bright),var(--green-glow));
+}
+.profile-header{display:grid;grid-template-columns:auto 1fr;gap:1.5rem;align-items:center}
+.avatar-wrap{
+  width:90px;height:90px;border-radius:50%;
+  background:linear-gradient(135deg,var(--green-mid),var(--gold-mid));
+  display:flex;align-items:center;justify-content:center;font-size:2.5rem;
+  border:2px solid var(--border-gold);flex-shrink:0;
+  box-shadow:0 0 20px rgba(212,175,55,0.2);
+}
+.profile-info h2{
+  font-size:1.6rem;font-weight:800;
+  background:linear-gradient(135deg,var(--gold-bright),var(--green-mist));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:0.25rem;
+}
+.profile-bio{color:var(--text-dim);font-size:0.9rem;margin-bottom:0.75rem;font-style:italic}
+.profile-addr{
+  background:var(--bg-mid);border:1px solid var(--border);border-radius:6px;
+  padding:0.5rem 0.75rem;font-family:'Courier New',monospace;font-size:0.75rem;
+  color:var(--accent);word-break:break-all;
+}
 
-        .back-btn {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            text-decoration: none;
-            margin-bottom: 1rem;
-            cursor: pointer;
-            border: none;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
+/* ─── STATS GRID ─── */
+.stats-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:1rem;margin-bottom:2rem;
+}
+.stat-box{
+  background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;
+  padding:1.25rem;text-align:center;position:relative;overflow:hidden;transition:all 0.3s;
+}
+.stat-box::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--green-glow),var(--gold-bright));
+}
+.stat-box:hover{border-color:var(--border-glow);box-shadow:0 0 15px var(--border-glow)}
+.stat-val{
+  font-size:1.8rem;font-weight:800;
+  background:linear-gradient(135deg,var(--gold-bright),var(--green-mist));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:0.25rem;
+}
+.stat-lbl{font-size:0.75rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em}
 
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateX(-4px);
-        }
+/* ─── SECTION ─── */
+.section-head{
+  display:flex;align-items:center;gap:0.75rem;margin-bottom:1.25rem;
+  padding-bottom:0.75rem;border-bottom:1px solid var(--border-gold);
+}
+.section-head h2{
+  font-size:1.2rem;font-weight:700;color:var(--gold-bright);letter-spacing:0.04em;
+}
 
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
+/* ─── PRASASTI GRID ─── */
+.prasasti-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
+  gap:1.25rem;margin-bottom:2rem;
+}
+.p-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;transition:all 0.3s;display:flex;flex-direction:column;
+}
+.p-card:hover{transform:translateY(-5px);border-color:var(--green-light);box-shadow:0 8px 25px rgba(82,196,124,0.1)}
+.p-card-top{
+  background:linear-gradient(135deg,var(--bg-mid) 0%,#1a4a2e 100%);
+  padding:1.1rem;border-bottom:1px solid var(--border);
+}
+.p-series{font-size:0.72rem;color:var(--gold-bright);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.35rem;font-weight:600}
+.p-title{font-size:1rem;font-weight:700;color:var(--text);line-height:1.3;word-break:break-word}
+.p-body{padding:0.9rem;flex:1;display:flex;flex-direction:column;gap:0.5rem}
+.p-meta{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-dim)}
+.btn-baca{
+  width:100%;padding:0.6rem;border:none;border-radius:7px;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold-mid),var(--gold-bright));
+  color:var(--bg-deep);font-weight:700;font-size:0.85rem;font-family:inherit;
+  transition:all 0.25s;margin-top:0.25rem;
+}
+.btn-baca:hover{box-shadow:0 0 15px rgba(212,175,55,0.4);transform:scale(1.02)}
 
-        .subtitle {
-            opacity: 0.9;
-            font-size: 0.95rem;
-        }
+/* ─── LOADING / EMPTY / ERROR ─── */
+.loading{text-align:center;padding:3rem;color:var(--text-dim)}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--primary);
+  border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:2.5rem;color:var(--text-dim);grid-column:1/-1}
+.empty-icon{font-size:3rem;opacity:0.3;margin-bottom:0.75rem}
+.error-box{background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.4);border-radius:10px;padding:1.5rem;color:#fca5a5;margin:2rem 0}
 
-        /* Main Container */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1.5rem;
-        }
-
-        /* Profile Card */
-        .profile-card {
-            background: var(--hover);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 2rem;
-            align-items: center;
-        }
-
-        .profile-avatar {
-            font-size: 5rem;
-            text-align: center;
-            width: 120px;
-            height: 120px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .profile-info h2 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .profile-address {
-            background: var(--bg);
-            padding: 1rem;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            word-break: break-all;
-            color: var(--primary);
-            margin-bottom: 1rem;
-            max-width: 100%;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .stat-box {
-            background: var(--bg);
-            padding: 1.5rem;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .stat-label {
-            color: var(--muted);
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .asset-info {
-            background: var(--border);
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        .asset-line {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid var(--hover);
-        }
-
-        .asset-line:last-child {
-            border-bottom: none;
-        }
-
-        .asset-label {
-            color: var(--muted);
-        }
-
-        .asset-value {
-            font-weight: 600;
-            color: var(--success);
-            font-size: 1.1rem;
-        }
-
-        /* Prasasti Section */
-        .section-title {
-            font-size: 1.5rem;
-            margin: 2rem 0 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--primary);
-            display: inline-block;
-        }
-
-        .prasasti-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-top: 1.5rem;
-        }
-
-        .prasasti-card {
-            background: var(--hover);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .prasasti-card:hover {
-            transform: translateY(-6px);
-            border-color: var(--primary);
-            box-shadow: 0 12px 30px rgba(0, 212, 255, 0.1);
-        }
-
-        .card-header {
-            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
-            padding: 1.5rem;
-            color: white;
-        }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            word-break: break-word;
-        }
-
-        .card-series {
-            font-size: 0.85rem;
-            opacity: 0.9;
-        }
-
-        .card-body {
-            padding: 1rem;
-            flex: 1;
-        }
-
-        .card-meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-bottom: 1rem;
-        }
-
-        .btn-read {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--primary);
-            color: var(--bg);
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-top: 0.5rem;
-        }
-
-        .btn-read:hover {
-            background: #00a8cc;
-            transform: scale(1.02);
-        }
-
-        /* Empty State */
-        .empty {
-            text-align: center;
-            padding: 3rem 1rem;
-            color: var(--muted);
-            grid-column: 1/-1;
-        }
-
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
-        /* Loading */
-        .loading {
-            text-align: center;
-            padding: 3rem;
-            color: var(--muted);
-        }
-
-        .spinner {
-            border: 3px solid var(--border);
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 1rem;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .error {
-            background: var(--danger);
-            color: white;
-            padding: 1rem;
-            border-radius: 6px;
-            margin: 1rem 0;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .profile-card {
-                grid-template-columns: 1fr;
-                text-align: center;
-            }
-
-            .profile-avatar {
-                margin: 0 auto;
-            }
-
-            .prasasti-grid {
-                grid-template-columns: 1fr;
-            }
-
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-    </style>
+@media(max-width:768px){
+  .profile-header{grid-template-columns:1fr;text-align:center}
+  .avatar-wrap{margin:0 auto}
+  .prasasti-grid{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-content">
-            <button class="back-btn" onclick="goToGallery()">← Kembali ke Gallery</button>
-            <h1>👤 PROFIL PENGGUNA</h1>
-            <p class="subtitle">Melihat karya dan aset TOF</p>
-        </div>
-    </header>
 
-    <div class="container" id="mainContent">
-        <div class="loading">
-            <div class="spinner"></div>
-            <p>Memuat profil...</p>
+<header>
+  <div class="header-inner">
+    <button class="back-btn" onclick="location.href='prasasti-gallery.html'">← Kembali</button>
+    <div class="header-title">
+      <h1>🌿 PROFIL PEMAHAT</h1>
+      <p>TOFarmer · Menoreh Blockchain</p>
+    </div>
+    <div class="header-actions">
+      <button class="nav-btn" onclick="location.href='prasasti-gallery.html'">🏛️ Gallery</button>
+      <button class="nav-btn cta" onclick="location.href='pemahat-prasasti-blockchain.html'">✍️ Pahat</button>
+    </div>
+  </div>
+</header>
+<div class="mist-line"></div>
+
+<div class="container">
+  <div id="mainContent">
+    <div class="loading"><div class="spinner"></div><p>Membaca data profil dari blockchain...</p></div>
+  </div>
+</div>
+
+<script>
+const ASA_TOF = 3558306283;
+const IDXR    = 'https://mainnet-idx.algonode.cloud';
+const ALGOD   = 'https://mainnet-api.algonode.cloud';
+
+const P = {
+  userId: '', sender: '',
+  prasasti: [], profile: { name:'', bio:'', avatar:'🌿' },
+  algoBalance: 0, tofBalance: 0,
+};
+
+async function init() {
+  const params = new URLSearchParams(location.search);
+  P.userId = params.get('userId') || '';
+  P.sender = params.get('sender') || '';
+
+  if (!P.userId) {
+    document.getElementById('mainContent').innerHTML =
+      `<div class="error-box">❌ User ID tidak ditemukan. Silakan buka profil dari gallery.</div>`;
+    return;
+  }
+
+  document.title = `Profil ${P.userId} — TOFarmer`;
+
+  // Load semua data secara concurrent
+  await Promise.all([
+    loadPrasasti(),
+    loadBalance(),
+  ]);
+
+  render();
+}
+
+// ═══════════════════════════════════════════════
+//  LOAD PRASASTI — filter by userId
+// ═══════════════════════════════════════════════
+async function loadPrasasti() {
+  try {
+    const r = await fetch(`${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=1000`);
+    if (!r.ok) throw new Error(`Indexer ${r.status}`);
+    const d = await r.json();
+    const txns = d.transactions || [];
+
+    const map = new Map();
+
+    for (const txn of txns) {
+      const note = decodeNote(txn.note);
+      if (!note) continue;
+
+      // FORMAT: tf:pr|userId|chunkIdx|totalChunks|series|content...
+      if (note.startsWith('tf:pr|')) {
+        const parts = note.split('|');
+        if (parts.length < 6) continue;
+        const [, uid, chunkIdxStr, totalStr, series, ...rest] = parts;
+        if (uid !== P.userId) continue;
+
+        const chunkIdx = parseInt(chunkIdxStr);
+        const total    = parseInt(totalStr);
+        const content  = rest.join('|');
+        if (isNaN(chunkIdx) || isNaN(total)) continue;
+        if (chunkIdx !== 0) continue; // hanya chunk pertama
+
+        const key = `${series}`;
+        const item = {
+          title: extractTitle(content) || series,
+          series, txid: txn.id,
+          chunks: total,
+          ts: txn['round-time'] || 0,
+          date: txn['round-time'] ? new Date(txn['round-time']*1000).toISOString() : null,
+        };
+        if (!map.has(key) || item.ts > map.get(key).ts) map.set(key, item);
+      }
+
+      // FORMAT: tf:bio|userId|v|nama|bio
+      if (note.startsWith('tf:bio|')) {
+        const parts = note.split('|');
+        if (parts.length >= 4 && parts[1] === P.userId) {
+          P.profile.name = parts[3] || P.userId;
+          P.profile.bio  = parts.slice(4).join('|') || '';
+        }
+      }
+
+      // FORMAT: tf:av|userId|v|emoji
+      if (note.startsWith('tf:av|')) {
+        const parts = note.split('|');
+        if (parts.length >= 4 && parts[1] === P.userId) {
+          P.profile.avatar = parts[3] || '🌿';
+        }
+      }
+    }
+
+    P.prasasti = Array.from(map.values()).sort((a,b)=>b.ts-a.ts);
+    if (!P.profile.name) P.profile.name = P.userId;
+
+  } catch(e) {
+    console.error('Load prasasti error:', e);
+    P.prasasti = [];
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  LOAD BALANCE — ALGO + TOF
+// ═══════════════════════════════════════════════
+async function loadBalance() {
+  if (!P.sender) return;
+  try {
+    const r = await fetch(`${ALGOD}/v2/accounts/${P.sender}`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const acc = d.account || {};
+    P.algoBalance = (acc.amount || 0) / 1e6;
+    const tofAsset = (acc.assets||[]).find(a => a['asset-id'] === ASA_TOF);
+    P.tofBalance = tofAsset ? tofAsset.amount : 0;
+  } catch(e) {
+    console.warn('Balance error:', e);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════
+function render() {
+  const mc = document.getElementById('mainContent');
+
+  const cardsHtml = P.prasasti.length === 0
+    ? `<div class="empty"><div class="empty-icon">📜</div><h3>Belum ada prasasti</h3><p>Mulai mengukir ilmu di blockchain Menoreh!</p></div>`
+    : P.prasasti.map(p => `
+        <div class="p-card">
+          <div class="p-card-top">
+            <div class="p-series">📜 ${esc(p.series)}</div>
+            <div class="p-title">${esc(p.title)}</div>
+          </div>
+          <div class="p-body">
+            <div class="p-meta">
+              <span>📦 ${p.chunks} bagian</span>
+              <span>🕰️ ${fmtDate(p.ts)}</span>
+            </div>
+            <button class="btn-baca" onclick="goReader('${esc(p.txid)}')">📖 BACA PRASASTI</button>
+          </div>
         </div>
+      `).join('');
+
+  mc.innerHTML = `
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="avatar-wrap">${P.profile.avatar}</div>
+        <div class="profile-info">
+          <h2>${esc(P.profile.name)}</h2>
+          ${P.profile.bio ? `<div class="profile-bio">"${esc(P.profile.bio)}"</div>` : ''}
+          ${P.sender ? `<div class="profile-addr">${P.sender}</div>` : ''}
+        </div>
+      </div>
     </div>
 
-    <script>
-        const ASA_ID_TOF = 3558306283;
-        const ALGORAND_NODE = 'https://mainnet-idx.algonode.cloud';
-        const ALGO_NODE = 'https://mainnet-api.algonode.cloud';
-        
-        const state = {
-            userAddress: '',
-            prasasti: [],
-            balance: 0,
-            assetHoldings: {}
-        };
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val">${P.prasasti.length}</div>
+        <div class="stat-lbl">📜 Prasasti</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${fmtNum(P.tofBalance)}</div>
+        <div class="stat-lbl">🌾 TOF Dimiliki</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">${P.algoBalance.toFixed(3)}</div>
+        <div class="stat-lbl">💎 ALGO Balance</div>
+      </div>
+    </div>
 
-        // ============ INITIALIZATION ============
-        async function init() {
-            try {
-                // Get user address from URL parameter
-                const params = new URLSearchParams(window.location.search);
-                state.userAddress = params.get('user');
+    <div class="section-head"><h2>📚 Prasasti Karya ${esc(P.profile.name)}</h2></div>
+    <div class="prasasti-grid">${cardsHtml}</div>
+  `;
+}
 
-                if (!state.userAddress) {
-                    showError('❌ User address tidak ditemukan. Silakan kembali ke gallery.');
-                    return;
-                }
+function goReader(txid) {
+  location.href = `prasasti-reader.html?txid=${txid}&userId=${encodeURIComponent(P.userId)}&sender=${encodeURIComponent(P.sender)}`;
+}
 
-                // Load data concurrently
-                await Promise.all([
-                    loadUserPrasasti(),
-                    loadUserBalance(),
-                    loadAssetHoldings()
-                ]);
+// ─── UTILS ───
+function decodeNote(b64) {
+  if (!b64) return '';
+  try { return new TextDecoder().decode(Uint8Array.from(atob(b64), c=>c.charCodeAt(0))); }
+  catch { return ''; }
+}
+function extractTitle(content) {
+  const m = content.match(/<title>([^<]+)<\/title>/i);
+  if (m) return m[1].trim();
+  const plain = content.replace(/<[^>]*>/g,'').trim();
+  return plain.substring(0,60)+(plain.length>60?'…':'');
+}
+function esc(s) { const d=document.createElement('div');d.textContent=s||'';return d.innerHTML; }
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d=new Date(ts*1000),now=new Date();
+  const dy=Math.floor((now-d)/86400000);
+  if(dy===0)return'Hari ini';if(dy===1)return'Kemarin';
+  if(dy<7)return`${dy} hari lalu`;if(dy<30)return`${Math.floor(dy/7)} minggu lalu`;
+  return d.toLocaleDateString('id-ID');
+}
+function fmtNum(n){ return new Intl.NumberFormat('id-ID').format(n); }
 
-                renderProfile();
-            } catch (error) {
-                console.error('Init error:', error);
-                showError('❌ Gagal memuat profil: ' + error.message);
-            }
-        }
-
-        // ============ DATA LOADING ============
-        async function loadUserPrasasti() {
-            try {
-                const response = await fetch(
-                    `${ALGORAND_NODE}/v2/transactions?asset-id=${ASA_ID_TOF}&limit=1000&sort=desc`,
-                    { headers: { 'User-Agent': 'TOFarmer' } }
-                );
-
-                if (!response.ok) throw new Error(`API error: ${response.status}`);
-                
-                const result = await response.json();
-                const transactions = result.transactions || [];
-
-                // Parse all, filter by sender
-                const parsePromises = transactions.map(txn => parsePrasastiTxn(txn));
-                const parsed = await Promise.all(parsePromises);
-                
-                // Filter by user + chunk 0 only
-                const prasastiMap = new Map();
-                for (const prasasti of parsed) {
-                    if (prasasti && prasasti.sender === state.userAddress && prasasti.chunkIndex === 0) {
-                        const key = `${prasasti.series}|${prasasti.sender}`;
-                        if (!prasastiMap.has(key) || new Date(prasasti.date) > new Date(prasastiMap.get(key).date)) {
-                            prasastiMap.set(key, prasasti);
-                        }
-                    }
-                }
-
-                state.prasasti = Array.from(prasastiMap.values()).sort((a, b) => 
-                    new Date(b.date) - new Date(a.date)
-                );
-
-                console.log(`✅ Loaded ${state.prasasti.length} prasasti for user`);
-            } catch (error) {
-                console.error('Load prasasti error:', error);
-                state.prasasti = [];
-            }
-        }
-
-        async function parsePrasastiTxn(txn) {
-            try {
-                const note = txn.note ? atob(txn.note) : '';
-                
-                if (note.startsWith('tofnote:')) {
-                    const match = note.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
-                    if (match) {
-                        const [, series, chunkIndex, totalChunks, prevTxId, content] = match;
-                        return {
-                            title: extractTitle(content),
-                            series: series || 'uncategorized',
-                            txid: txn.id,
-                            sender: txn.sender || 'unknown',
-                            chunks: parseInt(totalChunks),
-                            chunkIndex: parseInt(chunkIndex),
-                            date: new Date(txn['confirmed-round'] * 1000).toISOString(),
-                        };
-                    }
-                }
-            } catch (e) {
-                console.warn('Parse error:', e);
-            }
-            return null;
-        }
-
-        async function loadUserBalance() {
-            try {
-                const response = await fetch(`${ALGO_NODE}/v2/accounts/${state.userAddress}`, {
-                    headers: { 'User-Agent': 'TOFarmer' }
-                });
-
-                if (response.ok) {
-                    const account = await response.json();
-                    state.balance = account.account?.amount || 0;
-                    console.log(`✅ Loaded balance: ${state.balance} microAlgo`);
-                } else {
-                    console.warn('Could not load balance');
-                    state.balance = 0;
-                }
-            } catch (error) {
-                console.error('Load balance error:', error);
-                state.balance = 0;
-            }
-        }
-
-        async function loadAssetHoldings() {
-            try {
-                const response = await fetch(`${ALGO_NODE}/v2/accounts/${state.userAddress}`, {
-                    headers: { 'User-Agent': 'TOFarmer' }
-                });
-
-                if (response.ok) {
-                    const account = await response.json();
-                    const assets = account.account?.assets || [];
-                    
-                    for (const asset of assets) {
-                        if (asset['asset-id'] === ASA_ID_TOF) {
-                            state.assetHoldings = {
-                                id: asset['asset-id'],
-                                amount: asset.amount,
-                                frozen: asset['is-frozen'] || false
-                            };
-                            console.log(`✅ Loaded TOF holdings: ${asset.amount}`);
-                            break;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Load assets error:', error);
-            }
-        }
-
-        // ============ RENDERING ============
-        function renderProfile() {
-            const mainContent = document.getElementById('mainContent');
-
-            const algoBalance = (state.balance / 1e6).toFixed(6);
-            const tofBalance = state.assetHoldings.amount || 0;
-
-            mainContent.innerHTML = `
-                <div class="profile-card">
-                    <div class="profile-avatar">👤</div>
-                    <div class="profile-info">
-                        <h2>Profil Pengguna</h2>
-                        <div class="profile-address">${state.userAddress}</div>
-                        <div class="asset-info">
-                            <div class="asset-line">
-                                <span class="asset-label">💰 ALGO Balance</span>
-                                <span class="asset-value">${formatNumber(algoBalance)}</span>
-                            </div>
-                            <div class="asset-line">
-                                <span class="asset-label">🌾 TOF Holdings</span>
-                                <span class="asset-value">${formatNumber(tofBalance)}</span>
-                            </div>
-                            <div class="asset-line">
-                                <span class="asset-label">📚 Prasasti Created</span>
-                                <span class="asset-value">${state.prasasti.length}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <h2 class="section-title">📚 Prasasti Saya</h2>
-                <div class="prasasti-grid" id="prasastiGrid">
-                    ${renderPrasastiCards()}
-                </div>
-            `;
-        }
-
-        function renderPrasastiCards() {
-            if (state.prasasti.length === 0) {
-                return `
-                    <div class="empty">
-                        <div class="empty-icon">📭</div>
-                        <h3>Belum ada prasasti</h3>
-                        <p>Mulai tulis prasasti Anda sekarang!</p>
-                    </div>
-                `;
-            }
-
-            return state.prasasti.map(p => `
-                <div class="prasasti-card">
-                    <div class="card-header">
-                        <div class="card-title">${escapeHtml(p.title)}</div>
-                        <div class="card-series">🔗 ${escapeHtml(p.series)}</div>
-                    </div>
-                    <div class="card-body">
-                        <div class="card-meta">
-                            <span>📦 ${p.chunks} chunk${p.chunks !== 1 ? 's' : ''}</span>
-                            <span>${formatDate(p.date)}</span>
-                        </div>
-                        <button class="btn-read" onclick="goToReader('${p.txid}')">📖 BACA</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // ============ NAVIGATION ============
-        function goToGallery() {
-            window.location.href = 'prasasti-gallery.html';
-        }
-
-        function goToReader(txid) {
-            window.location.href = `prasasti-reader.html?txid=${txid}&author=${state.userAddress}`;
-        }
-
-        // ============ UTILITIES ============
-        function extractTitle(content) {
-            const match = content.match(/<title>([^<]+)<\/title>/i);
-            if (match) return match[1];
-            const text = content.replace(/<[^>]*>/g, '').trim();
-            return text.substring(0, 50) + (text.length > 50 ? '...' : '');
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function formatDate(dateStr) {
-            const date = new Date(dateStr);
-            const now = new Date();
-            const diff = now - date;
-            
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            if (days === 0) return 'Hari ini';
-            if (days === 1) return 'Kemarin';
-            if (days < 7) return `${days} hari lalu`;
-            if (days < 30) return `${Math.floor(days / 7)} minggu lalu`;
-            
-            return date.toLocaleDateString('id-ID');
-        }
-
-        function formatNumber(num) {
-            if (typeof num === 'number') {
-                return new Intl.NumberFormat('id-ID', {
-                    minimumFractionDigits: num % 1 === 0 ? 0 : 6,
-                    maximumFractionDigits: 6
-                }).format(num);
-            }
-            return num;
-        }
-
-        function showError(msg) {
-            const mainContent = document.getElementById('mainContent');
-            mainContent.innerHTML = `<div class="error" style="margin: 1rem 0;">${msg}</div>`;
-        }
-
-        // ============ START ============
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>

@@ -509,6 +509,47 @@
     </style>
 </head>
 <body>
+    <!-- TOP NAV -->
+    <div style="
+        background:linear-gradient(135deg,#0f2318 0%,#1a4a2e 60%,#0f2318 100%);
+        border-bottom:1px solid rgba(212,175,55,0.3);padding:0.7rem 1.25rem;
+        display:flex;align-items:center;justify-content:space-between;gap:1rem;
+        position:sticky;top:0;z-index:200;box-shadow:0 4px 20px rgba(212,175,55,0.07);
+    ">
+        <div style="display:flex;align-items:center;gap:0.75rem">
+            <span style="font-size:1.3rem">🌿</span>
+            <span style="font-size:0.85rem;font-weight:800;letter-spacing:0.08em;
+                background:linear-gradient(135deg,#ffd700,#6edfa0);
+                -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+                PEMAHAT PRASASTI
+            </span>
+        </div>
+        <div style="display:flex;gap:0.5rem">
+            <button onclick="location.href='prasasti-gallery.html'" style="
+                padding:0.4rem 0.85rem;border:1px solid #2a4a35;border-radius:6px;
+                background:transparent;color:#8aad98;cursor:pointer;font-size:0.8rem;
+                transition:all 0.25s;" onmouseover="this.style.borderColor='#52c47c';this.style.color='#52c47c'"
+                onmouseout="this.style.borderColor='#2a4a35';this.style.color='#8aad98'">
+                🏛️ Gallery
+            </button>
+            <button onclick="goMyProfile()" style="
+                padding:0.4rem 0.85rem;border:1px solid #2a4a35;border-radius:6px;
+                background:transparent;color:#8aad98;cursor:pointer;font-size:0.8rem;
+                transition:all 0.25s;" onmouseover="this.style.borderColor='#52c47c';this.style.color='#52c47c'"
+                onmouseout="this.style.borderColor='#2a4a35';this.style.color='#8aad98'">
+                👤 Profil Saya
+            </button>
+        </div>
+    </div>
+    <script>
+    function goMyProfile() {
+        const uid = localStorage.getItem('lastUserId') || '';
+        const snd = localStorage.getItem('lastSender') || '';
+        if (!uid) { alert('Login dulu untuk melihat profil'); return; }
+        location.href = `user-profile.html?userId=${encodeURIComponent(uid)}&sender=${encodeURIComponent(snd)}`;
+    }
+    </script>
+
     <!-- LOGIN SCREEN -->
     <div class="login-screen" id="loginScreen">
         <div class="login-card">
@@ -762,6 +803,10 @@ Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
                 state.mnemonic = mnemonicText;
                 state.userId = userIdText;
 
+                // Simpan untuk navigasi lintas halaman (gallery "Profil Saya")
+                localStorage.setItem('lastUserId', userIdText);
+                localStorage.setItem('lastSender', state.account.addr);
+
                 // Hide login, show app
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.add('active');
@@ -965,20 +1010,19 @@ ${escapeHtml(state.note.content)}
                     return;
                 }
 
-                let previousTxId = 'START';
                 let firstTxId = null;
 
                 for (let i = 0; i < total; i++) {
-                    const params = await algodClient.getTransactionParams().do();
+                    const txParams = await algodClient.getTransactionParams().do();
 
-                    // Format: tofnote:series:index:total:prevtxid:content
-                    // Example: tofnote:ilmu-garam:0:3:START:content_part1
-                    const noteHeader = `tofnote:${state.note.series}:${i}:${total}:${previousTxId}:`;
+                    // Format: tf:pr|userId|chunkIdx|totalChunks|series|content
+                    // chunkIdx mulai dari 0 — dipakai reader untuk rekonstruksi
+                    const noteHeader = `tf:pr|${state.userId}|${i}|${total}|${state.note.series}|`;
                     const noteContent = noteHeader + chunks[i];
                     const note = encoder.encode(noteContent);
 
                     if (note.length > MAX_NOTE_BYTES) {
-                        log(`❌ Note chunk ${i} terlalu besar`, 'error');
+                        log(`❌ Note chunk ${i} terlalu besar (${note.length} bytes, max ${MAX_NOTE_BYTES})`, 'error');
                         btn.disabled = false;
                         return;
                     }
@@ -989,19 +1033,15 @@ ${escapeHtml(state.note.content)}
                         amount: 0,
                         assetIndex: ASA_ID_TOF,
                         note: note,
-                        suggestedParams: params
+                        suggestedParams: txParams
                     });
 
                     const signed = txn.signTxn(state.account.sk);
                     const result = await algodClient.sendRawTransaction(signed).do();
 
-                    log(`[${i+1}/${total}] ⛓️ ${result.txId.substring(0, 16)}...`, 'success');
+                    if (i === 0) firstTxId = result.txId;
 
-                    // Track first TxID for sharing, update previousTxId for chain linking
-                    if (i === 0) {
-                        firstTxId = result.txId;
-                    }
-                    previousTxId = result.txId;
+                    log(`[${i+1}/${total}] ⛓️ ${result.txId.substring(0, 16)}...`, 'success');
 
                     await new Promise(r => setTimeout(r, 1000));
                 }
@@ -1009,6 +1049,7 @@ ${escapeHtml(state.note.content)}
                 log(`🎉 PRASASTI BERHASIL DIPAHAT!`, 'success');
                 log(`📍 TxID Pertama: ${firstTxId}`, 'info');
                 log(`💾 Silakan copy TxID untuk dibagikan`, 'info');
+                log(`🏛️ Lihat di Gallery: prasasti-gallery.html`, 'info');
 
                 // Clear form
                 document.getElementById('noteTitle').value = '';

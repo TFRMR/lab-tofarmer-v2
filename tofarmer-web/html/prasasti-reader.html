@@ -11,17 +11,65 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg-deep:#0a1a0f;--bg-dark:#0f2318;--bg-panel:#1a3626;
+            --green-glow:#52c47c;--green-mist:#6edfa0;
+            --gold-mid:#b8860b;--gold-bright:#d4af37;--gold-glow:#ffd700;
+            --primary:#d4af37;--accent:#52c47c;
+            --text:#d4e8dc;--text-dim:#8aad98;
+            --border:#2a4a35;--border-gold:rgba(212,175,55,0.3);
+        }
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             background:
-                radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
-                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
-                linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+                radial-gradient(circle at top right, rgba(212,175,55,0.07) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(82,196,124,0.08) 0%, transparent 35%),
+                linear-gradient(135deg, #0a1a0f 0%, #0f2318 50%, #0a1a0f 100%);
             min-height: 100vh;
-            color: #e2e8f0;
+            color: var(--text);
             position: relative;
             overflow-x: hidden;
         }
+        .reader-topnav {
+            position:sticky;top:0;z-index:200;
+            background:linear-gradient(135deg,#0f2318 0%,#1a4a2e 60%,#0f2318 100%);
+            border-bottom:1px solid rgba(212,175,55,0.3);
+            padding:0.7rem 1.25rem;
+            display:flex;align-items:center;justify-content:space-between;gap:1rem;
+            box-shadow:0 4px 20px rgba(212,175,55,0.07);
+        }
+        .tnav-left{display:flex;align-items:center;gap:0.6rem}
+        .tnav-back{
+            background:transparent;border:1px solid #2a4a35;border-radius:7px;
+            color:#8aad98;padding:0.4rem 0.8rem;cursor:pointer;font-size:0.8rem;
+            font-family:inherit;transition:all 0.25s;
+        }
+        .tnav-back:hover{border-color:#d4af37;color:#d4af37}
+        .tnav-title{
+            font-size:0.85rem;font-weight:800;letter-spacing:0.08em;
+            background:linear-gradient(135deg,#ffd700,#6edfa0);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+        }
+        .tnav-right{display:flex;gap:0.5rem}
+        .tnav-btn{
+            padding:0.4rem 0.8rem;border:1px solid #2a4a35;border-radius:6px;
+            background:transparent;color:#8aad98;cursor:pointer;font-size:0.78rem;
+            font-family:inherit;transition:all 0.25s;
+        }
+        .tnav-btn:hover{border-color:#52c47c;color:#52c47c}
+        .tnav-btn.cta{
+            background:linear-gradient(135deg,#b8860b,#d4af37);
+            color:#0a1a0f;border-color:#d4af37;font-weight:700;
+        }
+        .author-bar{
+            display:flex;align-items:center;gap:0.75rem;
+            background:#1a3626;border:1px solid rgba(212,175,55,0.25);
+            border-radius:8px;padding:0.6rem 1rem;margin-bottom:1rem;
+            cursor:pointer;transition:all 0.25s;
+        }
+        .author-bar:hover{border-color:#52c47c}
+        .author-id{color:#6edfa0;font-weight:700;font-family:monospace}
+        .author-bar .go-hint{margin-left:auto;color:#8aad98;font-size:0.75rem}
 
         body::before {
             content: "";
@@ -300,7 +348,26 @@
     </style>
 </head>
 <body>
+    <!-- TOP NAV -->
+    <div class="reader-topnav">
+        <div class="tnav-left">
+            <button class="tnav-back" onclick="location.href='prasasti-gallery.html'">← Gallery</button>
+            <span class="tnav-title">📜 PRASASTI READER</span>
+        </div>
+        <div class="tnav-right">
+            <button class="tnav-btn" onclick="location.href='prasasti-gallery.html'">🏛️ Gallery</button>
+            <button class="tnav-btn cta" onclick="location.href='pemahat-prasasti-blockchain.html'">✍️ Pahat</button>
+        </div>
+    </div>
+
     <div class="container">
+        <!-- Author bar — shown after load if userId known -->
+        <div class="author-bar" id="authorBar" style="display:none" onclick="goAuthorProfile()">
+            <span>✍️ Pemahat:</span>
+            <span class="author-id" id="authorId">—</span>
+            <span class="go-hint">lihat profil →</span>
+        </div>
+
         <div class="hero">
             <h1>📜 Pembaca Prasasti Menoreh</h1>
             <p>Baca Catatan Ilmu yang Tersimpan di Blockchain Algorand</p>
@@ -376,12 +443,30 @@
         // Parse URL params untuk auto-load
         function loadFromUrl() {
             const params = new URLSearchParams(window.location.search);
-            const txid = params.get('tx');
+            // Accept both ?tx= (old share links) and ?txid= (from gallery)
+            const txid = params.get('txid') || params.get('tx');
+            const userId = params.get('userId') || '';
+            const sender = params.get('sender') || '';
+
+            // Show author bar if we have userId
+            if (userId) {
+                document.getElementById('authorBar').style.display = 'flex';
+                document.getElementById('authorId').textContent = userId;
+                // Store for goAuthorProfile()
+                window._authorUserId = userId;
+                window._authorSender = sender;
+            }
+
             if (txid) {
                 document.getElementById('txidInput').value = txid;
-                // Auto-load setelah DOM ready
                 setTimeout(() => bacaCatatan(), 500);
             }
+        }
+
+        function goAuthorProfile() {
+            const uid = window._authorUserId || '';
+            const snd = window._authorSender || '';
+            if (uid) location.href = `user-profile.html?userId=${encodeURIComponent(uid)}&sender=${encodeURIComponent(snd)}`;
         }
 
         function log(msg, type = 'info') {
@@ -438,14 +523,22 @@
                 throw new Error(`❌ Gagal decode note TX pertama: ${e.message}`);
             }
             
-            const headerMatch = noteText_1.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+            // Format: tf:pr|userId|chunkIdx|totalChunks|series|content...
+            const headerMatch = noteText_1.match(/^tf:pr\|([^|]+)\|(\d+)\|(\d+)\|([^|]+)\|(.*)/s);
             if (!headerMatch) {
-                console.error('Note text:', noteText_1.substring(0, 100));
-                throw new Error('❌ Format note tidak valid. Pastikan menggunakan format baru: tofnote:series:index:total:prevtxid:content\n\nCatatan lama tidak kompatibel. Silakan buat ulang prasasti di Pemahat Blockchain.');
+                console.error('Note text preview:', noteText_1.substring(0, 120));
+                throw new Error('❌ Format note tidak valid. Bukan catatan Prasasti.\n\nNote harus dimulai dengan: tf:pr|userId|chunkIdx|total|series|content\n\nPastikan Anda memasukkan TxID dari prasasti yang benar.');
             }
 
-            const [, seriesCode, idx0, totalStr, prevTx0, content0] = headerMatch;
+            const [, userId0, idx0, totalStr, seriesCode, content0] = headerMatch;
             const totalChunks = parseInt(totalStr);
+
+            // Update author bar if not already set from URL
+            if (!window._authorUserId && userId0) {
+                window._authorUserId = userId0;
+                document.getElementById('authorBar').style.display = 'flex';
+                document.getElementById('authorId').textContent = userId0;
+            }
 
             console.log(`[1] ✅ Series: "${seriesCode}", Total chunks: ${totalChunks}`);
 
@@ -493,11 +586,11 @@
                             continue;
                         }
 
-                        // Parse header dan filter by series code
-                        const nm = nText.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+                        // Parse header: tf:pr|userId|chunkIdx|totalChunks|series|content
+                        const nm = nText.match(/^tf:pr\|([^|]+)\|(\d+)\|(\d+)\|([^|]+)\|(.*)/s);
                         if (!nm) continue;
 
-                        const [, series, chunkIdx, chunkTotal, , chunkContent] = nm;
+                        const [, , chunkIdx, chunkTotal, series, chunkContent] = nm;
 
                         // Filter: hanya ambil chunks dari series yang sama
                         if (series === seriesCode) {
@@ -542,7 +635,7 @@
                             if (nb64) {
                                 const nBytes = Uint8Array.from(atob(nb64), c => c.charCodeAt(0));
                                 const nText = decoder.decode(nBytes);
-                                const nm = nText.match(/^tofnote:([^:]+):(\d+):(\d+):([^:]+):(.*)/s);
+                                const nm = nText.match(/^tf:pr\|([^|]+)\|(\d+)\|(\d+)\|([^|]+)\|(.*)/s);
                                 
                                 if (nm) {
                                     const idx = parseInt(nm[2]);
