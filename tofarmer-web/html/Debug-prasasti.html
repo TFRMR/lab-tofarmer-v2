@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>🔍 Debug Prasasti Format</title>
+<style>
+body { background:#0a1a0f; color:#d4e8dc; font-family:monospace; padding:1.5rem; }
+h1 { color:#d4af37; margin-bottom:1rem; }
+button { background:#2d6e47; color:#d4e8dc; border:1px solid #52c47c; padding:0.5rem 1.5rem;
+         border-radius:6px; cursor:pointer; font-size:1rem; margin-bottom:1rem; }
+button:hover { background:#3d8f5c; }
+pre { background:#0f2318; border:1px solid #2a4a35; border-radius:8px; padding:1rem;
+      overflow-x:auto; white-space:pre-wrap; font-size:0.8rem; line-height:1.5; }
+.ok   { color:#52c47c; }
+.warn { color:#ffd700; }
+.err  { color:#ef4444; }
+.dim  { color:#8aad98; }
+input { background:#0f2318; border:1px solid #2a4a35; color:#d4e8dc; padding:0.5rem 1rem;
+        border-radius:6px; width:100%; max-width:700px; font-size:0.9rem; margin-bottom:0.75rem; }
+</style>
+</head>
+<body>
+<h1>🔍 Debug Format Prasasti TOFarmer</h1>
+
+<p class="dim">Masukkan wallet address untuk debug format note di blockchain:</p><br>
+<input id="addrInput" placeholder="Wallet address (misal: J36JCUNG...)" value="J36JCUNG3IVLVWQ6VZO56T5E2RF3THZAH6235O2YIJZ75UAI57JUAGPYSQ">
+<br>
+<button onclick="runDebug()">🔍 Debug Sekarang</button>
+<button onclick="debugAllTOF()">🌐 Debug Semua Transaksi TOF</button>
+<button onclick="debugBalance()">💰 Debug Balance TOF</button>
+
+<pre id="out">Klik salah satu tombol debug...</pre>
+
+<script>
+const ASA_TOF = 3558306283;
+const IDXR = 'https://mainnet-idx.algonode.cloud';
+const ALGOD = 'https://mainnet-api.algonode.cloud';
+const out = document.getElementById('out');
+
+function log(msg, cls='') {
+    out.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+}
+
+function decodeNote(b64) {
+    if (!b64) return '';
+    try { return new TextDecoder().decode(Uint8Array.from(atob(b64), c=>c.charCodeAt(0))); }
+    catch(e) { return `[decode error: ${e.message}]`; }
+}
+
+// ─── DEBUG: Transaksi milik address tertentu ───
+async function runDebug() {
+    out.textContent = '';
+    const addr = document.getElementById('addrInput').value.trim();
+    if (!addr) { log('❌ Masukkan wallet address dulu', 'err'); return; }
+
+    log(`\n🔍 Memeriksa transaksi untuk: ${addr}`, 'ok');
+    log(`📡 Endpoint: ${IDXR}/v2/accounts/${addr}/transactions?asset-id=${ASA_TOF}&limit=20\n`, 'dim');
+
+    try {
+        const r = await fetch(`${IDXR}/v2/accounts/${addr}/transactions?asset-id=${ASA_TOF}&limit=20`);
+        log(`HTTP Status: ${r.status} ${r.statusText}`, r.ok ? 'ok' : 'err');
+        
+        const d = await r.json();
+        const txns = d.transactions || [];
+        log(`\n📦 Total transaksi ditemukan: ${txns.length}`, txns.length > 0 ? 'ok' : 'warn');
+
+        if (txns.length === 0) {
+            log('\n⚠️  Tidak ada transaksi. Kemungkinan:', 'warn');
+            log('   1. Address belum pernah kirim TOF ke diri sendiri', 'dim');
+            log('   2. Perlu filter tx-type=axfer', 'dim');
+            log('\nCoba endpoint alternatif...', 'dim');
+            await tryAltEndpoint(addr);
+            return;
+        }
+
+        log('\n═══ DETAIL SETIAP TRANSAKSI ═══\n', 'warn');
+        for (let i = 0; i < Math.min(txns.length, 10); i++) {
+            const t = txns[i];
+            const note = decodeNote(t.note);
+            const txType = t['tx-type'] || t.type || '?';
+            const sender = t.sender || '?';
+            const roundTime = t['round-time'] || 0;
+            
+            log(`┌─ TXN ${i+1} ─────────────────────`, 'warn');
+            log(`│ ID:       ${t.id}`, 'dim');
+            log(`│ Sender:   ${sender}`);
+            log(`│ Type:     ${txType}`);
+            log(`│ Time:     ${roundTime ? new Date(roundTime*1000).toLocaleString('id-ID') : '—'}`);
+            log(`│ Note raw: ${JSON.stringify(note.substring(0,200))}`, note ? 'ok' : 'err');
+            
+            // Parse attempts
+            if (note) {
+                log(`│`);
+                log(`│ ── Parse Attempts ──`);
+                
+                // Try tf:pr| format
+                if (note.startsWith('tf:pr|')) {
+                    const p = note.split('|');
+                    log(`│ ✅ FORMAT: tf:pr|  (${p.length} parts)`, 'ok');
+                    log(`│    [0] prefix:  ${p[0]}`, 'dim');
+                    log(`│    [1] userId:  "${p[1]}"`, 'ok');
+                    log(`│    [2] chunkIdx:"${p[2]}" → parseInt=${parseInt(p[2])}`, parseInt(p[2])===0?'ok':'warn');
+                    log(`│    [3] total:   "${p[3]}" → parseInt=${parseInt(p[3])}`, 'dim');
+                    log(`│    [4] series:  "${p[4]}"`, 'ok');
+                    log(`│    [5+] content: ${p.slice(5).join('|').substring(0,80)}...`, 'dim');
+                    
+                    const chunkIdx = parseInt(p[2]);
+                    if (chunkIdx === 0) {
+                        log(`│ ✅ CHUNK 0 — akan tampil di gallery`, 'ok');
+                    } else if (chunkIdx === 1) {
+                        log(`│ ⚠️  chunkIdx=1 (bukan 0!) — TIDAK akan tampil di gallery`, 'warn');
+                        log(`│    BUG: pemahat lama selalu nulis chunkIdx=1, bukan 0,1,2,...`, 'err');
+                    } else {
+                        log(`│ ⚠️  chunkIdx=${chunkIdx} — bukan chunk pertama`, 'warn');
+                    }
+                } else if (note.startsWith('tofnote:')) {
+                    log(`│ ⚠️  FORMAT LAMA: tofnote: — tidak dikenali gallery v3`, 'warn');
+                    log(`│    note: ${note.substring(0,100)}`, 'dim');
+                } else {
+                    log(`│ ❌ FORMAT TIDAK DIKENALI: "${note.substring(0,50)}"`, 'err');
+                }
+            } else {
+                log(`│ ❌ Note kosong atau tidak bisa di-decode`, 'err');
+            }
+            log(`└──────────────────────────────\n`);
+        }
+
+        // Summary
+        log('\n═══ RINGKASAN ═══', 'ok');
+        const byFormat = { tf_pr: [], tofnote: [], other: [], empty: [] };
+        txns.forEach(t => {
+            const n = decodeNote(t.note);
+            if (!n) byFormat.empty.push(t.id);
+            else if (n.startsWith('tf:pr|')) byFormat.tf_pr.push({ id:t.id, chunkIdx: n.split('|')[2] });
+            else if (n.startsWith('tofnote:')) byFormat.tofnote.push(t.id);
+            else byFormat.other.push(t.id);
+        });
+        
+        log(`📊 Format tf:pr|  : ${byFormat.tf_pr.length} txn`, byFormat.tf_pr.length > 0 ? 'ok' : 'dim');
+        if (byFormat.tf_pr.length > 0) {
+            const chunkIdxes = byFormat.tf_pr.map(x => x.chunkIdx);
+            log(`   chunkIdx values: [${chunkIdxes.join(', ')}]`, 'dim');
+            const hasZero = chunkIdxes.includes('0');
+            log(`   Ada chunkIdx=0: ${hasZero ? '✅ YA' : '❌ TIDAK — itulah masalahnya!'}`, hasZero?'ok':'err');
+        }
+        log(`📊 Format tofnote:: ${byFormat.tofnote.length} txn`, byFormat.tofnote.length > 0 ? 'warn' : 'dim');
+        log(`📊 Format lain    : ${byFormat.other.length} txn`, 'dim');
+        log(`📊 Note kosong    : ${byFormat.empty.length} txn`, 'dim');
+
+    } catch(e) {
+        log(`\n❌ Error: ${e.message}`, 'err');
+        log('\nCoba endpoint alternatif...', 'dim');
+        await tryAltEndpoint(addr);
+    }
+}
+
+async function tryAltEndpoint(addr) {
+    log(`\n📡 Mencoba: ${IDXR}/v2/transactions?address=${addr}&asset-id=${ASA_TOF}&limit=20`, 'dim');
+    try {
+        const r = await fetch(`${IDXR}/v2/transactions?address=${addr}&asset-id=${ASA_TOF}&limit=20`);
+        log(`HTTP: ${r.status}`, r.ok ? 'ok' : 'err');
+        const d = await r.json();
+        const txns = d.transactions || [];
+        log(`Transaksi: ${txns.length}`, txns.length > 0 ? 'ok' : 'warn');
+        txns.slice(0,3).forEach((t,i) => {
+            const note = decodeNote(t.note);
+            log(`\nTXN ${i+1}: ${t.id}`, 'dim');
+            log(`Note: ${JSON.stringify(note.substring(0,150))}`, note ? 'ok' : 'err');
+        });
+    } catch(e) {
+        log(`Alt endpoint error: ${e.message}`, 'err');
+    }
+}
+
+// ─── DEBUG: Semua transaksi TOF global ───
+async function debugAllTOF() {
+    out.textContent = '';
+    log('🌐 Mengambil 20 transaksi TOF terbaru dari semua address...\n', 'ok');
+    log(`📡 ${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=20\n`, 'dim');
+
+    try {
+        const r = await fetch(`${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=20`);
+        log(`HTTP: ${r.status}`, r.ok ? 'ok' : 'err');
+        const d = await r.json();
+        const txns = d.transactions || [];
+        log(`Total: ${txns.length} transaksi\n`, 'ok');
+
+        const addr = document.getElementById('addrInput').value.trim();
+        let userTxns = 0;
+
+        for (let i = 0; i < txns.length; i++) {
+            const t = txns[i];
+            const note = decodeNote(t.note);
+            const isUser = addr && (t.sender === addr);
+            
+            if (isUser) userTxns++;
+            
+            const prefix = isUser ? '⭐' : '  ';
+            log(`${prefix} TXN ${i+1}: sender=${t.sender?.substring(0,12)}... note="${note.substring(0,80)}"`,
+                isUser ? 'ok' : 'dim');
+        }
+
+        if (addr) {
+            log(`\n📊 Transaksi dari address Anda (${addr.substring(0,12)}...): ${userTxns}`, 
+                userTxns > 0 ? 'ok' : 'err');
+            if (userTxns === 0) {
+                log('⚠️  Address Anda tidak ada di 20 txn terbaru. Coba increase limit atau cek address.', 'warn');
+            }
+        }
+
+        log('\n═══ FORMAT SUMMARY ═══', 'warn');
+        let tf_pr=0, tofnote=0, other=0;
+        txns.forEach(t => {
+            const n = decodeNote(t.note);
+            if (n.startsWith('tf:pr|')) tf_pr++;
+            else if (n.startsWith('tofnote:')) tofnote++;
+            else other++;
+        });
+        log(`tf:pr|   : ${tf_pr} txn`, tf_pr > 0 ? 'ok' : 'dim');
+        log(`tofnote: : ${tofnote} txn`, tofnote > 0 ? 'warn' : 'dim');
+        log(`lainnya  : ${other} txn`, 'dim');
+
+    } catch(e) {
+        log(`❌ Error: ${e.message}`, 'err');
+    }
+}
+
+// ─── DEBUG: Balance TOF ───
+async function debugBalance() {
+    out.textContent = '';
+    const addr = document.getElementById('addrInput').value.trim();
+    if (!addr) { log('❌ Masukkan wallet address', 'err'); return; }
+
+    log(`💰 Memeriksa balance TOF untuk: ${addr}\n`, 'ok');
+
+    try {
+        // Fetch account
+        const r = await fetch(`${ALGOD}/v2/accounts/${addr}`);
+        log(`Account API HTTP: ${r.status}`, r.ok ? 'ok' : 'err');
+        
+        if (!r.ok) {
+            const txt = await r.text();
+            log(`Response: ${txt}`, 'err');
+            log('\nCoba via indexer...', 'dim');
+            const r2 = await fetch(`${IDXR}/v2/accounts/${addr}`);
+            log(`Indexer HTTP: ${r2.status}`, r2.ok ? 'ok' : 'err');
+            if (r2.ok) {
+                const d2 = await r2.json();
+                const acc2 = d2.account || {};
+                log(`\nAccount via indexer:`, 'ok');
+                log(JSON.stringify(acc2, null, 2).substring(0, 1000), 'dim');
+            }
+            return;
+        }
+
+        const d = await r.json();
+        const acc = d.account || d;
+        
+        log(`\n📋 Account info:`, 'ok');
+        log(`  Status: ${acc.status || '?'}`, 'dim');
+        log(`  Amount (microALGO): ${acc.amount || 0}`, 'dim');
+        log(`  Assets count: ${(acc.assets||[]).length}`, 'dim');
+
+        log('\n🌾 Asset holdings:', 'warn');
+        const assets = acc.assets || [];
+        if (assets.length === 0) {
+            log('  (tidak ada asset)', 'err');
+        } else {
+            for (const a of assets) {
+                const isTOF = a['asset-id'] === ASA_TOF;
+                log(`  Asset-ID: ${a['asset-id']} | amount: ${a.amount} | frozen: ${a['is-frozen']}`,
+                    isTOF ? 'ok' : 'dim');
+                if (isTOF) log(`  ^^^ INI TOF! amount = ${a.amount}`, 'ok');
+            }
+        }
+
+        // Fetch decimals
+        log('\n📊 Fetching TOF asset info untuk decimals...', 'dim');
+        const ar = await fetch(`${IDXR}/v2/assets/${ASA_TOF}`);
+        if (ar.ok) {
+            const ad = await ar.json();
+            const params = ad.asset?.params || {};
+            log(`  Name:     ${params.name || '?'}`, 'ok');
+            log(`  UnitName: ${params['unit-name'] || '?'}`, 'ok');
+            log(`  Decimals: ${params.decimals ?? '?'}`, 'ok');
+            log(`  Total:    ${params.total || '?'}`, 'dim');
+            
+            const tofAsset = assets.find(a => a['asset-id'] === ASA_TOF);
+            if (tofAsset) {
+                const dec = params.decimals || 0;
+                const divisor = Math.pow(10, dec);
+                const displayAmt = tofAsset.amount / divisor;
+                log(`\n✅ TOF Balance: ${tofAsset.amount} (raw) / ${divisor} = ${displayAmt} TOF`, 'ok');
+            } else {
+                log('\n❌ TOF asset tidak ditemukan di wallet ini', 'err');
+                log('   Kemungkinan: wallet belum opt-in ke TOF, atau address salah', 'warn');
+            }
+        }
+
+    } catch(e) {
+        log(`\n❌ Error: ${e.message}`, 'err');
+        log(e.stack, 'dim');
+    }
+}
+</script>
+</body>
+</html>
