@@ -257,9 +257,15 @@ select.filter:focus{outline:none;border-color:var(--accent)}
 </div>
 
 <script>
-const ASA_TOF = 3558306283;
-const IDXR    = 'https://mainnet-idx.algonode.cloud';
-const ALGOD   = 'https://mainnet-api.algonode.cloud';
+const ASA_TOF   = 3558306283;
+const TOF_DEC   = 6;                // decimals confirmed = 6
+const TOF_DIV   = 1_000_000;       // 10^6
+const IDXR      = 'https://mainnet-idx.algonode.cloud';
+const ALGOD     = 'https://mainnet-api.algonode.cloud';
+
+// Daftar sender address yang dikenal sebagai pemahat
+// (diisi otomatis dari transaksi yang ditemukan)
+const KNOWN_SENDERS = new Set();
 
 const S = { all: [], filtered: [], authors: new Set(), series: new Set() };
 
@@ -268,108 +274,189 @@ const S = { all: [], filtered: [], authors: new Set(), series: new Set() };
 // ═══════════════════════════════════════════════
 async function init() {
   try {
-    const [txns] = await Promise.all([fetchAllTxns()]);
+    // Fetch dengan dua strategi concurrent:
+    // 1. Global (mungkin kosong note-nya tapi dapat daftar sender)
+    // 2. Langsung dari known senders jika ada di localStorage
+    const txns = await fetchTxns();
     parseAll(txns);
     populateFilters();
     renderGallery(S.all);
-    loadStats();           // background: stats kita load terpisah (nggak block render)
+    loadStats();
   } catch(e) {
     document.getElementById('gallery').innerHTML =
-      `<div class="error-box">❌ Gagal memuat data: ${e.message}</div>`;
+      `<div class="error-box">❌ Gagal memuat data: ${e.message}<br><small>${e.stack||''}</small></div>`;
+    console.error(e);
   }
 }
 
 // ═══════════════════════════════════════════════
-//  FETCH — satu request, concurrent parse
+//  FETCH — ambil semua note-bearing txns
+//  Masalah: endpoint global /transactions?asset-id= 
+//  terkadang tidak return note field.
+//  Solusi: fetch via /accounts/{addr}/transactions 
+//  untuk setiap address yang dikenal.
 // ═══════════════════════════════════════════════
-async function fetchAllTxns() {
-  const url = `${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=1000`;
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`Indexer ${r.status}`);
-  const d = await r.json();
-  return d.transactions || [];
+async function fetchTxns() {
+  // Kumpulkan semua candidate senders:
+  // - Dari localStorage (pemahat yang pernah login di device ini)
+  // - Bisa dikembangkan: dari supabase registry nanti
+  const savedSenders = JSON.parse(localStorage.getItem('knownSenders') || '[]');
+  const lastSender   = localStorage.getItem('lastSender') || '';
+  if (lastSender) savedSenders.push(lastSender);
+  const uniqueSenders = [...new Set(savedSenders.filter(Boolean))];
+
+  let allTxns = [];
+
+  if (uniqueSenders.length > 0) {
+    // Fetch per-address concurrent — ini yang return note dengan benar
+    const fetches = uniqueSenders.map(addr =>
+      fetch(`${IDXR}/v2/accounts/${addr}/transactions?asset-id=${ASA_TOF}&limit=500`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (!d) return [];
+          const txns = d.transactions || [];
+          // Track sender untuk stats
+          txns.forEach(t => { if (t.sender) KNOWN_SENDERS.add(t.sender); });
+          return txns;
+        })
+        .catch(e => { console.warn(`Fetch error ${addr}:`, e); return []; })
+    );
+    const results = await Promise.all(fetches);
+    allTxns = results.flat();
+  } else {
+    // Fallback: coba global dulu, meski mungkin note kosong
+    // Tapi tetap coba — untuk detect sender baru
+    console.warn('Tidak ada known senders, coba global fetch...');
+    const r = await fetch(`${IDXR}/v2/transactions?asset-id=${ASA_TOF}&tx-type=axfer&limit=200`);
+    if (r.ok) {
+      const d = await r.json();
+      allTxns = d.transactions || [];
+    }
+  }
+
+  console.log(`📦 Total raw txns fetched: ${allTxns.length}`);
+  return allTxns;
 }
 
 // ═══════════════════════════════════════════════
-//  PARSE — format tf:pr|userId|chunkIdx|total|series|content
+//  PARSE — format: tf:pr|userId|chunkIdx|total|series|content
+//
+//  REALITA di blockchain: chunkIdx selalu "1" (bug pemahat lama)
+//  FIX: jangan filter by chunkIdx=0, tapi group by series+userId
+//       dan ambil txn dengan timestamp TERTUA per group
+//       (= chunk pertama yang dikirim = awal paket)
 // ═══════════════════════════════════════════════
 function parseAll(txns) {
-  // Parse semua transaksi concurrent (sync sudah cukup, tidak ada I/O)
-  const map = new Map(); // key = userId:series → simpan hanya chunk 0
+  // map: key=userId::series → array semua chunk
+  const groups = new Map();
 
   for (const txn of txns) {
     const note = decodeNote(txn.note);
     if (!note || !note.startsWith('tf:pr|')) continue;
 
     const p = note.split('|');
-    // Format: tf:pr|userId|chunkIdx|totalChunks|series|content...
     if (p.length < 6) continue;
+
     const [, userId, chunkIdxStr, totalStr, series, ...rest] = p;
     const chunkIdx = parseInt(chunkIdxStr);
     const total    = parseInt(totalStr);
     const content  = rest.join('|');
 
-    if (!userId || !series || isNaN(chunkIdx) || isNaN(total)) continue;
-
-    // Hanya ambil chunk index 0 (awal paket)
-    if (chunkIdx !== 0) continue;
+    if (!userId || !series) continue;
 
     const key = `${userId}::${series}`;
-    const item = {
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push({
       userId,
-      title: extractTitle(content) || series,
       series,
-      txid: txn.id,
-      sender: txn.sender || '',
-      chunks: total,
-      chunkIdx,
-      ts: txn['round-time'] || 0,
-      date: txn['round-time'] ? new Date(txn['round-time']*1000).toISOString() : null,
+      txid:    txn.id,
+      sender:  txn.sender || '',
+      chunks:  isNaN(total) ? 1 : total,
+      chunkIdx: isNaN(chunkIdx) ? 0 : chunkIdx,
+      content,
+      ts:      txn['round-time'] || 0,
+    });
+  }
+
+  const map = new Map(); // final deduplicated prasasti
+
+  for (const [key, chunks] of groups) {
+    // Sort by timestamp ascending — yang paling awal = chunk pertama terkirim
+    chunks.sort((a, b) => a.ts - b.ts);
+    const first = chunks[0]; // gunakan txn pertama sebagai "entry point"
+
+    // Cari content dengan <title> tag untuk judul
+    // Prioritas: chunk yang punya <title>, kalau tidak ada pakai chunk pertama
+    let bestContent = first.content;
+    for (const c of chunks) {
+      if (c.content.includes('<title>') || c.content.includes('<html')) {
+        bestContent = c.content;
+        break;
+      }
+    }
+
+    const item = {
+      userId:   first.userId,
+      title:    extractTitle(bestContent) || first.series,
+      series:   first.series,
+      txid:     first.txid,   // TxID chunk pertama (untuk reader)
+      sender:   first.sender,
+      chunks:   first.chunks,
+      ts:       first.ts,
     };
 
-    // Simpan yang terbaru per key
+    // Deduplikasi: kalau ada duplikat key (misal kirim ulang),
+    // ambil yang paling baru (ts tertinggi dari chunk pertamanya)
     if (!map.has(key) || item.ts > map.get(key).ts) {
       map.set(key, item);
     }
 
-    S.authors.add(userId);
-    S.series.add(series);
+    S.authors.add(first.userId);
+    S.series.add(first.series);
+    if (first.sender) KNOWN_SENDERS.add(first.sender);
   }
 
-  S.all = Array.from(map.values()).sort((a,b) => b.ts - a.ts);
+  S.all = Array.from(map.values()).sort((a, b) => b.ts - a.ts);
   document.getElementById('countBadge').textContent = `${S.all.length} prasasti`;
+  console.log(`✅ Parsed ${S.all.length} prasasti dari ${groups.size} groups`);
 }
 
 function decodeNote(b64) {
   if (!b64) return '';
-  try { return new TextDecoder().decode(Uint8Array.from(atob(b64), c=>c.charCodeAt(0))); }
+  try { return new TextDecoder().decode(Uint8Array.from(atob(b64), c => c.charCodeAt(0))); }
   catch { return ''; }
 }
 
 function extractTitle(content) {
   const m = content.match(/<title>([^<]+)<\/title>/i);
   if (m) return m[1].trim();
-  const plain = content.replace(/<[^>]*>/g,'').trim();
-  return plain.substring(0,60) + (plain.length>60?'…':'');
+  // Coba h1
+  const h = content.match(/<h1[^>]*>([^<]+)<\/h1>/i);
+  if (h) return h[1].trim();
+  const plain = content.replace(/<[^>]*>/g, '').trim();
+  return plain.substring(0, 60) + (plain.length > 60 ? '…' : '');
 }
 
 // ═══════════════════════════════════════════════
 //  STATS — load di background, non-blocking
 // ═══════════════════════════════════════════════
 async function loadStats() {
-  // 1. User terdaftar = unique userId dari prasasti yang sudah terindeks
+  // User terdaftar = unique userId
   document.getElementById('sUserCount').textContent = S.authors.size;
   document.getElementById('sPrasastiCount').textContent = S.all.length;
 
-  // 2. Total TOF di semua wallet pemahat — concurrent fetch
+  // Total TOF dari semua wallet pemahat yang dikenal
   try {
-    // Ambil decimals TOF dulu
-    const assetInfo = await fetch(`${IDXR}/v2/assets/${ASA_TOF}`)
-      .then(r => r.ok ? r.json() : null).catch(() => null);
-    const decimals = assetInfo?.asset?.params?.decimals ?? 0;
-    const divisor  = Math.pow(10, decimals);
+    const senders = [...new Set([
+      ...S.all.map(p => p.sender),
+      ...KNOWN_SENDERS
+    ].filter(Boolean))];
 
-    const senders = [...new Set(S.all.map(p => p.sender).filter(Boolean))];
+    if (senders.length === 0) {
+      document.getElementById('sTOFCount').textContent = '—';
+      return;
+    }
+
     const balFetches = senders.map(addr =>
       fetch(`${ALGOD}/v2/accounts/${addr}`)
         .then(r => r.ok ? r.json() : null)
@@ -381,10 +468,11 @@ async function loadStats() {
         })
         .catch(() => 0)
     );
-    const balances = await Promise.all(balFetches);
-    const totalRaw = balances.reduce((s,v) => s+v, 0);
-    const total    = divisor > 1 ? totalRaw / divisor : totalRaw;
-    document.getElementById('sTOFCount').textContent = fmtNum(Math.floor(total));
+
+    const balances  = await Promise.all(balFetches);
+    const totalRaw  = balances.reduce((s, v) => s + v, 0);
+    const totalTOF  = totalRaw / TOF_DIV;
+    document.getElementById('sTOFCount').textContent = fmtNum(Math.floor(totalTOF));
   } catch(e) {
     console.warn('TOF stats error:', e);
     document.getElementById('sTOFCount').textContent = '—';

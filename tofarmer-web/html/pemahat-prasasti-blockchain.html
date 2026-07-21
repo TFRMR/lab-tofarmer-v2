@@ -807,6 +807,13 @@ Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
                 localStorage.setItem('lastUserId', userIdText);
                 localStorage.setItem('lastSender', state.account.addr);
 
+                // Tambahkan ke knownSenders agar gallery bisa fetch txns dari address ini
+                const known = JSON.parse(localStorage.getItem('knownSenders') || '[]');
+                if (!known.includes(state.account.addr)) {
+                    known.push(state.account.addr);
+                    localStorage.setItem('knownSenders', JSON.stringify(known));
+                }
+
                 // Hide login, show app
                 document.getElementById('loginScreen').classList.add('hidden');
                 document.getElementById('appScreen').classList.add('active');
