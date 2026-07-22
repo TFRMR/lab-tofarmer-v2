@@ -216,6 +216,7 @@ select.filter:focus{outline:none;border-color:var(--accent)}
       <button class="nav-btn active" onclick="location.href='prasasti-gallery.html'">🏛️ Gallery</button>
       <button class="nav-btn" onclick="goMyProfile()">👤 Profil Saya</button>
       <button class="nav-btn cta" onclick="location.href='pemahat-prasasti-blockchain.html'">✍️ Pahat Prasasti</button>
+      <button class="nav-btn" onclick="bukaPanduan()" style="border-color:rgba(110,223,160,0.4);color:#6edfa0;">📖 Panduan</button>
     </nav>
   </div>
 </header>
@@ -583,5 +584,262 @@ function fmtNum(n) { return new Intl.NumberFormat('id-ID').format(n); }
 
 document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- MODAL PANDUAN                                    -->
+<!-- ═══════════════════════════════════════════════ -->
+<style>
+.panduan-overlay{
+  display:none;position:fixed;inset:0;z-index:9999;
+  background:rgba(5,10,7,0.92);backdrop-filter:blur(8px);
+  overflow-y:auto;padding:1.5rem 1rem;
+}
+.panduan-overlay.open{display:block}
+.panduan-modal{
+  max-width:720px;margin:0 auto;
+  background:linear-gradient(160deg,#0d1f13 0%,#0f2318 60%,#0a1a0f 100%);
+  border:1px solid rgba(212,175,55,0.25);
+  border-radius:20px;padding:2rem 2rem 2.5rem;
+  position:relative;
+}
+.panduan-close{
+  position:absolute;top:1rem;right:1rem;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);
+  color:#8aad98;border-radius:50%;width:36px;height:36px;
+  font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;
+}
+.panduan-close:hover{background:rgba(239,68,68,0.15);color:#fca5a5;border-color:#fca5a5}
+
+/* Judul besar */
+.panduan-hero{text-align:center;padding:1rem 0 1.5rem}
+.panduan-hero h2{
+  font-size:1.6rem;font-weight:800;
+  background:linear-gradient(135deg,#ffd700,#6edfa0);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-bottom:0.4rem;
+}
+.panduan-hero p{color:#8aad98;font-size:0.88rem}
+
+/* Step cards */
+.p-step{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.07);
+  border-left:3px solid var(--step-color,#52c47c);
+  border-radius:12px;padding:1.1rem 1.25rem;margin-bottom:1rem;
+}
+.p-step-head{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem}
+.p-step-num{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--step-color,#52c47c);
+  color:#0a1a0f;font-weight:800;font-size:0.8rem;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.p-step-title{font-weight:700;font-size:0.95rem;color:#d4e8dc}
+.p-step p{color:#8aad98;font-size:0.87rem;line-height:1.7;margin-bottom:0.4rem}
+.p-step p:last-child{margin-bottom:0}
+.p-step strong{color:#a7f3d0}
+.p-step code{
+  background:rgba(13,148,136,0.15);border:1px solid rgba(13,148,136,0.2);
+  border-radius:4px;padding:1px 6px;font-size:0.82rem;color:#6edfa0;font-family:monospace;
+}
+
+/* Highlight box */
+.p-box{
+  background:rgba(212,175,55,0.07);border:1px solid rgba(212,175,55,0.2);
+  border-radius:10px;padding:0.9rem 1.1rem;margin:0.6rem 0;
+  font-size:0.85rem;color:#f5e6a3;line-height:1.6;
+}
+.p-box.green{background:rgba(82,196,124,0.07);border-color:rgba(82,196,124,0.2);color:#a7f3d0}
+
+/* Divider label */
+.p-divider{
+  text-align:center;color:rgba(212,175,55,0.5);
+  font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;
+  margin:1.5rem 0 1rem;display:flex;align-items:center;gap:0.75rem;
+}
+.p-divider::before,.p-divider::after{content:'';flex:1;height:1px;background:rgba(212,175,55,0.15)}
+
+/* TOF badge */
+.tof-badge{
+  display:inline-flex;align-items:center;gap:0.4rem;
+  background:linear-gradient(135deg,rgba(184,134,11,0.2),rgba(212,175,55,0.1));
+  border:1px solid rgba(212,175,55,0.3);border-radius:20px;
+  padding:0.2rem 0.75rem;font-size:0.8rem;font-weight:700;
+  color:#d4af37;margin:0 2px;
+}
+
+/* CTA bottom */
+.panduan-cta{
+  margin-top:1.5rem;display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;
+}
+.panduan-cta button{
+  padding:0.65rem 1.4rem;border-radius:8px;font-weight:700;font-size:0.88rem;
+  cursor:pointer;font-family:inherit;transition:all 0.25s;
+}
+.panduan-cta .btn-main{
+  background:linear-gradient(135deg,#b8860b,#d4af37);
+  color:#0a1a0f;border:none;
+}
+.panduan-cta .btn-main:hover{box-shadow:0 0 20px rgba(212,175,55,0.4)}
+.panduan-cta .btn-sec{
+  background:transparent;border:1px solid rgba(82,196,124,0.3);color:#6edfa0;
+}
+.panduan-cta .btn-sec:hover{background:rgba(82,196,124,0.1)}
+</style>
+
+<div class="panduan-overlay" id="panduanOverlay" onclick="tutupPanduan(event)">
+  <div class="panduan-modal">
+    <button class="panduan-close" onclick="tutupPanduan()">✕</button>
+
+    <div class="panduan-hero">
+      <h2>📖 Panduan Prasasti ToFarmer</h2>
+      <p>Dari nol hingga bisa memahat ilmu abadi di blockchain</p>
+    </div>
+
+    <!-- ── BAGIAN 1: DOMPET ── -->
+    <div class="p-divider">🪙 Mengenal Dompet Kripto</div>
+
+    <div class="p-step" style="--step-color:#52c47c">
+      <div class="p-step-head">
+        <div class="p-step-num">1</div>
+        <div class="p-step-title">Apa itu Dompet Kripto (Wallet)?</div>
+      </div>
+      <p>Dompet kripto bukan tempat menyimpan uang seperti dompet biasa — ia menyimpan <strong>kunci rahasia</strong> yang membuktikan bahwa kamu adalah pemilik sah dari aset digital di blockchain.</p>
+      <p>Setiap dompet punya dua hal utama:</p>
+      <div class="p-box green">
+        🔑 <strong>Wallet Address</strong> — Seperti nomor rekening bank. Boleh dibagikan ke siapa saja agar bisa menerima transfer. Di Algorand formatnya dimulai dengan huruf kapital, panjang 58 karakter.<br><br>
+        🔐 <strong>Private Key / Seed Phrase</strong> — Kunci rahasia. Siapa yang pegang ini, dialah pemilik dompet. <strong>Jangan pernah dibagikan ke siapapun.</strong>
+      </div>
+    </div>
+
+    <!-- ── BAGIAN 2: 25 FRASE ── -->
+    <div class="p-divider">📝 Mengenal 25 Frase (Seed Phrase)</div>
+
+    <div class="p-step" style="--step-color:#d4af37">
+      <div class="p-step-head">
+        <div class="p-step-num">2</div>
+        <div class="p-step-title">Apa itu 25 Frase (Seed Phrase)?</div>
+      </div>
+      <p><strong>25 frase</strong> (disebut juga <em>seed phrase</em> atau <em>mnemonic</em>) adalah 25 kata bahasa Inggris yang menjadi <strong>representasi kunci rahasia dompetmu</strong> dalam bentuk yang bisa diingat manusia.</p>
+      <div class="p-box">
+        Contoh (jangan gunakan ini!): <code>abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid acoustic acquire...</code>
+      </div>
+      <p>Dari 25 kata ini, sistem bisa <strong>meregenerasi seluruh kunci dompetmu</strong>. Itulah kenapa ia disebut "kunci cadangan" — jika HP hilang, kamu bisa pulihkan dompet hanya dari 25 kata ini di perangkat baru.</p>
+      <div class="p-box" style="background:rgba(239,68,68,0.07);border-color:rgba(239,68,68,0.2);color:#fca5a5">
+        ⚠️ <strong>Jangan screenshot, jangan ketik di chat/WA, jangan simpan di cloud.</strong> Tulis di kertas fisik dan simpan di tempat aman.
+      </div>
+    </div>
+
+    <div class="p-step" style="--step-color:#d4af37">
+      <div class="p-step-head">
+        <div class="p-step-num">3</div>
+        <div class="p-step-title">Bagaimana Cara Mendapatkan 25 Frase?</div>
+      </div>
+      <p>Buat dompet Algorand baru menggunakan aplikasi resmi. Rekomendasinya:</p>
+      <div class="p-box green">
+        📱 <strong>Pera Wallet</strong> — Aplikasi dompet Algorand paling populer. Tersedia di Google Play Store dan App Store. Gratis.<br><br>
+        Langkah: <strong>Install Pera Wallet → Buat Dompet Baru → Catat 25 Frase yang muncul → Selesai.</strong><br><br>
+        Wallet Address kamu akan langsung terlihat di halaman utama Pera Wallet.
+      </div>
+      <p>Saat pertama buat dompet, aplikasi akan menampilkan 25 kata satu per satu. <strong>Catat semua dengan urutan yang benar.</strong> Urutan penting — terbalik satu kata saja kunci tidak valid.</p>
+    </div>
+
+    <!-- ── BAGIAN 3: ALGORAND ── -->
+    <div class="p-divider">⚡ Jaringan Algorand</div>
+
+    <div class="p-step" style="--step-color:#6edfa0">
+      <div class="p-step-head">
+        <div class="p-step-num">4</div>
+        <div class="p-step-title">Jaringan yang Kita Pakai: Algorand</div>
+      </div>
+      <p>Prasasti ToFarmer berjalan di atas <strong>blockchain Algorand</strong> — jaringan blockchain generasi terbaru yang dipilih karena:</p>
+      <div class="p-box green">
+        ⚡ <strong>Cepat</strong> — Transaksi selesai dalam ~3 detik<br>
+        💸 <strong>Murah</strong> — Biaya per transaksi hanya ~0.001 ALGO (sangat terjangkau)<br>
+        🌱 <strong>Ramah lingkungan</strong> — Konsumsi energi sangat rendah dibanding Bitcoin/Ethereum<br>
+        🔒 <strong>Aman</strong> — Teknologi Pure Proof-of-Stake yang telah teruji
+      </div>
+      <p>Untuk bisa memahat prasasti, kamu butuh sedikit <strong>ALGO</strong> di dompetmu sebagai biaya transaksi. Minimal ~0.01 ALGO sudah cukup untuk beberapa prasasti.</p>
+    </div>
+
+    <!-- ── BAGIAN 4: TOF ── -->
+    <div class="p-divider">🌾 Token TOF & ToFarmer</div>
+
+    <div class="p-step" style="--step-color:#ffd700">
+      <div class="p-step-head">
+        <div class="p-step-num">5</div>
+        <div class="p-step-title">Apa itu <span class="tof-badge">🌾 TOF</span> ?</div>
+      </div>
+      <p><strong>TOF (ToFarmer Coin)</strong> adalah token asli ekosistem ToFarmer yang hidup di blockchain Algorand.</p>
+      <div class="p-box">
+        🆔 <strong>ASA ID:</strong> <code>3558306283</code><br>
+        🌐 <strong>Jaringan:</strong> Algorand Mainnet<br>
+        🏠 <strong>Asal:</strong> Menoreh, Kulon Progo, Jawa Tengah
+      </div>
+      <p>TOF lahir dari filosofi bahwa <strong>ilmu petani dan kearifan lokal Menoreh</strong> punya nilai yang layak diabadikan dan dihargai — bukan sekadar data, tapi warisan budaya yang hidup.</p>
+    </div>
+
+    <div class="p-step" style="--step-color:#ffd700">
+      <div class="p-step-head">
+        <div class="p-step-num">6</div>
+        <div class="p-step-title">TOF untuk Apa? Salah Satunya: Prasasti</div>
+      </div>
+      <p>Salah satu utilitas utama TOF adalah sebagai <strong>"tinta" untuk memahat Prasasti</strong> di blockchain:</p>
+      <div class="p-box green">
+        📜 <strong>Prasasti</strong> adalah catatan ilmu, resep, cerita, atau pengetahuan lokal yang disimpan permanen dalam <em>note field</em> transaksi TOF di blockchain Algorand.<br><br>
+        Karena tersimpan di blockchain, Prasasti bersifat:<br>
+        ✅ <strong>Abadi</strong> — tidak bisa dihapus selama blockchain berjalan<br>
+        ✅ <strong>Bertumbuh</strong> — siapa saja bisa menambah ilmu baru<br>
+        ✅ <strong>Transparan</strong> — bisa dibaca siapapun di seluruh dunia<br>
+        ✅ <strong>Terverifikasi</strong> — tercatat siapa yang menulis dan kapan
+      </div>
+      <p>Setiap kali kamu memahat Prasasti, kamu mengirim transaksi TOF ke dirimu sendiri dengan <strong>konten ilmu tersimpan di dalam note transaksi</strong>. Itulah cara blockchain menjadi perpustakaan ilmu yang abadi.</p>
+    </div>
+
+    <!-- ── BAGIAN 5: CARA LOGIN ── -->
+    <div class="p-divider">🔓 Cara Login & Mulai Memahat</div>
+
+    <div class="p-step" style="--step-color:#52c47c">
+      <div class="p-step-head">
+        <div class="p-step-num">7</div>
+        <div class="p-step-title">Cara Login ke Pemahat Prasasti</div>
+      </div>
+      <p>Setelah punya dompet Algorand dan TOF:</p>
+      <div class="p-box green">
+        1️⃣ Klik tombol <strong>✍️ Pahat Prasasti</strong> di atas<br>
+        2️⃣ Masukkan <strong>25 kata mnemonic</strong> dompetmu (pisahkan dengan spasi)<br>
+        3️⃣ Isi <strong>User ID</strong> unikmu (nama panggilan, contoh: <code>pak_suyono</code>)<br>
+        4️⃣ Klik <strong>Masuk sebagai Pemahat</strong><br>
+        5️⃣ Tulis judul, series, dan isi prasastimu<br>
+        6️⃣ Klik <strong>⛓️ Pahat ke Blockchain</strong> — selesai! Ilmumu abadi selamanya 🌾
+      </div>
+      <div class="p-box" style="background:rgba(239,68,68,0.06);border-color:rgba(239,68,68,0.15);color:#fca5a5;font-size:0.83rem">
+        🔐 Mnemonic <strong>hanya diproses di browsermu</strong>, tidak dikirim ke server manapun. Setelah selesai memahat, hapus dari kolom input atau logout untuk keamanan.
+      </div>
+    </div>
+
+    <div class="panduan-cta">
+      <button class="btn-main" onclick="tutupPanduan();location.href='pemahat-prasasti-blockchain.html'">✍️ Mulai Memahat Sekarang</button>
+      <button class="btn-sec" onclick="tutupPanduan()">← Kembali ke Gallery</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function bukaPanduan() {
+  document.getElementById('panduanOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function tutupPanduan(e) {
+  if (e && e.target !== document.getElementById('panduanOverlay')) return;
+  document.getElementById('panduanOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') tutupPanduan();
+});
+</script>
+
 </body>
 </html>
