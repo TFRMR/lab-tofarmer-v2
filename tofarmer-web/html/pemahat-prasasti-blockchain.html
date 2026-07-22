@@ -11,17 +11,21 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: auto;
+            overflow-y: auto;
+        }
+
         body {
             font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             background:
                 radial-gradient(circle at top right, rgba(13, 148, 136, 0.1) 0%, transparent 40%),
                 radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.08) 0%, transparent 35%),
                 linear-gradient(135deg, #0a0f0c 0%, #0d1e14 50%, #050b07 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
             color: #e2e8f0;
-            position: relative;
             overflow-x: hidden;
-            overflow-y: scroll;
-            width: 100%;
         }
 
         body::before {
@@ -44,7 +48,6 @@
             max-width: 1280px;
             margin: 0 auto;
             padding: 24px;
-            padding-bottom: 80px;
             position: relative;
             z-index: 2;
         }
@@ -197,12 +200,10 @@
         /* ===== MAIN APP ===== */
         .app-screen {
             display: none;
-            width: 100%;
         }
 
         .app-screen.active {
             display: block;
-            width: 100%;
         }
 
         .header {
@@ -312,10 +313,10 @@
             align-items: start;
         }
 
-        .main-wrapper > div:last-child {
+        .main-wrapper > div:not(.panel) {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }
 
         .panel {
@@ -400,23 +401,19 @@
 
         /* ===== PREVIEW ===== */
         #preview {
-            min-height: 400px;
+            min-height: 450px;
             border-radius: 16px;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(13, 148, 136, 0.1);
         }
 
         .preview-frame {
             width: 100%;
-            min-height: 500px;
-            max-height: none;
+            min-height: 450px;
             background: #050b07;
             padding: 25px;
-            overflow-y: auto;
             border-radius: 16px;
-            margin-bottom: 0;
-            flex: 1;
         }
 
         /* ===== LOG ===== */
@@ -424,11 +421,11 @@
             background: rgba(8, 15, 11, 0.8);
             border: 1px solid rgba(13, 148, 136, 0.2);
             border-radius: 12px;
-            padding: 12px;
-            max-height: 300px;
+            padding: 16px;
+            max-height: 250px;
             overflow-y: auto;
-            margin-top: 0;
-            font-size: 0.75rem;
+            margin-top: 20px;
+            font-size: 0.8rem;
             font-family: 'Fira Code', monospace;
             color: #a7f3d0;
         }
@@ -460,7 +457,6 @@
         @media (max-width: 768px) {
             .container {
                 padding: 12px;
-                padding-bottom: 60px;
             }
 
             .panel {
@@ -482,7 +478,6 @@
 
             .preview-frame {
                 padding: 16px;
-                min-height: 350px;
             }
 
             .tabs {
@@ -493,7 +488,6 @@
         @media (max-width: 480px) {
             .container {
                 padding: 8px;
-                padding-bottom: 60px;
             }
 
             .panel {
@@ -521,7 +515,6 @@
             .preview-frame {
                 padding: 12px;
                 font-size: 0.9rem;
-                min-height: 300px;
             }
         }
     </style>
@@ -652,7 +645,7 @@
 
                     <div>
                         <div id="preview" class="preview-frame"></div>
-                        <button class="btn btn-primary" style="width: 100%; margin: 0;" id="btnPahat" onclick="pahatKeBlockchain()" disabled>
+                        <button class="btn btn-primary" style="width: 100%;" id="btnPahat" onclick="pahatKeBlockchain()" disabled>
                             ⛓️ PAHAT KE BLOCKCHAIN
                         </button>
                         <div id="log"></div>
@@ -825,7 +818,7 @@ Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
                 localStorage.setItem('lastUserId', userIdText);
                 localStorage.setItem('lastSender', state.account.addr);
 
-                // Simpan untuk persistent login
+                // Persistent login - auto login saat buka lagi
                 localStorage.setItem('pemahat_mnemonic', mnemonicText);
                 localStorage.setItem('pemahat_userId', userIdText);
 
@@ -877,7 +870,7 @@ Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
                 document.getElementById('appScreen').classList.remove('active');
                 document.getElementById('log').innerHTML = '';
 
-                // Clear dari localStorage
+                // Hapus persistent login
                 localStorage.removeItem('pemahat_mnemonic');
                 localStorage.removeItem('pemahat_userId');
             }
@@ -1097,18 +1090,14 @@ ${escapeHtml(state.note.content)}
             }
         }
 
-        // ==================== AUTO-LOGIN FROM STORAGE ====================
-        document.addEventListener('DOMContentLoaded', function() {
+        // ==================== AUTO-LOGIN ====================
+        window.addEventListener('DOMContentLoaded', function () {
             const savedMnemonic = localStorage.getItem('pemahat_mnemonic');
-            const savedUserId = localStorage.getItem('pemahat_userId');
-
+            const savedUserId   = localStorage.getItem('pemahat_userId');
             if (savedMnemonic && savedUserId) {
-                // Auto-login
-                document.getElementById('mnemonicInput').value = savedMnemonic;
-                document.getElementById('userIdInput').value = savedUserId;
-                setTimeout(() => {
-                    loginWithMnemonic();
-                }, 100);
+                document.getElementById('mnemonicInput').value  = savedMnemonic;
+                document.getElementById('userIdInput').value    = savedUserId;
+                loginWithMnemonic();
             }
         });
     </script>
