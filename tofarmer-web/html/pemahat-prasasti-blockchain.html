@@ -908,107 +908,83 @@ Blockchain philosophy: 1 wallet = 1 authentic identity ⛓️
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             document.getElementById(`tab-${tabName}`).classList.add('active');
             event.target.classList.add('active');
+            // Reload series setiap kali tab Series dibuka
+            if (tabName === 'series') loadSeriesFromBlockchain();
         }
 
         // ==================== SERIES MANAGEMENT ====================
         async function loadSeriesFromBlockchain() {
+            if (!state.account) return;
             const senderAddr = state.account.addr;
             const el = document.getElementById('seriesManagement');
             const datalist = document.getElementById('seriesList');
-            el.innerHTML = '<p style="color:#8aad98">⏳ Memuat series dari blockchain...</p>';
+            el.innerHTML = '<p style="color:#8aad98">⏳ Memuat series...</p>';
 
             try {
-                // Fetch semua txn user dari indexer
                 const r = await fetch(
                     `https://mainnet-idx.algonode.cloud/v2/accounts/${senderAddr}/transactions?asset-id=${ASA_ID_TOF}&limit=500`
                 );
-                if (!r.ok) throw new Error(`Indexer error: ${r.status}`);
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
                 const data = await r.json();
                 const txns = data.transactions || [];
 
-                // Ekstrak series unik dari note tf:pr|...|series|...
-                const seriesMap = {}; // series → { count, lastTs }
+                // Kumpulkan series unik milik user ini
+                const seriesMap = {};
                 for (const tx of txns) {
                     const nb64 = tx.note || tx.txn?.txn?.note || tx.txn?.note;
                     if (!nb64) continue;
                     let nText = '';
                     try { nText = new TextDecoder().decode(Uint8Array.from(atob(nb64), c => c.charCodeAt(0))); }
                     catch { continue; }
-                    const nm = nText.match(/^tf:pr\|([^|]+)\|(\d+)\|(\d+)\|([^|]+)\|/);
+                    const nm = nText.match(/^tf:pr\|([^|]+)\|\d+\|\d+\|([^|]+)\|/);
                     if (!nm) continue;
-                    const [, uid, , , series] = nm;
-                    if (uid !== state.userId) continue; // hanya series milik user ini
+                    const [, uid, series] = nm;
+                    if (uid !== state.userId) continue;
                     if (!seriesMap[series]) seriesMap[series] = { count: 0, lastTs: 0 };
                     seriesMap[series].count++;
                     const ts = tx['round-time'] || 0;
                     if (ts > seriesMap[series].lastTs) seriesMap[series].lastTs = ts;
                 }
 
-                const seriesList = Object.entries(seriesMap)
-                    .sort((a, b) => b[1].lastTs - a[1].lastTs); // terbaru dulu
+                const entries = Object.entries(seriesMap)
+                    .sort((a, b) => b[1].lastTs - a[1].lastTs);
 
-                // Update datalist untuk autocomplete di input series
+                // Populate datalist untuk autocomplete input Series
                 datalist.innerHTML = '';
-                seriesList.forEach(([s]) => {
+                entries.forEach(([s]) => {
                     const opt = document.createElement('option');
                     opt.value = s;
                     datalist.appendChild(opt);
                 });
 
-                // Update panel tab Series
-                if (seriesList.length === 0) {
+                if (entries.length === 0) {
                     el.innerHTML = '<p style="color:#8aad98;font-size:0.9rem">Belum ada series. Buat prasasti pertama Anda!</p>';
                     return;
                 }
 
-                el.innerHTML = seriesList.map(([series, info]) => {
-                    const tanggal = info.lastTs
-                        ? new Date(info.lastTs * 1000).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric' })
+                el.innerHTML = entries.map(([series, info]) => {
+                    const tgl = info.lastTs
+                        ? new Date(info.lastTs * 1000).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})
                         : '—';
-                    return `
-                    <div style="
-                        background: rgba(13,148,136,0.08);
-                        border: 1px solid rgba(13,148,136,0.2);
-                        border-radius: 10px;
-                        padding: 12px 16px;
-                        margin-bottom: 10px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        gap: 12px;
-                        cursor: pointer;
-                    " onclick="pilihSeries('${series}')" title="Klik untuk pakai series ini">
+                    return `<div style="background:rgba(13,148,136,0.08);border:1px solid rgba(13,148,136,0.2);border-radius:10px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
                         <div>
                             <div style="color:#a7f3d0;font-weight:700;font-size:0.95rem">📂 ${series}</div>
-                            <div style="color:#64748b;font-size:0.78rem;margin-top:3px">${info.count} chunk · terakhir ${tanggal}</div>
+                            <div style="color:#64748b;font-size:0.78rem;margin-top:3px">${info.count} chunk · ${tgl}</div>
                         </div>
-                        <button style="
-                            background: rgba(13,148,136,0.2);
-                            border: 1px solid rgba(13,148,136,0.3);
-                            border-radius:6px;
-                            color:#6edfa0;
-                            padding:5px 12px;
-                            font-size:0.8rem;
-                            cursor:pointer;
-                            font-family:inherit;
-                        ">Pakai</button>
+                        <button onclick="pilihSeries('${series}')" style="background:rgba(13,148,136,0.2);border:1px solid rgba(13,148,136,0.3);border-radius:6px;color:#6edfa0;padding:5px 12px;font-size:0.8rem;cursor:pointer;font-family:inherit;">Pakai</button>
                     </div>`;
                 }).join('');
 
-                log(`✅ ${seriesList.length} series ditemukan`, 'success');
-
             } catch(e) {
-                el.innerHTML = `<p style="color:#fca5a5;font-size:0.85rem">❌ Gagal load series: ${e.message}</p>`;
+                el.innerHTML = `<p style="color:#fca5a5;font-size:0.85rem">❌ Gagal: ${e.message}</p>`;
                 console.error('loadSeries error:', e);
             }
         }
 
         function pilihSeries(series) {
-            // Pindah ke tab tulis dan isi field series
             switchTab('write');
             document.getElementById('noteSeries').value = series;
             previewNote();
-            log(`📂 Series dipilih: ${series}`, 'success');
         }
 
         // ==================== PREVIEW ====================
