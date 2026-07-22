@@ -583,13 +583,30 @@
                 }
             }
 
-            // ===== STEP 3: Kumpulkan semua chunk series ini, sort by timestamp =====
-            // PENTING: chunkIdx di blockchain selalu "1" (bug pemahat lama)
-            // Solusi: sort by round-time ascending → urutan pengiriman = urutan konten
+            // ===== STEP 3: Kumpulkan chunk milik prasasti INI saja =====
+            // FIX: filter pakai round-window sempit dari firstTxn.
+            // Semua chunk satu prasasti dikirim berdekatan (<300 round / ~15 menit).
+            // Juga cocokkan totalChunks agar tidak campur dgn prasasti berjudul sama.
+
+            const firstRound = firstTxn['confirmed-round'] || 0;
+            const firstTs    = firstTxn['round-time']      || 0;
+            const ROUND_WINDOW = 300;  // ~15 menit
+            const TS_WINDOW    = 600;  // 10 menit dalam detik
+
             const seriesChunks = [];
-            const seenTxIds = new Set([startTxId]);
+            // Masukkan chunk pertama (anchor) langsung
+            seriesChunks.push({
+                txid:     startTxId,
+                content:  content0,
+                ts:       firstTs,
+                round:    firstRound,
+                offset:   firstTxn['intra-round-offset'] || 0,
+                chunkIdx: 0,
+            });
 
             for (const tx of allSenderTxns) {
+                if (tx.id === startTxId) continue; // sudah ada sebagai anchor
+
                 const nb64 = tx.note || tx.txn?.txn?.note || tx.txn?.note;
                 if (!nb64) continue;
                 let nText = '';
@@ -598,89 +615,51 @@
 
                 const nm = nText.match(/^tf:pr\|([^|]+)\|(\d+)\|(\d+)\|([^|]+)\|(.*)/s);
                 if (!nm) continue;
-                const [, , , , series, chunkContent] = nm;
+                const [, , chunkIdxStr, totalStr2, series, chunkContent] = nm;
+
+                // Harus series & totalChunks sama — guard prasasti berbeda tapi series sama
                 if (series !== seriesCode) continue;
+                if (parseInt(totalStr2) !== totalChunks) continue;
+
+                const txRound = tx['confirmed-round'] || 0;
+                const txTs    = tx['round-time']      || 0;
+
+                // Filter round/timestamp window ketat
+                if (firstRound > 0 && txRound > 0) {
+                    if (Math.abs(txRound - firstRound) > ROUND_WINDOW) continue;
+                } else if (firstTs > 0 && txTs > 0) {
+                    if (Math.abs(txTs - firstTs) > TS_WINDOW) continue;
+                }
 
                 seriesChunks.push({
-                    txid:    tx.id,
-                    content: chunkContent,
-                    ts:      tx['round-time']           || 0,
-                    round:   tx['confirmed-round']      || 0,
-                    offset:  tx['intra-round-offset']   || 0,
+                    txid:     tx.id,
+                    content:  chunkContent,
+                    ts:       txTs,
+                    round:    txRound,
+                    offset:   tx['intra-round-offset'] || 0,
+                    chunkIdx: parseInt(chunkIdxStr) || 0,
                 });
             }
 
-            // Sort ascending by timestamp dulu sebagai hint awal
-            seriesChunks.sort((a, b) => a.ts - b.ts);
+            // Sort: utamakan chunkIdx dari note, fallback ke round lalu timestamp
+            seriesChunks.sort((a, b) => {
+                if (a.chunkIdx !== b.chunkIdx) return a.chunkIdx - b.chunkIdx;
+                if (a.round !== b.round) return a.round - b.round;
+                if (a.offset !== b.offset) return a.offset - b.offset;
+                return a.ts - b.ts;
+            });
 
-            console.log(`[3] ✅ ${seriesChunks.length}/${totalChunks} chunks dari series "${seriesCode}"`);
+            console.log(`[3] ✅ ${seriesChunks.length}/${totalChunks} chunks dari series "${seriesCode}" (window: round=${firstRound}±${ROUND_WINDOW})`);
             seriesChunks.forEach((c, i) => {
-                console.log(`  Raw ${i} (ts=${c.ts}): "${c.content.substring(0, 60).replace(/\n/g,' ')}..."`);
+                console.log(`  [${i}] txid=${c.txid.substring(0,10)} round=${c.round} chunkIdx=${c.chunkIdx}: "${c.content.substring(0, 60).replace(/\n/g,' ')}..."`);
             });
 
             if (seriesChunks.length === 0) {
                 throw new Error(`❌ Tidak ada chunk ditemukan untuk series "${seriesCode}"`);
             }
 
-            // ── REORDER via GREEDY CONNECTIVITY ──
-            // Setiap chunk adalah potongan berurutan dari satu dokumen.
-            // Cukup cari chunk yang berisi <!DOCTYPE/<html sebagai anchor pertama,
-            // lalu untuk setiap posisi berikutnya, cari chunk yang paling cocok
-            // disambung (tail dari chunk saat ini cocok dengan head chunk berikutnya).
-            //
-            // Tapi cara paling simpel dan reliable:
-            // 1. Start = chunk yang mengandung <!DOCTYPE atau <html
-            // 2. End   = chunk yang mengandung </html>
-            // 3. Middle = sisanya, diurutkan dengan greedy tail-head matching
-
-            const remaining = [...seriesChunks];
-            const ordered   = [];
-
-            // Ambil START chunk
-            const startIdx = remaining.findIndex(c =>
-                /^\s*<!DOCTYPE/i.test(c.content) || /^\s*<html/i.test(c.content)
-            );
-            if (startIdx >= 0) {
-                ordered.push(...remaining.splice(startIdx, 1));
-            } else {
-                // Fallback: ambil yang timestamp paling awal
-                ordered.push(remaining.shift());
-            }
-
-            // Ambil END chunk (yang ada </html>), pisahkan dulu
-            const endIdx = remaining.findIndex(c => c.content.includes('</html>'));
-            let endChunk = null;
-            if (endIdx >= 0) {
-                [endChunk] = remaining.splice(endIdx, 1);
-            }
-
-            // Susun sisa middle chunks dengan greedy tail-head matching
-            // Ambil 20 karakter terakhir dari chunk sekarang, cari chunk berikut
-            // yang head-nya paling "cocok" (share karakter)
-            while (remaining.length > 0) {
-                const current   = ordered[ordered.length - 1];
-                const tail      = current.content.slice(-30).trim();
-
-                // Cari chunk yang isinya "melanjutkan" tail current
-                // Heuristic: chunk yang dimulai dengan karakter yang bisa jadi sambungan
-                // Karena kita tidak bisa exact match (dipotong di byte boundary),
-                // pakai timestamp sebagai tiebreaker jika ada beberapa kandidat
-
-                // Untuk sementara: sort remaining by timestamp dan ambil yang terdepan
-                remaining.sort((a, b) => a.ts - b.ts);
-                ordered.push(remaining.shift());
-            }
-
-            // Tambahkan END chunk di posisi terakhir
-            if (endChunk) {
-                // Jika end chunk sudah ada di ordered (karena </html> ada di chunk yang juga
-                // merupakan chunk satu-satunya dengan isi lain), jangan tambah lagi
-                const alreadyIn = ordered.some(c => c.txid === endChunk.txid);
-                if (!alreadyIn) ordered.push(endChunk);
-            }
-
-            const chunks = ordered.map(c => c.content);
-            console.log(`[3] Final order:`);
+            const chunks = seriesChunks.map(c => c.content);
+            console.log(`[3] Final order (sorted by chunkIdx/round):`);
             chunks.forEach((c, i) => console.log(`  [${i}]: "${c.substring(0, 70).replace(/\n/g,' ')}..."`));
 
             return { chunks, series: seriesCode, totalChunks: chunks.length };
