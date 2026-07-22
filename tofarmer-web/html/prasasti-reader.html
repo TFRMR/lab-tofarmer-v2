@@ -750,8 +750,12 @@
                 console.log(`[4] First tag found:`, fullContent.match(/<[a-z!][^>]*>/i)?.[0]);
 
                 // Render via iframe srcdoc — tanpa allow-same-origin (aman)
-                // Inject resize script ke dalam konten agar iframe bisa kirim tinggi via postMessage
-                const resizeScript = `<script>
+                // Inject resize script + CSS override untuk text color
+                const resizeScript = `<style>
+                  article, section, div[style*="color"] { color: #ffffff !important; }
+                  article section { color: #ffffff !important; }
+                </style>
+                <script>
                   window.addEventListener('load', function() {
                     var h = document.body ? document.body.scrollHeight : 600;
                     parent.postMessage({ type: 'iframeResize', height: h }, '*');
