@@ -17,11 +17,11 @@
                 radial-gradient(circle at top right, rgba(13, 148, 136, 0.1) 0%, transparent 40%),
                 radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.08) 0%, transparent 35%),
                 linear-gradient(135deg, #0a0f0c 0%, #0d1e14 50%, #050b07 100%);
-            min-height: 100vh;
             color: #e2e8f0;
             position: relative;
             overflow-x: hidden;
-            overflow-y: auto;
+            overflow-y: scroll;
+            width: 100%;
         }
 
         body::before {
@@ -44,6 +44,7 @@
             max-width: 1280px;
             margin: 0 auto;
             padding: 24px;
+            padding-bottom: 80px;
             position: relative;
             z-index: 2;
         }
@@ -196,10 +197,12 @@
         /* ===== MAIN APP ===== */
         .app-screen {
             display: none;
+            width: 100%;
         }
 
         .app-screen.active {
             display: block;
+            width: 100%;
         }
 
         .header {
@@ -306,11 +309,13 @@
             grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin-bottom: 40px;
+            align-items: start;
         }
 
         .main-wrapper > div:last-child {
             display: flex;
             flex-direction: column;
+            gap: 20px;
         }
 
         .panel {
@@ -404,12 +409,14 @@
 
         .preview-frame {
             width: 100%;
-            min-height: 400px;
+            min-height: 500px;
+            max-height: none;
             background: #050b07;
             padding: 25px;
             overflow-y: auto;
             border-radius: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 0;
+            flex: 1;
         }
 
         /* ===== LOG ===== */
@@ -417,11 +424,11 @@
             background: rgba(8, 15, 11, 0.8);
             border: 1px solid rgba(13, 148, 136, 0.2);
             border-radius: 12px;
-            padding: 16px;
-            max-height: 250px;
+            padding: 12px;
+            max-height: 300px;
             overflow-y: auto;
-            margin-top: 20px;
-            font-size: 0.8rem;
+            margin-top: 0;
+            font-size: 0.75rem;
             font-family: 'Fira Code', monospace;
             color: #a7f3d0;
         }
@@ -453,6 +460,7 @@
         @media (max-width: 768px) {
             .container {
                 padding: 12px;
+                padding-bottom: 60px;
             }
 
             .panel {
@@ -474,6 +482,7 @@
 
             .preview-frame {
                 padding: 16px;
+                min-height: 350px;
             }
 
             .tabs {
@@ -484,6 +493,7 @@
         @media (max-width: 480px) {
             .container {
                 padding: 8px;
+                padding-bottom: 60px;
             }
 
             .panel {
@@ -511,6 +521,7 @@
             .preview-frame {
                 padding: 12px;
                 font-size: 0.9rem;
+                min-height: 300px;
             }
         }
     </style>
@@ -641,7 +652,7 @@
 
                     <div>
                         <div id="preview" class="preview-frame"></div>
-                        <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="btnPahat" onclick="pahatKeBlockchain()" disabled>
+                        <button class="btn btn-primary" style="width: 100%; margin: 0;" id="btnPahat" onclick="pahatKeBlockchain()" disabled>
                             ⛓️ PAHAT KE BLOCKCHAIN
                         </button>
                         <div id="log"></div>
