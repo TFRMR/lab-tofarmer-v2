@@ -54,16 +54,14 @@
 
         /* ===== LOGIN SCREEN ===== */
         .login-screen {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, #0a0f0c 0%, #0d1e14 100%);
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-        }
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:20px;
+    overflow-y:auto;
+}
+            
 
         .login-screen.hidden {
             display: none;
@@ -305,13 +303,11 @@
         }
 
         /* ===== MAIN LAYOUT ===== */
-        .main-wrapper {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 40px;
-            align-items: start;
-        }
+       .main-wrapper {
+    display:grid;
+    grid-template-columns:1fr;
+    gap:30px;
+}
 
         .main-wrapper > div:not(.panel) {
             display: flex;
@@ -401,12 +397,11 @@
 
         /* ===== PREVIEW ===== */
         #preview {
-            min-height: 450px;
-            border-radius: 16px;
-            overflow: visible;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(13, 148, 136, 0.1);
-        }
+    min-height:450px;
+    height:auto;
+    overflow:visible;
+    word-wrap:break-word;
+}
 
         .preview-frame {
             width: 100%;
@@ -517,6 +512,27 @@
                 font-size: 0.9rem;
             }
         }
+/* FIX SCROLL MOBILE */
+html {
+    overflow-y:scroll;
+}
+
+body {
+    min-height:100%;
+}
+
+.container {
+    overflow:visible;
+}
+
+.panel {
+    overflow:visible;
+}
+
+textarea,
+input {
+    max-width:100%;
+}
     </style>
 </head>
 <body>
@@ -992,6 +1008,8 @@ ${escapeHtml(state.note.content)}
             color: #e2e8f0;
             padding: 20px;
             min-height: 100vh;
+overflow-y:auto;
+    overflow-x:hidden;
         }
         .container { max-width: 900px; margin: auto; }
         article { color: #ffffff; }
