@@ -513,14 +513,12 @@
         }
 
         async function fetchChunksBySeriesAndStartTx(startTxId) {
-            // ===== STEP 1: Fetch transaksi pertama untuk dapat series code =====
+            // ===== STEP 1: Fetch transaksi pertama untuk dapat series, sender, totalChunks =====
             console.log(`[1] Fetching first transaction: ${startTxId}`);
             const firstTxn = await fetchTransactionWithRetry(startTxId);
             const noteB64_1 = firstTxn.note || firstTxn.txn?.txn?.note || firstTxn.txn?.note;
-            
-            if (!noteB64_1) {
-                throw new Error('❌ Transaksi ini tidak memiliki note Prasasti. Pastikan TxID benar.');
-            }
+
+            if (!noteB64_1) throw new Error('❌ Transaksi ini tidak memiliki note Prasasti.');
 
             let noteText_1 = '';
             try {
@@ -528,17 +526,16 @@
             } catch (e) {
                 throw new Error(`❌ Gagal decode note: ${e.message}`);
             }
-            
+
             // Format: tf:pr|userId|chunkIdx|totalChunks|series|content...
             const headerMatch = noteText_1.match(/^tf:pr\|([^|]+)\|(\d+)\|(\d+)\|([^|]+)\|(.*)/s);
-            if (!headerMatch) {
-                console.error('Note preview:', noteText_1.substring(0, 120));
-                throw new Error('❌ Format note tidak valid. Note harus dimulai dengan: tf:pr|userId|...');
-            }
+            if (!headerMatch) throw new Error('❌ Format note tidak valid. Harus dimulai dengan: tf:pr|userId|...');
 
-            const [, userId0, , totalStr, seriesCode, content0] = headerMatch;
+            const [, userId0, chunkIdx0Str, totalStr, seriesCode] = headerMatch;
             const totalChunks = parseInt(totalStr);
             const senderAddr  = firstTxn.sender || firstTxn['sender-address'];
+            const firstRound  = firstTxn['confirmed-round'] || 0;
+            const firstTs     = firstTxn['round-time']      || 0;
 
             // Update author bar
             if (!window._authorUserId && userId0) {
@@ -547,17 +544,16 @@
                 document.getElementById('authorId').textContent = userId0;
             }
 
-            console.log(`[1] ✅ userId="${userId0}", series="${seriesCode}", total=${totalChunks}, sender=${senderAddr?.substring(0,12)}...`);
+            console.log(`[1] ✅ userId="${userId0}", series="${seriesCode}", total=${totalChunks}, round=${firstRound}, sender=${senderAddr?.substring(0,12)}...`);
 
             // Single chunk — langsung return
             if (totalChunks === 1) {
+                const content0 = headerMatch[5];
                 return { chunks: [content0], series: seriesCode, totalChunks: 1 };
             }
 
-            // ===== STEP 2: Fetch SEMUA txn dari sender via /accounts/{addr}/transactions =====
-            // Gunakan endpoint ini karena yang return note dengan benar
-            console.log(`[2] Fetching all txns from sender via accounts endpoint...`);
-
+            // ===== STEP 2: Fetch SEMUA txn dari sender =====
+            console.log(`[2] Fetching all txns from sender...`);
             if (!senderAddr) throw new Error('❌ Tidak bisa ambil sender address');
 
             let allSenderTxns = [];
@@ -571,8 +567,7 @@
                     console.log(`[2] Found ${allSenderTxns.length} txns from sender`);
                 }
             } catch(e) {
-                console.warn('[2] Fetch error, falling back to algod client:', e.message);
-                // Fallback ke algod client jika fetch langsung gagal
+                console.warn('[2] Fetch error:', e.message);
                 try {
                     const response = await indexerClient.searchForTransactions()
                         .addressRole('sender').address(senderAddr)
@@ -584,29 +579,17 @@
             }
 
             // ===== STEP 3: Kumpulkan chunk milik prasasti INI saja =====
-            // FIX: filter pakai round-window sempit dari firstTxn.
-            // Semua chunk satu prasasti dikirim berdekatan (<300 round / ~15 menit).
-            // Juga cocokkan totalChunks agar tidak campur dgn prasasti berjudul sama.
+            // Strategi: pakai window round sempit (±300 round dari firstTxn).
+            // Semua chunk 1 prasasti dikirim dalam 1 sesi → round berdekatan.
+            // chunkIdx di blockchain tidak reliable (pemahat lama selalu tulis 1),
+            // jadi urutan FINAL pakai: confirmed-round ASC, intra-round-offset ASC.
 
-            const firstRound = firstTxn['confirmed-round'] || 0;
-            const firstTs    = firstTxn['round-time']      || 0;
-            const ROUND_WINDOW = 300;  // ~15 menit
-            const TS_WINDOW    = 600;  // 10 menit dalam detik
+            const ROUND_WINDOW = 300;
+            const TS_WINDOW    = 600; // detik
 
             const seriesChunks = [];
-            // Masukkan chunk pertama (anchor) langsung
-            seriesChunks.push({
-                txid:     startTxId,
-                content:  content0,
-                ts:       firstTs,
-                round:    firstRound,
-                offset:   firstTxn['intra-round-offset'] || 0,
-                chunkIdx: 0,
-            });
 
             for (const tx of allSenderTxns) {
-                if (tx.id === startTxId) continue; // sudah ada sebagai anchor
-
                 const nb64 = tx.note || tx.txn?.txn?.note || tx.txn?.note;
                 if (!nb64) continue;
                 let nText = '';
@@ -617,14 +600,14 @@
                 if (!nm) continue;
                 const [, , chunkIdxStr, totalStr2, series, chunkContent] = nm;
 
-                // Harus series & totalChunks sama — guard prasasti berbeda tapi series sama
+                // Harus series & totalChunks cocok
                 if (series !== seriesCode) continue;
                 if (parseInt(totalStr2) !== totalChunks) continue;
 
                 const txRound = tx['confirmed-round'] || 0;
                 const txTs    = tx['round-time']      || 0;
 
-                // Filter round/timestamp window ketat
+                // Window ketat: harus dekat firstTxn
                 if (firstRound > 0 && txRound > 0) {
                     if (Math.abs(txRound - firstRound) > ROUND_WINDOW) continue;
                 } else if (firstTs > 0 && txTs > 0) {
@@ -637,31 +620,50 @@
                     ts:       txTs,
                     round:    txRound,
                     offset:   tx['intra-round-offset'] || 0,
-                    chunkIdx: parseInt(chunkIdxStr) || 0,
+                    chunkIdx: parseInt(chunkIdxStr),
                 });
             }
 
-            // Sort: utamakan chunkIdx dari note, fallback ke round lalu timestamp
-            seriesChunks.sort((a, b) => {
-                if (a.chunkIdx !== b.chunkIdx) return a.chunkIdx - b.chunkIdx;
-                if (a.round !== b.round) return a.round - b.round;
-                if (a.offset !== b.offset) return a.offset - b.offset;
-                return a.ts - b.ts;
-            });
-
-            console.log(`[3] ✅ ${seriesChunks.length}/${totalChunks} chunks dari series "${seriesCode}" (window: round=${firstRound}±${ROUND_WINDOW})`);
-            seriesChunks.forEach((c, i) => {
-                console.log(`  [${i}] txid=${c.txid.substring(0,10)} round=${c.round} chunkIdx=${c.chunkIdx}: "${c.content.substring(0, 60).replace(/\n/g,' ')}..."`);
-            });
+            console.log(`[3] ${seriesChunks.length}/${totalChunks} chunks dalam window round=${firstRound}±${ROUND_WINDOW}`);
 
             if (seriesChunks.length === 0) {
                 throw new Error(`❌ Tidak ada chunk ditemukan untuk series "${seriesCode}"`);
             }
 
-            const chunks = seriesChunks.map(c => c.content);
-            console.log(`[3] Final order (sorted by chunkIdx/round):`);
-            chunks.forEach((c, i) => console.log(`  [${i}]: "${c.substring(0, 70).replace(/\n/g,' ')}..."`));
+            // ===== STEP 4: Urutkan chunk dengan benar =====
+            // Prioritas sort:
+            // 1. chunkIdx dari note (jika pemahat baru — menulis 0,1,2,3...)
+            // 2. confirmed-round ASC (urutan block)
+            // 3. intra-round-offset ASC (urutan dalam block)
+            //
+            // DETEKSI apakah chunkIdx reliable:
+            // Jika semua chunkIdx sama (bug pemahat lama → semua = 1),
+            // abaikan chunkIdx dan pakai round+offset saja.
 
+            const allSameIdx = seriesChunks.every(c => c.chunkIdx === seriesChunks[0].chunkIdx);
+
+            if (allSameIdx) {
+                // chunkIdx tidak reliable → sort by round + offset (urutan pengiriman)
+                console.log(`[4] chunkIdx semua sama (=${seriesChunks[0].chunkIdx}), sort by round+offset`);
+                seriesChunks.sort((a, b) => {
+                    if (a.round !== b.round) return a.round - b.round;
+                    return a.offset - b.offset;
+                });
+            } else {
+                // chunkIdx reliable → sort by chunkIdx, fallback round+offset
+                console.log(`[4] chunkIdx bervariasi, sort by chunkIdx → round → offset`);
+                seriesChunks.sort((a, b) => {
+                    if (a.chunkIdx !== b.chunkIdx) return a.chunkIdx - b.chunkIdx;
+                    if (a.round !== b.round) return a.round - b.round;
+                    return a.offset - b.offset;
+                });
+            }
+
+            seriesChunks.forEach((c, i) => {
+                console.log(`  [${i}] txid=${c.txid.substring(0,10)} round=${c.round} offset=${c.offset} chunkIdx=${c.chunkIdx}: "${c.content.substring(0, 60).replace(/\n/g,' ')}..."`);
+            });
+
+            const chunks = seriesChunks.map(c => c.content);
             return { chunks, series: seriesCode, totalChunks: chunks.length };
         }
 
