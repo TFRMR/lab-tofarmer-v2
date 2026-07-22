@@ -308,6 +308,11 @@
             margin-bottom: 40px;
         }
 
+        .main-wrapper > div:last-child {
+            display: flex;
+            flex-direction: column;
+        }
+
         .panel {
             background: rgba(14, 28, 19, 0.5);
             backdrop-filter: blur(20px);
@@ -399,11 +404,12 @@
 
         .preview-frame {
             width: 100%;
-            height: 100%;
+            min-height: 400px;
             background: #050b07;
             padding: 25px;
             overflow-y: auto;
             border-radius: 16px;
+            margin-bottom: 20px;
         }
 
         /* ===== LOG ===== */
@@ -561,11 +567,11 @@
             </div>
             <div class="login-form">
                 <div class="form-group">
-                    <label>25-Kata Mnemonic</label>
+                    <label for="mnemonicInput">25-Kata Mnemonic</label>
                     <textarea id="mnemonicInput" placeholder="Paste 25 kata mnemonic dompet Algorand Anda..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label>User ID Unik (Custom)</label>
+                    <label for="userIdInput">User ID Unik (Custom)</label>
                     <input type="text" id="userIdInput" placeholder="Contoh: suryadi, pak_hendra, etc (a-z, underscore, no spaces)" maxlength="20">
                 </div>
                 <button class="btn btn-primary" onclick="loginWithMnemonic()">🔓 MASUK SEBAGAI PEMAHAT</button>
@@ -613,18 +619,18 @@
                         <div class="panel-title">✍️ Tulis Ilmu Baku</div>
 
                         <div class="form-group">
-                            <label>Judul Prasasti</label>
+                            <label for="noteTitle">Judul Prasasti</label>
                             <input type="text" id="noteTitle" placeholder="Judul ilmu yang ingin diabadikan...">
                         </div>
 
                         <div class="form-group">
-                            <label>Series (Kategori)</label>
+                            <label for="noteSeries">Series (Kategori)</label>
                             <input type="text" id="noteSeries" placeholder="Contoh: ilmu-garam, resep-nusantara, cerita-menoreh" list="seriesList">
                             <datalist id="seriesList"></datalist>
                         </div>
 
                         <div class="form-group">
-                            <label>Konten Utama</label>
+                            <label for="noteContent">Konten Utama</label>
                             <textarea id="noteContent" placeholder="Tulis ilmu, cerita, atau pengetahuan yang ingin Anda abadikan selamanya di blockchain..."></textarea>
                         </div>
 
