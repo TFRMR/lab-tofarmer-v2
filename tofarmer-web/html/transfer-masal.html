@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulk Transfer TOF (ASA ID: 3558306283)</title>
+    <!-- Algorand SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --accent: #10b981;
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --border: #334155;
+            --danger: #ef4444;
+            --secondary: #3b82f6;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: var(--accent);
+            margin-bottom: 5px;
+        }
+        p.subtitle {
+            color: var(--muted);
+            font-size: 0.875rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+        }
+        textarea, input[type="text"] {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: monospace;
+            font-size: 0.85rem;
+        }
+        textarea:focus, input[type="text"]:focus {
+            outline: 1px solid var(--accent);
+        }
+        button {
+            background: var(--accent);
+            color: #000;
+            font-weight: bold;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-secondary { background: var(--secondary); color: #fff; }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+        th, td {
+            border: 1px solid var(--border);
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th { background: #0f172a; color: var(--accent); }
+        .unmatched { color: var(--danger); font-weight: bold; }
+        .log-box {
+            background: #000;
+            color: #10b981;
+            font-family: monospace;
+            padding: 12px;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.8rem;
+        }
+        .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .summary-badge {
+            background: #334155;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .toast {
+            display: none;
+            background: #10b981;
+            color: #000;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🚀 Bulk Sender Token TOF (ASA ID: 3558306283)</h1>
+    <p class="subtitle">Aplikasi Otomatisasi Distribusi Massal Token TOF ke Penabung Ecosystem</p>
+
+    <!-- STEP 1: MNEMONIC 25 KATA -->
+    <div class="card">
+        <label for="mnemonicInput">🔑 Passphrase / 25 Frasa Dompet Pengirim</label>
+        <textarea id="mnemonicInput" rows="2" placeholder="Masukkan 25 kata kunci dompet pengirim di sini..."></textarea>
+        <small style="color: var(--muted)">Alamat Pengirim Terdeteksi: <b id="senderAddress">HVYBLWO7XBPO76SP7KBBYZ5ZVTCPWA5Z4RTVCYBH4IBL3GJFV5DBZTWNMI</b></small>
+    </div>
+
+    <!-- STEP 2: INPUT TEKS LAPORAN -->
+    <div class="card">
+        <label for="rawTextInput">📋 Paste Laporan Laporan Kas / Catatan Transit</label>
+        <textarea id="rawTextInput" rows="8" placeholder="Paste format laporan kas di sini..."></textarea>
+        <div class="flex" style="margin-top: 10px;">
+            <button onclick="parseAndPreview()">🔍 Proses & Tampilkan Preview</button>
+            <button class="btn-danger" onclick="clearAll()">🗑️ Reset Teks</button>
+        </div>
+    </div>
+
+    <!-- STEP 3: PREVIEW TABEL METRIC -->
+    <div class="card" id="previewArea" style="display: none;">
+        <div class="flex" style="justify-content: space-between; margin-bottom: 10px;">
+            <h3>📊 Preview Transfer Massal</h3>
+            <div>
+                <span class="summary-badge">Total Penerima: <b id="totalUsers">0</b></span>
+                <span class="summary-badge">Total TOF: <b id="totalTOF">0</b> TOF</span>
+            </div>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Username</th>
+                        <th>Alamat Dompet Tujuan</th>
+                        <th>Jumlah TOF</th>
+                        <th>Status Wallet</th>
+                    </tr>
+                </thead>
+                <tbody id="previewTableBody"></tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 15px;" class="flex">
+            <button id="btnExecute" onclick="executeBulkTransfer()">🚀 Eksekusi Kirim Sekarang</button>
+            <button class="btn-secondary" onclick="copyMarkdownSummary()">📋 Copy Rekap Markdown (untuk Grup)</button>
+            <span id="toastMsg" class="toast">✅ Copied to Clipboard!</span>
+        </div>
+    </div>
+
+    <!-- STEP 4: LOG STATUS -->
+    <div class="card" id="logArea" style="display: none;">
+        <h3>📜 Log Transaksi Blockchain</h3>
+        <div class="log-box" id="logConsole"></div>
+    </div>
+</div>
+
+<script>
+// --- DATABASE USER TERBUKU (PRE-LOADED) ---
+const USER_DATABASE = {
+    "Ketelteyenk": "3METGQXQM7EI7BASYEISX733MU5JCBTEK2CX7QTHRWKBZKSZ2LCV7XLVA4",
+    "Queen timmy": "4ENDPZYQRPHX24R4AVIHPP26GYO2IXUAMYP6JEO6DUO3YTTPR4MTAU3QWU",
+    "_Elskay_": "4QF4WXP7OLYGBTB3FVERA3HTK2YI6745ZF77IOUJTOFDYRL3HJKZACDGKQ",
+    "MARJIANTO": "4SL7ULJOFKWYVUV24QJIIXTQMMBQZCNYFDFJNVTFZVCQYRQ7N6SXZBBBNY",
+    "Ega_Subana": "5O6OQ4Z3YD64EGMESZMU3CI34GDHEBQ2SUZXGUD5FXPAUXCECUIWMKMPFU",
+    "mekeii": "7SH2MBQKNHTN5RSG442LPCGUQAWT6XTLNHZUDFUQ6J5G3HEV7JXPF2QNNU",
+    "THEBOXFARM": "BAR2KDZQDAHNOJWVDAJ3HKWRNYUODZJQ6C4QQ3YP6M5VL6CII2RMVCAMJQ",
+    "FIELD_SYNC": "BCEA2LPETBXB7LKD2RCNF5CIUHHIPV3NNHG4XJBQPVY532PBO3AQ4CUMPU",
+    "TOPLES_ECOSYSTEM": "HVYBLWO7XBPO76SP7KBBYZ5ZVTCPWA5Z4RTVCYBH4IBL3GJFV5DBZTWNMI",
+    "CYBER_FARMER": "J36JCUNG3IVLVWQ6VZO56T5E2RF3THZAH6235O2YIJZ75UAI57JUAGPYSQ",
+    "MOUNTAIN_MOTHER": "JQKDKOCTN442CQ72ZEKHYICKS27ARK3H7FD6VQE67DE7S5NOKY7VFTJFEE",
+    "mbah_eko": "LBG52IZRX237FPXOBDKVR2VQFSAROCUKEQVTXITV4SWMZTHPKYQ23MKICY",
+    "LIAN_HUA": "O3BQTI5WK4BYXLIQREAXKL32LUYNL6C3BBLZOJ3GVRNJQT4FTIU6SD6COA",
+    "NEO_AGRO": "OWD26PYXPHYQKS4LV4FLDFS4PUTYJNSKFEC27JZANFY6673HHG63NDQJAM",
+    "Sanca": "OWFICF5QSQKZM6AVHPHKSCD437JH2HH5DMWRLG3RJAAKUXZ6E6DEKTTAHM",
+    "TERRA_ROOTS": "OZBKU3XPHCYAESLKM4CUHVT7HCPTCGGGJHNA2DSW36SES246UXJUFII5VE",
+    "Sidikat farm": "QTN5TWKWK73AET5JP7OZTY7JD4SXPFAC72IZWN2KRIJSNIT2JZ5FJRN3E4",
+    "QUANTUM_GROW": "UNVISHS2JDKHFNNHFQEVWVEXOQNQC7CH3JWCPCJ3TSECFJYCCDAXGPML74",
+    "Joker": "X54GPDNZODEMXSPFCNPNV3X4UF6HECEKD64FNGUTVJ5IFLSFYHMCEJ6LLQ"
+};
+
+const ASA_ID = 3558306283;
+const ALGOD_SERVER = "https://mainnet-api.algonode.cloud"; 
+const ALGOD_PORT = "";
+const ALGOD_TOKEN = "";
+
+let parsedQueue = [];
+
+function logMsg(msg) {
+    const consoleBox = document.getElementById("logConsole");
+    consoleBox.innerHTML += `<div>> ${msg}</div>`;
+    consoleBox.scrollTop = consoleBox.scrollHeight;
+}
+
+function findWalletByUsername(rawUser) {
+    let clean = rawUser.trim().replace(/^@/, '').replace(/\s*\(\?\)$/, ''); 
+    
+    for (let key in USER_DATABASE) {
+        if (key.toLowerCase() === clean.toLowerCase()) {
+            return USER_DATABASE[key];
+        }
+    }
+    return null;
+}
+
+function parseAndPreview() {
+    const rawText = document.getElementById("rawTextInput").value;
+    if (!rawText.trim()) {
+        alert("Silakan tempel teks laporan transaksi terlebih dahulu!");
+        return;
+    }
+
+    const blocks = rawText.split("--------------------------------------------------");
+    const userTotals = {};
+
+    blocks.forEach(block => {
+        const amountMatch = block.match(/📥\s*TERKUNCI\s*:\s*\+([\d,.]+)\s*TOF/i);
+        const userMatch = block.match(/👤\s*Penabung\s*:\s*(.+)/i);
+
+        if (amountMatch && userMatch) {
+            let amountStr = amountMatch[1].replace(',', '.');
+            let amount = parseFloat(amountStr);
+            let rawUser = userMatch[1].trim();
+
+            let wallet = findWalletByUsername(rawUser);
+            let displayUser = rawUser.replace(/^@/, '').replace(/\s*\(\?\)$/, '');
+
+            if (!userTotals[displayUser]) {
+                userTotals[displayUser] = {
+                    username: displayUser,
+                    wallet: wallet,
+                    amount: 0
+                };
+            }
+            userTotals[displayUser].amount += amount;
+        }
+    });
+
+    parsedQueue = Object.values(userTotals);
+
+    if (parsedQueue.length === 0) {
+        alert("Format teks tidak dapat dikenali/diparse. Pastikan format mengandung 'TERKUNCI : +X TOF' dan 'Penabung : @nama'");
+        return;
+    }
+
+    const tbody = document.getElementById("previewTableBody");
+    tbody.innerHTML = "";
+    let grandTotalTOF = 0;
+    let missingWalletCount = 0;
+
+    parsedQueue.forEach((item, index) => {
+        grandTotalTOF += item.amount;
+        const row = document.createElement("tr");
+        
+        const isFound = item.wallet !== null;
+        if(!isFound) missingWalletCount++;
+
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td><b>@${item.username}</b></td>
+            <td style="font-family: monospace;">${item.wallet ? item.wallet : '<span class="unmatched">ALAMAT TIDAK DITEMUKAN</span>'}</td>
+            <td><b>${item.amount} TOF</b></td>
+            <td>${isFound ? '✅ Ready' : '❌ Error'}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    document.getElementById("totalUsers").innerText = parsedQueue.length;
+    document.getElementById("totalTOF").innerText = grandTotalTOF.toLocaleString('id-ID');
+    document.getElementById("previewArea").style.display = "block";
+
+    if (missingWalletCount > 0) {
+        document.getElementById("btnExecute").disabled = true;
+        alert(`Ada ${missingWalletCount} username yang alamat dompetnya tidak ditemukan di database. Mohon periksa tabel data Anda.`);
+    } else {
+        document.getElementById("btnExecute").disabled = false;
+    }
+}
+
+function copyMarkdownSummary() {
+    if (parsedQueue.length === 0) return;
+
+    let totalTof = 0;
+    let mdText = `📢 **REKAPITULASI PENGIRIMAN TOF (NABUNG RECEH)**
+`;
+    mdText += `Silakan cek rincian jumlah TOF yang akan dikirim ke masing-masing dompet:
+
+`;
+    mdText += `| No | Penabung | Total TOF |
+`;
+    mdText += `|:--:|:---|:---:|
+`;
+
+    parsedQueue.forEach((item, idx) => {
+        totalTof += item.amount;
+        mdText += `| ${idx + 1} | @${item.username} | **+${item.amount} TOF** |
+`;
+    });
+
+    mdText += `
+**Total Penerima:** ${parsedQueue.length} User
+`;
+    mdText += `**Total Dikebalikan/Dikirim:** **${totalTof.toLocaleString('id-ID')} TOF**
+
+`;
+    mdText += `_Mohon kawan-kawan cek kesesuaian jumlah di atas sebelum transaksi dieksekusi._ 🚀`;
+
+    navigator.clipboard.writeText(mdText).then(() => {
+        const toast = document.getElementById("toastMsg");
+        toast.style.display = "inline-block";
+        setTimeout(() => { toast.style.display = "none"; }, 3000);
+    }).catch(err => {
+        alert("Gagal menyalin ke clipboard: " + err);
+    });
+}
+
+async function executeBulkTransfer() {
+    const mnemonic = document.getElementById("mnemonicInput").value.trim();
+    if (!mnemonic) {
+        alert("Harap masukkan 25 Frasa / Passphrase dompet Anda sebelum mengirim!");
+        return;
+    }
+
+    let secretKey;
+    try {
+        const account = algosdk.mnemonicToSecretKey(mnemonic);
+        secretKey = account.sk;
+    } catch (e) {
+        alert("Frasa / Passphrase tidak valid! Pastikan terdiri dari 25 kata terpisah spasi.");
+        return;
+    }
+
+    if (!confirm(`Konfirmasi: Anda akan mengirim total ${document.getElementById("totalTOF").innerText} TOF ke ${parsedQueue.length} penerima. Lanjutkan?`)) {
+        return;
+    }
+
+    document.getElementById("logArea").style.display = "block";
+    logMsg("Memulai koneksi ke Jaringan Algorand Mainnet...");
+
+    const client = new algosdk.Algodv2(ALGOD_TOKEN, ALGOD_SERVER, ALGOD_PORT);
+
+    try {
+        const params = await client.getTransactionParams().do();
+        const senderAccount = algosdk.mnemonicToSecretKey(mnemonic);
+        
+        logMsg(`Mengirim dari dompet: ${senderAccount.addr}`);
+
+        for (let i = 0; i < parsedQueue.length; i++) {
+            const item = parsedQueue[i];
+            const amountInUnits = Math.round(item.amount); 
+
+            logMsg(`[${i+1}/${parsedQueue.length}] Mengirim ${item.amount} TOF ke @${item.username} (${item.wallet.substring(0,8)}...)...`);
+
+            const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                from: senderAccount.addr,
+                to: item.wallet,
+                amount: amountInUnits,
+                assetIndex: ASA_ID,
+                suggestedParams: params,
+                note: algosdk.encodeStr("dari toples nabung receh")
+            });
+
+            const signedTxn = txn.signTxn(secretKey);
+            const sendTx = await client.sendRawTransaction(signedTxn).do();
+            
+            logMsg(`✅ Berhasil! TxID: ${sendTx.txId}`);
+        }
+
+        logMsg("🎉 SEMUA TRANSAKSI SELESAI DIKIRIM!");
+        
+        document.getElementById("mnemonicInput").value = "";
+        logMsg("🔒 Keamanan: 25 Frasa dompet telah otomatis DIHAPUS dari memori input.");
+        alert("Pengiriman massal selesai! Frasa keamanan Anda telah dibersihkan.");
+
+    } catch (err) {
+        logMsg(`❌ Gagal/Error: ${err.message}`);
+        console.error(err);
+    }
+}
+
+function clearAll() {
+    document.getElementById("rawTextInput").value = "";
+    document.getElementById("previewArea").style.display = "none";
+    document.getElementById("logArea").style.display = "none";
+}
+</script>
+
+</body>
+</html>
