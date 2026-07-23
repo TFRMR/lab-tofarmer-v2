@@ -376,7 +376,7 @@ async function executeBulkTransfer() {
 
         for (let i = 0; i < parsedQueue.length; i++) {
             const item = parsedQueue[i];
-            const amountInUnits = Math.round(item.amount); 
+            const amountInUnits = Math.round(item.amount * 1_000_000); // TOF punya 6 decimals 
 
             logMsg(`[${i+1}/${parsedQueue.length}] Mengirim ${item.amount} TOF ke @${item.username} (${item.wallet.substring(0,8)}...)...`);
 
