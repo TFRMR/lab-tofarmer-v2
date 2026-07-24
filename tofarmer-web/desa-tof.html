@@ -419,8 +419,15 @@
         <button class="modal-close-x" onclick="document.getElementById('farm-modal').classList.remove('active')">✕</button>
         <span class="island-icon" style="font-size: 40px;">🌾</span>
         <div class="modal-username" style="color:#fde047;">Lahan Pertanian Saya</div>
-        <button onclick="document.getElementById('farm-modal').classList.remove('active'); openPembibitanModal();" style="width:100%; margin-top:8px; padding:6px; font-size:11px; border:none; border-radius:8px; background:linear-gradient(90deg,#6b8e4e,#3f6b2e); color:white; font-weight:600; cursor:pointer;">🌱 Pembibitan (buat bibit dulu sebelum tanam)</button>
-        <div id="farm-list" style="text-align:left; max-height: 340px; overflow-y: auto; margin-top: 15px;"></div>
+        
+        <!-- Pembibitan inline section -->
+        <div style="background: rgba(107, 142, 78, 0.2); border: 1px solid rgba(107, 142, 78, 0.4); border-radius: 8px; padding: 10px; margin-top: 12px; margin-bottom: 10px;">
+            <div style="font-size: 11px; font-weight: 600; color: #8fce6b; margin-bottom: 8px;">🌱 Pembibitan</div>
+            <div id="pembibitan-inline-gudang" style="font-size: 10px; color: #cbd5e1; margin-bottom: 8px; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 6px;">Memuat gudang bibit...</div>
+            <button class="btn-modal-action" onclick="beliBahanBibit('bibit_ubi_jalar')" style="width:100%; background: linear-gradient(90deg, #6b8e4e, #3f6b2e); font-size: 10px; padding: 8px;">🍠 Beli Ubi Jalar Segar (2 XP)</button>
+        </div>
+        
+        <div id="farm-list" style="text-align:left; max-height: 280px; overflow-y: auto; margin-top: 12px;"></div>
         <div class="modal-buttons-group">
             <button class="btn-modal-action btn-close-modal" onclick="document.getElementById('farm-modal').classList.remove('active')">Tutup</button>
         </div>
@@ -472,7 +479,6 @@
     <div class="xp-line"><span>💧 Air</span><span class="pupuk-value" id="hud-water-value">0/5</span></div>
     <div id="offline-queue-badge" style="display:none; margin-top:4px; font-size:9px; color:#fbbf24; text-align:center;"></div>
     <button id="btn-cairkan-tof" onclick="openCairkanModal()" style="width:100%; margin-top:6px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:600; cursor:pointer;">☕ Cairkan ke TOF</button>
-    <button id="btn-pasar" onclick="openPasarModal()" style="width:100%; margin-top:4px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#c9932a,#8a5a1a); color:white; font-weight:600; cursor:pointer;">🛒 Pasar &amp; Olahan</button>
 </div>
 
 <div id="pasar-modal" class="modal-overlay side-panel" onclick="closePasarModal(event)">
@@ -493,9 +499,6 @@
         <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">🤝 Pasar Bebas (harga bisa nego, tunggu pembeli)</div>
         <div id="pasar-bebas-jual"></div>
         <div id="pasar-bebas-list" style="max-height:160px; overflow-y:auto; margin-top:6px;"></div>
-
-        <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">😋 Makan Sendiri</div>
-        <button class="btn-modal-action" onclick="makanBarang('ubi_rebus', 1)">Makan 1 Ubi Rebus (+25 XP, lebih kecil dari jual)</button>
     </div>
 </div>
 
@@ -521,31 +524,13 @@
     </div>
 </div>
 
-<div id="pembibitan-modal" class="modal-overlay side-panel" onclick="closePembibitanModal(event)">
-    <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
-        <button class="modal-close-x" onclick="document.getElementById('pembibitan-modal').classList.remove('active')">✕</button>
-        <span class="island-icon">🌱</span>
-        <div class="modal-username" style="color:#8fce6b;">Pembibitan</div>
-        <div class="modal-rank" style="background: rgba(143,206,107,0.15); color:#8fce6b; border-color: rgba(143,206,107,0.3)">Dari nol jadi bibit siap tanam</div>
-
-        <div id="pembibitan-gudang" style="font-size:11px; color:#cbd5e1; margin:8px 0; padding:8px; background:rgba(255,255,255,0.06); border-radius:8px;">
-            Memuat gudang bibit...
-        </div>
-
-        <button class="btn-modal-action" onclick="beliBahanBibit('bibit_ubi_jalar')" style="margin-bottom:8px;">🍠 Beli Ubi Jalar Segar (2 XP)</button>
-
-        <div id="pembibitan-list" style="max-height:180px; overflow-y:auto;">
-            Memuat proses pembibitan...
-        </div>
-    </div>
-</div>
-
 <div class="controls" id="controls-wrap">
     <div class="controls-sub" id="controls-sub">
         <button id="btn-claim-toggle" class="btn btn-claim-toggle" onclick="toggleClaimMode()">📍 Klaim Tanah</button>
         <button class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
         <button class="btn btn-farm" onclick="openFarmMenu()">🌾 Bertani</button>
         <button class="btn btn-compost" onclick="openCompostMenu()">🧪 Kompos & Pupuk</button>
+        <button class="btn btn-farm" onclick="openPasarModal()">🛒 Pasar</button>
         <button class="btn btn-island" onclick="openIslandModal()">🏝️ Bikin Pulau</button>
         <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
         <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
@@ -836,13 +821,6 @@
     }
 
     // ============== PEMBIBITAN 🌱 (dari nol jadi bibit siap tanam) ==============
-    async function openPembibitanModal() {
-        if (isGuestUser()) { showToast('Login dulu untuk mulai pembibitan.', true); return; }
-        document.getElementById('pembibitan-modal').classList.add('active');
-        await refreshPembibitanPanel();
-    }
-    function closePembibitanModal(e) { if (e.target === document.getElementById('pembibitan-modal')) document.getElementById('pembibitan-modal').classList.remove('active'); }
-
     async function refreshPembibitanPanel() {
         const gudangEl = document.getElementById('pembibitan-gudang');
         const listEl = document.getElementById('pembibitan-list');
@@ -958,10 +936,10 @@
             const { data, error } = await callRpcOrQueue('fn_cek_hasil_pembibitan', { p_user: myUserId, p_pembibitan_id: pembibitanId }, `Cek bibit ${pembibitanId}`);
             if (error) { showToast('Gagal mengecek: ' + error.message, true); return; }
             if (data.queued) { showToast(data.message); return; }
-            showToastWithEdukasi(data.message || (data.hasil === 'berhasil' ? '🎉 Berhasil!' : '😢 Gagal.'), data.edukasi);
-            await refreshPembibitanPanel();
+            showToastWithEdukasi(data.message || (data.hasil === 'berhasil' ? '🎉 Berhasil! Sekarang pilih lahan mana untuk ditanam.' : '😢 Gagal.'), data.edukasi);
             await refreshMyBibitStock();
             renderFarmList();
+            refreshPembibitanInline();
         });
     }
 
@@ -981,17 +959,21 @@
         const bebasListEl = document.getElementById('pasar-bebas-list');
 
         try {
-            const [{ data: gudang }, { data: proses }, { data: hargaKoperasi }, { data: listingOrang }] = await Promise.all([
+            const [{ data: gudang }, { data: bibit }, { data: proses }, { data: hargaKoperasi }, { data: listingOrang }] = await Promise.all([
                 db.from('inventaris_barang').select('barang_id, qty, barang_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
+                db.from('inventaris_bibit').select('bibit_id, qty, bibit_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
                 db.from('village_proses_produksi').select('id, proses_id, status, mulai_at, proses_produksi_catalog(nama, waktu_proses_seconds)').eq('owner_id', myUserId).eq('status', 'diproses'),
                 db.from('koperasi_harga').select('barang_id, harga_beli_xp, barang_catalog(nama)'),
                 db.from('pasar_bebas').select('id, penjual_id, barang_id, qty, harga_per_unit_xp, barang_catalog(nama), profiles(username)').eq('status', 'terbuka').neq('penjual_id', myUserId),
             ]);
 
-            // Gudang
-            gudangEl.innerHTML = (gudang && gudang.length)
-                ? '🎒 Gudang: ' + gudang.map(g => `${(g.barang_catalog && g.barang_catalog.nama) || g.barang_id} ×${g.qty}`).join(', ')
-                : '🎒 Gudang masih kosong. Panen ubi jalar dulu ya.';
+            // Gudang + Bibit
+            const gudangList = (gudang || []).map(g => `${(g.barang_catalog && g.barang_catalog.nama) || g.barang_id} ×${g.qty}`);
+            const bibitList = (bibit || []).map(b => `🌱 ${(b.bibit_catalog && b.bibit_catalog.nama) || b.bibit_id} ×${b.qty}`);
+            const semuaInventaris = [...gudangList, ...bibitList];
+            gudangEl.innerHTML = semuaInventaris.length
+                ? '🎒 Gudang: ' + semuaInventaris.join(', ')
+                : '🎒 Gudang masih kosong. Panen ubi jalar atau beli bibit dulu ya.';
 
             // Olahan berjalan
             olahanEl.innerHTML = (proses && proses.length) ? proses.map(p => {
@@ -1016,11 +998,29 @@
                 </div>`;
             }).join('') || '<p style="font-size:10px; color:#94a3b8;">Belum ada barang buat dijual ke koperasi.</p>';
 
-            // Buat listing pasar bebas -- pakai barang yang ada di gudang
-            bebasJualEl.innerHTML = (gudang && gudang.length) ? gudang.map(g => `
+            // Buat listing pasar bebas -- pakai barang & bibit yang ada
+            const bebasListingItems = [];
+            (gudang || []).forEach(g => {
+                bebasListingItems.push({
+                    id: g.barang_id,
+                    nama: (g.barang_catalog && g.barang_catalog.nama) || g.barang_id,
+                    qty: g.qty,
+                    icon: ''
+                });
+            });
+            (bibit || []).forEach(b => {
+                bebasListingItems.push({
+                    id: b.bibit_id,
+                    nama: (b.bibit_catalog && b.bibit_catalog.nama) || b.bibit_id,
+                    qty: b.qty,
+                    icon: '🌱 '
+                });
+            });
+            
+            bebasJualEl.innerHTML = bebasListingItems.length ? bebasListingItems.map(item => `
                 <div style="display:flex; gap:4px; margin-bottom:4px;">
-                    <input id="jual-bebas-harga-${g.barang_id}" type="number" min="1" placeholder="Harga/unit XP" style="flex:1; padding:5px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#e2e8f0; font-size:10px;" />
-                    <button class="care-btn" onclick="pasangListingPasar('${g.barang_id}', ${g.qty})">Jual ${(g.barang_catalog && g.barang_catalog.nama) || g.barang_id} (×${g.qty})</button>
+                    <input id="jual-bebas-harga-${item.id}" type="number" min="1" placeholder="Harga/unit XP" style="flex:1; padding:5px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#e2e8f0; font-size:10px;" />
+                    <button class="care-btn" onclick="pasangListingPasar('${item.id}', ${item.qty})">Jual ${item.icon}${item.nama} (×${item.qty})</button>
                 </div>
             `).join('') : '';
 
@@ -1440,8 +1440,24 @@
         if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa bertani. Silakan login!"); return; }
         closeControlsMenu();
         renderFarmList();
+        refreshPembibitanInline();
         document.getElementById('farm-modal').classList.add('active');
     }
+    
+    async function refreshPembibitanInline() {
+        const gudangEl = document.getElementById('pembibitan-inline-gudang');
+        try {
+            const { data: gudang } = await db.from('inventaris_bibit').select('bibit_id, qty, bibit_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0);
+            if (gudang && gudang.length) {
+                gudangEl.innerHTML = '🎒 Gudang bibit: ' + gudang.map(g => `${(g.bibit_catalog && g.bibit_catalog.nama) || g.bibit_id} ×${g.qty}`).join(', ');
+            } else {
+                gudangEl.innerHTML = '🎒 Gudang bibit masih kosong.';
+            }
+        } catch (e) {
+            gudangEl.innerHTML = 'Gagal memuat gudang bibit.';
+        }
+    }
+    
     function closeFarmModal(e) { if (e.target === document.getElementById('farm-modal')) document.getElementById('farm-modal').classList.remove('active'); }
 
     function renderFarmList() {
