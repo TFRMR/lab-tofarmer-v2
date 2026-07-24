@@ -132,15 +132,25 @@
 
   </main>
 
-  <!-- FLOATING HOOK TOAST -->
+  <!-- FLOATING HOOK TOAST (DENGAN TOMBOL SEMBUNYIKAN/TUTUP) -->
   <div id="cta-toast" class="fixed bottom-24 right-4 left-4 sm:left-auto sm:max-w-xs glass-panel p-3.5 rounded-xl border border-amber-500/30 shadow-2xl flex items-center justify-between space-x-3 transition-all duration-500 transform translate-y-32 opacity-0 z-30 pointer-events-auto">
     <div class="text-xs">
       <p class="font-bold text-amber-400 flex items-center gap-1">☕ Sambil Ngopi?</p>
       <p class="text-stone-300 text-[11px] mt-0.5">Intip racikan rekayasa teknologi & ilmu tani ToFarmer.</p>
     </div>
-    <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-[11px] rounded-lg whitespace-nowrap">
-      Cek Pustaka
-    </a>
+    <div class="flex items-center space-x-1.5">
+      <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-[11px] rounded-lg whitespace-nowrap">
+        Cek Pustaka
+      </a>
+      <!-- Tombol Tutup / Sembunyikan -->
+      <button 
+        onclick="hideCtaToast()" 
+        title="Sembunyikan"
+        class="text-stone-400 hover:text-stone-100 p-1.5 rounded-lg hover:bg-stone-800/80 transition text-xs font-bold leading-none"
+      >
+        ✕
+      </button>
+    </div>
   </div>
 
   <!-- INPUT CONTROLLER -->
@@ -356,10 +366,23 @@
       }
     }
 
+    // Fungsi Menampilkan CTA Toast
     setTimeout(() => {
       const toast = document.getElementById('cta-toast');
-      toast.classList.remove('translate-y-32', 'opacity-0');
+      if (toast && !localStorage.getItem('hide_cta_toast')) {
+        toast.classList.remove('translate-y-32', 'opacity-0');
+      }
     }, 5000);
+
+    // Fungsi Menyembunyikan CTA Toast
+    function hideCtaToast() {
+      const toast = document.getElementById('cta-toast');
+      if (toast) {
+        toast.classList.add('translate-y-32', 'opacity-0');
+        // Ingat pilihan pengguna selama sesi browsing ini
+        localStorage.setItem('hide_cta_toast', 'true');
+      }
+    }
 
     function setupRealtimeSubscription() {
       if (!supabaseClient) return;
