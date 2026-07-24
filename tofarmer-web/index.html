@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ToFarmer • Kedai Kopi Digital</title>
   
   <!-- Tailwind CSS CDN (Script dirender dengan aman) -->
@@ -12,6 +12,15 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
   <style>
+  /* Fix Viewport Height HP */
+  html, body {
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
   /* 1. Custom Scrollbar Warm Forest */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: #070e0a; }
@@ -45,17 +54,17 @@
 
   /* 4. Glass Panel Khas Hutan & Kedai Kopi */
   .glass-panel {
-    background: rgba(14, 28, 19, 0.75);
+    background: rgba(14, 28, 19, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(74, 222, 128, 0.12);
   }
-</style>
+  </style>
 </head>
-<body class="bg-stone-950 text-stone-100 font-sans h-screen flex flex-col overflow-hidden selection:bg-amber-600 selection:text-stone-950">
+<body class="bg-stone-950 text-stone-100 font-sans h-dvh flex flex-col overflow-hidden selection:bg-amber-600 selection:text-stone-950 relative">
 
   <!-- HEADER / APP BAR -->
-  <header class="glass-panel sticky top-0 z-40 px-4 py-3 flex items-center justify-between border-b border-stone-800">
+  <header class="glass-panel sticky top-0 z-40 px-4 py-3 flex items-center justify-between border-b border-stone-800 shrink-0">
     <div class="flex items-center space-x-3">
       <div class="relative flex items-center justify-center">
         <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping absolute"></span>
@@ -81,7 +90,7 @@
   </header>
 
   <!-- CHANNEL SELECTOR -->
-  <div class="bg-stone-900/90 border-b border-stone-800/80 px-3 py-2 flex items-center space-x-2 overflow-x-auto text-xs no-scrollbar">
+  <div class="bg-stone-900/90 border-b border-stone-800/80 px-3 py-2 flex items-center space-x-2 overflow-x-auto text-xs shrink-0 no-scrollbar">
     <span class="text-stone-500 text-[10px] font-mono uppercase tracking-wider pl-1 pr-1">Meja:</span>
     <button onclick="switchChannel('mejabar')" id="tag-mejabar" class="channel-btn px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap font-medium transition">
       ☕ #ObrolanMejaBar
@@ -98,7 +107,7 @@
   </div>
 
   <!-- MAIN STREAM AREA -->
-  <main class="flex-1 overflow-y-auto p-4 space-y-3 relative" id="chat-stream">
+  <main class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 relative" id="chat-stream">
     
     <!-- Welcome Card -->
     <div class="p-4 rounded-xl bg-gradient-to-r from-stone-900 via-stone-900 to-amber-950/40 border border-stone-800 mb-4 shadow-inner">
@@ -124,7 +133,7 @@
   </main>
 
   <!-- FLOATING HOOK TOAST -->
-  <div id="cta-toast" class="absolute bottom-32 right-4 left-4 sm:left-auto sm:max-w-xs glass-panel p-3.5 rounded-xl border border-amber-500/30 shadow-2xl flex items-center justify-between space-x-3 transition-all duration-500 transform translate-y-32 opacity-0">
+  <div id="cta-toast" class="fixed bottom-24 right-4 left-4 sm:left-auto sm:max-w-xs glass-panel p-3.5 rounded-xl border border-amber-500/30 shadow-2xl flex items-center justify-between space-x-3 transition-all duration-500 transform translate-y-32 opacity-0 z-30 pointer-events-auto">
     <div class="text-xs">
       <p class="font-bold text-amber-400 flex items-center gap-1">☕ Sambil Ngopi?</p>
       <p class="text-stone-300 text-[11px] mt-0.5">Intip racikan rekayasa teknologi & ilmu tani ToFarmer.</p>
@@ -135,18 +144,19 @@
   </div>
 
   <!-- INPUT CONTROLLER -->
-  <footer class="p-3 bg-stone-900/90 border-t border-stone-800 glass-panel">
-    <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex items-center space-x-2">
-      <input 
-        type="text" 
+  <footer class="p-3 bg-stone-900/95 border-t border-stone-800 glass-panel shrink-0 z-40">
+    <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex items-end space-x-2">
+      <textarea 
         id="message-input" 
+        rows="2"
         placeholder="Pesan cangkir kopimu di #ObrolanMejaBar..." 
         autocomplete="off"
-        class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-4 py-6 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 transition"
-      >
+        onkeydown="handleKeyDown(event)"
+        class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 transition resize-none leading-relaxed"
+      ></textarea>
       <button 
         type="submit" 
-        class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-stone-950 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center shadow-md shadow-amber-900/20"
+        class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-stone-950 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center shadow-md shadow-amber-900/20 h-[52px] shrink-0"
       >
         Kirim
       </button>
@@ -286,6 +296,13 @@
       container.appendChild(messageCard);
       playPopSound();
       scrollToBottom();
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage(e);
+      }
     }
 
     async function handleSendMessage(e) {
