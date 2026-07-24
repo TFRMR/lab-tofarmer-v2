@@ -4,10 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ToFarmer • Kedai Kopi Digital</title>
-  <!-- Tailwind CSS CDN -->
+  
+  <!-- Tailwind CSS CDN (Script dirender dengan aman) -->
   <script src="https://cdn.tailwindcss.com"></script>
+  
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style>
     /* Custom Scrollbar & Warm Aesthetic */
     ::-webkit-scrollbar { width: 4px; }
@@ -48,7 +51,7 @@
     </div>
   </header>
 
-  <!-- CHANNEL SELECTOR (PANCINGAN MEJA KEDAI) -->
+  <!-- CHANNEL SELECTOR -->
   <div class="bg-stone-900/90 border-b border-stone-800/80 px-3 py-2 flex items-center space-x-2 overflow-x-auto text-xs no-scrollbar">
     <span class="text-stone-500 text-[10px] font-mono uppercase tracking-wider pl-1 pr-1">Meja:</span>
     <button onclick="switchChannel('mejabar')" id="tag-mejabar" class="channel-btn px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap font-medium transition">
@@ -65,10 +68,10 @@
     </button>
   </div>
 
-  <!-- MAIN STREAM AREA (REALTIME CHAT) -->
+  <!-- MAIN STREAM AREA -->
   <main class="flex-1 overflow-y-auto p-4 space-y-3 relative" id="chat-stream">
     
-    <!-- Welcome Card Kedai -->
+    <!-- Welcome Card -->
     <div class="p-4 rounded-xl bg-gradient-to-r from-stone-900 via-stone-900 to-amber-950/40 border border-stone-800 mb-4 shadow-inner">
       <div class="flex items-start justify-between">
         <div>
@@ -123,12 +126,14 @@
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
+    // 1. ISI DENGAN CREDENTIAL SUPABASE KAMU
     const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
 
-    let supabase = null;
-    if (!SUPABASE_URL.includes("YOUR_SUPABASE")) {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // 2. NAMA VARIABEL DIUBAH MENJADI 'supabaseClient' AGAR TIDAK BENTROK DENGAN WINDOW.SUPABASE
+    let supabaseClient = null;
+    if (typeof window.supabase !== 'undefined' && !SUPABASE_URL.includes("YOUR_SUPABASE")) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     }
 
     let currentChannel = 'mejabar';
@@ -197,12 +202,12 @@
       const container = document.getElementById('message-list');
       container.innerHTML = `<div class="text-center py-4 text-xs text-stone-500 animate-pulse">Menyiapkan meja #${currentChannel}...</div>`;
 
-      if (!supabase) {
+      if (!supabaseClient) {
         renderDemoMessages();
         return;
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('lounge_messages')
         .select('*')
         .eq('channel', currentChannel)
@@ -270,13 +275,13 @@
         created_at: new Date().toISOString()
       };
 
-      if (!supabase) {
+      if (!supabaseClient) {
         appendMessageUI(newMsg);
         triggerRandomBotResponse(content);
         return;
       }
 
-      await supabase.from('lounge_messages').insert([newMsg]);
+      await supabaseClient.from('lounge_messages').insert([newMsg]);
     }
 
     function scrollToBottom() {
@@ -311,8 +316,8 @@
     }, 5000);
 
     function setupRealtimeSubscription() {
-      if (!supabase) return;
-      supabase
+      if (!supabaseClient) return;
+      supabaseClient
         .channel('public:lounge_messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lounge_messages' }, payload => {
           if (payload.new.channel === currentChannel) {
