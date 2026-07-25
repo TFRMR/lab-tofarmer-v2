@@ -194,7 +194,7 @@
       <button id="user-menu-btn" onclick="toggleUserMenu()" class="px-3 py-1.5 text-xs font-medium bg-stone-900 hover:bg-stone-800 text-amber-400 rounded-lg transition-all flex items-center gap-1.5 border border-stone-700 tooltip" data-tooltip="Menu profil">
         👤 <span id="user-label" class="hidden sm:inline">Anonym</span>
       </button>
-      <a href="/beranda.html" class="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-lg transition-all flex items-center gap-1 shadow-lg shadow-amber-900/20 font-semibold">
+      <a id="login-btn-header" href="./login.html" class="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-lg transition-all flex items-center gap-1 shadow-lg shadow-amber-900/20 font-semibold">
         ☕ <span class="hidden sm:inline">Masuk</span>
       </a>
     </div>
@@ -209,11 +209,11 @@
     </div>
     <div class="p-2 space-y-1">
       <button onclick="changeAlias()" class="w-full text-left px-3 py-2 text-xs hover:bg-amber-500/10 rounded-lg text-stone-300 hover:text-amber-400 transition">
-        ✏️ Ganti Nama
+        ✏️ Ganti Nama (Alias)
       </button>
-      <button onclick="toggleUserMenu(); showLoginModal()" id="login-menu-btn" class="w-full text-left px-3 py-2 text-xs hover:bg-green-500/10 rounded-lg text-stone-300 hover:text-green-400 transition">
+      <a href="./login.html" id="login-menu-btn" class="block w-full text-left px-3 py-2 text-xs hover:bg-green-500/10 rounded-lg text-stone-300 hover:text-green-400 transition">
         🔐 Masuk Akun ToFarmer
-      </button>
+      </a>
       <button onclick="toggleUserMenu(); logout()" id="logout-btn" class="hidden w-full text-left px-3 py-2 text-xs hover:bg-rose-500/10 rounded-lg text-stone-300 hover:text-rose-400 transition">
         🚪 Logout
       </button>
@@ -243,15 +243,15 @@
           </h2>
           <p class="text-xs text-stone-300 mt-1 leading-relaxed">
             Silakan duduk. Meja obrolan terbuka—bebas curhat, cerita mistis, atau sekadar menyapa. 
-            <strong class="text-green-400">Member ToFarmer</strong> bisa membuat meja baru sendiri! 
-            <span id="member-hint" class="block mt-1 text-[10px] text-amber-600">💡 Login untuk membuka fitur meja khusus.</span>
+            <strong class="text-green-400">Member ToFarmer</strong> (sudah login dengan wallet) bisa membuat meja baru sendiri! 
+            <span id="member-hint" class="block mt-1 text-[10px] text-amber-600">💡 <a href="./login.html" class="hover:underline">Login dengan akun ToFarmer</a> untuk buka fitur buat meja.</span>
           </p>
         </div>
       </div>
       <div class="mt-3 flex gap-2 items-center flex-wrap">
-        <span class="text-[10px] bg-stone-800 text-stone-400 px-2 py-0.5 rounded">Pengunjung: <b id="user-alias" class="text-amber-400">Anonym</b></span>
-        <button onclick="changeAlias()" class="text-[10px] text-stone-400 hover:text-stone-200 underline">Ganti Nama</button>
-        <span id="member-badge" class="hidden text-[10px] bg-green-950/80 text-green-400 px-2 py-0.5 rounded border border-green-500/30">✓ Member ToFarmer</span>
+        <span class="text-[10px] bg-stone-800 text-stone-400 px-2 py-0.5 rounded">Status: <b id="user-status" class="text-amber-400">Pengunjung (Guest)</b></span>
+        <button onclick="changeAlias()" class="text-[10px] text-stone-400 hover:text-stone-200 underline">✏️ Ganti Nama Alias</button>
+        <span id="member-badge" class="hidden text-[10px] bg-green-950/80 text-green-400 px-2 py-0.5 rounded border border-green-500/30">✓ Member ToFarmer Verified</span>
       </div>
     </div>
 
@@ -314,39 +314,6 @@
   </footer>
 
   <!-- ========== MODALS ========== -->
-
-  <!-- LOGIN MODAL -->
-  <div id="login-modal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
-    <div class="glass-panel rounded-xl max-w-sm w-full border border-stone-700 shadow-2xl">
-      <div class="p-5 border-b border-stone-800 flex items-center justify-between">
-        <h3 class="text-sm font-bold text-amber-400">🔐 Masuk Akun ToFarmer</h3>
-        <button onclick="closeLoginModal()" class="text-stone-500 hover:text-stone-100">✕</button>
-      </div>
-      <div class="p-5 space-y-3">
-        <input 
-          type="text" 
-          id="login-username" 
-          placeholder="Username ToFarmer..." 
-          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 transition"
-        />
-        <input 
-          type="text" 
-          id="login-wallet" 
-          placeholder="Alamat Wallet ID..." 
-          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 transition"
-        />
-        <button 
-          onclick="handleLoginSubmit()" 
-          class="w-full bg-amber-600 hover:bg-amber-500 text-stone-950 py-2.5 rounded-lg text-xs font-bold transition"
-        >
-          Masuk Ladang
-        </button>
-        <p class="text-[10px] text-stone-500 text-center">
-          Atau <a href="/html/login.html" target="_blank" class="text-amber-400 hover:underline">buka halaman login lengkap</a>
-        </p>
-      </div>
-    </div>
-  </div>
 
   <!-- CREATE ROOM MODAL (MEMBER ONLY) -->
   <div id="create-room-modal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
@@ -446,6 +413,12 @@
 
       // Check if member logged in
       checkLoginStatus();
+      
+      // Detect if just logged in from login.html
+      if (isLoggedIn && !sessionStorage.getItem('login_detected')) {
+        sessionStorage.setItem('login_detected', 'true');
+        showLoginNotification();
+      }
 
       // Load rooms
       loadRooms();
@@ -487,15 +460,24 @@
       const loginBtn = document.getElementById('login-menu-btn');
       const logoutBtn = document.getElementById('logout-btn');
       const createRoomBtn = document.getElementById('create-room-btn');
+      const userStatus = document.getElementById('user-status');
+      const memberBadge = document.getElementById('member-badge');
+      const memberHint = document.getElementById('member-hint');
 
       if (isLoggedIn) {
         loginBtn.classList.add('hidden');
         logoutBtn.classList.remove('hidden');
         createRoomBtn.classList.remove('hidden');
+        userStatus.innerHTML = `Member: <b class="text-green-400">@${userUsername}</b>`;
+        memberBadge.classList.remove('hidden');
+        memberHint.classList.add('hidden');
       } else {
         loginBtn.classList.remove('hidden');
         logoutBtn.classList.add('hidden');
-        // Create room button tetap terlihat tapi akan trigger login modal
+        userStatus.innerHTML = `Pengunjung: <b class="text-amber-400">${userAlias}</b>`;
+        memberBadge.classList.add('hidden');
+        memberHint.classList.remove('hidden');
+        // Create room button tetap terlihat tapi akan redirect ke login
       }
     }
 
@@ -566,7 +548,9 @@
 
     function showCreateRoomModal() {
       if (!isLoggedIn) {
-        showLoginModal();
+        // Redirect ke login.html jika belum login
+        alert('Silakan login dengan akun ToFarmer untuk membuat meja baru!');
+        window.location.href = './login.html';
         return;
       }
       document.getElementById('create-room-modal').classList.remove('hidden');
@@ -586,6 +570,13 @@
     }
 
     async function handleCreateRoom() {
+      // IMPORTANT: Validasi bahwa user sudah login verified
+      if (!isLoggedIn || !userWallet || !userUsername) {
+        alert('Anda harus login dengan akun ToFarmer untuk membuat meja!');
+        window.location.href = './login.html';
+        return;
+      }
+
       const name = document.getElementById('room-name').value.trim();
       const desc = document.getElementById('room-desc').value.trim();
       const emoji = document.getElementById('selected-emoji').value;
@@ -607,7 +598,8 @@
         slug: slug,
         emoji: emoji,
         description: desc,
-        creator_id: userWallet,
+        creator_id: userWallet,           // ✓ Dari verified login
+        creator_username: userUsername,   // ✓ Dari verified login
         is_public: true,
         created_at: new Date().toISOString()
       };
@@ -630,7 +622,15 @@
       document.getElementById('room-name').value = '';
       document.getElementById('room-desc').value = '';
 
-      alert(`✓ Meja "${name}" berhasil dibuat!`);
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 left-4 right-4 sm:left-auto sm:max-w-xs glass-panel p-3 rounded-lg border border-green-500/50 z-50';
+      notification.innerHTML = `
+        <p class="text-xs font-bold text-green-400">✓ Meja "${name}" berhasil dibuat!</p>
+        <p class="text-[10px] text-stone-400 mt-1">Mulai obrolan bersama di meja baru 👇</p>
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => notification.remove(), 3000);
     }
 
     // ========== EMOJI PICKER ==========
@@ -791,57 +791,9 @@
     }
 
     // ========== LOGIN & USER ==========
-    function showLoginModal() {
-      document.getElementById('login-modal').classList.remove('hidden');
-    }
-
-    function closeLoginModal() {
-      document.getElementById('login-modal').classList.add('hidden');
-    }
-
-    async function handleLoginSubmit() {
-      const username = document.getElementById('login-username').value.trim();
-      const wallet = document.getElementById('login-wallet').value.trim();
-
-      if (!username || !wallet) {
-        alert('Username dan Wallet harus diisi!');
-        return;
-      }
-
-      if (!supabaseClient) {
-        alert('Koneksi tidak tersedia');
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('username', username)
-        .eq('id', wallet)
-        .single();
-
-      if (error || !data) {
-        alert('Username atau Wallet tidak ditemukan!');
-        return;
-      }
-
-      // Store login
-      localStorage.setItem('tof_wallet', data.id);
-      localStorage.setItem('tof_username', data.username);
-
-      // Update state
-      userWallet = data.id;
-      userUsername = data.username;
-      isLoggedIn = true;
-      isMember = true;
-
-      updateUIForLoginStatus();
-      checkLoginStatus();
-      closeLoginModal();
-
-      alert(`Selamat datang kembali, @${data.username}!`);
-    }
-
+    // Login dilakukan via login.html (proper flow dengan DB validation)
+    // index.html hanya read localStorage yang sudah di-set oleh login.html
+    
     function logout() {
       localStorage.removeItem('tof_wallet');
       localStorage.removeItem('tof_username');
@@ -913,6 +865,25 @@
         toast.classList.add('translate-y-32', 'opacity-0');
         localStorage.setItem('hide_cta_toast', 'true');
       }
+    }
+
+    function showLoginNotification() {
+      // Show success notification for fresh login
+      const notification = document.createElement('div');
+      notification.className = 'fixed top-4 right-4 glass-panel p-4 rounded-lg border border-green-500/50 max-w-xs z-50 animate-bounce';
+      notification.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-xl">✅</span>
+          <div>
+            <p class="text-xs font-bold text-green-400">Selamat datang, @${userUsername}!</p>
+            <p class="text-[10px] text-stone-400 mt-0.5">Kamu sekarang bisa membuat meja baru.</p>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(notification);
+      
+      // Remove after 4 seconds
+      setTimeout(() => notification.remove(), 4000);
     }
 
     function setupRealtimeSubscription() {
