@@ -406,58 +406,88 @@
 
     // ========== INIT ==========
     function init() {
-      // Create Supabase client
+      console.log('🚀 init() starting...');
+      
+      // 1. Create Supabase client FIRST
       if (typeof window.supabase !== 'undefined' && !SUPABASE_URL.includes("YOUR_SUPABASE")) {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✓ Supabase client created');
       }
 
-      // Check if member logged in
+      // 2. Check login status dari localStorage (CRITICAL!)
+      console.log('→ Step 1: Checking login status from localStorage...');
       checkLoginStatus();
       
-      // Detect if just logged in from login.html
+      // 3. Detect if just logged in from login.html
       if (isLoggedIn && !sessionStorage.getItem('login_detected')) {
+        console.log('🆕 New login detected from login.html');
         sessionStorage.setItem('login_detected', 'true');
         showLoginNotification();
       }
 
-      // Load rooms
+      // 4. Update UI based on login status
+      console.log('→ Step 2: Updating UI based on login status...');
+      updateUIForLoginStatus();
+      
+      // 5. Display user alias
+      const userAliasEl = document.getElementById('user-alias');
+      if (userAliasEl) {
+        userAliasEl.innerText = userAlias;
+        console.log('✓ User alias set:', userAlias);
+      }
+
+      // 6. Load rooms & messages
+      console.log('→ Step 3: Loading rooms and messages...');
       loadRooms();
-
-      // Setup emoji picker
-      setupEmojiPicker();
-
-      // Load messages
       loadMessages();
 
-      // Setup realtime
+      // 7. Setup features
+      setupEmojiPicker();
       setupRealtimeSubscription();
-
-      // Show CTA toast
       setTimeout(showCtaToast, 5000);
 
-      // Update UI based on login
-      updateUIForLoginStatus();
-
-      document.getElementById('user-alias').innerText = userAlias;
+      console.log('✅ init() complete!', {
+        isLoggedIn,
+        userAlias,
+        userUsername,
+        isMember
+      });
     }
 
     function checkLoginStatus() {
-  userWallet = localStorage.getItem('tof_wallet');
-  userUsername = localStorage.getItem('tof_username');
-  isLoggedIn = !!(userWallet && userUsername);
-  isMember = isLoggedIn;
+      // 1. Try get dari localStorage
+      userWallet = localStorage.getItem('tof_wallet');
+      userUsername = localStorage.getItem('tof_username');
+      
+      // Debug
+      console.log('📍 checkLoginStatus() - read:', { userWallet: !!userWallet, userUsername });
+      
+      // 2. Set isLoggedIn based on BOTH values
+      isLoggedIn = !!(userWallet && userUsername);
+      isMember = isLoggedIn;
 
-  if (isLoggedIn) {
-    userAlias = userUsername;
-    localStorage.setItem('tofarmer_alias', userUsername);
-  }
-
+      // 3. Jika member, gunakan username sebagai alias
       if (isLoggedIn) {
-        document.getElementById('user-label').innerText = userUsername;
-        document.getElementById('menu-username').innerText = '@' + userUsername;
-        document.getElementById('menu-status').innerText = '✓ Member ToFarmer';
-        document.getElementById('member-badge').classList.remove('hidden');
-        document.getElementById('member-hint').classList.add('hidden');
+        userAlias = userUsername;
+        localStorage.setItem('tofarmer_alias', userUsername);
+        console.log('✓ Member login detected. userAlias:', userAlias);
+        
+        // Update UI elements immediately
+        const userLabel = document.getElementById('user-label');
+        const menuUsername = document.getElementById('menu-username');
+        const menuStatus = document.getElementById('menu-status');
+        const memberBadge = document.getElementById('member-badge');
+        const memberHint = document.getElementById('member-hint');
+        
+        if (userLabel) userLabel.innerText = userUsername;
+        if (menuUsername) menuUsername.innerText = '@' + userUsername;
+        if (menuStatus) menuStatus.innerText = '✓ Member ToFarmer';
+        if (memberBadge) memberBadge.classList.remove('hidden');
+        if (memberHint) memberHint.classList.add('hidden');
+      } else {
+        // Guest: use alias dari localStorage
+        userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
+        console.log('👤 Guest mode. userAlias:', userAlias);
       }
     }
 
@@ -907,6 +937,61 @@
 
     // ========== STARTUP ==========
     init();
+
+    // ========== DEBUG HELPERS ==========
+    window.debugLoginStatus = function() {
+      console.clear();
+      console.log('🔍 ===== LOGIN STATUS DEBUG =====');
+      console.log('');
+      console.log('📍 localStorage values:');
+      console.log('  tof_wallet:', localStorage.getItem('tof_wallet') || '(empty)');
+      console.log('  tof_username:', localStorage.getItem('tof_username') || '(empty)');
+      console.log('  tofarmer_alias:', localStorage.getItem('tofarmer_alias') || '(empty)');
+      console.log('');
+      console.log('📊 App state:');
+      console.log('  isLoggedIn:', isLoggedIn);
+      console.log('  isMember:', isMember);
+      console.log('  userUsername:', userUsername);
+      console.log('  userWallet:', userWallet);
+      console.log('  userAlias:', userAlias);
+      console.log('');
+      console.log('✅ Recommendation:');
+      if (isLoggedIn) {
+        console.log('  ✓ User is MEMBER. Should see member badge & create room button.');
+      } else {
+        console.log('  ⚠️  User is GUEST. Login from login.html or click "Masuk" button.');
+        if (!localStorage.getItem('tof_wallet')) {
+          console.log('  → tof_wallet is empty in localStorage!');
+          console.log('  → Make sure login.html v2 (with PIN) is used.');
+        }
+      }
+      console.log('');
+    };
+
+    window.testAutoDetectLogin = function() {
+      console.clear();
+      console.log('🧪 ===== AUTO-DETECT LOGIN TEST =====');
+      console.log('');
+      console.log('Step 1: Set localStorage manually');
+      localStorage.setItem('tof_wallet', 'TEST_WALLET_12345');
+      localStorage.setItem('tof_username', 'testuser');
+      console.log('  ✓ Set tof_wallet & tof_username');
+      console.log('');
+      console.log('Step 2: Call checkLoginStatus()');
+      checkLoginStatus();
+      console.log('  ✓ checkLoginStatus() called');
+      console.log('');
+      console.log('Step 3: Check result');
+      console.log('  isLoggedIn:', isLoggedIn);
+      console.log('  userUsername:', userUsername);
+      if (isLoggedIn && userUsername === 'testuser') {
+        console.log('✅ TEST PASSED!');
+      } else {
+        console.log('❌ TEST FAILED!');
+      }
+    };
+
+    console.log('💡 Debug helpers: debugLoginStatus() | testAutoDetectLogin()');
   </script>
 
   <!-- Cloudflare Web Analytics -->
