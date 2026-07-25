@@ -442,10 +442,15 @@
     }
 
     function checkLoginStatus() {
-      userWallet = localStorage.getItem('tof_wallet');
-      userUsername = localStorage.getItem('tof_username');
-      isLoggedIn = !!(userWallet && userUsername);
-      isMember = isLoggedIn;
+  userWallet = localStorage.getItem('tof_wallet');
+  userUsername = localStorage.getItem('tof_username');
+  isLoggedIn = !!(userWallet && userUsername);
+  isMember = isLoggedIn;
+
+  if (isLoggedIn) {
+    userAlias = userUsername;
+    localStorage.setItem('tofarmer_alias', userUsername);
+  }
 
       if (isLoggedIn) {
         document.getElementById('user-label').innerText = userUsername;
