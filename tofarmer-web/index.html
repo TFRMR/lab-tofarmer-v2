@@ -455,12 +455,17 @@
     }
 
     function checkLoginStatus() {
-      // 1. Try get dari localStorage
+      // 1. Try get dari localStorage (sesuai struktur app.js)
       userWallet = localStorage.getItem('tof_wallet');
-      userUsername = localStorage.getItem('tof_username');
+      userUsername = localStorage.getItem('tof_login_username'); // ← FIX: Use tof_login_username (sama seperti app.js)
       
       // Debug
       console.log('📍 checkLoginStatus() - read:', { userWallet: !!userWallet, userUsername });
+      console.log('💾 localStorage keys:', {
+        tof_wallet: localStorage.getItem('tof_wallet'),
+        tof_login_username: localStorage.getItem('tof_login_username'),
+        tof_username: localStorage.getItem('tof_username')
+      });
       
       // 2. Set isLoggedIn based on BOTH values
       isLoggedIn = !!(userWallet && userUsername);
@@ -943,9 +948,9 @@
       console.clear();
       console.log('🔍 ===== LOGIN STATUS DEBUG =====');
       console.log('');
-      console.log('📍 localStorage values:');
+      console.log('📍 localStorage values (from app.js):');
       console.log('  tof_wallet:', localStorage.getItem('tof_wallet') || '(empty)');
-      console.log('  tof_username:', localStorage.getItem('tof_username') || '(empty)');
+      console.log('  tof_login_username:', localStorage.getItem('tof_login_username') || '(empty)'); // ← FIX: Check tof_login_username
       console.log('  tofarmer_alias:', localStorage.getItem('tofarmer_alias') || '(empty)');
       console.log('');
       console.log('📊 App state:');
@@ -959,10 +964,14 @@
       if (isLoggedIn) {
         console.log('  ✓ User is MEMBER. Should see member badge & create room button.');
       } else {
-        console.log('  ⚠️  User is GUEST. Login from login.html or click "Masuk" button.');
+        console.log('  ⚠️  User is GUEST. Login from app.js (web utama) or click "Masuk" button.');
         if (!localStorage.getItem('tof_wallet')) {
           console.log('  → tof_wallet is empty in localStorage!');
-          console.log('  → Make sure login.html v2 (with PIN) is used.');
+          console.log('  → Make sure you logged in from app.js (web utama).');
+        }
+        if (!localStorage.getItem('tof_login_username')) {
+          console.log('  → tof_login_username is empty in localStorage!');
+          console.log('  → Make sure you logged in from app.js (web utama).');
         }
       }
       console.log('');
@@ -972,10 +981,10 @@
       console.clear();
       console.log('🧪 ===== AUTO-DETECT LOGIN TEST =====');
       console.log('');
-      console.log('Step 1: Set localStorage manually');
+      console.log('Step 1: Set localStorage manually (simulating app.js login)');
       localStorage.setItem('tof_wallet', 'TEST_WALLET_12345');
-      localStorage.setItem('tof_username', 'testuser');
-      console.log('  ✓ Set tof_wallet & tof_username');
+      localStorage.setItem('tof_login_username', 'testuser'); // ← FIX: Use tof_login_username (from app.js)
+      console.log('  ✓ Set tof_wallet & tof_login_username');
       console.log('');
       console.log('Step 2: Call checkLoginStatus()');
       checkLoginStatus();

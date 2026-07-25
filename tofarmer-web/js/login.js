@@ -105,9 +105,9 @@ async function handleLogin(event) {
             return;
         }
 
-        // 4. Login berhasil! Set localStorage
+        // 4. Login berhasil! Set localStorage (sesuai struktur app.js)
         localStorage.setItem('tof_wallet', data.id);
-        localStorage.setItem('tof_username', data.username);
+        localStorage.setItem('tof_login_username', data.username); // ← FIX: Use tof_login_username (sesuai app.js)
         
         // Level calculation (from index.html)
         const effectiveXp = (data.xp || 0) + (data.saldo_tof || 0) * 1000;
