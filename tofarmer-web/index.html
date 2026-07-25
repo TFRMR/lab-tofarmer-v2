@@ -398,6 +398,7 @@
     let userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
     let soundEnabled = true;
     let isLoggedIn = false;
+    let wasLoggedIn = false; // ← Track untuk detect logout
     let userWallet = null;
     let userUsername = null;
     let isMember = false;
@@ -470,6 +471,15 @@
       // 2. Set isLoggedIn based on BOTH values
       isLoggedIn = !!(userWallet && userUsername);
       isMember = isLoggedIn;
+
+      // 2.5 DETECT LOGOUT: Jika sebelumnya login, tapi sekarang logout
+      if (wasLoggedIn && !isLoggedIn) {
+        console.log('🚪 Logout detected! Clearing alias...');
+        localStorage.removeItem('tofarmer_alias');
+        userAlias = generateRandomAlias();
+        localStorage.setItem('tofarmer_alias', userAlias);
+      }
+      wasLoggedIn = isLoggedIn; // Update untuk next check
 
       // 3. Jika member, gunakan username sebagai alias
       if (isLoggedIn) {
@@ -836,14 +846,20 @@
     
     function logout() {
       localStorage.removeItem('tof_wallet');
-      localStorage.removeItem('tof_username');
+      localStorage.removeItem('tof_login_username'); // ← FIX: Remove correct key (sesuai app.js)
+      localStorage.removeItem('tofarmer_alias'); // ← FIX: Clear alias agar random baru saat guest
       userWallet = null;
       userUsername = null;
       isLoggedIn = false;
       isMember = false;
+      
+      // Generate alias baru untuk guest
+      userAlias = generateRandomAlias();
+      localStorage.setItem('tofarmer_alias', userAlias);
+      
       updateUIForLoginStatus();
       checkLoginStatus();
-      alert('Anda telah logout.');
+      alert('Anda telah logout. Sampai jumpa! 🌿');
     }
 
     function changeAlias() {
