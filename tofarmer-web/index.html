@@ -863,22 +863,86 @@
     }
 
     function changeAlias() {
-      document.getElementById('alias-input').value = userAlias;
-      document.getElementById('alias-modal').classList.remove('hidden');
+      console.log('📝 changeAlias() called');
+      console.log('  userAlias:', userAlias);
+      console.log('  isLoggedIn:', isLoggedIn);
+      
+      const modal = document.getElementById('alias-modal');
+      const input = document.getElementById('alias-input');
+      
+      if (!modal) {
+        console.error('❌ alias-modal element not found!');
+        alert('Error: Modal tidak ditemukan');
+        return;
+      }
+      
+      if (!input) {
+        console.error('❌ alias-input element not found!');
+        alert('Error: Input tidak ditemukan');
+        return;
+      }
+      
+      // Set nilai input
+      input.value = userAlias;
+      console.log('✓ Input value set to:', userAlias);
+      
+      // Remove hidden class
+      modal.classList.remove('hidden');
+      console.log('✓ Modal class:', modal.className);
+      
+      // Focus input untuk UX
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 50);
     }
 
     function closeAliasModal() {
-      document.getElementById('alias-modal').classList.add('hidden');
+      const modal = document.getElementById('alias-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        console.log('✓ Modal closed');
+      }
     }
 
     function handleChangeAlias() {
       const newAlias = document.getElementById('alias-input').value.trim();
-      if (!newAlias) return;
+      console.log('💾 handleChangeAlias() - newAlias:', newAlias);
+      
+      if (!newAlias) {
+        alert('Nama tidak boleh kosong!');
+        return;
+      }
+      
+      if (newAlias.length < 2) {
+        alert('Nama minimal 2 karakter!');
+        return;
+      }
 
       userAlias = newAlias;
       localStorage.setItem('tofarmer_alias', newAlias);
-      document.getElementById('user-alias').innerText = newAlias;
+      
+      // Update display
+      const userAliasEl = document.getElementById('user-alias');
+      if (userAliasEl) {
+        userAliasEl.innerText = newAlias;
+      }
+      
+      // Update user label
+      const userLabel = document.getElementById('user-label');
+      if (userLabel) {
+        userLabel.innerText = newAlias;
+      }
+      
+      console.log('✓ Alias updated to:', newAlias);
+      
       closeAliasModal();
+      
+      // Show feedback
+      playPopSound();
+      const msg = `✓ Nama berubah menjadi: ${newAlias}`;
+      console.log(msg);
+      alert(msg);
     }
 
     function toggleUserMenu() {
