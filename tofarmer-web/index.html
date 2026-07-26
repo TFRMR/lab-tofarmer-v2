@@ -997,15 +997,19 @@
           );
 
           if (uploadResult?.success) {
+            // Only store image_url (not image_data) - image_data column doesn't exist
             newMsg.image_url = uploadResult.url;
             newMsg.image_id = uploadResult.imageId;
             console.log('✓ Image uploaded to Supabase:', uploadResult.url);
           } else {
-            newMsg.image_data = imageData.dataUrl;  // Fallback to base64
+            // Fallback: store as base64 in image_url (not image_data)
+            newMsg.image_url = imageData.dataUrl;
+            console.log('⚠️  Using base64 fallback');
           }
         } catch (error) {
           console.error('⚠️  Image upload failed:', error);
-          newMsg.image_data = imageData.dataUrl;  // Fallback to base64
+          // Fallback: store as base64
+          newMsg.image_url = imageData.dataUrl;
         }
       }
 
@@ -1019,13 +1023,24 @@
         return;
       }
 
-      // Insert to database
-      const { error } = await supabaseClient.from('lounge_messages').insert([newMsg]);
+      // Insert to database - ONLY insert columns that exist
+      const { error } = await supabaseClient
+        .from('lounge_messages')
+        .insert([{
+          sender: newMsg.sender,
+          content: newMsg.content,
+          channel: newMsg.channel,
+          is_bot: newMsg.is_bot,
+          created_at: newMsg.created_at,
+          image_url: newMsg.image_url || null  // ← Only this if image
+          // Don't insert image_data - column doesn't exist!
+        }]);
       
       if (error) {
         console.error('Insert error:', error);
         alert('Gagal mengirim pesan');
       } else {
+        console.log('✓ Message inserted');
         // Clear image preview after successful send
         removeChatImagePreview();
         window.pendingChatImage = null;
