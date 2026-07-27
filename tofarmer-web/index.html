@@ -2,1088 +2,774 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ToFarmer • Isoteri Kopi</title>
-  
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Isoteri Kopi - Kedai ToFarmer</title>
   
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="icon" type="image/png" href="aset/favicon.png">
+  
   <style>
-  /* Fix Viewport Height HP */
-  html, body {
-    height: 100%;
-    height: 100dvh;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-  }
-
-  /* 1. Custom Scrollbar Warm Forest */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #070e0a; }
-  ::-webkit-scrollbar-thumb { background: #183323; border-radius: 2px; }
-
-  /* 2. Background Utama Hutan Menoreh Kelam */
-  body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
-    background:
-      radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
-      radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
-      linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
-  }
-
-  /* 3. Kabut Lembuat Pegunungan Menoreh */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background: linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0));
-    pointer-events: none;
-    animation: fog 14s ease-in-out infinite;
-    z-index: 0;
-  }
-
-  @keyframes fog {
-    0% { transform: translateX(-3%); }
-    50% { transform: translateX(3%); }
-    100% { transform: translateX(-3%); }
-  }
-
-  /* 4. Glass Panel Khas Hutan & Kedai Kopi */
-  .glass-panel {
-    background: rgba(14, 28, 19, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(74, 222, 128, 0.12);
-  }
-
-  /* Modal Backdrop */
-  .modal-backdrop {
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-  }
-
-  /* Emoji Picker Styles */
-  .emoji-picker-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-    padding: 8px;
-  }
-
-  .emoji-item {
-    cursor: pointer;
-    font-size: 24px;
-    padding: 8px;
-    border-radius: 8px;
-    text-align: center;
-    transition: all 0.2s;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(74, 222, 128, 0.1);
-  }
-
-  .emoji-item:hover {
-    background: rgba(234, 179, 8, 0.2);
-    transform: scale(1.2);
-    border-color: rgba(234, 179, 8, 0.3);
-  }
-
-  /* Animation untuk new message */
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
+    * {
+      box-sizing: border-box;
     }
-    to {
-      opacity: 1;
-      transform: translateY(0);
+    
+    body {
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #050b07;
+      color: #d4af37;
     }
-  }
-
-  .message-new {
-    animation: slideUp 0.3s ease-out;
-  }
-
-  /* Link styling */
-  a.chat-link {
-    color: #eab308;
-    text-decoration: underline;
-    font-weight: 500;
-    transition: 0.2s;
-  }
-
-  a.chat-link:hover {
-    color: #facc15;
-  }
-
-  /* Loading skeleton */
-  @keyframes shimmer {
-    0% { background-position: -1000px 0; }
-    100% { background-position: 1000px 0; }
-  }
-
-  .skeleton {
-    background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.15), rgba(255,255,255,0.05));
-    background-size: 1000px 100%;
-    animation: shimmer 2s infinite;
-  }
-
-  /* Glow effect untuk unread badge */
-  @keyframes glow {
-    0%, 100% { box-shadow: 0 0 8px rgba(234, 179, 8, 0.3); }
-    50% { box-shadow: 0 0 16px rgba(234, 179, 8, 0.6); }
-  }
-
-  .glow-badge {
-    animation: glow 2s infinite;
-  }
-
-  /* Tooltip */
-  .tooltip {
-    position: relative;
-  }
-
-  .tooltip::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: #eab308;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-    margin-bottom: 4px;
-  }
-
-  .tooltip:hover::after {
-    opacity: 1;
-  }
+    
+    /* KEDAI */
+    .kedai {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* area meja */
+    .ruang {
+      flex: 1;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background:
+        radial-gradient(circle at center, rgba(212, 175, 55, 0.1), transparent 40%),
+        linear-gradient(#0f0c0a, #050403);
+    }
+    
+    /* meja */
+    .meja {
+      width: 280px;
+      height: 130px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #5a3a20, #182a15);
+      box-shadow: 0 40px 80px #000;
+      position: relative;
+    }
+    
+    /* cangkir */
+    .cangkir {
+      position: absolute;
+      width: 45px;
+      height: 45px;
+      background: #d4af37;
+      color: #1a1410;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 25px;
+      cursor: pointer;
+      animation: muncul 0.5s;
+      font-weight: bold;
+    }
+    
+    .c1 {
+      left: 70px;
+      top: -20px;
+    }
+    
+    .c2 {
+      right: 70px;
+      top: -20px;
+    }
+    
+    .penjaga {
+      position: absolute;
+      bottom: 20px;
+      font-size: 13px;
+      color: #d4af37;
+      text-align: center;
+      width: 100%;
+    }
+    
+    @keyframes muncul {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    
+    /* CHAT */
+    .chat {
+      height: 40%;
+      background: #0d0a07;
+      border-top: 2px solid #3d6f2e;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .pesan {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+    
+    .bubble {
+      margin-bottom: 10px;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    
+    .nama {
+      color: #d4af37;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    
+    .konten {
+      color: #b0b0b0;
+      margin-top: 3px;
+      word-wrap: break-word;
+    }
+    
+    .waktu {
+      font-size: 10px;
+      color: #666;
+      margin-top: 2px;
+    }
+    
+    /* IMAGE PREVIEW */
+    .image-preview-container {
+      display: none;
+      padding: 10px;
+      border-bottom: 1px solid #3d6f2e;
+    }
+    
+    .image-preview-container.show {
+      display: block;
+    }
+    
+    .image-preview-container img {
+      max-width: 150px;
+      max-height: 150px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .image-size-info {
+      font-size: 11px;
+      color: #999;
+      margin-top: 5px;
+    }
+    
+    /* INPUT */
+    .input {
+      display: flex;
+      padding: 10px;
+      gap: 8px;
+      border-top: 1px solid #3d6f2e;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+    
+    input[type="text"] {
+      flex: 1;
+      min-width: 150px;
+      background: #16100a;
+      border: 1px solid #3d6f2e;
+      padding: 10px;
+      color: #d4af37;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    
+    input[type="text"]::placeholder {
+      color: #666;
+    }
+    
+    button {
+      background: #3d6f2e;
+      border: 1px solid #5a9b3f;
+      border-radius: 8px;
+      padding: 8px 15px;
+      cursor: pointer;
+      color: #d4af37;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    
+    button:hover {
+      background: #5a9b3f;
+    }
+    
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      margin-right: 5px;
+    }
+    
+    .status-indicator.offline {
+      background: #ef4444;
+    }
+    
+    /* pintu/masuk */
+    .pintu {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      color: #d4af37;
+      font-size: 12px;
+      cursor: pointer;
+      background: #3d6f2e;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #5a9b3f;
+      transition: all 0.2s;
+    }
+    
+    .pintu:hover {
+      background: #5a9b3f;
+    }
+    
+    /* user info */
+    .user-info {
+      position: absolute;
+      left: 20px;
+      top: 20px;
+      color: #d4af37;
+      font-size: 12px;
+      background: #3d6f2e;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #5a9b3f;
+    }
+    
+    .user-info .member {
+      color: #4ade80;
+    }
+    
+    /* upload button */
+    .upload-btn {
+      background: #3d6f2e;
+      border: 1px solid #5a9b3f;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      color: #d4af37;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    
+    .upload-btn:hover {
+      background: #5a9b3f;
+    }
+    
+    .upload-btn:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+    
+    .error-message {
+      color: #ef4444;
+      font-size: 11px;
+      padding: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 4px;
+      margin: 5px 0;
+    }
   </style>
 </head>
-<body class="bg-stone-950 text-stone-100 font-sans h-dvh flex flex-col overflow-hidden selection:bg-amber-600 selection:text-stone-950 relative">
-
-  <!-- HEADER / APP BAR -->
-  <header class="glass-panel sticky top-0 z-40 px-4 py-3 flex items-center justify-between border-b border-stone-800 shrink-0">
-    <div class="flex items-center space-x-3">
-      <div class="relative flex items-center justify-center">
-        <span class="w-2.5 h-2.5 bg-amber-500 rounded-full animate-ping absolute"></span>
-        <span class="w-2.5 h-2.5 bg-amber-500 rounded-full relative"></span>
+<body>
+  <div class="kedai">
+    <!-- RUANG MEJA -->
+    <div class="ruang">
+      <!-- User Info -->
+      <div class="user-info">
+        👤 <span id="user-display">Pengunjung</span>
+        <span class="member" id="member-badge" style="display:none;">✓ Member</span>
+        <div style="margin-top: 5px;">
+          <span class="status-indicator" id="status-indicator"></span>
+          <span id="status-text" style="font-size: 10px;">Connecting...</span>
+        </div>
       </div>
-      <div>
-        <h1 class="font-bold text-sm tracking-wide text-stone-100 flex items-center gap-1.5">
-          ToFarmer <span class="text-[10px] bg-amber-950/80 text-amber-400 px-2 py-0.5 rounded-full border border-amber-800/50">ISOTERI KOPI</span>
-        </h1>
-        <p class="text-[11px] text-stone-400" id="online-counter">Menyeduh koneksi...</p>
+      
+      <!-- Pintu/Masuk -->
+      <div class="pintu" onclick="bukaPintu()">
+        🚪 ToFarmer
+      </div>
+      
+      <!-- Meja -->
+      <div class="meja">
+        <div class="cangkir c1" style="display: none;">☕</div>
+        <div class="cangkir c2" style="display: none;">☕</div>
+      </div>
+      
+      <!-- Penjaga -->
+      <div class="penjaga">
+        ☕ Kedai Terbuka | Silakan Duduk & Berbagi
       </div>
     </div>
-
-    <!-- Right Controls -->
-    <div class="flex items-center space-x-2">
-      <button id="sound-toggle" onclick="toggleSound()" class="p-2 text-stone-400 hover:text-stone-200 bg-stone-900 rounded-lg border border-stone-800 text-xs flex items-center gap-1 tooltip" data-tooltip="Toggle suara">
-        🔊 <span class="hidden sm:inline">Suara</span>
-      </button>
-      <button id="user-menu-btn" onclick="toggleUserMenu()" class="px-3 py-1.5 text-xs font-medium bg-stone-900 hover:bg-stone-800 text-amber-400 rounded-lg transition-all flex items-center gap-1.5 border border-stone-700 tooltip" data-tooltip="Menu profil">
-        👤 <span id="user-label" class="hidden sm:inline">Anonym</span>
-      </button>
-      <a id="login-btn-header" href="./beranda.html" class="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-lg transition-all flex items-center gap-1 shadow-lg shadow-amber-900/20 font-semibold">
-        ☕ <span class="hidden sm:inline">TOUR</span>
-      </a>
-    </div>
-  </header>
-
-  <!-- USER DROPDOWN MENU (MEMBER-ONLY) -->
-  <div id="user-menu-dropdown" class="hidden absolute top-14 right-4 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl z-50 min-w-[200px] overflow-hidden glass-panel">
-    <div class="p-3 border-b border-stone-800">
-      <p class="text-xs text-stone-400">Status Pengguna</p>
-      <p class="text-sm font-bold text-amber-400" id="menu-username">Anonym</p>
-      <p class="text-[10px] text-stone-500 mt-0.5" id="menu-status">Mode Tamu (Guest)</p>
-    </div>
-    <div class="p-2 space-y-1">
-      <button onclick="changeAlias()" class="w-full text-left px-3 py-2 text-xs hover:bg-amber-500/10 rounded-lg text-stone-300 hover:text-amber-400 transition">
-        ✏️ Ganti Nama (Alias)
-      </button>
-      <a href="/html/login.html" id="login-menu-btn" class="block w-full text-left px-3 py-2 text-xs hover:bg-green-500/10 rounded-lg text-stone-300 hover:text-green-400 transition">
-        🔐 Masuk Akun ToFarmer
-      </a>
-      <button onclick="toggleUserMenu(); logout()" id="logout-btn" class="hidden w-full text-left px-3 py-2 text-xs hover:bg-rose-500/10 rounded-lg text-stone-300 hover:text-rose-400 transition">
-        🚪 Logout
-      </button>
-    </div>
-  </div>
-
-  <!-- CHANNEL SELECTOR / ROOMS LIST -->
-  <div class="bg-stone-900/90 border-b border-stone-800/80 px-3 py-2 flex items-center space-x-2 overflow-x-auto text-xs shrink-0 no-scrollbar">
-    <span class="text-stone-500 text-[10px] font-mono uppercase tracking-wider pl-1 pr-2">Meja:</span>
-    <div id="rooms-container" class="flex items-center space-x-2 overflow-x-auto">
-      <!-- Rooms akan dimuat secara dinamis di sini -->
-    </div>
-    <button id="create-room-btn" onclick="showCreateRoomModal()" class="ml-2 px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/30 whitespace-nowrap hover:bg-green-500/20 font-medium transition text-xs tooltip" data-tooltip="Buat meja baru (member)">
-      ➕ Baru
-    </button>
-  </div>
-
-  <!-- MAIN STREAM AREA -->
-  <main class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 relative" id="chat-stream">
     
-    <!-- Welcome Card -->
-    <div class="p-4 rounded-xl bg-gradient-to-r from-stone-900 via-stone-900 to-amber-950/40 border border-stone-800 mb-4 shadow-inner">
-      <div class="flex items-start justify-between">
-        <div>
-          <h2 class="text-sm font-bold text-amber-400 flex items-center gap-1.5">
-            ☕ Selamat Datang di Kedai ISOTERI KOPI - ToFarmer
-          </h2>
-          <p class="text-xs text-stone-300 mt-1 leading-relaxed">
-            Silakan duduk. Meja obrolan terbuka—bebas curhat, cerita mistis, atau sekadar menyapa. 
-           
-            <span id="member-hint" class="block mt-1 text-[10px] text-amber-600">💡 <a href="/html/login.html" class="hover:underline">Gunakan akun ToFarmer</a> untuk buka fitur buat meja.</span>
-          </p>
-        </div>
+    <!-- CHAT -->
+    <div class="chat">
+      <!-- Pesan Area -->
+      <div class="pesan" id="pesan">
+        <!-- Messages akan di-append di sini -->
       </div>
-      <div class="mt-3 flex gap-2 items-center flex-wrap">
-        <span class="text-[10px] bg-stone-800 text-stone-400 px-2 py-0.5 rounded">Status: <b id="user-status" class="text-amber-400">Pengunjung (Guest)</b></span>
-        <button onclick="changeAlias()" class="text-[10px] text-stone-400 hover:text-stone-200 underline">✏️ GANTI NAMA ALIAS</button>
-        <span id="member-badge" class="hidden text-[10px] bg-green-950/80 text-green-400 px-2 py-0.5 rounded border border-green-500/30">✓ Member ToFarmer Verified</span>
+      
+      <!-- Image Preview -->
+      <div class="image-preview-container" id="image-preview-container">
+        <img id="image-preview" src="" alt="Preview">
+        <div class="image-size-info" id="image-size-info"></div>
+        <button onclick="hapusGambar()" style="width: 100%; margin-bottom: 5px;">❌ Hapus Gambar</button>
       </div>
-    </div>
-
-    <!-- Messages Container -->
-    <div id="message-list" class="space-y-3"></div>
-
-  </main>
-
-  <!-- FLOATING HOOK TOAST -->
-  <div id="cta-toast" class="fixed bottom-24 right-4 left-4 sm:left-auto sm:max-w-xs glass-panel p-3.5 rounded-xl border border-amber-500/30 shadow-2xl flex items-center justify-between space-x-3 transition-all duration-500 transform translate-y-32 opacity-0 z-30 pointer-events-auto">
-    <div class="text-xs">
-      <p class="font-bold text-amber-400 flex items-center gap-1">☕ Sambil Ngopi?</p>
-      <p class="text-stone-300 text-[11px] mt-0.5">Intip racikan rekayasa teknologi & ilmu tani ToFarmer.</p>
-    </div>
-    <div class="flex items-center space-x-1.5">
-      <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-[11px] rounded-lg whitespace-nowrap">
-        Cek Pustaka
-      </a>
-      <button onclick="hideCtaToast()" title="Sembunyikan" class="text-stone-400 hover:text-stone-100 p-1.5 rounded-lg hover:bg-stone-800/80 transition text-xs font-bold leading-none">
-        ✕
-      </button>
-    </div>
-  </div>
-
-  <!-- INPUT CONTROLLER WITH EMOJI PICKER -->
-  <footer class="p-3 bg-stone-900/95 border-t border-stone-800 glass-panel shrink-0 z-40">
-    <div class="flex items-end space-x-2 relative">
-      <!-- Emoji Picker Trigger -->
-      <button onclick="toggleEmojiPicker()" class="p-2.5 text-amber-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Emoji & stiker">
-        😊
-      </button>
-
-      <!-- Emoji Picker Panel (Hidden by default) -->
-      <div id="emoji-picker-panel" class="hidden absolute bottom-14 left-0 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl z-50 w-64">
-        <div class="p-2 border-b border-stone-800">
-          <p class="text-[10px] text-stone-500 font-mono uppercase tracking-wider">Emoji & Reaksi</p>
-        </div>
-        <div id="emoji-grid" class="emoji-picker-grid max-h-48 overflow-y-auto"></div>
-      </div>
-
-      <!-- Message Input -->
-      <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex-1 flex items-end space-x-2">
-        <textarea 
-          id="message-input" 
-          rows="2"
-          placeholder="Pesan cangkir kopimu..." 
-          autocomplete="off"
-          onkeydown="handleKeyDown(event)"
-          class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 transition resize-none leading-relaxed"
-        ></textarea>
-        <button 
-          type="submit" 
-          class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-stone-950 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center shadow-md shadow-amber-900/20 h-[52px] shrink-0 tooltip" 
-          data-tooltip="Kirim (Shift+Enter: baris baru)"
-        >
-          Kirim
-        </button>
-      </form>
-    </div>
-  </footer>
-
-  <!-- ========== MODALS ========== -->
-
-  <!-- CREATE ROOM MODAL (MEMBER ONLY) -->
-  <div id="create-room-modal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
-    <div class="glass-panel rounded-xl max-w-sm w-full border border-stone-700 shadow-2xl">
-      <div class="p-5 border-b border-stone-800 flex items-center justify-between">
-        <h3 class="text-sm font-bold text-green-400">➕ Buat Meja Baru</h3>
-        <button onclick="closeCreateRoomModal()" class="text-stone-500 hover:text-stone-100">✕</button>
-      </div>
-      <div class="p-5 space-y-3">
-        <div>
-          <label class="text-[10px] text-stone-400 font-semibold block mb-1">Pilih Emoji Meja</label>
-          <div class="grid grid-cols-6 gap-2">
-            <button type="button" onclick="selectRoomEmoji('☕')" class="p-2 text-lg hover:bg-amber-500/20 rounded-lg border border-stone-700 hover:border-amber-500/50">☕</button>
-            <button type="button" onclick="selectRoomEmoji('🌱')" class="p-2 text-lg hover:bg-amber-500/20 rounded-lg border border-stone-700 hover:border-amber-500/50">🌱</button>
-            <button type="button" onclick="selectRoomEmoji('📚')" class="p-2 text-lg hover:bg-amber-500/20 rounded-lg border border-stone-700 hover:border-amber-500/50">📚</button>
-            <button type="button" onclick="selectRoomEmoji('🎨')" class="p-2 text-lg hover:bg-amber-500/20 rounded-lg border border-stone-700 hover:border-amber-500/50">🎨</button>
-            <button type="button" onclick="selectRoomEmoji('🔬')" class="p-2 text-lg hover:bg-amber-500/20 rounded-lg border border-stone-700 hover:border-amber-500/50">🔬</button>
-            <button type="button" onclick="selectRoomEmoji('🎭')" class="p-2 text-lg hover:bg-amber-500/20 rounded-lg border border-stone-700 hover:border-amber-500/50">🎭</button>
-          </div>
-          <input type="text" id="selected-emoji" value="☕" class="hidden" />
-        </div>
+      
+      <!-- Error Message -->
+      <div id="error-message" class="error-message" style="display: none;"></div>
+      
+      <!-- Input Area -->
+      <div class="input">
         <input 
           type="text" 
-          id="room-name" 
-          placeholder="Nama Meja (mis: Cerita Seram Bersama)" 
-          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-green-500/50 transition"
-          maxlength="50"
-        />
-        <textarea 
-          id="room-desc" 
-          placeholder="Deskripsi (opsional)" 
-          rows="2"
-          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-green-500/50 transition resize-none"
-          maxlength="150"
-        ></textarea>
-        <button 
-          onclick="handleCreateRoom()" 
-          class="w-full bg-green-600 hover:bg-green-500 text-stone-950 py-2.5 rounded-lg text-xs font-bold transition"
+          id="teks" 
+          placeholder="Tulis sesuatu..."
+          onkeydown="handleKeydown(event)"
         >
-          Buat Meja
+        <button class="upload-btn" id="upload-btn" onclick="document.getElementById('upload-image').click()">
+          🖼️ Gambar
         </button>
+        <input type="file" id="upload-image" accept="image/*">
+        <button id="send-btn" onclick="kirim()">📤 Kirim</button>
       </div>
     </div>
   </div>
 
-  <!-- CHANGE ALIAS MODAL -->
-  <div id="alias-modal" class="hidden fixed inset-0 modal-backdrop z-50 flex items-center justify-center p-4">
-    <div class="glass-panel rounded-xl max-w-sm w-full border border-stone-700 shadow-2xl">
-      <div class="p-5 border-b border-stone-800 flex items-center justify-between">
-        <h3 class="text-sm font-bold text-amber-400">✏️ Ganti Nama Pengunjung</h3>
-        <button onclick="closeAliasModal()" class="text-stone-500 hover:text-stone-100">✕</button>
-      </div>
-      <div class="p-5 space-y-3">
-        <input 
-          type="text" 
-          id="alias-input" 
-          placeholder="Nama baru..." 
-          maxlength="20"
-          class="w-full bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 transition"
-        />
-        <button 
-          onclick="handleChangeAlias()" 
-          class="w-full bg-amber-600 hover:bg-amber-500 text-stone-950 py-2.5 rounded-lg text-xs font-bold transition"
-        >
-          Simpan Nama
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- JAVASCRIPT LOGIC -->
   <script>
-    // ========== CONFIG ==========
-    const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
-    
-    const DEFAULT_EMOJI_SET = ['😊', '😂', '🤣', '😍', '🥰', '😎', '🔥', '💯', '👍', '🙌', '💪', '✨', '🌟', '⭐', '💫', '🎉', '🎊', '🎈', '🎁', '💝', '☕', '🍵', '🌿', '🌱', '🌳', '🌲', '⛰️', '🏡', '🏘️', '🌍', '📚', '✍️', '📝', '🎓', '💡', '🔬', '🔭', '🎨', '🎭', '🎪', '🎯', '🎲', '🃏'];
+    // ========== CONFIGURATION ==========
+    const CONFIG = {
+      SUPABASE_URL: "https://afpzddwuikvwsedzgsee.supabase.co",
+      // ⚠️ REPLACE WITH NEW API KEY FROM SUPABASE DASHBOARD!
+      // Go to: https://app.supabase.com → Settings → API → Copy "Anon Public" key
+      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY",
+      MAX_IMAGE_SIZE_KB: 500,
+      MAX_MESSAGE_LENGTH: 2000,
+      RATE_LIMIT_MS: 500,
+      TABLE_NAME: 'lounge_messages',
+      CHANNEL: 'mejabar'
+    };
 
     // ========== GLOBAL STATE ==========
     let supabaseClient = null;
-    let currentRoom = 'mejabar';
-    let userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
-    let soundEnabled = true;
-    let isLoggedIn = false;
-    let wasLoggedIn = false; // ← Track untuk detect logout
-    let userWallet = null;
-    let userUsername = null;
-    let isMember = false;
-    let rooms = [];
-    let roomsLoaded = false;
-
-    // ========== INIT ==========
-    function init() {
-      console.log('🚀 init() starting...');
-      
-      // 1. Create Supabase client FIRST
-      if (typeof window.supabase !== 'undefined' && !SUPABASE_URL.includes("YOUR_SUPABASE")) {
-        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        console.log('✓ Supabase client created');
-      }
-
-      // 2. Check login status dari localStorage (CRITICAL!)
-      console.log('→ Step 1: Checking login status from localStorage...');
-      checkLoginStatus();
-      
-      // 3. Detect if just logged in from login.html
-      if (isLoggedIn && !sessionStorage.getItem('login_detected')) {
-        console.log('🆕 New login detected from login.html');
-        sessionStorage.setItem('login_detected', 'true');
-        showLoginNotification();
-      }
-
-      // 4. Update UI based on login status
-      console.log('→ Step 2: Updating UI based on login status...');
-      updateUIForLoginStatus();
-      
-      // 5. Display user alias
-      const userAliasEl = document.getElementById('user-alias');
-      if (userAliasEl) {
-        userAliasEl.innerText = userAlias;
-        console.log('✓ User alias set:', userAlias);
-      }
-
-      // 6. Load rooms & messages
-      console.log('→ Step 3: Loading rooms and messages...');
-      loadRooms();
-      loadMessages();
-
-      // 7. Setup features
-      setupEmojiPicker();
-      setupRealtimeSubscription();
-      setTimeout(showCtaToast, 5000);
-
-      console.log('✅ init() complete!', {
-        isLoggedIn,
-        userAlias,
-        userUsername,
-        isMember
-      });
-    }
-
-    function checkLoginStatus() {
-      // 1. Try get dari localStorage (sesuai struktur app.js)
-      userWallet = localStorage.getItem('tof_wallet');
-      userUsername = localStorage.getItem('tof_login_username'); // ← FIX: Use tof_login_username (sama seperti app.js)
-      
-      // Debug
-      console.log('📍 checkLoginStatus() - read:', { userWallet: !!userWallet, userUsername });
-      console.log('💾 localStorage keys:', {
-        tof_wallet: localStorage.getItem('tof_wallet'),
-        tof_login_username: localStorage.getItem('tof_login_username'),
-        tof_username: localStorage.getItem('tof_username')
-      });
-      
-      // 2. Set isLoggedIn based on BOTH values
-      isLoggedIn = !!(userWallet && userUsername);
-      isMember = isLoggedIn;
-
-      // 2.5 DETECT LOGOUT: Jika sebelumnya login, tapi sekarang logout
-      if (wasLoggedIn && !isLoggedIn) {
-        console.log('🚪 Logout detected! Clearing alias...');
-        localStorage.removeItem('tofarmer_alias');
-        userAlias = generateRandomAlias();
-        localStorage.setItem('tofarmer_alias', userAlias);
-      }
-      wasLoggedIn = isLoggedIn; // Update untuk next check
-
-      // 3. Jika member, gunakan username sebagai alias
+    let userAlias = null;
+    let userWallet = localStorage.getItem('tof_wallet');
+    let userUsername = localStorage.getItem('tof_login_username');
+    let isLoggedIn = !!(userWallet && userUsername);
+    let currentRoom = CONFIG.CHANNEL;
+    let pendingImage = null;
+    let isOnline = false;
+    let lastMessageTime = 0;
+    let subscription = null;
+    let sessionId = null;
+    let isInitialized = false;
       if (isLoggedIn) {
-        userAlias = userUsername;
-        localStorage.setItem('tofarmer_alias', userUsername);
-        console.log('✓ Member login detected. userAlias:', userAlias);
-        
-        // Update UI elements immediately
-        const userLabel = document.getElementById('user-label');
-        const menuUsername = document.getElementById('menu-username');
-        const menuStatus = document.getElementById('menu-status');
-        const memberBadge = document.getElementById('member-badge');
-        const memberHint = document.getElementById('member-hint');
-        
-        if (userLabel) userLabel.innerText = userUsername;
-        if (menuUsername) menuUsername.innerText = '@' + userUsername;
-        if (menuStatus) menuStatus.innerText = '✓ Member ToFarmer';
-        if (memberBadge) memberBadge.classList.remove('hidden');
-        if (memberHint) memberHint.classList.add('hidden');
+        alert('Anda sudah masuk sebagai ' + userUsername);
       } else {
-        // Guest: use alias dari localStorage
-        userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
-        console.log('👤 Guest mode. userAlias:', userAlias);
+        window.location.href = '../html/login.html';
       }
     }
 
-    function updateUIForLoginStatus() {
-      const loginBtn = document.getElementById('login-menu-btn');
-      const logoutBtn = document.getElementById('logout-btn');
-      const createRoomBtn = document.getElementById('create-room-btn');
-      const userStatus = document.getElementById('user-status');
-      const memberBadge = document.getElementById('member-badge');
-      const memberHint = document.getElementById('member-hint');
-
-      if (isLoggedIn) {
-        loginBtn.classList.add('hidden');
-        logoutBtn.classList.remove('hidden');
-        createRoomBtn.classList.remove('hidden');
-        userStatus.innerHTML = `Member: <b class="text-green-400">@${userUsername}</b>`;
-        memberBadge.classList.remove('hidden');
-        memberHint.classList.add('hidden');
-      } else {
-        loginBtn.classList.remove('hidden');
-        logoutBtn.classList.add('hidden');
-        userStatus.innerHTML = `Pengunjung: <b class="text-amber-400">${userAlias}</b>`;
-        memberBadge.classList.add('hidden');
-        memberHint.classList.remove('hidden');
-        // Create room button tetap terlihat tapi akan redirect ke login
-      }
-    }
-
-    function generateRandomAlias() {
-      const adjectives = ['Tenang', 'Santai', 'Hangat', 'Sejuk', 'Gemerincik', 'Bunga', 'Kabut', 'Ombak'];
-      const animals = ['Kopi', 'Kerbau', 'Kupu', 'Semut', 'Elang', 'Pohon', 'Batu', 'Angin'];
-      const num = Math.floor(Math.random() * 1000);
-      return `${adjectives[Math.floor(Math.random() * adjectives.length)]}${animals[Math.floor(Math.random() * animals.length)]}#${num}`;
-    }
-
-    // ========== ROOMS MANAGEMENT ==========
-    async function loadRooms() {
-      if (!supabaseClient) {
-        renderDefaultRooms();
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from('lounge_rooms')
-        .select('*')
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error loading rooms:', error);
-        renderDefaultRooms();
-        return;
-      }
-
-      rooms = data || [];
-      renderRoomButtons();
-      roomsLoaded = true;
-    }
-
-    function renderDefaultRooms() {
-      rooms = [
-        { id: '1', name: 'ObrolanMejaBar', slug: 'mejabar', emoji: '☕', description: 'Obrolan santai meja bar', is_public: true, created_at: new Date().toISOString() },
-        { id: '2', name: 'CeritaMalam', slug: 'misteri', emoji: '🕯️', description: 'Cerita mistis dan seram', is_public: true, created_at: new Date().toISOString() },
-        { id: '3', name: 'OpiniLepas', slug: 'warungkopi', emoji: '💬', description: 'Berbagi opini dan pikiran', is_public: true, created_at: new Date().toISOString() },
-        { id: '4', name: 'CatatanBumi', slug: 'laporan', emoji: '🌱', description: 'Catatan pertanian dan lingkungan', is_public: true, created_at: new Date().toISOString() }
-      ];
-      renderRoomButtons();
-    }
-
-    function renderRoomButtons() {
-      const container = document.getElementById('rooms-container');
-      container.innerHTML = '';
-
-      rooms.forEach(room => {
-        const btn = document.createElement('button');
-        btn.id = `tag-${room.slug}`;
-        btn.className = `channel-btn px-2.5 py-1 rounded-full bg-stone-800 text-stone-400 border border-stone-700 whitespace-nowrap hover:text-stone-200 transition`;
-        btn.innerHTML = `${room.emoji} #${room.slug}`;
-        btn.onclick = () => switchRoom(room.slug);
-
-        if (room.slug === currentRoom) {
-          btn.className = `channel-btn px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap font-medium transition`;
-        }
-
-        container.appendChild(btn);
-      });
-    }
-
-    function switchRoom(slug) {
-      currentRoom = slug;
-      renderRoomButtons();
-      loadMessages();
-    }
-
-    function showCreateRoomModal() {
-      if (!isLoggedIn) {
-        // Redirect ke login.html jika belum login
-        alert('Silakan login dengan akun ToFarmer untuk membuat meja baru!');
-        window.location.href = '/html/login.html';
-        return;
-      }
-      document.getElementById('create-room-modal').classList.remove('hidden');
-    }
-
-    function closeCreateRoomModal() {
-      document.getElementById('create-room-modal').classList.add('hidden');
-    }
-
-    function selectRoomEmoji(emoji) {
-      document.getElementById('selected-emoji').value = emoji;
-      // Update button visual feedback
-      document.querySelectorAll('#create-room-modal button[type="button"]').forEach(btn => {
-        btn.classList.remove('bg-amber-500/30', 'border-amber-500/80');
-      });
-      event.target.classList.add('bg-amber-500/30', 'border-amber-500/80');
-    }
-
-    async function handleCreateRoom() {
-      // IMPORTANT: Validasi bahwa user sudah login verified
-      if (!isLoggedIn || !userWallet || !userUsername) {
-        alert('Anda harus login dengan akun ToFarmer untuk membuat meja!');
-        window.location.href = '/html/login.html';
-        return;
-      }
-
-      const name = document.getElementById('room-name').value.trim();
-      const desc = document.getElementById('room-desc').value.trim();
-      const emoji = document.getElementById('selected-emoji').value;
-
-      if (!name) {
-        alert('Nama meja harus diisi!');
-        return;
-      }
-
-      if (!supabaseClient) {
-        alert('Koneksi tidak tersedia');
-        return;
-      }
-
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-
-      const newRoom = {
-        name: name,
-        slug: slug,
-        emoji: emoji,
-        description: desc,
-        creator_id: userWallet,           // ✓ Dari verified login
-        creator_username: userUsername,   // ✓ Dari verified login
-        is_public: true,
-        created_at: new Date().toISOString()
-      };
-
-      const { data, error } = await supabaseClient
-        .from('lounge_rooms')
-        .insert([newRoom])
-        .select();
-
-      if (error) {
-        console.error('Error creating room:', error);
-        alert('Gagal membuat meja: ' + error.message);
-        return;
-      }
-
-      rooms.push(data[0]);
-      renderRoomButtons();
-      switchRoom(slug);
-      closeCreateRoomModal();
-      document.getElementById('room-name').value = '';
-      document.getElementById('room-desc').value = '';
-
-      // Show success notification
-      const notification = document.createElement('div');
-      notification.className = 'fixed top-4 left-4 right-4 sm:left-auto sm:max-w-xs glass-panel p-3 rounded-lg border border-green-500/50 z-50';
-      notification.innerHTML = `
-        <p class="text-xs font-bold text-green-400">✓ Meja "${name}" berhasil dibuat!</p>
-        <p class="text-[10px] text-stone-400 mt-1">Mulai obrolan bersama di meja baru 👇</p>
-      `;
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 3000);
-    }
-
-    // ========== EMOJI PICKER ==========
-    function setupEmojiPicker() {
-      const grid = document.getElementById('emoji-grid');
-      DEFAULT_EMOJI_SET.forEach(emoji => {
-        const item = document.createElement('div');
-        item.className = 'emoji-item';
-        item.textContent = emoji;
-        item.onclick = () => insertEmoji(emoji);
-        grid.appendChild(item);
-      });
-    }
-
-    function toggleEmojiPicker() {
-      const panel = document.getElementById('emoji-picker-panel');
-      panel.classList.toggle('hidden');
-    }
-
-    function insertEmoji(emoji) {
-      const input = document.getElementById('message-input');
-      input.value += emoji;
-      input.focus();
-      toggleEmojiPicker();
-    }
-
-    // ========== MESSAGES ==========
-    async function loadMessages() {
-      const container = document.getElementById('message-list');
-      container.innerHTML = `<div class="text-center py-8 skeleton h-12 rounded-lg"></div>`;
-
-      if (!supabaseClient) {
-        renderDemoMessages();
-        return;
-      }
-
-      const { data, error } = await supabaseClient
-        .from('lounge_messages')
-        .select('*')
-        .eq('channel', currentRoom)
-        .order('created_at', { ascending: true })
-        .limit(50);
-
-      if (error) {
-        container.innerHTML = `<div class="text-center py-4 text-xs text-rose-500">Koneksi kedai terputus.</div>`;
-        return;
-      }
-
-      container.innerHTML = "";
-      (data || []).forEach(msg => appendMessageUI(msg));
-      scrollToBottom();
-    }
-
-    function appendMessageUI(msg) {
-      const container = document.getElementById('message-list');
-      const isBot = msg.is_bot;
-      const isMe = msg.sender === userAlias;
-
-      const messageCard = document.createElement('div');
-      messageCard.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} text-xs space-y-1 message-new`;
-
-      if (isBot) {
-        messageCard.innerHTML = `
-          <div class="bg-amber-950/60 border border-amber-500/30 text-amber-200 p-3 rounded-xl max-w-[85%] shadow-md">
-            <div class="flex items-center gap-1.5 font-bold text-[10px] text-amber-400 mb-1">
-              <span>🤖 Barista ToFarmer</span>
-              <span class="bg-amber-500/20 text-amber-300 px-1 rounded text-[9px]">Kedai Bot</span>
-            </div>
-            <p class="leading-relaxed">${formatLinks(msg.content)}</p>
-          </div>
-        `;
-      } else {
-        messageCard.innerHTML = `
-          <div class="flex items-center space-x-1.5 px-1">
-            <span class="font-medium text-[11px] ${isMe ? 'text-amber-400' : 'text-stone-400'}">${msg.sender}</span>
-            <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-          </div>
-          <div class="${isMe ? 'bg-amber-600 text-stone-950 font-medium' : 'bg-stone-900 border border-stone-800 text-stone-200'} p-2.5 rounded-xl max-w-[85%] break-words shadow-sm">
-            ${formatLinks(escapeHTML(msg.content))}
-          </div>
-        `;
-      }
-
-      container.appendChild(messageCard);
-      playPopSound();
-      scrollToBottom();
-    }
-
-    function formatLinks(text) {
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      return text.replace(urlRegex, '<a href="$1" target="_blank" class="chat-link">🔗 Link</a>');
-    }
-
-    function escapeHTML(str) {
-      return str.replace(/[&<>'"]/g, 
-        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
-      );
-    }
-
-    function handleKeyDown(e) {
+    function handleKeydown(e) {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        handleSendMessage(e);
+        kirim();
       }
     }
 
-    async function handleSendMessage(e) {
-      e.preventDefault();
-      const input = document.getElementById('message-input');
-      const content = input.value.trim();
-      if (!content) return;
+    function hapusGambar() {
+      pendingImage = null;
+      document.getElementById('image-preview-container').classList.remove('show');
+      document.getElementById('image-preview').src = '';
+      clearErrorMessage();
+    }
 
-      input.value = "";
+    async function kirim() {
+      const input = document.getElementById('teks');
+      const isi = input.value.trim();
+      
+      if (!isi && !pendingImage) {
+        showErrorMessage('Tulis pesan atau upload gambar');
+        return;
+      }
 
-      const newMsg = {
+      // Rate limiting
+      const now = Date.now();
+      if (now - lastMessageTime < CONFIG.RATE_LIMIT_MS) {
+        showErrorMessage('Tunggu sebentar sebelum kirim lagi');
+        return;
+      }
+
+      // Validation
+      if (isi && isi.length > CONFIG.MAX_MESSAGE_LENGTH) {
+        showErrorMessage(`Pesan terlalu panjang (max ${CONFIG.MAX_MESSAGE_LENGTH} karakter)`);
+        return;
+      }
+
+      // Disable button
+      const sendBtn = document.getElementById('send-btn');
+      sendBtn.disabled = true;
+      sendBtn.textContent = '⏳ Mengirim...';
+      
+      const timestamp = new Date().toISOString();
+      
+      const msg = {
         sender: userAlias,
-        content: content,
+        content: isi || '📸 Shared image',
         channel: currentRoom,
         is_bot: false,
-        created_at: new Date().toISOString()
+        created_at: timestamp,
+        image_data: pendingImage?.dataUrl || null,
+        image_size_kb: pendingImage?.sizeKB || null,
+        session_id: sessionId
       };
-
-      if (!supabaseClient) {
-        appendMessageUI(newMsg);
-        triggerRandomBotResponse(content);
-        return;
-      }
-
-      await supabaseClient.from('lounge_messages').insert([newMsg]);
-    }
-
-    function triggerRandomBotResponse(userText) {
-      if (Math.random() > 0.4) {
-        setTimeout(() => {
-          const botMsg = {
-            sender: 'Barista ToFarmer',
-            content: `Obrolan hangat! Pernah terpikir untuk mendalam di <b>Pilar 3 ToFarmer</b>? 🌱 <a href="https://www.tofarmer.xyz/html/fitur-ilmu.html" class="chat-link">Buka Pustaka Ilmu</a>`,
-            channel: currentRoom,
-            is_bot: true,
-            created_at: new Date().toISOString()
-          };
-          appendMessageUI(botMsg);
-        }, 1200);
-      }
-    }
-
-    function renderDemoMessages() {
-      const demoData = [
-        { sender: 'PenikmatKopi#102', content: 'Kopi lereng Menoreh sore gini emang gak ada tandingannya wkwk', channel: 'mejabar', created_at: new Date().toISOString() },
-        { sender: 'PengulikKebun#882', content: 'Sambil ngopi enaknya bahas sensor tanah open-source nih. https://github.com/example', channel: 'mejabar', created_at: new Date().toISOString() },
-      ];
-      demoData.forEach(msg => appendMessageUI(msg));
-    }
-
-    function scrollToBottom() {
-      const stream = document.getElementById('chat-stream');
-      stream.scrollTop = stream.scrollHeight;
-    }
-
-    // ========== LOGIN & USER ==========
-    // Login dilakukan via login.html (proper flow dengan DB validation)
-    // index.html hanya read localStorage yang sudah di-set oleh login.html
-    
-    function logout() {
-      localStorage.removeItem('tof_wallet');
-      localStorage.removeItem('tof_login_username'); // ← FIX: Remove correct key (sesuai app.js)
-      localStorage.removeItem('tofarmer_alias'); // ← FIX: Clear alias agar random baru saat guest
-      userWallet = null;
-      userUsername = null;
-      isLoggedIn = false;
-      isMember = false;
       
-      // Generate alias baru untuk guest
-      userAlias = generateRandomAlias();
-      localStorage.setItem('tofarmer_alias', userAlias);
-      
-      updateUIForLoginStatus();
-      checkLoginStatus();
-      alert('Anda telah logout. Sampai jumpa! 🌿');
-    }
-
-    function changeAlias() {
-      console.log('📝 changeAlias() called');
-      console.log('  userAlias:', userAlias);
-      console.log('  isLoggedIn:', isLoggedIn);
-      
-      const modal = document.getElementById('alias-modal');
-      const input = document.getElementById('alias-input');
-      
-      if (!modal) {
-        console.error('❌ alias-modal element not found!');
-        alert('Error: Modal tidak ditemukan');
-        return;
-      }
-      
-      if (!input) {
-        console.error('❌ alias-input element not found!');
-        alert('Error: Input tidak ditemukan');
-        return;
-      }
-      
-      // Set nilai input
-      input.value = userAlias;
-      console.log('✓ Input value set to:', userAlias);
-      
-      // Remove hidden class
-      modal.classList.remove('hidden');
-      console.log('✓ Modal class:', modal.className);
-      
-      // Focus input untuk UX
-      setTimeout(() => {
-        input.focus();
-        input.select();
-      }, 50);
-    }
-
-    function closeAliasModal() {
-      const modal = document.getElementById('alias-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        console.log('✓ Modal closed');
-      }
-    }
-
-    function handleChangeAlias() {
-      const newAlias = document.getElementById('alias-input').value.trim();
-      console.log('💾 handleChangeAlias() - newAlias:', newAlias);
-      
-      if (!newAlias) {
-        alert('Nama tidak boleh kosong!');
-        return;
-      }
-      
-      if (newAlias.length < 2) {
-        alert('Nama minimal 2 karakter!');
-        return;
-      }
-
-      userAlias = newAlias;
-      localStorage.setItem('tofarmer_alias', newAlias);
-      
-      // Update display
-      const userAliasEl = document.getElementById('user-alias');
-      if (userAliasEl) {
-        userAliasEl.innerText = newAlias;
-      }
-      
-      // Update user label
-      const userLabel = document.getElementById('user-label');
-      if (userLabel) {
-        userLabel.innerText = newAlias;
-      }
-      
-      console.log('✓ Alias updated to:', newAlias);
-      
-      closeAliasModal();
-      
-      // Show feedback
-      playPopSound();
-      const msg = `✓ Nama berubah menjadi: ${newAlias}`;
-      console.log(msg);
-      alert(msg);
-    }
-
-    function toggleUserMenu() {
-      document.getElementById('user-menu-dropdown').classList.toggle('hidden');
-    }
-
-    // ========== UTILS ==========
-    function playPopSound() {
-      if (!soundEnabled) return;
       try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.value = 800;
-        osc.type = 'sine';
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.04);
-      } catch(e) {}
-    }
+        if (!supabaseClient) {
+          // Offline mode - show locally only
+          tampilkanPesan(msg);
+          input.value = '';
+          hapusGambar();
+          return;
+        }
+        
+        const { data, error } = await supabaseClient
+          .from(CONFIG.TABLE_NAME)
+          .insert([msg])
+          .select();
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          showErrorMessage('Gagal mengirim pesan: ' + error.message);
+          return;
+        }
 
-    function toggleSound() {
-      soundEnabled = !soundEnabled;
-      document.getElementById('sound-toggle').innerText = soundEnabled ? '🔊 Suara' : '🔇 Mute';
-    }
-
-    function showCtaToast() {
-      const toast = document.getElementById('cta-toast');
-      if (toast && !localStorage.getItem('hide_cta_toast')) {
-        toast.classList.remove('translate-y-32', 'opacity-0');
+        lastMessageTime = now;
+        input.value = '';
+        hapusGambar();
+        clearErrorMessage();
+      } catch (e) {
+        console.error('Send error:', e);
+        showErrorMessage('Error: ' + e.message);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = '📤 Kirim';
       }
     }
 
-    function hideCtaToast() {
-      const toast = document.getElementById('cta-toast');
-      if (toast) {
-        toast.classList.add('translate-y-32', 'opacity-0');
-        localStorage.setItem('hide_cta_toast', 'true');
-      }
+    // ========== HELPER FUNCTIONS ==========
+    
+    function generateRandomAlias() {
+      const words = ['Tenang', 'Santai', 'Ngopi', 'Gumun', 'Adem', 'Halus'];
+      const suffixes = ['Bunga', 'Kopi', 'Daun', 'Angin', 'Bumi', 'Langit'];
+      const num = Math.floor(Math.random() * 1000);
+      const w = words[Math.floor(Math.random() * words.length)];
+      const s = suffixes[Math.floor(Math.random() * suffixes.length)];
+      return `${w}${s}#${num}`;
     }
 
-    function showLoginNotification() {
-      // Show success notification for fresh login
-      const notification = document.createElement('div');
-      notification.className = 'fixed top-4 right-4 glass-panel p-4 rounded-lg border border-green-500/50 max-w-xs z-50 animate-bounce';
-      notification.innerHTML = `
-        <div class="flex items-center gap-2">
-          <span class="text-xl">✅</span>
-          <div>
-            <p class="text-xs font-bold text-green-400">Selamat datang, @${userUsername}!</p>
-            <p class="text-[10px] text-stone-400 mt-0.5">Kamu sekarang bisa membuat meja baru.</p>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(notification);
+    function generateSessionId() {
+      return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+    }
+
+    function updateUI() {
+      const userDisplay = document.getElementById('user-display');
+      const memberBadge = document.getElementById('member-badge');
       
-      // Remove after 4 seconds
-      setTimeout(() => notification.remove(), 4000);
-    }
-
-    function setupRealtimeSubscription() {
-      if (!supabaseClient) return;
-      supabaseClient
-        .channel('public:lounge_messages')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lounge_messages' }, payload => {
-          if (payload.new.channel === currentRoom) {
-            appendMessageUI(payload.new);
-          }
-        })
-        .subscribe();
-
-      document.getElementById('online-counter').innerText = "🟢 Kedai Buka • Terhubung";
-    }
-
-    // ========== STARTUP ==========
-    init();
-
-    // ========== DEBUG HELPERS ==========
-    window.debugLoginStatus = function() {
-      console.clear();
-      console.log('🔍 ===== LOGIN STATUS DEBUG =====');
-      console.log('');
-      console.log('📍 localStorage values (from app.js):');
-      console.log('  tof_wallet:', localStorage.getItem('tof_wallet') || '(empty)');
-      console.log('  tof_login_username:', localStorage.getItem('tof_login_username') || '(empty)'); // ← FIX: Check tof_login_username
-      console.log('  tofarmer_alias:', localStorage.getItem('tofarmer_alias') || '(empty)');
-      console.log('');
-      console.log('📊 App state:');
-      console.log('  isLoggedIn:', isLoggedIn);
-      console.log('  isMember:', isMember);
-      console.log('  userUsername:', userUsername);
-      console.log('  userWallet:', userWallet);
-      console.log('  userAlias:', userAlias);
-      console.log('');
-      console.log('✅ Recommendation:');
       if (isLoggedIn) {
-        console.log('  ✓ User is MEMBER. Should see member badge & create room button.');
+        userDisplay.textContent = '@' + userUsername;
+        memberBadge.style.display = 'inline';
       } else {
-        console.log('  ⚠️  User is GUEST. Login from app.js (web utama) or click "Masuk" button.');
-        if (!localStorage.getItem('tof_wallet')) {
-          console.log('  → tof_wallet is empty in localStorage!');
-          console.log('  → Make sure you logged in from app.js (web utama).');
-        }
-        if (!localStorage.getItem('tof_login_username')) {
-          console.log('  → tof_login_username is empty in localStorage!');
-          console.log('  → Make sure you logged in from app.js (web utama).');
-        }
+        userDisplay.textContent = userAlias;
+        memberBadge.style.display = 'none';
       }
-      console.log('');
-    };
+    }
 
-    window.testAutoDetectLogin = function() {
-      console.clear();
-      console.log('🧪 ===== AUTO-DETECT LOGIN TEST =====');
-      console.log('');
-      console.log('Step 1: Set localStorage manually (simulating app.js login)');
-      localStorage.setItem('tof_wallet', 'TEST_WALLET_12345');
-      localStorage.setItem('tof_login_username', 'testuser'); // ← FIX: Use tof_login_username (from app.js)
-      console.log('  ✓ Set tof_wallet & tof_login_username');
-      console.log('');
-      console.log('Step 2: Call checkLoginStatus()');
-      checkLoginStatus();
-      console.log('  ✓ checkLoginStatus() called');
-      console.log('');
-      console.log('Step 3: Check result');
-      console.log('  isLoggedIn:', isLoggedIn);
-      console.log('  userUsername:', userUsername);
-      if (isLoggedIn && userUsername === 'testuser') {
-        console.log('✅ TEST PASSED!');
+    function updateStatus(online = false) {
+      isOnline = online;
+      const indicator = document.getElementById('status-indicator');
+      const statusText = document.getElementById('status-text');
+      const uploadBtn = document.getElementById('upload-btn');
+      const sendBtn = document.getElementById('send-btn');
+      
+      if (online) {
+        indicator.classList.remove('offline');
+        statusText.textContent = 'Online';
+        uploadBtn.disabled = false;
+        sendBtn.disabled = false;
       } else {
-        console.log('❌ TEST FAILED!');
+        indicator.classList.add('offline');
+        statusText.textContent = 'Offline';
+        uploadBtn.disabled = true;
+        sendBtn.disabled = true;
       }
-    };
+    }
 
-    console.log('💡 Debug helpers: debugLoginStatus() | testAutoDetectLogin()');
+    function showErrorMessage(msg) {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = msg;
+      errorDiv.style.display = 'block';
+      setTimeout(() => clearErrorMessage(), 5000);
+    }
+
+    function clearErrorMessage() {
+      document.getElementById('error-message').style.display = 'none';
+    }
+
+    function setupImageUpload() {
+      const uploadInput = document.getElementById('upload-image');
+      uploadInput.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+          showErrorMessage('Hanya file gambar yang didukung');
+          uploadInput.value = '';
+          return;
+        }
+
+        if (file.size / 1024 > CONFIG.MAX_IMAGE_SIZE_KB) {
+          showErrorMessage(`Gambar terlalu besar (max ${CONFIG.MAX_IMAGE_SIZE_KB}KB)`);
+          uploadInput.value = '';
+          return;
+        }
+        
+        try {
+          const imgMgr = new ImageUploadManager();
+          imgMgr.compressImage(file, (result) => {
+            if (result.error) {
+              showErrorMessage('Error: ' + result.error);
+              return;
+            }
+            
+            const sizeKB = Math.round(result.blob.size / 1024);
+            
+            pendingImage = {
+              dataUrl: result.dataUrl,
+              blob: result.blob,
+              sizeKB: sizeKB
+            };
+            
+            const container = document.getElementById('image-preview-container');
+            const preview = document.getElementById('image-preview');
+            const sizeInfo = document.getElementById('image-size-info');
+            
+            container.classList.add('show');
+            preview.src = result.dataUrl;
+            sizeInfo.textContent = `📸 ${sizeKB}KB`;
+            clearErrorMessage();
+          });
+        } catch (e) {
+          console.error('Upload error:', e);
+          showErrorMessage('Upload error: ' + e.message);
+        }
+        
+        uploadInput.value = '';
+      });
+    }
+
+    function tampilkanPesan(msg, scroll = true) {
+      const area = document.getElementById('pesan');
+      
+      // Format time using native JS with explicit Jakarta timezone
+      const timeStr = new Date(msg.created_at).toLocaleTimeString('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      let html = `
+        <div class="bubble">
+          <div class="nama">${escapeHtml(msg.sender)}</div>
+          <div class="konten">${escapeHtml(msg.content)}</div>
+      `;
+      
+      if (msg.image_data) {
+        const sizeInfo = msg.image_size_kb ? ` (${msg.image_size_kb}KB)` : '';
+        html += `<img src="${msg.image_data}" style="max-width:120px; max-height:120px; border-radius:6px; margin-top:5px;" title="Gambar${sizeInfo}">`;
+      }
+      
+      html += `<div class="waktu">${timeStr}</div></div>`;
+      
+      area.innerHTML += html;
+      
+      if (scroll) {
+        area.scrollTop = area.scrollHeight;
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function loadMessages() {
+      if (!supabaseClient) {
+        console.warn('Supabase not ready');
+        return;
+      }
+      
+      try {
+        updateStatus(true);
+        
+        const { data, error } = await supabaseClient
+          .from(CONFIG.TABLE_NAME)
+          .select('*')
+          .eq('channel', currentRoom)
+          .order('created_at', { ascending: true })
+          .limit(100);
+        
+        if (error) {
+          console.error('Load error:', error);
+          showErrorMessage('Tidak bisa memuat pesan');
+          updateStatus(false);
+          return;
+        }
+
+        // Clear existing messages (except greeting)
+        const pesan = document.getElementById('pesan');
+        const existing = pesan.querySelectorAll('.bubble');
+        if (existing.length <= 1) {
+          // Keep greeting, load new messages
+        }
+
+        if (data && data.length > 0) {
+          data.forEach(msg => tampilkanPesan(msg, false));
+        }
+
+        // Auto-scroll to bottom
+        setTimeout(() => {
+          pesan.scrollTop = pesan.scrollHeight;
+        }, 100);
+
+      } catch (e) {
+        console.error('Load error:', e);
+        updateStatus(false);
+      }
+    }
+
+    async function subscribeToMessages() {
+      if (!supabaseClient) return;
+
+      // Unsubscribe from old subscription
+      if (subscription) {
+        await supabaseClient.removeChannel(subscription);
+      }
+
+      subscription = supabaseClient
+        .channel(`public:${CONFIG.TABLE_NAME}:channel=eq.${currentRoom}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: CONFIG.TABLE_NAME,
+            filter: `channel=eq.${currentRoom}`
+          },
+          (payload) => {
+            const msg = payload.new;
+            tampilkanPesan(msg);
+            updateStatus(true);
+          }
+        )
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            updateStatus(true);
+          } else if (status === 'CHANNEL_ERROR') {
+            updateStatus(false);
+            // Retry subscription after delay
+            setTimeout(subscribeToMessages, 5000);
+          }
+        });
+    }
+
+    async function init() {
+      try {
+        // Initialize userAlias & session
+        userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
+        sessionId = generateSessionId();
+        localStorage.setItem('tofarmer_alias', userAlias);
+        localStorage.setItem('tofarmer_session', sessionId);
+        
+        // Supabase
+        try {
+          if (window.supabase && window.supabase.createClient) {
+            supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+            console.log('✓ Supabase initialized');
+          }
+        } catch (e) {
+          console.error('Supabase init error:', e);
+          updateStatus(false);
+        }
+        
+        // Timezone (using native JavaScript only)
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        console.log('🕐 Timezone detected:', userTimezone);
+        
+        // UI
+        updateUI();
+        
+        // Image upload setup
+        setupImageUpload();
+        
+        // Load messages
+        await loadMessages();
+        
+        // Subscribe to realtime
+        await subscribeToMessages();
+        
+        isInitialized = true;
+        console.log('✓ Isoteri Kopi initialized');
+        
+      } catch (e) {
+        console.error('Init error:', e);
+        updateStatus(false);
+      }
+    }
+    
+    // ========== LIFECYCLE ==========
+    window.addEventListener('load', () => {
+      init();
+    });
+
+    // Handle online/offline events
+    window.addEventListener('online', () => {
+      console.log('Browser online');
+      if (isInitialized) {
+        subscribeToMessages();
+        loadMessages();
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('Browser offline');
+      updateStatus(false);
+    });
   </script>
-
-  <!-- Cloudflare Web Analytics -->
-  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
 </body>
 </html>
