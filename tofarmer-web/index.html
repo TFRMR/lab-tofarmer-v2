@@ -167,6 +167,185 @@
   .tooltip:hover::after {
     opacity: 1;
   }
+
+  /* ========== RANDOM CHAOS ANIMATIONS ========== */
+
+  /* Falling from top */
+  @keyframes fallFromTop {
+    0% {
+      opacity: 0;
+      transform: translateY(-100px) rotate(0deg);
+    }
+    10% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(100vh) rotate(360deg);
+    }
+  }
+
+  /* Slide in from left */
+  @keyframes slideInLeft {
+    0% {
+      opacity: 0;
+      transform: translateX(-150px) scaleX(-1) rotateY(90deg);
+    }
+    5% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(150vw) scaleX(-1) rotateY(-90deg);
+    }
+  }
+
+  /* Slide in from right */
+  @keyframes slideInRight {
+    0% {
+      opacity: 0;
+      transform: translateX(150px) rotateY(90deg);
+    }
+    5% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(-150vw) rotateY(-90deg);
+    }
+  }
+
+  /* Bounce in center */
+  @keyframes bounceInCenter {
+    0% {
+      opacity: 0;
+      transform: scale(0) rotate(-180deg);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.3) rotate(0deg);
+    }
+    75% {
+      transform: scale(0.95);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0) rotate(180deg);
+    }
+  }
+
+  /* Spin and rise */
+  @keyframes spinAndRise {
+    0% {
+      opacity: 0;
+      transform: translateY(50vh) rotateX(0deg) rotateZ(0deg);
+    }
+    5% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-100vh) rotateX(720deg) rotateZ(720deg);
+    }
+  }
+
+  /* Wobble shake */
+  @keyframes wobbleShake {
+    0%, 100% { 
+      opacity: 0;
+      transform: translateY(-10vh) translateX(0) skewX(0deg);
+    }
+    10% { 
+      opacity: 1;
+    }
+    20% { transform: translateX(8px) skewX(5deg); }
+    30% { transform: translateX(-8px) skewX(-5deg); }
+    40% { transform: translateX(8px) skewX(5deg); }
+    50% { transform: translateX(-8px) skewX(-5deg); }
+    60% { transform: translateX(4px) skewX(2deg); }
+    80% {
+      opacity: 1;
+      transform: translateY(10vh) translateX(0);
+    }
+  }
+
+  /* Crawl from bottom corner */
+  @keyframes crawlCorner {
+    0% {
+      opacity: 0;
+      transform: translate(100vw, 100vh) scale(0.3) rotate(180deg);
+    }
+    5% {
+      opacity: 1;
+    }
+    50% {
+      transform: translate(50vw, 20vh) scale(1.1) rotate(0deg);
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translate(-100vw, -100vh) scale(2) rotate(-360deg);
+    }
+  }
+
+  /* Flip and zoom */
+  @keyframes flipZoom {
+    0% {
+      opacity: 0;
+      transform: perspective(600px) rotateY(180deg) scale(0.1);
+    }
+    10% {
+      opacity: 1;
+    }
+    85% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: perspective(600px) rotateY(-180deg) scale(2);
+    }
+  }
+
+  /* Random chaos element */
+  .chaos-element {
+    position: fixed;
+    z-index: 30;
+    cursor: pointer;
+    user-select: none;
+    pointer-events: auto;
+    font-size: 3rem;
+    filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.3));
+    transition: filter 0.2s;
+  }
+
+  .chaos-element:hover {
+    filter: drop-shadow(0 0 16px rgba(234, 179, 8, 0.6));
+    transform: scale(1.2) !important;
+  }
+
+  /* Animation classes */
+  .chaos-fall { animation: fallFromTop var(--duration, 6s) ease-in forwards; }
+  .chaos-left { animation: slideInLeft var(--duration, 7s) ease-in-out forwards; }
+  .chaos-right { animation: slideInRight var(--duration, 7s) ease-in-out forwards; }
+  .chaos-bounce { animation: bounceInCenter var(--duration, 5s) ease-in-out forwards; }
+  .chaos-spin { animation: spinAndRise var(--duration, 8s) ease-in forwards; }
+  .chaos-wobble { animation: wobbleShake var(--duration, 6s) ease-in-out forwards; }
+  .chaos-crawl { animation: crawlCorner var(--duration, 9s) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+  .chaos-flip { animation: flipZoom var(--duration, 5s) ease-out forwards; }
   </style>
 </head>
 <body class="bg-stone-950 text-stone-100 font-sans h-dvh flex flex-col overflow-hidden selection:bg-amber-600 selection:text-stone-950 relative">
@@ -1084,6 +1263,108 @@
     };
 
     console.log('💡 Debug helpers: debugLoginStatus() | testAutoDetectLogin()');
+
+    // ========== CHAOS ANIMATION SYSTEM ==========
+    const chaosElements = [
+      '👤', '👨‍🌾', '👩‍🌾', '🤠', '🧑‍🚀', '🦁', '🐷', '🐐', '🦅', 
+      '🌶️', '☕', '🍜', '🥘', '🍲', '🌾', '🌳', '🏕️', '💣', '⚡',
+      '🎭', '🎪', '🎨', '🎸', '🎺', '🎉', '🎊', '🎈', '🎀',
+      '💎', '👑', '🏆', '🎯', '🔥', '❄️', '💨', '🌪️', '⛈️', '🌪️',
+      '🚀', '🛸', '🪂', '🎢', '🎡', '🎠', '⛓️', '🔗', '🪡', '🧿',
+      '🦑', '🐙', '🦐', '🦞', '🦀', '🐢', '🦜', '🦚', '🦩', '🕊️'
+    ];
+
+    const animationTypes = [
+      'chaos-fall', 'chaos-left', 'chaos-right', 'chaos-bounce', 
+      'chaos-spin', 'chaos-wobble', 'chaos-crawl', 'chaos-flip'
+    ];
+
+    function createChaosElement() {
+      const element = document.createElement('div');
+      element.className = 'chaos-element';
+      
+      // Random character
+      const randomChar = chaosElements[Math.floor(Math.random() * chaosElements.length)];
+      element.textContent = randomChar;
+      
+      // Random animation type
+      const randomAnimation = animationTypes[Math.floor(Math.random() * animationTypes.length)];
+      element.classList.add(randomAnimation);
+      
+      // Random duration (4s - 10s)
+      const duration = 4 + Math.random() * 6;
+      element.style.setProperty('--duration', `${duration}s`);
+      
+      // Random starting position (depends on animation type)
+      if (randomAnimation === 'chaos-fall') {
+        element.style.left = Math.random() * 90 + 5 + '%';
+        element.style.top = '-50px';
+      } else if (randomAnimation === 'chaos-left') {
+        element.style.left = '-50px';
+        element.style.top = Math.random() * 70 + 10 + '%';
+      } else if (randomAnimation === 'chaos-right') {
+        element.style.right = '-50px';
+        element.style.top = Math.random() * 70 + 10 + '%';
+      } else if (randomAnimation === 'chaos-bounce') {
+        element.style.left = '50%';
+        element.style.top = '50%';
+        element.style.transform = 'translate(-50%, -50%)';
+      } else if (randomAnimation === 'chaos-spin') {
+        element.style.left = Math.random() * 80 + 10 + '%';
+        element.style.bottom = '-50px';
+      } else if (randomAnimation === 'chaos-wobble') {
+        element.style.left = Math.random() * 80 + 10 + '%';
+        element.style.top = '-10vh';
+      } else if (randomAnimation === 'chaos-crawl') {
+        element.style.left = '100vw';
+        element.style.top = '100vh';
+      } else if (randomAnimation === 'chaos-flip') {
+        element.style.left = Math.random() * 80 + 10 + '%';
+        element.style.top = Math.random() * 60 + 20 + '%';
+      }
+      
+      // Click handler to navigate to beranda.html
+      element.addEventListener('click', (e) => {
+        e.stopPropagation();
+        playPopSound();
+        window.location.href = './beranda.html';
+      });
+      
+      // Add to body
+      document.body.appendChild(element);
+      
+      // Remove after animation completes
+      setTimeout(() => element.remove(), duration * 1000);
+    }
+
+    // Start chaos animation system
+    function startChaosAnimation() {
+      // Initial chaos every 3-8 seconds
+      function scheduleNextChaos() {
+        const delay = 3000 + Math.random() * 5000; // 3-8 seconds
+        setTimeout(() => {
+          // Random chance to create 1-3 elements at once
+          const count = Math.floor(Math.random() * 3) + 1;
+          for (let i = 0; i < count; i++) {
+            setTimeout(() => createChaosElement(), Math.random() * 200);
+          }
+          scheduleNextChaos();
+        }, delay);
+      }
+      
+      scheduleNextChaos();
+      
+      // Initial chaos burst when page loads
+      setTimeout(() => {
+        for (let i = 0; i < 2; i++) {
+          setTimeout(() => createChaosElement(), i * 300);
+        }
+      }, 1000);
+    }
+
+    // Start the chaos!
+    startChaosAnimation();
+    console.log('🎭 Chaos animation system started! Bersiaplah untuk kegila-gilaan... wkwk 🌾');
   </script>
 
   <!-- Cloudflare Web Analytics -->
