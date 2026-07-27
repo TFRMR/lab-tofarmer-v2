@@ -388,9 +388,7 @@
   <script>
     // ========== CONFIG ==========
     const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
-    // ⚠️ REPLACE THIS WITH NEW KEY FROM SUPABASE DASHBOARD!
-    // Go to: https://app.supabase.com → Your Project → Settings → API → Copy "Anon Public" key
-    const SUPABASE_ANON_KEY = "YOUR_ANON_KEY_HERE_REPLACE_ME";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
     
     const DEFAULT_EMOJI_SET = ['😊', '😂', '🤣', '😍', '🥰', '😎', '🔥', '💯', '👍', '🙌', '💪', '✨', '🌟', '⭐', '💫', '🎉', '🎊', '🎈', '🎁', '💝', '☕', '🍵', '🌿', '🌱', '🌳', '🌲', '⛰️', '🏡', '🏘️', '🌍', '📚', '✍️', '📝', '🎓', '💡', '🔬', '🔭', '🎨', '🎭', '🎪', '🎯', '🎲', '🃏'];
 
@@ -758,7 +756,7 @@
         messageCard.innerHTML = `
           <div class="flex items-center space-x-1.5 px-1">
             <span class="font-medium text-[11px] ${isMe ? 'text-amber-400' : 'text-stone-400'}">${msg.sender}</span>
-            <span class="text-[9px] text-stone-600" title="${new Date(msg.created_at).toLocaleString('id-ID', {timeZone: 'Asia/Jakarta'})}">${new Date(msg.created_at).toLocaleTimeString('id-ID', {timeZone: 'Asia/Jakarta', hour: '2-digit', minute:'2-digit'})}</span>
+            <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
           <div class="${isMe ? 'bg-amber-600 text-stone-950 font-medium' : 'bg-stone-900 border border-stone-800 text-stone-200'} p-2.5 rounded-xl max-w-[85%] break-words shadow-sm">
             ${formatLinks(escapeHTML(msg.content))}
