@@ -24,7 +24,7 @@
       height: 100vh;
       overflow: hidden;
       font-family: Arial, sans-serif;
-      background: #1a1410;
+      background: #050b07;
       color: #d4af37;
     }
     
@@ -52,7 +52,7 @@
       width: 280px;
       height: 130px;
       border-radius: 50%;
-      background: radial-gradient(circle, #3d6f2e, #1a2a14);
+      background: radial-gradient(circle, #5a3a20, #182a15);
       box-shadow: 0 40px 80px #000;
       position: relative;
     }
@@ -331,6 +331,27 @@
     let currentRoom = 'mejabar';
     let pendingImage = null;
     let tzManager;
+
+    // Fallback agar kedai tetap hidup jika modul eksternal belum tersedia
+    if (typeof TimezoneManager === 'undefined') {
+      window.TimezoneManager = class {
+        constructor(){ this.userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; }
+        createUTCTimestamp(){ return new Date().toISOString(); }
+        formatTimestamp(v){ return new Date(v).toLocaleString('id-ID'); }
+        formatRelativeTime(){ return 'baru saja'; }
+      };
+    }
+
+    if (typeof ImageUploadManager === 'undefined') {
+      window.ImageUploadManager = class {
+        constructor(){ }
+        compressImage(file, cb){
+          const r = new FileReader();
+          r.onload=()=>cb({dataUrl:r.result, blob:file, sizeKB:Math.round(file.size/1024)});
+          r.readAsDataURL(file);
+        }
+      };
+    }
     
     // Initialize
     window.addEventListener('load', () => {
@@ -340,8 +361,10 @@
     async function init() {
       // Supabase
       try {
-        const { createClient } = window.supabase;
-        supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+        if (window.supabase) {
+          const { createClient } = window.supabase;
+          supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
         console.log('✓ Supabase connected');
       } catch (e) {
         console.error('Supabase init error:', e);
@@ -359,6 +382,7 @@
       
       // UI
       updateUI();
+      updateCups(false);
       localStorage.setItem('tofarmer_alias', userAlias);
       
       // Image upload setup
@@ -537,11 +561,19 @@
       }
     }
     
+    // Update suasana kedai: cangkir hanya muncul saat ada aktivitas
+    function updateCups(active = false){
+      const meja = document.querySelector('.meja');
+      if(!meja) return;
+      const cups = meja.querySelectorAll('.cangkir');
+      cups.forEach(c=>c.style.display = active ? 'flex':'none');
+    }
+
     function bukaPintu() {
       if (isLoggedIn) {
         alert('Anda sudah masuk sebagai ' + userUsername);
       } else {
-        window.location.href = '/html/login.html';
+        window.location.href = '../html/login.html';
       }
     }
   </script>
