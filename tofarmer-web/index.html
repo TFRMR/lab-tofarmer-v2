@@ -10,6 +10,13 @@
   
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Image Upload Manager (auto compress + WebP) -->
+  <script src="../js/image-upload-manager.js"></script>
+  
+  <!-- Timezone Manager (correct time display) -->
+  <script src="../js/timezone-manager.js"></script>
+  
   <link rel="icon" type="image/png" href="aset/favicon.png">
   <style>
   /* Fix Viewport Height HP */
@@ -211,6 +218,11 @@
       <button onclick="changeAlias()" class="w-full text-left px-3 py-2 text-xs hover:bg-amber-500/10 rounded-lg text-stone-300 hover:text-amber-400 transition">
         ✏️ Ganti Nama (Alias)
       </button>
+      <!-- IMAGE UPLOAD BUTTON (MEMBER ONLY) -->
+      <button onclick="document.getElementById('avatar-upload').click()" id="avatar-upload-btn" class="hidden w-full text-left px-3 py-2 text-xs hover:bg-blue-500/10 rounded-lg text-stone-300 hover:text-blue-400 transition">
+        🖼️ Ganti Avatar
+      </button>
+      <input type="file" id="avatar-upload" class="hidden" accept="image/*" />
       <a href="/html/login.html" id="login-menu-btn" class="block w-full text-left px-3 py-2 text-xs hover:bg-green-500/10 rounded-lg text-stone-300 hover:text-green-400 transition">
         🔐 Masuk Akun ToFarmer
       </a>
@@ -293,22 +305,47 @@
       </div>
 
       <!-- Message Input -->
-      <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex-1 flex items-end space-x-2">
-        <textarea 
-          id="message-input" 
-          rows="2"
-          placeholder="Pesan cangkir kopimu..." 
-          autocomplete="off"
-          onkeydown="handleKeyDown(event)"
-          class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 transition resize-none leading-relaxed"
-        ></textarea>
-        <button 
-          type="submit" 
-          class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-stone-950 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center shadow-md shadow-amber-900/20 h-[52px] shrink-0 tooltip" 
-          data-tooltip="Kirim (Shift+Enter: baris baru)"
-        >
-          Kirim
-        </button>
+      <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex-1 flex flex-col">
+        <!-- Image Preview Area -->
+        <div id="chat-image-preview-container" class="hidden px-3 py-2">
+          <img id="chat-image-preview" src="" alt="Preview" class="max-w-xs max-h-64 rounded-lg border border-stone-700">
+          <button type="button" onclick="removeChatImagePreview()" class="ml-2 text-xs text-stone-400 hover:text-red-400 mt-1">
+            ❌ Hapus gambar
+          </button>
+        </div>
+        
+        <!-- Input Area -->
+        <div class="flex items-end space-x-2">
+          <textarea 
+            id="message-input" 
+            rows="2"
+            placeholder="Pesan cangkir kopimu..." 
+            autocomplete="off"
+            onkeydown="handleKeyDown(event)"
+            class="flex-1 bg-stone-950 border border-stone-800 rounded-xl px-3.5 py-2.5 text-xs text-stone-100 placeholder-stone-500 focus:outline-none focus:border-amber-500/50 transition resize-none leading-relaxed"
+          ></textarea>
+          
+          <!-- Image Upload Button -->
+          <button 
+            type="button"
+            onclick="document.getElementById('chat-image-upload').click()"
+            title="Upload gambar"
+            class="bg-stone-900 hover:bg-stone-800 text-amber-400 px-3 py-2.5 rounded-xl text-xs font-bold transition h-[52px] shrink-0 border border-stone-800 tooltip" 
+            data-tooltip="Upload gambar"
+          >
+            🖼️
+          </button>
+          <input type="file" id="chat-image-upload" class="hidden" accept="image/*" />
+          
+          <!-- Send Button -->
+          <button 
+            type="submit" 
+            class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-stone-950 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center shadow-md shadow-amber-900/20 h-[52px] shrink-0 tooltip" 
+            data-tooltip="Kirim (Shift+Enter: baris baru)"
+          >
+            Kirim
+          </button>
+        </div>
       </form>
     </div>
   </footer>
@@ -447,6 +484,110 @@
       setupRealtimeSubscription();
       setTimeout(showCtaToast, 5000);
 
+      // ========== TIMEZONE MANAGER SETUP ==========
+      console.log('→ Setting up timezone manager...');
+      if (typeof TimezoneManager !== 'undefined') {
+        window.tzManager = new TimezoneManager();
+        console.log(`✓ Timezone: ${window.tzManager.userTimezone}`);
+        console.log(`✓ Offset: ${window.tzManager.getTimezoneOffset()} hours`);
+      } else {
+        console.warn('⚠️  TimezoneManager not loaded');
+      }
+
+      // ========== IMAGE UPLOAD SETUP ==========
+      console.log('→ Setting up image upload...');
+      
+      // Avatar upload (member only)
+      setupImageUploadInput('avatar-upload', async (result) => {
+        if (result.error) {
+          console.error('❌ Compression error:', result.error);
+          alert(`❌ Error: ${result.error}`);
+          return;
+        }
+
+        console.log(`✓ Avatar compressed: ${result.sizeKB}KB (from ${result.originalSize}KB)`);
+
+        if (!isLoggedIn) {
+          alert('❌ Login dulu untuk upload avatar!');
+          return;
+        }
+
+        // Show preview locally
+        const avatarEl = document.querySelector('[data-avatar-preview]');
+        if (avatarEl) {
+          avatarEl.src = result.dataUrl;
+        }
+
+        // Save to localStorage (offline support)
+        localStorage.setItem('user_avatar_webp', result.dataUrl);
+        console.log('✓ Avatar saved to localStorage');
+
+        // Try upload to Supabase (optional)
+        if (supabaseClient && userWallet) {
+          try {
+            const imgMgr = new ImageUploadManager(supabaseClient);
+            const uploadResult = await imgMgr.uploadToSupabaseWithDB(
+              result.blob,
+              'avatars',
+              `${userWallet}.webp`,
+              {
+                category: 'avatar',
+                uploadedBy: userWallet,
+                username: userUsername,
+                width: 800,
+                height: 800,
+                originalSize: parseFloat(result.originalSize),
+                format: 'jpg'
+              }
+            );
+
+            if (uploadResult?.success) {
+              localStorage.setItem('user_avatar_url', uploadResult.url);
+              console.log('✓ Avatar uploaded to Supabase:', uploadResult.url);
+              alert(`✓ Avatar berhasil! (${uploadResult.sizeKB}KB)\n${uploadResult.url}`);
+            } else {
+              alert(`✓ Avatar disimpan (${result.sizeKB}KB)\nNon-online upload akan disync nanti`);
+            }
+          } catch (error) {
+            console.error('⚠️  Supabase upload failed:', error);
+            alert(`✓ Avatar disimpan offline (${result.sizeKB}KB)\nAkan di-sync saat online`);
+          }
+        } else {
+          alert(`✓ Avatar disimpan (${result.sizeKB}KB)`);
+        }
+      });
+
+      // Chat image upload
+      setupImageUploadInput('chat-image-upload', (result) => {
+        if (result.error) {
+          alert(`❌ Error: ${result.error}`);
+          return;
+        }
+
+        console.log(`✓ Image compressed: ${result.sizeKB}KB`);
+
+        // Show preview
+        const previewContainer = document.getElementById('chat-image-preview-container');
+        const preview = document.getElementById('chat-image-preview');
+        
+        if (previewContainer && preview) {
+          previewContainer.classList.remove('hidden');
+          preview.src = result.dataUrl;
+        }
+
+        // Store for sending
+        window.pendingChatImage = {
+          dataUrl: result.dataUrl,
+          blob: result.blob,
+          sizeKB: result.sizeKB,
+          originalSize: parseFloat(result.originalSize)
+        };
+
+        alert(`✓ Gambar siap dikirim! (${result.sizeKB}KB)`);
+      });
+
+      console.log('✓ Image upload ready');
+
       console.log('✅ init() complete!', {
         isLoggedIn,
         userAlias,
@@ -510,6 +651,7 @@
       const loginBtn = document.getElementById('login-menu-btn');
       const logoutBtn = document.getElementById('logout-btn');
       const createRoomBtn = document.getElementById('create-room-btn');
+      const avatarUploadBtn = document.getElementById('avatar-upload-btn');
       const userStatus = document.getElementById('user-status');
       const memberBadge = document.getElementById('member-badge');
       const memberHint = document.getElementById('member-hint');
@@ -518,16 +660,18 @@
         loginBtn.classList.add('hidden');
         logoutBtn.classList.remove('hidden');
         createRoomBtn.classList.remove('hidden');
+        if (avatarUploadBtn) avatarUploadBtn.classList.remove('hidden');
         userStatus.innerHTML = `Member: <b class="text-green-400">@${userUsername}</b>`;
         memberBadge.classList.remove('hidden');
         memberHint.classList.add('hidden');
       } else {
         loginBtn.classList.remove('hidden');
         logoutBtn.classList.add('hidden');
+        createRoomBtn.classList.add('hidden');
+        if (avatarUploadBtn) avatarUploadBtn.classList.add('hidden');
         userStatus.innerHTML = `Pengunjung: <b class="text-amber-400">${userAlias}</b>`;
         memberBadge.classList.add('hidden');
         memberHint.classList.remove('hidden');
-        // Create room button tetap terlihat tapi akan redirect ke login
       }
     }
 
@@ -739,6 +883,17 @@
       const isBot = msg.is_bot;
       const isMe = msg.sender === userAlias;
 
+      // Format timestamp dengan timezone
+      let timeStr = 'Now';
+      let relativeTime = 'Recent';
+      
+      if (window.tzManager && msg.created_at) {
+        timeStr = window.tzManager.formatTimestamp(msg.created_at);
+        relativeTime = window.tzManager.formatRelativeTime(msg.created_at);
+      } else if (msg.created_at) {
+        timeStr = new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+      }
+
       const messageCard = document.createElement('div');
       messageCard.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} text-xs space-y-1 message-new`;
 
@@ -753,13 +908,24 @@
           </div>
         `;
       } else {
+        // Build image HTML if exists
+        let imageHTML = '';
+        if (msg.image_url) {
+          imageHTML = `<img src="${msg.image_url}" class="max-w-xs max-h-64 rounded-lg mt-2 border border-stone-700" alt="Shared image" />`;
+        } else if (msg.image_data) {
+          imageHTML = `<img src="${msg.image_data}" class="max-w-xs max-h-64 rounded-lg mt-2 border border-stone-700" alt="Shared image" />`;
+        }
+
         messageCard.innerHTML = `
           <div class="flex items-center space-x-1.5 px-1">
             <span class="font-medium text-[11px] ${isMe ? 'text-amber-400' : 'text-stone-400'}">${msg.sender}</span>
-            <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            <span class="text-[9px] text-stone-600 font-mono" title="${window.tzManager ? window.tzManager.formatTimestampFull(msg.created_at) : msg.created_at}">
+              ${timeStr} <span class="text-stone-700">${relativeTime}</span>
+            </span>
           </div>
           <div class="${isMe ? 'bg-amber-600 text-stone-950 font-medium' : 'bg-stone-900 border border-stone-800 text-stone-200'} p-2.5 rounded-xl max-w-[85%] break-words shadow-sm">
-            ${formatLinks(escapeHTML(msg.content))}
+            ${msg.content ? formatLinks(escapeHTML(msg.content)) : '📸 Shared image'}
+            ${imageHTML}
           </div>
         `;
       }
@@ -791,25 +957,105 @@
       e.preventDefault();
       const input = document.getElementById('message-input');
       const content = input.value.trim();
-      if (!content) return;
+      const imageData = window.pendingChatImage;
+
+      if (!content && !imageData) return;
 
       input.value = "";
 
+      // Use timezone manager for timestamp
+      const timestamp = window.tzManager ? 
+        window.tzManager.createUTCTimestamp() : 
+        new Date().toISOString();
+
       const newMsg = {
         sender: userAlias,
-        content: content,
+        content: content || '📸 Shared image',
         channel: currentRoom,
         is_bot: false,
-        created_at: new Date().toISOString()
+        created_at: timestamp,
+        type: imageData ? 'image' : 'text'
       };
+
+      // If image, upload to Supabase first
+      if (imageData && supabaseClient) {
+        try {
+          console.log('📤 Uploading chat image to Supabase...');
+          const imgMgr = new ImageUploadManager(supabaseClient);
+          const uploadResult = await imgMgr.uploadToSupabaseWithDB(
+            imageData.blob,
+            'chat-images',
+            `${currentRoom}/${Date.now()}.webp`,
+            {
+              category: 'chat',
+              uploadedBy: userWallet || 'guest',
+              username: userAlias,
+              relatedId: currentRoom,
+              originalSize: imageData.originalSize,
+              format: 'jpg'
+            }
+          );
+
+          if (uploadResult?.success) {
+            // Only store image_url (not image_data) - image_data column doesn't exist
+            newMsg.image_url = uploadResult.url;
+            newMsg.image_id = uploadResult.imageId;
+            console.log('✓ Image uploaded to Supabase:', uploadResult.url);
+          } else {
+            // Fallback: store as base64 in image_url (not image_data)
+            newMsg.image_url = imageData.dataUrl;
+            console.log('⚠️  Using base64 fallback');
+          }
+        } catch (error) {
+          console.error('⚠️  Image upload failed:', error);
+          // Fallback: store as base64
+          newMsg.image_url = imageData.dataUrl;
+        }
+      }
 
       if (!supabaseClient) {
         appendMessageUI(newMsg);
         triggerRandomBotResponse(content);
+        
+        // Clear image
+        removeChatImagePreview();
+        window.pendingChatImage = null;
         return;
       }
 
-      await supabaseClient.from('lounge_messages').insert([newMsg]);
+      // Insert to database - ONLY insert columns that exist
+      const { error } = await supabaseClient
+        .from('lounge_messages')
+        .insert([{
+          sender: newMsg.sender,
+          content: newMsg.content,
+          channel: newMsg.channel,
+          is_bot: newMsg.is_bot,
+          created_at: newMsg.created_at,
+          image_url: newMsg.image_url || null  // ← Only this if image
+          // Don't insert image_data - column doesn't exist!
+        }]);
+      
+      if (error) {
+        console.error('Insert error:', error);
+        alert('Gagal mengirim pesan');
+      } else {
+        console.log('✓ Message inserted');
+        // Clear image preview after successful send
+        removeChatImagePreview();
+        window.pendingChatImage = null;
+      }
+    }
+
+    function removeChatImagePreview() {
+      const container = document.getElementById('chat-image-preview-container');
+      if (container) {
+        container.classList.add('hidden');
+      }
+      const preview = document.getElementById('chat-image-preview');
+      if (preview) {
+        preview.src = '';
+      }
     }
 
     function triggerRandomBotResponse(userText) {
