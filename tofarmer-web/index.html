@@ -5,105 +5,306 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Isoteri Kopi - Kedai ToFarmer</title>
   
+  <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Image Upload Manager (auto compress + WebP) -->
   <script src="../js/image-upload-manager.js"></script>
+  
+  <!-- Timezone Manager (correct time display) -->
   <script src="../js/timezone-manager.js"></script>
   
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+    
     body {
-      margin: 0; height: 100vh; overflow: hidden;
-      font-family: Arial, sans-serif; background: #050b07; color: #d4af37;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: #050b07;
+      color: #d4af37;
     }
-    .kedai { height: 100vh; display: flex; flex-direction: column; }
+    
+    /* KEDAI */
+    .kedai {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* area meja */
     .ruang {
-      flex: 1; position: relative; display: flex;
-      justify-content: center; align-items: center;
-      background: radial-gradient(circle at center, rgba(212, 175, 55, 0.1), transparent 40%),
-                  linear-gradient(#0f0c0a, #050403);
+      flex: 1;
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background:
+        radial-gradient(circle at center, rgba(212, 175, 55, 0.1), transparent 40%),
+        linear-gradient(#0f0c0a, #050403);
     }
+    
+    /* meja */
     .meja {
-      width: 280px; height: 130px; border-radius: 50%;
+      width: 280px;
+      height: 130px;
+      border-radius: 50%;
       background: radial-gradient(circle, #5a3a20, #182a15);
-      box-shadow: 0 40px 80px #000; position: relative;
+      box-shadow: 0 40px 80px #000;
+      position: relative;
     }
+    
+    /* cangkir */
     .cangkir {
-      position: absolute; width: 45px; height: 45px;
-      background: #d4af37; color: #1a1410; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 25px; cursor: pointer; animation: muncul 0.5s; font-weight: bold;
+      position: absolute;
+      width: 45px;
+      height: 45px;
+      background: #d4af37;
+      color: #1a1410;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 25px;
+      cursor: pointer;
+      animation: muncul 0.5s;
+      font-weight: bold;
     }
-    .c1 { left: 70px; top: -20px; }
-    .c2 { right: 70px; top: -20px; }
+    
+    .c1 {
+      left: 70px;
+      top: -20px;
+    }
+    
+    .c2 {
+      right: 70px;
+      top: -20px;
+    }
+    
     .penjaga {
-      position: absolute; bottom: 20px; font-size: 13px;
-      color: #d4af37; text-align: center; width: 100%;
+      position: absolute;
+      bottom: 20px;
+      font-size: 13px;
+      color: #d4af37;
+      text-align: center;
+      width: 100%;
     }
+    
     @keyframes muncul {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; }
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+      }
     }
+    
+    /* CHAT */
     .chat {
-      height: 40%; background: #0d0a07;
-      border-top: 2px solid #3d6f2e; display: flex; flex-direction: column;
+      height: 40%;
+      background: #0d0a07;
+      border-top: 2px solid #3d6f2e;
+      display: flex;
+      flex-direction: column;
     }
-    .pesan { flex: 1; overflow-y: auto; padding: 15px; }
-    .bubble { margin-bottom: 10px; line-height: 1.5; font-size: 13px; }
-    .nama { color: #d4af37; font-size: 11px; font-weight: bold; }
-    .konten { color: #b0b0b0; margin-top: 3px; word-wrap: break-word; }
-    .waktu { font-size: 10px; color: #666; margin-top: 2px; }
-    .image-preview-container { display: none; padding: 10px; border-bottom: 1px solid #3d6f2e; }
-    .image-preview-container.show { display: block; }
-    .image-preview-container img { max-width: 150px; max-height: 150px; border-radius: 8px; margin-bottom: 8px; }
-    .image-size-info { font-size: 11px; color: #999; margin-top: 5px; }
+    
+    .pesan {
+      flex: 1;
+      overflow-y: auto;
+      padding: 15px;
+    }
+    
+    .bubble {
+      margin-bottom: 10px;
+      line-height: 1.5;
+      font-size: 13px;
+    }
+    
+    .nama {
+      color: #d4af37;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    
+    .konten {
+      color: #b0b0b0;
+      margin-top: 3px;
+      word-wrap: break-word;
+    }
+    
+    .waktu {
+      font-size: 10px;
+      color: #666;
+      margin-top: 2px;
+    }
+    
+    /* IMAGE PREVIEW */
+    .image-preview-container {
+      display: none;
+      padding: 10px;
+      border-bottom: 1px solid #3d6f2e;
+    }
+    
+    .image-preview-container.show {
+      display: block;
+    }
+    
+    .image-preview-container img {
+      max-width: 150px;
+      max-height: 150px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    
+    .image-size-info {
+      font-size: 11px;
+      color: #999;
+      margin-top: 5px;
+    }
+    
+    /* INPUT */
     .input {
-      display: flex; padding: 10px; gap: 8px;
-      border-top: 1px solid #3d6f2e; align-items: flex-end; flex-wrap: wrap;
+      display: flex;
+      padding: 10px;
+      gap: 8px;
+      border-top: 1px solid #3d6f2e;
+      align-items: flex-end;
+      flex-wrap: wrap;
     }
+    
     input[type="text"] {
-      flex: 1; min-width: 150px; background: #16100a;
-      border: 1px solid #3d6f2e; padding: 10px; color: #d4af37;
-      border-radius: 8px; font-size: 13px;
+      flex: 1;
+      min-width: 150px;
+      background: #16100a;
+      border: 1px solid #3d6f2e;
+      padding: 10px;
+      color: #d4af37;
+      border-radius: 8px;
+      font-size: 13px;
     }
-    input[type="text"]::placeholder { color: #666; }
+    
+    input[type="text"]::placeholder {
+      color: #666;
+    }
+    
     button {
-      background: #3d6f2e; border: 1px solid #5a9b3f; border-radius: 8px;
-      padding: 8px 15px; cursor: pointer; color: #d4af37; font-weight: bold;
-      font-size: 12px; transition: all 0.2s; white-space: nowrap;
+      background: #3d6f2e;
+      border: 1px solid #5a9b3f;
+      border-radius: 8px;
+      padding: 8px 15px;
+      cursor: pointer;
+      color: #d4af37;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.2s;
+      white-space: nowrap;
     }
-    button:hover { background: #5a9b3f; }
-    button:disabled { background: #666; cursor: not-allowed; opacity: 0.5; }
+    
+    button:hover {
+      background: #5a9b3f;
+    }
+    
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
     .status-indicator {
-      display: inline-block; width: 8px; height: 8px;
-      border-radius: 50%; background: #4ade80; margin-right: 5px;
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      margin-right: 5px;
     }
-    .status-indicator.offline { background: #ef4444; }
+    
+    .status-indicator.offline {
+      background: #ef4444;
+    }
+    
+    /* pintu/masuk */
     .pintu {
-      position: absolute; right: 20px; top: 20px; color: #d4af37;
-      font-size: 12px; cursor: pointer; background: #3d6f2e;
-      padding: 8px 12px; border-radius: 6px; border: 1px solid #5a9b3f;
+      position: absolute;
+      right: 20px;
+      top: 20px;
+      color: #d4af37;
+      font-size: 12px;
+      cursor: pointer;
+      background: #3d6f2e;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #5a9b3f;
+      transition: all 0.2s;
     }
-    .pintu:hover { background: #5a9b3f; }
+    
+    .pintu:hover {
+      background: #5a9b3f;
+    }
+    
+    /* user info */
     .user-info {
-      position: absolute; left: 20px; top: 20px; color: #d4af37;
-      font-size: 12px; background: #3d6f2e; padding: 8px 12px;
-      border-radius: 6px; border: 1px solid #5a9b3f;
+      position: absolute;
+      left: 20px;
+      top: 20px;
+      color: #d4af37;
+      font-size: 12px;
+      background: #3d6f2e;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #5a9b3f;
     }
-    .user-info .member { color: #4ade80; }
+    
+    .user-info .member {
+      color: #4ade80;
+    }
+    
+    /* upload button */
     .upload-btn {
-      background: #3d6f2e; border: 1px solid #5a9b3f; border-radius: 8px;
-      padding: 8px 12px; cursor: pointer; color: #d4af37; font-weight: bold; font-size: 12px;
+      background: #3d6f2e;
+      border: 1px solid #5a9b3f;
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      color: #d4af37;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.2s;
     }
-    input[type="file"] { display: none; }
+    
+    .upload-btn:hover {
+      background: #5a9b3f;
+    }
+    
+    .upload-btn:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+    
     .error-message {
-      color: #ef4444; font-size: 11px; padding: 8px;
-      background: rgba(239, 68, 68, 0.1); border-radius: 4px; margin: 5px 0;
+      color: #ef4444;
+      font-size: 11px;
+      padding: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 4px;
+      margin: 5px 0;
     }
   </style>
 </head>
 <body>
   <div class="kedai">
+    <!-- RUANG MEJA -->
     <div class="ruang">
+      <!-- User Info -->
       <div class="user-info">
         👤 <span id="user-display">Pengunjung</span>
         <span class="member" id="member-badge" style="display:none;">✓ Member</span>
@@ -113,27 +314,41 @@
         </div>
       </div>
       
-      <div class="pintu" onclick="bukaPintu()">🚪 ToFarmer</div>
+      <!-- Pintu/Masuk -->
+      <div class="pintu" onclick="bukaPintu()">
+        🚪 ToFarmer
+      </div>
       
+      <!-- Meja -->
       <div class="meja">
         <div class="cangkir c1" style="display: none;">☕</div>
         <div class="cangkir c2" style="display: none;">☕</div>
       </div>
       
-      <div class="penjaga">☕ Kedai Terbuka | Silakan Duduk & Berbagi</div>
+      <!-- Penjaga -->
+      <div class="penjaga">
+        ☕ Kedai Terbuka | Silakan Duduk & Berbagi
+      </div>
     </div>
     
+    <!-- CHAT -->
     <div class="chat">
-      <div class="pesan" id="pesan"></div>
+      <!-- Pesan Area -->
+      <div class="pesan" id="pesan">
+        <!-- Messages akan di-append di sini -->
+      </div>
       
+      <!-- Image Preview -->
       <div class="image-preview-container" id="image-preview-container">
         <img id="image-preview" src="" alt="Preview">
         <div class="image-size-info" id="image-size-info"></div>
         <button onclick="hapusGambar()" style="width: 100%; margin-bottom: 5px;">❌ Hapus Gambar</button>
       </div>
       
+      <!-- Error Message -->
       <div id="error-message" class="error-message" style="display: none;"></div>
       
+      <!-- Input Area -->
       <div class="input">
         <input 
           type="text" 
@@ -151,17 +366,18 @@
   </div>
 
   <script>
-    // CONFIG & STATE
+    // ========== CONFIGURATION ==========
     const CONFIG = {
       SUPABASE_URL: "https://afpzddwuikvwsedzgsee.supabase.co",
       SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTk1MTI4MjIsImV4cCI6MjAxNTI4ODgyMn0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY",
       MAX_IMAGE_SIZE_KB: 500,
       MAX_MESSAGE_LENGTH: 2000,
-      RATE_LIMIT_MS: 500,
+      RATE_LIMIT_MS: 500, // minimum ms between sends
       TABLE_NAME: 'lounge_messages',
       CHANNEL: 'mejabar'
     };
 
+    // ========== GLOBAL STATE ==========
     let supabaseClient = null;
     let userAlias = null;
     let userWallet = localStorage.getItem('tof_wallet');
@@ -169,13 +385,36 @@
     let isLoggedIn = !!(userWallet && userUsername);
     let currentRoom = CONFIG.CHANNEL;
     let pendingImage = null;
-    let tzManager = null;
+    // tzManager is accessed via window.tzManager to avoid conflicts with external timezone-manager.js script
+    let isOnline = false;
     let lastMessageTime = 0;
     let subscription = null;
     let sessionId = null;
     let isInitialized = false;
 
-    // EVENT HANDLERS
+    // ========== POLYFILLS ==========
+    if (typeof TimezoneManager === 'undefined') {
+      window.TimezoneManager = class {
+        constructor(){ this.userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; }
+        createUTCTimestamp(){ return new Date().toISOString(); }
+        formatTimestamp(v){ return new Date(v).toLocaleString('id-ID'); }
+        formatRelativeTime(){ return 'baru saja'; }
+      };
+    }
+
+    if (typeof ImageUploadManager === 'undefined') {
+      window.ImageUploadManager = class {
+        constructor(){ }
+        compressImage(file, cb){
+          const r = new FileReader();
+          r.onload=()=>cb({dataUrl:r.result, blob:file, sizeKB:Math.round(file.size/1024)});
+          r.readAsDataURL(file);
+        }
+      };
+    }
+    
+    // ========== GLOBAL EVENT HANDLERS (Must be defined before HTML elements reference them) ==========
+    
     function bukaPintu() {
       if (isLoggedIn) {
         alert('Anda sudah masuk sebagai ' + userUsername);
@@ -207,22 +446,25 @@
         return;
       }
 
+      // Rate limiting
       const now = Date.now();
       if (now - lastMessageTime < CONFIG.RATE_LIMIT_MS) {
         showErrorMessage('Tunggu sebentar sebelum kirim lagi');
         return;
       }
 
+      // Validation
       if (isi && isi.length > CONFIG.MAX_MESSAGE_LENGTH) {
         showErrorMessage(`Pesan terlalu panjang (max ${CONFIG.MAX_MESSAGE_LENGTH} karakter)`);
         return;
       }
 
+      // Disable button
       const sendBtn = document.getElementById('send-btn');
       sendBtn.disabled = true;
       sendBtn.textContent = '⏳ Mengirim...';
       
-      const timestamp = tzManager ? tzManager.createUTCTimestamp() : new Date().toISOString();
+      const timestamp = window.tzManager ? window.tzManager.createUTCTimestamp() : new Date().toISOString();
       
       const msg = {
         sender: userAlias,
@@ -237,17 +479,20 @@
       
       try {
         if (!supabaseClient) {
+          // Offline mode - show locally only
           tampilkanPesan(msg);
           input.value = '';
           hapusGambar();
           return;
         }
         
-        const { error } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from(CONFIG.TABLE_NAME)
-          .insert([msg]);
+          .insert([msg])
+          .select();
         
         if (error) {
+          console.error('Supabase error:', error);
           showErrorMessage('Gagal mengirim pesan: ' + error.message);
           return;
         }
@@ -257,6 +502,7 @@
         hapusGambar();
         clearErrorMessage();
       } catch (e) {
+        console.error('Send error:', e);
         showErrorMessage('Error: ' + e.message);
       } finally {
         sendBtn.disabled = false;
@@ -264,12 +510,15 @@
       }
     }
 
-    // UTILITIES
+    // ========== HELPER FUNCTIONS ==========
+    
     function generateRandomAlias() {
       const words = ['Tenang', 'Santai', 'Ngopi', 'Gumun', 'Adem', 'Halus'];
       const suffixes = ['Bunga', 'Kopi', 'Daun', 'Angin', 'Bumi', 'Langit'];
       const num = Math.floor(Math.random() * 1000);
-      return `${words[Math.floor(Math.random() * words.length)]}${suffixes[Math.floor(Math.random() * suffixes.length)]}#${num}`;
+      const w = words[Math.floor(Math.random() * words.length)];
+      const s = suffixes[Math.floor(Math.random() * suffixes.length)];
+      return `${w}${s}#${num}`;
     }
 
     function generateSessionId() {
@@ -279,6 +528,7 @@
     function updateUI() {
       const userDisplay = document.getElementById('user-display');
       const memberBadge = document.getElementById('member-badge');
+      
       if (isLoggedIn) {
         userDisplay.textContent = '@' + userUsername;
         memberBadge.style.display = 'inline';
@@ -289,6 +539,7 @@
     }
 
     function updateStatus(online = false) {
+      isOnline = online;
       const indicator = document.getElementById('status-indicator');
       const statusText = document.getElementById('status-text');
       const uploadBtn = document.getElementById('upload-btn');
@@ -343,24 +594,38 @@
               showErrorMessage('Error: ' + result.error);
               return;
             }
-            const sizeKB = Math.round(result.blob.size / 1024);
-            pendingImage = { dataUrl: result.dataUrl, blob: result.blob, sizeKB: sizeKB };
             
-            document.getElementById('image-preview-container').classList.add('show');
-            document.getElementById('image-preview').src = result.dataUrl;
-            document.getElementById('image-size-info').textContent = `📸 ${sizeKB}KB`;
+            const sizeKB = Math.round(result.blob.size / 1024);
+            
+            pendingImage = {
+              dataUrl: result.dataUrl,
+              blob: result.blob,
+              sizeKB: sizeKB
+            };
+            
+            const container = document.getElementById('image-preview-container');
+            const preview = document.getElementById('image-preview');
+            const sizeInfo = document.getElementById('image-size-info');
+            
+            container.classList.add('show');
+            preview.src = result.dataUrl;
+            sizeInfo.textContent = `📸 ${sizeKB}KB`;
             clearErrorMessage();
           });
         } catch (e) {
+          console.error('Upload error:', e);
           showErrorMessage('Upload error: ' + e.message);
         }
+        
         uploadInput.value = '';
       });
     }
 
     function tampilkanPesan(msg, scroll = true) {
       const area = document.getElementById('pesan');
-      const timeStr = tzManager ? tzManager.formatTimestamp(msg.created_at) : new Date(msg.created_at).toLocaleString('id-ID');
+      
+      const waktu = window.tzManager ? window.tzManager.formatRelativeTime(msg.created_at) : 'Recent';
+      const timeStr = window.tzManager ? window.tzManager.formatTimestamp(msg.created_at) : new Date(msg.created_at).toLocaleString('id-ID');
       
       let html = `
         <div class="bubble">
@@ -374,6 +639,7 @@
       }
       
       html += `<div class="waktu">${timeStr}</div></div>`;
+      
       area.innerHTML += html;
       
       if (scroll) {
@@ -388,9 +654,14 @@
     }
 
     async function loadMessages() {
-      if (!supabaseClient) return;
+      if (!supabaseClient) {
+        console.warn('Supabase not ready');
+        return;
+      }
+      
       try {
         updateStatus(true);
+        
         const { data, error } = await supabaseClient
           .from(CONFIG.TABLE_NAME)
           .select('*')
@@ -399,25 +670,38 @@
           .limit(100);
         
         if (error) {
+          console.error('Load error:', error);
           showErrorMessage('Tidak bisa memuat pesan');
           updateStatus(false);
           return;
         }
 
+        // Clear existing messages (except greeting)
+        const pesan = document.getElementById('pesan');
+        const existing = pesan.querySelectorAll('.bubble');
+        if (existing.length <= 1) {
+          // Keep greeting, load new messages
+        }
+
         if (data && data.length > 0) {
-          document.getElementById('pesan').innerHTML = '';
           data.forEach(msg => tampilkanPesan(msg, false));
         }
 
-        const pesan = document.getElementById('pesan');
-        setTimeout(() => { pesan.scrollTop = pesan.scrollHeight; }, 100);
+        // Auto-scroll to bottom
+        setTimeout(() => {
+          pesan.scrollTop = pesan.scrollHeight;
+        }, 100);
+
       } catch (e) {
+        console.error('Load error:', e);
         updateStatus(false);
       }
     }
 
     async function subscribeToMessages() {
       if (!supabaseClient) return;
+
+      // Unsubscribe from old subscription
       if (subscription) {
         await supabaseClient.removeChannel(subscription);
       }
@@ -426,16 +710,25 @@
         .channel(`public:${CONFIG.TABLE_NAME}:channel=eq.${currentRoom}`)
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: CONFIG.TABLE_NAME, filter: `channel=eq.${currentRoom}` },
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: CONFIG.TABLE_NAME,
+            filter: `channel=eq.${currentRoom}`
+          },
           (payload) => {
-            tampilkanPesan(payload.new);
+            const msg = payload.new;
+            tampilkanPesan(msg);
             updateStatus(true);
           }
         )
         .subscribe((status) => {
-          if (status === 'SUBSCRIBED') updateStatus(true);
-          else if (status === 'CHANNEL_ERROR') {
+          console.log('Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            updateStatus(true);
+          } else if (status === 'CHANNEL_ERROR') {
             updateStatus(false);
+            // Retry subscription after delay
             setTimeout(subscribeToMessages, 5000);
           }
         });
@@ -443,37 +736,75 @@
 
     async function init() {
       try {
+        // Initialize userAlias & session
         userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
         sessionId = generateSessionId();
         localStorage.setItem('tofarmer_alias', userAlias);
         localStorage.setItem('tofarmer_session', sessionId);
         
-        if (window.supabase && window.supabase.createClient) {
-          supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+        // Supabase
+        try {
+          if (window.supabase && window.supabase.createClient) {
+            supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+            console.log('✓ Supabase initialized');
+          }
+        } catch (e) {
+          console.error('Supabase init error:', e);
+          updateStatus(false);
         }
         
-        if (typeof window.TimezoneManager !== 'undefined') {
-          tzManager = new window.TimezoneManager();
+        // Timezone (check if already initialized by external script)
+        try {
+          if (typeof TimezoneManager !== 'undefined') {
+            // Check if tzManager already exists from external script
+            if (!window.tzManager) {
+              window.tzManager = new TimezoneManager();
+            }
+            console.log('✓ Timezone:', window.tzManager.userTimezone);
+          }
+        } catch (e) {
+          console.error('Timezone init error:', e);
         }
         
+        // UI
         updateUI();
+        
+        // Image upload setup
         setupImageUpload();
+        
+        // Load messages
         await loadMessages();
+        
+        // Subscribe to realtime
         await subscribeToMessages();
+        
         isInitialized = true;
+        console.log('✓ Isoteri Kopi initialized');
+        
       } catch (e) {
+        console.error('Init error:', e);
         updateStatus(false);
       }
     }
     
-    window.addEventListener('load', init);
+    // ========== LIFECYCLE ==========
+    window.addEventListener('load', () => {
+      init();
+    });
+
+    // Handle online/offline events
     window.addEventListener('online', () => {
+      console.log('Browser online');
       if (isInitialized) {
         subscribeToMessages();
         loadMessages();
       }
     });
-    window.addEventListener('offline', () => updateStatus(false));
+
+    window.addEventListener('offline', () => {
+      console.log('Browser offline');
+      updateStatus(false);
+    });
   </script>
 </body>
 </html>
