@@ -756,7 +756,12 @@
         messageCard.innerHTML = `
           <div class="flex items-center space-x-1.5 px-1">
             <span class="font-medium text-[11px] ${isMe ? 'text-amber-400' : 'text-stone-400'}">${msg.sender}</span>
-            <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Jakarta'
+})}</span>
           </div>
           <div class="${isMe ? 'bg-amber-600 text-stone-950 font-medium' : 'bg-stone-900 border border-stone-800 text-stone-200'} p-2.5 rounded-xl max-w-[85%] break-words shadow-sm">
             ${formatLinks(escapeHTML(msg.content))}
