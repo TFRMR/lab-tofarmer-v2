@@ -114,7 +114,7 @@
     
     .pesan {
       flex: 1;
-      overflow: auto;
+      overflow-y: auto;
       padding: 15px;
     }
     
@@ -133,6 +133,7 @@
     .konten {
       color: #b0b0b0;
       margin-top: 3px;
+      word-wrap: break-word;
     }
     
     .waktu {
@@ -159,6 +160,12 @@
       margin-bottom: 8px;
     }
     
+    .image-size-info {
+      font-size: 11px;
+      color: #999;
+      margin-top: 5px;
+    }
+    
     /* INPUT */
     .input {
       display: flex;
@@ -166,10 +173,12 @@
       gap: 8px;
       border-top: 1px solid #3d6f2e;
       align-items: flex-end;
+      flex-wrap: wrap;
     }
     
-    input {
+    input[type="text"] {
       flex: 1;
+      min-width: 150px;
       background: #16100a;
       border: 1px solid #3d6f2e;
       padding: 10px;
@@ -178,7 +187,7 @@
       font-size: 13px;
     }
     
-    input::placeholder {
+    input[type="text"]::placeholder {
       color: #666;
     }
     
@@ -192,10 +201,30 @@
       font-weight: bold;
       font-size: 12px;
       transition: all 0.2s;
+      white-space: nowrap;
     }
     
     button:hover {
       background: #5a9b3f;
+    }
+    
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4ade80;
+      margin-right: 5px;
+    }
+    
+    .status-indicator.offline {
+      background: #ef4444;
     }
     
     /* pintu/masuk */
@@ -244,7 +273,6 @@
       color: #d4af37;
       font-weight: bold;
       font-size: 12px;
-      margin-right: 5px;
       transition: all 0.2s;
     }
     
@@ -252,8 +280,23 @@
       background: #5a9b3f;
     }
     
+    .upload-btn:disabled {
+      background: #666;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+    
     input[type="file"] {
       display: none;
+    }
+    
+    .error-message {
+      color: #ef4444;
+      font-size: 11px;
+      padding: 8px;
+      background: rgba(239, 68, 68, 0.1);
+      border-radius: 4px;
+      margin: 5px 0;
     }
   </style>
 </head>
@@ -265,6 +308,10 @@
       <div class="user-info">
         👤 <span id="user-display">Pengunjung</span>
         <span class="member" id="member-badge" style="display:none;">✓ Member</span>
+        <div style="margin-top: 5px;">
+          <span class="status-indicator" id="status-indicator"></span>
+          <span id="status-text" style="font-size: 10px;">Connecting...</span>
+        </div>
       </div>
       
       <!-- Pintu/Masuk -->
@@ -274,8 +321,8 @@
       
       <!-- Meja -->
       <div class="meja">
-        <div class="cangkir c1">☕</div>
-        <div class="cangkir c2">☕</div>
+        <div class="cangkir c1" style="display: none;">☕</div>
+        <div class="cangkir c2" style="display: none;">☕</div>
       </div>
       
       <!-- Penjaga -->
@@ -288,18 +335,18 @@
     <div class="chat">
       <!-- Pesan Area -->
       <div class="pesan" id="pesan">
-        <div class="bubble">
-          <div class="nama">🤖 Barista ToFarmer</div>
-          <div class="konten">Selamat datang di Isoteri Kopi ☕</div>
-          <div class="waktu">Baru saja</div>
-        </div>
+        <!-- Messages akan di-append di sini -->
       </div>
       
       <!-- Image Preview -->
       <div class="image-preview-container" id="image-preview-container">
         <img id="image-preview" src="" alt="Preview">
+        <div class="image-size-info" id="image-size-info"></div>
         <button onclick="hapusGambar()" style="width: 100%; margin-bottom: 5px;">❌ Hapus Gambar</button>
       </div>
+      
+      <!-- Error Message -->
+      <div id="error-message" class="error-message" style="display: none;"></div>
       
       <!-- Input Area -->
       <div class="input">
@@ -309,30 +356,43 @@
           placeholder="Tulis sesuatu..."
           onkeydown="handleKeydown(event)"
         >
-        <button class="upload-btn" onclick="document.getElementById('upload-image').click()">
-          🖼️
+        <button class="upload-btn" id="upload-btn" onclick="document.getElementById('upload-image').click()">
+          🖼️ Gambar
         </button>
         <input type="file" id="upload-image" accept="image/*">
-        <button onclick="kirim()">Kirim</button>
+        <button id="send-btn" onclick="kirim()">📤 Kirim</button>
       </div>
     </div>
   </div>
 
   <script>
-    // ========== INITIALIZATION ==========
-    const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTk1MTI4MjIsImV4cCI6MjAxNTI4ODgyMn0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
-    
-    let supabaseClient;
+    // ========== CONFIGURATION ==========
+    const CONFIG = {
+      SUPABASE_URL: "https://afpzddwuikvwsedzgsee.supabase.co",
+      SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTk1MTI4MjIsImV4cCI6MjAxNTI4ODgyMn0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY",
+      MAX_IMAGE_SIZE_KB: 500,
+      MAX_MESSAGE_LENGTH: 2000,
+      RATE_LIMIT_MS: 500, // minimum ms between sends
+      TABLE_NAME: 'lounge_messages',
+      CHANNEL: 'mejabar'
+    };
+
+    // ========== GLOBAL STATE ==========
+    let supabaseClient = null;
     let userAlias = null;
     let userWallet = localStorage.getItem('tof_wallet');
     let userUsername = localStorage.getItem('tof_login_username');
     let isLoggedIn = !!(userWallet && userUsername);
-    let currentRoom = 'mejabar';
+    let currentRoom = CONFIG.CHANNEL;
     let pendingImage = null;
     let tzManager = null;
+    let isOnline = false;
+    let lastMessageTime = 0;
+    let subscription = null;
+    let sessionId = null;
+    let isInitialized = false;
 
-    // Fallback agar kedai tetap hidup jika modul eksternal belum tersedia
+    // ========== POLYFILLS ==========
     if (typeof TimezoneManager === 'undefined') {
       window.TimezoneManager = class {
         constructor(){ this.userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone; }
@@ -353,18 +413,8 @@
       };
     }
     
-    // ========== GLOBAL EVENT HANDLER FUNCTIONS ==========
-    // These must be in global scope to work with inline HTML event handlers
+    // ========== GLOBAL EVENT HANDLERS ==========
     
-    function generateRandomAlias() {
-      const words = ['Tenang', 'Santai', 'Ngopi', 'Gumun', 'Adem', 'Halus'];
-      const suffixes = ['Bunga', 'Kopi', 'Daun', 'Angin', 'Bumi', 'Langit'];
-      const num = Math.floor(Math.random() * 1000);
-      const w = words[Math.floor(Math.random() * words.length)];
-      const s = suffixes[Math.floor(Math.random() * suffixes.length)];
-      return `${w}${s}#${num}`;
-    }
-
     function bukaPintu() {
       if (isLoggedIn) {
         alert('Anda sudah masuk sebagai ' + userUsername);
@@ -383,13 +433,36 @@
     function hapusGambar() {
       pendingImage = null;
       document.getElementById('image-preview-container').classList.remove('show');
+      document.getElementById('image-preview').src = '';
+      clearErrorMessage();
     }
 
     async function kirim() {
       const input = document.getElementById('teks');
       const isi = input.value.trim();
       
-      if (!isi && !pendingImage) return;
+      if (!isi && !pendingImage) {
+        showErrorMessage('Tulis pesan atau upload gambar');
+        return;
+      }
+
+      // Rate limiting
+      const now = Date.now();
+      if (now - lastMessageTime < CONFIG.RATE_LIMIT_MS) {
+        showErrorMessage('Tunggu sebentar sebelum kirim lagi');
+        return;
+      }
+
+      // Validation
+      if (isi && isi.length > CONFIG.MAX_MESSAGE_LENGTH) {
+        showErrorMessage(`Pesan terlalu panjang (max ${CONFIG.MAX_MESSAGE_LENGTH} karakter)`);
+        return;
+      }
+
+      // Disable button
+      const sendBtn = document.getElementById('send-btn');
+      sendBtn.disabled = true;
+      sendBtn.textContent = '⏳ Mengirim...';
       
       const timestamp = tzManager ? tzManager.createUTCTimestamp() : new Date().toISOString();
       
@@ -399,31 +472,59 @@
         channel: currentRoom,
         is_bot: false,
         created_at: timestamp,
-        image_data: pendingImage?.dataUrl || null
+        image_data: pendingImage?.dataUrl || null,
+        image_size_kb: pendingImage?.sizeKB || null,
+        session_id: sessionId
       };
       
-      input.value = '';
-      hapusGambar();
-      
-      if (!supabaseClient) {
-        tampilkanPesan(msg);
-        return;
-      }
-      
-      const { error } = await supabaseClient
-        .from('lounge_messages')
-        .insert([msg]);
-      
-      if (error) {
-        console.error('Error:', error);
-        alert('Gagal mengirim');
-      } else {
-        tampilkanPesan(msg);
+      try {
+        if (!supabaseClient) {
+          // Offline mode - show locally only
+          tampilkanPesan(msg);
+          input.value = '';
+          hapusGambar();
+          return;
+        }
+        
+        const { data, error } = await supabaseClient
+          .from(CONFIG.TABLE_NAME)
+          .insert([msg])
+          .select();
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          showErrorMessage('Gagal mengirim pesan: ' + error.message);
+          return;
+        }
+
+        lastMessageTime = now;
+        input.value = '';
+        hapusGambar();
+        clearErrorMessage();
+      } catch (e) {
+        console.error('Send error:', e);
+        showErrorMessage('Error: ' + e.message);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = '📤 Kirim';
       }
     }
 
-    // ========== INTERNAL HELPER FUNCTIONS ==========
+    // ========== HELPER FUNCTIONS ==========
     
+    function generateRandomAlias() {
+      const words = ['Tenang', 'Santai', 'Ngopi', 'Gumun', 'Adem', 'Halus'];
+      const suffixes = ['Bunga', 'Kopi', 'Daun', 'Angin', 'Bumi', 'Langit'];
+      const num = Math.floor(Math.random() * 1000);
+      const w = words[Math.floor(Math.random() * words.length)];
+      const s = suffixes[Math.floor(Math.random() * suffixes.length)];
+      return `${w}${s}#${num}`;
+    }
+
+    function generateSessionId() {
+      return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(7);
+    }
+
     function updateUI() {
       const userDisplay = document.getElementById('user-display');
       const memberBadge = document.getElementById('member-badge');
@@ -436,7 +537,38 @@
         memberBadge.style.display = 'none';
       }
     }
-    
+
+    function updateStatus(online = false) {
+      isOnline = online;
+      const indicator = document.getElementById('status-indicator');
+      const statusText = document.getElementById('status-text');
+      const uploadBtn = document.getElementById('upload-btn');
+      const sendBtn = document.getElementById('send-btn');
+      
+      if (online) {
+        indicator.classList.remove('offline');
+        statusText.textContent = 'Online';
+        uploadBtn.disabled = false;
+        sendBtn.disabled = false;
+      } else {
+        indicator.classList.add('offline');
+        statusText.textContent = 'Offline';
+        uploadBtn.disabled = true;
+        sendBtn.disabled = true;
+      }
+    }
+
+    function showErrorMessage(msg) {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = msg;
+      errorDiv.style.display = 'block';
+      setTimeout(() => clearErrorMessage(), 5000);
+    }
+
+    function clearErrorMessage() {
+      document.getElementById('error-message').style.display = 'none';
+    }
+
     function setupImageUpload() {
       const uploadInput = document.getElementById('upload-image');
       uploadInput.addEventListener('change', async (e) => {
@@ -444,31 +576,45 @@
         if (!file) return;
         
         if (!file.type.startsWith('image/')) {
-          alert('Hanya file gambar!');
+          showErrorMessage('Hanya file gambar yang didukung');
+          uploadInput.value = '';
+          return;
+        }
+
+        if (file.size / 1024 > CONFIG.MAX_IMAGE_SIZE_KB) {
+          showErrorMessage(`Gambar terlalu besar (max ${CONFIG.MAX_IMAGE_SIZE_KB}KB)`);
+          uploadInput.value = '';
           return;
         }
         
         try {
-          const imgMgr = new ImageUploadManager(supabaseClient);
+          const imgMgr = new ImageUploadManager();
           imgMgr.compressImage(file, (result) => {
             if (result.error) {
-              alert('Error: ' + result.error);
+              showErrorMessage('Error: ' + result.error);
               return;
             }
+            
+            const sizeKB = Math.round(result.blob.size / 1024);
             
             pendingImage = {
               dataUrl: result.dataUrl,
               blob: result.blob,
-              sizeKB: result.sizeKB
+              sizeKB: sizeKB
             };
             
             const container = document.getElementById('image-preview-container');
             const preview = document.getElementById('image-preview');
+            const sizeInfo = document.getElementById('image-size-info');
+            
             container.classList.add('show');
             preview.src = result.dataUrl;
+            sizeInfo.textContent = `📸 ${sizeKB}KB`;
+            clearErrorMessage();
           });
         } catch (e) {
           console.error('Upload error:', e);
+          showErrorMessage('Upload error: ' + e.message);
         }
         
         uploadInput.value = '';
@@ -479,19 +625,20 @@
       const area = document.getElementById('pesan');
       
       const waktu = tzManager ? tzManager.formatRelativeTime(msg.created_at) : 'Recent';
-      const timeStr = tzManager ? tzManager.formatTimestamp(msg.created_at) : '';
+      const timeStr = tzManager ? tzManager.formatTimestamp(msg.created_at) : new Date(msg.created_at).toLocaleString('id-ID');
       
       let html = `
         <div class="bubble">
-          <div class="nama">${msg.sender}</div>
-          <div class="konten">${msg.content}</div>
+          <div class="nama">${escapeHtml(msg.sender)}</div>
+          <div class="konten">${escapeHtml(msg.content)}</div>
       `;
       
       if (msg.image_data) {
-        html += `<img src="${msg.image_data}" style="max-width:120px; max-height:120px; border-radius:6px; margin-top:5px;">`;
+        const sizeInfo = msg.image_size_kb ? ` (${msg.image_size_kb}KB)` : '';
+        html += `<img src="${msg.image_data}" style="max-width:120px; max-height:120px; border-radius:6px; margin-top:5px;" title="Gambar${sizeInfo}">`;
       }
       
-      html += `<div class="waktu">${timeStr} (${waktu})</div></div>`;
+      html += `<div class="waktu">${timeStr}</div></div>`;
       
       area.innerHTML += html;
       
@@ -500,88 +647,160 @@
       }
     }
 
-    function updateCups(active = false){
-      const meja = document.querySelector('.meja');
-      if(!meja) return;
-      const cups = meja.querySelectorAll('.cangkir');
-      cups.forEach(c=>c.style.display = active ? 'flex':'none');
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     }
 
     async function loadMessages() {
-      if (!supabaseClient) return;
+      if (!supabaseClient) {
+        console.warn('Supabase not ready');
+        return;
+      }
       
       try {
-        const { data } = await supabaseClient
-          .from('lounge_messages')
+        updateStatus(true);
+        
+        const { data, error } = await supabaseClient
+          .from(CONFIG.TABLE_NAME)
           .select('*')
           .eq('channel', currentRoom)
           .order('created_at', { ascending: true })
-          .limit(50);
+          .limit(100);
         
-        if (data) {
+        if (error) {
+          console.error('Load error:', error);
+          showErrorMessage('Tidak bisa memuat pesan');
+          updateStatus(false);
+          return;
+        }
+
+        // Clear existing messages (except greeting)
+        const pesan = document.getElementById('pesan');
+        const existing = pesan.querySelectorAll('.bubble');
+        if (existing.length <= 1) {
+          // Keep greeting, load new messages
+        }
+
+        if (data && data.length > 0) {
           data.forEach(msg => tampilkanPesan(msg, false));
         }
+
+        // Auto-scroll to bottom
+        setTimeout(() => {
+          pesan.scrollTop = pesan.scrollHeight;
+        }, 100);
+
       } catch (e) {
         console.error('Load error:', e);
+        updateStatus(false);
       }
     }
 
+    async function subscribeToMessages() {
+      if (!supabaseClient) return;
+
+      // Unsubscribe from old subscription
+      if (subscription) {
+        await supabaseClient.removeChannel(subscription);
+      }
+
+      subscription = supabaseClient
+        .channel(`public:${CONFIG.TABLE_NAME}:channel=eq.${currentRoom}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: CONFIG.TABLE_NAME,
+            filter: `channel=eq.${currentRoom}`
+          },
+          (payload) => {
+            const msg = payload.new;
+            tampilkanPesan(msg);
+            updateStatus(true);
+          }
+        )
+        .subscribe((status) => {
+          console.log('Subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            updateStatus(true);
+          } else if (status === 'CHANNEL_ERROR') {
+            updateStatus(false);
+            // Retry subscription after delay
+            setTimeout(subscribeToMessages, 5000);
+          }
+        });
+    }
+
     async function init() {
-      // Initialize userAlias first (was causing issues)
-      userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
-      
-      // Supabase
       try {
-        if (window.supabase) {
-          const { createClient } = window.supabase;
-          supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Initialize userAlias & session
+        userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
+        sessionId = generateSessionId();
+        localStorage.setItem('tofarmer_alias', userAlias);
+        localStorage.setItem('tofarmer_session', sessionId);
+        
+        // Supabase
+        try {
+          if (window.supabase && window.supabase.createClient) {
+            supabaseClient = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+            console.log('✓ Supabase initialized');
+          }
+        } catch (e) {
+          console.error('Supabase init error:', e);
+          updateStatus(false);
         }
-        console.log('✓ Supabase connected');
-      } catch (e) {
-        console.error('Supabase init error:', e);
-      }
-      
-      // Timezone
-      try {
-        if (typeof TimezoneManager !== 'undefined') {
-          tzManager = new TimezoneManager();
-          console.log('✓ Timezone:', tzManager.userTimezone);
+        
+        // Timezone
+        try {
+          if (typeof TimezoneManager !== 'undefined') {
+            tzManager = new TimezoneManager();
+            console.log('✓ Timezone:', tzManager.userTimezone);
+          }
+        } catch (e) {
+          console.error('Timezone init error:', e);
         }
+        
+        // UI
+        updateUI();
+        
+        // Image upload setup
+        setupImageUpload();
+        
+        // Load messages
+        await loadMessages();
+        
+        // Subscribe to realtime
+        await subscribeToMessages();
+        
+        isInitialized = true;
+        console.log('✓ Isoteri Kopi initialized');
+        
       } catch (e) {
-        console.error('Timezone init error:', e);
-      }
-      
-      // UI
-      updateUI();
-      updateCups(false);
-      localStorage.setItem('tofarmer_alias', userAlias);
-      
-      // Image upload setup
-      setupImageUpload();
-      
-      // Load messages
-      loadMessages();
-      
-      // Subscribe to new messages
-      if (supabaseClient) {
-        supabaseClient
-          .channel('public:lounge_messages')
-          .on('postgres_changes', 
-            { event: 'INSERT', schema: 'public', table: 'lounge_messages' },
-            (payload) => {
-              const msg = payload.new;
-              if (msg.channel === currentRoom) {
-                tampilkanPesan(msg);
-              }
-            }
-          )
-          .subscribe();
+        console.error('Init error:', e);
+        updateStatus(false);
       }
     }
     
-    // Initialize on page load
+    // ========== LIFECYCLE ==========
     window.addEventListener('load', () => {
       init();
+    });
+
+    // Handle online/offline events
+    window.addEventListener('online', () => {
+      console.log('Browser online');
+      if (isInitialized) {
+        subscribeToMessages();
+        loadMessages();
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      console.log('Browser offline');
+      updateStatus(false);
     });
   </script>
 </body>
