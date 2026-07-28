@@ -1327,7 +1327,98 @@ async function uploadChatImage(e){
  if(supabaseClient) await supabaseClient.from('lounge_messages').insert([msg]);
  else appendMessageUI(msg);
 }
+// ========== CHAT IMAGE UPLOAD ==========
 
+window.uploadChatImage = async function(event) {
+
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+        alert("File harus berupa gambar");
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert("Ukuran gambar maksimal 5MB");
+        return;
+    }
+
+
+    try {
+
+        const ext = file.name.split('.').pop();
+
+        const filename =
+            `images/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+
+        // upload ke supabase storage
+        const { data: uploadData, error: uploadError } =
+            await supabaseClient
+            .storage
+            .from("chat-media")
+            .upload(filename, file);
+
+
+        if (uploadError) {
+            console.error(uploadError);
+            alert("Upload gagal: " + uploadError.message);
+            return;
+        }
+
+
+        const { data:urlData } =
+            supabaseClient
+            .storage
+            .from("chat-media")
+            .getPublicUrl(filename);
+
+
+        const imageUrl = urlData.publicUrl;
+
+
+        const msg = {
+
+            sender: userAlias,
+
+            content: "🖼️ Gambar",
+
+            channel: currentRoom,
+
+            message_type: "image",
+
+            media_url: imageUrl,
+
+            media_name: file.name,
+
+            media_size: file.size,
+
+            is_bot:false,
+
+            created_at:new Date().toISOString()
+
+        };
+
+
+        await supabaseClient
+        .from("lounge_messages")
+        .insert([msg]);
+
+
+        event.target.value="";
+
+
+    } catch(err){
+
+        console.error(err);
+
+        alert("Terjadi kesalahan upload");
+
+    }
+
+};
 </script>
 </body>
 </html>
