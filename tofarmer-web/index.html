@@ -319,11 +319,6 @@
         <div id="emoji-grid" class="emoji-picker-grid max-h-48 overflow-y-auto"></div>
       </div>
 
-<div id="image-preview-container" class="hidden relative mb-2 p-1.5 bg-stone-950 border border-amber-500/40 rounded-lg inline-block">
-  <img id="image-preview-element" src="" class="h-16 w-16 object-cover rounded" />
-  <button type="button" onclick="cancelImageUpload()" class="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">✕</button>
-</div>
-
       <!-- Message Input -->
       <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex-1 flex items-end space-x-2">
 
@@ -1267,84 +1262,90 @@ function appendMessageUI(msg) {
     };
   </script>
 <script>
-let selectedImageFile = null;
+window.uploadChatImage = async function(event) {
 
-// Dipanggil saat user memilih gambar dari HP/PC
-window.uploadChatImage = function(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+    console.log("UPLOAD IMAGE FUNCTION OK");
 
-  if (!file.type.startsWith("image/")) {
-    alert("File harus berupa gambar!");
-    return;
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    alert("Ukuran gambar maksimal 5MB!");
-    return;
-  }
+    const file = event.target.files[0];
 
-  selectedImageFile = file;
+    if (!file) return;
 
-  // Tampilkan preview ke user
-  const previewContainer = document.getElementById("image-preview-container");
-  const previewImg = document.getElementById("image-preview-element");
-  
-  previewImg.src = URL.createObjectURL(file);
-  previewContainer.classList.remove("hidden");
-};
 
-// Batalkan unggahan gambar
-function cancelImageUpload() {
-  selectedImageFile = null;
-  document.getElementById("image-upload-input").value = "";
-  document.getElementById("image-preview-container").classList.add("hidden");
-}
-
-// Perbarui handleSendMessage untuk memproses teks + gambar sekaligus saat tombol Kirim ditekan
-async function handleSendMessage(e) {
-  e.preventDefault();
-  const input = document.getElementById('message-input');
-  const content = input.value.trim();
-
-  if (!content && !selectedImageFile) return;
-
-  let mediaURL = null;
-
-  // Unggah gambar ke Supabase hanya jika ada gambar yang dipilih
-  if (selectedImageFile && supabaseClient) {
-    const filename = `images/${Date.now()}_${selectedImageFile.name}`;
-    const { error } = await supabaseClient.storage.from("chat-media").upload(filename, selectedImageFile);
-
-    if (error) {
-      alert("Gagal mengunggah gambar: " + error.message);
-      return;
+    if (!file.type.startsWith("image/")) {
+        alert("Harus file gambar");
+        return;
     }
 
-    const { data } = supabaseClient.storage.from("chat-media").getPublicUrl(filename);
-    mediaURL = data.publicUrl;
-  }
 
-  const newMsg = {
-    sender: userAlias,
-    content: content || "🖼️ Gambar",
-    channel: currentRoom,
-    message_type: mediaURL ? "image" : "text",
-    media_url: mediaURL,
-    is_bot: false,
-    created_at: new Date().toISOString()
-  };
+    if (file.size > 5 * 1024 * 1024) {
+        alert("Maksimal 5MB");
+        return;
+    }
 
-  // Reset Input & Preview
-  input.value = "";
-  cancelImageUpload();
 
-  if (!supabaseClient) {
-    appendMessageUI(newMsg);
-    return;
-  }
+    if (!supabaseClient) {
+        alert("Supabase belum aktif");
+        return;
+    }
 
-  await supabaseClient.from('lounge_messages').insert([newMsg]);
-}
+
+    const filename =
+        `images/${Date.now()}_${file.name}`;
+
+
+    const {error} =
+        await supabaseClient
+        .storage
+        .from("chat-media")
+        .upload(filename,file);
+
+
+    if(error){
+        console.error(error);
+        alert(error.message);
+        return;
+    }
+
+
+    const {data} =
+        supabaseClient
+        .storage
+        .from("chat-media")
+        .getPublicUrl(filename);
+
+
+    const msg = {
+
+        sender:userAlias,
+
+        channel:currentRoom,
+
+        content:"🖼️ Gambar",
+
+        message_type:"image",
+
+        media_url:data.publicUrl,
+
+        media_name:file.name,
+
+        media_size:file.size,
+
+        is_bot:false,
+
+        created_at:new Date().toISOString()
+
+    };
+
+
+    await supabaseClient
+    .from("lounge_messages")
+    .insert([msg]);
+
+
+    event.target.value="";
+
+
+};
 </script>
   <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'>
