@@ -14,7 +14,20 @@
     .card { padding: 10px 14px; border-radius: 8px; background: #f9f9f9; border-left: 4px solid #128c7e; }
     .card.web-user { border-left-color: #34b7f1; background: #e8f5fe; }
     .sender { font-size: 0.8rem; font-weight: bold; color: #075e54; margin-bottom: 3px; }
-    .text { font-size: 0.95rem; color: #333; }
+    .text { font-size: 0.95rem; color: #333; word-wrap: break-word; }
+    
+    /* 🖼️ CSS TAMBAHAN UNTUK GAMBAR */
+    .chat-img { 
+      max-width: 100%; 
+      max-height: 300px; 
+      border-radius: 8px; 
+      margin-top: 6px; 
+      margin-bottom: 4px;
+      display: block;
+      object-fit: cover;
+      border: 1px solid rgba(0,0,0,0.08);
+    }
+
     .input-area { padding: 10px; background: #eee; display: flex; gap: 8px; }
     input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
     button { background: #128c7e; color: white; border: none; padding: 10px 18px; border-radius: 20px; cursor: pointer; font-weight: bold; }
@@ -34,27 +47,45 @@
 </div>
 
 <script>
-  // === ISI DATA SUPABASE ANDA SAMAKAN DENGAN KODE DI ATAS ===
   const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co"; 
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY"; 
-  // ========================================================
 
   const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const chatBox = document.getElementById('chatBox');
 
-  // Load HANYA 50 pesan terbaru gabungan WA + Web
+  // Load 50 pesan terbaru gabungan WA + Web
   async function loadPesanTerbaru() {
     const { data: waData } = await db.from('group_messages').select('*').order('timestamp', { ascending: false }).limit(50);
     const { data: webData } = await db.from('web_chat').select('*').order('created_at', { ascending: false }).limit(50);
 
-    // Gabungkan pesan dari WA dan Web lalu urutkan sesuai waktu
     let gabungan = [];
-    if(waData) waData.forEach(d => gabungan.push({ id: d.message_id, sender: d.sender_name + " (Grup WA)", text: d.content, time: d.timestamp, type: 'wa' }));
-    if(webData) webData.forEach(d => gabungan.push({ id: d.id, sender: d.sender_name, text: d.content, time: d.created_at, type: 'web' }));
-
-    gabungan.sort((a, b) => new Date(a.time) - new Date(b.time));
     
-    // Ambil hanya 50 pesan terakhir setelah digabung
+    // 1. Masukkan data WA beserta image_url nya
+    if(waData) {
+      waData.forEach(d => gabungan.push({ 
+        id: d.message_id, 
+        sender: d.sender_name + " (Grup WA)", 
+        text: d.content, 
+        imageUrl: d.image_url || null, // 👈 Ambil URL gambar
+        time: d.timestamp, 
+        type: 'wa' 
+      }));
+    }
+
+    // 2. Masukkan data Web Chat
+    if(webData) {
+      webData.forEach(d => gabungan.push({ 
+        id: d.id, 
+        sender: d.sender_name, 
+        text: d.content, 
+        imageUrl: null,
+        time: d.created_at, 
+        type: 'web' 
+      }));
+    }
+
+    // Urutkan kronologis (terlama di atas, terbaru di bawah)
+    gabungan.sort((a, b) => new Date(a.time) - new Date(b.time));
     gabungan = gabungan.slice(-50);
 
     chatBox.innerHTML = '';
@@ -64,10 +95,25 @@
 
   function tampilkanDiLayar(m) {
     if(document.getElementById(`msg-${m.id}`)) return;
+    
     const div = document.createElement('div');
     div.id = `msg-${m.id}`;
     div.className = `card ${m.type === 'web' ? 'web-user' : ''}`;
-    div.innerHTML = `<div class="sender">${escapeHtml(m.sender)}</div><div class="text">${escapeHtml(m.text)}</div>`;
+    
+    // 🖼️ Render tag <img> hanya jika imageUrl tersedia
+    let htmlGambar = '';
+    if (m.imageUrl) {
+      htmlGambar = `<a href="${m.imageUrl}" target="_blank">
+                      <img src="${m.imageUrl}" class="chat-img" alt="Lampiran Gambar" loading="lazy" />
+                    </a>`;
+    }
+
+    div.innerHTML = `
+      <div class="sender">${escapeHtml(m.sender)}</div>
+      ${htmlGambar}
+      <div class="text">${escapeHtml(m.text)}</div>
+    `;
+    
     chatBox.appendChild(div);
   }
 
@@ -76,19 +122,19 @@
     const teks = input.value.trim();
     if (!teks) return;
 
-    // Kirim pesan anonim ke Supabase
     await db.from('web_chat').insert([{ sender_name: 'Pengunjung Anonim', content: teks }]);
     input.value = '';
   }
 
   function escapeHtml(str) {
+    if (!str) return '';
     return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  // Subscribe fitur Realtime
+  // Realtime Listener untuk UPDATE & INSERT
   db.channel('public-chat')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages' }, () => loadPesanTerbaru())
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'web_chat' }, () => loadPesanTerbaru())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'group_messages' }, () => loadPesanTerbaru())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'web_chat' }, () => loadPesanTerbaru())
     .subscribe();
 
   loadPesanTerbaru();
