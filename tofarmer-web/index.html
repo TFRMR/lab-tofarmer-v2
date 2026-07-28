@@ -6,8 +6,7 @@
   <title>ToFarmer • Isoteri Kopi</title>
   
   <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com">
-</script>
+  <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -168,28 +167,7 @@
   .tooltip:hover::after {
     opacity: 1;
   }
-  
-/* WhatsApp Media Extension */
-.media-preview {
-  max-width: 260px;
-  border-radius: 14px;
-  overflow: hidden;
-  cursor: pointer;
-  border: 1px solid rgba(74,222,128,.15);
-}
-.sticker-item {
-  cursor:pointer;
-  font-size:48px;
-  padding:10px;
-  border-radius:12px;
-  text-align:center;
-  transition:.2s;
-}
-.sticker-item:hover {
-  background:rgba(234,179,8,.15);
-  transform:scale(1.1);
-}
-</style>
+  </style>
 </head>
 <body class="bg-stone-950 text-stone-100 font-sans h-dvh flex flex-col overflow-hidden selection:bg-amber-600 selection:text-stone-950 relative">
 
@@ -305,11 +283,6 @@
       <button onclick="toggleEmojiPicker()" class="p-2.5 text-amber-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Emoji & stiker">
         😊
       </button>
-      <button type="button" onclick="document.getElementById('image-upload-input').click()" class="p-2.5 text-green-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Kirim gambar">
-        🖼️
-      </button>
-      <input id="image-upload-input" type="file" accept="image/*" class="hidden" onchange="window.uploadChatImage(event)">
-
 
       <!-- Emoji Picker Panel (Hidden by default) -->
       <div id="emoji-picker-panel" class="hidden absolute bottom-14 left-0 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl z-50 w-64">
@@ -1248,171 +1221,8 @@
       });
     };
   </script>
-<script>
-window.uploadChatImage = async function(event) {
 
-    console.log("UPLOAD IMAGE FUNCTION OK");
-
-    const file = event.target.files[0];
-
-    if (!file) return;
-
-
-    if (!file.type.startsWith("image/")) {
-        alert("Harus file gambar");
-        return;
-    }
-
-
-    if (file.size > 5 * 1024 * 1024) {
-        alert("Maksimal 5MB");
-        return;
-    }
-
-
-    if (!supabaseClient) {
-        alert("Supabase belum aktif");
-        return;
-    }
-
-
-    const filename =
-        `images/${Date.now()}_${file.name}`;
-
-
-    const {error} =
-        await supabaseClient
-        .storage
-        .from("chat-media")
-        .upload(filename,file);
-
-
-    if(error){
-        console.error(error);
-        alert(error.message);
-        return;
-    }
-
-
-    const {data} =
-        supabaseClient
-        .storage
-        .from("chat-media")
-        .getPublicUrl(filename);
-
-
-    const msg = {
-
-        sender:userAlias,
-
-        channel:currentRoom,
-
-        content:"🖼️ Gambar",
-
-        message_type:"image",
-
-        media_url:data.publicUrl,
-
-        media_name:file.name,
-
-        media_size:file.size,
-
-        is_bot:false,
-
-        created_at:new Date().toISOString()
-
-    };
-
-
-    await supabaseClient
-    .from("lounge_messages")
-    .insert([msg]);
-
-
-    event.target.value="";
-
-
-};
-</script>
   <!-- Cloudflare Web Analytics -->
-  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'>
-
-// ========== WHATSAPP MEDIA STORAGE EXTENSION ==========
-const STICKER_SET = ['☕','🌱','🌿','🐄','🌻','🍃','❤️','😂','🔥','👍','🎉','✨','😎','🤖'];
-
-function setupStickerPicker(){
-  const grid=document.getElementById('sticker-grid');
-  if(!grid || grid.dataset.ready) return;
-  grid.dataset.ready='1';
-  STICKER_SET.forEach(s=>{
-    const b=document.createElement('div');
-    b.className='emoji-item';
-    b.textContent=s;
-    b.onclick=()=>sendSticker(s);
-    grid.appendChild(b);
-  });
-}
-
-async function sendSticker(sticker){
- const msg={
-  sender:userAlias,
-  content:sticker,
-  channel:currentRoom,
-  message_type:'sticker',
-  media_url:null,
-  is_bot:false,
-  created_at:new Date().toISOString()
- };
- if(supabaseClient) await supabaseClient.from('lounge_messages').insert([msg]);
- else appendMessageUI(msg);
-}
-
-async function uploadChatImage(e){
- const file=e.target.files[0];
- if(!file) return;
- if(!file.type.startsWith('image/')) return alert('File harus gambar');
- if(file.size > 5*1024*1024) return alert('Ukuran gambar maksimal 5MB');
-
- let mediaURL='';
-
- if(supabaseClient){
-   const ext=file.name.split('.').pop();
-   const path=`images/${Date.now()}_${crypto.randomUUID()}.${ext}`;
-   const {error}=await supabaseClient.storage
-     .from('chat-media')
-     .upload(path,file,{contentType:file.type});
-
-   if(error){
-     console.error(error);
-     alert('Upload gambar gagal: '+error.message);
-     return;
-   }
-
-   const {data}=supabaseClient.storage
-     .from('chat-media')
-     .getPublicUrl(path);
-
-   mediaURL=data.publicUrl;
- } else {
-   mediaURL=URL.createObjectURL(file);
- }
-
- const msg={
-  sender:userAlias,
-  content:'Gambar',
-  channel:currentRoom,
-  message_type:'image',
-  media_url:mediaURL,
-  media_name:file.name,
-  media_size:file.size,
-  is_bot:false,
-  created_at:new Date().toISOString()
- };
-
- if(supabaseClient) await supabaseClient.from('lounge_messages').insert([msg]);
- else appendMessageUI(msg);
-}
-
-</script>
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
 </body>
 </html>
