@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forum Komunitas Live</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: sans-serif; background: #f0f2f5; margin: 0; padding: 15px; }
+    .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    .header { background: #075e54; color: white; padding: 15px; text-align: center; font-weight: bold; }
+    .chat-box { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .card { padding: 10px 14px; border-radius: 8px; background: #f9f9f9; border-left: 4px solid #128c7e; }
+    .card.web-user { border-left-color: #34b7f1; background: #e8f5fe; }
+    .sender { font-size: 0.8rem; font-weight: bold; color: #075e54; margin-bottom: 3px; }
+    .text { font-size: 0.95rem; color: #333; }
+    .input-area { padding: 10px; background: #eee; display: flex; gap: 8px; }
+    input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
+    button { background: #128c7e; color: white; border: none; padding: 10px 18px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">Live Forum Komunitas (50 Chat Terbaru)</div>
+  <div class="chat-box" id="chatBox"></div>
+  
+  <!-- Form kirim pesan anonim tanpa gabung WA -->
+  <div class="input-area">
+    <input type="text" id="pesanInput" placeholder="Ikut ngobrol anonim di sini..." />
+    <button onclick="kirimPesanWeb()">Kirim</button>
+  </div>
+</div>
+
+<script>
+  // === ISI DATA SUPABASE ANDA SAMAKAN DENGAN KODE DI ATAS ===
+  const SUPABASE_URL = "https://xxx.supabase.co"; 
+  const SUPABASE_KEY = "eyJhbGciOi..."; 
+  // ========================================================
+
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const chatBox = document.getElementById('chatBox');
+
+  // Load HANYA 50 pesan terbaru gabungan WA + Web
+  async function loadPesanTerbaru() {
+    const { data: waData } = await db.from('group_messages').select('*').order('timestamp', { ascending: false }).limit(50);
+    const { data: webData } = await db.from('web_chat').select('*').order('created_at', { ascending: false }).limit(50);
+
+    // Gabungkan pesan dari WA dan Web lalu urutkan sesuai waktu
+    let gabungan = [];
+    if(waData) waData.forEach(d => gabungan.push({ id: d.message_id, sender: d.sender_name + " (Grup WA)", text: d.content, time: d.timestamp, type: 'wa' }));
+    if(webData) webData.forEach(d => gabungan.push({ id: d.id, sender: d.sender_name, text: d.content, time: d.created_at, type: 'web' }));
+
+    gabungan.sort((a, b) => new Date(a.time) - new Date(b.time));
+    
+    // Ambil hanya 50 pesan terakhir setelah digabung
+    gabungan = gabungan.slice(-50);
+
+    chatBox.innerHTML = '';
+    gabungan.forEach(m => tampilkanDiLayar(m));
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function tampilkanDiLayar(m) {
+    if(document.getElementById(`msg-${m.id}`)) return;
+    const div = document.createElement('div');
+    div.id = `msg-${m.id}`;
+    div.className = `card ${m.type === 'web' ? 'web-user' : ''}`;
+    div.innerHTML = `<div class="sender">${escapeHtml(m.sender)}</div><div class="text">${escapeHtml(m.text)}</div>`;
+    chatBox.appendChild(div);
+  }
+
+  async function kirimPesanWeb() {
+    const input = document.getElementById('pesanInput');
+    const teks = input.value.trim();
+    if (!teks) return;
+
+    // Kirim pesan anonim ke Supabase
+    await db.from('web_chat').insert([{ sender_name: 'Pengunjung Anonim', content: teks }]);
+    input.value = '';
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // Subscribe fitur Realtime
+  db.channel('public-chat')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'group_messages' }, () => loadPesanTerbaru())
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'web_chat' }, () => loadPesanTerbaru())
+    .subscribe();
+
+  loadPesanTerbaru();
+</script>
+
+</body>
+</html>
