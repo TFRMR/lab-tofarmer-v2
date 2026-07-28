@@ -6,98 +6,7 @@
   <title>ToFarmer • Isoteri Kopi</title>
   
   <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-
-<script>
-// ========== WHATSAPP MEDIA EXTENSION ==========
-const STICKER_SET = ['☕','🌱','🌿','🐄','🌻','🍃','❤️','😂','🔥','👍','🎉','✨','😎','🤖'];
-
-function setupStickerPicker(){
-  const panel=document.createElement('div');
-  panel.id='sticker-picker-panel';
-  panel.className='hidden absolute bottom-14 left-12 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl z-50 w-64 p-2';
-  panel.innerHTML='<div class="text-[10px] text-stone-500 mb-2">Stiker</div><div id="sticker-grid" class="grid grid-cols-4 gap-1"></div>';
-  document.querySelector('footer .relative')?.appendChild(panel);
-  const grid=document.getElementById('sticker-grid');
-  if(grid) STICKER_SET.forEach(s=>{
-    let b=document.createElement('div');
-    b.className='sticker-item';
-    b.textContent=s;
-    b.onclick=()=>sendSticker(s);
-    grid.appendChild(b);
-  });
-}
-
-function toggleStickerPicker(){
- const p=document.getElementById('sticker-picker-panel');
- if(p)p.classList.toggle('hidden');
-}
-
-async function sendSticker(sticker){
- const msg={
-  sender:userAlias,
-  content:sticker,
-  channel:currentRoom,
-  message_type:'sticker',
-  media_url:null,
-  is_bot:false,
-  created_at:new Date().toISOString()
- };
- if(supabaseClient) await supabaseClient.from('lounge_messages').insert([msg]);
- else appendMessageUI(msg);
-}
-
-async function uploadChatImage(e){
- const file=e.target.files[0];
- if(!file)return;
- if(!file.type.startsWith('image/')) return alert('File harus gambar');
-
- // Membuat preview lokal jika storage belum dikonfigurasi
- const localURL=URL.createObjectURL(file);
- const msg={
-  sender:userAlias,
-  content:'Gambar',
-  channel:currentRoom,
-  message_type:'image',
-  media_url:localURL,
-  is_bot:false,
-  created_at:new Date().toISOString()
- };
-
- if(supabaseClient){
-   // fallback aman: simpan metadata lokal dahulu
-   await supabaseClient.from('lounge_messages').insert([msg]);
- } else appendMessageUI(msg);
-}
-
-const oldAppendMessageUI=appendMessageUI;
-appendMessageUI=function(msg){
- oldAppendMessageUI(msg);
-
- if(msg.message_type==='image' && msg.media_url){
-   const box=document.createElement('img');
-   box.src=msg.media_url;
-   box.className='media-preview mt-2';
-   box.onclick=()=>window.open(msg.media_url,'_blank');
-   document.getElementById('message-list').appendChild(box);
- }
-
- if(msg.message_type==='sticker'){
-   const last=document.getElementById('message-list').lastElementChild;
-   if(last){
-    last.querySelector('div.bg-amber-600, div.bg-stone-900')?.classList.add('text-4xl');
-   }
- }
-};
-
-// add sticker button after init
-const oldInit=init;
-init=function(){
- oldInit();
- setTimeout(()=>{
-   setupStickerPicker();
- },500);
-};
+  <script src="https://cdn.tailwindcss.com">
 </script>
   
   <!-- Supabase JS Client v2 -->
@@ -1341,6 +1250,84 @@ init=function(){
   </script>
 
   <!-- Cloudflare Web Analytics -->
-  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'>
+
+// ========== WHATSAPP MEDIA STORAGE EXTENSION ==========
+const STICKER_SET = ['☕','🌱','🌿','🐄','🌻','🍃','❤️','😂','🔥','👍','🎉','✨','😎','🤖'];
+
+function setupStickerPicker(){
+  const grid=document.getElementById('sticker-grid');
+  if(!grid || grid.dataset.ready) return;
+  grid.dataset.ready='1';
+  STICKER_SET.forEach(s=>{
+    const b=document.createElement('div');
+    b.className='emoji-item';
+    b.textContent=s;
+    b.onclick=()=>sendSticker(s);
+    grid.appendChild(b);
+  });
+}
+
+async function sendSticker(sticker){
+ const msg={
+  sender:userAlias,
+  content:sticker,
+  channel:currentRoom,
+  message_type:'sticker',
+  media_url:null,
+  is_bot:false,
+  created_at:new Date().toISOString()
+ };
+ if(supabaseClient) await supabaseClient.from('lounge_messages').insert([msg]);
+ else appendMessageUI(msg);
+}
+
+async function uploadChatImage(e){
+ const file=e.target.files[0];
+ if(!file) return;
+ if(!file.type.startsWith('image/')) return alert('File harus gambar');
+ if(file.size > 5*1024*1024) return alert('Ukuran gambar maksimal 5MB');
+
+ let mediaURL='';
+
+ if(supabaseClient){
+   const ext=file.name.split('.').pop();
+   const path=`images/${Date.now()}_${crypto.randomUUID()}.${ext}`;
+   const {error}=await supabaseClient.storage
+     .from('chat-media')
+     .upload(path,file,{contentType:file.type});
+
+   if(error){
+     console.error(error);
+     alert('Upload gambar gagal: '+error.message);
+     return;
+   }
+
+   const {data}=supabaseClient.storage
+     .from('chat-media')
+     .getPublicUrl(path);
+
+   mediaURL=data.publicUrl;
+ } else {
+   mediaURL=URL.createObjectURL(file);
+ }
+
+ const msg={
+  sender:userAlias,
+  content:'Gambar',
+  channel:currentRoom,
+  message_type:'image',
+  media_url:mediaURL,
+  media_name:file.name,
+  media_size:file.size,
+  is_bot:false,
+  created_at:new Date().toISOString()
+ };
+
+ if(supabaseClient) await supabaseClient.from('lounge_messages').insert([msg]);
+ else appendMessageUI(msg);
+}
+
+</script>
 </body>
 </html>
