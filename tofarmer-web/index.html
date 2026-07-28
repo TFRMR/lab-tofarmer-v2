@@ -542,6 +542,10 @@
     async function loadRooms() {
       if (!supabaseClient) {
         renderDefaultRooms();
+        // Set currentRoom ke room pertama (default)
+        if (rooms.length > 0) {
+          currentRoom = rooms[0].slug;
+        }
         return;
       }
 
@@ -556,7 +560,24 @@
         return;
       }
 
-      rooms = data || [];
+      // Get message count for each room to determine popularity
+      const roomsWithCount = await Promise.all((data || []).map(async (room) => {
+        const { count } = await supabaseClient
+          .from('lounge_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('channel', room.slug);
+        return { ...room, message_count: count || 0 };
+      }));
+
+      // Sort by message count (descending) - paling banyak pesan = paling populer
+      rooms = roomsWithCount.sort((a, b) => b.message_count - a.message_count);
+      
+      // Set currentRoom ke room paling populer
+      if (rooms.length > 0) {
+        currentRoom = rooms[0].slug;
+        console.log(`✓ Default room set to "${rooms[0].name}" (${rooms[0].message_count} messages)`);
+      }
+      
       renderRoomButtons();
       roomsLoaded = true;
     }
