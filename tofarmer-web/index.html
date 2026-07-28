@@ -6,7 +6,8 @@
   <title>ToFarmer • Isoteri Kopi</title>
   
   <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com">
+</script>
   
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -167,7 +168,28 @@
   .tooltip:hover::after {
     opacity: 1;
   }
-  </style>
+  
+/* WhatsApp Media Extension */
+.media-preview {
+  max-width: 260px;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(74,222,128,.15);
+}
+.sticker-item {
+  cursor:pointer;
+  font-size:48px;
+  padding:10px;
+  border-radius:12px;
+  text-align:center;
+  transition:.2s;
+}
+.sticker-item:hover {
+  background:rgba(234,179,8,.15);
+  transform:scale(1.1);
+}
+</style>
 </head>
 <body class="bg-stone-950 text-stone-100 font-sans h-dvh flex flex-col overflow-hidden selection:bg-amber-600 selection:text-stone-950 relative">
 
@@ -195,7 +217,7 @@
         👤 <span id="user-label" class="hidden sm:inline">Anonym</span>
       </button>
       <a id="login-btn-header" href="./beranda.html" class="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-lg transition-all flex items-center gap-1 shadow-lg shadow-amber-900/20 font-semibold">
-        🌾 <span class="hidden sm:inline">TOFARMER</span>
+        ☕ <span class="hidden sm:inline">TOUR</span>
       </a>
     </div>
   </header>
@@ -283,6 +305,11 @@
       <button onclick="toggleEmojiPicker()" class="p-2.5 text-amber-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Emoji & stiker">
         😊
       </button>
+      <button type="button" onclick="document.getElementById('image-upload-input').click()" class="p-2.5 text-green-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Kirim gambar">
+        🖼️
+      </button>
+      <input id="image-upload-input" type="file" accept="image/*" class="hidden" onchange="window.uploadChatImage(event)">
+
 
       <!-- Emoji Picker Panel (Hidden by default) -->
       <div id="emoji-picker-panel" class="hidden absolute bottom-14 left-0 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl z-50 w-64">
@@ -294,6 +321,10 @@
 
       <!-- Message Input -->
       <form id="chat-form" onsubmit="handleSendMessage(event)" class="flex-1 flex items-end space-x-2">
+<div id="image-preview-container" class="hidden relative mb-2 p-1.5 bg-stone-950 border border-amber-500/40 rounded-lg inline-block">
+  <img id="image-preview-element" src="" class="h-16 w-16 object-cover rounded" />
+  <button type="button" onclick="cancelImageUpload()" class="absolute -top-2 -right-2 bg-rose-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">✕</button>
+</div>
         <textarea 
           id="message-input" 
           rows="2"
@@ -764,42 +795,54 @@
       scrollToBottom();
     }
 
-    function appendMessageUI(msg) {
-      const container = document.getElementById('message-list');
-      const isBot = msg.is_bot;
-      const isMe = msg.sender === userAlias;
+function appendMessageUI(msg) {
+  const container = document.getElementById('message-list');
+  const isBot = msg.is_bot;
+  const isMe = msg.sender === userAlias;
 
-      const messageCard = document.createElement('div');
-      messageCard.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} text-xs space-y-1 message-new`;
+  const messageCard = document.createElement('div');
+  messageCard.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} text-xs space-y-1 message-new`;
 
-      // Extract video URLs and text content
-      const { textContent, videoUrls } = extractVideoUrls(msg.content);
+  const { textContent, videoUrls } = extractVideoUrls(msg.content || '');
 
-      if (isBot) {
-        messageCard.innerHTML = `
-          <div class="bg-amber-950/60 border border-amber-500/30 text-amber-200 p-3 rounded-xl max-w-[85%] shadow-md">
-            <div class="flex items-center gap-1.5 font-bold text-[10px] text-amber-400 mb-1">
-              <span>🤖 Barista ToFarmer</span>
-              <span class="bg-amber-500/20 text-amber-300 px-1 rounded text-[9px]">Kedai Bot</span>
-            </div>
-            <p class="leading-relaxed">${formatLinks(textContent)}</p>
-          </div>
-        `;
-      } else {
-        let contentHTML = `
-          <div class="flex items-center space-x-1.5 px-1">
-            <span class="font-medium text-[11px] ${isMe ? 'text-amber-400' : 'text-stone-400'}">${msg.sender}</span>
-            <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString('id-ID', {
-    hour: '2-digit',
-    minute: '2-digit'
-})}</span>
-          </div>
-          <div class="${isMe ? 'bg-amber-600 text-stone-950 font-medium' : 'bg-stone-900 border border-stone-800 text-stone-200'} p-2.5 rounded-xl max-w-[85%] break-words shadow-sm">
-            ${formatLinks(escapeHTML(textContent))}
-          </div>`;
-        
-        messageCard.innerHTML = contentHTML;
-      }
+  if (isBot) {
+    messageCard.innerHTML = `
+      <div class="bg-amber-950/60 border border-amber-500/30 text-amber-200 p-3 rounded-xl max-w-[85%] shadow-md">
+        <div class="flex items-center gap-1.5 font-bold text-[10px] text-amber-400 mb-1">
+          <span>🤖 Barista ToFarmer</span>
+          <span class="bg-amber-500/20 text-amber-300 px-1 rounded text-[9px]">Kedai Bot</span>
+        </div>
+        <p class="leading-relaxed">${formatLinks(textContent)}</p>
+      </div>
+    `;
+  } else {
+    // CEK APAKAH PESAN BERISI GAMBAR
+    let mediaHTML = '';
+    if (msg.message_type === 'image' || msg.media_url) {
+      mediaHTML = `
+        <div class="media-preview my-1 overflow-hidden rounded-lg border border-stone-700/50">
+          <img src="${msg.media_url}" alt="Gambar" class="max-w-[240px] max-h-[300px] object-cover rounded-lg cursor-pointer hover:opacity-90 transition" onclick="window.open('${msg.media_url}', '_blank')" />
+        </div>
+      `;
+    }
+
+    let contentHTML = `
+      <div class="flex items-center space-x-1.5 px-1">
+        <span class="font-medium text-[11px] ${isMe ? 'text-amber-400' : 'text-stone-400'}">${msg.sender}</span>
+        <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+      </div>
+      <div class="${isMe ? 'bg-amber-600 text-stone-950 font-medium' : 'bg-stone-900 border border-stone-800 text-stone-200'} p-2.5 rounded-xl max-w-[85%] break-words shadow-sm">
+        ${mediaHTML}
+        ${textContent && textContent !== '🖼️ Gambar' && textContent !== 'Gambar' ? `<div>${formatLinks(escapeHTML(textContent))}</div>` : ''}
+      </div>`;
+    
+    messageCard.innerHTML = contentHTML;
+  }
+
+  container.appendChild(messageCard);
+  playPopSound();
+  scrollToBottom();
+}
 
       container.appendChild(messageCard);
 
@@ -1221,8 +1264,165 @@
       });
     };
   </script>
+<script>
+let selectedImageFile = null;
 
+// Dipanggil saat user memilih gambar dari HP/PC
+window.uploadChatImage = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    alert("File harus berupa gambar!");
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    alert("Ukuran gambar maksimal 5MB!");
+    return;
+  }
+
+  selectedImageFile = file;
+
+  // Tampilkan preview ke user
+  const previewContainer = document.getElementById("image-preview-container");
+  const previewImg = document.getElementById("image-preview-element");
+  
+  previewImg.src = URL.createObjectURL(file);
+  previewContainer.classList.remove("hidden");
+};
+
+// Batalkan unggahan gambar
+function cancelImageUpload() {
+  selectedImageFile = null;
+  document.getElementById("image-upload-input").value = "";
+  document.getElementById("image-preview-container").classList.add("hidden");
+}
+
+// Perbarui handleSendMessage untuk memproses teks + gambar sekaligus saat tombol Kirim ditekan
+async function handleSendMessage(e) {
+  e.preventDefault();
+  const input = document.getElementById('message-input');
+  const content = input.value.trim();
+
+  if (!content && !selectedImageFile) return;
+
+  let mediaURL = null;
+
+  // Unggah gambar ke Supabase hanya jika ada gambar yang dipilih
+  if (selectedImageFile && supabaseClient) {
+    const filename = `images/${Date.now()}_${selectedImageFile.name}`;
+    const { error } = await supabaseClient.storage.from("chat-media").upload(filename, selectedImageFile);
+
+    if (error) {
+      alert("Gagal mengunggah gambar: " + error.message);
+      return;
+    }
+
+    const { data } = supabaseClient.storage.from("chat-media").getPublicUrl(filename);
+    mediaURL = data.publicUrl;
+  }
+
+  const newMsg = {
+    sender: userAlias,
+    content: content || "🖼️ Gambar",
+    channel: currentRoom,
+    message_type: mediaURL ? "image" : "text",
+    media_url: mediaURL,
+    is_bot: false,
+    created_at: new Date().toISOString()
+  };
+
+  // Reset Input & Preview
+  input.value = "";
+  cancelImageUpload();
+
+  if (!supabaseClient) {
+    appendMessageUI(newMsg);
+    return;
+  }
+
+  await supabaseClient.from('lounge_messages').insert([newMsg]);
+}
+</script>
   <!-- Cloudflare Web Analytics -->
-  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'>
+
+// ========== WHATSAPP MEDIA STORAGE EXTENSION ==========
+const STICKER_SET = ['☕','🌱','🌿','🐄','🌻','🍃','❤️','😂','🔥','👍','🎉','✨','😎','🤖'];
+
+function setupStickerPicker(){
+  const grid=document.getElementById('sticker-grid');
+  if(!grid || grid.dataset.ready) return;
+  grid.dataset.ready='1';
+  STICKER_SET.forEach(s=>{
+    const b=document.createElement('div');
+    b.className='emoji-item';
+    b.textContent=s;
+    b.onclick=()=>sendSticker(s);
+    grid.appendChild(b);
+  });
+}
+
+async function sendSticker(sticker){
+ const msg={
+  sender:userAlias,
+  content:sticker,
+  channel:currentRoom,
+  message_type:'sticker',
+  media_url:null,
+  is_bot:false,
+  created_at:new Date().toISOString()
+ };
+ if(supabaseClient) await supabaseClient.from('lounge_messages').insert([msg]);
+ else appendMessageUI(msg);
+}
+
+async function uploadChatImage(e){
+ const file=e.target.files[0];
+ if(!file) return;
+ if(!file.type.startsWith('image/')) return alert('File harus gambar');
+ if(file.size > 5*1024*1024) return alert('Ukuran gambar maksimal 5MB');
+
+ let mediaURL='';
+
+ if(supabaseClient){
+   const ext=file.name.split('.').pop();
+   const path=`images/${Date.now()}_${crypto.randomUUID()}.${ext}`;
+   const {error}=await supabaseClient.storage
+     .from('chat-media')
+     .upload(path,file,{contentType:file.type});
+
+   if(error){
+     console.error(error);
+     alert('Upload gambar gagal: '+error.message);
+     return;
+   }
+
+   const {data}=supabaseClient.storage
+     .from('chat-media')
+     .getPublicUrl(path);
+
+   mediaURL=data.publicUrl;
+ } else {
+   mediaURL=URL.createObjectURL(file);
+ }
+
+ const msg={
+  sender:userAlias,
+  content:'Gambar',
+  channel:currentRoom,
+  message_type:'image',
+  media_url:mediaURL,
+  media_name:file.name,
+  media_size:file.size,
+  is_bot:false,
+  created_at:new Date().toISOString()
+ };
+
+ if(supabaseClient) await supabaseClient.from('lounge_messages').insert([msg]);
+ else appendMessageUI(msg);
+}
+
+</script>
 </body>
 </html>
