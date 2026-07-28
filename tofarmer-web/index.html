@@ -545,7 +545,9 @@
         // Set currentRoom ke room pertama (default)
         if (rooms.length > 0) {
           currentRoom = rooms[0].slug;
+          console.log(`✓ Default room set to "${rooms[0].name}" (offline mode)`);
         }
+        loadMessages(); // Load messages untuk room yang baru di-set
         return;
       }
 
@@ -557,6 +559,12 @@
       if (error) {
         console.error('Error loading rooms:', error);
         renderDefaultRooms();
+        // Fallback: set currentRoom ke room pertama
+        if (rooms.length > 0) {
+          currentRoom = rooms[0].slug;
+          console.log(`✓ Default room set to "${rooms[0].name}" (error fallback)`);
+        }
+        loadMessages(); // Load messages untuk room yang baru di-set
         return;
       }
 
@@ -579,6 +587,7 @@
       }
       
       renderRoomButtons();
+      loadMessages(); // Load messages untuk room yang baru di-set
       roomsLoaded = true;
     }
 
