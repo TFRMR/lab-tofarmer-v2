@@ -217,7 +217,7 @@
         👤 <span id="user-label" class="hidden sm:inline">Anonym</span>
       </button>
       <a id="login-btn-header" href="./beranda.html" class="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-lg transition-all flex items-center gap-1 shadow-lg shadow-amber-900/20 font-semibold">
-        🌿 <span class="hidden sm:inline">TOFARMER</span>
+        ♾ <span class="hidden sm:inline">TOFARMER</span>
       </a>
     </div>
   </header>
@@ -311,7 +311,7 @@
     </div>
     <div class="flex items-end space-x-2 relative">
       <!-- Emoji Picker Trigger -->
-      <button onclick="toggleEmojiPicker()" class="p-2.5 text-amber-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Emoji & stiker">
+      <button id="emoji-picker-btn" onclick="toggleEmojiPicker()" class="p-2.5 text-amber-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Emoji & stiker">
         😊
       </button>
       <button type="button" onclick="document.getElementById('image-upload-input').click()" class="p-2.5 text-green-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Kirim gambar">
@@ -1185,6 +1185,25 @@
     function toggleUserMenu() {
       document.getElementById('user-menu-dropdown').classList.toggle('hidden');
     }
+
+    // Klik di luar panel/dropdown akan otomatis menutupnya
+    document.addEventListener('click', function(e) {
+      const emojiPanel = document.getElementById('emoji-picker-panel');
+      const emojiBtn = document.getElementById('emoji-picker-btn');
+      if (emojiPanel && !emojiPanel.classList.contains('hidden')) {
+        if (!emojiPanel.contains(e.target) && !(emojiBtn && emojiBtn.contains(e.target))) {
+          emojiPanel.classList.add('hidden');
+        }
+      }
+
+      const userDropdown = document.getElementById('user-menu-dropdown');
+      const userBtn = document.getElementById('user-menu-btn');
+      if (userDropdown && !userDropdown.classList.contains('hidden')) {
+        if (!userDropdown.contains(e.target) && !(userBtn && userBtn.contains(e.target))) {
+          userDropdown.classList.add('hidden');
+        }
+      }
+    });
 
     // ========== UTILS ==========
     function playPopSound() {
