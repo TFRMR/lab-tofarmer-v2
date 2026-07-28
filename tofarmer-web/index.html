@@ -6,7 +6,8 @@
   <title>ToFarmer • Isoteri Kopi</title>
   
   <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com">
+</script>
   
   <!-- Supabase JS Client v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -167,7 +168,28 @@
   .tooltip:hover::after {
     opacity: 1;
   }
-  </style>
+  
+/* WhatsApp Media Extension */
+.media-preview {
+  max-width: 260px;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(74,222,128,.15);
+}
+.sticker-item {
+  cursor:pointer;
+  font-size:48px;
+  padding:10px;
+  border-radius:12px;
+  text-align:center;
+  transition:.2s;
+}
+.sticker-item:hover {
+  background:rgba(234,179,8,.15);
+  transform:scale(1.1);
+}
+</style>
 </head>
 <body class="bg-stone-950 text-stone-100 font-sans h-dvh flex flex-col overflow-hidden selection:bg-amber-600 selection:text-stone-950 relative">
 
@@ -195,7 +217,7 @@
         👤 <span id="user-label" class="hidden sm:inline">Anonym</span>
       </button>
       <a id="login-btn-header" href="./beranda.html" class="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-lg transition-all flex items-center gap-1 shadow-lg shadow-amber-900/20 font-semibold">
-        ☕ <span class="hidden sm:inline">TOFARMER</span>
+        🌿 <span class="hidden sm:inline">TOFARMER</span>
       </a>
     </div>
   </header>
@@ -278,11 +300,25 @@
 
   <!-- INPUT CONTROLLER WITH EMOJI PICKER -->
   <footer class="p-3 bg-stone-900/95 border-t border-stone-800 glass-panel shrink-0 z-40">
+    <!-- Pending Image Preview (shown only after a file is picked, before Kirim) -->
+    <div id="image-preview-wrap" class="hidden mb-2 flex items-center space-x-2 bg-stone-950 border border-stone-800 rounded-lg p-2 w-fit max-w-full">
+      <img id="image-preview-thumb" src="" class="h-14 w-14 object-cover rounded-lg border border-stone-700" />
+      <div class="flex flex-col text-[10px] text-stone-400 max-w-[140px]">
+        <span id="image-preview-name" class="truncate"></span>
+        <span class="text-stone-600">Terkirim saat klik Kirim</span>
+      </div>
+      <button type="button" onclick="cancelPendingImage()" class="text-stone-400 hover:text-red-400 text-xs font-bold px-2" title="Batalkan gambar">✕</button>
+    </div>
     <div class="flex items-end space-x-2 relative">
       <!-- Emoji Picker Trigger -->
       <button onclick="toggleEmojiPicker()" class="p-2.5 text-amber-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Emoji & stiker">
         😊
       </button>
+      <button type="button" onclick="document.getElementById('image-upload-input').click()" class="p-2.5 text-green-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Kirim gambar">
+        🖼️
+      </button>
+      <input id="image-upload-input" type="file" accept="image/*" class="hidden" onchange="previewPendingImage(event)">
+
 
       <!-- Emoji Picker Panel (Hidden by default) -->
       <div id="emoji-picker-panel" class="hidden absolute bottom-14 left-0 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl z-50 w-64">
@@ -785,6 +821,21 @@
             <p class="leading-relaxed">${formatLinks(textContent)}</p>
           </div>
         `;
+      } else if (msg.message_type === 'image' && msg.media_url) {
+        const captionText = (textContent || '').trim();
+        const isPlaceholderCaption = !captionText || captionText === 'Gambar' || captionText === '🖼️ Gambar';
+        messageCard.innerHTML = `
+          <div class="flex items-center space-x-1.5 px-1">
+            <span class="font-medium text-[11px] ${isMe ? 'text-amber-400' : 'text-stone-400'}">${msg.sender}</span>
+            <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit'
+})}</span>
+          </div>
+          <div class="${isMe ? 'bg-amber-600' : 'bg-stone-900 border border-stone-800'} p-1.5 rounded-xl max-w-[75%] shadow-sm overflow-hidden">
+            <img src="${msg.media_url}" alt="${msg.media_name || 'gambar'}" class="rounded-lg max-w-full max-h-72 object-contain cursor-pointer" onclick="window.open('${msg.media_url}', '_blank')" />
+            ${isPlaceholderCaption ? '' : `<p class="leading-relaxed mt-1.5 px-1 ${isMe ? 'text-stone-950 font-medium' : 'text-stone-200'} text-xs">${formatLinks(escapeHTML(captionText))}</p>`}
+          </div>`;
       } else {
         let contentHTML = `
           <div class="flex items-center space-x-1.5 px-1">
@@ -880,6 +931,65 @@
       e.preventDefault();
       const input = document.getElementById('message-input');
       const content = input.value.trim();
+
+      // If there's a picked image waiting, send it now (with optional caption)
+      if (window.pendingImageFile) {
+        const file = window.pendingImageFile;
+        const caption = content || 'Gambar';
+        input.value = "";
+
+        const sendBtn = document.querySelector('#chat-form button[type="submit"]');
+        if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = '...'; }
+
+        try {
+          let mediaURL = '';
+
+          if (supabaseClient) {
+            const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+            const path = `images/${Date.now()}_${crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)}.${ext}`;
+
+            const { error } = await supabaseClient.storage
+              .from('chat-media')
+              .upload(path, file, { contentType: file.type });
+
+            if (error) {
+              console.error(error);
+              alert('Upload gambar gagal: ' + error.message);
+              return;
+            }
+
+            const { data } = supabaseClient.storage.from('chat-media').getPublicUrl(path);
+            mediaURL = data.publicUrl;
+          } else {
+            mediaURL = URL.createObjectURL(file);
+          }
+
+          const imgMsg = {
+            sender: userAlias,
+            content: caption,
+            channel: currentRoom,
+            message_type: 'image',
+            media_url: mediaURL,
+            media_name: file.name,
+            media_size: file.size,
+            is_bot: false,
+            created_at: new Date().toISOString()
+          };
+
+          cancelPendingImage();
+
+          if (!supabaseClient) {
+            appendMessageUI(imgMsg);
+            return;
+          }
+
+          await supabaseClient.from('lounge_messages').insert([imgMsg]);
+        } finally {
+          if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Kirim'; }
+        }
+        return;
+      }
+
       if (!content) return;
 
       input.value = "";
@@ -899,6 +1009,44 @@
       }
 
       await supabaseClient.from('lounge_messages').insert([newMsg]);
+    }
+
+    // ===== Pending image preview (picked but not yet sent) =====
+    function previewPendingImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        alert('Harus file gambar');
+        event.target.value = '';
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Maksimal 5MB');
+        event.target.value = '';
+        return;
+      }
+
+      window.pendingImageFile = file;
+
+      const wrap = document.getElementById('image-preview-wrap');
+      const thumb = document.getElementById('image-preview-thumb');
+      const name = document.getElementById('image-preview-name');
+
+      thumb.src = URL.createObjectURL(file);
+      name.textContent = file.name;
+      wrap.classList.remove('hidden');
+
+      document.getElementById('message-input').focus();
+    }
+
+    function cancelPendingImage() {
+      window.pendingImageFile = null;
+      const wrap = document.getElementById('image-preview-wrap');
+      const thumb = document.getElementById('image-preview-thumb');
+      wrap.classList.add('hidden');
+      thumb.src = '';
+      document.getElementById('image-upload-input').value = '';
     }
 
     function triggerRandomBotResponse(userText) {
