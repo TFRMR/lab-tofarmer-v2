@@ -763,6 +763,9 @@
       const messageCard = document.createElement('div');
       messageCard.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} text-xs space-y-1 message-new`;
 
+      // Extract video URLs and text content
+      const { textContent, videoUrls } = extractVideoUrls(msg.content);
+
       if (isBot) {
         messageCard.innerHTML = `
           <div class="bg-amber-950/60 border border-amber-500/30 text-amber-200 p-3 rounded-xl max-w-[85%] shadow-md">
@@ -770,11 +773,11 @@
               <span>🤖 Barista ToFarmer</span>
               <span class="bg-amber-500/20 text-amber-300 px-1 rounded text-[9px]">Kedai Bot</span>
             </div>
-            <p class="leading-relaxed">${formatLinks(msg.content)}</p>
+            <p class="leading-relaxed">${formatLinks(textContent)}</p>
           </div>
         `;
       } else {
-        messageCard.innerHTML = `
+        let contentHTML = `
           <div class="flex items-center space-x-1.5 px-1">
             <span class="font-medium text-[11px] ${isMe ? 'text-amber-400' : 'text-stone-400'}">${msg.sender}</span>
             <span class="text-[9px] text-stone-600">${new Date(msg.created_at).toLocaleTimeString('id-ID', {
@@ -783,14 +786,67 @@
 })}</span>
           </div>
           <div class="${isMe ? 'bg-amber-600 text-stone-950 font-medium' : 'bg-stone-900 border border-stone-800 text-stone-200'} p-2.5 rounded-xl max-w-[85%] break-words shadow-sm">
-            ${formatLinks(escapeHTML(msg.content))}
-          </div>
-        `;
+            ${formatLinks(escapeHTML(textContent))}
+          </div>`;
+        
+        messageCard.innerHTML = contentHTML;
       }
 
       container.appendChild(messageCard);
+
+      // Add video embeds after text
+      videoUrls.forEach(url => {
+        const embedUrl = getEmbedUrl(url);
+        if (embedUrl) {
+          const videoWrapper = document.createElement('div');
+          videoWrapper.className = `${isMe ? 'ml-auto' : ''} w-56 rounded-xl overflow-hidden border border-stone-700 shadow-md`;
+          videoWrapper.innerHTML = `
+            <div class="aspect-video bg-black">
+              <iframe 
+                width="100%" 
+                height="100%" 
+                src="${embedUrl}?autoplay=0" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen
+                style="border: none;">
+              </iframe>
+            </div>
+          `;
+          container.appendChild(videoWrapper);
+        }
+      });
+
       playPopSound();
       scrollToBottom();
+    }
+
+    function getEmbedUrl(url) {
+      if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]+)/)?.[1];
+        return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+      } else if (url.includes('vimeo.com')) {
+        const videoId = url.match(/vimeo\.com\/(\d+)/)?.[1];
+        return videoId ? `https://player.vimeo.com/video/${videoId}` : null;
+      }
+      return null;
+    }
+
+    function extractVideoUrls(text) {
+      const videoHosts = ['youtube.com', 'youtu.be', 'vimeo.com'];
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const urls = text.match(urlRegex) || [];
+      
+      const videoUrls = urls.filter(url => 
+        videoHosts.some(host => url.toLowerCase().includes(host))
+      );
+      
+      let textContent = text;
+      videoUrls.forEach(url => {
+        textContent = textContent.replace(url, '').trim();
+      });
+      
+      return { textContent, videoUrls };
     }
 
     function formatLinks(text) {
