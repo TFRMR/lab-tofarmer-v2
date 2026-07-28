@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>ToFarmer - Mbah Eko AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        /* =========================================================================
+           🌿 RESET & REALM GELAP PEKAT HUTAN MENOREH (konsisten dgn dashboard.html)
+           ========================================================================= */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        html, body {
+            height: 100%;
+            background: #060c08;
+            color: #e2e8f0;
+            overflow: hidden; /* halaman chat: layout fixed, yang scroll cuma area pesan */
+        }
+
+        .bg-animate {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background:
+                radial-gradient(circle at top left, rgba(234, 179, 8, 0.06) 0%, transparent 40%),
+                radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.08) 0%, transparent 45%),
+                linear-gradient(135deg, #060c08 0%, #0b1a11 50%, #030604 100%);
+        }
+
+        .app {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* =========================================================================
+           🧭 HEADER
+           ========================================================================= */
+        .app-header {
+            padding: 1rem 1.25rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .nav-timbul { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+        .nav-btn {
+            background: rgba(18, 32, 24, 0.55);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.15);
+            color: #a7f3d0;
+            padding: 8px 18px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .nav-btn:hover { border-color: rgba(234, 179, 8, 0.4); color: #fef08a; transform: translateY(-2px); }
+
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            padding-bottom: 0.75rem;
+        }
+
+        .brand {
+            display: flex; align-items: center; gap: 0.6rem;
+        }
+
+        .brand-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: linear-gradient(135deg, #fef08a 0%, #22c55e 100%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.25);
+        }
+
+        .brand h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-sub { font-size: 0.72rem; color: #64748b; margin-top: 1px; }
+
+        .btn-ghost {
+            background: rgba(71, 85, 105, 0.15);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-ghost:hover { background: rgba(220, 38, 38, 0.15); border-color: rgba(248,113,113,0.4); color: #fca5a5; }
+
+        /* =========================================================================
+           💬 AREA PERCAKAPAN
+           ========================================================================= */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.25rem 1rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .chat-area::-webkit-scrollbar { width: 6px; }
+        .chat-area::-webkit-scrollbar-thumb { background: rgba(74, 222, 128, 0.2); border-radius: 3px; }
+
+        .empty-state {
+            margin: auto;
+            text-align: center;
+            color: #64748b;
+            padding: 2rem 1rem;
+        }
+        .empty-state .leaf { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.6; }
+        .empty-state h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.4rem;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+        }
+        .empty-state p { font-size: 0.85rem; max-width: 320px; margin: 0 auto; }
+
+        .suggestion-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1.25rem;
+        }
+        .suggestion-chip {
+            background: rgba(14, 28, 19, 0.6);
+            border: 1px solid rgba(74, 222, 128, 0.15);
+            color: #a7f3d0;
+            padding: 8px 14px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .suggestion-chip:hover { border-color: rgba(234, 179, 8, 0.4); color: #fef08a; }
+
+        .msg-row { display: flex; gap: 0.6rem; max-width: 100%; }
+        .msg-row.user { flex-direction: row-reverse; }
+
+        .msg-avatar {
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.95rem; flex-shrink: 0; margin-top: 2px;
+        }
+        .msg-row.assistant .msg-avatar { background: rgba(234, 179, 8, 0.15); border: 1px solid rgba(234,179,8,0.3); }
+        .msg-row.user .msg-avatar { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(74,222,128,0.3); }
+
+        .bubble {
+            max-width: 78%;
+            padding: 0.7rem 1rem;
+            border-radius: 16px;
+            font-size: 0.92rem;
+            line-height: 1.55;
+            white-space: pre-line;
+        }
+        .msg-row.assistant .bubble {
+            background: rgba(14, 28, 19, 0.55);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-left: 2px solid #eab308;
+            color: #e2e8f0;
+            border-top-left-radius: 4px;
+        }
+        .msg-row.user .bubble {
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-right: 2px solid #22c55e;
+            color: #d1fae5;
+            border-top-right-radius: 4px;
+        }
+
+        .bubble .cursor { display: inline-block; width: 6px; height: 1em; background: #fde047; vertical-align: text-bottom; animation: blink 0.9s infinite; margin-left: 1px; }
+        @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+
+        .thinking-dots span {
+            display: inline-block; width: 6px; height: 6px; margin-right: 3px;
+            background: #fde047; border-radius: 50%;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+        .thinking-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .thinking-dots span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); opacity: 0.4; } 40% { transform: translateY(-4px); opacity: 1; } }
+
+        /* =========================================================================
+           ⌨️ INPUT BAR
+           ========================================================================= */
+        .input-bar {
+            flex-shrink: 0;
+            padding: 0.85rem 1rem 1.1rem;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            background: linear-gradient(180deg, transparent 0%, rgba(6,12,8,0.6) 30%);
+        }
+
+        .input-shell {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.5rem;
+            background: rgba(14, 28, 19, 0.6);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(74, 222, 128, 0.18);
+            border-radius: 18px;
+            padding: 0.5rem 0.5rem 0.5rem 1rem;
+            transition: border-color 0.25s ease, box-shadow 0.25s ease;
+        }
+        .input-shell:focus-within {
+            border-color: rgba(74, 222, 128, 0.5);
+            box-shadow: 0 0 18px rgba(34, 197, 94, 0.15);
+        }
+
+        #chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #f1f5f9;
+            font-size: 0.92rem;
+            resize: none;
+            max-height: 120px;
+            line-height: 1.5;
+            padding: 0.4rem 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        #chat-input::placeholder { color: #4b5f52; }
+
+        #send-btn {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            border: none;
+            color: #050b07;
+            width: 38px; height: 38px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #send-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(34, 197, 94, 0.3); }
+        #send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .input-hint { text-align: center; font-size: 0.66rem; color: #475569; margin-top: 0.5rem; }
+
+        @media screen and (max-width: 600px) {
+            .brand h1 { font-size: 1.05rem; }
+            .bubble { max-width: 86%; font-size: 0.88rem; }
+            .nav-btn { font-size: 0.65rem; padding: 7px 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-animate"></div>
+
+    <div class="app">
+        <div class="app-header">
+            <div class="nav-timbul">
+                <a href="https://www.tofarmer.xyz" class="nav-btn">🏠 Titik Kumpul</a>
+                <a href="https://www.tofarmer.xyz/dashboard.html" class="nav-btn">📖 Pusat Ilmu</a>
+                <a href="https://www.tofarmer.xyz/profile.html" class="nav-btn">👤 Profil</a>
+            </div>
+
+            <div class="brand-row">
+                <div class="brand">
+                    <div class="brand-avatar">🌾</div>
+                    <div>
+                        <h1>Mbah Eko</h1>
+                        <div class="brand-sub" id="riwayat-info">Asisten kebun ToFarmer</div>
+                    </div>
+                </div>
+                <button class="btn-ghost" id="clear-btn">Hapus Riwayat</button>
+            </div>
+        </div>
+
+        <div class="chat-area" id="chat-area">
+            <div class="empty-state" id="empty-state">
+                <div class="leaf">🌿</div>
+                <h2>Ngobrol sama Mbah Eko</h2>
+                <p>Tanya soal ilmu tani, token TOF, gate/misi, atau apapun soal ekosistem ToFarmer.</p>
+                <div class="suggestion-row">
+                    <div class="suggestion-chip" data-q="Apa itu Memory Mining di ToFarmer?">Apa itu Memory Mining?</div>
+                    <div class="suggestion-chip" data-q="Bagaimana cara ilmu saya jadi Ilmu Baku?">Cara ilmu jadi Ilmu Baku</div>
+                    <div class="suggestion-chip" data-q="Token TOF itu apa dan buat apa?">Token TOF itu apa?</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-bar">
+            <div class="input-shell">
+                <textarea id="chat-input" rows="1" placeholder="Tanya Mbah Eko sesuatu..."></textarea>
+                <button id="send-btn">➤</button>
+            </div>
+            <div class="input-hint">Mbah Eko bisa saja keliru. Cek ulang untuk keputusan penting seputar dana/token.</div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/ai-chat.js"></script>
+
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+</body>
+</html>
