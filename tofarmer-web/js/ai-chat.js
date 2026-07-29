@@ -19,7 +19,8 @@ Gaya bicara kamu:
 - Kamu bicara sebagai bagian dari komunitas ("kita"), bukan sebagai pihak luar yang menjelaskan ToFarmer dari jauh.
 
 Batasan & aturan penting:
-- Kamu HANYA membahas seputar ToFarmer: filosofi, 5 Pilar, Ilmu Baku, token TOF, XP & level, dashboard, Prasasti, desa-tof (game), dan hal teknis terkait platform.
+- Kamu HANYA membahas seputar ToFarmer: filosofi, 5 Pilar, Ilmu Baku, token TOF, XP & level, dan hal teknis terkait platform.
+- Kamu juga berperan sebagai pemandu navigasi web: kalau user tanya cara pakai fitur tertentu (misal cara pahat Prasasti, cara main Desa TOF, cara submit Ilmu Baku, cara pakai kalkulator compounding, dll), jelaskan langkahnya dengan jelas dan singkat berdasarkan konteks yang diberikan, lalu sebutkan nama halamannya kalau relevan.
 - Kalau ditanya hal di luar topik itu, jawab singkat lalu ajak balik ke topik ToFarmer.
 - Jangan pernah mengarang angka harga TOF real-time, saldo, atau data pribadi user — arahkan ke dashboard/profile untuk data live.
 - Jangan janjikan keuntungan finansial pasti. Sistem TOF berbasis kontribusi nyata dan kejujuran proses, bukan skema cepat kaya.
@@ -105,6 +106,80 @@ const BASIS_PENGETAHUAN = [
         judul: "Keberlanjutan & Regenerasi",
         kataKunci: ["regenerasi", "keberlanjutan", "estafet", "generasi baru"],
         konteks: "Keberlanjutan dijaga 3 sirkulasi: Manfaat (kesejahteraan ekonomi dari Pilar 4), Pengetahuan (database Ilmu Baku bikin anggota baru tak perlu meraba dari nol), dan Peran (estafet tanggung jawab kolektif). Regenerasi berjalan alami lewat 3 tahap: Belajar (di Ladang) → Kontribusi (di Inovasi/Komunitas) → Pendampingan (jadi mentor generasi berikut)."
+    },
+
+    /* ---------------------------------------------------------------
+       🗺️ NAVIGASI & CARA PAKAI FITUR WEB (dari fitur-ilmu.html)
+       --------------------------------------------------------------- */
+    {
+        judul: "Peta Fitur ToFarmer",
+        kataKunci: ["fitur apa saja", "menu apa saja", "daftar fitur", "ada apa aja", "peta situs", "navigasi web", "semua fitur", "fitur dan info"],
+        konteks: "Semua fitur ToFarmer dikelompokkan sesuai 5 Pilar dan bisa diakses lewat halaman 'Fitur & Info' (tofarmer.xyz/html/fitur-ilmu.html). Pilar 1: Titik Kumpul (beranda/feed), TOF Dashboard, Tentang, Portofolio, ToFarmer Tour, Prasasti Menoreh, Desa TOF (game). Pilar 2: Arsitek Logika, Mbah Eko AI (asisten ini). Pilar 3: Buat Ilmu Baku (Pusat Ilmu). Pilar 4: Transparansi, Terawang Aset (kalkulator compounding), Dashboard TOF, Buku Simpan Pinjam Koperasi. Pilar 5: Radar Rasa, Menoreh Universe 2090 (game)."
+    },
+    {
+        judul: "Titik Kumpul (Beranda/Feed)",
+        kataKunci: ["titik kumpul", "beranda", "mading", "feed", "posting", "login wallet", "masuk web", "cara daftar"],
+        konteks: "Titik Kumpul (beranda.html) adalah markas utama ToFarmer: menampilkan total aset ekosistem, jumlah user, profil (XP, saldo TOF, level 'Grower'), papan peringkat kontribusi, dan ruang posting ('Pilih Pilar Tulisan') untuk berbagi cerita/ilmu sesuai 5 Pilar. Login/daftar pakai Algorand wallet (bukan email-password biasa), tombol 'MASUK / DAFTAR' ada di kartu profil."
+    },
+    {
+        judul: "TOF Dashboard (Harga & Chart Token)",
+        kataKunci: ["dashboard tof", "harga tof", "token dashboard", "chart tof", "supply tof", "vestige", "cek harga"],
+        konteks: "Dashboard TOF (dasboard-tof.html) menampilkan data live token TOF (ASA ID 3558306283): total supply, sirkulasi pasar, harga real-time (dalam IDR & ALGO) via chart Vestige.fi, perbandingan pemegang token (Mitra Internal vs Pejuang Organik/DEX), milestone terkini dari portofolio, dan feed artikel dari Kompasiana."
+    },
+    {
+        judul: "Portofolio & Timeline Milestone",
+        kataKunci: ["portofolio", "timeline", "sejarah tofarmer", "milestone", "riwayat perjalanan", "kapan dimulai", "sejak kapan"],
+        konteks: "Portofolio (portofolio.html) mencatat seluruh perjalanan ToFarmer sejak ide awal 'Farmer to Farmer' Agustus 2024, migrasi ke Web3 (Mei 2026 — minting token TOF 28 juta koin di Algorand), lulus Fase 1 (100 TOF), Fase 2 (500 TOF), Fase 3 (1000+ TOF), peluncuran Buku Kas Blockchain Koperasi RT, hingga Ilmu Baku pertama yang lolos vote komunitas dan dividen compounding pertama ke 16 akun aktif. Timeline lengkap urut dari 2024 sampai sekarang bisa dilihat di halaman ini."
+    },
+    {
+        judul: "ToFarmer Tour (Presentasi Interaktif)",
+        kataKunci: ["tour", "presentasi", "slide", "perkenalan singkat", "intro tofarmer", "kenalan dulu"],
+        konteks: "ToFarmer Tour (tofarmer-tour.html) adalah presentasi interaktif 13 slide bertema Twilight Menoreh, auto-advance, merangkum filosofi 'pertanian itu intelektual', visi, 5 Pilar, 3 fase jalan masuk, dan etika dasar — cocok buat orang baru yang mau kenalan cepat sama ToFarmer."
+    },
+    {
+        judul: "Prasasti Menoreh — Cara Pakai Lengkap",
+        kataKunci: ["prasasti", "pahat", "memahat", "wallet algorand", "seed phrase", "25 kata", "mnemonic", "pera wallet", "cara pahat"],
+        konteks: "Prasasti (prasasti-gallery.html) adalah galeri ilmu yang dipahat abadi ke blockchain Algorand lewat note field transaksi TOF — sekali terpahat, tak bisa dihapus. Cara mulai: (1) install Pera Wallet, buat dompet baru, catat 25 kata seed phrase di kertas fisik (jangan screenshot/kirim chat); (2) siapkan sedikit ALGO (~0.01) buat biaya transaksi, minta admin ToFarmer kalau perlu airdrop; (3) buka menu 'Pahat Prasasti', masukkan 25 kata mnemonic (diproses hanya di browser, tidak dikirim ke server), isi User ID unik; (4) tulis judul, series, isi ilmu; (5) klik 'Pahat ke Blockchain'. Wallet Address itu seperti nomor rekening (boleh dibagikan), sedangkan seed phrase/private key itu kunci rahasia (jangan pernah dibagikan)."
+    },
+    {
+        judul: "Desa TOF (Game Pertanian)",
+        kataKunci: ["desa tof", "game", "main game", "tanam virtual", "panen game", "gamer desa"],
+        konteks: "Desa TOF (desa-tof.html) adalah game isometrik dengan loop bertani lengkap: klaim lahan → tanam → siram → pupuk → pangkas → panen, ada tanaman tahunan (perennial), sistem air sebagai sumber daya terbatas, alur edukasi bibit, marketplace/pengolahan hasil, dan fitur withdraw TOF hasil bermain langsung ke wallet (lewat validasi server, ada batas penarikan harian)."
+    },
+    {
+        judul: "Arsitek Logika (Mind Map)",
+        kataKunci: ["arsitek logika", "mind map", "bagan", "logic tree"],
+        konteks: "Arsitek Logika (tofarmer-logic-tree.html) adalah alat bikin & edit bagan/mind map berbasis simpul (node) untuk memetakan struktur logika dan alur berpikir ekosistem ToFarmer secara visual, bisa diedit langsung dari HP atau desktop, dan hasilnya bisa disalin sebagai Markdown."
+    },
+    {
+        judul: "Buat Ilmu Baku / Pusat Ilmu",
+        kataKunci: ["buat ilmu baku", "gate 1", "gate 2", "gate 3", "submit ilmu", "pusat ilmu", "dashboard ilmu", "vote ilmu", "misi berjalan"],
+        konteks: "Halaman 'Buat Ilmu Baku' (dashboard.html, juga disebut Pusat Ilmu) adalah pemandu eksperimen: klik 'Buat Ilmu Baku' untuk mulai alur Gate 1 sampai Gate 3 (menulis konteks-proses-hasil-refleksi, direview AI di tiap gate), draft yang belum selesai tersimpan sebagai 'Misi Berjalan' dan bisa dilanjutkan kapan saja. Ilmu yang disubmit masuk status 'Ilmu Pending' dan butuh minimal 7 vote komunitas untuk naik status jadi 'Ilmu Baku' resmi."
+    },
+    {
+        judul: "Transparansi Aset",
+        kataKunci: ["transparansi", "laporan keuangan", "cek aset", "radar transparansi", "aset ekosistem"],
+        konteks: "Halaman Transparansi (transparansi.html) menampilkan laporan real-time aset dan aktivitas ekosistem ToFarmer langsung dari data blockchain Algorand, sebagai wujud komitmen keterbukaan finansial ke seluruh anggota."
+    },
+    {
+        judul: "Terawang Aset (Kalkulator Compounding)",
+        kataKunci: ["kalkulator compounding", "terawang aset", "simulasi aset", "compounding tracker", "hitung bunga"],
+        konteks: "Quantum Compounding Tracker (alat/kalkulator-compounding.html) adalah kalkulator simulasi: masukkan modal awal, target dana, rata-rata profit per periode (harian/mingguan/bulanan), lalu sistem memproyeksikan berapa lama waktu dibutuhkan untuk sampai target lewat efek bunga-berbunga (compounding) — dipakai untuk mensimulasikan pertumbuhan aset TOF."
+    },
+    {
+        judul: "Buku Simpan Pinjam Koperasi Blockchain",
+        kataKunci: ["simpan pinjam", "koperasi", "kas rt", "pinjaman", "angsuran", "buku kas"],
+        konteks: "Buku Simpan Pinjam (simpan-pinjam-rt-blockchain.html) adalah aplikasi pencatatan koperasi RT berbasis blockchain: bikin kelompok baru dengan PIN 4-8 digit dan aturan bunga/tenor yang dikunci permanen, lalu catat transaksi (anggota baru + modal awal, setor angsuran, pengajuan pinjaman) lewat 'Loket Pencatatan'. Data lama tidak pernah dihapus — koreksi dicatat sebagai transaksi baru supaya riwayat tetap lengkap dan bisa dipertanggungjawabkan. Bisa dipakai offline, nanti disinkron otomatis saat online."
+    },
+    {
+        judul: "Radar Rasa (Alat Refleksi Petapa)",
+        kataKunci: ["radar rasa", "refleksi petapa tool", "terawang rasa", "intuisi", "matriks rasa"],
+        konteks: "Radar Rasa (radar-v1.html) adalah alat refleksi milik Pilar 5 (Refleksi Petapa): memandu pengguna lewat beberapa tab (Langit, Visual, Bumi) untuk memproses sinyal intuitif/pengamatan lapangan jadi kesimpulan yang membumi — menghasilkan nilai positif (potensi karya) dan catatan kewaspadaan praktis, sebagai penyeimbang antara rasa dan data teknis."
+    },
+    {
+        judul: "Menoreh Universe 2090 (Game)",
+        kataKunci: ["menoreh universe", "2090", "tap to scan", "game kosmik"],
+        konteks: "Menoreh Universe 2090 (menoreh2090-universe.html) adalah game ringan bertema kosmik-mistis Jawa: pemain 'tap to scan' untuk membuka level demi level, tiap level tuntas dapat reward TOF kecil, cocok dimainkan santai di sela aktivitas."
     }
 ];
 
@@ -114,7 +189,7 @@ const BASIS_PENGETAHUAN = [
  * pengetahuan ToFarmer saat ini. Kalau nanti kontennya sudah sangat banyak, pertimbangkan
  * pindah ke Supabase pgvector + embeddings untuk pencarian semantik yang lebih presisi.
  */
-function cariKonteks(pesanUser, maxHasil = 3) {
+function cariKonteks(pesanUser, maxHasil = 4) {
     const teks = pesanUser.toLowerCase();
     const skor = BASIS_PENGETAHUAN
         .map(entry => {
