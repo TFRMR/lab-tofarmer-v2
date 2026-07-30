@@ -119,9 +119,15 @@ async function handleLogin(event) {
         showError(''); // Clear error
         btn.innerHTML = '✓ Login Sukses! Mengarahkan...';
 
+        // FIX: Kalau tadinya dilempar ke sini dari halaman lain (misal desa-tof.html
+        // nyimpen 'redirect_to' sebelum ngirim ke login), balikin ke halaman asal itu.
+        // Kalau gak ada, baru default ke index.html.
+        const redirectTo = localStorage.getItem('redirect_to');
+        localStorage.removeItem('redirect_to');
+
         // Redirect
         setTimeout(() => {
-            window.location.href = '/index.html';
+            window.location.href = redirectTo || '/index.html';
         }, 500);
 
     } catch (err) {

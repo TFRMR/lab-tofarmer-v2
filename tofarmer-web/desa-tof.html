@@ -540,6 +540,14 @@
 </div>
 
 <script>
+    // FIX: Sistem login (login.js/app.js) nyimpen username di key 'tof_login_username',
+    // tapi game ini (desa-tof.html) selama ini cek key 'tof_username' yang beda -> jadi
+    // selalu dianggap tamu meski udah login di beranda. Sinkronkan di sini, paling awal,
+    // sebelum kode lain (termasuk guard-check login) sempat baca localStorage.
+    if (localStorage.getItem('tof_wallet') && localStorage.getItem('tof_login_username')) {
+        localStorage.setItem('tof_username', localStorage.getItem('tof_login_username'));
+    }
+
     const db = supabase.createClient('https://afpzddwuikvwsedzgsee.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY');
     
     const world = document.getElementById('world');
