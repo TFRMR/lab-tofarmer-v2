@@ -78,24 +78,16 @@ async function kompresGambar(file, maxWidth = 1200, kualitas = 0.82) {
     reader.onerror = () => reject(new Error("Gagal membaca file"));
   });
 }
-async function downloadQRIS() {
+function downloadQRIS() {
   const url = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg";
 
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "QRIS-Nabung.jpeg";
-    link.click();
-
-    URL.revokeObjectURL(link.href);
-
-  } catch (err) {
-    console.error("Gagal download QRIS:", err);
-    alert("QRIS gagal didownload");
-  }
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "QRIS-Nabung.jpeg";
+  link.target = "_blank";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 // ============================================================
 // FUNGSI DETEKSI & EMBED VIDEO (YouTube, Vimeo, dll)
