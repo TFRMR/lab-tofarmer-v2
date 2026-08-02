@@ -1392,12 +1392,32 @@ function openQrisPopup() {
   const modal = document.createElement("div")
   modal.innerHTML = `
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;justify-content:center;align-items:center;z-index:99999;">
-    <div style="background:white;padding:20px;border-radius:166px;width:300px;text-align:center;">
+    <div style="background:white;padding:20px;border-radius:16px;width:300px;text-align:center;">
       <div style="font-size:20px;font-weight:700;">💰 QRIS Nabung</div>
-      <img src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg" />
-      <p style="font-size:12px;color:#666;">Transfer manual lalu klik konfirmasi</p>
-       <button class="btn-glow" onclick="submitQrisPayment()">✅ Saya Sudah Transfer</button>
-       <button class="btn-glow" onclick="this.parentElement.parentElement.remove()">❌ Tutup</button>
+
+      <img id="qrisImage" 
+      src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg"
+      style="width:250px;margin:15px 0;border-radius:10px;" />
+
+      <p style="font-size:12px;color:#666;">
+      Transfer manual lalu klik konfirmasi
+      </p>
+
+      <a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj1GZ5Yj2ap3EK89tCn3WARaMg3tpFimb5PJBCgba4tiyldTScOozTShs-C0w-lTrtYu-RfsyP7Ci2736t02jVayLvmTclX-KfBy0RTmeCaulJtc3wVQTzfz8l62Fnv8ORGW3lUQB_Gc82V_2syjt7eIb4Q7Cg5yvCxYwDL9Or0_FDKr7ixRyDP8pkeriU/s320/WhatsApp%20Image%202026-05-23%20at%2002.36.28.jpeg"
+      download="QRIS-Nabung.jpeg">
+        <button class="btn-glow">
+        📥 Download QRIS
+        </button>
+      </a>
+
+      <button class="btn-glow" onclick="submitQrisPayment()">
+      ✅ Saya Sudah Transfer
+      </button>
+
+      <button class="btn-glow" onclick="this.parentElement.parentElement.remove()">
+      ❌ Tutup
+      </button>
+
     </div>
   </div>
   `
