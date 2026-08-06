@@ -187,6 +187,40 @@
             text-transform: none !important;
         }
 
+        /* Toggle Mata Uang */
+        .currency-toggle {
+            display: flex !important;
+            gap: 8px !important;
+            margin-bottom: 25px !important;
+            background: rgba(5, 10, 7, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 12px !important;
+            padding: 5px !important;
+        }
+
+        .currency-toggle button {
+            flex: 1 1 0% !important;
+            background: transparent !important;
+            border: none !important;
+            border-radius: 8px !important;
+            color: #84cc16 !important;
+            font-family: monospace !important;
+            font-weight: 700 !important;
+            font-size: 0.85rem !important;
+            letter-spacing: 1px !important;
+            padding: 10px !important;
+            cursor: pointer !important;
+            box-shadow: none !important;
+            transform: none !important;
+            transition: all 0.25s ease !important;
+        }
+
+        .currency-toggle button.active {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%) !important;
+            color: #040805 !important;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25) !important;
+        }
+
         /* Desain Kolom Input & Label */
         #tofarmer-future-calc label {
             color: #84cc16 !important; /* Hijau Stabilo Daun Muda */
@@ -215,7 +249,7 @@
         }
 
         /* Tombol Eksekusi Terawang */
-        #tofarmer-future-calc button {
+        #tofarmer-future-calc button.exec-btn {
             background: linear-gradient(135deg, #22c55e 0%, #15803d 100%) !important;
             border-radius: 12px !important;
             color: #040805 !important;
@@ -225,9 +259,12 @@
             padding: 16px !important;
             box-shadow: 0 8px 20px rgba(34, 197, 94, 0.2) !important;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            width: 100%;
+            border: none;
+            cursor: pointer;
         }
 
-        #tofarmer-future-calc button:hover {
+        #tofarmer-future-calc button.exec-btn:hover {
             opacity: 1 !important;
             background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%) !important;
             transform: translateY(-2px) !important;
@@ -310,14 +347,19 @@
                 <div id="tofarmer-future-calc">
                     
                     <h2>Quantum Compounding Tracker</h2>
+
+                    <div class="currency-toggle">
+                        <button type="button" id="btn-idr" class="active" onclick="setCurrency('IDR')">RUPIAH (Rp)</button>
+                        <button type="button" id="btn-usd" onclick="setCurrency('USD')">DOLAR ($)</button>
+                    </div>
                     
                     <div style="margin-bottom: 20px;">
-                        <label>MODAL AWALMU BERAPA RUPIAH (PV)</label>
+                        <label id="label-pv">MODAL AWALMU BERAPA RUPIAH (PV)</label>
                         <input id="pv" type="number" placeholder="Contoh: 1000000" />
                     </div>
 
                     <div style="margin-bottom: 20px;">
-                        <label>INGIN PUNYA UANG BERAPA RUPIAH (FV)</label>
+                        <label id="label-fv">INGIN PUNYA UANG BERAPA RUPIAH (FV)</label>
                         <input id="fv" type="number" placeholder="Contoh: 500000000" />
                     </div>
 
@@ -336,7 +378,7 @@
                         </div>
                     </div>
 
-                    <button onclick="calculateCompounding()">
+                    <button class="exec-btn" onclick="calculateCompounding()">
                         ANALISIS PERTUMBUHAN
                     </button>
 
@@ -362,6 +404,46 @@
     </div>
 
 <script>
+let currentCurrency = "IDR";
+
+const CURRENCY_CONFIG = {
+    IDR: {
+        symbol: "Rp",
+        locale: "id-ID",
+        labelPv: "MODAL AWALMU BERAPA RUPIAH (PV)",
+        labelFv: "INGIN PUNYA UANG BERAPA RUPIAH (FV)",
+        placeholderPv: "Contoh: 1000000",
+        placeholderFv: "Contoh: 500000000",
+        maxFraction: 0
+    },
+    USD: {
+        symbol: "$",
+        locale: "en-US",
+        labelPv: "MODAL AWALMU BERAPA DOLAR (PV)",
+        labelFv: "INGIN PUNYA UANG BERAPA DOLAR (FV)",
+        placeholderPv: "Contoh: 100",
+        placeholderFv: "Contoh: 50000",
+        maxFraction: 2
+    }
+};
+
+function setCurrency(currency) {
+    currentCurrency = currency;
+    const cfg = CURRENCY_CONFIG[currency];
+
+    document.getElementById('label-pv').innerText = cfg.labelPv;
+    document.getElementById('label-fv').innerText = cfg.labelFv;
+    document.getElementById('pv').placeholder = cfg.placeholderPv;
+    document.getElementById('fv').placeholder = cfg.placeholderFv;
+
+    document.getElementById('btn-idr').classList.toggle('active', currency === 'IDR');
+    document.getElementById('btn-usd').classList.toggle('active', currency === 'USD');
+
+    // reset tampilan hasil kalau ganti mata uang biar nggak ketuker
+    document.getElementById('summary').innerHTML = "Sistem Siap Terawang...";
+    document.getElementById('logBox').value = "";
+}
+
 function calculateCompounding() {
     const pv = parseFloat(document.getElementById('pv').value);
     const fv = parseFloat(document.getElementById('fv').value);
@@ -369,6 +451,7 @@ function calculateCompounding() {
     const tenor = document.getElementById('tenor').value;
     const logBox = document.getElementById('logBox');
     const summary = document.getElementById('summary');
+    const cfg = CURRENCY_CONFIG[currentCurrency];
 
     if (!pv || !fv || !ratePct || pv <= 0 || fv <= 0 || ratePct <= 0) {
         summary.innerHTML = "<span style='color:#ff7b72;'>ERROR: INVALID_INPUT</span>";
@@ -390,14 +473,14 @@ function calculateCompounding() {
 
     summary.innerText = `BUTUH WAKTU: ${nRounded} ${tenor.toUpperCase()}${conversionText}`;
 
-    let report = `>> INITIALIZING DATA...\n>> TARGET REACHED IN ${nRounded} ${tenor.toUpperCase()}\n\n`;
+    let report = `>> INITIALIZING DATA...\n>> CURRENCY: ${currentCurrency}\n>> TARGET REACHED IN ${nRounded} ${tenor.toUpperCase()}\n\n`;
     let currentBalance = pv;
 
     for (let i = 1; i <= nRounded; i++) {
         currentBalance *= (1 + rate);
         let displayBalance = currentBalance < fv ? currentBalance : fv;
-        
-        report += `[${tenor.substring(0,3).toUpperCase()} ${String(i).padStart(3, '0')}] > RP ${displayBalance.toLocaleString('id-ID', {minimumFractionDigits: 0, maximumFractionDigits: 0})}\n`;
+
+        report += `[${tenor.substring(0,3).toUpperCase()} ${String(i).padStart(3, '0')}] > ${cfg.symbol} ${displayBalance.toLocaleString(cfg.locale, {minimumFractionDigits: 0, maximumFractionDigits: cfg.maxFraction})}\n`;
         
         if (currentBalance >= fv) break;
     }
