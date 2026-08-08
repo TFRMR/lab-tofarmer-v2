@@ -3,18 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Checklist Scalping Plan</title>
+    <title>SOP, Checklist & Custom Trading Plan System</title>
     <style>
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
-            --accent: #38bdf8;
-            --accent-hover: #0284c7;
+            --border-color: #334155;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --danger: #ef4444;
-            --success: #22c55e;
-            --border: #334155;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-amber: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --input-bg: #0f172a;
         }
 
         * {
@@ -28,146 +30,211 @@
             background-color: var(--bg-color);
             color: var(--text-main);
             padding: 20px;
-            display: flex;
-            justify-content: center;
+            line-height: 1.5;
         }
 
         .container {
-            width: 100%;
-            max-width: 800px;
+            max-width: 950px;
+            margin: 0 auto;
         }
 
         header {
-            margin-bottom: 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 16px;
-            flex-wrap: wrap;
-            gap: 12px;
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        h1 {
-            font-size: 1.5rem;
-            color: var(--accent);
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-blue);
+            margin-bottom: 5px;
         }
 
-        .header-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
         }
 
-        .btn {
-            background-color: var(--accent);
-            color: #000;
-            font-weight: 600;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-        }
-
-        .btn:hover {
-            background-color: var(--accent-hover);
-            color: #fff;
-        }
-
-        .btn-danger {
-            background-color: var(--danger);
-            color: #fff;
-        }
-
-        .btn-danger:hover {
-            background-color: #dc2626;
-        }
-
-        .btn-secondary {
-            background-color: #475569;
-            color: #fff;
-        }
-
-        .btn-secondary:hover {
-            background-color: #334155;
-        }
-
-        .btn-outline {
-            background-color: transparent;
-            border: 1px solid var(--border);
-            color: var(--text-main);
-        }
-
-        .btn-outline:hover {
-            background-color: var(--border);
-        }
-
-        .plan-card {
+        .card {
             background-color: var(--card-bg);
-            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
-            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
         }
 
-        .plan-header {
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            justify-content: space-between;
+            color: var(--accent-blue);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
         }
 
-        .plan-title {
-            font-size: 1.25rem;
-            font-weight: bold;
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
         }
 
-        .plan-actions {
+        .form-group {
             display: flex;
-            gap: 8px;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--accent-blue);
         }
 
         .checklist-item {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 12px;
-            padding: 10px;
-            background-color: rgba(255, 255, 255, 0.03);
-            border-radius: 6px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            user-select: none;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--border-color);
         }
 
-        .checklist-item:hover {
-            background-color: rgba(255, 255, 255, 0.06);
+        .checklist-item:last-child {
+            border-bottom: none;
         }
 
         .checklist-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent-blue);
             cursor: pointer;
-            accent-color: var(--accent);
+            margin-top: 2px;
         }
 
-        .checklist-item.checked label {
-            text-decoration: line-through;
+        .checklist-label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .checklist-label strong {
+            display: block;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        .checklist-label span {
+            font-size: 0.85rem;
             color: var(--text-muted);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+        .badge-danger { background-color: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .badge-success { background-color: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .badge-purple { background-color: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+
+        .cooldown-box {
+            background-color: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--accent-amber);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .cooldown-box.active {
+            display: block;
+        }
+
+        .timer-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-amber);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 130px;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary { background-color: var(--accent-blue); color: white; }
+        .btn-primary:hover { background-color: #2563eb; }
+
+        .btn-purple { background-color: var(--accent-purple); color: white; }
+        .btn-purple:hover { background-color: #7c3aed; }
+
+        .btn-success { background-color: var(--accent-green); color: white; }
+        .btn-success:hover { background-color: #059669; }
+
+        .btn-danger { background-color: var(--accent-red); color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+        }
+        .btn-outline:hover {
+            background-color: var(--border-color);
+            color: var(--text-main);
         }
 
         .modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            padding: 20px;
         }
 
         .modal.active {
@@ -176,291 +243,611 @@
 
         .modal-content {
             background-color: var(--card-bg);
-            padding: 24px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-            border: 1px solid var(--border);
-        }
-
-        .modal-header {
-            font-size: 1.2rem;
-            margin-bottom: 16px;
-            font-weight: bold;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .form-group input, .form-group textarea {
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 650px;
             width: 100%;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid var(--border);
-            background-color: #0f172a;
-            color: var(--text-main);
-            outline: none;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 20px;
         }
 
-        .form-group input:focus, .form-group textarea:focus {
-            border-color: var(--accent);
-        }
-
-        .modal-actions {
+        .dynamic-item-row {
             display: flex;
-            justify-content: flex-end;
             gap: 10px;
-            margin-top: 20px;
+            margin-bottom: 8px;
+            align-items: center;
         }
 
-        #importFile {
-            display: none;
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--input-bg);
+            color: var(--text-muted);
+        }
+
+        .status-win { color: var(--accent-green); font-weight: bold; }
+        .status-loss { color: var(--accent-red); font-weight: bold; }
+
+        @media (max-width: 600px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .actions { flex-direction: column; }
+            .btn { width: 100%; }
         }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <header>
-            <h1>Checklist Scalping Plan</h1>
-            <div class="header-actions">
-                <button class="btn btn-outline" onclick="exportData()">📥 Export Data</button>
-                <button class="btn btn-outline" onclick="triggerImport()">📤 Import Data</button>
-                <input type="file" id="importFile" accept=".json" onchange="importData(event)">
-                <button class="btn" onclick="openPlanModal()">+ Tambah Plan Baru</button>
+<div class="container">
+    <header>
+        <h1>Trading Plan & Multi-Strategi Checklist</h1>
+        <p>Sistem Manajemen Strategi Trading Kustom & Jurnal Eksekusi</p>
+    </header>
+
+    <!-- PILIH / MANAGEMENT STRATEGI -->
+    <div class="card">
+        <div class="card-title">
+            <span>⚙️ Pilih & Kelola Strategi Trading</span>
+            <button class="btn btn-purple" style="max-width: 200px; flex: none;" onclick="openPlanModal()">+ Tambah Strategi Baru</button>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="selectPlan">Strategi Aktif</label>
+                <select id="selectPlan" onchange="loadSelectedPlan()">
+                    <!-- Options loaded via JS -->
+                </select>
             </div>
-        </header>
-
-        <div id="plansContainer">
-            <!-- Render via JavaScript -->
+            <div class="form-group" style="justify-content: flex-end;">
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline" onclick="editCurrentPlan()">✏️ Edit Strategi Ini</button>
+                    <button class="btn btn-danger" style="flex:none; min-width:80px;" onclick="deleteCurrentPlan()">🗑️ Hapus</button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Modal Form Tambah/Edit Plan -->
-    <div class="modal" id="planModal">
-        <div class="modal-content">
-            <div class="modal-header" id="modalTitle">Tambah Scalping Plan</div>
-            <form id="planForm" onsubmit="savePlan(event)">
-                <input type="hidden" id="planId">
-                <div class="form-group">
-                    <label for="planTitleInput">Nama Strategy / Plan</label>
-                    <input type="text" id="planTitleInput" required placeholder="Contoh: Scalping M1 SNR D1">
-                </div>
-                <div class="form-group">
-                    <label for="planRulesInput">Aturan Checklist (Pisahkan per baris)</label>
-                    <textarea id="planRulesInput" rows="7" required placeholder="Perbandingan RR 1:1&#10;Aturan entry breakout: candle M1 tembus garis SNR D1..."></textarea>
-                </div>
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closePlanModal()">Batal</button>
-                    <button type="submit" class="btn">Simpan Plan</button>
-                </div>
-            </form>
+    <!-- FORM DOKUMEN SETUP -->
+    <div class="card">
+        <div class="card-title">📌 Informasi Setup Trading</div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="pair">Pair / Aset</label>
+                <input type="text" id="pair" placeholder="contoh: GBPUSD, XAUUSD">
+            </div>
+            <div class="form-group">
+                <label for="entryType">Tipe Entry / Signal</label>
+                <select id="entryType">
+                    <!-- Loaded dynamically based on Strategy -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="slType">Metode Penempatan SL</label>
+                <select id="slType">
+                    <!-- Loaded dynamically based on Strategy -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="riskRatio">Target Risk-to-Reward (RR)</label>
+                <input type="text" id="riskRatio" readonly style="color: var(--accent-green); font-weight: bold;">
+            </div>
         </div>
     </div>
 
-    <script>
-        // Checklist Default Sesuai Aturan Khusus Anda
-        const DEFAULT_PLANS = [
-            {
-                id: 'plan-scalping-m1',
-                title: 'Plan Scalping M1 - SNR D1 & Fractal SL',
-                rules: [
-                    'Perbandingan RR 1:1',
-                    'SL bisa di bawah/atas candle / di fractal (pilih visual yang paling masuk akal)',
-                    'Ranging bisa 20 - 50 candle: Pakai SL Fractal untuk meminimalisir sapuan harga mondar-mandir',
-                    'Entry Breakout: Saat candle M1 tembus garis SNR D1',
-                    'Entry Pantulan: Tembus ekor / body nempel lalu langsung reverse (candle masuk & gagal)',
-                    'Aturan Rapat SNR: Pada garis SNR rapat, pakai SL Fractal lebih aman',
-                    'Aturan Loss: Jika Loss 2 kali, WAJIB tunggu 20 candle berjalan baru boleh cari entry lagi (karena market sedang ranging)'
-                ]
-            }
-        ];
+    <!-- FILTER KOSTERING & COOLDOWN -->
+    <div class="card">
+        <div class="card-title">🛡️ Filter Risk & Cooldown Rules</div>
+        <div class="checklist-item">
+            <input type="checkbox" id="chkLoss2x" onchange="toggleCooldown()">
+            <label class="checklist-label" for="chkLoss2x">
+                <strong>Apakah Anda baru saja mengalami Loss 2x Berturut-turut / Terkena Filter Ranging?</strong>
+                <span>Memicu perlindungan psikologis dan evaluasi market.</span>
+            </label>
+        </div>
 
-        let plansData = [];
+        <div class="cooldown-box" id="cooldownBox">
+            <div style="text-align:center;">
+                <span class="badge badge-warning">🛑 MODE COOLDOWN AKTIF</span>
+                <p style="margin-top:5px; font-size:0.9rem;" id="cooldownText">Pasar sedang ranging! Dilarang Entry. Tunggu jeda candle/waktu berjalan.</p>
+                <div class="timer-display" id="timerDisplay">20:00</div>
+                <button class="btn btn-outline" style="margin: 0 auto; max-width: 150px;" onclick="startTimer()">Mulai Timer</button>
+            </div>
+        </div>
+    </div>
 
-        function initApp() {
-            const saved = localStorage.getItem('scalping_plans_data');
-            if (saved) {
-                try {
-                    plansData = JSON.parse(saved);
-                } catch(e) {
-                    plansData = DEFAULT_PLANS;
+    <!-- CEKLIST ATURAN DUKUNGAN KUSTOM -->
+    <div class="card">
+        <div class="card-title">✅ Ceklist Validasi Setup (<span id="planTitleLabel">Strategi</span>)</div>
+
+        <div id="checklistContainer">
+            <!-- Dynamic Checklists rendered here -->
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+            <label for="notes">Catatan Tambahan / Alasan Entry</label>
+            <textarea id="notes" rows="2" placeholder="Tuliskan kondisi market atau refleksi emosional saat ini..."></textarea>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-success" onclick="recordTrade('WIN')">✓ Simpan Entry (WIN)</button>
+            <button class="btn btn-danger" onclick="recordTrade('LOSS')">✗ Simpan Entry (LOSS)</button>
+            <button class="btn btn-outline" onclick="resetForm()">Reset Checklist</button>
+        </div>
+    </div>
+
+    <!-- RIWAYAT TRADING -->
+    <div class="card">
+        <div class="card-title" style="justify-content: space-between;">
+            <span>📜 Riwayat Jurnal Trading</span>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; min-width: auto;" onclick="exportCSV()">📥 Export CSV</button>
+                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; min-width: auto;" onclick="exportJSON()">📥 Export JSON</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Waktu</th>
+                        <th>Strategi</th>
+                        <th>Pair</th>
+                        <th>Tipe</th>
+                        <th>SL Type</th>
+                        <th>Hasil</th>
+                        <th>Catatan</th>
+                    </tr>
+                </thead>
+                <tbody id="tradeHistory">
+                    <!-- Data transaksi akan ditambahkan secara dinamis -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL TAMBAH / EDIT STRATEGI -->
+<div class="modal" id="planModal">
+    <div class="modal-content">
+        <h3 style="color: var(--accent-purple); margin-bottom: 15px;" id="modalTitle">Tambah Strategi Trading Baru</h3>
+        
+        <input type="hidden" id="editPlanId">
+
+        <div class="form-group">
+            <label for="newPlanName">Nama Strategi / Plan</label>
+            <input type="text" id="newPlanName" placeholder="contoh: Breakout SnR D1 (M1), SMC Orderblock, EMA Cross">
+        </div>
+
+        <div class="form-group">
+            <label for="newPlanRR">Fixed Risk-to-Reward (RR)</label>
+            <input type="text" id="newPlanRR" placeholder="contoh: 1:1, 1:1.5, 1:2">
+        </div>
+
+        <div class="form-group">
+            <label for="newPlanCooldown">Durasi Cooldown / Jeda Candle (Menit/Candle)</label>
+            <input type="number" id="newPlanCooldown" value="20" placeholder="20">
+        </div>
+
+        <div class="form-group">
+            <label>Pilihan Tipe Entry (Pisahkan dengan Koma)</label>
+            <input type="text" id="newPlanEntryTypes" placeholder="contoh: Breakout M1, Reversal / Pantulan, Pullback">
+        </div>
+
+        <div class="form-group">
+            <label>Pilihan Metode Stop Loss (Pisahkan dengan Koma)</label>
+            <input type="text" id="newPlanSLTypes" placeholder="contoh: SL Fractal, SL High/Low Candle, Fixed Pips">
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Aturan / Item Ceklist SOP</span>
+                <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; min-width: auto;" onclick="addChecklistItemInput()">+ Tambah Poin SOP</button>
+            </label>
+            <div id="checklistsInputContainer" style="margin-top: 10px;">
+                <!-- Dynamic input items -->
+            </div>
+        </div>
+
+        <div class="actions" style="margin-top: 20px;">
+            <button class="btn btn-purple" onclick="savePlan()">💾 Simpan Strategi</button>
+            <button class="btn btn-outline" onclick="closePlanModal()">Batal</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Default Strategy (SOP SnR D1 & M1 milik user)
+    const defaultPlans = [
+        {
+            id: 'snr_d1_m1',
+            name: 'Breakout & Reversal SnR D1 (TF M1)',
+            rr: '1 : 1',
+            cooldownMinutes: 20,
+            entryTypes: ['Breakout M1', 'Reversal / Pantulan'],
+            slTypes: ['SL Fractal (Ranging / SnR Rapat)', 'SL Top/Bottom Candle (Clean Move)'],
+            checklists: [
+                {
+                    title: 'Cek Struktur SnR & Kepadatan Area',
+                    desc: 'Jika garis SnR D1 rapat atau ranging 20-50 candle, WAJIB gunakan SL Fractal untuk meminimalisir sapuan harga mondar-mandir.'
+                },
+                {
+                    title: 'Validasi Aturan Eksekusi (TF M1)',
+                    desc: '• Breakout: Body candle M1 ditutup tegas menembus garis SnR D1.
+• Pantulan: Ekor menembus/body menempel SnR D1, lalu candle M1 langsung REVERSE dan gagal.'
+                },
+                {
+                    title: 'Visual Letak Stop Loss (SL) Rasional',
+                    desc: 'Penempatan SL di atas/bawah candle atau di titik Fractal yang visualnya paling masuk akal dan aman.'
+                },
+                {
+                    title: 'Disiplin Fixed RR 1:1',
+                    desc: 'Target TP dipasang tepat 1:1 dari jarak SL yang ditentukan. Tanpa menggeser SL/TP.'
                 }
-            } else {
-                plansData = DEFAULT_PLANS;
-                saveToStorage();
-            }
-            renderPlans();
+            ]
         }
+    ];
 
-        function saveToStorage() {
-            localStorage.setItem('scalping_plans_data', JSON.stringify(plansData));
-        }
+    let plans = JSON.parse(localStorage.getItem('trading_plans_custom')) || defaultPlans;
+    let trades = JSON.parse(localStorage.getItem('trading_journal_snr')) || [];
+    let currentPlanId = localStorage.getItem('active_plan_id') || plans[0].id;
+    let timerInterval = null;
 
-        function renderPlans() {
-            const container = document.getElementById('plansContainer');
-            if (!container) return;
+    document.addEventListener('DOMContentLoaded', () => {
+        renderPlanOptions();
+        loadSelectedPlan();
+        renderHistory();
+    });
 
-            if (plansData.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color: var(--text-muted); margin-top: 40px;">Belum ada rencana scalping. Klik "+ Tambah Plan Baru" untuk membuat.</p>';
-                return;
-            }
+    // RENDER STRATEGY SELECTOR
+    function renderPlanOptions() {
+        const select = document.getElementById('selectPlan');
+        select.innerHTML = '';
+        plans.forEach(plan => {
+            const opt = document.createElement('option');
+            opt.value = plan.id;
+            opt.textContent = plan.name;
+            if (plan.id === currentPlanId) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
 
-            container.innerHTML = plansData.map((plan) => {
-                const rulesHtml = plan.rules.map((rule, rIdx) => `
-                    <div class="checklist-item" onclick="toggleCheck(this)">
-                        <input type="checkbox" id="check_${plan.id}_${rIdx}" onclick="event.stopPropagation(); toggleCheckParent(this);">
-                        <label for="check_${plan.id}_${rIdx}">${escapeHtml(rule)}</label>
-                    </div>
-                `).join('');
+    // LOAD CURRENT SELECTED STRATEGY
+    function loadSelectedPlan() {
+        const select = document.getElementById('selectPlan');
+        currentPlanId = select.value;
+        localStorage.setItem('active_plan_id', currentPlanId);
 
-                return `
-                    <div class="plan-card" id="card_${plan.id}">
-                        <div class="plan-header">
-                            <div class="plan-title">${escapeHtml(plan.title)}</div>
-                            <div class="plan-actions">
-                                <button class="btn btn-secondary" onclick="editCurrentPlan('${plan.id}')">Edit</button>
-                                <button class="btn btn-danger" onclick="deleteCurrentPlan('${plan.id}')">Hapus</button>
-                            </div>
-                        </div>
-                        <div class="plan-body">
-                            ${rulesHtml}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+        const plan = plans.find(p => p.id === currentPlanId) || plans[0];
 
-        function toggleCheck(element) {
-            const checkbox = element.querySelector('input[type="checkbox"]');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                element.classList.toggle('checked', checkbox.checked);
-            }
-        }
+        // Populate Form Fields
+        document.getElementById('planTitleLabel').textContent = plan.name;
+        document.getElementById('riskRatio').value = plan.rr;
+        document.getElementById('cooldownText').textContent = `Kondisi khusus terdeteksi! Dilarang Entry. Tunggu minimal ${plan.cooldownMinutes} candle/menit berjalan.`;
+        document.getElementById('timerDisplay').textContent = `${plan.cooldownMinutes}:00`;
 
-        function toggleCheckParent(checkbox) {
-            const parent = checkbox.closest('.checklist-item');
-            if (parent) {
-                parent.classList.toggle('checked', checkbox.checked);
-            }
-        }
+        // Populate Entry Options
+        const entrySelect = document.getElementById('entryType');
+        entrySelect.innerHTML = '';
+        plan.entryTypes.forEach(type => {
+            const opt = document.createElement('option');
+            opt.value = type;
+            opt.textContent = type;
+            entrySelect.appendChild(opt);
+        });
 
-        function openPlanModal() {
-            document.getElementById('planId').value = '';
-            document.getElementById('planTitleInput').value = '';
-            document.getElementById('planRulesInput').value = '';
-            document.getElementById('modalTitle').innerText = 'Tambah Scalping Plan';
-            document.getElementById('planModal').classList.add('active');
-        }
+        // Populate SL Options
+        const slSelect = document.getElementById('slType');
+        slSelect.innerHTML = '';
+        plan.slTypes.forEach(type => {
+            const opt = document.createElement('option');
+            opt.value = type;
+            opt.textContent = type;
+            slSelect.appendChild(opt);
+        });
 
-        function closePlanModal() {
-            document.getElementById('planModal').classList.remove('active');
-        }
-
-        function savePlan(event) {
-            event.preventDefault();
-            const id = document.getElementById('planId').value;
-            const title = document.getElementById('planTitleInput').value.trim();
-            const rawRules = document.getElementById('planRulesInput').value;
-
-            const rules = rawRules.split('\n').map(r => r.trim()).filter(r => r.length > 0);
-
-            if (id) {
-                const index = plansData.findIndex(p => p.id === id);
-                if (index !== -1) {
-                    plansData[index].title = title;
-                    plansData[index].rules = rules;
-                }
-            } else {
-                const newPlan = {
-                    id: 'plan_' + Date.now(),
-                    title: title,
-                    rules: rules
-                };
-                plansData.push(newPlan);
-            }
-
-            saveToStorage();
-            renderPlans();
-            closePlanModal();
-        }
-
-        function editCurrentPlan(id) {
-            const plan = plansData.find(p => p.id === id);
-            if (!plan) return;
-
-            document.getElementById('planId').value = plan.id;
-            document.getElementById('planTitleInput').value = plan.title;
-            document.getElementById('planRulesInput').value = plan.rules.join('\n');
-            document.getElementById('modalTitle').innerText = 'Edit Scalping Plan';
-            document.getElementById('planModal').classList.add('active');
-        }
-
-        function deleteCurrentPlan(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus plan ini?')) {
-                plansData = plansData.filter(p => p.id !== id);
-                saveToStorage();
-                renderPlans();
-            }
-        }
-
-        // Fitur Export & Import
-        function exportData() {
-            if (plansData.length === 0) {
-                alert('Tidak ada data plan untuk di-export.');
-                return;
-            }
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(plansData, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `scalping_plans_${Date.now()}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function triggerImport() {
-            document.getElementById('importFile').click();
-        }
-
-        function importData(event) {
-            const fileReader = new FileReader();
-            fileReader.onload = function(e) {
-                try {
-                    const importedPlans = JSON.parse(e.target.result);
-                    if (Array.isArray(importedPlans)) {
-                        plansData = importedPlans;
-                        saveToStorage();
-                        renderPlans();
-                        alert('Data plan berhasil di-import!');
-                    } else {
-                        alert('Format file JSON tidak valid.');
-                    }
-                } catch (err) {
-                    alert('Gagal membaca file JSON: ' + err.message);
-                }
-            };
-            if (event.target.files[0]) {
-                fileReader.readAsText(event.target.files[0]);
-            }
-        }
-
-        function escapeHtml(text) {
+        // Populate Checklists
+        const container = document.getElementById('checklistContainer');
+        container.innerHTML = '';
+        plan.checklists.forEach((item, index) => {
             const div = document.createElement('div');
-            div.innerText = text;
-            return div.innerHTML;
+            div.className = 'checklist-item';
+            div.innerHTML = `
+                <input type="checkbox" class="chk-sop" id="c_${index}">
+                <label class="checklist-label" for="c_${index}">
+                    <strong>${item.title}</strong>
+                    <span>${item.desc.replace(/
+/g, '<br>')}</span>
+                </label>
+            `;
+            container.appendChild(div);
+        });
+
+        toggleCooldown();
+    }
+
+    // MODAL CONTROL
+    function openPlanModal(isEdit = false) {
+        const modal = document.getElementById('planModal');
+        const inputContainer = document.getElementById('checklistsInputContainer');
+        inputContainer.innerHTML = '';
+
+        if (isEdit) {
+            const plan = plans.find(p => p.id === currentPlanId);
+            document.getElementById('modalTitle').textContent = 'Edit Strategi Trading';
+            document.getElementById('editPlanId').value = plan.id;
+            document.getElementById('newPlanName').value = plan.name;
+            document.getElementById('newPlanRR').value = plan.rr;
+            document.getElementById('newPlanCooldown').value = plan.cooldownMinutes;
+            document.getElementById('newPlanEntryTypes').value = plan.entryTypes.join(', ');
+            document.getElementById('newPlanSLTypes').value = plan.slTypes.join(', ');
+
+            plan.checklists.forEach(item => {
+                addChecklistItemInput(item.title, item.desc);
+            });
+        } else {
+            document.getElementById('modalTitle').textContent = 'Tambah Strategi Trading Baru';
+            document.getElementById('editPlanId').value = '';
+            document.getElementById('newPlanName').value = '';
+            document.getElementById('newPlanRR').value = '1 : 1';
+            document.getElementById('newPlanCooldown').value = '20';
+            document.getElementById('newPlanEntryTypes').value = '';
+            document.getElementById('newPlanSLTypes').value = '';
+
+            addChecklistItemInput('', '');
         }
 
-        document.addEventListener('DOMContentLoaded', initApp);
-    </script>
+        modal.classList.add('active');
+    }
+
+    function closePlanModal() {
+        document.getElementById('planModal').classList.remove('active');
+    }
+
+    function addChecklistItemInput(title = '', desc = '') {
+        const container = document.getElementById('checklistsInputContainer');
+        const div = document.createElement('div');
+        div.className = 'dynamic-item-row';
+        div.innerHTML = `
+            <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+                <input type="text" class="inp-chk-title" placeholder="Judul Poin Checklist (misal: Konfirmasi MA)" value="${title}">
+                <input type="text" class="inp-chk-desc" placeholder="Penjelasan / Syarat Detail" value="${desc}">
+            </div>
+            <button class="btn btn-danger" style="flex:none; width:35px; height:35px; padding:0;" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function savePlan() {
+        const name = document.getElementById('newPlanName').value.trim();
+        const rr = document.getElementById('newPlanRR').value.trim();
+        const cooldown = parseInt(document.getElementById('newPlanCooldown').value) || 20;
+        const entryTypes = document.getElementById('newPlanEntryTypes').value.split(',').map(s => s.trim()).filter(Boolean);
+        const slTypes = document.getElementById('newPlanSLTypes').value.split(',').map(s => s.trim()).filter(Boolean);
+        const editId = document.getElementById('editPlanId').value;
+
+        if (!name || entryTypes.length === 0 || slTypes.length === 0) {
+            alert('Mohon lengkapi Nama Strategi, Tipe Entry, dan Tipe Stop Loss!');
+            return;
+        }
+
+        const titles = document.querySelectorAll('.inp-chk-title');
+        const descs = document.querySelectorAll('.inp-chk-desc');
+        const checklists = [];
+
+        titles.forEach((tInput, idx) => {
+            const titleVal = tInput.value.trim();
+            const descVal = descs[idx].value.trim();
+            if (titleVal) {
+                checklists.push({ title: titleVal, desc: descVal });
+            }
+        });
+
+        if (checklists.length === 0) {
+            alert('Tambahkan minimal 1 poin ceklist SOP!');
+            return;
+        }
+
+        if (editId) {
+            const index = plans.findIndex(p => p.id === editId);
+            if (index !== -1) {
+                plans[index] = { id: editId, name, rr, cooldownMinutes: cooldown, entryTypes, slTypes, checklists };
+            }
+        } else {
+            const newId = 'plan_' + Date.now();
+            plans.push({ id: newId, name, rr, cooldownMinutes: cooldown, entryTypes, slTypes, checklists });
+            currentPlanId = newId;
+        }
+
+        localStorage.setItem('trading_plans_custom', JSON.stringify(plans));
+        closePlanModal();
+        renderPlanOptions();
+        loadSelectedPlan();
+        alert('Strategi berhasil disimpan!');
+    }
+
+    function editCurrentPlan() {
+        openPlanModal(true);
+    }
+
+    function deleteCurrentPlan() {
+        if (plans.length <= 1) {
+            alert('Anda harus memiliki minimal 1 Strategi Trading aktif!');
+            return;
+        }
+
+        if (confirm('Apakah Anda yakin ingin menghapus strategi ini?')) {
+            plans = plans.filter(p => p.id !== currentPlanId);
+            currentPlanId = plans[0].id;
+            localStorage.setItem('trading_plans_custom', JSON.stringify(plans));
+            renderPlanOptions();
+            loadSelectedPlan();
+        }
+    }
+
+    // COOLDOWN TIMER
+    function toggleCooldown() {
+        const isLoss2x = document.getElementById('chkLoss2x').checked;
+        const cooldownBox = document.getElementById('cooldownBox');
+        if (isLoss2x) {
+            cooldownBox.classList.add('active');
+        } else {
+            cooldownBox.classList.remove('active');
+            clearInterval(timerInterval);
+            const plan = plans.find(p => p.id === currentPlanId) || plans[0];
+            document.getElementById('timerDisplay').innerText = `${plan.cooldownMinutes}:00`;
+        }
+    }
+
+    function startTimer() {
+        const plan = plans.find(p => p.id === currentPlanId) || plans[0];
+        let duration = plan.cooldownMinutes * 60;
+        const display = document.getElementById('timerDisplay');
+        clearInterval(timerInterval);
+
+        timerInterval = setInterval(() => {
+            let minutes = parseInt(duration / 60, 10);
+            let seconds = parseInt(duration % 60, 10);
+
+            minutes = minutes < 10 ? "0" + minutes : minutes;
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+
+            display.textContent = minutes + ":" + seconds;
+
+            if (--duration < 0) {
+                clearInterval(timerInterval);
+                display.textContent = "Selesai! Boleh Analisis";
+                alert("Masa Cooldown telah selesai. Anda dapat mencari setup kembali.");
+            }
+        }, 1000);
+    }
+
+    // RECORD & JOURNAL
+    function recordTrade(result) {
+        const pair = document.getElementById('pair').value.trim();
+        if (!pair) {
+            alert('Mohon isi nama Pair terlebih dahulu!');
+            return;
+        }
+
+        const checkboxes = document.querySelectorAll('.chk-sop');
+        let allChecked = true;
+        checkboxes.forEach(chk => {
+            if (!chk.checked) allChecked = false;
+        });
+
+        if (!allChecked) {
+            if (!confirm('Beberapa item ceklist SOP belum dicentang. Tetap simpan transaksi ini?')) {
+                return;
+            }
+        }
+
+        const plan = plans.find(p => p.id === currentPlanId);
+
+        const trade = {
+            id: Date.now(),
+            date: new Date().toLocaleString('id-ID'),
+            planName: plan.name,
+            pair: pair.toUpperCase(),
+            entryType: document.getElementById('entryType').value,
+            slType: document.getElementById('slType').value,
+            result: result,
+            notes: document.getElementById('notes').value.trim() || '-'
+        };
+
+        trades.unshift(trade);
+        localStorage.setItem('trading_journal_snr', JSON.stringify(trades));
+        renderHistory();
+        resetForm();
+        alert('Trading berhasil dicatat ke jurnal!');
+    }
+
+    function renderHistory() {
+        const tbody = document.getElementById('tradeHistory');
+        tbody.innerHTML = '';
+
+        if (trades.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">Belum ada riwayat transaksi.</td></tr>';
+            return;
+        }
+
+        trades.forEach(t => {
+            const tr = document.createElement('tr');
+            const statusClass = t.result === 'WIN' ? 'status-win' : 'status-loss';
+            tr.innerHTML = `
+                <td>${t.date}</td>
+                <td><span class="badge badge-purple">${t.planName || 'SnR D1'}</span></td>
+                <td><strong>${t.pair}</strong></td>
+                <td>${t.entryType}</td>
+                <td>${t.slType}</td>
+                <td class="${statusClass}">${t.result}</td>
+                <td>${t.notes}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function resetForm() {
+        document.getElementById('pair').value = '';
+        document.getElementById('notes').value = '';
+        document.getElementById('chkLoss2x').checked = false;
+        document.querySelectorAll('.chk-sop').forEach(c => c.checked = false);
+        toggleCooldown();
+    }
+
+    // EXPORT
+    function exportCSV() {
+        if (trades.length === 0) {
+            alert('Belum ada data jurnal untuk diexport.');
+            return;
+        }
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Waktu,Strategi,Pair,Tipe Entry,Tipe SL,Hasil,Catatan
+";
+
+        trades.forEach(t => {
+            let row = `"${t.date}","${t.planName || '-'}","${t.pair}","${t.entryType}","${t.slType}","${t.result}","${t.notes}"`;
+            csvContent += row + "
+";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `trading_journal_custom_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function exportJSON() {
+        if (trades.length === 0) {
+            alert('Belum ada data jurnal untuk diexport.');
+            return;
+        }
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(trades, null, 2));
+        const link = document.createElement("a");
+        link.setAttribute("href", dataStr);
+        link.setAttribute("download", `trading_journal_custom_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
 </body>
 </html>
