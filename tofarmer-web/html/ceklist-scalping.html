@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP & Checklist Trading Breakout & Reversal SnR</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-amber: #f59e0b;
+            --input-bg: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            color: var(--accent-blue);
+            margin-bottom: 5px;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-blue);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px dashed var(--border-color);
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent-blue);
+            cursor: pointer;
+            margin-top: 2px;
+        }
+
+        .checklist-label {
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .checklist-label strong {
+            display: block;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        .checklist-label span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
+        .badge-danger { background-color: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .badge-success { background-color: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+
+        .cooldown-box {
+            background-color: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--accent-amber);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .cooldown-box.active {
+            display: block;
+        }
+
+        .timer-display {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--accent-amber);
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .btn-primary { background-color: var(--accent-blue); color: white; }
+        .btn-primary:hover { background-color: #2563eb; }
+
+        .btn-success { background-color: var(--accent-green); color: white; }
+        .btn-success:hover { background-color: #059669; }
+
+        .btn-danger { background-color: var(--accent-red); color: white; }
+        .btn-danger:hover { background-color: #dc2626; }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+        }
+        .btn-outline:hover {
+            background-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 0.85rem;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background-color: var(--input-bg);
+            color: var(--text-muted);
+        }
+
+        .status-win { color: var(--accent-green); font-weight: bold; }
+        .status-loss { color: var(--accent-red); font-weight: bold; }
+
+        @media (max-width: 600px) {
+            .grid-2 { grid-template-columns: 1px; }
+            .actions { flex-direction: column; }
+            .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Trading Checklist & SOP Journal</h1>
+        <p>Strategi Breakout & Reversal SnR D1 (TF M1) | RR 1:1</p>
+    </header>
+
+    <!-- FORM DOKUMEN SETUP -->
+    <div class="card">
+        <div class="card-title">📌 Informasi Setup Trading</div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="pair">Pair / Aset</label>
+                <input type="text" id="pair" placeholder="contoh: GBPUSD, XAUUSD">
+            </div>
+            <div class="form-group">
+                <label for="entryType">Tipe Entry</label>
+                <select id="entryType">
+                    <option value="Breakout M1">Breakout (Tembus SnR D1)</option>
+                    <option value="Reversal / Pantulan">Reversal (Pantulan / False Break)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="slType">Rekomendasi SL</label>
+                <select id="slType">
+                    <option value="SL Fractal">SL Fractal (Ranging / SnR Rapat)</option>
+                    <option value="SL Top/Bottom Candle">SL Atas/Bawah Candle (Clean Move)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="riskRatio">Risk to Reward Ratio</label>
+                <input type="text" id="riskRatio" value="1 : 1" readonly style="color: var(--accent-green); font-weight: bold;">
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTER KOSTERING & COOLDOWN -->
+    <div class="card">
+        <div class="card-title">🛡️ Filter Risk & Cooldown Rules</div>
+        <div class="checklist-item">
+            <input type="checkbox" id="chkLoss2x" onchange="toggleCooldown()">
+            <label class="checklist-label" for="chkLoss2x">
+                <strong>Apakah Anda baru saja mengalami Loss 2x Berturut-turut?</strong>
+                <span>Mengindikasikan pasar sedang berada dalam kondisi Ranging tajam.</span>
+            </label>
+        </div>
+
+        <div class="cooldown-box" id="cooldownBox">
+            <div style="text-align:center;">
+                <span class="badge badge-warning">🛑 MODE COOLDOWN AKTIF</span>
+                <p style="margin-top:5px; font-size:0.9rem;">Pasar sedang ranging! Dilarang Entry. Tunggu minimal 20 candle M1 berjalan (20 Menit).</p>
+                <div class="timer-display" id="timerDisplay">20:00</div>
+                <button class="btn btn-outline" style="margin: 0 auto; max-width: 150px;" onclick="startTimer()">Mulai Timer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CEKLIST ATURAN LOGIS -->
+    <div class="card">
+        <div class="card-title">✅ Ceklist Validasi Setup</div>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="chk-sop" id="c1">
+            <label class="checklist-label" for="c1">
+                <strong>Cek Struktur SnR & Kepadatan Area</strong>
+                <span>Jika garis SnR D1 rapat atau ranging 20-50 candle, pastikan WAJIB gunakan SL Fractal untuk mencegah sapuan harga.</span>
+            </label>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="chk-sop" id="c2">
+            <label class="checklist-label" for="c2">
+                <strong>Validasi Eksekusi Entry (TF M1)</strong>
+                <span>• <strong>Breakout:</strong> Body candle M1 ditutup tegas menembus garis SnR D1.<br>
+                • <strong>Pantulan:</strong> Ekor menembus/body menempel SnR D1, lalu candle M1 langsung REVERSE dan gagal bertahan.</span>
+            </label>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="chk-sop" id="c3">
+            <label class="checklist-label" for="c3">
+                <strong>Visual Letak Stop Loss (SL) Rasional</strong>
+                <span>Penempatan SL sudah di atas/bawah candle atau di titik Fractal yang visualnya paling masuk akal dan aman.</span>
+            </label>
+        </div>
+
+        <div class="checklist-item">
+            <input type="checkbox" class="chk-sop" id="c4">
+            <label class="checklist-label" for="c4">
+                <strong>Disiplin Fixed RR 1:1</strong>
+                <span>Target TP sudah dipasang tepat 1:1 dari jarak SL yang ditentukan. Tidak menggeser TP/SL secara acak.</span>
+            </label>
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+            <label for="notes">Catatan Tambahan / Alasan Entry</label>
+            <textarea id="notes" rows="2" placeholder="Tuliskan impresi atau kondisi market saat ini..."></textarea>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-success" onclick="recordTrade('WIN')">✓ Simpan Entry (WIN)</button>
+            <button class="btn btn-danger" onclick="recordTrade('LOSS')">✗ Simpan Entry (LOSS)</button>
+            <button class="btn btn-outline" onclick="resetForm()">Reset Form</button>
+        </div>
+    </div>
+
+    <!-- RIWAYAT trading -->
+    <div class="card">
+        <div class="card-title" style="justify-content: space-between;">
+            <span>📜 Riwayat Jurnal Trading</span>
+            <div>
+                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;" onclick="exportCSV()">📥 Export CSV</button>
+                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;" onclick="exportJSON()">📥 Export JSON</button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Waktu</th>
+                        <th>Pair</th>
+                        <th>Tipe</th>
+                        <th>SL Type</th>
+                        <th>Hasil</th>
+                        <th>Catatan</th>
+                    </tr>
+                </thead>
+                <tbody id="tradeHistory">
+                    <!-- Data transaksi akan ditambahkan secara dinamis -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    let trades = JSON.parse(localStorage.getItem('trading_journal_snr')) || [];
+    let timerInterval = null;
+
+    // Render riwayat saat pertama kali dimuat
+    document.addEventListener('DOMContentLoaded', () => {
+        renderHistory();
+    });
+
+    function toggleCooldown() {
+        const isLoss2x = document.getElementById('chkLoss2x').checked;
+        const cooldownBox = document.getElementById('cooldownBox');
+        if (isLoss2x) {
+            cooldownBox.classList.add('active');
+        } else {
+            cooldownBox.classList.remove('active');
+            clearInterval(timerInterval);
+            document.getElementById('timerDisplay').innerText = "20:00";
+        }
+    }
+
+    function startTimer() {
+        let duration = 20 * 60; // 20 Menit dalam detik
+        const display = document.getElementById('timerDisplay');
+        clearInterval(timerInterval);
+
+        timerInterval = setInterval(() => {
+            let minutes = parseInt(duration / 60, 10);
+            let seconds = parseInt(duration % 60, 10);
+
+            minutes = minutes < 10 ? "0" + minutes : minutes;
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+
+            display.textContent = minutes + ":" + seconds;
+
+            if (--duration < 0) {
+                clearInterval(timerInterval);
+                display.textContent = "Selesai! Boleh Analisis";
+                alert("Masa Cooldown 20 candle telah selesai. Anda dapat mencari setup kembali.");
+            }
+        }, 1000);
+    }
+
+    function recordTrade(result) {
+        const pair = document.getElementById('pair').value.trim();
+        if (!pair) {
+            alert('Mohon isi nama Pair terlebih dahulu!');
+            return;
+        }
+
+        // Cek apakah semua checklist sudah dicentang
+        const checkboxes = document.querySelectorAll('.chk-sop');
+        let allChecked = true;
+        checkboxes.forEach(chk => {
+            if (!chk.checked) allChecked = false;
+        });
+
+        if (!allChecked) {
+            if (!confirm('Beberapa item ceklist belum dicentang. Tetap simpan transaksi ini?')) {
+                return;
+            }
+        }
+
+        const trade = {
+            id: Date.now(),
+            date: new Date().toLocaleString('id-ID'),
+            pair: pair.toUpperCase(),
+            entryType: document.getElementById('entryType').value,
+            slType: document.getElementById('slType').value,
+            result: result,
+            notes: document.getElementById('notes').value.trim() || '-'
+        };
+
+        trades.unshift(trade);
+        localStorage.setItem('trading_journal_snr', JSON.stringify(trades));
+        renderHistory();
+        resetForm();
+        alert('Trading berhasil dicatat ke jurnal!');
+    }
+
+    function renderHistory() {
+        const tbody = document.getElementById('tradeHistory');
+        tbody.innerHTML = '';
+
+        if (trades.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Belum ada riwayat transaksi.</td></tr>';
+            return;
+        }
+
+        trades.forEach(t => {
+            const tr = document.createElement('tr');
+            const statusClass = t.result === 'WIN' ? 'status-win' : 'status-loss';
+            tr.innerHTML = `
+                <td>${t.date}</td>
+                <td><strong>${t.pair}</strong></td>
+                <td>${t.entryType}</td>
+                <td>${t.slType}</td>
+                <td class="${statusClass}">${t.result}</td>
+                <td>${t.notes}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function resetForm() {
+        document.getElementById('pair').value = '';
+        document.getElementById('notes').value = '';
+        document.getElementById('chkLoss2x').checked = false;
+        document.querySelectorAll('.chk-sop').forEach(c => c.checked = false);
+        toggleCooldown();
+    }
+
+    // Export Data ke CSV
+    function exportCSV() {
+        if (trades.length === 0) {
+            alert('Belum ada data jurnal untuk diexport.');
+            return;
+        }
+
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "Waktu,Pair,Tipe Entry,Tipe SL,Hasil,Catatan
+";
+
+        trades.forEach(t => {
+            let row = `"${t.date}","${t.pair}","${t.entryType}","${t.slType}","${t.result}","${t.notes}"`;
+            csvContent += row + "
+";
+        });
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `trading_journal_snr_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Export Data ke JSON (Backup)
+    function exportJSON() {
+        if (trades.length === 0) {
+            alert('Belum ada data jurnal untuk diexport.');
+            return;
+        }
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(trades, null, 2));
+        const link = document.createElement("a");
+        link.setAttribute("href", dataStr);
+        link.setAttribute("download", `trading_journal_snr_${new Date().toISOString().slice(0,10)}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+
+</body>
+</html>
