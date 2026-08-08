@@ -354,15 +354,15 @@
         <div class="checklist-item">
             <input type="checkbox" id="chkLoss2x" onchange="toggleCooldown()">
             <label class="checklist-label" for="chkLoss2x">
-                <strong>Apakah Anda baru saja mengalami Loss 2x Berturut-turut / Terkena Filter Ranging?</strong>
-                <span>Memicu perlindungan psikologis dan evaluasi market.</span>
+                <strong>Apakah Anda baru saja mengalami Loss 2x Berturut-turut?</strong>
+                <span>Perlu jeda 20 candle berjalan untuk evaluasi market dan perlindungan psikologis.</span>
             </label>
         </div>
 
         <div class="cooldown-box" id="cooldownBox">
             <div style="text-align:center;">
                 <span class="badge badge-warning">🛑 MODE COOLDOWN AKTIF</span>
-                <p style="margin-top:5px; font-size:0.9rem;" id="cooldownText">Pasar sedang ranging! Dilarang Entry. Tunggu jeda candle/waktu berjalan.</p>
+                <p style="margin-top:5px; font-size:0.9rem;" id="cooldownText">Loss 2x berturut-turut! Dilarang Entry. Tunggu 20 candle berjalan sebelum mencari entry baru.</p>
                 <div class="timer-display" id="timerDisplay">20:00</div>
                 <button class="btn btn-outline" style="margin: 0 auto; max-width: 150px;" onclick="startTimer()">Mulai Timer</button>
             </div>
@@ -433,7 +433,7 @@
 
         <div class="form-group">
             <label for="newPlanRR">Fixed Risk-to-Reward (RR)</label>
-            <input type="text" id="newPlanRR" placeholder="contoh: 1:1, 1:1.5, 1:2">
+            <input type="text" id="newPlanRR" placeholder="contoh: 1 : 1, 1 : 1.5, 1 : 2">
         </div>
 
         <div class="form-group">
@@ -443,12 +443,12 @@
 
         <div class="form-group">
             <label>Pilihan Tipe Entry (Pisahkan dengan Koma)</label>
-            <input type="text" id="newPlanEntryTypes" placeholder="contoh: Breakout M1, Reversal / Pantulan, Pullback">
+            <input type="text" id="newPlanEntryTypes" placeholder="contoh: Breakout M1, Reversal / Pantulan">
         </div>
 
         <div class="form-group">
             <label>Pilihan Metode Stop Loss (Pisahkan dengan Koma)</label>
-            <input type="text" id="newPlanSLTypes" placeholder="contoh: SL Fractal, SL High/Low Candle, Fixed Pips">
+            <input type="text" id="newPlanSLTypes" placeholder="contoh: SL Fractal, SL Atas/Bawah Candle">
         </div>
 
         <div class="form-group" style="margin-top: 15px;">
@@ -476,25 +476,28 @@
             name: 'Breakout & Reversal SnR D1 (TF M1)',
             rr: '1 : 1',
             cooldownMinutes: 20,
-            entryTypes: ['Breakout M1', 'Reversal / Pantulan'],
-            slTypes: ['SL Fractal (Ranging / SnR Rapat)', 'SL Top/Bottom Candle (Clean Move)'],
+            entryTypes: ['Breakout M1', 'Pantulan / Reversal'],
+            slTypes: ['SL Fractal (Ranging / SnR Rapat)', 'SL Atas/Bawah Candle'],
             checklists: [
                 {
-                    title: 'Cek Struktur SnR & Kepadatan Area',
-                    desc: 'Jika garis SnR D1 rapat atau ranging 20-50 candle, WAJIB gunakan SL Fractal untuk meminimalisir sapuan harga mondar-mandir.'
+                    title: 'Disiplin Risk-to-Reward',
+                    desc: 'Perbandingan RR wajib 1 banding 1. Target TP tepat disesuaikan dengan jarak SL.'
                 },
                 {
-                    title: 'Validasi Aturan Eksekusi (TF M1)',
-                    desc: '• Breakout: Body candle M1 ditutup tegas menembus garis SnR D1.
-• Pantulan: Ekor menembus/body menempel SnR D1, lalu candle M1 langsung REVERSE dan gagal.'
+                    title: 'Aturan Entry Breakout M1',
+                    desc: 'Saat candle M1 tembus/close di luar garis SnR D1 secara tegas.'
                 },
                 {
-                    title: 'Visual Letak Stop Loss (SL) Rasional',
-                    desc: 'Penempatan SL di atas/bawah candle atau di titik Fractal yang visualnya paling masuk akal dan aman.'
+                    title: 'Aturan Entry Pantulan',
+                    desc: 'Jika harga menembus ekor / body nempel garis SnR D1 lalu langsung reverse, candle masuk dan gagal.'
                 },
                 {
-                    title: 'Disiplin Fixed RR 1:1',
-                    desc: 'Target TP dipasang tepat 1:1 dari jarak SL yang ditentukan. Tanpa menggeser SL/TP.'
+                    title: 'Penempatan Stop Loss (SL) & Kondisi Ranging',
+                    desc: 'SL dipasang di bawah/atas candle atau di Fractal (lihat visual mana yang paling masuk akal). Saat kondisi ranging 20-50 candle atau garis SnR rapat, WAJIB pakai SL Fractal untuk meminimalisir sapuan harga mondar-mandir.'
+                },
+                {
+                    title: 'Aturan Loss 2x Berturut-turut',
+                    desc: 'Jika mengalami loss 2 kali berturut-turut, wajib menunggu jeda 20 candle berjalan baru boleh mencari entry lagi.'
                 }
             ]
         }
@@ -535,7 +538,7 @@
         // Populate Form Fields
         document.getElementById('planTitleLabel').textContent = plan.name;
         document.getElementById('riskRatio').value = plan.rr;
-        document.getElementById('cooldownText').textContent = `Kondisi khusus terdeteksi! Dilarang Entry. Tunggu minimal ${plan.cooldownMinutes} candle/menit berjalan.`;
+        document.getElementById('cooldownText').textContent = `Loss 2x berturut-turut! Dilarang Entry. Tunggu ${plan.cooldownMinutes} candle berjalan sebelum mencari entry baru.`;
         document.getElementById('timerDisplay').textContent = `${plan.cooldownMinutes}:00`;
 
         // Populate Entry Options
@@ -568,8 +571,7 @@
                 <input type="checkbox" class="chk-sop" id="c_${index}">
                 <label class="checklist-label" for="c_${index}">
                     <strong>${item.title}</strong>
-                    <span>${item.desc.replace(/
-/g, '<br>')}</span>
+                    <span>${item.desc.replace(/\n/g, '<br>')}</span>
                 </label>
             `;
             container.appendChild(div);
@@ -815,13 +817,11 @@
         }
 
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Waktu,Strategi,Pair,Tipe Entry,Tipe SL,Hasil,Catatan
-";
+        csvContent += "Waktu,Strategi,Pair,Tipe Entry,Tipe SL,Hasil,Catatan\n";
 
         trades.forEach(t => {
             let row = `"${t.date}","${t.planName || '-'}","${t.pair}","${t.entryType}","${t.slType}","${t.result}","${t.notes}"`;
-            csvContent += row + "
-";
+            csvContent += row + "\n";
         });
 
         const encodedUri = encodeURI(csvContent);
