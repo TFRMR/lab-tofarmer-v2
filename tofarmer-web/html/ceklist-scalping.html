@@ -44,11 +44,19 @@
             align-items: center;
             border-bottom: 1px solid var(--border);
             padding-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
         }
 
         h1 {
             font-size: 1.5rem;
             color: var(--accent);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -59,7 +67,8 @@
             padding: 8px 16px;
             border-radius: 6px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            font-size: 0.9rem;
         }
 
         .btn:hover {
@@ -83,6 +92,16 @@
 
         .btn-secondary:hover {
             background-color: #334155;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--border);
         }
 
         .plan-card {
@@ -118,12 +137,24 @@
             background-color: rgba(255, 255, 255, 0.03);
             border-radius: 6px;
             margin-bottom: 8px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checklist-item:hover {
+            background-color: rgba(255, 255, 255, 0.06);
         }
 
         .checklist-item input[type="checkbox"] {
             width: 18px;
             height: 18px;
             cursor: pointer;
+            accent-color: var(--accent);
+        }
+
+        .checklist-item.checked label {
+            text-decoration: line-through;
+            color: var(--text-muted);
         }
 
         .modal {
@@ -176,6 +207,11 @@
             border: 1px solid var(--border);
             background-color: #0f172a;
             color: var(--text-main);
+            outline: none;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--accent);
         }
 
         .modal-actions {
@@ -184,34 +220,43 @@
             gap: 10px;
             margin-top: 20px;
         }
+
+        #importFile {
+            display: none;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <header>
-            <h1>Checklist Scalping Trading</h1>
-            <button class="btn" onclick="openPlanModal()">+ Tambah Plan Baru</button>
+            <h1>Checklist Scalping Plan</h1>
+            <div class="header-actions">
+                <button class="btn btn-outline" onclick="exportData()">📥 Export Data</button>
+                <button class="btn btn-outline" onclick="triggerImport()">📤 Import Data</button>
+                <input type="file" id="importFile" accept=".json" onchange="importData(event)">
+                <button class="btn" onclick="openPlanModal()">+ Tambah Plan Baru</button>
+            </div>
         </header>
 
         <div id="plansContainer">
-            <!-- Content render otomatis dari JS -->
+            <!-- Render via JavaScript -->
         </div>
     </div>
 
-    <!-- Modal Form Plan -->
+    <!-- Modal Form Tambah/Edit Plan -->
     <div class="modal" id="planModal">
         <div class="modal-content">
             <div class="modal-header" id="modalTitle">Tambah Scalping Plan</div>
             <form id="planForm" onsubmit="savePlan(event)">
                 <input type="hidden" id="planId">
                 <div class="form-group">
-                    <label for="planTitleInput">Nama Strategy / Pair</label>
-                    <input type="text" id="planTitleInput" required placeholder="Contoh: Scalping GBP/USD M5">
+                    <label for="planTitleInput">Nama Strategy / Plan</label>
+                    <input type="text" id="planTitleInput" required placeholder="Contoh: Scalping M1 SNR D1">
                 </div>
                 <div class="form-group">
-                    <label for="planRulesInput">Aturan Checklist (Pisahkan dengan Baris Baru/Enter)</label>
-                    <textarea id="planRulesInput" rows="6" required placeholder="Konfirmasi Trend H1&#10;Support / Resistance terdekat&#10;Signal Candle Rejection M5&#10;Risk Ratio Minimal 1:1.5"></textarea>
+                    <label for="planRulesInput">Aturan Checklist (Pisahkan per baris)</label>
+                    <textarea id="planRulesInput" rows="7" required placeholder="Perbandingan RR 1:1&#10;Aturan entry breakout: candle M1 tembus garis SNR D1..."></textarea>
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closePlanModal()">Batal</button>
@@ -222,24 +267,25 @@
     </div>
 
     <script>
-        // Data Default yang langsung aktif jika belum ada penyimpanan lokal
+        // Checklist Default Sesuai Aturan Khusus Anda
         const DEFAULT_PLANS = [
             {
-                id: 'plan-default-1',
-                title: 'Plan Scalping Standard (M5/M15)',
+                id: 'plan-scalping-m1',
+                title: 'Plan Scalping M1 - SNR D1 & Fractal SL',
                 rules: [
-                    'Trend Utama sesuai (Cek Timeframe H1)',
-                    'Harga berada di Area Key Level (Support/Resistance)',
-                    'Konfirmasi Candle Rejection / Engulfing',
-                    'Stop Loss (SL) & Take Profit (TP) Terpasang',
-                    'Maksimal Risk 1-2% per Trade'
+                    'Perbandingan RR 1:1',
+                    'SL bisa di bawah/atas candle / di fractal (pilih visual yang paling masuk akal)',
+                    'Ranging bisa 20 - 50 candle: Pakai SL Fractal untuk meminimalisir sapuan harga mondar-mandir',
+                    'Entry Breakout: Saat candle M1 tembus garis SNR D1',
+                    'Entry Pantulan: Tembus ekor / body nempel lalu langsung reverse (candle masuk & gagal)',
+                    'Aturan Rapat SNR: Pada garis SNR rapat, pakai SL Fractal lebih aman',
+                    'Aturan Loss: Jika Loss 2 kali, WAJIB tunggu 20 candle berjalan baru boleh cari entry lagi (karena market sedang ranging)'
                 ]
             }
         ];
 
         let plansData = [];
 
-        // Load data awal dari LocalStorage atau pakai Default
         function initApp() {
             const saved = localStorage.getItem('scalping_plans_data');
             if (saved) {
@@ -259,26 +305,25 @@
             localStorage.setItem('scalping_plans_data', JSON.stringify(plansData));
         }
 
-        // Render UI Plan ke DOM
         function renderPlans() {
             const container = document.getElementById('plansContainer');
             if (!container) return;
 
             if (plansData.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color: var(--text-muted); margin-top: 40px;">Belum ada rencana scalping. Klik tombol diatas untuk membuat.</p>';
+                container.innerHTML = '<p style="text-align:center; color: var(--text-muted); margin-top: 40px;">Belum ada rencana scalping. Klik "+ Tambah Plan Baru" untuk membuat.</p>';
                 return;
             }
 
-            container.innerHTML = plansData.map((plan, index) => {
+            container.innerHTML = plansData.map((plan) => {
                 const rulesHtml = plan.rules.map((rule, rIdx) => `
-                    <div class="checklist-item">
-                        <input type="checkbox" id="check_${index}_${rIdx}">
-                        <label for="check_${index}_${rIdx}">${escapeHtml(rule)}</label>
+                    <div class="checklist-item" onclick="toggleCheck(this)">
+                        <input type="checkbox" id="check_${plan.id}_${rIdx}" onclick="event.stopPropagation(); toggleCheckParent(this);">
+                        <label for="check_${plan.id}_${rIdx}">${escapeHtml(rule)}</label>
                     </div>
                 `).join('');
 
                 return `
-                    <div class="plan-card">
+                    <div class="plan-card" id="card_${plan.id}">
                         <div class="plan-header">
                             <div class="plan-title">${escapeHtml(plan.title)}</div>
                             <div class="plan-actions">
@@ -294,7 +339,21 @@
             }).join('');
         }
 
-        // Modal Handler
+        function toggleCheck(element) {
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                element.classList.toggle('checked', checkbox.checked);
+            }
+        }
+
+        function toggleCheckParent(checkbox) {
+            const parent = checkbox.closest('.checklist-item');
+            if (parent) {
+                parent.classList.toggle('checked', checkbox.checked);
+            }
+        }
+
         function openPlanModal() {
             document.getElementById('planId').value = '';
             document.getElementById('planTitleInput').value = '';
@@ -307,25 +366,21 @@
             document.getElementById('planModal').classList.remove('active');
         }
 
-        // Action Handlers
         function savePlan(event) {
             event.preventDefault();
             const id = document.getElementById('planId').value;
             const title = document.getElementById('planTitleInput').value.trim();
             const rawRules = document.getElementById('planRulesInput').value;
 
-            // Split baris baru menjadi array rule
             const rules = rawRules.split('\n').map(r => r.trim()).filter(r => r.length > 0);
 
             if (id) {
-                // Edit existing
                 const index = plansData.findIndex(p => p.id === id);
                 if (index !== -1) {
                     plansData[index].title = title;
                     plansData[index].rules = rules;
                 }
             } else {
-                // Add new
                 const newPlan = {
                     id: 'plan_' + Date.now(),
                     title: title,
@@ -358,14 +413,53 @@
             }
         }
 
-        // Helper untuk mencegah XSS
+        // Fitur Export & Import
+        function exportData() {
+            if (plansData.length === 0) {
+                alert('Tidak ada data plan untuk di-export.');
+                return;
+            }
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(plansData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `scalping_plans_${Date.now()}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function triggerImport() {
+            document.getElementById('importFile').click();
+        }
+
+        function importData(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const importedPlans = JSON.parse(e.target.result);
+                    if (Array.isArray(importedPlans)) {
+                        plansData = importedPlans;
+                        saveToStorage();
+                        renderPlans();
+                        alert('Data plan berhasil di-import!');
+                    } else {
+                        alert('Format file JSON tidak valid.');
+                    }
+                } catch (err) {
+                    alert('Gagal membaca file JSON: ' + err.message);
+                }
+            };
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0]);
+            }
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.innerText = text;
             return div.innerHTML;
         }
 
-        // Jalankan Inisialisasi saat file selesai dimuat
         document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
