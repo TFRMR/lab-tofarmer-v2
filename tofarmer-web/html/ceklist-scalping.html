@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOP & Checklist Trading Breakout & Reversal SnR</title>
+    <title>SOP, Checklist & Custom Trading Plan System</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -15,6 +15,7 @@
             --accent-red: #ef4444;
             --accent-blue: #3b82f6;
             --accent-amber: #f59e0b;
+            --accent-purple: #8b5cf6;
             --input-bg: #0f172a;
         }
 
@@ -33,7 +34,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 950px;
             margin: 0 auto;
         }
 
@@ -70,7 +71,7 @@
             margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: space-between;
             color: var(--accent-blue);
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 8px;
@@ -86,6 +87,7 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+            margin-bottom: 10px;
         }
 
         .form-group label {
@@ -156,6 +158,7 @@
         .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
         .badge-danger { background-color: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
         .badge-success { background-color: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
+        .badge-purple { background-color: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
 
         .cooldown-box {
             background-color: rgba(245, 158, 11, 0.1);
@@ -186,7 +189,7 @@
         }
 
         .btn {
-            padding: 12px 20px;
+            padding: 10px 18px;
             border: none;
             border-radius: 8px;
             font-weight: 600;
@@ -197,11 +200,15 @@
             justify-content: center;
             gap: 8px;
             flex: 1;
-            min-width: 140px;
+            min-width: 130px;
+            font-size: 0.9rem;
         }
 
         .btn-primary { background-color: var(--accent-blue); color: white; }
         .btn-primary:hover { background-color: #2563eb; }
+
+        .btn-purple { background-color: var(--accent-purple); color: white; }
+        .btn-purple:hover { background-color: #7c3aed; }
 
         .btn-success { background-color: var(--accent-green); color: white; }
         .btn-success:hover { background-color: #059669; }
@@ -217,6 +224,39 @@
         .btn-outline:hover {
             background-color: var(--border-color);
             color: var(--text-main);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-width: 650px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .dynamic-item-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+            align-items: center;
         }
 
         .table-responsive {
@@ -245,7 +285,7 @@
         .status-loss { color: var(--accent-red); font-weight: bold; }
 
         @media (max-width: 600px) {
-            .grid-2 { grid-template-columns: 1px; }
+            .grid-2 { grid-template-columns: 1fr; }
             .actions { flex-direction: column; }
             .btn { width: 100%; }
         }
@@ -255,9 +295,31 @@
 
 <div class="container">
     <header>
-        <h1>Trading Checklist & SOP Journal</h1>
-        <p>Strategi Breakout & Reversal SnR D1 (TF M1) | RR 1:1</p>
+        <h1>Trading Plan & Multi-Strategi Checklist</h1>
+        <p>Sistem Manajemen Strategi Trading Kustom & Jurnal Eksekusi</p>
     </header>
+
+    <!-- PILIH / MANAGEMENT STRATEGI -->
+    <div class="card">
+        <div class="card-title">
+            <span>⚙️ Pilih & Kelola Strategi Trading</span>
+            <button class="btn btn-purple" style="max-width: 200px; flex: none;" onclick="openPlanModal()">+ Tambah Strategi Baru</button>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label for="selectPlan">Strategi Aktif</label>
+                <select id="selectPlan" onchange="loadSelectedPlan()">
+                    <!-- Options loaded via JS -->
+                </select>
+            </div>
+            <div class="form-group" style="justify-content: flex-end;">
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline" onclick="editCurrentPlan()">✏️ Edit Strategi Ini</button>
+                    <button class="btn btn-danger" style="flex:none; min-width:80px;" onclick="deleteCurrentPlan()">🗑️ Hapus</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- FORM DOKUMEN SETUP -->
     <div class="card">
@@ -268,22 +330,20 @@
                 <input type="text" id="pair" placeholder="contoh: GBPUSD, XAUUSD">
             </div>
             <div class="form-group">
-                <label for="entryType">Tipe Entry</label>
+                <label for="entryType">Tipe Entry / Signal</label>
                 <select id="entryType">
-                    <option value="Breakout M1">Breakout (Tembus SnR D1)</option>
-                    <option value="Reversal / Pantulan">Reversal (Pantulan / False Break)</option>
+                    <!-- Loaded dynamically based on Strategy -->
                 </select>
             </div>
             <div class="form-group">
-                <label for="slType">Rekomendasi SL</label>
+                <label for="slType">Metode Penempatan SL</label>
                 <select id="slType">
-                    <option value="SL Fractal">SL Fractal (Ranging / SnR Rapat)</option>
-                    <option value="SL Top/Bottom Candle">SL Atas/Bawah Candle (Clean Move)</option>
+                    <!-- Loaded dynamically based on Strategy -->
                 </select>
             </div>
             <div class="form-group">
-                <label for="riskRatio">Risk to Reward Ratio</label>
-                <input type="text" id="riskRatio" value="1 : 1" readonly style="color: var(--accent-green); font-weight: bold;">
+                <label for="riskRatio">Target Risk-to-Reward (RR)</label>
+                <input type="text" id="riskRatio" readonly style="color: var(--accent-green); font-weight: bold;">
             </div>
         </div>
     </div>
@@ -294,77 +354,48 @@
         <div class="checklist-item">
             <input type="checkbox" id="chkLoss2x" onchange="toggleCooldown()">
             <label class="checklist-label" for="chkLoss2x">
-                <strong>Apakah Anda baru saja mengalami Loss 2x Berturut-turut?</strong>
-                <span>Mengindikasikan pasar sedang berada dalam kondisi Ranging tajam.</span>
+                <strong>Apakah Anda baru saja mengalami Loss 2x Berturut-turut / Terkena Filter Ranging?</strong>
+                <span>Memicu perlindungan psikologis dan evaluasi market.</span>
             </label>
         </div>
 
         <div class="cooldown-box" id="cooldownBox">
             <div style="text-align:center;">
                 <span class="badge badge-warning">🛑 MODE COOLDOWN AKTIF</span>
-                <p style="margin-top:5px; font-size:0.9rem;">Pasar sedang ranging! Dilarang Entry. Tunggu minimal 20 candle M1 berjalan (20 Menit).</p>
+                <p style="margin-top:5px; font-size:0.9rem;" id="cooldownText">Pasar sedang ranging! Dilarang Entry. Tunggu jeda candle/waktu berjalan.</p>
                 <div class="timer-display" id="timerDisplay">20:00</div>
                 <button class="btn btn-outline" style="margin: 0 auto; max-width: 150px;" onclick="startTimer()">Mulai Timer</button>
             </div>
         </div>
     </div>
 
-    <!-- CEKLIST ATURAN LOGIS -->
+    <!-- CEKLIST ATURAN DUKUNGAN KUSTOM -->
     <div class="card">
-        <div class="card-title">✅ Ceklist Validasi Setup</div>
+        <div class="card-title">✅ Ceklist Validasi Setup (<span id="planTitleLabel">Strategi</span>)</div>
 
-        <div class="checklist-item">
-            <input type="checkbox" class="chk-sop" id="c1">
-            <label class="checklist-label" for="c1">
-                <strong>Cek Struktur SnR & Kepadatan Area</strong>
-                <span>Jika garis SnR D1 rapat atau ranging 20-50 candle, pastikan WAJIB gunakan SL Fractal untuk mencegah sapuan harga.</span>
-            </label>
-        </div>
-
-        <div class="checklist-item">
-            <input type="checkbox" class="chk-sop" id="c2">
-            <label class="checklist-label" for="c2">
-                <strong>Validasi Eksekusi Entry (TF M1)</strong>
-                <span>• <strong>Breakout:</strong> Body candle M1 ditutup tegas menembus garis SnR D1.<br>
-                • <strong>Pantulan:</strong> Ekor menembus/body menempel SnR D1, lalu candle M1 langsung REVERSE dan gagal bertahan.</span>
-            </label>
-        </div>
-
-        <div class="checklist-item">
-            <input type="checkbox" class="chk-sop" id="c3">
-            <label class="checklist-label" for="c3">
-                <strong>Visual Letak Stop Loss (SL) Rasional</strong>
-                <span>Penempatan SL sudah di atas/bawah candle atau di titik Fractal yang visualnya paling masuk akal dan aman.</span>
-            </label>
-        </div>
-
-        <div class="checklist-item">
-            <input type="checkbox" class="chk-sop" id="c4">
-            <label class="checklist-label" for="c4">
-                <strong>Disiplin Fixed RR 1:1</strong>
-                <span>Target TP sudah dipasang tepat 1:1 dari jarak SL yang ditentukan. Tidak menggeser TP/SL secara acak.</span>
-            </label>
+        <div id="checklistContainer">
+            <!-- Dynamic Checklists rendered here -->
         </div>
 
         <div class="form-group" style="margin-top: 15px;">
             <label for="notes">Catatan Tambahan / Alasan Entry</label>
-            <textarea id="notes" rows="2" placeholder="Tuliskan impresi atau kondisi market saat ini..."></textarea>
+            <textarea id="notes" rows="2" placeholder="Tuliskan kondisi market atau refleksi emosional saat ini..."></textarea>
         </div>
 
         <div class="actions">
             <button class="btn btn-success" onclick="recordTrade('WIN')">✓ Simpan Entry (WIN)</button>
             <button class="btn btn-danger" onclick="recordTrade('LOSS')">✗ Simpan Entry (LOSS)</button>
-            <button class="btn btn-outline" onclick="resetForm()">Reset Form</button>
+            <button class="btn btn-outline" onclick="resetForm()">Reset Checklist</button>
         </div>
     </div>
 
-    <!-- RIWAYAT trading -->
+    <!-- RIWAYAT TRADING -->
     <div class="card">
         <div class="card-title" style="justify-content: space-between;">
             <span>📜 Riwayat Jurnal Trading</span>
-            <div>
-                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;" onclick="exportCSV()">📥 Export CSV</button>
-                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;" onclick="exportJSON()">📥 Export JSON</button>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; min-width: auto;" onclick="exportCSV()">📥 Export CSV</button>
+                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; min-width: auto;" onclick="exportJSON()">📥 Export JSON</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -372,6 +403,7 @@
                 <thead>
                     <tr>
                         <th>Waktu</th>
+                        <th>Strategi</th>
                         <th>Pair</th>
                         <th>Tipe</th>
                         <th>SL Type</th>
@@ -387,15 +419,285 @@
     </div>
 </div>
 
+<!-- MODAL TAMBAH / EDIT STRATEGI -->
+<div class="modal" id="planModal">
+    <div class="modal-content">
+        <h3 style="color: var(--accent-purple); margin-bottom: 15px;" id="modalTitle">Tambah Strategi Trading Baru</h3>
+        
+        <input type="hidden" id="editPlanId">
+
+        <div class="form-group">
+            <label for="newPlanName">Nama Strategi / Plan</label>
+            <input type="text" id="newPlanName" placeholder="contoh: Breakout SnR D1 (M1), SMC Orderblock, EMA Cross">
+        </div>
+
+        <div class="form-group">
+            <label for="newPlanRR">Fixed Risk-to-Reward (RR)</label>
+            <input type="text" id="newPlanRR" placeholder="contoh: 1:1, 1:1.5, 1:2">
+        </div>
+
+        <div class="form-group">
+            <label for="newPlanCooldown">Durasi Cooldown / Jeda Candle (Menit/Candle)</label>
+            <input type="number" id="newPlanCooldown" value="20" placeholder="20">
+        </div>
+
+        <div class="form-group">
+            <label>Pilihan Tipe Entry (Pisahkan dengan Koma)</label>
+            <input type="text" id="newPlanEntryTypes" placeholder="contoh: Breakout M1, Reversal / Pantulan, Pullback">
+        </div>
+
+        <div class="form-group">
+            <label>Pilihan Metode Stop Loss (Pisahkan dengan Koma)</label>
+            <input type="text" id="newPlanSLTypes" placeholder="contoh: SL Fractal, SL High/Low Candle, Fixed Pips">
+        </div>
+
+        <div class="form-group" style="margin-top: 15px;">
+            <label style="display:flex; justify-content:space-between; align-items:center;">
+                <span>Aturan / Item Ceklist SOP</span>
+                <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; min-width: auto;" onclick="addChecklistItemInput()">+ Tambah Poin SOP</button>
+            </label>
+            <div id="checklistsInputContainer" style="margin-top: 10px;">
+                <!-- Dynamic input items -->
+            </div>
+        </div>
+
+        <div class="actions" style="margin-top: 20px;">
+            <button class="btn btn-purple" onclick="savePlan()">💾 Simpan Strategi</button>
+            <button class="btn btn-outline" onclick="closePlanModal()">Batal</button>
+        </div>
+    </div>
+</div>
+
 <script>
+    // Default Strategy (SOP SnR D1 & M1 milik user)
+    const defaultPlans = [
+        {
+            id: 'snr_d1_m1',
+            name: 'Breakout & Reversal SnR D1 (TF M1)',
+            rr: '1 : 1',
+            cooldownMinutes: 20,
+            entryTypes: ['Breakout M1', 'Reversal / Pantulan'],
+            slTypes: ['SL Fractal (Ranging / SnR Rapat)', 'SL Top/Bottom Candle (Clean Move)'],
+            checklists: [
+                {
+                    title: 'Cek Struktur SnR & Kepadatan Area',
+                    desc: 'Jika garis SnR D1 rapat atau ranging 20-50 candle, WAJIB gunakan SL Fractal untuk meminimalisir sapuan harga mondar-mandir.'
+                },
+                {
+                    title: 'Validasi Aturan Eksekusi (TF M1)',
+                    desc: '• Breakout: Body candle M1 ditutup tegas menembus garis SnR D1.
+• Pantulan: Ekor menembus/body menempel SnR D1, lalu candle M1 langsung REVERSE dan gagal.'
+                },
+                {
+                    title: 'Visual Letak Stop Loss (SL) Rasional',
+                    desc: 'Penempatan SL di atas/bawah candle atau di titik Fractal yang visualnya paling masuk akal dan aman.'
+                },
+                {
+                    title: 'Disiplin Fixed RR 1:1',
+                    desc: 'Target TP dipasang tepat 1:1 dari jarak SL yang ditentukan. Tanpa menggeser SL/TP.'
+                }
+            ]
+        }
+    ];
+
+    let plans = JSON.parse(localStorage.getItem('trading_plans_custom')) || defaultPlans;
     let trades = JSON.parse(localStorage.getItem('trading_journal_snr')) || [];
+    let currentPlanId = localStorage.getItem('active_plan_id') || plans[0].id;
     let timerInterval = null;
 
-    // Render riwayat saat pertama kali dimuat
     document.addEventListener('DOMContentLoaded', () => {
+        renderPlanOptions();
+        loadSelectedPlan();
         renderHistory();
     });
 
+    // RENDER STRATEGY SELECTOR
+    function renderPlanOptions() {
+        const select = document.getElementById('selectPlan');
+        select.innerHTML = '';
+        plans.forEach(plan => {
+            const opt = document.createElement('option');
+            opt.value = plan.id;
+            opt.textContent = plan.name;
+            if (plan.id === currentPlanId) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    // LOAD CURRENT SELECTED STRATEGY
+    function loadSelectedPlan() {
+        const select = document.getElementById('selectPlan');
+        currentPlanId = select.value;
+        localStorage.setItem('active_plan_id', currentPlanId);
+
+        const plan = plans.find(p => p.id === currentPlanId) || plans[0];
+
+        // Populate Form Fields
+        document.getElementById('planTitleLabel').textContent = plan.name;
+        document.getElementById('riskRatio').value = plan.rr;
+        document.getElementById('cooldownText').textContent = `Kondisi khusus terdeteksi! Dilarang Entry. Tunggu minimal ${plan.cooldownMinutes} candle/menit berjalan.`;
+        document.getElementById('timerDisplay').textContent = `${plan.cooldownMinutes}:00`;
+
+        // Populate Entry Options
+        const entrySelect = document.getElementById('entryType');
+        entrySelect.innerHTML = '';
+        plan.entryTypes.forEach(type => {
+            const opt = document.createElement('option');
+            opt.value = type;
+            opt.textContent = type;
+            entrySelect.appendChild(opt);
+        });
+
+        // Populate SL Options
+        const slSelect = document.getElementById('slType');
+        slSelect.innerHTML = '';
+        plan.slTypes.forEach(type => {
+            const opt = document.createElement('option');
+            opt.value = type;
+            opt.textContent = type;
+            slSelect.appendChild(opt);
+        });
+
+        // Populate Checklists
+        const container = document.getElementById('checklistContainer');
+        container.innerHTML = '';
+        plan.checklists.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'checklist-item';
+            div.innerHTML = `
+                <input type="checkbox" class="chk-sop" id="c_${index}">
+                <label class="checklist-label" for="c_${index}">
+                    <strong>${item.title}</strong>
+                    <span>${item.desc.replace(/
+/g, '<br>')}</span>
+                </label>
+            `;
+            container.appendChild(div);
+        });
+
+        toggleCooldown();
+    }
+
+    // MODAL CONTROL
+    function openPlanModal(isEdit = false) {
+        const modal = document.getElementById('planModal');
+        const inputContainer = document.getElementById('checklistsInputContainer');
+        inputContainer.innerHTML = '';
+
+        if (isEdit) {
+            const plan = plans.find(p => p.id === currentPlanId);
+            document.getElementById('modalTitle').textContent = 'Edit Strategi Trading';
+            document.getElementById('editPlanId').value = plan.id;
+            document.getElementById('newPlanName').value = plan.name;
+            document.getElementById('newPlanRR').value = plan.rr;
+            document.getElementById('newPlanCooldown').value = plan.cooldownMinutes;
+            document.getElementById('newPlanEntryTypes').value = plan.entryTypes.join(', ');
+            document.getElementById('newPlanSLTypes').value = plan.slTypes.join(', ');
+
+            plan.checklists.forEach(item => {
+                addChecklistItemInput(item.title, item.desc);
+            });
+        } else {
+            document.getElementById('modalTitle').textContent = 'Tambah Strategi Trading Baru';
+            document.getElementById('editPlanId').value = '';
+            document.getElementById('newPlanName').value = '';
+            document.getElementById('newPlanRR').value = '1 : 1';
+            document.getElementById('newPlanCooldown').value = '20';
+            document.getElementById('newPlanEntryTypes').value = '';
+            document.getElementById('newPlanSLTypes').value = '';
+
+            addChecklistItemInput('', '');
+        }
+
+        modal.classList.add('active');
+    }
+
+    function closePlanModal() {
+        document.getElementById('planModal').classList.remove('active');
+    }
+
+    function addChecklistItemInput(title = '', desc = '') {
+        const container = document.getElementById('checklistsInputContainer');
+        const div = document.createElement('div');
+        div.className = 'dynamic-item-row';
+        div.innerHTML = `
+            <div style="flex:1; display:flex; flex-direction:column; gap:4px;">
+                <input type="text" class="inp-chk-title" placeholder="Judul Poin Checklist (misal: Konfirmasi MA)" value="${title}">
+                <input type="text" class="inp-chk-desc" placeholder="Penjelasan / Syarat Detail" value="${desc}">
+            </div>
+            <button class="btn btn-danger" style="flex:none; width:35px; height:35px; padding:0;" onclick="this.parentElement.remove()">✕</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function savePlan() {
+        const name = document.getElementById('newPlanName').value.trim();
+        const rr = document.getElementById('newPlanRR').value.trim();
+        const cooldown = parseInt(document.getElementById('newPlanCooldown').value) || 20;
+        const entryTypes = document.getElementById('newPlanEntryTypes').value.split(',').map(s => s.trim()).filter(Boolean);
+        const slTypes = document.getElementById('newPlanSLTypes').value.split(',').map(s => s.trim()).filter(Boolean);
+        const editId = document.getElementById('editPlanId').value;
+
+        if (!name || entryTypes.length === 0 || slTypes.length === 0) {
+            alert('Mohon lengkapi Nama Strategi, Tipe Entry, dan Tipe Stop Loss!');
+            return;
+        }
+
+        const titles = document.querySelectorAll('.inp-chk-title');
+        const descs = document.querySelectorAll('.inp-chk-desc');
+        const checklists = [];
+
+        titles.forEach((tInput, idx) => {
+            const titleVal = tInput.value.trim();
+            const descVal = descs[idx].value.trim();
+            if (titleVal) {
+                checklists.push({ title: titleVal, desc: descVal });
+            }
+        });
+
+        if (checklists.length === 0) {
+            alert('Tambahkan minimal 1 poin ceklist SOP!');
+            return;
+        }
+
+        if (editId) {
+            const index = plans.findIndex(p => p.id === editId);
+            if (index !== -1) {
+                plans[index] = { id: editId, name, rr, cooldownMinutes: cooldown, entryTypes, slTypes, checklists };
+            }
+        } else {
+            const newId = 'plan_' + Date.now();
+            plans.push({ id: newId, name, rr, cooldownMinutes: cooldown, entryTypes, slTypes, checklists });
+            currentPlanId = newId;
+        }
+
+        localStorage.setItem('trading_plans_custom', JSON.stringify(plans));
+        closePlanModal();
+        renderPlanOptions();
+        loadSelectedPlan();
+        alert('Strategi berhasil disimpan!');
+    }
+
+    function editCurrentPlan() {
+        openPlanModal(true);
+    }
+
+    function deleteCurrentPlan() {
+        if (plans.length <= 1) {
+            alert('Anda harus memiliki minimal 1 Strategi Trading aktif!');
+            return;
+        }
+
+        if (confirm('Apakah Anda yakin ingin menghapus strategi ini?')) {
+            plans = plans.filter(p => p.id !== currentPlanId);
+            currentPlanId = plans[0].id;
+            localStorage.setItem('trading_plans_custom', JSON.stringify(plans));
+            renderPlanOptions();
+            loadSelectedPlan();
+        }
+    }
+
+    // COOLDOWN TIMER
     function toggleCooldown() {
         const isLoss2x = document.getElementById('chkLoss2x').checked;
         const cooldownBox = document.getElementById('cooldownBox');
@@ -404,12 +706,14 @@
         } else {
             cooldownBox.classList.remove('active');
             clearInterval(timerInterval);
-            document.getElementById('timerDisplay').innerText = "20:00";
+            const plan = plans.find(p => p.id === currentPlanId) || plans[0];
+            document.getElementById('timerDisplay').innerText = `${plan.cooldownMinutes}:00`;
         }
     }
 
     function startTimer() {
-        let duration = 20 * 60; // 20 Menit dalam detik
+        const plan = plans.find(p => p.id === currentPlanId) || plans[0];
+        let duration = plan.cooldownMinutes * 60;
         const display = document.getElementById('timerDisplay');
         clearInterval(timerInterval);
 
@@ -425,11 +729,12 @@
             if (--duration < 0) {
                 clearInterval(timerInterval);
                 display.textContent = "Selesai! Boleh Analisis";
-                alert("Masa Cooldown 20 candle telah selesai. Anda dapat mencari setup kembali.");
+                alert("Masa Cooldown telah selesai. Anda dapat mencari setup kembali.");
             }
         }, 1000);
     }
 
+    // RECORD & JOURNAL
     function recordTrade(result) {
         const pair = document.getElementById('pair').value.trim();
         if (!pair) {
@@ -437,7 +742,6 @@
             return;
         }
 
-        // Cek apakah semua checklist sudah dicentang
         const checkboxes = document.querySelectorAll('.chk-sop');
         let allChecked = true;
         checkboxes.forEach(chk => {
@@ -445,14 +749,17 @@
         });
 
         if (!allChecked) {
-            if (!confirm('Beberapa item ceklist belum dicentang. Tetap simpan transaksi ini?')) {
+            if (!confirm('Beberapa item ceklist SOP belum dicentang. Tetap simpan transaksi ini?')) {
                 return;
             }
         }
 
+        const plan = plans.find(p => p.id === currentPlanId);
+
         const trade = {
             id: Date.now(),
             date: new Date().toLocaleString('id-ID'),
+            planName: plan.name,
             pair: pair.toUpperCase(),
             entryType: document.getElementById('entryType').value,
             slType: document.getElementById('slType').value,
@@ -472,7 +779,7 @@
         tbody.innerHTML = '';
 
         if (trades.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: var(--text-muted);">Belum ada riwayat transaksi.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color: var(--text-muted);">Belum ada riwayat transaksi.</td></tr>';
             return;
         }
 
@@ -481,6 +788,7 @@
             const statusClass = t.result === 'WIN' ? 'status-win' : 'status-loss';
             tr.innerHTML = `
                 <td>${t.date}</td>
+                <td><span class="badge badge-purple">${t.planName || 'SnR D1'}</span></td>
                 <td><strong>${t.pair}</strong></td>
                 <td>${t.entryType}</td>
                 <td>${t.slType}</td>
@@ -499,7 +807,7 @@
         toggleCooldown();
     }
 
-    // Export Data ke CSV
+    // EXPORT
     function exportCSV() {
         if (trades.length === 0) {
             alert('Belum ada data jurnal untuk diexport.');
@@ -507,11 +815,11 @@
         }
 
         let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "Waktu,Pair,Tipe Entry,Tipe SL,Hasil,Catatan
+        csvContent += "Waktu,Strategi,Pair,Tipe Entry,Tipe SL,Hasil,Catatan
 ";
 
         trades.forEach(t => {
-            let row = `"${t.date}","${t.pair}","${t.entryType}","${t.slType}","${t.result}","${t.notes}"`;
+            let row = `"${t.date}","${t.planName || '-'}","${t.pair}","${t.entryType}","${t.slType}","${t.result}","${t.notes}"`;
             csvContent += row + "
 ";
         });
@@ -519,13 +827,12 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `trading_journal_snr_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute("download", `trading_journal_custom_${new Date().toISOString().slice(0,10)}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
     }
 
-    // Export Data ke JSON (Backup)
     function exportJSON() {
         if (trades.length === 0) {
             alert('Belum ada data jurnal untuk diexport.');
@@ -535,7 +842,7 @@
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(trades, null, 2));
         const link = document.createElement("a");
         link.setAttribute("href", dataStr);
-        link.setAttribute("download", `trading_journal_snr_${new Date().toISOString().slice(0,10)}.json`);
+        link.setAttribute("download", `trading_journal_custom_${new Date().toISOString().slice(0,10)}.json`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
