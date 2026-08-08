@@ -229,6 +229,9 @@ async function loadReport() {
   if (statusEl) statusEl.innerText = "🔍 Mengambil data langsung dari Blockchain...";
   
   const wallets = await getAllWallets();
+console.log("JUMLAH ANGGOTA:", wallets.length);
+  console.log("DATA ANGGOTA:", wallets);
+
   let totalAll = 0;
   
   // Kosongkan container sebelum memuat
