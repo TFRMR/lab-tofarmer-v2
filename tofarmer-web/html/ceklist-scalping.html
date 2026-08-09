@@ -3,119 +3,241 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SOP, Checklist & Custom Trading Plan System</title>
+    <title>SOP, Checklist & Custom Trading Plan System - Tofarmer Agritech Twilight</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --border-color: #334155;
+            --bg-dark-1: #070e0a;
+            --bg-dark-2: #0d1e14;
+            --bg-dark-3: #050b07;
+            --card-bg: rgba(14, 28, 19, 0.65);
+            --card-bg-hover: rgba(20, 42, 28, 0.75);
+            --border-color: rgba(74, 222, 128, 0.18);
+            --border-color-subtle: rgba(255, 255, 255, 0.06);
             --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-green: #10b981;
-            --accent-red: #ef4444;
-            --accent-blue: #3b82f6;
+            --text-muted: #84a98c;
+            --text-gold: #fde047;
+            --accent-green: #4ade80;
+            --accent-green-dark: #15803d;
+            --accent-gold: #eab308;
+            --accent-red: #f87171;
             --accent-amber: #f59e0b;
-            --accent-purple: #8b5cf6;
-            --input-bg: #0f172a;
+            --accent-purple: #a855f7;
+            --input-bg: rgba(7, 16, 11, 0.8);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background-color: var(--bg-color);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+                linear-gradient(135deg, var(--bg-dark-1) 0%, var(--bg-dark-2) 50%, var(--bg-dark-3) 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
             color: var(--text-main);
-            padding: 20px;
-            line-height: 1.5;
+            padding: 24px 16px;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        /* Kabut lembut pegunungan Menoreh */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+            pointer-events: none;
+            animation: fog 14s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes fog {
+            0% { transform: translateX(-3%); }
+            50% { transform: translateX(3%); }
+            100% { transform: translateX(-3%); }
         }
 
         .container {
-            max-width: 950px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 1000px;
+            margin: auto;
+            position: relative;
+            z-index: 1;
         }
 
+        /* =========================
+           HEADER (MENOREH AGRI-TWILIGHT)
+        ========================= */
         header {
             text-align: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 30px;
+            padding: 30px 20px 25px;
+            position: relative;
+        }
+
+        header::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 220px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.4), transparent);
+        }
+
+        .logo-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .logo-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            padding: 4px;
+            background: rgba(20, 38, 27, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            transition: 0.5s;
+        }
+
+        .logo-icon:hover {
+            transform: rotate(8deg) scale(1.05);
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.35);
         }
 
         header h1 {
-            font-size: 1.8rem;
-            color: var(--accent-blue);
-            margin-bottom: 5px;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.3rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.25;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
         }
 
         header p {
             color: var(--text-muted);
             font-size: 0.95rem;
+            max-width: 620px;
+            margin: 0 auto;
         }
 
+        /* =========================
+           CARD PANELS
+        ========================= */
         .card {
-            background-color: var(--card-bg);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+            border-radius: 24px;
+            padding: 26px;
+            margin-bottom: 24px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(234, 179, 8, 0.06), transparent 70%);
+            pointer-events: none;
         }
 
         .card-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            color: var(--accent-blue);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 8px;
+            color: var(--text-gold);
+            border-bottom: 1px solid rgba(234, 179, 8, 0.15);
+            padding-bottom: 12px;
+            letter-spacing: 0.3px;
         }
 
         .grid-2 {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
         }
 
+        /* =========================
+           FORMS & INPUTS
+        ========================= */
         .form-group {
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-bottom: 10px;
+            gap: 6px;
+            margin-bottom: 12px;
         }
 
         .form-group label {
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             color: var(--text-muted);
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: 0.3px;
         }
 
         .form-group input, .form-group select, .form-group textarea {
             background-color: var(--input-bg);
-            border: 1px solid var(--border-color);
+            border: 1px solid rgba(74, 222, 128, 0.2);
             color: var(--text-main);
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 0.95rem;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.92rem;
             outline: none;
+            transition: all 0.25s ease;
         }
 
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            border-color: var(--accent-blue);
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 12px rgba(234, 179, 8, 0.2);
+            background-color: rgba(12, 26, 18, 0.9);
         }
 
+        /* =========================
+           CHECKLIST ITEMS
+        ========================= */
         .checklist-item {
             display: flex;
             align-items: flex-start;
-            gap: 12px;
-            padding: 10px 0;
-            border-bottom: 1px dashed var(--border-color);
+            gap: 14px;
+            padding: 14px 12px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+
+        .checklist-item:hover {
+            background: rgba(255, 255, 255, 0.02);
         }
 
         .checklist-item:last-child {
@@ -125,9 +247,9 @@
         .checklist-item input[type="checkbox"] {
             width: 20px;
             height: 20px;
-            accent-color: var(--accent-blue);
+            accent-color: var(--accent-gold);
             cursor: pointer;
-            margin-top: 2px;
+            margin-top: 3px;
         }
 
         .checklist-label {
@@ -138,35 +260,42 @@
         .checklist-label strong {
             display: block;
             color: var(--text-main);
-            font-size: 0.95rem;
+            font-size: 0.93rem;
+            margin-bottom: 3px;
         }
 
         .checklist-label span {
-            font-size: 0.85rem;
+            font-size: 0.83rem;
             color: var(--text-muted);
+            line-height: 1.5;
         }
 
+        /* =========================
+           BADGES & COOLDOWN
+        ========================= */
         .badge {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: var(--accent-amber); }
-        .badge-danger { background-color: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
-        .badge-success { background-color: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
-        .badge-purple { background-color: rgba(139, 92, 246, 0.2); color: var(--accent-purple); }
+        .badge-warning { background-color: rgba(245, 158, 11, 0.2); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-danger { background-color: rgba(248, 113, 113, 0.2); color: var(--accent-red); border: 1px solid rgba(248, 113, 113, 0.3); }
+        .badge-success { background-color: rgba(74, 222, 128, 0.2); color: var(--accent-green); border: 1px solid rgba(74, 222, 128, 0.3); }
+        .badge-purple { background-color: rgba(168, 85, 247, 0.2); color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3); }
 
         .cooldown-box {
-            background-color: rgba(245, 158, 11, 0.1);
-            border: 1px solid var(--accent-amber);
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 10px;
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.35);
+            padding: 18px;
+            border-radius: 16px;
+            margin-top: 14px;
             display: none;
+            backdrop-filter: blur(10px);
         }
 
         .cooldown-box.active {
@@ -174,63 +303,109 @@
         }
 
         .timer-display {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--accent-amber);
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--accent-gold);
             text-align: center;
             margin: 10px 0;
+            letter-spacing: 2px;
+            text-shadow: 0 0 12px rgba(234, 179, 8, 0.3);
         }
 
+        /* =========================
+           BUTTONS (CANTIK MENOREH)
+        ========================= */
         .actions {
             display: flex;
-            gap: 10px;
-            margin-top: 20px;
+            gap: 12px;
+            margin-top: 22px;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 10px 18px;
+            padding: 12px 20px;
             border: none;
-            border-radius: 8px;
-            font-weight: 600;
+            border-radius: 999px;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
             flex: 1;
-            min-width: 130px;
-            font-size: 0.9rem;
+            min-width: 140px;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
         }
 
-        .btn-primary { background-color: var(--accent-blue); color: white; }
-        .btn-primary:hover { background-color: #2563eb; }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-gold) 0%, #d97706 100%);
+            color: #070e0a;
+            box-shadow: 0 6px 20px rgba(234, 179, 8, 0.25);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(234, 179, 8, 0.4);
+        }
 
-        .btn-purple { background-color: var(--accent-purple); color: white; }
-        .btn-purple:hover { background-color: #7c3aed; }
+        .btn-purple {
+            background: rgba(20, 36, 26, 0.6);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #a7f3d0;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .btn-purple:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: #050b07;
+            border-color: var(--accent-green);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.35);
+        }
 
-        .btn-success { background-color: var(--accent-green); color: white; }
-        .btn-success:hover { background-color: #059669; }
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: #050b07;
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.25);
+        }
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+        }
 
-        .btn-danger { background-color: var(--accent-red); color: white; }
-        .btn-danger:hover { background-color: #dc2626; }
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.25);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            background: rgba(239, 68, 68, 0.8);
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
 
         .btn-outline {
-            background-color: transparent;
-            border: 1px solid var(--border-color);
+            background: rgba(20, 36, 26, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: var(--text-muted);
         }
         .btn-outline:hover {
-            background-color: var(--border-color);
+            background: rgba(74, 222, 128, 0.15);
+            border-color: rgba(74, 222, 128, 0.3);
             color: var(--text-main);
         }
 
+        /* =========================
+           MODALS
+        ========================= */
         .modal {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(5, 11, 7, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             z-index: 1000;
             justify-content: center;
             align-items: center;
@@ -242,52 +417,76 @@
         }
 
         .modal-content {
-            background-color: var(--card-bg);
+            background: rgba(14, 28, 19, 0.95);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 24px;
             max-width: 650px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
-            padding: 20px;
+            padding: 26px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
         }
 
         .dynamic-item-row {
             display: flex;
             gap: 10px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             align-items: center;
         }
 
+        /* =========================
+           TABLE RESPONSIVE
+        ========================= */
         .table-responsive {
             overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
             font-size: 0.85rem;
         }
 
         th, td {
-            padding: 10px;
+            padding: 12px 14px;
             text-align: left;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         th {
-            background-color: var(--input-bg);
-            color: var(--text-muted);
+            background-color: rgba(7, 16, 11, 0.9);
+            color: var(--text-gold);
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
         }
 
         .status-win { color: var(--accent-green); font-weight: bold; }
         .status-loss { color: var(--accent-red); font-weight: bold; }
 
+        footer {
+            text-align: center;
+            padding: 30px 20px 40px;
+            font-size: 0.78rem;
+            color: #475569;
+            letter-spacing: 0.5px;
+        }
+
         @media (max-width: 600px) {
+            body { padding: 12px 8px; }
+            .card { padding: 18px 14px; border-radius: 18px; }
             .grid-2 { grid-template-columns: 1fr; }
             .actions { flex-direction: column; }
             .btn { width: 100%; }
+            header h1 { font-size: 1.7rem; }
         }
     </style>
 </head>
@@ -295,15 +494,18 @@
 
 <div class="container">
     <header>
+        <div class="logo-wrap">
+            <div class="logo-icon">🌿</div>
+        </div>
         <h1>Tofarmer Trading Plan & Multi-Strategi Checklist</h1>
-        <p>Sistem Manajemen Strategi Trading Kustom & Jurnal Eksekusi</p>
+        <p>Sistem Manajemen Strategi Trading Agritech & Jurnal Eksekusi — Nuansa Menoreh Twilight</p>
     </header>
 
     <!-- PILIH / MANAGEMENT STRATEGI -->
     <div class="card">
         <div class="card-title">
             <span>⚙️ Pilih & Kelola Strategi Trading</span>
-            <button class="btn btn-purple" style="max-width: 200px; flex: none;" onclick="openPlanModal()">+ Tambah Strategi Baru</button>
+            <button class="btn btn-purple" style="max-width: 210px; flex: none; padding: 8px 16px; font-size: 0.8rem;" onclick="openPlanModal()">+ Tambah Strategi Baru</button>
         </div>
         <div class="grid-2">
             <div class="form-group">
@@ -313,8 +515,8 @@
                 </select>
             </div>
             <div class="form-group" style="justify-content: flex-end;">
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-outline" onclick="editCurrentPlan()">✏️ Edit Strategi Ini</button>
+                <div style="display: flex; gap: 8px; margin-top: auto;">
+                    <button class="btn btn-outline" style="min-width: unset; flex: 1;" onclick="editCurrentPlan()">✏️ Edit Strategi</button>
                     <button class="btn btn-danger" style="flex:none; min-width:80px;" onclick="deleteCurrentPlan()">🗑️ Hapus</button>
                 </div>
             </div>
@@ -343,7 +545,7 @@
             </div>
             <div class="form-group">
                 <label for="riskRatio">Target Risk-to-Reward (RR)</label>
-                <input type="text" id="riskRatio" readonly style="color: var(--accent-green); font-weight: bold;">
+                <input type="text" id="riskRatio" readonly style="color: var(--accent-gold); font-weight: bold;">
             </div>
         </div>
     </div>
@@ -362,22 +564,22 @@
         <div class="cooldown-box" id="cooldownBox">
             <div style="text-align:center;">
                 <span class="badge badge-warning">🛑 MODE COOLDOWN AKTIF</span>
-                <p style="margin-top:5px; font-size:0.9rem;" id="cooldownText">Loss 2x berturut-turut! Dilarang Entry. Tunggu 20 candle berjalan sebelum mencari entry baru.</p>
+                <p style="margin-top:8px; font-size:0.88rem; color: #fde68a;" id="cooldownText">Loss 2x berturut-turut! Dilarang Entry. Tunggu 20 candle berjalan sebelum mencari entry baru.</p>
                 <div class="timer-display" id="timerDisplay">20:00</div>
-                <button class="btn btn-outline" style="margin: 0 auto; max-width: 150px;" onclick="startTimer()">Mulai Timer</button>
+                <button class="btn btn-outline" style="margin: 0 auto; max-width: 160px; font-size: 0.8rem;" onclick="startTimer()">Mulai Timer</button>
             </div>
         </div>
     </div>
 
     <!-- CEKLIST ATURAN DUKUNGAN KUSTOM -->
     <div class="card">
-        <div class="card-title">✅ Ceklist Validasi Setup (<span id="planTitleLabel">Strategi</span>)</div>
+        <div class="card-title">✅ Ceklist Validasi Setup (<span id="planTitleLabel" style="color: var(--accent-green);">Strategi</span>)</div>
 
         <div id="checklistContainer">
             <!-- Dynamic Checklists rendered here -->
         </div>
 
-        <div class="form-group" style="margin-top: 15px;">
+        <div class="form-group" style="margin-top: 18px;">
             <label for="notes">Catatan Tambahan / Alasan Entry</label>
             <textarea id="notes" rows="2" placeholder="Tuliskan kondisi market atau refleksi emosional saat ini..."></textarea>
         </div>
@@ -391,11 +593,11 @@
 
     <!-- RIWAYAT TRADING -->
     <div class="card">
-        <div class="card-title" style="justify-content: space-between;">
+        <div class="card-title">
             <span>📜 Riwayat Jurnal Trading</span>
             <div style="display: flex; gap: 8px;">
-                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; min-width: auto;" onclick="exportCSV()">📥 Export CSV</button>
-                <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem; min-width: auto;" onclick="exportJSON()">📥 Export JSON</button>
+                <button class="btn btn-outline" style="padding: 5px 12px; font-size: 0.78rem; min-width: auto;" onclick="exportCSV()">📥 Export CSV</button>
+                <button class="btn btn-outline" style="padding: 5px 12px; font-size: 0.78rem; min-width: auto;" onclick="exportJSON()">📥 Export JSON</button>
             </div>
         </div>
         <div class="table-responsive">
@@ -417,12 +619,16 @@
             </table>
         </div>
     </div>
+
+    <footer>
+        🌾 Tofarmer Agritech Twilight — Sistem Trading Disiplin Menoreh
+    </footer>
 </div>
 
 <!-- MODAL TAMBAH / EDIT STRATEGI -->
 <div class="modal" id="planModal">
     <div class="modal-content">
-        <h3 style="color: var(--accent-purple); margin-bottom: 15px;" id="modalTitle">Tambah Strategi Trading Baru</h3>
+        <h3 style="color: var(--accent-gold); margin-bottom: 18px; font-family: 'Playfair Display', serif; font-size: 1.4rem;" id="modalTitle">Tambah Strategi Trading Baru</h3>
         
         <input type="hidden" id="editPlanId">
 
@@ -454,14 +660,14 @@
         <div class="form-group" style="margin-top: 15px;">
             <label style="display:flex; justify-content:space-between; align-items:center;">
                 <span>Aturan / Item Ceklist SOP</span>
-                <button class="btn btn-outline" style="padding: 2px 8px; font-size: 0.75rem; min-width: auto;" onclick="addChecklistItemInput()">+ Tambah Poin SOP</button>
+                <button class="btn btn-outline" style="padding: 3px 10px; font-size: 0.75rem; min-width: auto;" onclick="addChecklistItemInput()">+ Tambah Poin SOP</button>
             </label>
             <div id="checklistsInputContainer" style="margin-top: 10px;">
                 <!-- Dynamic input items -->
             </div>
         </div>
 
-        <div class="actions" style="margin-top: 20px;">
+        <div class="actions" style="margin-top: 24px;">
             <button class="btn btn-purple" onclick="savePlan()">💾 Simpan Strategi</button>
             <button class="btn btn-outline" onclick="closePlanModal()">Batal</button>
         </div>
@@ -627,7 +833,7 @@
                 <input type="text" class="inp-chk-title" placeholder="Judul Poin Checklist (misal: Konfirmasi MA)" value="${title}">
                 <input type="text" class="inp-chk-desc" placeholder="Penjelasan / Syarat Detail" value="${desc}">
             </div>
-            <button class="btn btn-danger" style="flex:none; width:35px; height:35px; padding:0;" onclick="this.parentElement.remove()">✕</button>
+            <button class="btn btn-danger" style="flex:none; width:36px; height:36px; padding:0; border-radius:10px;" onclick="this.parentElement.remove()">✕</button>
         `;
         container.appendChild(div);
     }
