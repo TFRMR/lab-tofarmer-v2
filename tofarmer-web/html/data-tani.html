@@ -457,32 +457,60 @@
     });
 
     async function initAuth() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      
-      if (session && session.user) {
-        currentUser = session.user;
-        currentProfile = await ensureProfileExists(currentUser);
-      } else {
-        currentUser = null;
-        currentProfile = null;
-      }
+      try {
+        // Sistem login mengikuti login.js:
+        // identitas login disimpan di localStorage.
+        const walletId = localStorage.getItem("tof_wallet");
+        const username = localStorage.getItem("tof_login_username");
 
-      renderAuthNav();
-      fetchDataPembukuan();
-
-      supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          currentUser = session.user;
-          currentProfile = await ensureProfileExists(currentUser);
-          renderAuthNav();
-          fetchDataPembukuan();
-        } else if (event === 'SIGNED_OUT') {
+        // Belum login
+        if (!walletId || !username) {
           currentUser = null;
           currentProfile = null;
           renderAuthNav();
           fetchDataPembukuan();
+          return;
         }
-      });
+
+        // Cek ulang username + wallet ke tabel profiles,
+        // sama seperti yang dilakukan login.js.
+        const { data: profile, error } = await supabaseClient
+          .from("profiles")
+          .select("*")
+          .eq("username", username)
+          .eq("id", walletId)
+          .single();
+
+        if (error || !profile) {
+          console.warn("Data login tidak valid:", error);
+
+          localStorage.removeItem("tof_wallet");
+          localStorage.removeItem("tof_login_username");
+
+          currentUser = null;
+          currentProfile = null;
+          renderAuthNav();
+          fetchDataPembukuan();
+          return;
+        }
+
+        // Login valid
+        currentUser = {
+          id: profile.id,
+          username: profile.username
+        };
+        currentProfile = profile;
+
+        renderAuthNav();
+        fetchDataPembukuan();
+
+      } catch (err) {
+        console.error("Gagal mengecek login:", err);
+        currentUser = null;
+        currentProfile = null;
+        renderAuthNav();
+        fetchDataPembukuan();
+      }
     }
 
     async function ensureProfileExists(user) {
@@ -519,30 +547,42 @@
 
     function renderAuthNav() {
       const container = document.getElementById("auth-status");
+
       if (currentUser && currentProfile) {
         container.innerHTML = `
           <div class="top-btn" style="background:rgba(34, 197, 94, 0.2);">
-            🌱 @${currentProfile.username || 'Petani'}
+            🌱 @${currentProfile.username || "Petani"}
             <span onclick="handleLogout()" style="margin-left:8px; color:#ef4444; cursor:pointer;">(Keluar)</span>
           </div>
         `;
       } else {
-        const currentPath = encodeURIComponent(window.location.pathname);
         container.innerHTML = `
-          <a href="/html/login.html?redirect=${currentPath}" class="top-btn" style="border-color:rgba(234, 179, 8, 0.4);">
+          <a href="#" onclick="goToLogin(event)" class="top-btn" style="border-color:rgba(234, 179, 8, 0.4);">
             LOGIN PETANI
           </a>
         `;
       }
     }
 
+    function goToLogin(event) {
+      event.preventDefault();
+
+      // login.js membaca localStorage.redirect_to setelah login sukses.
+      const redirectTo = window.location.pathname + window.location.search;
+      localStorage.setItem("redirect_to", redirectTo);
+
+      window.location.href = "/html/login.html";
+    }
+
     function handleCheckAuthAndOpenInput() {
       if (!currentUser) {
-        const currentPath = encodeURIComponent(window.location.pathname);
-        window.location.href = `/html/login.html?redirect=${currentPath}`;
-      } else {
-        document.getElementById("modal-input").classList.remove("hidden");
+        const redirectTo = window.location.pathname + window.location.search;
+        localStorage.setItem("redirect_to", redirectTo);
+        window.location.href = "/html/login.html";
+        return;
       }
+
+      document.getElementById("modal-input").classList.remove("hidden");
     }
 
     function switchTab(tabName) {
@@ -678,9 +718,20 @@
       fetchDataPembukuan();
     }
 
-    async function handleLogout() {
-      await supabaseClient.auth.signOut();
-      location.reload();
+    function handleLogout() {
+      // Login sistem ini menggunakan localStorage, bukan Supabase Auth session.
+      localStorage.removeItem("tof_wallet");
+      localStorage.removeItem("tof_login_username");
+      localStorage.removeItem("tof_level");
+      localStorage.removeItem("tof_rank");
+      localStorage.removeItem("tof_xp");
+      localStorage.removeItem("redirect_to");
+
+      currentUser = null;
+      currentProfile = null;
+
+      renderAuthNav();
+      fetchDataPembukuan();
     }
 
     function closeModal() {
