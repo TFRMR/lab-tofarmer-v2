@@ -3,109 +3,562 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Info Tani - Ekosistem</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Info Tani - Hutan Menoreh</title>
+  
+  <!-- Font Google bawaan style Anda -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+  *{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  }
+
+  body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  /* Gradien Warna Hutan Menoreh Kelam di Sore Hari yang Subur */
+  background:
+      radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+      radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+      linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+  min-height:100vh;
+  overflow-x:hidden;
+  color:#e2e8f0;
+  position:relative;
+  }
+
+  /* kabut lembut pegunungan menoreh */
+  body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:
+  linear-gradient(
+  120deg,
+  rgba(255,255,255,.03),
+  rgba(255,255,255,0)
+  );
+  pointer-events:none;
+  animation:fog 14s ease-in-out infinite;
+  }
+
+  @keyframes fog{
+  0%{transform:translateX(-3%)}
+  50%{transform:translateX(3%)}
+  100%{transform:translateX(-3%)}
+  }
+
+  .container{
+  width:100%;
+  max-width:1150px;
+  margin:auto;
+  padding:22px;
+  }
+
+  /* =========================
+  HEADER
+  ========================= */
+
+  .hero{
+  position:relative;
+  padding:40px 20px 50px;
+  text-align:center;
+  }
+
+  .hero::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:10px;
+  transform:translateX(-50%);
+  width:180px;
+  height:1px;
+  background:
+  linear-gradient(
+  90deg,
+  transparent,
+  rgba(234, 179, 8, 0.4),
+  transparent
+  );
+  }
+
+  .logo-wrap{
+  display:flex;
+  justify-content:center;
+  margin-bottom:18px;
+  }
+
+  .logo{
+  width:95px;
+  height:95px;
+  border-radius:50%;
+  padding:5px;
+  background:rgba(20, 38, 27, 0.6);
+  backdrop-filter:blur(12px);
+  -webkit-backdrop-filter:blur(12px);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  box-shadow:
+  0 10px 30px rgba(0,0,0,0.5);
+  transition:.5s;
+  }
+
+  .logo:hover{
+  transform:rotate(8deg) scale(1.04);
+  border-color: #eab308;
+  box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+  }
+
+  .hero h1{
+  font-family: 'Playfair Display', serif;
+  font-size:3rem;
+  font-weight:800;
+  letter-spacing:-1px;
+  line-height:1.2;
+  background:
+  linear-gradient(
+  135deg,
+  #fef08a 0%,
+  #4ade80 50%,
+  #22c55e 100%
+  );
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  }
+
+  .hero p{
+  margin-top:18px;
+  font-size:.98rem;
+  line-height:1.8;
+  color:#84a98c;
+  max-width:650px;
+  margin-inline:auto;
+  }
+
+  /* =========================
+  TOP BUTTON (MENU ATAS CANTIK)
+  ========================= */
+
+  .top-nav{
+  display:flex;
+  justify-content:center;
+  margin-top:30px;
+  gap:15px;
+  flex-wrap:wrap;
+  }
+
+  .top-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 28px;
+  border-radius:999px;
+  text-decoration:none;
+  font-size:.83rem;
+  font-weight:700;
+  letter-spacing:.5px;
+  background: rgba(20, 36, 26, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color:#a7f3d0;
+  border:1px solid rgba(74, 222, 128, 0.2);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  transition:.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor:pointer;
+  }
+
+  .top-btn:hover{
+  transform:translateY(-3px);
+  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+  color:#050b07;
+  border-color: #4ade80;
+  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+  }
+
+  /* =========================
+  MAIN CARD BOX (PANEL UTAMA BERKABUT)
+  ========================= */
+
+  .main-box{
+  background: rgba(14, 28, 19, 0.45);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border:1px solid rgba(255, 255, 255, 0.05);
+  border-radius:34px;
+  padding:40px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  position:relative;
+  overflow:hidden;
+  }
+
+  .main-box::before{
+  content:"";
+  position:absolute;
+  top:-120px;
+  right:-120px;
+  width:240px;
+  height:240px;
+  background:
+  radial-gradient(
+  circle,
+  rgba(234, 179, 8, 0.08),
+  transparent 70%
+  );
+  }
+
+  /* =========================
+  SECTION TITLE
+  ========================= */
+
+  .section{
+  margin-bottom:45px;
+  }
+
+  .section-title{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-bottom:22px;
+  flex-wrap: wrap;
+  }
+
+  .section-title span{
+  font-size:.82rem;
+  font-weight:800;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:#fde047;
+  }
+
+  .line{
+  flex: 1;
+  min-width: 30px;
+  height:1px;
+  background:
+  linear-gradient(
+  90deg,
+  rgba(234, 179, 8, 0.3),
+  rgba(34, 197, 94, 0.05),
+  transparent
+  );
+  }
+
+  /* =========================
+  GRID LAYOUT
+  ========================= */
+
+  .grid{
+  display:grid;
+  grid-template-columns:
+  repeat(auto-fit, minmax(220px, 1fr));
+  gap:18px;
+  }
+
+  /* =========================
+  CARD BUTTON ELEGAN SUASANA HUTAN
+  ========================= */
+
+  .card-btn{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  padding:28px 20px;
+  border-radius:24px;
+  background: rgba(18, 35, 24, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  border-left: 2px solid rgba(34, 197, 94, 0.15);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transition: all .35s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow:hidden;
+  min-height: 160px;
+  }
+
+  /* Efek Sentuhan Sejuk & Melayang */
+  .card-btn:hover {
+  transform: translateY(-6px);
+  background: rgba(22, 46, 31, 0.6);
+  border-color: rgba(74, 222, 128, 0.25);
+  border-left-color: #4ade80;
+  box-shadow: 
+      0 15px 35px rgba(0, 0, 0, 0.4),
+      0 0 25px rgba(234, 179, 8, 0.05);
+  }
+
+  .card-btn:active{
+  transform:scale(.97);
+  }
+
+  /* Garis Pembatas Atas Saat Hover */
+  .card-btn::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:60px;
+  height:3px;
+  background:
+  linear-gradient(
+  90deg,
+  transparent,
+  #eab308,
+  transparent
+  );
+  opacity:0;
+  transition:.3s;
+  }
+
+  .card-btn:hover::before{
+  opacity:1;
+  }
+
+  .icon{
+  font-size:2.4rem;
+  margin-bottom:12px;
+  transition:.4s;
+  filter:drop-shadow(0 6px 12px rgba(0,0,0,0.3));
+  }
+
+  .card-btn:hover .icon{
+  transform:
+  translateY(-5px)
+  scale(1.1);
+  }
+
+  .label{
+  font-size:.85rem;
+  font-weight:700;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:#f8fafc;
+  text-align:center;
+  transition: color .2s;
+  }
+
+  .card-btn:hover .label {
+  color: #fde047;
+  }
+
+  .desc{
+  margin-top:8px;
+  font-size:.78rem;
+  line-height:1.5;
+  text-align:center;
+  color:#94a3b8;
+  }
+
+  .price-tag {
+  color: #4ade80;
+  font-weight: 800;
+  font-size: 1rem;
+  margin-top: 6px;
+  }
+
+  .author-tag {
+  font-size: .7rem;
+  color: #eab308;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 6px;
+  width: 100%;
+  text-align: center;
+  }
+
+  /* Modal Form Styling */
+  .modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 11, 7, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100;
+  }
+
+  .modal-box {
+  background: #0d1e14;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  border-radius: 28px;
+  padding: 30px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+  }
+
+  .form-group {
+  margin-bottom: 15px;
+  }
+
+  .form-group label {
+  display: block;
+  font-size: .75rem;
+  color: #a7f3d0;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  font-weight: 700;
+  }
+
+  .form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(18, 35, 24, 0.8);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  color: #f8fafc;
+  font-family: inherit;
+  font-size: .85rem;
+  outline: none;
+  }
+
+  .form-input:focus {
+  border-color: #eab308;
+  }
+
+  .hidden { display: none !important; }
+
+  /* =========================
+  FOOTER HARMONI ALAM
+  ========================= */
+
+  .footer{
+  padding:50px 20px 60px;
+  text-align:center;
+  }
+
+  .footer-text{
+  font-size:.78rem;
+  color:#475569;
+  line-height:1.9;
+  letter-spacing:.5px;
+  }
+
+  /* RESPONSIVE MEDIA QUERIES */
+  @media(max-width:768px){
+  .container{ padding:12px; }
+  .hero h1{ font-size:2rem; }
+  .main-box{ padding:20px 14px; border-radius:22px; }
+  .grid{ grid-template-columns: repeat(2, 1fr); gap:12px; }
+  }
+
+  @media(max-width:480px){
+  .hero h1{ font-size:1.6rem; }
+  .grid{ grid-template-columns: 1fr; gap:10px; }
+  }
+  </style>
 </head>
-<body class="bg-emerald-50 text-slate-800 min-h-screen pb-20 font-sans">
+<body>
 
-  <!-- NAVBAR -->
-  <header class="bg-emerald-700 text-white p-4 shadow-md sticky top-0 z-30">
-    <div class="max-w-4xl mx-auto flex justify-between items-center">
-      <h1 class="text-xl font-bold flex items-center gap-2">
-        🌾 <span>Info Tani</span>
-      </h1>
-      <div id="auth-status-container">
-        <!-- Render status login -->
+  <div class="container">
+    
+    <!-- HEADER -->
+    <header class="hero">
+      <div class="logo-wrap">
+        <div class="logo flex items-center justify-center text-3xl">🌾</div>
       </div>
-    </div>
-  </header>
-
-  <main class="max-w-4xl mx-auto p-4 space-y-6">
-
-    <!-- HEADER & ACTION -->
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-emerald-100">
-      <div>
-        <h2 class="text-lg font-bold text-emerald-900">Eksplorasi Data Tani</h2>
-        <p class="text-xs text-slate-500">Pengunjung umum bisa melihat-lihat, login untuk berkontribusi</p>
+      <h1>Info Tani Menoreh</h1>
+      <p>Eksplorasi data pertanian, komoditas, dan pengetahuan lokal dari dan untuk masyarakat pegunungan.</p>
+      
+      <div class="top-nav">
+        <!-- Tombol Tambah Data: Memicu Pengalihan ke /html/login.html Jika Belum Login -->
+        <button onclick="handleCheckAuthAndOpenInput()" class="top-btn">
+          <span>+</span> TAMBAH DATA BARU
+        </button>
+        <div id="auth-status"></div>
       </div>
-      <button onclick="handleCheckAuthAndOpenInput()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl shadow transform active:scale-95 transition flex items-center justify-center gap-2">
-        <span class="text-xl">+</span> Tambah Data Baru
-      </button>
-    </div>
+    </header>
 
-    <!-- FILTER BUTTONS -->
-    <section class="space-y-2">
-      <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori Cepat:</p>
-      <div class="flex flex-wrap gap-2">
-        <button onclick="filterData('semua')" class="bg-emerald-800 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm">Semua</button>
-        <button onclick="filterData('Pangan')" class="bg-white text-emerald-800 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-100">🌾 Pangan</button>
-        <button onclick="filterData('Sayur')" class="bg-white text-emerald-800 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-100">🥬 Sayuran</button>
-        <button onclick="filterData('Pupuk')" class="bg-white text-emerald-800 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-100">🧪 Pupuk</button>
-      </div>
-    </section>
-
-    <!-- KONTEN CARD -->
-    <section>
-      <div id="loading-spinner" class="text-center py-10 text-emerald-700 font-bold">Memuat data...</div>
-      <div id="data-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4 hidden"></div>
-    </section>
-
-  </main>
-
-  <!-- MODAL LOGIN -->
-  <div id="modal-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center">
-        <h3 class="text-lg font-bold text-slate-800">Masuk untuk Input Data</h3>
-        <button onclick="closeModal('modal-login')" class="text-slate-400 text-xl font-bold">&times;</button>
-      </div>
-      <form onsubmit="handleLogin(event)" class="space-y-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Email / WhatsApp</label>
-          <input type="email" id="login-input" required placeholder="email@contoh.com" class="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+    <!-- PANEL UTAMA -->
+    <main class="main-box">
+      
+      <!-- SECTION FILTER CEPAT -->
+      <section class="section">
+        <div class="section-title">
+          <span>Kategori Data</span>
+          <div class="line"></div>
         </div>
-        <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">Kirim Link Masuk</button>
-      </form>
-      <button onclick="loginWithGoogle()" class="w-full border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm">
-        Masuk dengan Google
-      </button>
-    </div>
+        <div class="top-nav" style="margin-top:0; justify-content:flex-start;">
+          <button onclick="filterData('semua')" class="top-btn" style="padding:8px 18px; font-size:.75rem;">Semua Data</button>
+          <button onclick="filterData('Pangan')" class="top-btn" style="padding:8px 18px; font-size:.75rem;">🌾 Pangan</button>
+          <button onclick="filterData('Sayur')" class="top-btn" style="padding:8px 18px; font-size:.75rem;">🥬 Sayuran</button>
+          <button onclick="filterData('Pupuk')" class="top-btn" style="padding:8px 18px; font-size:.75rem;">🧪 Pupuk</button>
+        </div>
+      </section>
+
+      <!-- SECTION GRID DATA -->
+      <section class="section" style="margin-bottom:0;">
+        <div class="section-title">
+          <span>Daftar Informasi Tani</span>
+          <div class="line"></div>
+        </div>
+
+        <div id="loading-spinner" class="desc" style="text-align:center; padding: 20px;">
+          Memuat data dari pegunungan...
+        </div>
+
+        <div id="data-grid" class="grid hidden">
+          <!-- Kartu Data Di-render Via Javascript -->
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="footer">
+      <p class="footer-text">Ditata untuk Masyarakat Tani Menoreh &bull; Read-Open, Write-Protected</p>
+    </footer>
+
   </div>
 
-  <!-- MODAL INPUT DATA -->
-  <div id="modal-input" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
-      <div class="flex justify-between items-center">
-        <h3 class="text-lg font-bold text-slate-800">Tambah Info Tani</h3>
-        <button onclick="closeModal('modal-input')" class="text-slate-400 text-xl font-bold">&times;</button>
+  <!-- MODAL FORM INPUT DATA (Hanya terbuka jika sudah login) -->
+  <div id="modal-input" class="modal hidden">
+    <div class="modal-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 style="font-family:'Playfair Display', serif; color:#fef08a;">Tambah Data Tani</h3>
+        <button onclick="closeModal()" style="background:none; border:none; color:#84a98c; font-size:1.5rem; cursor:pointer;">&times;</button>
       </div>
-      <form onsubmit="handleSaveData(event)" class="space-y-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Nama Barang / Info</label>
-          <input type="text" id="input-nama" required placeholder="Misal: Gabah Kering" class="w-full border rounded-xl p-3 text-sm outline-none">
+
+      <form onsubmit="handleSaveData(event)">
+        <div class="form-group">
+          <label>Nama Barang / Info</label>
+          <input type="text" id="input-nama" class="form-input" required placeholder="Contoh: Gabah Kering Organik">
         </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Kategori</label>
-          <select id="input-kategori" class="w-full border rounded-xl p-3 text-sm outline-none">
+
+        <div class="form-group">
+          <label>Kategori</label>
+          <select id="input-kategori" class="form-input">
             <option value="Pangan">🌾 Pangan</option>
             <option value="Sayur">🥬 Sayuran</option>
             <option value="Pupuk">🧪 Pupuk</option>
           </select>
         </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Harga / Catatan</label>
-          <input type="text" id="input-harga" placeholder="Rp 6.500/kg" class="w-full border rounded-xl p-3 text-sm outline-none">
+
+        <div class="form-group">
+          <label>Harga / Catatan Singkat</label>
+          <input type="text" id="input-harga" class="form-input" placeholder="Rp 6.500/kg">
         </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-600 mb-1">Kontak WA</label>
-          <input type="tel" id="input-kontak" placeholder="08123456789" class="w-full border rounded-xl p-3 text-sm outline-none">
+
+        <div class="form-group">
+          <label>Nomor WhatsApp Kontak</label>
+          <input type="tel" id="input-kontak" class="form-input" placeholder="08xxxxxxxxxx">
         </div>
-        <button type="submit" id="btn-simpan" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow">Simpan</button>
+
+        <button type="submit" id="btn-simpan" class="top-btn" style="width:100%; justify-content:center; margin-top:10px;">
+          SIMPAN DATA
+        </button>
       </form>
     </div>
   </div>
 
+  <!-- JAVASCRIPT & SUPABASE INTEGRATION -->
   <script>
     const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
@@ -120,34 +573,21 @@
       fetchData();
     });
 
-    // 1. CEK SESSION & SINKRONKAN KE TABEL PROFILES
+    // 1. CEK SESSION & AUTO-SYNC DENGAN TABEL PROFILES
     async function checkUserSession() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       currentUser = session ? session.user : null;
 
       if (currentUser) {
-        // Ambil atau buat data di tabel profiles jika belum ada
         currentProfile = await ensureProfileExists(currentUser);
       } else {
         currentProfile = null;
       }
 
-      renderAuthStatus();
-
-      supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-        currentUser = session ? session.user : null;
-        if (currentUser) {
-          currentProfile = await ensureProfileExists(currentUser);
-        } else {
-          currentProfile = null;
-        }
-        renderAuthStatus();
-      });
+      renderAuthNav();
     }
 
-    // Fungsi Otomatis Sinkronkan User Auth ke Tabel Profiles
     async function ensureProfileExists(user) {
-      // Cek apakah profil sudah ada berdasarkan ID (text)
       const { data: profile } = await supabaseClient
         .from('profiles')
         .select('*')
@@ -156,57 +596,62 @@
 
       if (profile) return profile;
 
-      // Jika belum ada, buat username default unik
       const baseUsername = user.email ? user.email.split('@')[0] : 'grower_' + Math.floor(Math.random() * 1000);
-      
       const newProfile = {
-        id: user.id, // Menyimpan ID user Auth sebagai Text
+        id: user.id,
         username: baseUsername,
         real_name: user.user_metadata?.full_name || baseUsername,
         rank: 'GROWER',
         level: 1
       };
 
-      const { data: inserted, error } = await supabaseClient
+      const { data: inserted } = await supabaseClient
         .from('profiles')
         .insert([newProfile])
         .select()
         .single();
 
-      if (error) {
-        console.error("Gagal buat profil:", error);
-        return null;
-      }
       return inserted;
     }
 
-    function renderAuthStatus() {
-      const container = document.getElementById("auth-status-container");
+    function renderAuthNav() {
+      const container = document.getElementById("auth-status");
       if (currentUser && currentProfile) {
         container.innerHTML = `
-          <div class="flex items-center gap-2">
-            <span class="text-xs bg-emerald-800 px-3 py-1.5 rounded-full font-medium">🌱 @${currentProfile.username} (${currentProfile.rank})</span>
-            <button onclick="handleLogout()" class="text-xs bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-full font-bold">Keluar</button>
+          <div class="top-btn" style="background:rgba(34, 197, 94, 0.2);">
+            🌱 @${currentProfile.username}
+            <span onclick="handleLogout()" style="margin-left:8px; color:#ef4444; cursor:pointer;">(Keluar)</span>
           </div>
         `;
       } else {
         container.innerHTML = `
-          <button onclick="openModal('modal-login')" class="text-xs bg-emerald-600 hover:bg-emerald-500 border border-emerald-400 px-4 py-2 rounded-full font-bold">Masuk Admin</button>
+          <a href="/html/login.html" class="top-btn" style="border-color:rgba(234, 179, 8, 0.4);">
+            LOGIN ADMIN
+          </a>
         `;
       }
     }
 
-    // 2. FETCH DATA (MENGAMBIL USERNAME DARI PROFILES)
+    // 2. ALUR LOGIN: JIKA BELUM AUTH, LEMPAR LANGSUNG KE /html/login.html
+    function handleCheckAuthAndOpenInput() {
+      if (!currentUser) {
+        // Redirect langsung sesuai instruksi Anda
+        window.location.href = "/html/login.html";
+      } else {
+        document.getElementById("modal-input").classList.remove("hidden");
+      }
+    }
+
+    // 3. FETCH DATA DARI DATABASE DENGAN JOIN TABEL PROFILES
     async function fetchData() {
       const spinner = document.getElementById("loading-spinner");
       const grid = document.getElementById("data-grid");
 
-      // Mengambil data info_tani beserta username & rank dari profiles
       const { data, error } = await supabaseClient
         .from('info_tani')
         .select(`
           *,
-          profiles:user_id ( username, rank, real_name )
+          profiles:user_id ( username, rank )
         `)
         .order('created_at', { ascending: false });
 
@@ -214,7 +659,7 @@
       grid.classList.remove("hidden");
 
       if (error) {
-        console.error("Error:", error);
+        console.error("Gagal mengambil data:", error);
         return;
       }
 
@@ -222,80 +667,52 @@
       renderCards(allData);
     }
 
-    // 3. RENDER DATA KE PUBLIK
+    // 4. RENDER CARDS MENYESUAIKAN DENGAN KARTU KLAN HUTAN MENOREH
     function renderCards(dataList) {
       const grid = document.getElementById("data-grid");
       if (dataList.length === 0) {
-        grid.innerHTML = `<p class="col-span-2 text-center text-slate-400 py-6">Belum ada data.</p>`;
+        grid.innerHTML = `<p class="desc" style="grid-column: 1/-1;">Belum ada data tersedia.</p>`;
         return;
       }
 
       grid.innerHTML = dataList.map(item => {
-        // Ambil data dari tabel profiles yang tersinkron
         const username = item.profiles?.username || 'Anonim';
-        const rank = item.profiles?.rank || 'GROWER';
         const isOwner = currentUser && currentUser.id === item.user_id;
 
         return `
-          <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 flex flex-col justify-between">
-            <div>
-              <div class="flex justify-between items-start mb-2">
-                <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800">${item.kategori || 'Umum'}</span>
-                <span class="text-[10px] text-slate-400">${new Date(item.created_at).toLocaleDateString('id-ID')}</span>
-              </div>
-              <h3 class="font-bold text-slate-800 text-base mb-1">${item.nama}</h3>
-              <p class="text-emerald-700 font-extrabold text-lg mb-2">${item.harga || '-'}</p>
-              
-              <!-- Menampilkan username dari tabel profiles -->
-              <div class="text-[11px] text-slate-500 flex items-center gap-1 mb-3">
-                <span>👨‍🌾 Kontributor:</span>
-                <span class="font-bold text-slate-700">@${username}</span>
-                <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${rank}</span>
-              </div>
-            </div>
+          <div class="card-btn">
+            <div class="icon">${getIconKategori(item.kategori)}</div>
+            <div class="label">${item.nama}</div>
+            <div class="price-tag">${item.harga || '-'}</div>
             
-            <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
-              ${item.kontak ? `
-                <a href="https://wa.me/${item.kontak.replace(/[^0-9]/g, '')}" target="_blank" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-2 px-4 rounded-xl">💬 Hubungi (WA)</a>
-              ` : '<span></span>'}
-              
-              ${isOwner ? `
-                <button onclick="handleDelete('${item.id}')" class="text-xs text-red-500 hover:text-red-700 font-semibold">Hapus</button>
-              ` : ''}
+            <div class="author-tag">
+              ✍️ @${username}
             </div>
+
+            ${item.kontak ? `
+              <a href="https://wa.me/${item.kontak.replace(/[^0-9]/g, '')}" target="_blank" class="desc" style="color:#4ade80; text-decoration:underline; margin-top:6px;">
+                💬 WhatsApp
+              </a>
+            ` : ''}
+
+            ${isOwner ? `
+              <button onclick="handleDelete('${item.id}')" style="margin-top:8px; background:none; border:none; color:#ef4444; font-size:.65rem; cursor:pointer;">[ Hapus ]</button>
+            ` : ''}
           </div>
         `;
       }).join('');
     }
 
+    function getIconKategori(kat) {
+      if (kat === 'Pangan') return '🌾';
+      if (kat === 'Sayur') return '🥬';
+      if (kat === 'Pupuk') return '🧪';
+      return '🌿';
+    }
+
     function filterData(kategori) {
       if (kategori === 'semua') renderCards(allData);
       else renderCards(allData.filter(d => d.kategori === kategori));
-    }
-
-    function handleCheckAuthAndOpenInput() {
-      if (!currentUser) openModal('modal-login');
-      else openModal('modal-input');
-    }
-
-    async function handleLogin(e) {
-      e.preventDefault();
-      const email = document.getElementById("login-input").value;
-      const { error } = await supabaseClient.auth.signInWithOtp({ email });
-      if (error) alert("Gagal: " + error.message);
-      else {
-        alert("Link masuk dikirim ke email!");
-        closeModal('modal-login');
-      }
-    }
-
-    async function loginWithGoogle() {
-      await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
-    }
-
-    async function handleLogout() {
-      await supabaseClient.auth.signOut();
-      location.reload();
     }
 
     async function handleSaveData(e) {
@@ -305,13 +722,13 @@
         kategori: document.getElementById("input-kategori").value,
         harga: document.getElementById("input-harga").value,
         kontak: document.getElementById("input-kontak").value,
-        user_id: currentUser.id // Relasi langsung ke profiles.id
+        user_id: currentUser.id
       };
 
       const { error } = await supabaseClient.from('info_tani').insert([payload]);
-      if (error) alert("Gagal simpan: " + error.message);
+      if (error) alert("Gagal menyimpan data: " + error.message);
       else {
-        closeModal('modal-input');
+        closeModal();
         fetchData();
       }
     }
@@ -322,8 +739,14 @@
       fetchData();
     }
 
-    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    async function handleLogout() {
+      await supabaseClient.auth.signOut();
+      location.reload();
+    }
+
+    function closeModal() {
+      document.getElementById("modal-input").classList.add("hidden");
+    }
   </script>
 </body>
 </html>
