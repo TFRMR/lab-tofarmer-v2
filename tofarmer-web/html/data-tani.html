@@ -458,6 +458,12 @@
         <div id="commodity-summary" style="margin-top:9px; font-size:.78rem; color:#84a98c;">Pilih komoditas untuk melihat catatan lintas tahun.</div>
       </div>
 
+      <!-- EKSPOR / CETAK -->
+      <div class="data-tools" style="display:flex; gap:10px; flex-wrap:wrap; margin:16px 0;">
+        <button type="button" class="top-btn" onclick="exportDataCSV()">📥 Ekspor CSV</button>
+        <button type="button" class="top-btn" onclick="printDataPDF()">🖨️ Print / Simpan PDF</button>
+      </div>
+
       <!-- TABEL CATATAN PANEN -->
       <section>
         <div class="section-title">
@@ -864,126 +870,121 @@
 
     
 function getExportRows() {
-    const rows = window.panenRecords || [];
-    const select = document.getElementById("komoditas-filter");
-    const selected = select ? select.value : "";
-
-    return selected
-        ? rows.filter(row => getRecordCommodity(row) === selected)
+      const rows = window.panenRecords || [];
+      const select = document.getElementById('commodity-filter');
+      const selected = select ? select.value : '';
+      return selected
+        ? rows.filter(row => getCommodity(row) === selected)
         : rows;
-}
-
-function csvCell(value) {
-    const str = String(value ?? "");
-    return `"${str.replace(/"/g, '""')}"`;
-}
-
-function exportDataCSV() {
-    if (!currentUser || !currentUser.id) {
-        alert("Silakan login terlebih dahulu.");
-        return;
     }
 
-    const rows = getExportRows();
-
-    if (!rows.length) {
-        alert("Belum ada data yang bisa diekspor.");
-        return;
+    function csvCell(value) {
+      return `"${String(value ?? '').replace(/"/g, '""')}"`;
     }
 
-    const selected = document.getElementById("komoditas-filter")?.value || "";
-    const headers = [
-        "Komoditas",
-        "Tanggal Panen",
-        "Tahun",
-        "Jumlah Tanaman",
-        "Hasil (kg)",
-        "Harga per kg",
-        "User ID"
-    ];
+    function exportDataCSV() {
+      if (!currentUser || !currentUser.id) {
+        alert('Silakan login terlebih dahulu.');
+        return;
+      }
 
-    const csvRows = [headers.map(csvCell).join(",")];
+      const rows = getExportRows();
+      if (!rows.length) {
+        alert('Belum ada data yang bisa diekspor.');
+        return;
+      }
 
-    rows.forEach(row => {
-        const date = row.tanggal_panen || "";
-        const year = date ? new Date(date).getFullYear() : "";
+      const selected = document.getElementById('commodity-filter')?.value || '';
+      const headers = [
+        'Tanggal Panen', 'Komoditas', 'Tahun', 'Jumlah Tanaman',
+        'Hasil (Kg)', 'Harga / Kg', 'Total Pendapatan', 'Status'
+      ];
 
+      const csvRows = [headers.map(csvCell).join(',')];
+      rows.forEach(row => {
+        const date = row.tanggal_panen || '';
+        const year = date ? new Date(date).getFullYear() : '';
+        const total = Number(row.total_pendapatan || (Number(row.hasil_kg || 0) * Number(row.harga_per_kg || 0)));
         csvRows.push([
-            getRecordCommodity(row),
-            date,
-            year,
-            row.jumlah_tanaman ?? "",
-            row.hasil_kg ?? "",
-            row.harga_per_kg ?? "",
-            row.user_id ?? ""
-        ].map(csvCell).join(","));
-    });
+          date,
+          getCommodity(row),
+          year,
+          row.jumlah_tanaman ?? '',
+          row.hasil_kg ?? '',
+          row.harga_per_kg ?? '',
+          Math.round(total),
+          row.is_public ? 'Publik' : 'Pribadi'
+        ].map(csvCell).join(','));
+      });
 
-    // BOM agar Excel/Spreadsheet membaca UTF-8 dengan benar.
-    const csv = "\uFEFF" + csvRows.join("\r\n");
-    const blob = new Blob([csv], {
-        type: "text/csv;charset=utf-8;"
-    });
+      const blob = new Blob(['\uFEFF' + csvRows.join('\r\n')], {
+        type: 'text/csv;charset=utf-8;'
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const safe = (selected || 'semua-komoditas').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+      a.href = url;
+      a.download = `riwayat-${safe}-${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
 
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-
-    const safeCommodity = selected
-        ? selected.replace(/[^a-z0-9_-]+/gi, "-").toLowerCase()
-        : "semua-komoditas";
-
-    const date = new Date().toISOString().slice(0, 10);
-
-    a.href = url;
-    a.download = `riwayat-${safeCommodity}-${date}.csv`;
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    URL.revokeObjectURL(url);
-}
-
-function printDataPDF() {
-    if (!currentUser || !currentUser.id) {
-        alert("Silakan login terlebih dahulu.");
+    function printDataPDF() {
+      if (!currentUser || !currentUser.id) {
+        alert('Silakan login terlebih dahulu.');
         return;
-    }
+      }
 
-    const rows = getExportRows();
-
-    if (!rows.length) {
-        alert("Belum ada data yang bisa dicetak.");
+      const rows = getExportRows();
+      if (!rows.length) {
+        alert('Belum ada data yang bisa dicetak.');
         return;
+      }
+
+      const selected = document.getElementById('commodity-filter')?.value || '';
+      const username = currentProfile?.username || currentUser?.username || '';
+
+      let body = '';
+      rows.forEach(row => {
+        const total = Number(row.total_pendapatan || (Number(row.hasil_kg || 0) * Number(row.harga_per_kg || 0)));
+        body += `<tr>
+          <td>${escapeHtml(row.tanggal_panen ? new Date(row.tanggal_panen).toLocaleDateString('id-ID') : '-')}</td>
+          <td>${escapeHtml(getCommodity(row))}</td>
+          <td>${row.jumlah_tanaman ?? 0}</td>
+          <td>${row.hasil_kg ?? 0}</td>
+          <td>Rp ${Number(row.harga_per_kg || 0).toLocaleString('id-ID')}</td>
+          <td>Rp ${Math.round(total).toLocaleString('id-ID')}</td>
+          <td>${row.is_public ? 'Publik' : 'Pribadi'}</td>
+        </tr>`;
+      });
+
+      const win = window.open('', '_blank', 'width=1100,height=800');
+      if (!win) {
+        alert('Popup diblokir browser. Izinkan popup untuk mencetak PDF.');
+        return;
+      }
+
+      win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Riwayat Pencatatan Pertanian</title>
+        <style>
+          body{font-family:Arial,sans-serif;color:#111;padding:30px;font-size:12px}
+          h1{font-size:22px;margin:0 0 8px} p{margin:4px 0 18px}
+          table{width:100%;border-collapse:collapse;margin-top:20px}
+          th,td{border:1px solid #ccc;padding:8px;text-align:left}
+          th{background:#eee} @media print{body{padding:10mm} button{display:none}}
+        </style></head><body>
+        <h1>Riwayat Pencatatan Pertanian</h1>
+        <p><b>Petani:</b> ${escapeHtml(username)}<br>
+        <b>Komoditas:</b> ${escapeHtml(selected || 'Semua Komoditas')}<br>
+        <b>Dicetak:</b> ${escapeHtml(new Date().toLocaleString('id-ID'))}</p>
+        <table><thead><tr><th>Tanggal</th><th>Komoditas</th><th>Jumlah</th><th>Hasil (Kg)</th><th>Harga/Kg</th><th>Total Pendapatan</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>
+        <script>window.onload=function(){window.print();}<\/script>
+        </body></html>`);
+      win.document.close();
     }
 
-    const selected = document.getElementById("komoditas-filter")?.value || "";
-    const username = currentProfile?.username || currentUser?.username || "";
-
-    const detail = document.getElementById("print-header-detail");
-
-    if (detail) {
-        detail.innerHTML = `
-            <p style="margin:4px 0;">
-                <strong>Petani:</strong> ${escapeHtml(username)}
-            </p>
-            <p style="margin:4px 0;">
-                <strong>Komoditas:</strong>
-                ${escapeHtml(selected || "Semua Komoditas")}
-            </p>
-            <p style="margin:4px 0;">
-                <strong>Dicetak:</strong>
-                ${escapeHtml(new Date().toLocaleString("id-ID"))}
-            </p>
-        `;
-    }
-
-    // Browser akan menampilkan dialog print.
-    // Pilih "Save as PDF / Simpan sebagai PDF" untuk mendapatkan PDF.
-    window.print();
-}
-
-function escapeHtml(value) {
+    function escapeHtml(value) {
       return String(value ?? '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
