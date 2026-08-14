@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Info Tani - Hutan Menoreh</title>
+  <title>Pembukuan Hasil Tani - Menoreh</title>
   
-  <!-- Font Google bawaan style Anda -->
+  <!-- Font Google -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -14,445 +14,289 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-  *{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 
-  body{
-  font-family:'Plus Jakarta Sans',sans-serif;
-  /* Gradien Warna Hutan Menoreh Kelam di Sore Hari yang Subur */
-  background:
-      radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
-      radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
-      linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
-  min-height:100vh;
-  overflow-x:hidden;
-  color:#e2e8f0;
-  position:relative;
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    background:
+        radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+        radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+        linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+    color: #e2e8f0;
+    position: relative;
   }
 
-  /* kabut lembut pegunungan menoreh */
-  body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  background:
-  linear-gradient(
-  120deg,
-  rgba(255,255,255,.03),
-  rgba(255,255,255,0)
-  );
-  pointer-events:none;
-  animation:fog 14s ease-in-out infinite;
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+    pointer-events: none;
+    animation: fog 14s ease-in-out infinite;
   }
 
-  @keyframes fog{
-  0%{transform:translateX(-3%)}
-  50%{transform:translateX(3%)}
-  100%{transform:translateX(-3%)}
+  @keyframes fog {
+    0% { transform: translateX(-3%); }
+    50% { transform: translateX(3%); }
+    100% { transform: translateX(-3%); }
   }
 
-  .container{
-  width:100%;
-  max-width:1150px;
-  margin:auto;
-  padding:22px;
+  .container {
+    width: 100%;
+    max-width: 1150px;
+    margin: auto;
+    padding: 22px;
   }
 
-  /* =========================
-  HEADER
-  ========================= */
-
-  .hero{
-  position:relative;
-  padding:40px 20px 50px;
-  text-align:center;
+  .hero {
+    position: relative;
+    padding: 30px 20px 40px;
+    text-align: center;
   }
 
-  .hero::after{
-  content:"";
-  position:absolute;
-  left:50%;
-  bottom:10px;
-  transform:translateX(-50%);
-  width:180px;
-  height:1px;
-  background:
-  linear-gradient(
-  90deg,
-  transparent,
-  rgba(234, 179, 8, 0.4),
-  transparent
-  );
+  .hero::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    width: 180px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.4), transparent);
   }
 
-  .logo-wrap{
-  display:flex;
-  justify-content:center;
-  margin-bottom:18px;
+  .logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
   }
 
-  .logo{
-  width:95px;
-  height:95px;
-  border-radius:50%;
-  padding:5px;
-  background:rgba(20, 38, 27, 0.6);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  border: 1px solid rgba(74, 222, 128, 0.25);
-  box-shadow:
-  0 10px 30px rgba(0,0,0,0.5);
-  transition:.5s;
+  .logo {
+    width: 85px;
+    height: 85px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    background: rgba(20, 38, 27, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
 
-  .logo:hover{
-  transform:rotate(8deg) scale(1.04);
-  border-color: #eab308;
-  box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  .hero h1{
-  font-family: 'Playfair Display', serif;
-  font-size:3rem;
-  font-weight:800;
-  letter-spacing:-1px;
-  line-height:1.2;
-  background:
-  linear-gradient(
-  135deg,
-  #fef08a 0%,
-  #4ade80 50%,
-  #22c55e 100%
-  );
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent;
+  .hero p {
+    margin-top: 10px;
+    font-size: .95rem;
+    color: #84a98c;
+    max-width: 600px;
+    margin-inline: auto;
   }
 
-  .hero p{
-  margin-top:18px;
-  font-size:.98rem;
-  line-height:1.8;
-  color:#84a98c;
-  max-width:650px;
-  margin-inline:auto;
+  .top-nav {
+    display: flex;
+    justify-content: center;
+    margin-top: 25px;
+    gap: 15px;
+    flex-wrap: wrap;
   }
 
-  /* =========================
-  TOP BUTTON (MENU ATAS CANTIK)
-  ========================= */
-
-  .top-nav{
-  display:flex;
-  justify-content:center;
-  margin-top:30px;
-  gap:15px;
-  flex-wrap:wrap;
+  .top-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: .83rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+    background: rgba(20, 36, 26, 0.5);
+    backdrop-filter: blur(12px);
+    color: #a7f3d0;
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
   }
 
-  .top-btn{
-  display:inline-flex;
-  align-items:center;
-  gap:10px;
-  padding:14px 28px;
-  border-radius:999px;
-  text-decoration:none;
-  font-size:.83rem;
-  font-weight:700;
-  letter-spacing:.5px;
-  background: rgba(20, 36, 26, 0.5);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  color:#a7f3d0;
-  border:1px solid rgba(74, 222, 128, 0.2);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  transition:.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor:pointer;
+  .top-btn:hover {
+    transform: translateY(-3px);
+    background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    color: #050b07;
+    border-color: #4ade80;
+    box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
   }
 
-  .top-btn:hover{
-  transform:translateY(-3px);
-  background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
-  color:#050b07;
-  border-color: #4ade80;
-  box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+  .main-box {
+    background: rgba(14, 28, 19, 0.45);
+    backdrop-filter: blur(22px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 34px;
+    padding: 35px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    position: relative;
   }
 
-  /* =========================
-  MAIN CARD BOX (PANEL UTAMA BERKABUT)
-  ========================= */
-
-  .main-box{
-  background: rgba(14, 28, 19, 0.45);
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-  border:1px solid rgba(255, 255, 255, 0.05);
-  border-radius:34px;
-  padding:40px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-  position:relative;
-  overflow:hidden;
+  .rekap-card {
+    background: rgba(22, 46, 31, 0.6);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 30px;
   }
 
-  .main-box::before{
-  content:"";
-  position:absolute;
-  top:-120px;
-  right:-120px;
-  width:240px;
-  height:240px;
-  background:
-  radial-gradient(
-  circle,
-  rgba(234, 179, 8, 0.08),
-  transparent 70%
-  );
+  .rekap-card h3 {
+    font-size: .8rem;
+    color: #84a98c;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
   }
 
-  /* =========================
-  SECTION TITLE
-  ========================= */
-
-  .section{
-  margin-bottom:45px;
+  .rekap-card .total-val {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #fde047;
+    margin-top: 5px;
   }
 
-  .section-title{
-  display:flex;
-  align-items:center;
-  gap:14px;
-  margin-bottom:22px;
-  flex-wrap: wrap;
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
   }
 
-  .section-title span{
-  font-size:.82rem;
-  font-weight:800;
-  letter-spacing:2px;
-  text-transform:uppercase;
-  color:#fde047;
+  .section-title span {
+    font-size: .82rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #fde047;
   }
 
-  .line{
-  flex: 1;
-  min-width: 30px;
-  height:1px;
-  background:
-  linear-gradient(
-  90deg,
-  rgba(234, 179, 8, 0.3),
-  rgba(34, 197, 94, 0.05),
-  transparent
-  );
+  .line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(234, 179, 8, 0.3), rgba(34, 197, 94, 0.05), transparent);
   }
 
-  /* =========================
-  GRID LAYOUT
-  ========================= */
-
-  .grid{
-  display:grid;
-  grid-template-columns:
-  repeat(auto-fit, minmax(220px, 1fr));
-  gap:18px;
+  .grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    font-size: .85rem;
   }
 
-  /* =========================
-  CARD BUTTON ELEGAN SUASANA HUTAN
-  ========================= */
-
-  .card-btn{
-  position:relative;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  text-decoration:none;
-  padding:28px 20px;
-  border-radius:24px;
-  background: rgba(18, 35, 24, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  border-left: 2px solid rgba(34, 197, 94, 0.15);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-  transition: all .35s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow:hidden;
-  min-height: 160px;
+  .grid-table th, .grid-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
 
-  /* Efek Sentuhan Sejuk & Melayang */
-  .card-btn:hover {
-  transform: translateY(-6px);
-  background: rgba(22, 46, 31, 0.6);
-  border-color: rgba(74, 222, 128, 0.25);
-  border-left-color: #4ade80;
-  box-shadow: 
-      0 15px 35px rgba(0, 0, 0, 0.4),
-      0 0 25px rgba(234, 179, 8, 0.05);
+  .grid-table th {
+    background: rgba(18, 35, 24, 0.8);
+    color: #a7f3d0;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: .75rem;
   }
 
-  .card-btn:active{
-  transform:scale(.97);
+  .grid-table tr:hover {
+    background: rgba(22, 46, 31, 0.4);
   }
 
-  /* Garis Pembatas Atas Saat Hover */
-  .card-btn::before{
-  content:"";
-  position:absolute;
-  top:0;
-  left:50%;
-  transform:translateX(-50%);
-  width:60px;
-  height:3px;
-  background:
-  linear-gradient(
-  90deg,
-  transparent,
-  #eab308,
-  transparent
-  );
-  opacity:0;
-  transition:.3s;
-  }
-
-  .card-btn:hover::before{
-  opacity:1;
-  }
-
-  .icon{
-  font-size:2.4rem;
-  margin-bottom:12px;
-  transition:.4s;
-  filter:drop-shadow(0 6px 12px rgba(0,0,0,0.3));
-  }
-
-  .card-btn:hover .icon{
-  transform:
-  translateY(-5px)
-  scale(1.1);
-  }
-
-  .label{
-  font-size:.85rem;
-  font-weight:700;
-  letter-spacing:1px;
-  text-transform:uppercase;
-  color:#f8fafc;
-  text-align:center;
-  transition: color .2s;
-  }
-
-  .card-btn:hover .label {
-  color: #fde047;
-  }
-
-  .desc{
-  margin-top:8px;
-  font-size:.78rem;
-  line-height:1.5;
-  text-align:center;
-  color:#94a3b8;
-  }
-
-  .price-tag {
-  color: #4ade80;
-  font-weight: 800;
-  font-size: 1rem;
-  margin-top: 6px;
-  }
-
-  .author-tag {
-  font-size: .7rem;
-  color: #eab308;
-  margin-top: 10px;
-  border-top: 1px solid rgba(255,255,255,0.05);
-  padding-top: 6px;
-  width: 100%;
-  text-align: center;
-  }
-
-  /* Modal Form Styling */
+  /* Modal Form */
   .modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(5, 11, 7, 0.85);
-  backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  z-index: 100;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 11, 7, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 100;
   }
 
   .modal-box {
-  background: #0d1e14;
-  border: 1px solid rgba(74, 222, 128, 0.3);
-  border-radius: 28px;
-  padding: 30px;
-  width: 100%;
-  max-width: 450px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    background: #0d1e14;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    border-radius: 28px;
+    padding: 30px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
   }
 
   .form-group {
-  margin-bottom: 15px;
+    margin-bottom: 15px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
   }
 
   .form-group label {
-  display: block;
-  font-size: .75rem;
-  color: #a7f3d0;
-  margin-bottom: 5px;
-  text-transform: uppercase;
-  font-weight: 700;
+    display: block;
+    font-size: .75rem;
+    color: #a7f3d0;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    font-weight: 700;
   }
 
   .form-input {
-  width: 100%;
-  padding: 12px 16px;
-  border-radius: 14px;
-  background: rgba(18, 35, 24, 0.8);
-  border: 1px solid rgba(74, 222, 128, 0.2);
-  color: #f8fafc;
-  font-family: inherit;
-  font-size: .85rem;
-  outline: none;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(18, 35, 24, 0.8);
+    border: 1px solid rgba(74, 222, 128, 0.2);
+    color: #f8fafc;
+    font-family: inherit;
+    font-size: .85rem;
+    outline: none;
   }
 
   .form-input:focus {
-  border-color: #eab308;
+    border-color: #eab308;
+  }
+
+  .calc-box {
+    background: rgba(7, 14, 10, 0.6);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 14px;
+    padding: 12px;
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 15px;
   }
 
   .hidden { display: none !important; }
 
-  /* =========================
-  FOOTER HARMONI ALAM
-  ========================= */
-
-  .footer{
-  padding:50px 20px 60px;
-  text-align:center;
-  }
-
-  .footer-text{
-  font-size:.78rem;
-  color:#475569;
-  line-height:1.9;
-  letter-spacing:.5px;
-  }
-
-  /* RESPONSIVE MEDIA QUERIES */
-  @media(max-width:768px){
-  .container{ padding:12px; }
-  .hero h1{ font-size:2rem; }
-  .main-box{ padding:20px 14px; border-radius:22px; }
-  .grid{ grid-template-columns: repeat(2, 1fr); gap:12px; }
-  }
-
-  @media(max-width:480px){
-  .hero h1{ font-size:1.6rem; }
-  .grid{ grid-template-columns: 1fr; gap:10px; }
+  @media(max-width: 768px) {
+    .container { padding: 12px; }
+    .main-box { padding: 20px 14px; }
+    .grid-table { font-size: .75rem; }
+    .grid-table th, .grid-table td { padding: 8px 10px; }
   }
   </style>
 </head>
@@ -463,15 +307,14 @@
     <!-- HEADER -->
     <header class="hero">
       <div class="logo-wrap">
-        <div class="logo flex items-center justify-center text-3xl">🌾</div>
+        <div class="logo">📊</div>
       </div>
-      <h1>Info Tani Menoreh</h1>
-      <p>Eksplorasi data pertanian, komoditas, dan pengetahuan lokal dari dan untuk masyarakat pegunungan.</p>
+      <h1>Pembukuan Hasil Tani</h1>
+      <p>Pencatatan Panen, Populerkan Hasil Bumi, & Transparansi Pendapatan Bulanan Petani Menoreh.</p>
       
       <div class="top-nav">
-        <!-- Tombol Tambah Data: Memicu Pengalihan ke /html/login.html Jika Belum Login -->
         <button onclick="handleCheckAuthAndOpenInput()" class="top-btn">
-          <span>+</span> TAMBAH DATA BARU
+          <span>+</span> CATAT PANEN BARU
         </button>
         <div id="auth-status"></div>
       </div>
@@ -480,79 +323,95 @@
     <!-- PANEL UTAMA -->
     <main class="main-box">
       
-      <!-- SECTION FILTER CEPAT -->
-      <section class="section">
-        <div class="section-title">
-          <span>Kategori Data</span>
-          <div class="line"></div>
-        </div>
-        <div class="top-nav" style="margin-top:0; justify-content:flex-start;">
-          <button onclick="filterData('semua')" class="top-btn" style="padding:8px 18px; font-size:.75rem;">Semua Data</button>
-          <button onclick="filterData('Pangan')" class="top-btn" style="padding:8px 18px; font-size:.75rem;">🌾 Pangan</button>
-          <button onclick="filterData('Sayur')" class="top-btn" style="padding:8px 18px; font-size:.75rem;">🥬 Sayuran</button>
-          <button onclick="filterData('Pupuk')" class="top-btn" style="padding:8px 18px; font-size:.75rem;">🧪 Pupuk</button>
-        </div>
-      </section>
+      <!-- REKAP PENDAPATAN BULANAN -->
+      <div class="rekap-card">
+        <h3>Total Pendapatan Terdata</h3>
+        <div id="total-pendapatan-global" class="total-val">Rp 0</div>
+      </div>
 
-      <!-- SECTION GRID DATA -->
-      <section class="section" style="margin-bottom:0;">
+      <!-- TABEL CATATAN PANEN -->
+      <section>
         <div class="section-title">
-          <span>Daftar Informasi Tani</span>
+          <span>Riwayat Hasil Panen</span>
           <div class="line"></div>
         </div>
 
-        <div id="loading-spinner" class="desc" style="text-align:center; padding: 20px;">
-          Memuat data dari pegunungan...
+        <div id="loading-spinner" style="text-align:center; color:#84a98c; padding: 20px;">
+          Memuat data pembukuan...
         </div>
 
-        <div id="data-grid" class="grid hidden">
-          <!-- Kartu Data Di-render Via Javascript -->
+        <div id="table-container" class="hidden" style="overflow-x: auto;">
+          <table class="grid-table">
+            <thead>
+              <tr>
+                <th>Tgl Panen</th>
+                <th>Tanaman</th>
+                <th>Jumlah</th>
+                <th>Hasil (Kg)</th>
+                <th>Harga / Kg</th>
+                <th>Total Pendapatan</th>
+                <th>Petani</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="pembukuan-tbody">
+              <!-- Data Panen di-render via JavaScript -->
+            </tbody>
+          </table>
         </div>
       </section>
 
     </main>
 
-    <footer class="footer">
-      <p class="footer-text">Ditata untuk Masyarakat Tani Menoreh &bull; Read-Open, Write-Protected</p>
-    </footer>
-
   </div>
 
-  <!-- MODAL FORM INPUT DATA (Hanya terbuka jika sudah login) -->
+  <!-- MODAL FORM CATAT PANEN (Versi Pak Ratno Wibowo) -->
   <div id="modal-input" class="modal hidden">
     <div class="modal-box">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3 style="font-family:'Playfair Display', serif; color:#fef08a;">Tambah Data Tani</h3>
+        <h3 style="font-family:'Playfair Display', serif; color:#fef08a;">Tambah Catatan Panen</h3>
         <button onclick="closeModal()" style="background:none; border:none; color:#84a98c; font-size:1.5rem; cursor:pointer;">&times;</button>
       </div>
 
-      <form onsubmit="handleSaveData(event)">
+      <form onsubmit="handleSavePanen(event)">
+        <!-- 1. Nama Tanaman -->
         <div class="form-group">
-          <label>Nama Barang / Info</label>
-          <input type="text" id="input-nama" class="form-input" required placeholder="Contoh: Gabah Kering Organik">
+          <label>Nama Tanaman / Komoditas</label>
+          <input type="text" id="input-tanaman" class="form-input" required placeholder="Misal: Cabai Rawit, Kopi, Cengkeh">
         </div>
 
-        <div class="form-group">
-          <label>Kategori</label>
-          <select id="input-kategori" class="form-input">
-            <option value="Pangan">🌾 Pangan</option>
-            <option value="Sayur">🥬 Sayuran</option>
-            <option value="Pupuk">🧪 Pupuk</option>
-          </select>
+        <!-- 2. Jumlah Tanaman & Tanggal Panen -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Jumlah Tanaman (Batang)</label>
+            <input type="number" id="input-jumlah" class="form-input" required placeholder="100">
+          </div>
+          <div class="form-group">
+            <label>Tanggal Panen</label>
+            <input type="date" id="input-tanggal" class="form-input" required>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Harga / Catatan Singkat</label>
-          <input type="text" id="input-harga" class="form-input" placeholder="Rp 6.500/kg">
+        <!-- 3. Hasil Kilo & Harga per Kilo -->
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hasil Panen (Kg)</label>
+            <input type="number" step="0.1" id="input-kg" oninput="hitungTotalOtomatis()" class="form-input" required placeholder="50.5">
+          </div>
+          <div class="form-group">
+            <label>Harga / Kg (Rp)</label>
+            <input type="number" id="input-harga" oninput="hitungTotalOtomatis()" class="form-input" required placeholder="35000">
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Nomor WhatsApp Kontak</label>
-          <input type="tel" id="input-kontak" class="form-input" placeholder="08xxxxxxxxxx">
+        <!-- 4. Estimasi Pendapatan Otomatis -->
+        <div class="calc-box">
+          <span style="font-size:.7rem; color:#84a98c; text-transform:uppercase; font-weight:700;">Estimasi Pendapatan Panen Ini</span>
+          <div id="label-total-panen" style="font-size:1.4rem; font-weight:800; color:#fde047; margin-top:2px;">Rp 0</div>
         </div>
 
-        <button type="submit" id="btn-simpan" class="top-btn" style="width:100%; justify-content:center; margin-top:10px;">
-          SIMPAN DATA
+        <button type="submit" class="top-btn" style="width:100%; justify-content:center;">
+          SIMPAN CATATAN
         </button>
       </form>
     </div>
@@ -564,16 +423,18 @@
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    let allData = [];
     let currentUser = null;
     let currentProfile = null;
 
     document.addEventListener("DOMContentLoaded", async () => {
+      // Set default tanggal hari ini pada input tanggal
+      document.getElementById('input-tanggal').valueAsDate = new Date();
+      
       await checkUserSession();
-      fetchData();
+      fetchDataPembukuan();
     });
 
-    // 1. CEK SESSION & AUTO-SYNC DENGAN TABEL PROFILES
+    // 1. CEK SESSION & AUTO-SYNC PROFILE
     async function checkUserSession() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       currentUser = session ? session.user : null;
@@ -626,117 +487,116 @@
       } else {
         container.innerHTML = `
           <a href="/html/login.html" class="top-btn" style="border-color:rgba(234, 179, 8, 0.4);">
-            LOGIN ADMIN
+            LOGIN PETANI
           </a>
         `;
       }
     }
 
-    // 2. ALUR LOGIN: JIKA BELUM AUTH, LEMPAR LANGSUNG KE /html/login.html
+    // 2. CEK AUTH: LEMPAR KE /html/login.html JIKA BELUM LOGIN
     function handleCheckAuthAndOpenInput() {
       if (!currentUser) {
-        // Redirect langsung sesuai instruksi Anda
         window.location.href = "/html/login.html";
       } else {
         document.getElementById("modal-input").classList.remove("hidden");
       }
     }
 
-    // 3. FETCH DATA DARI DATABASE DENGAN JOIN TABEL PROFILES
-    async function fetchData() {
-      const spinner = document.getElementById("loading-spinner");
-      const grid = document.getElementById("data-grid");
-
-      const { data, error } = await supabaseClient
-        .from('info_tani')
-        .select(`
-          *,
-          profiles:user_id ( username, rank )
-        `)
-        .order('created_at', { ascending: false });
-
-      spinner.classList.add("hidden");
-      grid.classList.remove("hidden");
-
-      if (error) {
-        console.error("Gagal mengambil data:", error);
-        return;
-      }
-
-      allData = data || [];
-      renderCards(allData);
+    // 3. KALKULASI OTOMATIS UI
+    function hitungTotalOtomatis() {
+      const kg = parseFloat(document.getElementById("input-kg").value) || 0;
+      const harga = parseFloat(document.getElementById("input-harga").value) || 0;
+      const total = kg * harga;
+      
+      document.getElementById("label-total-panen").innerText = "Rp " + total.toLocaleString("id-ID");
     }
 
-    // 4. RENDER CARDS MENYESUAIKAN DENGAN KARTU KLAN HUTAN MENOREH
-    function renderCards(dataList) {
-      const grid = document.getElementById("data-grid");
-      if (dataList.length === 0) {
-        grid.innerHTML = `<p class="desc" style="grid-column: 1/-1;">Belum ada data tersedia.</p>`;
+    // 4. FETCH DATA & HITUNG REKAP BULANAN
+    async function fetchDataPembukuan() {
+      const spinner = document.getElementById("loading-spinner");
+      const container = document.getElementById("table-container");
+      const tbody = document.getElementById("pembukuan-tbody");
+
+      const { data, error } = await supabaseClient
+        .from('pencatatan_pertanian')
+        .select(`
+          *,
+          profiles:user_id ( username )
+        `)
+        .order('tanggal_panen', { ascending: false });
+
+      spinner.classList.add("hidden");
+      container.classList.remove("hidden");
+
+      if (error) {
+        console.error("Gagal mengambil data pembukuan:", error);
         return;
       }
 
-      grid.innerHTML = dataList.map(item => {
+      // Hitung total akumulasi pendapatan global
+      const totalAkumulasi = (data || []).reduce((acc, item) => acc + (item.total_pendapatan || 0), 0);
+      document.getElementById("total-pendapatan-global").innerText = "Rp " + totalAkumulasi.toLocaleString("id-ID");
+
+      // Render Baris Tabel
+      if (!data || data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#84a98c;">Belum ada catatan panen terdata.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.map(item => {
         const username = item.profiles?.username || 'Anonim';
         const isOwner = currentUser && currentUser.id === item.user_id;
+        const totalRp = item.total_pendapatan || (item.hasil_kg * item.harga_per_kg);
 
         return `
-          <div class="card-btn">
-            <div class="icon">${getIconKategori(item.kategori)}</div>
-            <div class="label">${item.nama}</div>
-            <div class="price-tag">${item.harga || '-'}</div>
-            
-            <div class="author-tag">
-              ✍️ @${username}
-            </div>
-
-            ${item.kontak ? `
-              <a href="https://wa.me/${item.kontak.replace(/[^0-9]/g, '')}" target="_blank" class="desc" style="color:#4ade80; text-decoration:underline; margin-top:6px;">
-                💬 WhatsApp
-              </a>
-            ` : ''}
-
-            ${isOwner ? `
-              <button onclick="handleDelete('${item.id}')" style="margin-top:8px; background:none; border:none; color:#ef4444; font-size:.65rem; cursor:pointer;">[ Hapus ]</button>
-            ` : ''}
-          </div>
+          <tr>
+            <td>${new Date(item.tanggal_panen).toLocaleDateString('id-ID')}</td>
+            <td style="font-weight:700; color:#f8fafc;">${item.nama_tanaman}</td>
+            <td>${item.jumlah_tanaman} phn</td>
+            <td>${item.hasil_kg} kg</td>
+            <td>Rp ${parseInt(item.harga_per_kg).toLocaleString('id-ID')}</td>
+            <td style="font-weight:800; color:#4ade80;">Rp ${parseInt(totalRp).toLocaleString('id-ID')}</td>
+            <td style="color:#eab308;">@${username}</td>
+            <td>
+              ${isOwner ? `
+                <button onclick="handleDeletePanen('${item.id}')" style="background:none; border:none; color:#ef4444; font-size:.75rem; cursor:pointer;">[Hapus]</button>
+              ` : '-'}
+            </td>
+          </tr>
         `;
       }).join('');
     }
 
-    function getIconKategori(kat) {
-      if (kat === 'Pangan') return '🌾';
-      if (kat === 'Sayur') return '🥬';
-      if (kat === 'Pupuk') return '🧪';
-      return '🌿';
-    }
-
-    function filterData(kategori) {
-      if (kategori === 'semua') renderCards(allData);
-      else renderCards(allData.filter(d => d.kategori === kategori));
-    }
-
-    async function handleSaveData(e) {
+    // 5. SIMPAN DATA CATATAN PANEN BARU
+    async function handleSavePanen(e) {
       e.preventDefault();
+
       const payload = {
-        nama: document.getElementById("input-nama").value,
-        kategori: document.getElementById("input-kategori").value,
-        harga: document.getElementById("input-harga").value,
-        kontak: document.getElementById("input-kontak").value,
-        user_id: currentUser.id
+        user_id: currentUser.id,
+        nama_tanaman: document.getElementById("input-tanaman").value,
+        jumlah_tanaman: parseInt(document.getElementById("input-jumlah").value),
+        tanggal_panen: document.getElementById("input-tanggal").value,
+        hasil_kg: parseFloat(document.getElementById("input-kg").value),
+        harga_per_kg: parseFloat(document.getElementById("input-harga").value)
       };
 
-      const { error } = await supabaseClient.from('info_tani').insert([payload]);
-      if (error) alert("Gagal menyimpan data: " + error.message);
-      else {
+      const { error } = await supabaseClient.from('pencatatan_pertanian').insert([payload]);
+
+      if (error) {
+        alert("Gagal menyimpan catatan: " + error.message);
+      } else {
         closeModal();
-        fetchData();
+        e.target.reset();
+        document.getElementById("label-total-panen").innerText = "Rp 0";
+        fetchDataPembukuan();
       }
     }
 
-    async function handleDelete(id) {
-      if (!confirm("Hapus data ini?")) return;
-      await supabaseClient.from('info_tani').delete().eq('id', id);
-      fetchData();
+    // 6. HAPUS DATA
+    async function handleDeletePanen(id) {
+      if (!confirm("Apakah Anda yakin ingin menghapus catatan panen ini?")) return;
+      await supabaseClient.from('pencatatan_pertanian').delete().eq('id', id);
+      fetchDataPembukuan();
     }
 
     async function handleLogout() {
