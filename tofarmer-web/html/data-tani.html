@@ -296,6 +296,15 @@
     margin-bottom: 15px;
   }
 
+
+  .commodity-panel { margin-bottom: 22px; padding: 18px; border: 1px solid rgba(74,222,128,.18); border-radius: 18px; background: rgba(18,35,24,.45); }
+  .commodity-filter { width:100%; padding:12px 14px; border-radius:12px; background:rgba(18,35,24,.8); border:1px solid rgba(74,222,128,.2); color:#f8fafc; font-family:inherit; outline:none; }
+  .commodity-filter option { color:#111; background:#fff; }
+  .year-group { margin: 0 0 18px; padding: 14px; border-left: 3px solid #22c55e; background: rgba(7,14,10,.35); border-radius: 0 14px 14px 0; }
+  .year-title { color:#fde047; font-weight:800; margin-bottom:8px; }
+  .commodity-title { color:#a7f3d0; font-size:1.05rem; font-weight:800; margin-bottom:12px; }
+  .history-empty { text-align:center; color:#84a98c; padding:22px; }
+
   .hidden { display: none !important; }
 
   @media(max-width: 768px) {
@@ -348,6 +357,17 @@
         <div id="total-pendapatan-global" class="total-val">Rp 0</div>
       </div>
 
+      <!-- RIWAYAT BERDASARKAN KOMODITAS -->
+      <div class="commodity-panel">
+        <label for="commodity-filter" style="display:block; font-size:.75rem; color:#a7f3d0; margin-bottom:7px; text-transform:uppercase; font-weight:800;">
+          Riwayat Komoditas
+        </label>
+        <select id="commodity-filter" class="commodity-filter" onchange="filterCommodityHistory()">
+          <option value="">Semua Komoditas</option>
+        </select>
+        <div id="commodity-summary" style="margin-top:9px; font-size:.78rem; color:#84a98c;">Pilih komoditas untuk melihat catatan lintas tahun.</div>
+      </div>
+
       <!-- TABEL CATATAN PANEN -->
       <section>
         <div class="section-title">
@@ -396,7 +416,7 @@
         <!-- 1. Nama Tanaman -->
         <div class="form-group">
           <label>Nama Tanaman / Komoditas</label>
-          <input type="text" id="input-tanaman" class="form-input" required placeholder="Misal: Cabai Rawit, Kopi, Cengkeh">
+          <input type="text" id="input-tanaman" class="form-input" required placeholder="Misal: Kakao, Panili, Kopi">
         </div>
 
         <!-- 2. Jumlah Tanaman & Tanggal Panen -->
@@ -623,6 +643,7 @@
         container.classList.remove("hidden");
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#84a98c; padding:20px;">Silakan <b>LOGIN PETANI</b> terlebih dahulu untuk mengelola pembukuan pribadi Anda.</td></tr>`;
         document.getElementById("total-pendapatan-global").innerText = "Rp 0";
+        updateCommodityFilter([]);
         return;
       }
 
@@ -644,65 +665,155 @@
 
       if (error) {
         console.error("Gagal mengambil data pembukuan:", error);
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:20px;">Gagal memuat data: ${error.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:20px;">Gagal memuat data: ${escapeHtml(error.message)}</td></tr>`;
+        updateCommodityFilter([]);
         return;
       }
 
-      const totalAkumulasi = (data || []).reduce((acc, item) => acc + (item.total_pendapatan || (item.hasil_kg * item.harga_per_kg)), 0);
-      document.getElementById("total-pendapatan-global").innerText = "Rp " + Math.round(totalAkumulasi).toLocaleString("id-ID");
+      window.panenRecords = data || [];
+      updateCommodityFilter(window.panenRecords);
+      renderCommodityHistory(window.panenRecords);
+    }
 
-      if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#84a98c;">Belum ada catatan panen pada kategori ini.</td></tr>`;
+    function getCommodity(item) {
+      return (item.nama_tanaman || 'Tanpa Komoditas').trim();
+    }
+
+    function updateCommodityFilter(data) {
+      const select = document.getElementById('commodity-filter');
+      if (!select) return;
+
+      const oldValue = select.value;
+      const names = [...new Set((data || []).map(getCommodity))]
+        .filter(Boolean)
+        .sort((a,b) => a.localeCompare(b, 'id'));
+
+      select.innerHTML = '<option value="">Semua Komoditas</option>';
+      names.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        select.appendChild(option);
+      });
+
+      if (names.includes(oldValue)) select.value = oldValue;
+    }
+
+    function filterCommodityHistory() {
+      renderCommodityHistory(window.panenRecords || []);
+    }
+
+    function renderCommodityHistory(data) {
+      const tbody = document.getElementById('pembukuan-tbody');
+      const select = document.getElementById('commodity-filter');
+      const summary = document.getElementById('commodity-summary');
+      if (!tbody) return;
+
+      const selected = select ? select.value : '';
+      const filtered = selected
+        ? (data || []).filter(item => getCommodity(item) === selected)
+        : (data || []);
+
+      const totalAkumulasi = filtered.reduce((acc, item) => {
+        return acc + Number(item.total_pendapatan || (Number(item.hasil_kg || 0) * Number(item.harga_per_kg || 0)));
+      }, 0);
+      document.getElementById('total-pendapatan-global').innerText = 'Rp ' + Math.round(totalAkumulasi).toLocaleString('id-ID');
+
+      if (summary) {
+        summary.textContent = selected
+          ? `${filtered.length} catatan ${selected}, tersusun dari tahun ke tahun.`
+          : `${filtered.length} catatan dari semua komoditas.`;
+      }
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="8" class="history-empty">Belum ada catatan ${selected ? 'untuk komoditas ' + escapeHtml(selected) : 'panen'}.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = data.map(item => {
-        const isOwner = currentUser && currentUser.id === item.user_id;
-        const totalRp = item.total_pendapatan || (item.hasil_kg * item.harga_per_kg);
-        const badgePublic = item.is_public ? '<span style="color:#4ade80;">[Publik]</span>' : '<span style="color:#84a98c;">[Pribadi]</span>';
+      // Komoditas -> Tahun -> catatan. Ini membuat Kakao tetap menjadi riwayat Kakao
+      // walaupun pencatatan berlanjut 2026, 2027, 2028, dst.
+      const groups = {};
+      filtered.forEach(item => {
+        const commodity = getCommodity(item);
+        const year = item.tanggal_panen ? new Date(item.tanggal_panen).getFullYear() : 'Tanpa Tahun';
+        if (!groups[commodity]) groups[commodity] = {};
+        if (!groups[commodity][year]) groups[commodity][year] = [];
+        groups[commodity][year].push(item);
+      });
 
-        return `
-          <tr>
-            <td>${new Date(item.tanggal_panen).toLocaleDateString('id-ID')}</td>
-            <td style="font-weight:700; color:#f8fafc;">${item.nama_tanaman}</td>
-            <td>${item.jumlah_tanaman} phn</td>
-            <td>${item.hasil_kg} kg</td>
-            <td>Rp ${parseInt(item.harga_per_kg).toLocaleString('id-ID')}</td>
-            <td style="font-weight:800; color:#4ade80;">Rp ${parseInt(totalRp).toLocaleString('id-ID')}</td>
-            <td>${badgePublic}</td>
-            <td>
-              ${isOwner ? `
-                <button onclick="handleDeletePanen('${item.id}')" style="background:none; border:none; color:#ef4444; font-size:.75rem; cursor:pointer;">[Hapus]</button>
-              ` : '-'}
-            </td>
-          </tr>
-        `;
-      }).join('');
+      const orderedCommodities = Object.keys(groups).sort((a,b) => a.localeCompare(b, 'id'));
+      let rows = '';
+
+      orderedCommodities.forEach(commodity => {
+        const years = Object.keys(groups[commodity]).sort((a,b) => Number(b) - Number(a));
+        rows += `<tr><td colspan="8" style="padding:18px 16px 8px; color:#fde047; font-size:1rem; font-weight:800; background:rgba(22,46,31,.35);">🌱 ${escapeHtml(commodity)}</td></tr>`;
+
+        years.forEach(year => {
+          rows += `<tr><td colspan="8" style="padding:8px 16px; color:#a7f3d0; font-weight:800; background:rgba(7,14,10,.35);">📅 Tahun ${escapeHtml(String(year))}</td></tr>`;
+          groups[commodity][year].forEach(item => {
+            const isOwner = currentUser && currentUser.id === item.user_id;
+            const totalRp = Number(item.total_pendapatan || (Number(item.hasil_kg || 0) * Number(item.harga_per_kg || 0)));
+            const badgePublic = item.is_public ? '<span style="color:#4ade80;">[Publik]</span>' : '<span style="color:#84a98c;">[Pribadi]</span>';
+            rows += `
+              <tr>
+                <td>${item.tanggal_panen ? new Date(item.tanggal_panen).toLocaleDateString('id-ID') : '-'}</td>
+                <td style="font-weight:700; color:#f8fafc;">${escapeHtml(getCommodity(item))}</td>
+                <td>${Number(item.jumlah_tanaman || 0).toLocaleString('id-ID')} phn</td>
+                <td>${Number(item.hasil_kg || 0).toLocaleString('id-ID')} kg</td>
+                <td>Rp ${Number(item.harga_per_kg || 0).toLocaleString('id-ID')}</td>
+                <td style="font-weight:800; color:#4ade80;">Rp ${Math.round(totalRp).toLocaleString('id-ID')}</td>
+                <td>${badgePublic}</td>
+                <td>${isOwner ? `<button onclick="handleDeletePanen('${item.id}')" style="background:none;border:none;color:#ef4444;font-size:.75rem;cursor:pointer;">[Hapus]</button>` : '-'}</td>
+              </tr>`;
+          });
+        });
+      });
+
+      tbody.innerHTML = rows;
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
     }
 
     async function handleSavePanen(e) {
       e.preventDefault();
 
-      if (!currentUser) return;
+      if (!currentUser || !currentUser.id) {
+        alert('Login belum terdeteksi. Silakan login kembali.');
+        return;
+      }
+
+      const komoditas = document.getElementById('input-tanaman').value.trim();
+      if (!komoditas) {
+        alert('Nama komoditas wajib diisi.');
+        return;
+      }
 
       const payload = {
         user_id: currentUser.id,
-        nama_tanaman: document.getElementById("input-tanaman").value,
-        jumlah_tanaman: parseInt(document.getElementById("input-jumlah").value) || 0,
-        tanggal_panen: document.getElementById("input-tanggal").value,
-        hasil_kg: parseFloat(document.getElementById("input-kg").value) || 0,
-        harga_per_kg: parseFloat(document.getElementById("input-harga").value) || 0,
-        is_public: document.getElementById("input-is-public").checked
+        nama_tanaman: komoditas,
+        jumlah_tanaman: parseInt(document.getElementById('input-jumlah').value) || 0,
+        tanggal_panen: document.getElementById('input-tanggal').value,
+        hasil_kg: parseFloat(document.getElementById('input-kg').value) || 0,
+        harga_per_kg: parseFloat(document.getElementById('input-harga').value) || 0,
+        is_public: document.getElementById('input-is-public').checked
       };
 
       const { error } = await supabaseClient.from('pencatatan_pertanian').insert([payload]);
 
       if (error) {
-        alert("Gagal menyimpan catatan: " + error.message);
+        console.error('Gagal menyimpan catatan:', error);
+        alert('Gagal menyimpan catatan: ' + error.message);
       } else {
         closeModal();
         e.target.reset();
-        document.getElementById("label-total-panen").innerText = "Rp 0";
+        document.getElementById('label-total-panen').innerText = 'Rp 0';
         fetchDataPembukuan();
       }
     }
