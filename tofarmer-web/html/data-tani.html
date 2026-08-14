@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Info Tani - Ekosistem</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-emerald-50 text-slate-800 min-h-screen pb-20 font-sans">
+
+  <!-- NAVBAR -->
+  <header class="bg-emerald-700 text-white p-4 shadow-md sticky top-0 z-30">
+    <div class="max-w-4xl mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold flex items-center gap-2">
+        🌾 <span>Info Tani</span>
+      </h1>
+      <div id="auth-status-container">
+        <!-- Render status login -->
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-4 space-y-6">
+
+    <!-- HEADER & ACTION -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-emerald-100">
+      <div>
+        <h2 class="text-lg font-bold text-emerald-900">Eksplorasi Data Tani</h2>
+        <p class="text-xs text-slate-500">Pengunjung umum bisa melihat-lihat, login untuk berkontribusi</p>
+      </div>
+      <button onclick="handleCheckAuthAndOpenInput()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl shadow transform active:scale-95 transition flex items-center justify-center gap-2">
+        <span class="text-xl">+</span> Tambah Data Baru
+      </button>
+    </div>
+
+    <!-- FILTER BUTTONS -->
+    <section class="space-y-2">
+      <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori Cepat:</p>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="filterData('semua')" class="bg-emerald-800 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm">Semua</button>
+        <button onclick="filterData('Pangan')" class="bg-white text-emerald-800 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-100">🌾 Pangan</button>
+        <button onclick="filterData('Sayur')" class="bg-white text-emerald-800 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-100">🥬 Sayuran</button>
+        <button onclick="filterData('Pupuk')" class="bg-white text-emerald-800 border border-emerald-200 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-100">🧪 Pupuk</button>
+      </div>
+    </section>
+
+    <!-- KONTEN CARD -->
+    <section>
+      <div id="loading-spinner" class="text-center py-10 text-emerald-700 font-bold">Memuat data...</div>
+      <div id="data-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4 hidden"></div>
+    </section>
+
+  </main>
+
+  <!-- MODAL LOGIN -->
+  <div id="modal-login" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold text-slate-800">Masuk untuk Input Data</h3>
+        <button onclick="closeModal('modal-login')" class="text-slate-400 text-xl font-bold">&times;</button>
+      </div>
+      <form onsubmit="handleLogin(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Email / WhatsApp</label>
+          <input type="email" id="login-input" required placeholder="email@contoh.com" class="w-full border rounded-xl p-3 text-sm focus:ring-2 focus:ring-emerald-500 outline-none">
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow hover:bg-emerald-700 transition">Kirim Link Masuk</button>
+      </form>
+      <button onclick="loginWithGoogle()" class="w-full border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-3 rounded-xl flex items-center justify-center gap-2 text-sm">
+        Masuk dengan Google
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL INPUT DATA -->
+  <div id="modal-input" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-bold text-slate-800">Tambah Info Tani</h3>
+        <button onclick="closeModal('modal-input')" class="text-slate-400 text-xl font-bold">&times;</button>
+      </div>
+      <form onsubmit="handleSaveData(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Nama Barang / Info</label>
+          <input type="text" id="input-nama" required placeholder="Misal: Gabah Kering" class="w-full border rounded-xl p-3 text-sm outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Kategori</label>
+          <select id="input-kategori" class="w-full border rounded-xl p-3 text-sm outline-none">
+            <option value="Pangan">🌾 Pangan</option>
+            <option value="Sayur">🥬 Sayuran</option>
+            <option value="Pupuk">🧪 Pupuk</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Harga / Catatan</label>
+          <input type="text" id="input-harga" placeholder="Rp 6.500/kg" class="w-full border rounded-xl p-3 text-sm outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Kontak WA</label>
+          <input type="tel" id="input-kontak" placeholder="08123456789" class="w-full border rounded-xl p-3 text-sm outline-none">
+        </div>
+        <button type="submit" id="btn-simpan" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow">Simpan</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let allData = [];
+    let currentUser = null;
+    let currentProfile = null;
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      await checkUserSession();
+      fetchData();
+    });
+
+    // 1. CEK SESSION & SINKRONKAN KE TABEL PROFILES
+    async function checkUserSession() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      currentUser = session ? session.user : null;
+
+      if (currentUser) {
+        // Ambil atau buat data di tabel profiles jika belum ada
+        currentProfile = await ensureProfileExists(currentUser);
+      } else {
+        currentProfile = null;
+      }
+
+      renderAuthStatus();
+
+      supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+        currentUser = session ? session.user : null;
+        if (currentUser) {
+          currentProfile = await ensureProfileExists(currentUser);
+        } else {
+          currentProfile = null;
+        }
+        renderAuthStatus();
+      });
+    }
+
+    // Fungsi Otomatis Sinkronkan User Auth ke Tabel Profiles
+    async function ensureProfileExists(user) {
+      // Cek apakah profil sudah ada berdasarkan ID (text)
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profile) return profile;
+
+      // Jika belum ada, buat username default unik
+      const baseUsername = user.email ? user.email.split('@')[0] : 'grower_' + Math.floor(Math.random() * 1000);
+      
+      const newProfile = {
+        id: user.id, // Menyimpan ID user Auth sebagai Text
+        username: baseUsername,
+        real_name: user.user_metadata?.full_name || baseUsername,
+        rank: 'GROWER',
+        level: 1
+      };
+
+      const { data: inserted, error } = await supabaseClient
+        .from('profiles')
+        .insert([newProfile])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Gagal buat profil:", error);
+        return null;
+      }
+      return inserted;
+    }
+
+    function renderAuthStatus() {
+      const container = document.getElementById("auth-status-container");
+      if (currentUser && currentProfile) {
+        container.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="text-xs bg-emerald-800 px-3 py-1.5 rounded-full font-medium">🌱 @${currentProfile.username} (${currentProfile.rank})</span>
+            <button onclick="handleLogout()" class="text-xs bg-red-500 hover:bg-red-600 px-3 py-1.5 rounded-full font-bold">Keluar</button>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <button onclick="openModal('modal-login')" class="text-xs bg-emerald-600 hover:bg-emerald-500 border border-emerald-400 px-4 py-2 rounded-full font-bold">Masuk Admin</button>
+        `;
+      }
+    }
+
+    // 2. FETCH DATA (MENGAMBIL USERNAME DARI PROFILES)
+    async function fetchData() {
+      const spinner = document.getElementById("loading-spinner");
+      const grid = document.getElementById("data-grid");
+
+      // Mengambil data info_tani beserta username & rank dari profiles
+      const { data, error } = await supabaseClient
+        .from('info_tani')
+        .select(`
+          *,
+          profiles:user_id ( username, rank, real_name )
+        `)
+        .order('created_at', { ascending: false });
+
+      spinner.classList.add("hidden");
+      grid.classList.remove("hidden");
+
+      if (error) {
+        console.error("Error:", error);
+        return;
+      }
+
+      allData = data || [];
+      renderCards(allData);
+    }
+
+    // 3. RENDER DATA KE PUBLIK
+    function renderCards(dataList) {
+      const grid = document.getElementById("data-grid");
+      if (dataList.length === 0) {
+        grid.innerHTML = `<p class="col-span-2 text-center text-slate-400 py-6">Belum ada data.</p>`;
+        return;
+      }
+
+      grid.innerHTML = dataList.map(item => {
+        // Ambil data dari tabel profiles yang tersinkron
+        const username = item.profiles?.username || 'Anonim';
+        const rank = item.profiles?.rank || 'GROWER';
+        const isOwner = currentUser && currentUser.id === item.user_id;
+
+        return `
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-emerald-100 flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start mb-2">
+                <span class="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800">${item.kategori || 'Umum'}</span>
+                <span class="text-[10px] text-slate-400">${new Date(item.created_at).toLocaleDateString('id-ID')}</span>
+              </div>
+              <h3 class="font-bold text-slate-800 text-base mb-1">${item.nama}</h3>
+              <p class="text-emerald-700 font-extrabold text-lg mb-2">${item.harga || '-'}</p>
+              
+              <!-- Menampilkan username dari tabel profiles -->
+              <div class="text-[11px] text-slate-500 flex items-center gap-1 mb-3">
+                <span>👨‍🌾 Kontributor:</span>
+                <span class="font-bold text-slate-700">@${username}</span>
+                <span class="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded">${rank}</span>
+              </div>
+            </div>
+            
+            <div class="pt-3 border-t border-slate-100 flex justify-between items-center">
+              ${item.kontak ? `
+                <a href="https://wa.me/${item.kontak.replace(/[^0-9]/g, '')}" target="_blank" class="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-2 px-4 rounded-xl">💬 Hubungi (WA)</a>
+              ` : '<span></span>'}
+              
+              ${isOwner ? `
+                <button onclick="handleDelete('${item.id}')" class="text-xs text-red-500 hover:text-red-700 font-semibold">Hapus</button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function filterData(kategori) {
+      if (kategori === 'semua') renderCards(allData);
+      else renderCards(allData.filter(d => d.kategori === kategori));
+    }
+
+    function handleCheckAuthAndOpenInput() {
+      if (!currentUser) openModal('modal-login');
+      else openModal('modal-input');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById("login-input").value;
+      const { error } = await supabaseClient.auth.signInWithOtp({ email });
+      if (error) alert("Gagal: " + error.message);
+      else {
+        alert("Link masuk dikirim ke email!");
+        closeModal('modal-login');
+      }
+    }
+
+    async function loginWithGoogle() {
+      await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
+    }
+
+    async function handleLogout() {
+      await supabaseClient.auth.signOut();
+      location.reload();
+    }
+
+    async function handleSaveData(e) {
+      e.preventDefault();
+      const payload = {
+        nama: document.getElementById("input-nama").value,
+        kategori: document.getElementById("input-kategori").value,
+        harga: document.getElementById("input-harga").value,
+        kontak: document.getElementById("input-kontak").value,
+        user_id: currentUser.id // Relasi langsung ke profiles.id
+      };
+
+      const { error } = await supabaseClient.from('info_tani').insert([payload]);
+      if (error) alert("Gagal simpan: " + error.message);
+      else {
+        closeModal('modal-input');
+        fetchData();
+      }
+    }
+
+    async function handleDelete(id) {
+      if (!confirm("Hapus data ini?")) return;
+      await supabaseClient.from('info_tani').delete().eq('id', id);
+      fetchData();
+    }
+
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+  </script>
+</body>
+</html>
