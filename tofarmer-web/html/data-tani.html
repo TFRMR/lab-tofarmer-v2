@@ -366,7 +366,6 @@
                 <th>Hasil (Kg)</th>
                 <th>Harga / Kg</th>
                 <th>Total Pendapatan</th>
-                <th>Petani</th>
                 <th>Status</th>
                 <th>Aksi</th>
               </tr>
@@ -450,16 +449,13 @@
 
     let currentUser = null;
     let currentProfile = null;
-    let currentTab = 'pribadi'; // State TAB: 'pribadi' atau 'publik'
+    let currentTab = 'pribadi';
 
     document.addEventListener("DOMContentLoaded", async () => {
       document.getElementById('input-tanggal').valueAsDate = new Date();
-      
-      // Init Auth tanpa redirect paksa
       await initAuth();
     });
 
-    // 1. PENANGANAN AUTHENTICATION TANPA LOOPING
     async function initAuth() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       
@@ -474,7 +470,6 @@
       renderAuthNav();
       fetchDataPembukuan();
 
-      // Monitor perubahan Auth secara Realtime
       supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
           currentUser = session.user;
@@ -491,66 +486,65 @@
     }
 
     async function ensureProfileExists(user) {
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+      try {
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
 
-      if (profile) return profile;
+        if (profile) return profile;
 
-      const baseUsername = user.email ? user.email.split('@')[0] : 'grower_' + Math.floor(Math.random() * 1000);
-      const newProfile = {
-        id: user.id,
-        username: baseUsername,
-        real_name: user.user_metadata?.full_name || baseUsername,
-        rank: 'GROWER',
-        level: 1
-      };
+        const baseUsername = user.email ? user.email.split('@')[0] : 'petani_' + Math.floor(Math.random() * 1000);
+        const newProfile = {
+          id: user.id,
+          username: baseUsername,
+          real_name: user.user_metadata?.full_name || baseUsername,
+          rank: 'GROWER',
+          level: 1
+        };
 
-      const { data: inserted } = await supabaseClient
-        .from('profiles')
-        .insert([newProfile])
-        .select()
-        .single();
+        const { data: inserted } = await supabaseClient
+          .from('profiles')
+          .insert([newProfile])
+          .select()
+          .single();
 
-      return inserted;
+        return inserted || newProfile;
+      } catch (err) {
+        console.warn("Profil gagal dibaca:", err);
+        return { username: user.email ? user.email.split('@')[0] : 'Petani' };
+      }
     }
 
-    // Gantilah fungsi renderAuthNav dengan ini:
-function renderAuthNav() {
-  const container = document.getElementById("auth-status");
-  if (currentUser && currentProfile) {
-    container.innerHTML = `
-      <div class="top-btn" style="background:rgba(34, 197, 94, 0.2);">
-        🌱 @${currentProfile.username}
-        <span onclick="handleLogout()" style="margin-left:8px; color:#ef4444; cursor:pointer;">(Keluar)</span>
-      </div>
-    `;
-  } else {
-    // Arahkan login dengan menyertakan lokasi halaman saat ini
-    const currentPath = encodeURIComponent(window.location.pathname);
-    container.innerHTML = `
-      <a href="/html/login.html?redirect=${currentPath}" class="top-btn" style="border-color:rgba(234, 179, 8, 0.4);">
-        LOGIN PETANI
-      </a>
-    `;
-  }
-}
+    function renderAuthNav() {
+      const container = document.getElementById("auth-status");
+      if (currentUser && currentProfile) {
+        container.innerHTML = `
+          <div class="top-btn" style="background:rgba(34, 197, 94, 0.2);">
+            🌱 @${currentProfile.username || 'Petani'}
+            <span onclick="handleLogout()" style="margin-left:8px; color:#ef4444; cursor:pointer;">(Keluar)</span>
+          </div>
+        `;
+      } else {
+        const currentPath = encodeURIComponent(window.location.pathname);
+        container.innerHTML = `
+          <a href="/html/login.html?redirect=${currentPath}" class="top-btn" style="border-color:rgba(234, 179, 8, 0.4);">
+            LOGIN PETANI
+          </a>
+        `;
+      }
+    }
 
-// Gantilah fungsi handleCheckAuthAndOpenInput dengan ini:
-function handleCheckAuthAndOpenInput() {
-  if (!currentUser) {
-    const currentPath = encodeURIComponent(window.location.pathname);
-    window.location.href = `/html/login.html?redirect=${currentPath}`;
-  } else {
-    document.getElementById("modal-input").classList.remove("hidden");
-  }
-}
+    function handleCheckAuthAndOpenInput() {
+      if (!currentUser) {
+        const currentPath = encodeURIComponent(window.location.pathname);
+        window.location.href = `/html/login.html?redirect=${currentPath}`;
+      } else {
+        document.getElementById("modal-input").classList.remove("hidden");
+      }
+    }
 
-    
-
-    // 2. LOGIKA SWITCH TAB (PRIBADI vs PUBLIK)
     function switchTab(tabName) {
       currentTab = tabName;
       
@@ -572,7 +566,7 @@ function handleCheckAuthAndOpenInput() {
       fetchDataPembukuan();
     }
 
-    // 3. FETCH DATA TERTENTU SESUAI TAB
+    // QUERY AMAN TANPA DEPENDENCY RELASI FOREIGN KEY SUPABASE
     async function fetchDataPembukuan() {
       const spinner = document.getElementById("loading-spinner");
       const container = document.getElementById("table-container");
@@ -581,18 +575,17 @@ function handleCheckAuthAndOpenInput() {
       spinner.classList.remove("hidden");
       container.classList.add("hidden");
 
-      // Cek jika tab pribadi tapi belum login
       if (currentTab === 'pribadi' && !currentUser) {
         spinner.classList.add("hidden");
         container.classList.remove("hidden");
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#84a98c; padding:20px;">Silakan <b>LOGIN PETANI</b> terlebih dahulu untuk mengelola pembukuan pribadi Anda.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#84a98c; padding:20px;">Silakan <b>LOGIN PETANI</b> terlebih dahulu untuk mengelola pembukuan pribadi Anda.</td></tr>`;
         document.getElementById("total-pendapatan-global").innerText = "Rp 0";
         return;
       }
 
       let query = supabaseClient
         .from('pencatatan_pertanian')
-        .select(`*, profiles:user_id ( username )`)
+        .select('*')
         .order('tanggal_panen', { ascending: false });
 
       if (currentTab === 'pribadi') {
@@ -608,20 +601,19 @@ function handleCheckAuthAndOpenInput() {
 
       if (error) {
         console.error("Gagal mengambil data pembukuan:", error);
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:20px;">Gagal memuat data: ${error.message}</td></tr>`;
         return;
       }
 
-      // Hitung akumulasi
       const totalAkumulasi = (data || []).reduce((acc, item) => acc + (item.total_pendapatan || (item.hasil_kg * item.harga_per_kg)), 0);
-      document.getElementById("total-pendapatan-global").innerText = "Rp " + totalAkumulasi.toLocaleString("id-ID");
+      document.getElementById("total-pendapatan-global").innerText = "Rp " + Math.round(totalAkumulasi).toLocaleString("id-ID");
 
       if (!data || data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:#84a98c;">Belum ada catatan panen pada kategori ini.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#84a98c;">Belum ada catatan panen pada kategori ini.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = data.map(item => {
-        const username = item.profiles?.username || 'Anonim';
         const isOwner = currentUser && currentUser.id === item.user_id;
         const totalRp = item.total_pendapatan || (item.hasil_kg * item.harga_per_kg);
         const badgePublic = item.is_public ? '<span style="color:#4ade80;">[Publik]</span>' : '<span style="color:#84a98c;">[Pribadi]</span>';
@@ -634,7 +626,6 @@ function handleCheckAuthAndOpenInput() {
             <td>${item.hasil_kg} kg</td>
             <td>Rp ${parseInt(item.harga_per_kg).toLocaleString('id-ID')}</td>
             <td style="font-weight:800; color:#4ade80;">Rp ${parseInt(totalRp).toLocaleString('id-ID')}</td>
-            <td style="color:#eab308;">@${username}</td>
             <td>${badgePublic}</td>
             <td>
               ${isOwner ? `
@@ -646,7 +637,6 @@ function handleCheckAuthAndOpenInput() {
       }).join('');
     }
 
-    // 4. SIMPAN DATA PANEN BARU
     async function handleSavePanen(e) {
       e.preventDefault();
 
@@ -655,10 +645,10 @@ function handleCheckAuthAndOpenInput() {
       const payload = {
         user_id: currentUser.id,
         nama_tanaman: document.getElementById("input-tanaman").value,
-        jumlah_tanaman: parseInt(document.getElementById("input-jumlah").value),
+        jumlah_tanaman: parseInt(document.getElementById("input-jumlah").value) || 0,
         tanggal_panen: document.getElementById("input-tanggal").value,
-        hasil_kg: parseFloat(document.getElementById("input-kg").value),
-        harga_per_kg: parseFloat(document.getElementById("input-harga").value),
+        hasil_kg: parseFloat(document.getElementById("input-kg").value) || 0,
+        harga_per_kg: parseFloat(document.getElementById("input-harga").value) || 0,
         is_public: document.getElementById("input-is-public").checked
       };
 

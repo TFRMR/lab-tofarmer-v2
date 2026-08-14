@@ -127,7 +127,7 @@ async function handleLogin(event) {
 
         // Redirect
         setTimeout(() => {
-            window.location.href = redirectTo || '/index.html';
+            window.location.href = redirectTo || '/';
         }, 500);
 
     } catch (err) {
