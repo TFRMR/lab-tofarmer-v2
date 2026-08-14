@@ -333,20 +333,17 @@
             margin: 16px 0;
         }
         .data-tool-btn {
-            border: 1px solid rgba(74,222,128,.3);
+            border: 1px solid rgba(255,255,255,.14);
             border-radius: 9px;
-            padding: 9px 16px;
+            padding: 9px 14px;
             cursor: pointer;
             font-size: 13px;
             font-weight: 700;
-            background: rgba(22,46,31,.6);
-            color: #a7f3d0;
-            transition: .3s;
+            background: rgba(255,255,255,.06);
+            color: inherit;
         }
         .data-tool-btn:hover {
-            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
-            color: #050b07;
-            border-color: #4ade80;
+            opacity: .85;
         }
 
         @media print {
@@ -377,8 +374,8 @@
 
             #print-area .record-actions,
             #print-area .data-tools,
-            #print-area #commodity-filter,
-            #print-area #commodity-summary {
+            #print-area #komoditas-filter,
+            #print-area #komoditas-summary {
                 display: none !important;
             }
 
@@ -448,16 +445,6 @@
       <div class="rekap-card">
         <h3 id="label-rekap">Total Pendapatan Saya</h3>
         <div id="total-pendapatan-global" class="total-val">Rp 0</div>
-      </div>
-
-      <!-- TOMBOL TOOL EKSPOR / PRINT -->
-      <div class="data-tools">
-        <button type="button" class="data-tool-btn" onclick="exportDataCSV()">
-          📥 Ekspor CSV / Excel
-        </button>
-        <button type="button" class="data-tool-btn" onclick="printDataPDF()">
-          🖨️ Cetak / Simpan PDF
-        </button>
       </div>
 
       <!-- RIWAYAT BERDASARKAN KOMODITAS -->
@@ -782,10 +769,6 @@
       return (item.nama_tanaman || 'Tanpa Komoditas').trim();
     }
 
-    function getRecordCommodity(item) {
-      return getCommodity(item);
-    }
-
     function updateCommodityFilter(data) {
       const select = document.getElementById('commodity-filter');
       if (!select) return;
@@ -882,7 +865,7 @@
     
 function getExportRows() {
     const rows = window.panenRecords || [];
-    const select = document.getElementById("commodity-filter");
+    const select = document.getElementById("komoditas-filter");
     const selected = select ? select.value : "";
 
     return selected
@@ -908,7 +891,7 @@ function exportDataCSV() {
         return;
     }
 
-    const selected = document.getElementById("commodity-filter")?.value || "";
+    const selected = document.getElementById("komoditas-filter")?.value || "";
     const headers = [
         "Komoditas",
         "Tanggal Panen",
@@ -937,8 +920,7 @@ function exportDataCSV() {
     });
 
     // BOM agar Excel/Spreadsheet membaca UTF-8 dengan benar.
-    const csv = "﻿" + csvRows.join("
-");
+    const csv = "\uFEFF" + csvRows.join("\r\n");
     const blob = new Blob([csv], {
         type: "text/csv;charset=utf-8;"
     });
@@ -975,7 +957,7 @@ function printDataPDF() {
         return;
     }
 
-    const selected = document.getElementById("commodity-filter")?.value || "";
+    const selected = document.getElementById("komoditas-filter")?.value || "";
     const username = currentProfile?.username || currentUser?.username || "";
 
     const detail = document.getElementById("print-header-detail");
@@ -1130,9 +1112,7 @@ function escapeHtml(value) {
 
       const komoditas = item.nama_tanaman || 'catatan ini';
       const tanggal = item.tanggal_panen ? new Date(item.tanggal_panen).toLocaleDateString('id-ID') : '-';
-      if (!confirm(`Hapus catatan ${komoditas} tanggal ${tanggal}?
-
-Data yang dihapus tidak dapat dikembalikan.`)) return;
+      if (!confirm(`Hapus catatan ${komoditas} tanggal ${tanggal}?\n\nData yang dihapus tidak dapat dikembalikan.`)) return;
 
       try {
         const { error } = await supabaseClient
