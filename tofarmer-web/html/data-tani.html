@@ -313,7 +313,19 @@
     .grid-table { font-size: .75rem; }
     .grid-table th, .grid-table td { padding: 8px 10px; }
   }
-  </style>
+  
+  .aksi-wrap{display:flex;gap:6px;flex-wrap:wrap;}
+  .aksi-btn{border:0;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:.72rem;font-weight:800;}
+  .aksi-edit{background:rgba(234,179,8,.15);color:#fde047;}
+  .aksi-delete{background:rgba(239,68,68,.15);color:#f87171;}
+  .edit-modal{display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:18px;}
+  .edit-modal.show{display:flex;}
+  .edit-box{width:100%;max-width:460px;background:#111827;border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:22px;box-sizing:border-box;max-height:90vh;overflow:auto;}
+  .edit-box input{width:100%;box-sizing:border-box;padding:11px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#fff;}
+  .edit-actions{display:flex;gap:10px;margin-top:18px;}
+  .edit-actions button{flex:1;}
+
+</style>
 </head>
 <body>
 
@@ -763,7 +775,7 @@
                 <td>Rp ${Number(item.harga_per_kg || 0).toLocaleString('id-ID')}</td>
                 <td style="font-weight:800; color:#4ade80;">Rp ${Math.round(totalRp).toLocaleString('id-ID')}</td>
                 <td>${badgePublic}</td>
-                <td>${isOwner ? `<button onclick="handleDeletePanen('${item.id}')" style="background:none;border:none;color:#ef4444;font-size:.75rem;cursor:pointer;">[Hapus]</button>` : '-'}</td>
+                <td>${isOwner ? `<div class="aksi-wrap"><button class="aksi-btn aksi-edit" onclick="openEditPanen('${item.id}')">✏️ Edit</button><button class="aksi-btn aksi-delete" onclick="handleDeletePanen('${item.id}')">🗑️ Hapus</button></div>` : '-'}</td>
               </tr>`;
           });
         });
@@ -826,10 +838,97 @@
       document.getElementById("label-total-panen").innerText = "Rp " + total.toLocaleString("id-ID");
     }
 
+    function openEditPanen(id) {
+      if (!currentUser || !currentUser.id) { alert('Silakan login terlebih dahulu.'); return; }
+      const item = (window.panenRecords || []).find(x => String(x.id) === String(id));
+      if (!item) { alert('Catatan tidak ditemukan.'); return; }
+      if (String(item.user_id) !== String(currentUser.id)) { alert('Anda hanya dapat mengedit catatan milik sendiri.'); return; }
+
+      document.getElementById('edit-panen-id').value = item.id;
+      document.getElementById('edit-tanaman').value = item.nama_tanaman || '';
+      document.getElementById('edit-jumlah').value = item.jumlah_tanaman ?? 0;
+      document.getElementById('edit-tanggal').value = item.tanggal_panen ? String(item.tanggal_panen).slice(0,10) : '';
+      document.getElementById('edit-kg').value = item.hasil_kg ?? 0;
+      document.getElementById('edit-harga').value = item.harga_per_kg ?? 0;
+      document.getElementById('edit-is-public').checked = !!item.is_public;
+      document.getElementById('edit-panen-modal').classList.add('show');
+    }
+
+    function closeEditPanen() {
+      document.getElementById('edit-panen-modal').classList.remove('show');
+    }
+
+    async function handleUpdatePanen(e) {
+      e.preventDefault();
+      if (!currentUser || !currentUser.id) { alert('Silakan login terlebih dahulu.'); return; }
+
+      const id = document.getElementById('edit-panen-id').value;
+      const item = (window.panenRecords || []).find(x => String(x.id) === String(id));
+      if (!item || String(item.user_id) !== String(currentUser.id)) {
+        alert('Catatan tidak ditemukan atau bukan milik Anda.');
+        return;
+      }
+
+      const btn = document.getElementById('edit-save-btn');
+      btn.disabled = true;
+      btn.textContent = 'MENYIMPAN...';
+
+      try {
+        const payload = {
+          nama_tanaman: document.getElementById('edit-tanaman').value.trim(),
+          jumlah_tanaman: parseInt(document.getElementById('edit-jumlah').value) || 0,
+          tanggal_panen: document.getElementById('edit-tanggal').value,
+          hasil_kg: parseFloat(document.getElementById('edit-kg').value) || 0,
+          harga_per_kg: parseFloat(document.getElementById('edit-harga').value) || 0,
+          is_public: document.getElementById('edit-is-public').checked
+        };
+
+        const { error } = await supabaseClient
+          .from('pencatatan_pertanian')
+          .update(payload)
+          .eq('id', id)
+          .eq('user_id', currentUser.id);
+
+        if (error) throw error;
+
+        closeEditPanen();
+        alert('Catatan berhasil diperbarui.');
+        await fetchDataPembukuan();
+      } catch (error) {
+        console.error('Gagal mengedit catatan:', error);
+        alert('Gagal mengedit catatan: ' + error.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'SIMPAN PERUBAHAN';
+      }
+    }
+
     async function handleDeletePanen(id) {
-      if (!confirm("Apakah Anda yakin ingin menghapus catatan panen ini?")) return;
-      await supabaseClient.from('pencatatan_pertanian').delete().eq('id', id);
-      fetchDataPembukuan();
+      if (!currentUser || !currentUser.id) { alert('Silakan login terlebih dahulu.'); return; }
+      const item = (window.panenRecords || []).find(x => String(x.id) === String(id));
+      if (!item || String(item.user_id) !== String(currentUser.id)) {
+        alert('Catatan tidak ditemukan atau bukan milik Anda.');
+        return;
+      }
+
+      const komoditas = item.nama_tanaman || 'catatan ini';
+      const tanggal = item.tanggal_panen ? new Date(item.tanggal_panen).toLocaleDateString('id-ID') : '-';
+      if (!confirm(`Hapus catatan ${komoditas} tanggal ${tanggal}?\n\nData yang dihapus tidak dapat dikembalikan.`)) return;
+
+      try {
+        const { error } = await supabaseClient
+          .from('pencatatan_pertanian')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', currentUser.id);
+
+        if (error) throw error;
+        alert('Catatan berhasil dihapus.');
+        await fetchDataPembukuan();
+      } catch (error) {
+        console.error('Gagal menghapus catatan:', error);
+        alert('Gagal menghapus catatan: ' + error.message);
+      }
     }
 
     function handleLogout() {
@@ -852,5 +951,35 @@
       document.getElementById("modal-input").classList.add("hidden");
     }
   </script>
+
+<div id="edit-panen-modal" class="edit-modal">
+  <div class="edit-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <h3 style="margin:0;color:#fef08a;">✏️ Edit Catatan Panen</h3>
+      <button type="button" onclick="closeEditPanen()" style="background:none;border:0;color:#84a98c;font-size:1.5rem;cursor:pointer;">&times;</button>
+    </div>
+    <form onsubmit="handleUpdatePanen(event)">
+      <input type="hidden" id="edit-panen-id">
+      <div class="form-group"><label>Nama Tanaman / Komoditas</label><input type="text" id="edit-tanaman" required></div>
+      <div class="form-row">
+        <div class="form-group"><label>Jumlah Tanaman</label><input type="number" id="edit-jumlah" min="0" required></div>
+        <div class="form-group"><label>Tanggal Panen</label><input type="date" id="edit-tanggal" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Hasil Panen (Kg)</label><input type="number" step="0.1" id="edit-kg" min="0" required></div>
+        <div class="form-group"><label>Harga / Kg (Rp)</label><input type="number" id="edit-harga" min="0" required></div>
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+        <input type="checkbox" id="edit-is-public" style="width:18px;">
+        <label for="edit-is-public" style="margin:0;">Bagikan ke Pengetahuan Umum</label>
+      </div>
+      <div class="edit-actions">
+        <button type="button" class="top-btn" onclick="closeEditPanen()">BATAL</button>
+        <button type="submit" class="top-btn" id="edit-save-btn">SIMPAN PERUBAHAN</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 </body>
 </html>
