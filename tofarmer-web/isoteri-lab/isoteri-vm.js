@@ -462,7 +462,18 @@ class IsoteriVM {
 
       // --- WebSocket (lanjutan Milestone B) ---
       case "ws_buka": return bungkusSoket(new WebSocket(teksArg(args[0], "url")));
-      case "ws_kirim": soketDari(args[0]).send(teksArg(args[1], "pesan")); return args[0];
+      case "ws_kirim": {
+        const ws = soketDari(args[0]);
+        const pesan = teksArg(args[1], "pesan");
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(pesan);
+        } else if (ws.readyState === WebSocket.CONNECTING) {
+          ws.addEventListener("open", () => ws.send(pesan), { once: true });
+        } else {
+          throw new IsoteriError(`ws_kirim(): koneksi WebSocket sudah tidak terbuka (status saat ini bukan CONNECTING/OPEN).`);
+        }
+        return args[0];
+      }
       case "ws_tutup": soketDari(args[0]).close(); return KOSONG;
       case "ws_status": {
         const kode = soketDari(args[0]).readyState;

@@ -4,6 +4,8 @@ fungsi ws_pesan_masuk(isi) {
 }
 fungsi ws_terbuka() {
     tampilkan "Koneksi terbuka"
+    ws_kirim(soket, "halo dari isoteri")
+    tampilkan ws_status(soket)
 }
 ingat kanvas = dom_pilih("#papan")
 ingat ctx = dom_konteks_2d(kanvas)
@@ -17,8 +19,6 @@ kanvas_garis_ke(ctx, 50, 50)
 kanvas_garis(ctx)
 kanvas_font(ctx, "16px sans-serif")
 kanvas_isi_teks(ctx, "Halo Kanvas", 5, 90)
-ingat soket = ws_buka("wss://contoh.tidak-nyata.invalid/socket")
+ingat soket = ws_buka("wss://echo.websocket.org")
 ws_ketika_buka(soket, "ws_terbuka")
 ws_ketika_pesan(soket, "ws_pesan_masuk")
-ws_kirim(soket, "halo dari isoteri")
-tampilkan ws_status(soket)
