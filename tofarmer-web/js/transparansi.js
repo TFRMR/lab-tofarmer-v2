@@ -39,18 +39,18 @@ function categorize(note = "") {
 async function getAllWallets() {
   try {
     const { data, error } = await supabaseClient
-      .from("profiles")
+      .from("public_member_profiles") // <-- Membaca dari View khusus
       .select("id, username")
-      .range(0, 999); // Memaksa Supabase menarik hingga 1000 data profil
+      .range(0, 999);
 
     if (error) {
-      console.error("Supabase Profile Error:", error);
+      console.error("Supabase Error:", error);
       return [];
     }
 
     return data || [];
   } catch (err) {
-    console.error("Gagal koneksi ke Supabase:", err);
+    console.error("Gagal koneksi Supabase:", err);
     return [];
   }
 }
