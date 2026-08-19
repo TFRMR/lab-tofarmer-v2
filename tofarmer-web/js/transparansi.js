@@ -6,8 +6,40 @@ const feedEl = document.getElementById("feed");
 const statusEl = document.getElementById("status");
 const syncBtn = document.getElementById("syncBtn");
 
+
 // ============================
-// 1. HELPER & DECODER
+// 1. AMBIL SEMUA WALLET USER
+// ============================
+async function getAllWallets() {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("id, username");
+
+  if (error) {
+    console.error(error);
+    return [];
+  }
+
+  return data;
+}
+
+
+// ============================
+// 2. AMBIL TRANSAKSI ALGONODE
+// ============================
+async function getWalletTx(wallet) {
+  const url =
+    `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}/transactions`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  return data.transactions || [];
+}
+
+
+// ============================
+// 3. DECODE NOTE
 // ============================
 function decodeNote(note) {
   try {
@@ -17,273 +49,282 @@ function decodeNote(note) {
   }
 }
 
+
+// ============================
+// 4. KATEGORI
+// ============================
 function categorize(note = "") {
   const n = note.toUpperCase();
+
   if (!n) return "DANA_MASUK";
+
   if (n.includes("NABUNG")) return "NABUNG_RECEH";
   if (n.includes("REWARD")) return "REWARD";
   if (n.includes("DONASI")) return "DONASI";
   if (n.includes("LIQUID")) return "LIQUIDITAS";
   if (n.includes("TRANSAKSI")) return "TRANSAKSI";
+
   return "DANA_MASUK";
 }
 
-async function getAllWallets() {
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("id, username");
 
-  if (error) {
-    console.error("Gagal mengambil data wallet:", error);
-    return [];
-  }
-  return data;
+// ============================
+// 5. SIMPAN CACHE
+// ============================
+async function saveTx(tx, wallet, username) {
+
+  const amountRaw =
+    tx["asset-transfer-transaction"]?.amount || 0;
+
+  const amount = Number(amountRaw) / 1e6;
+
+  const note = decodeNote(tx.note);
+
+  await supabaseClient.from("tof_history").upsert([{
+    wallet,
+    username,
+    tx_id: tx.id,
+    amount,
+    note,
+    category: categorize(note),
+    sender: tx.sender,
+    receiver: tx["asset-transfer-transaction"]?.receiver,
+    created_at: new Date(tx["round-time"] * 1000)
+  }], {
+    onConflict: "tx_id"
+  });
+
 }
 
-// ============================
-// 2. FETCH ALGONODE DENGAN PAGINATION (TARIK SEMUA SAMPAI AKHIR)
-// ============================
-async function fetchAllWalletTxFromAlgonode(walletId, onProgress) {
-  let allTxs = [];
-  let nextToken = null;
-  let page = 1;
-  const limit = 100; // Pembatasan indexer Algonode per panggil
 
-  do {
-    let url = `https://mainnet-idx.algonode.cloud/v2/accounts/${walletId}/transactions?limit=${limit}`;
-    if (nextToken) {
-      url += `&next=${nextToken}`;
-    }
-
-    if (onProgress) {
-      onProgress(`Mengambil batch ${page} (${allTxs.length} transaksi terkumpul)...`);
-    }
-
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Algonode HTTP error! status: ${res.status}`);
-    
-    const data = await res.json();
-    const txs = data.transactions || [];
-    
-    allTxs = allTxs.concat(txs);
-    nextToken = data['next-token']; // Token untuk transaksi berikutnya
-    page++;
-
-  } while (nextToken);
-
-  return allTxs;
-}
-
-// ============================
-// 3. SYNC BERTAHAP (ON-CHAIN -> SUPABASE)
 // ============================
 async function syncData() {
-  if (syncBtn) syncBtn.disabled = true;
-  
+  const btn = document.getElementById("syncBtn");
+  if (btn) btn.disabled = true;
+  if (statusEl) statusEl.innerText = "🔄 Mengambil data murni dari Blockchain...";
+
   try {
     const wallets = await getAllWallets();
-    let totalSynced = 0;
 
-    for (let i = 0; i < wallets.length; i++) {
-      const user = wallets[i];
-      if (statusEl) {
-        statusEl.innerText = `🔄 [${i + 1}/${wallets.length}] Memproses Wallet ${user.username || user.id}...`;
-      }
+    for (let user of wallets) {
+      const txs = await getWalletTx(user.id);
 
-      // Tarik seluruh transaksi secara bertahap
-      const txs = await fetchAllWalletTxFromAlgonode(user.id, (msg) => {
-        if (statusEl) statusEl.innerText = `🔄 [${user.username}] ${msg}`;
-      });
-
-      // Filter hanya transaksi Asset TOF
+      // Filter hanya transaksi TOF yang valid
       const tofTxs = txs.filter(tx => 
         tx['asset-transfer-transaction']?.['asset-id'] === TOF_ASSET_ID
       );
 
-      if (tofTxs.length > 0) {
-        // Susun payload untuk batch upsert ke Supabase
-        const payload = tofTxs.map(tx => {
-          const transfer = tx['asset-transfer-transaction'];
-          const amountRaw = transfer?.amount || 0; // Angka utuh/micro-units dari blockchain
-          const noteText = decodeNote(tx.note);
-
-          return {
-            wallet: user.id,
-            username: user.username,
-            tx_id: tx.id,
-            amount: Number(amountRaw), // SIMPAN ANGKA BULAT (Aman untuk BIGINT Supabase)
-            note: noteText,
-            category: categorize(noteText),
-            sender: tx.sender,
-            receiver: transfer?.receiver || "",
-            created_at: new Date(tx["round-time"] * 1000).toISOString()
-          };
+      for (let tx of tofTxs) {
+        // AMBIL DATA MURNI ON-CHAIN
+        const transfer = tx['asset-transfer-transaction'];
+        const amountRaw = transfer.amount;
+        const amount = Number(amountRaw) / 1e6; // Pastikan desimal tepat
+        
+        // Tentukan siapa pengirim dan penerima berdasarkan struktur On-Chain
+        const sender = tx.sender;
+        const receiver = transfer.receiver;
+        
+        // Simpan ke Supabase sebagai "Source of Truth"
+        await supabaseClient.from("tof_history").upsert([{
+          wallet: user.id,
+          username: user.username,
+          tx_id: tx.id,
+          amount: amount, 
+          note: decodeNote(tx.note),
+          category: categorize(decodeNote(tx.note)),
+          sender: sender,
+          receiver: receiver,
+          created_at: new Date(tx["round-time"] * 1000)
+        }], {
+          onConflict: "tx_id"
         });
-
-        // Simpan ke Supabase (Menggunakan upsert agar tidak duplikat)
-        const { error } = await supabaseClient
-          .from("tof_history")
-          .upsert(payload, { onConflict: "tx_id" });
-
-        if (error) console.error(`Error saving TX for ${user.id}:`, error);
-        else totalSynced += payload.length;
       }
     }
-
-    if (statusEl) statusEl.innerText = `✅ Sync Selesai! ${totalSynced} transaksi TOF tersimpan di Supabase.`;
-
+    statusEl.innerText = "✅ Data berhasil disinkronisasi dengan Blockchain";
   } catch (error) {
     console.error("Sync Error:", error);
-    if (statusEl) statusEl.innerText = "❌ Gagal sync: " + error.message;
+    statusEl.innerText = "❌ Gagal sync: " + error.message;
   } finally {
-    if (syncBtn) syncBtn.disabled = false;
-    // Refresh tampilan Web utama membaca data Supabase terbaru
-    loadReport();
+    if (btn) btn.disabled = false;
+    loadReport(); // Update tampilan setelah sync selesai
   }
 }
 
 // ============================
-// 4. LOAD REPORT (SUPABASE UTAMA / SOURCE OF TRUTH)
+// 7. GROUPING USER (tetap untuk histori)
 // ============================
-async function loadReport() {
-  if (statusEl) statusEl.innerText = "🔍 Memuat data dari Lumbung Supabase...";
+function groupByUser(data) {
 
-  try {
-    // 1. Ambil semua histori transaksi langsung dari Supabase
-    const { data: dbHistory, error } = await supabaseClient
-      .from("tof_history")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const grouped = {}
 
-    if (error) throw error;
+  data.forEach(tx => {
 
-    // 2. Ambil daftar profil wallet
-    const wallets = await getAllWallets();
+    const user = tx.username || tx.wallet
 
-    // Grouping transaksi berdasarkan wallet
-    const groupedTxs = {};
-    let totalAllBalance = 0;
-
-    // Inisialisasi awal
-    wallets.forEach(w => {
-      groupedTxs[w.id] = {
-        username: w.username || w.id,
+    if (!grouped[user]) {
+      grouped[user] = {
         txs: [],
-        balance: 0 // Dalam satuan desimal TOF
-      };
-    });
-
-    // Kalkulasi saldo & gabungkan transaksi berdasarkan record di Supabase
-    (dbHistory || []).forEach(tx => {
-      // Konversi dari bigint micro-units ke TOF desimal
-      const amountTOF = Number(tx.amount || 0) / 1e6;
-
-      // Jika receiver, saldo bertambah untuk receiver
-      if (groupedTxs[tx.receiver]) {
-        groupedTxs[tx.receiver].balance += amountTOF;
+        wallet: tx.wallet
       }
-      // Jika sender, saldo berkurang untuk sender
-      if (groupedTxs[tx.sender]) {
-        groupedTxs[tx.sender].balance -= amountTOF;
-      }
-
-      // Masukkan log ke wallet pemilik
-      if (groupedTxs[tx.wallet]) {
-        groupedTxs[tx.wallet].txs.push({
-          ...tx,
-          amountTOF // Simpan nilai desimal khusus untuk tampilan UI
-        });
-      }
-    });
-
-    // Render HTML Tampilan
-    let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
-
-    Object.keys(groupedTxs).forEach(walletId => {
-      const userGroup = groupedTxs[walletId];
-      totalAllBalance += userGroup.balance;
-
-      html += `
-        <details class="card" style="margin-bottom:15px; border-left: 3px solid #22c55e;">
-          <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
-            👤 ${userGroup.username} 
-            <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(${userGroup.txs.length} Transaksi)</span>
-          </summary>
-          <div style="margin-top:15px;">
-            <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
-              <thead>
-                <tr style="color: #64748b; border-bottom: 1px solid #334155;">
-                  <th style="padding:5px; text-align:left;">Tanggal</th>
-                  <th style="padding:5px; text-align:right;">Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-      `;
-
-      if (userGroup.txs.length === 0) {
-        html += `<tr><td colspan="2" style="padding:10px; text-align:center; color:#64748b;">Belum ada riwayat transaksi.</td></tr>`;
-      } else {
-        userGroup.txs.forEach(tx => {
-          const isReceiver = tx.receiver === walletId;
-          const isSender = tx.sender === walletId;
-          
-          const sign = isReceiver ? "+" : (isSender ? "-" : "");
-          const color = isReceiver ? "#4ade80" : (isSender ? "#f87171" : "#64748b");
-
-          html += `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <td style="padding:8px 5px; text-align:left;">
-                ${new Date(tx.created_at).toLocaleDateString()}
-                <div style="font-size:0.7rem; color:#64748b;">${tx.note || "-"}</div>
-              </td>
-              <td style="text-align:right; color:${color}; font-weight:bold;">
-                ${sign} ${tx.amountTOF.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})}
-              </td>
-            </tr>
-          `;
-        });
-      }
-
-      html += `
-              </tbody>
-              <tfoot>
-                <tr style="border-top: 2px solid #22c55e;">
-                  <td style="padding:10px 5px; font-weight:bold;">SALDO SISA</td>
-                  <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${userGroup.balance.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </details>
-      `;
-    });
-
-    // Update Ringkasan Ekosistem
-    if (summaryEl) {
-      summaryEl.innerHTML = `
-        <div class="card" style="text-align:center;">
-          <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
-          <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">TOTAL: TOF ${totalAllBalance.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})}</p>
-          <p style="font-size:0.8rem; color:#4ade80;">STATUS: ✅ DATABASE SYNCHRONIZED</p>
-        </div>
-      `;
     }
 
-    if (feedEl) feedEl.innerHTML = html;
-    if (statusEl) statusEl.innerText = "✅ Data Supabase Berhasil Dimuat";
+    grouped[user].txs.push(tx)
+  })
 
-  } catch (err) {
-    console.error("Load Report Error:", err);
-    if (statusEl) statusEl.innerText = "❌ Gagal memuat data dari Supabase: " + err.message;
+  return grouped
+}
+
+
+// ============================
+// 8. FORMAT BARIS
+// ============================
+function formatRow(tx) {
+
+  const d = new Date(tx.created_at)
+
+  const date = d.toLocaleDateString()
+  const time = d.toLocaleTimeString()
+
+  const type = tx.category || "DANA_MASUK"
+
+  let label = ""
+
+  if (type === "NABUNG_RECEH") label = "SETOR NABUNG RECEH"
+  else if (type === "REWARD") label = "REWARD"
+  else if (type === "DONASI") label = "DONASI"
+  else if (type === "LIQUIDITAS") label = "LIQUIDITAS"
+  else label = "DANA MASUK / KELUAR"
+
+  return `${date} | ${time} | TOF ${tx.amount} | ${label}`
+}
+
+
+// ============================
+// 9. REAL BALANCE (FIX ALLIO STYLE)
+// ============================
+async function getWalletBalance(wallet) {
+
+  const url =
+    `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+
+  const assets = data.account?.assets || [];
+
+  const tof = assets.find(
+    a => a["asset-id"] === TOF_ASSET_ID
+  );
+
+  if (!tof) return 0;
+
+  return Number(tof.amount || 0) / 1e6;
+}
+
+
+// ============================
+// 10. LOAD REPORT FINAL (ON-CHAIN & TABEL ACCORDION)
+// ============================
+async function loadReport() {
+  if (statusEl) statusEl.innerText = "🔍 Mengambil data langsung dari Blockchain...";
+  
+  const wallets = await getAllWallets();
+console.log("JUMLAH ANGGOTA:", wallets.length);
+  console.log("DATA ANGGOTA:", wallets);
+
+  let totalAll = 0;
+  
+  // Kosongkan container sebelum memuat
+  if (summaryEl) summaryEl.innerHTML = "";
+  feedEl.innerHTML = "";
+
+  let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
+
+  for (let user of wallets) {
+    const txs = await getWalletTx(user.id);
+    const balance = await getWalletBalance(user.id);
+    totalAll += balance;
+
+    // Filter transaksi TOF
+    const tofTxs = txs.filter(tx => tx['asset-transfer-transaction']?.['asset-id'] === TOF_ASSET_ID);
+
+    html += `
+      <details class="card" style="margin-bottom:15px; border-left: 3px solid #22c55e;">
+        <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
+          👤 ${user.username} 
+          <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(Klik lihat detail)</span>
+        </summary>
+        <div style="margin-top:15px;">
+          <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+              <tr style="color: #64748b; border-bottom: 1px solid #334155;">
+                <th style="padding:5px;">Tanggal</th>
+                <th style="padding:5px; text-align:right;">Jumlah</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+  // Ganti bagian di dalam forEach pada loadReport dengan ini:
+tofTxs.forEach(tx => {
+  const transfer = tx['asset-transfer-transaction'];
+  const amount = (transfer ? transfer.amount : 0) / 1000000;
+  
+  // LOGIKA AKURAT:
+  // Jika wallet user adalah RECEIVER, maka itu MASUK (+)
+  // Jika wallet user adalah SENDER, maka itu KELUAR (-)
+  const isReceiver = transfer?.receiver === user.id;
+  const isSender = tx.sender === user.id;
+  
+  // Kita tentukan tanda berdasarkan role wallet dalam transaksi
+  const sign = isReceiver ? "+" : (isSender ? "-" : "");
+  const color = isReceiver ? "#4ade80" : (isSender ? "#f87171" : "#64748b");
+
+  html += `
+    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+      <td style="padding:8px 5px;">
+        ${new Date(tx['round-time'] * 1000).toLocaleDateString()}
+        <div style="font-size:0.7rem; color:#64748b;">${decodeNote(tx.note) || "-"}</div>
+      </td>
+      <td style="text-align:right; color:${color}; font-weight:bold;">
+        ${sign} ${amount.toLocaleString(undefined, {minimumFractionDigits: 0})}
+      </td>
+    </tr>
+  `;
+});
+
+    html += `
+            </tbody>
+            <tfoot>
+              <tr style="border-top: 2px solid #22c55e;">
+                <td style="padding:10px 5px; font-weight:bold;">SALDO</td>
+                <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${balance.toLocaleString()}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </details>
+    `;
   }
+
+  // Tampilkan Summary di bagian atas
+  summaryEl.innerHTML = `
+    <div class="card" style="text-align:center;">
+      <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
+      <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">TOTAL: TOF ${totalAll.toLocaleString()}</p>
+      <p style="font-size:0.8rem; color:#64748b;">STATUS: ✅ ON-CHAIN VERIFIED</p>
+    </div>
+  `;
+
+  feedEl.innerHTML = html;
+  if (statusEl) statusEl.innerText = "✅ Data On-Chain Berhasil Dimuat";
 }
 
 // ============================
-// 5. BIND EVENT & INITIAL LOAD
+// 11. EVENT BUTTON
 // ============================
-if (syncBtn) {
-  syncBtn.addEventListener("click", syncData);
-}
+syncBtn.addEventListener("click", syncData);
 
-// Auto load dari Supabase saat halaman dibuka
+
+// AUTO LOAD
 loadReport();
