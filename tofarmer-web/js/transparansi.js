@@ -27,13 +27,16 @@ async function getAllWallets() {
 // ============================
 // 2. AMBIL TRANSAKSI ALGONODE (BERTINGKAT / PAGINATION)
 // ============================
+// ============================
+// 2. AMBIL TRANSAKSI ALGONODE (HANYA ASSET TRANSFER)
+// ============================
 async function getWalletTx(wallet) {
   let allTransactions = [];
   let nextToken = null;
 
-  // Tarik bertahap per 100 transaksi dari Algonode sampai transaksi terawal
   do {
-    let url = `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}/transactions?limit=100`;
+    // Tambahkan tx-type=axfer dan asset-id langsung di URL API agar Algonode yang melakukan filter di server
+    let url = `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}/transactions?asset-id=${TOF_ASSET_ID}&tx-type=axfer&limit=100`;
     if (nextToken) {
       url += `&next=${nextToken}`;
     }
@@ -44,7 +47,7 @@ async function getWalletTx(wallet) {
       const txs = data.transactions || [];
       
       allTransactions = allTransactions.concat(txs);
-      nextToken = data['next-token']; // Mengambil token transaksi batch sebelumnya
+      nextToken = data['next-token'];
     } catch (err) {
       console.error("Gagal mengambil transaksi dari Algonode:", err);
       break;
