@@ -66,10 +66,10 @@ async function fetchAllWalletTxFromAlgonode(walletId, onProgress) {
     const txs = data.transactions || [];
     
     allTxs = allTxs.concat(txs);
-    nextToken = data['next-token']; // Token untuk mengambil 100 transaksi berikutnya
+    nextToken = data['next-token']; // Token untuk transaksi berikutnya
     page++;
 
-  } while (nextToken); // Iterasi terus selama masih ada token transaksi sebelumnya/selanjutnya
+  } while (nextToken);
 
   return allTxs;
 }
@@ -90,7 +90,7 @@ async function syncData() {
         statusEl.innerText = `🔄 [${i + 1}/${wallets.length}] Memproses Wallet ${user.username || user.id}...`;
       }
 
-      // Tarik seluruh transaksi secara bertahap (100 per 100)
+      // Tarik seluruh transaksi secara bertahap
       const txs = await fetchAllWalletTxFromAlgonode(user.id, (msg) => {
         if (statusEl) statusEl.innerText = `🔄 [${user.username}] ${msg}`;
       });
@@ -104,14 +104,14 @@ async function syncData() {
         // Susun payload untuk batch upsert ke Supabase
         const payload = tofTxs.map(tx => {
           const transfer = tx['asset-transfer-transaction'];
-          const amountRaw = transfer?.amount || 0;
+          const amountRaw = transfer?.amount || 0; // Angka utuh/micro-units dari blockchain
           const noteText = decodeNote(tx.note);
 
           return {
             wallet: user.id,
             username: user.username,
             tx_id: tx.id,
-            amount: Number(amountRaw) / 1e6,
+            amount: Number(amountRaw), // SIMPAN ANGKA BULAT (Aman untuk BIGINT Supabase)
             note: noteText,
             category: categorize(noteText),
             sender: tx.sender,
@@ -120,7 +120,7 @@ async function syncData() {
           };
         });
 
-        // Simpan ke Supabase (Menggunakan upsert agar tidak timpa duplikat)
+        // Simpan ke Supabase (Menggunakan upsert agar tidak duplikat)
         const { error } = await supabaseClient
           .from("tof_history")
           .upsert(payload, { onConflict: "tx_id" });
@@ -169,24 +169,30 @@ async function loadReport() {
       groupedTxs[w.id] = {
         username: w.username || w.id,
         txs: [],
-        balance: 0
+        balance: 0 // Dalam satuan desimal TOF
       };
     });
 
     // Kalkulasi saldo & gabungkan transaksi berdasarkan record di Supabase
     (dbHistory || []).forEach(tx => {
+      // Konversi dari bigint micro-units ke TOF desimal
+      const amountTOF = Number(tx.amount || 0) / 1e6;
+
       // Jika receiver, saldo bertambah untuk receiver
       if (groupedTxs[tx.receiver]) {
-        groupedTxs[tx.receiver].balance += Number(tx.amount);
+        groupedTxs[tx.receiver].balance += amountTOF;
       }
       // Jika sender, saldo berkurang untuk sender
       if (groupedTxs[tx.sender]) {
-        groupedTxs[tx.sender].balance -= Number(tx.amount);
+        groupedTxs[tx.sender].balance -= amountTOF;
       }
 
       // Masukkan log ke wallet pemilik
       if (groupedTxs[tx.wallet]) {
-        groupedTxs[tx.wallet].txs.push(tx);
+        groupedTxs[tx.wallet].txs.push({
+          ...tx,
+          amountTOF // Simpan nilai desimal khusus untuk tampilan UI
+        });
       }
     });
 
@@ -231,7 +237,7 @@ async function loadReport() {
                 <div style="font-size:0.7rem; color:#64748b;">${tx.note || "-"}</div>
               </td>
               <td style="text-align:right; color:${color}; font-weight:bold;">
-                ${sign} ${Number(tx.amount).toLocaleString(undefined, {minimumFractionDigits: 0})}
+                ${sign} ${tx.amountTOF.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})}
               </td>
             </tr>
           `;
@@ -243,7 +249,7 @@ async function loadReport() {
               <tfoot>
                 <tr style="border-top: 2px solid #22c55e;">
                   <td style="padding:10px 5px; font-weight:bold;">SALDO SISA</td>
-                  <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${userGroup.balance.toLocaleString()}</td>
+                  <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${userGroup.balance.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})}</td>
                 </tr>
               </tfoot>
             </table>
@@ -257,7 +263,7 @@ async function loadReport() {
       summaryEl.innerHTML = `
         <div class="card" style="text-align:center;">
           <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
-          <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">TOTAL: TOF ${totalAllBalance.toLocaleString()}</p>
+          <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">TOTAL: TOF ${totalAllBalance.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 6})}</p>
           <p style="font-size:0.8rem; color:#4ade80;">STATUS: ✅ DATABASE SYNCHRONIZED</p>
         </div>
       `;
@@ -279,5 +285,5 @@ if (syncBtn) {
   syncBtn.addEventListener("click", syncData);
 }
 
-// Langsung muat data dari Supabase saat halaman pertama kali dibuka
+// Auto load dari Supabase saat halaman dibuka
 loadReport();
