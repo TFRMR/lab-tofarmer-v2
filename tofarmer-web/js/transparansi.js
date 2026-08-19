@@ -6,6 +6,9 @@ const feedEl = document.getElementById("feed");
 const statusEl = document.getElementById("status");
 const syncBtn = document.getElementById("syncBtn");
 
+// Helper Delay untuk mencegah Rate Limit jika diperlukan
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 // Decode Note Algorand
 function decodeNote(note) {
   try {
@@ -31,112 +34,143 @@ function categorize(note = "") {
 
 
 // ============================================================
-// 1. DOWLOAD / SINKRONISASI BERKALA (ALGONODE ➔ SUPABASE)
+// 1. AMBIL SEMUA ANGGOTA DARI SUPABASE (TANPA LIMIT DEFAULT)
 // ============================================================
-async function syncData() {
-  if (syncBtn) syncBtn.disabled = true;
-  if (statusEl) statusEl.innerText = "🔄 Memeriksa transaksi baru di Blockchain...";
-
+async function getAllWallets() {
   try {
-    // A. Ambil semua profil/wallet dari Supabase
-    const { data: profiles, error: profileErr } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from("profiles")
-      .select("id, username");
+      .select("id, username")
+      .range(0, 999); // Memaksa Supabase menarik hingga 1000 data profil
 
-    if (profileErr) throw profileErr;
-
-    let newTxCount = 0;
-
-    // B. Loop setiap wallet anggota
-    for (let user of profiles) {
-      if (statusEl) statusEl.innerText = `🔄 Memeriksa pembaruan untuk: ${user.username || user.id}...`;
-
-      // Tarik transaksi ASSET TRANSFER (axfer) TOF saja dari Algonode
-      const url = `https://mainnet-idx.algonode.cloud/v2/accounts/${user.id}/transactions?asset-id=${TOF_ASSET_ID}&tx-type=axfer&limit=50`;
-      
-      const res = await fetch(url);
-      if (!res.ok) continue; // Jika wallet 404/belum aktif, lewati dengan aman
-
-      const data = await res.json();
-      const txs = data.transactions || [];
-
-      // C. Filter & Simpan/Update perubahan baru ke Supabase
-      for (let tx of txs) {
-        const transfer = tx["asset-transfer-transaction"];
-        if (!transfer || transfer["asset-id"] !== TOF_ASSET_ID) continue;
-
-        const amountRaw = transfer.amount || 0;
-        const note = decodeNote(tx.note);
-
-        // Upsert: Masukkan data. Jika tx_id sudah ada, Supabase tidak akan menduplikasi
-        const { error: upsertErr } = await supabaseClient
-          .from("tof_history")
-          .upsert([{
-            wallet: user.id,
-            username: user.username,
-            tx_id: tx.id,
-            amount: Number(amountRaw), // Disimpan angka utuh (Micro-units)
-            note: note,
-            category: categorize(note),
-            sender: tx.sender,
-            receiver: transfer.receiver,
-            created_at: new Date(tx["round-time"] * 1000)
-          }], { onConflict: "tx_id" });
-
-        if (!upsertErr) newTxCount++;
-      }
+    if (error) {
+      console.error("Supabase Profile Error:", error);
+      return [];
     }
 
-    if (statusEl) statusEl.innerText = "✅ Sinkronisasi selesai! Data Supabase diperbarui.";
+    return data || [];
   } catch (err) {
-    console.error("Gagal sync:", err);
-    if (statusEl) statusEl.innerText = "❌ Gagal sync: " + err.message;
-  } finally {
-    if (syncBtn) syncBtn.disabled = false;
-    // Setelah Supabase dapat update terbaru, muat ulang tampilan dari Supabase
-    loadReportFromSupabase();
+    console.error("Gagal koneksi ke Supabase:", err);
+    return [];
   }
 }
 
 
 // ============================================================
-// 2. LOAD TAMPILAN HALAMAN (MURNI DARI SUPABASE ➔ HALAMAN)
+// 2. SINKRONISASI BERKALA (ALGONODE ➔ SUPABASE)
 // ============================================================
-async function loadReportFromSupabase() {
-  if (statusEl) statusEl.innerText = "🔍 Mengambil data dari Supabase...";
+async function syncData() {
+  if (syncBtn) syncBtn.disabled = true;
+  if (statusEl) statusEl.innerText = "🔄 Memeriksa transaksi terbaru di Blockchain...";
 
   try {
-    // A. Ambil semua profil anggota
-    const { data: profiles, error: pErr } = await supabaseClient
-      .from("profiles")
-      .select("id, username");
+    const profiles = await getAllWallets();
 
-    if (pErr) throw pErr;
+    if (profiles.length === 0) {
+      throw new Error("Daftar anggota tidak ditemukan di Supabase.");
+    }
 
-    // B. Ambil SELURUH riwayat transaksi langsung dari tabel Supabase
+    let totalSynced = 0;
+
+    for (let i = 0; i < profiles.length; i++) {
+      const user = profiles[i];
+      if (statusEl) {
+        statusEl.innerText = `🔄 Memeriksa (${i + 1}/${profiles.length}): ${user.username || user.id}...`;
+      }
+
+      // Ambil transaksi transfer TOF dari Algonode
+      const url = `https://mainnet-idx.algonode.cloud/v2/accounts/${user.id}/transactions?asset-id=${TOF_ASSET_ID}&tx-type=axfer&include-all=true&limit=50`;
+      
+      try {
+        const res = await fetch(url);
+        if (res.status === 404 || !res.ok) continue;
+
+        const data = await res.json();
+        const txs = data.transactions || [];
+
+        for (let tx of txs) {
+          const transfer = tx["asset-transfer-transaction"];
+          if (!transfer || transfer["asset-id"] !== TOF_ASSET_ID) continue;
+
+          const amountRaw = transfer.amount || 0;
+          const note = decodeNote(tx.note);
+
+          // Insert / Update ke Supabase
+          const { error: upsertErr } = await supabaseClient
+            .from("tof_history")
+            .upsert([{
+              wallet: user.id,
+              username: user.username,
+              tx_id: tx.id,
+              amount: Number(amountRaw), // Micro-units utuh
+              note: note,
+              category: categorize(note),
+              sender: tx.sender,
+              receiver: transfer.receiver,
+              created_at: new Date(tx["round-time"] * 1000)
+            }], { onConflict: "tx_id" });
+
+          if (!upsertErr) totalSynced++;
+        }
+      } catch (e) {
+        console.warn(`Gagal fetch Algonode untuk ${user.id}:`, e);
+      }
+
+      await sleep(100); // Jeda kecil antar request
+    }
+
+    if (statusEl) statusEl.innerText = "✅ Sinkronisasi selesai! Database Supabase diperbarui.";
+  } catch (err) {
+    console.error("Gagal sync:", err);
+    if (statusEl) statusEl.innerText = "❌ Gagal sync: " + err.message;
+  } finally {
+    if (syncBtn) syncBtn.disabled = false;
+    loadReportFromSupabase(); // Render ulang dari Supabase
+  }
+}
+
+
+// ============================================================
+// 3. LOAD TAMPILAN HALAMAN (MURNI SUPABASE ➔ DOM)
+// ============================================================
+async function loadReportFromSupabase() {
+  if (statusEl) statusEl.innerText = "🔍 Memuat data seluruh anggota dari Database...";
+
+  try {
+    // A. Ambil seluruh profil tanpa terpotong limit
+    const profiles = await getAllWallets();
+    console.log("JUMLAH ANGGOTA SUPABASE:", profiles.length);
+
+    if (profiles.length === 0) {
+      if (statusEl) statusEl.innerText = "⚠️ Data profil kosong atau terhalang RLS Supabase.";
+      return;
+    }
+
+    // B. Ambil seluruh riwayat transaksi tanpa terpotong limit
     const { data: history, error: hErr } = await supabaseClient
       .from("tof_history")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .range(0, 4999); // Ambil hingga 5000 transaksi
 
-    if (hErr) throw hErr;
+    if (hErr) {
+      console.error("Gagal ambil tof_history:", hErr);
+    }
 
-    console.log("TOTAL ANGGOTA:", profiles.length);
-    console.log("TOTAL RIWAYAT TRANSAKSI DARI SUPABASE:", history.length);
+    const allHistory = history || [];
+    console.log("TOTAL RIWAYAT DARI SUPABASE:", allHistory.length);
 
     let totalEcosystemBalance = 0;
     let fullHtml = `<h3 style="margin-bottom:1.5rem; text-align:center; color:#fde047;">👤 DETAIL KONTRIBUSI ANGGOTA (${profiles.length})</h3>`;
 
-    // C. Olah data per Anggota
+    // C. Iterasi seluruh 20 anggota
     profiles.forEach((user) => {
-      // Filter transaksi milik user ini (sebagai penerima atau pengirim)
-      const userTxs = history.filter(
+      // Filter transaksi milik user ini
+      const userTxs = allHistory.filter(
         (tx) => tx.wallet === user.id || tx.sender === user.id || tx.receiver === user.id
       );
 
-      // Hitung Saldo Bersih user dari database Supabase
       let userBalance = 0;
-
       let rowsHtml = "";
 
       if (userTxs.length === 0) {
@@ -154,7 +188,7 @@ async function loadReportFromSupabase() {
           const isReceiver = tx.receiver === user.id;
           const isSender = tx.sender === user.id;
 
-          // Kalkulasi kalkulasi saldo (Masuk = +, Keluar = -)
+          // Kalkulasi saldo
           if (isReceiver) userBalance += displayAmount;
           if (isSender) userBalance -= displayAmount;
 
@@ -175,11 +209,10 @@ async function loadReportFromSupabase() {
         });
       }
 
-      // Hindari saldo minus akibat penyesuaian awal
       if (userBalance < 0) userBalance = 0; 
       totalEcosystemBalance += userBalance;
 
-      // Buat Accordion
+      // Konstruksi elemen Accordion
       fullHtml += `
         <details class="card" style="margin-bottom:15px;">
           <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
@@ -209,7 +242,7 @@ async function loadReportFromSupabase() {
       `;
     });
 
-    // D. Render Summary & List Anggota
+    // D. Render ke HTML DOM
     if (summaryEl) {
       summaryEl.innerHTML = `
         <div class="card" style="text-align:center; border-left: 3px solid #eab308;">
@@ -221,7 +254,7 @@ async function loadReportFromSupabase() {
     }
 
     if (feedEl) feedEl.innerHTML = fullHtml;
-    if (statusEl) statusEl.innerText = `✅ Berhasil memuat ${profiles.length} anggota dari Database.`;
+    if (statusEl) statusEl.innerText = `✅ Berhasil memuat seluruh ${profiles.length} anggota.`;
 
   } catch (err) {
     console.error("Gagal memuat data dari Supabase:", err);
@@ -231,11 +264,11 @@ async function loadReportFromSupabase() {
 
 
 // ============================================================
-// 3. EVENT BINDING & AUTO-RUN
+// 4. BIND EVENT & INITIAL RUN
 // ============================================================
 if (syncBtn) {
   syncBtn.addEventListener("click", syncData);
 }
 
-// Saat halaman pertama dibuka: LANGSUNG LOAD DARI SUPABASE (Super Cepat!)
+// Jalankan otomatis saat halaman pertama dibuka
 loadReportFromSupabase();
