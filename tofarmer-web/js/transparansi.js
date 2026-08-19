@@ -138,141 +138,151 @@ async function syncData() {
 // ============================================================
 // 3. LOAD TAMPILAN HALAMAN (PAKSA TAMPILKAN SELURUH ANGGOTA)
 // ============================================================
+// ============================================================
+// LOAD TAMPILAN HALAMAN (ANTI-BREAKING / SAFE LOOP)
+// ============================================================
 async function loadReportFromSupabase() {
-  if (statusEl) statusEl.innerText = "🔍 Memuat data seluruh anggota dari Database...";
+  if (statusEl) statusEl.innerText = "🔍 Memuat data seluruh anggota...";
 
   try {
-    // A. Ambil seluruh profil dari Supabase
     const profiles = await getAllWallets();
-    
-    // Debugging di Console F12
-    console.log("TOTAL ANGGOTA DITERIMA SUPABASE:", profiles.length);
-    console.log("DAFTAR ANGGOTA:", profiles.map(p => p.username || p.id));
+    console.log("TOTAL ANGGOTA DARI SUPABASE:", profiles.length);
 
     if (profiles.length === 0) {
-      if (statusEl) statusEl.innerText = "⚠️ Data profil kosong atau terhalang akses Supabase.";
+      if (statusEl) statusEl.innerText = "⚠️ Data profil kosong.";
       return;
     }
 
-    // B. Ambil seluruh riwayat transaksi tanpa batas limit
+    // Ambil riwayat transaksi
     const { data: history, error: hErr } = await supabaseClient
       .from("tof_history")
       .select("*")
       .order("created_at", { ascending: false })
       .range(0, 4999);
 
-    if (hErr) {
-      console.error("Gagal ambil tof_history:", hErr);
-    }
+    if (hErr) console.error("Error tof_history:", hErr);
 
     const allHistory = history || [];
     let totalEcosystemBalance = 0;
+    let renderedCount = 0;
     let fullHtml = `<h3 style="margin-bottom:1.5rem; text-align:center; color:#fde047;">👤 DETAIL KONTRIBUSI ANGGOTA (${profiles.length})</h3>`;
 
-    // C. Iterasi SEMUA profil tanpa melewatkan 1 anggota pun
-    profiles.forEach((user, index) => {
-      const walletAddress = user.id || user.wallet || "";
-      // Jika username kosong, tampilkan alamat wallet atau nomor urut
-      const displayName = user.username || (walletAddress ? walletAddress : `Anggota #${index + 1}`);
+    // ITERASI AMAN METODE FOR-OF
+    for (let i = 0; i < profiles.length; i++) {
+      try {
+        const user = profiles[i];
+        if (!user) continue; // Skip jika object null
 
-      // Filter transaksi milik user ini (sebagai receiver/sender/wallet)
-      const userTxs = allHistory.filter(
-        (tx) => (walletAddress && (tx.wallet === walletAddress || tx.sender === walletAddress || tx.receiver === walletAddress))
-      );
+        const walletAddress = user.id || user.wallet || "";
+        const displayName = user.username || walletAddress || `Anggota #${i + 1}`;
 
-      let userBalance = 0;
-      let rowsHtml = "";
+        // Filter transaksi dengan penanganan nilai null yang aman
+        const userTxs = allHistory.filter((tx) => {
+          if (!tx) return false;
+          const w = (tx.wallet || "").toLowerCase();
+          const s = (tx.sender || "").toLowerCase();
+          const r = (tx.receiver || "").toLowerCase();
+          const target = walletAddress.toLowerCase();
 
-      if (userTxs.length === 0) {
-        // TAMPILKAN BARIS KOSONG JIKA BELUM ADA TRANSAKSI
-        rowsHtml = `
-          <tr>
-            <td colspan="2" style="padding:10px 5px; text-align:center; color:#64748b; font-style:italic;">
-              Belum ada riwayat transaksi TOF
-            </td>
-          </tr>
-        `;
-      } else {
-        userTxs.forEach((tx) => {
-          const displayAmount = Number(tx.amount || 0) / 1e6;
-          
-          const isReceiver = tx.receiver === walletAddress;
-          const isSender = tx.sender === walletAddress;
+          return target && (w === target || s === target || r === target);
+        });
 
-          if (isReceiver) userBalance += displayAmount;
-          if (isSender) userBalance -= displayAmount;
+        let userBalance = 0;
+        let rowsHtml = "";
 
-          const sign = isReceiver ? "+" : isSender ? "-" : "";
-          const color = isReceiver ? "#4ade80" : isSender ? "#f87171" : "#64748b";
-
-          rowsHtml += `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <td style="padding:8px 5px;">
-                ${new Date(tx.created_at).toLocaleDateString()}
-                <div style="font-size:0.7rem; color:#64748b;">${tx.note || "-"}</div>
-              </td>
-              <td style="text-align:right; color:${color}; font-weight:bold;">
-                ${sign} ${displayAmount.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+        if (userTxs.length === 0) {
+          rowsHtml = `
+            <tr>
+              <td colspan="2" style="padding:10px 5px; text-align:center; color:#64748b; font-style:italic;">
+                Belum ada riwayat transaksi TOF
               </td>
             </tr>
           `;
-        });
+        } else {
+          userTxs.forEach((tx) => {
+            const displayAmount = Number(tx.amount || 0) / 1e6;
+            
+            const isReceiver = (tx.receiver || "").toLowerCase() === walletAddress.toLowerCase();
+            const isSender = (tx.sender || "").toLowerCase() === walletAddress.toLowerCase();
+
+            if (isReceiver) userBalance += displayAmount;
+            if (isSender) userBalance -= displayAmount;
+
+            const sign = isReceiver ? "+" : isSender ? "-" : "";
+            const color = isReceiver ? "#4ade80" : isSender ? "#f87171" : "#64748b";
+
+            rowsHtml += `
+              <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding:8px 5px;">
+                  ${tx.created_at ? new Date(tx.created_at).toLocaleDateString() : "-"}
+                  <div style="font-size:0.7rem; color:#64748b;">${tx.note || "-"}</div>
+                </td>
+                <td style="text-align:right; color:${color}; font-weight:bold;">
+                  ${sign} ${displayAmount.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                </td>
+              </tr>
+            `;
+          });
+        }
+
+        if (userBalance < 0) userBalance = 0;
+        totalEcosystemBalance += userBalance;
+        renderedCount++;
+
+        // Render Card Accordion
+        fullHtml += `
+          <details class="card" style="margin-bottom:15px;">
+            <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
+              👤 ${displayName} 
+              <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(${userTxs.length} Transaksi)</span>
+            </summary>
+            <div style="margin-top:15px;">
+              <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                  <tr style="color: #64748b; border-bottom: 1px solid #334155;">
+                    <th style="padding:5px; text-align:left;">Tanggal</th>
+                    <th style="padding:5px; text-align:right;">Jumlah</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+                <tfoot>
+                  <tr style="border-top: 2px solid #22c55e;">
+                    <td style="padding:10px 5px; font-weight:bold;">ESTIMASI SALDO</td>
+                    <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${userBalance.toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </details>
+        `;
+
+      } catch (itemError) {
+        // Jika 1 akun error, cetak di console dan LANJUTKAN ke akun berikutnya
+        console.error(`Gagal render akun index ke-${i}:`, itemError);
       }
+    }
 
-      if (userBalance < 0) userBalance = 0;
-      totalEcosystemBalance += userBalance;
-
-      // Render Card Accordion untuk setiap anggota
-      fullHtml += `
-        <details class="card" style="margin-bottom:15px;">
-          <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
-            👤 ${displayName} 
-            <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(${userTxs.length} Transaksi)</span>
-          </summary>
-          <div style="margin-top:15px;">
-            <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
-              <thead>
-                <tr style="color: #64748b; border-bottom: 1px solid #334155;">
-                  <th style="padding:5px; text-align:left;">Tanggal</th>
-                  <th style="padding:5px; text-align:right;">Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rowsHtml}
-              </tbody>
-              <tfoot>
-                <tr style="border-top: 2px solid #22c55e;">
-                  <td style="padding:10px 5px; font-weight:bold;">ESTIMASI SALDO</td>
-                  <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${userBalance.toLocaleString()}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </details>
-      `;
-    });
-
-    // D. Render Summary & List ke DOM
+    // Update Ringkasan
     if (summaryEl) {
       summaryEl.innerHTML = `
         <div class="card" style="text-align:center; border-left: 3px solid #eab308;">
           <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
           <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">TOTAL: TOF ${totalEcosystemBalance.toLocaleString()}</p>
-          <p style="font-size:0.8rem; color:#64748b;">STATUS: ✅ DATABASE SUPABASE (${profiles.length} ANGGOTA)</p>
+          <p style="font-size:0.8rem; color:#64748b;">STATUS: ✅ DATABASE SUPABASE (${renderedCount}/${profiles.length} ANGGOTA)</p>
         </div>
       `;
     }
 
     if (feedEl) feedEl.innerHTML = fullHtml;
-    if (statusEl) statusEl.innerText = `✅ Berhasil memuat seluruh ${profiles.length} anggota.`;
+    if (statusEl) statusEl.innerText = `✅ Berhasil memuat ${renderedCount} dari ${profiles.length} anggota.`;
 
   } catch (err) {
-    console.error("Gagal memuat data dari Supabase:", err);
-    if (statusEl) statusEl.innerText = "❌ Gagal memuat data: " + err.message;
+    console.error("Gagal loadReportFromSupabase:", err);
+    if (statusEl) statusEl.innerText = "❌ Error: " + err.message;
   }
 }
-
-
 // ============================================================
 // 4. BIND EVENT & INITIAL RUN
 // ============================================================
