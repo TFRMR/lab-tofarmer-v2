@@ -25,16 +25,33 @@ async function getAllWallets() {
 
 
 // ============================
-// 2. AMBIL TRANSAKSI ALGONODE
+// 2. AMBIL TRANSAKSI ALGONODE (BERTINGKAT / PAGINATION)
 // ============================
 async function getWalletTx(wallet) {
-  const url =
-    `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}/transactions`;
+  let allTransactions = [];
+  let nextToken = null;
 
-  const res = await fetch(url);
-  const data = await res.json();
+  // Tarik bertahap per 100 transaksi dari Algonode sampai transaksi terawal
+  do {
+    let url = `https://mainnet-idx.algonode.cloud/v2/accounts/${wallet}/transactions?limit=100`;
+    if (nextToken) {
+      url += `&next=${nextToken}`;
+    }
 
-  return data.transactions || [];
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      const txs = data.transactions || [];
+      
+      allTransactions = allTransactions.concat(txs);
+      nextToken = data['next-token']; // Mengambil token transaksi batch sebelumnya
+    } catch (err) {
+      console.error("Gagal mengambil transaksi dari Algonode:", err);
+      break;
+    }
+  } while (nextToken);
+
+  return allTransactions;
 }
 
 
@@ -76,15 +93,13 @@ async function saveTx(tx, wallet, username) {
   const amountRaw =
     tx["asset-transfer-transaction"]?.amount || 0;
 
-  const amount = Number(amountRaw) / 1e6;
-
   const note = decodeNote(tx.note);
 
   await supabaseClient.from("tof_history").upsert([{
     wallet,
     username,
     tx_id: tx.id,
-    amount,
+    amount: Number(amountRaw), // Dikirim angka bulat murni agar cocok dengan BIGINT Supabase
     note,
     category: categorize(note),
     sender: tx.sender,
@@ -98,15 +113,18 @@ async function saveTx(tx, wallet, username) {
 
 
 // ============================
+// 6. SYNC DATA (BLOCKCHAIN -> SUPABASE)
+// ============================
 async function syncData() {
   const btn = document.getElementById("syncBtn");
   if (btn) btn.disabled = true;
-  if (statusEl) statusEl.innerText = "🔄 Mengambil data murni dari Blockchain...";
+  if (statusEl) statusEl.innerText = "🔄 Mengambil seluruh riwayat murni dari Blockchain...";
 
   try {
     const wallets = await getAllWallets();
 
     for (let user of wallets) {
+      if (statusEl) statusEl.innerText = `🔄 Mengambil transaksi lengkap: ${user.username || user.id}...`;
       const txs = await getWalletTx(user.id);
 
       // Filter hanya transaksi TOF yang valid
@@ -117,19 +135,18 @@ async function syncData() {
       for (let tx of tofTxs) {
         // AMBIL DATA MURNI ON-CHAIN
         const transfer = tx['asset-transfer-transaction'];
-        const amountRaw = transfer.amount;
-        const amount = Number(amountRaw) / 1e6; // Pastikan desimal tepat
+        const amountRaw = transfer ? transfer.amount : 0;
         
         // Tentukan siapa pengirim dan penerima berdasarkan struktur On-Chain
         const sender = tx.sender;
-        const receiver = transfer.receiver;
+        const receiver = transfer?.receiver;
         
         // Simpan ke Supabase sebagai "Source of Truth"
         await supabaseClient.from("tof_history").upsert([{
           wallet: user.id,
           username: user.username,
           tx_id: tx.id,
-          amount: amount, 
+          amount: Number(amountRaw), // Dikirim angka utuh agar Supabase BIGINT aman
           note: decodeNote(tx.note),
           category: categorize(decodeNote(tx.note)),
           sender: sender,
@@ -140,7 +157,7 @@ async function syncData() {
         });
       }
     }
-    statusEl.innerText = "✅ Data berhasil disinkronisasi dengan Blockchain";
+    statusEl.innerText = "✅ Seluruh riwayat transaksi berhasil disinkronisasi ke Supabase";
   } catch (error) {
     console.error("Sync Error:", error);
     statusEl.innerText = "❌ Gagal sync: " + error.message;
@@ -195,7 +212,9 @@ function formatRow(tx) {
   else if (type === "LIQUIDITAS") label = "LIQUIDITAS"
   else label = "DANA MASUK / KELUAR"
 
-  return `${date} | ${time} | TOF ${tx.amount} | ${label}`
+  const displayAmount = Number(tx.amount || 0) / 1e6;
+
+  return `${date} | ${time} | TOF ${displayAmount} | ${label}`
 }
 
 
@@ -229,14 +248,14 @@ async function loadReport() {
   if (statusEl) statusEl.innerText = "🔍 Mengambil data langsung dari Blockchain...";
   
   const wallets = await getAllWallets();
-console.log("JUMLAH ANGGOTA:", wallets.length);
+  console.log("JUMLAH ANGGOTA:", wallets.length);
   console.log("DATA ANGGOTA:", wallets);
 
   let totalAll = 0;
   
   // Kosongkan container sebelum memuat
   if (summaryEl) summaryEl.innerHTML = "";
-  feedEl.innerHTML = "";
+  if (feedEl) feedEl.innerHTML = "";
 
   let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
 
@@ -252,7 +271,7 @@ console.log("JUMLAH ANGGOTA:", wallets.length);
       <details class="card" style="margin-bottom:15px; border-left: 3px solid #22c55e;">
         <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
           👤 ${user.username} 
-          <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(Klik lihat detail)</span>
+          <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(Klik lihat detail - ${tofTxs.length} Transaksi)</span>
         </summary>
         <div style="margin-top:15px;">
           <table style="width:100%; border-collapse: collapse; font-size: 0.9rem;">
@@ -265,33 +284,32 @@ console.log("JUMLAH ANGGOTA:", wallets.length);
             <tbody>
     `;
 
-  // Ganti bagian di dalam forEach pada loadReport dengan ini:
-tofTxs.forEach(tx => {
-  const transfer = tx['asset-transfer-transaction'];
-  const amount = (transfer ? transfer.amount : 0) / 1000000;
-  
-  // LOGIKA AKURAT:
-  // Jika wallet user adalah RECEIVER, maka itu MASUK (+)
-  // Jika wallet user adalah SENDER, maka itu KELUAR (-)
-  const isReceiver = transfer?.receiver === user.id;
-  const isSender = tx.sender === user.id;
-  
-  // Kita tentukan tanda berdasarkan role wallet dalam transaksi
-  const sign = isReceiver ? "+" : (isSender ? "-" : "");
-  const color = isReceiver ? "#4ade80" : (isSender ? "#f87171" : "#64748b");
+    tofTxs.forEach(tx => {
+      const transfer = tx['asset-transfer-transaction'];
+      const amount = (transfer ? transfer.amount : 0) / 1000000;
+      
+      // LOGIKA AKURAT:
+      // Jika wallet user adalah RECEIVER, maka itu MASUK (+)
+      // Jika wallet user adalah SENDER, maka itu KELUAR (-)
+      const isReceiver = transfer?.receiver === user.id;
+      const isSender = tx.sender === user.id;
+      
+      // Kita tentukan tanda berdasarkan role wallet dalam transaksi
+      const sign = isReceiver ? "+" : (isSender ? "-" : "");
+      const color = isReceiver ? "#4ade80" : (isSender ? "#f87171" : "#64748b");
 
-  html += `
-    <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-      <td style="padding:8px 5px;">
-        ${new Date(tx['round-time'] * 1000).toLocaleDateString()}
-        <div style="font-size:0.7rem; color:#64748b;">${decodeNote(tx.note) || "-"}</div>
-      </td>
-      <td style="text-align:right; color:${color}; font-weight:bold;">
-        ${sign} ${amount.toLocaleString(undefined, {minimumFractionDigits: 0})}
-      </td>
-    </tr>
-  `;
-});
+      html += `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <td style="padding:8px 5px;">
+            ${new Date(tx['round-time'] * 1000).toLocaleDateString()}
+            <div style="font-size:0.7rem; color:#64748b;">${decodeNote(tx.note) || "-"}</div>
+          </td>
+          <td style="text-align:right; color:${color}; font-weight:bold;">
+            ${sign} ${amount.toLocaleString(undefined, {minimumFractionDigits: 0})}
+          </td>
+        </tr>
+      `;
+    });
 
     html += `
             </tbody>
@@ -308,23 +326,26 @@ tofTxs.forEach(tx => {
   }
 
   // Tampilkan Summary di bagian atas
-  summaryEl.innerHTML = `
-    <div class="card" style="text-align:center;">
-      <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
-      <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">TOTAL: TOF ${totalAll.toLocaleString()}</p>
-      <p style="font-size:0.8rem; color:#64748b;">STATUS: ✅ ON-CHAIN VERIFIED</p>
-    </div>
-  `;
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div class="card" style="text-align:center;">
+        <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
+        <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">TOTAL: TOF ${totalAll.toLocaleString()}</p>
+        <p style="font-size:0.8rem; color:#64748b;">STATUS: ✅ ON-CHAIN VERIFIED</p>
+      </div>
+    `;
+  }
 
-  feedEl.innerHTML = html;
+  if (feedEl) feedEl.innerHTML = html;
   if (statusEl) statusEl.innerText = "✅ Data On-Chain Berhasil Dimuat";
 }
 
 // ============================
 // 11. EVENT BUTTON
 // ============================
-syncBtn.addEventListener("click", syncData);
-
+if (syncBtn) {
+  syncBtn.addEventListener("click", syncData);
+}
 
 // AUTO LOAD
 loadReport();
