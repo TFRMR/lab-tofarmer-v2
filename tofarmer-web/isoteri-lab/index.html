@@ -1,313 +1,170 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isoteri AI Studio -- Penulis Halaman Web (Isoteri, bukan JavaScript)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  body { background-color: #1e1e1e; color: #d4d4d4; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  header { background-color: #252526; padding: 10px 20px; border-bottom: 1px solid #3c3c3c; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  header h1 { font-size: 17px; color: #007acc; white-space: nowrap; }
+  header h1 span { color: #6a9955; font-size: 12px; font-weight: normal; display: block; }
+  .header-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .api-config { display: flex; gap: 8px; align-items: center; }
+  .api-config input { background: #3c3c3c; border: 1px solid #555; color: #fff; padding: 6px 10px; border-radius: 4px; font-size: 12px; width: 200px; }
+  .api-config select { background: #3c3c3c; border: 1px solid #555; color: #fff; padding: 6px 8px; border-radius: 4px; font-size: 12px; }
 
-  <title>Tofarmer × Isoteri Lab</title>
+  .mode-tabs { display: flex; gap: 4px; background: #1e1e1e; padding: 8px 20px 0; border-bottom: 1px solid #3c3c3c; }
+  .mode-tab { padding: 8px 16px; font-size: 13px; cursor: pointer; color: #999; border-bottom: 2px solid transparent; background: none; border-top: none; border-left: none; border-right: none; }
+  .mode-tab.aktif { color: #007acc; border-bottom-color: #007acc; font-weight: bold; }
 
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 16px;
-      background: #0f1115;
-      color: #e6e6e6;
-    }
+  .workspace { display: flex; flex: 1; overflow: hidden; }
 
-    h1 {
-      margin-bottom: 4px;
-    }
+  /* Panel Kiri: Chat / Input */
+  .panel-chat { width: 340px; background-color: #252526; border-right: 1px solid #3c3c3c; display: flex; flex-direction: column; flex-shrink: 0; }
+  .chat-history { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .msg { padding: 9px 11px; border-radius: 6px; font-size: 12.5px; line-height: 1.4; max-width: 92%; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.user { background-color: #0e639c; color: #fff; align-self: flex-end; }
+  .msg.ai { background-color: #333333; color: #d4d4d4; align-self: flex-start; border: 1px solid #444; }
+  .msg.sistem { background-color: transparent; color: #6a9955; align-self: center; font-size: 11px; text-align: center; max-width: 100%; }
 
-    .subjudul {
-      color: #9aa0ac;
-      margin-top: 0;
-    }
+  .konversi-area { padding: 12px; border-bottom: 1px solid #3c3c3c; display: none; flex-direction: column; gap: 6px; }
+  .konversi-area.aktif { display: flex; }
+  .konversi-area label { font-size: 11px; color: #999; }
+  .konversi-area textarea { background: #1e1e1e; border: 1px solid #444; color: #ce9178; padding: 8px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 11px; height: 110px; resize: vertical; }
 
-    .panel {
-      background: #1a1d24;
-      border: 1px solid #2a2e37;
-      border-radius: 10px;
-      padding: 16px;
-      margin: 16px 0;
-    }
+  .chat-input-area { padding: 10px; border-top: 1px solid #3c3c3c; background: #1e1e1e; display: flex; gap: 8px; }
+  .chat-input-area textarea { flex: 1; background: #2d2d2d; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; resize: none; height: 40px; font-size: 13px; }
+  .btn { background-color: #007acc; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .btn:hover { background-color: #0090e0; }
+  .btn:disabled { background-color: #444; cursor: not-allowed; }
+  .btn-kecil { padding: 4px 9px; font-size: 11px; }
+  .btn-ghost { background: transparent; border: 1px solid #555; color: #ccc; }
+  .btn-ghost:hover { background: #333; }
 
-    select,
-    button {
-      background: #1a1d24;
-      color: #e6e6e6;
-      border: 1px solid #2a2e37;
-      border-radius: 6px;
-      padding: 8px 12px;
-    }
+  /* Panel Tengah: Editor + Preview */
+  .panel-editor { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .editor-tabs { display: flex; background: #2d2d2d; border-bottom: 1px solid #3c3c3c; }
+  .editor-tab { padding: 8px 16px; font-size: 12px; cursor: pointer; color: #999; border-right: 1px solid #3c3c3c; }
+  .editor-tab.aktif { color: #fff; background: #1e1e1e; }
+  .editor-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; background: #2d2d2d; border-bottom: 1px solid #3c3c3c; gap: 8px; flex-wrap: wrap; }
+  .editor-toolbar .kiri { display: flex; gap: 6px; align-items: center; font-size: 11px; color: #999; }
+  .editor-toolbar .kanan { display: flex; gap: 6px; flex-wrap: wrap; }
+  .editor-toolbar input[type=text] { background: #1e1e1e; border: 1px solid #444; color: #fff; padding: 4px 8px; border-radius: 3px; font-size: 11px; width: 130px; }
 
-    button {
-      cursor: pointer;
-    }
+  .editor-body { flex: 1; position: relative; overflow: hidden; }
+  .code-area { position: absolute; inset: 0; width: 100%; height: 100%; background-color: #1e1e1e; color: #9cdcfe; border: none; padding: 15px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.5; resize: none; outline: none; display: none; }
+  .code-area.aktif { display: block; }
+  .code-area.iso { color: #ce9178; }
+  .preview-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: none; background: #fff; display: none; }
+  .preview-frame.aktif { display: block; }
+  .preview-banner { position: absolute; top: 0; left: 0; right: 0; background: #5a3d00; color: #ffd580; font-size: 11px; padding: 5px 12px; z-index: 5; display: none; }
+  .preview-banner.aktif { display: block; }
 
-    pre {
-      white-space: pre-wrap;
-    }
+  .instruksi-box { background: #1e1e2e; border-top: 1px solid #3c3c3c; padding: 10px 14px; font-size: 11.5px; color: #9cdcfe; line-height: 1.6; }
+  .instruksi-box code { background: #0d0d14; padding: 2px 6px; border-radius: 3px; color: #4ec9b0; font-family: 'Consolas', monospace; }
+  .instruksi-box b { color: #dcdcaa; }
 
-    #keluaran {
-      min-height: 120px;
-      background: #0b0d11;
-      border: 1px solid #2a2e37;
-      border-radius: 8px;
-      padding: 16px;
-    }
+  /* Panel Kanan: Referensi */
+  .panel-ref { width: 330px; background-color: #252526; display: flex; flex-direction: column; flex-shrink: 0; border-left: 1px solid #3c3c3c; }
+  .ref-header { padding: 10px 14px; border-bottom: 1px solid #3c3c3c; }
+  .ref-header input { width: 100%; background: #1e1e1e; border: 1px solid #444; color: #fff; padding: 6px 8px; border-radius: 4px; font-size: 12px; }
+  .ref-content { flex: 1; overflow-y: auto; padding: 10px; font-size: 12px; }
+  .ref-kategori { font-size: 10px; text-transform: uppercase; color: #666; margin: 10px 4px 4px; letter-spacing: 0.5px; }
+  .ref-card { background: #2d2d2d; border: 1px solid #3c3c3c; padding: 9px 10px; border-radius: 4px; margin-bottom: 6px; cursor: pointer; }
+  .ref-card h4 { color: #4ec9b0; margin-bottom: 4px; font-size: 12px; }
+  .ref-card .ref-isi { display: none; margin-top: 6px; color: #ccc; line-height: 1.5; font-size: 11.5px; white-space: pre-wrap; }
+  .ref-card .ref-isi.terbuka { display: block; }
+  .ref-card code, .ref-card pre { background: #1e1e1e; padding: 6px; border-radius: 3px; color: #ce9178; display: block; margin-top: 4px; white-space: pre-wrap; font-family: 'Consolas', monospace; font-size: 11px; }
 
-    #target {
-      border: 1px solid #2a2e37;
-      border-radius: 8px;
-      padding: 16px;
-      min-height: 60px;
-    }
-
-    .baris {
-      padding: 4px 0;
-      border-bottom: 1px dashed #2a2e37;
-    }
-
-    .error {
-      color: #ff8080;
-    }
-
-    .status {
-      color: #9aa0ac;
-      font-size: 0.9rem;
-    }
-  </style>
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+</style>
 </head>
-
 <body>
 
-  <h1>Tofarmer × Isoteri Lab</h1>
-
-  <p class="subjudul">
-    Laboratorium eksplorasi bahasa Isoteri di browser.
-  </p>
-
-  <div class="panel">
-
-    <h2>Program Isoteri</h2>
-
-    <p class="status">
-      Pilih bundle <code>.isoweb.json</code> yang akan dijalankan
-      oleh Isoteri VM.
-    </p>
-
-    <select id="pilihan">
-      <option value="/isoteri-lab/program.isoweb.json">
-        program.iso
-      </option>
-
-      <option value="/isoteri-lab/program_closure.isoweb.json">
-        program_closure.iso
-      </option>
-
-      <option value="/isoteri-lab/program_bentuk.isoweb.json">
-        program_bentuk.iso
-      </option>
-
-      <option value="/isoteri-lab/contoh_dom.isoweb.json">
-        contoh_dom.iso
-      </option>
-
-      <option value="/isoteri-lab/contoh_kanvas_ws.isoweb.json">
-        contoh_kanvas_ws.iso
-      </option>
-    </select>
-
-    <button id="jalankan">
-      ▶ Jalankan
-    </button>
-
-  </div>
-
-  <div class="panel">
-
-    <h2>Output Isoteri</h2>
-
-    <div id="keluaran"></div>
-
-  </div>
-
-  <div class="panel">
-
-    <h2>Target DOM</h2>
-
-    <p class="status">
-      Elemen ini sengaja disediakan untuk eksperimen DOM Isoteri.
-    </p>
-
-    <div id="target">
-      <strong id="judul">Awal</strong>
+  <header>
+    <h1>Isoteri AI Studio<span>Penulis halaman web -- logika ditulis Isoteri, bukan JavaScript</span></h1>
+    <div class="header-right">
+      <div class="api-config">
+        <select id="modelSelect">
+          <option value="gemini-3.7-flash">gemini-3.7-flash (terbaru, disarankan)</option>
+          <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+          <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite (paling murah)</option>
+        </select>
+        <input type="password" id="apiKey" placeholder="Gemini API Key...">
+      </div>
     </div>
-<canvas
-    id="papan"
-    width="400"
-    height="240"
-    style="
-      border:1px solid #2a2e37;
-      border-radius:8px;
-      background:#fff;
-    "
-  ></canvas>
+  </header>
+
+  <div class="mode-tabs">
+    <button class="mode-tab aktif" data-mode="buat" onclick="gantiMode('buat')">Buat Halaman Baru</button>
+    <button class="mode-tab" data-mode="konversi" onclick="gantiMode('konversi')">Konversi HTML Lama -&gt; Isoteri</button>
   </div>
 
-  <div class="panel">
+  <div class="workspace">
 
-    <h2>Status Runtime</h2>
+    <!-- Panel Kiri: Chat -->
+    <div class="panel-chat">
+      <div class="konversi-area" id="konversiArea">
+        <label>Tempel kode HTML lama (boleh sudah termasuk &lt;script&gt; JS-nya) di sini:</label>
+        <textarea id="htmlLama" placeholder="&lt;!DOCTYPE html&gt;&#10;&lt;html&gt;...&lt;/html&gt;"></textarea>
+      </div>
+      <div class="chat-history" id="chatHistory">
+        <div class="msg ai">Halo! Saya bantu menulis halaman web pakai Bahasa Isoteri sebagai pengganti JavaScript.
 
-    <div id="status">
-      Memuat Isoteri VM...
+Mode "Buat Halaman Baru": deskripsikan halaman yang kamu mau.
+Mode "Konversi": tempel HTML lama di atas, lalu ceritakan singkat apa yang perlu diubah/dipertahankan (atau langsung kirim kosong buat konversi apa adanya).</div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="userInput" placeholder="Ketik perintah..."></textarea>
+        <button class="btn" id="tombolKirim" onclick="kirimPesan()">Kirim</button>
+      </div>
+    </div>
+
+    <!-- Panel Tengah: Editor -->
+    <div class="panel-editor">
+      <div class="editor-tabs">
+        <div class="editor-tab aktif" data-tab="preview" onclick="gantiTabEditor('preview')">Pratinjau</div>
+        <div class="editor-tab" data-tab="html" onclick="gantiTabEditor('html')">HTML Lengkap</div>
+        <div class="editor-tab" data-tab="css" onclick="gantiTabEditor('css')">CSS</div>
+        <div class="editor-tab" data-tab="iso" onclick="gantiTabEditor('iso')">Isoteri (.iso)</div>
+      </div>
+      <div class="editor-toolbar">
+        <div class="kiri">
+          Nama halaman: <input type="text" id="namaHalaman" value="halaman" onchange="render()">
+        </div>
+        <div class="kanan">
+          <button class="btn btn-ghost btn-kecil" onclick="unduhIso()">Unduh .iso</button>
+          <button class="btn btn-ghost btn-kecil" onclick="unduhHtml()">Unduh HTML</button>
+          <button class="btn btn-ghost btn-kecil" onclick="unduhVmJs()">Unduh isoteri-vm.js</button>
+          <button class="btn btn-kecil" onclick="salinPerintahCompile()">Salin Perintah Compile</button>
+        </div>
+      </div>
+      <div class="editor-body">
+        <div class="preview-banner" id="previewBanner">Pratinjau VISUAL saja (HTML+CSS) -- tombol/interaktivitas baru aktif setelah file .iso dikompilasi. Lihat instruksi di bawah.</div>
+        <iframe class="preview-frame aktif" id="previewFrame"></iframe>
+        <textarea class="code-area" id="editorHtml" spellcheck="false"></textarea>
+        <textarea class="code-area" id="editorCss" spellcheck="false"></textarea>
+        <textarea class="code-area iso" id="editorIso" spellcheck="false"></textarea>
+      </div>
+      <div class="instruksi-box" id="instruksiBox"></div>
+    </div>
+
+    <!-- Panel Kanan: Referensi -->
+    <div class="panel-ref">
+      <div class="ref-header">
+        <input type="text" id="refCari" placeholder="Cari referensi Isoteri (mis: komponen, gabung, dom_ketika)..." oninput="renderReferensi()">
+      </div>
+      <div class="ref-content" id="refContent"></div>
     </div>
 
   </div>
 
-
-  <!-- Runtime Isoteri -->
-  <script src="/isoteri-lab/isoteri-vm.js"></script>
-
-  <script>
-
-    const keluaranEl =
-      document.getElementById("keluaran");
-
-    const pilihanEl =
-      document.getElementById("pilihan");
-
-    const statusEl =
-      document.getElementById("status");
-
-
-    function tulisOutput(teks) {
-
-      const div =
-        document.createElement("div");
-
-      div.className = "baris";
-
-      div.textContent = teks;
-
-      keluaranEl.appendChild(div);
-    }
-
-
-    async function jalankanBundel(nama) {
-
-      keluaranEl.innerHTML = "";
-
-      statusEl.textContent =
-        "Memuat " + nama + "...";
-
-      try {
-
-        const res =
-          await fetch(nama);
-
-        if (!res.ok) {
-
-          throw new Error(
-            "Gagal memuat " +
-            nama +
-            " (" +
-            res.status +
-            ")"
-          );
-
-        }
-
-
-        const bundle =
-          await res.json();
-
-
-        if (typeof IsoteriVM !== "function") {
-
-          throw new Error(
-            "IsoteriVM tidak ditemukan."
-          );
-
-        }
-
-
-        const vm =
-          new IsoteriVM(bundle, {
-
-            tampilkan: (baris) => {
-
-              tulisOutput(baris);
-
-            }
-
-          });
-
-
-        statusEl.textContent =
-          "Menjalankan " + nama + "...";
-
-
-        vm.jalankan();
-
-
-        statusEl.textContent =
-          "✓ Selesai";
-
-
-      } catch (e) {
-
-        statusEl.textContent =
-          "✗ Gagal";
-
-        const div =
-          document.createElement("div");
-
-        div.className =
-          "baris error";
-
-        div.textContent =
-          "Kesalahan: " + e.message;
-
-        keluaranEl.appendChild(div);
-
-        console.error(e);
-
-      }
-
-    }
-
-
-    document
-      .getElementById("jalankan")
-      .addEventListener(
-        "click",
-        () => {
-
-          jalankanBundel(
-            pilihanEl.value
-          );
-
-        }
-      );
-
-
-    if (typeof IsoteriVM === "function") {
-
-      statusEl.textContent =
-        "✓ Isoteri VM berhasil dimuat";
-
-    } else {
-
-      statusEl.textContent =
-        "✗ Isoteri VM tidak ditemukan";
-
-    }
-
-  </script>
-
+  <script src="pengetahuan-isoteri.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
