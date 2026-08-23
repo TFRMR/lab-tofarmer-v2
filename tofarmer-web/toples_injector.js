@@ -206,7 +206,7 @@ if (!profileData && inputWallet) {
                     <div class="toples-feed">
                         <h3 style="font-size: 12px; color: #6f7f76; text-transform: uppercase; margin-bottom: 8px; padding-left: 2px; font-weight:700; letter-spacing:0.5px;">Buku Tabungan Sementara (Autopilot)</h3>
                         <div class="ledger-post" style="background: #fff; border: 1px solid rgba(47,111,78,.12); padding: 18px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.01);">
-                            <div class="ledger-content" style="font-size: 12px; line-height: 1.6; white-space: pre-wrap; font-family: monospace; background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #e4e7e5; max-height: 400px; overflow-y: auto;">
+                            <div class="ledger-content" style="font-size: 12px; line-height: 1.6; white-space: pre-wrap; font-family: monospace; background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #e4e7e5; max-height: 800px; overflow-y: auto;">
                                 ${contentLedger}
                             </div>
                         </div>
