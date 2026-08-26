@@ -136,6 +136,30 @@ class IsoteriVM {
       case "StoreGlobal": this.globals[instr[1]] = S.pop(); return { selesai: false, pc: pc + 1 };
       case "LoadLocal": S.push(this.locals[localsBase + instr[1]]); return { selesai: false, pc: pc + 1 };
       case "StoreLocal": this.locals[localsBase + instr[1]] = S.pop(); return { selesai: false, pc: pc + 1 };
+      // TambahkanLokal/TambahkanGlobal: dimunculkan compiler Rust (lihat
+      // ekstrak_item_gabung_diri()/tambahkan_elemen_inplace() di src/lib.rs)
+      // buat pola SANGAT UMUM 'x = gabung(x, item)' di dalam loop. Di Rust ini
+      // dioptimasi jadi O(1) amortized lewat Rc::make_mut -- di sini (JS, VM
+      // web) kita TIDAK perlu optimasi itu (array JS sudah O(1) amortized
+      // native lewat push, dan performa bukan prioritas di preview browser),
+      // yang WAJIB dijaga cuma SEMANTIK-nya identik dengan gabung() biasa
+      // (immutable -- 'salinan lama' tidak boleh ikut berubah) supaya program
+      // yang dikompilasi compiler terbaru tidak crash "Instruksi tidak
+      // didukung" di preview ini.
+      case "TambahkanLokal": {
+        const item = S.pop();
+        const lama = this.locals[localsBase + instr[1]];
+        if (lama.t !== "Daftar") throw new IsoteriError(`gabung() argumen pertama harus Daftar, ditemukan ${tampilkanStr(lama)}`);
+        this.locals[localsBase + instr[1]] = daftar([...lama.v, item]);
+        return { selesai: false, pc: pc + 1 };
+      }
+      case "TambahkanGlobal": {
+        const item = S.pop();
+        const lama = this.globals[instr[1]];
+        if (lama.t !== "Daftar") throw new IsoteriError(`gabung() argumen pertama harus Daftar, ditemukan ${tampilkanStr(lama)}`);
+        this.globals[instr[1]] = daftar([...lama.v, item]);
+        return { selesai: false, pc: pc + 1 };
+      }
       case "BinOp": {
         const r = S.pop(), l = S.pop();
         S.push(evalBinOp(l, instr[1], r));
