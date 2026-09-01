@@ -649,7 +649,7 @@ generateReport(matrixData, timeframe);
             }
         }
 
-       function renderChart(data, xLabels, ticks, symbol, timeframe, rangeVal) {
+      function renderChart(data, xLabels, symbol, timeframe, rangeVal) {
     const ctx = document.getElementById('matrixChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
 
@@ -658,7 +658,7 @@ generateReport(matrixData, timeframe);
     chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: data.map((_, i) => i),
+            labels: xLabels, // Menggunakan array labels langsung
             datasets: [{
                 label: `${timeframe.toUpperCase()} MATRIX: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
                 data: data,
@@ -680,14 +680,7 @@ generateReport(matrixData, timeframe);
                         color: '#fde047',
                         font: { family: 'JetBrains Mono', size: 10 },
                         maxRotation: 0,
-                        autoSkip: false, // Memaksa Chart.js menampilkan semua tick yang sudah kita tetapkan
-                        callback: function(val) {
-                            let numericVal = Number(val);
-                            
-                            // Toleransi pencarian indeks agar label pasti muncul di posisi terdekat
-                            let matchIndex = ticks.findIndex(t => Math.abs(t - numericVal) < 1.5);
-                            return matchIndex !== -1 ? xLabels[matchIndex] : '';
-                        }
+                        autoSkip: false // Tetap render semua slot label tanpa melewati bulan
                     }
                 },
                 y: {
@@ -709,7 +702,6 @@ generateReport(matrixData, timeframe);
         }
     });
 }
-
         function generateReport(data, timeframe) {
             const reportBox = document.getElementById("reportContainer");
             const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
