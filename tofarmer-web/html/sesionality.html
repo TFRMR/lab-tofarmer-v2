@@ -497,50 +497,49 @@
 
     const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
 
-    // Gunakan daftar proxy yang tidak terkena rate-limit/CORS Yahoo
-    const proxies = [
-        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-        url => `https://thingproxy.freeboard.io/fetch/${url}`
-    ];
+    // GANTI URL DI BAWAH INI DENGAN URL CLOUDFLARE WORKER KAMU
+    const MY_WORKER_URL = "https://tofarmer-proxy.USERNAME.workers.dev"; 
+    
+    const targetProxy = `${MY_WORKER_URL}/?url=${encodeURIComponent(yahooBase)}`;
 
-    for (const getProxyUrl of proxies) {
-        try {
-            const proxyUrl = getProxyUrl(yahooBase);
-            
-            const res = await fetch(proxyUrl, { 
-                cache: 'no-store',
-                headers: { 'Accept': 'application/json' }
-            });
-            
-            if (!res.ok) continue;
-
-            const json = await res.json();
-            if (!json.chart || !json.chart.result || !json.chart.result[0]) continue;
-
-            const result = json.chart.result[0];
-            const timestamps = result.timestamp;
-            const closes = result.indicators.quote[0].close;
-
-            if (!timestamps || !closes) continue;
-
-            let data = [];
-            for (let i = 0; i < timestamps.length; i++) {
-                if (closes[i] !== null && closes[i] !== undefined) {
-                    data.push({
-                        date: new Date(timestamps[i] * 1000),
-                        close: closes[i]
-                    });
-                }
-            }
-
-            if (data.length > 0) return data;
-        } catch (e) {
-            // Lanjut mencoba proxy berikutnya
+    try {
+        const res = await fetch(targetProxy, { cache: 'no-store' });
+        
+        if (!res.ok) {
+            throw new Error(`HTTP Error Status: ${res.status}`);
         }
-    }
 
-    throw new Error("Gagal mengambil data dari seluruh Proxy. Coba buat Cloudflare Worker kustom.");
+        const json = await res.json();
+
+        if (!json.chart || !json.chart.result || !json.chart.result[0]) {
+            throw new Error("Struktur data Yahoo Finance tidak valid.");
+        }
+
+        const result = json.chart.result[0];
+        const timestamps = result.timestamp;
+        const closes = result.indicators.quote[0].close;
+
+        if (!timestamps || !closes) {
+            throw new Error("Data harga kosong.");
+        }
+
+        let data = [];
+        for (let i = 0; i < timestamps.length; i++) {
+            if (closes[i] !== null && closes[i] !== undefined) {
+                data.push({
+                    date: new Date(timestamps[i] * 1000),
+                    close: closes[i]
+                });
+            }
+        }
+
+        if (data.length > 0) return data;
+        
+        throw new Error("Array data berukuran 0.");
+    } catch (e) {
+        console.error("Worker fetch failed:", e);
+        throw e;
+    }
 }
 
         async function runAnalysis() {
