@@ -160,6 +160,31 @@
             justify-content: space-between;
         }
 
+        /* Styling Tombol Kembali */
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #84a98c;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 18px;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(7, 14, 10, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+            width: fit-content;
+        }
+
+        .btn-back:hover {
+            color: #4ade80;
+            border-color: rgba(74, 222, 128, 0.3);
+            background: rgba(20, 38, 27, 0.6);
+            transform: translateX(-3px);
+        }
+
         .form-group {
             margin-bottom: 18px;
         }
@@ -375,6 +400,11 @@
                 
                 <aside class="control-panel">
                     <div>
+                        <!-- Tombol Kembali Tambahan -->
+                        <a href="/html/fitur-ilmu.html" class="btn-back">
+                            ← Kembali ke Fitur Ilmu
+                        </a>
+
                         <div class="form-group">
                             <label for="pairSelect">Trading Pair</label>
                             <select id="pairSelect" class="form-control">
@@ -486,61 +516,60 @@
             return result;
         }
 
-       async function fetchYahooData(symbol, timeframe, rangeVal) {
-    let interval = "1d";
-    let range = `${rangeVal}y`;
+        async function fetchYahooData(symbol, timeframe, rangeVal) {
+            let interval = "1d";
+            let range = `${rangeVal}y`;
 
-    if (timeframe === "4H" || timeframe === "1H") {
-        interval = "1h";
-        range = "2y"; 
-    }
+            if (timeframe === "4H" || timeframe === "1H") {
+                interval = "1h";
+                range = "2y"; 
+            }
 
-    const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
+            const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
 
-    // GANTI URL DI BAWAH INI DENGAN URL CLOUDFLARE WORKER KAMU
-    const MY_WORKER_URL = "https://tofarmer-proxy.tofarmer-api.workers.dev/"; 
-    
-    const targetProxy = `${MY_WORKER_URL}/?url=${encodeURIComponent(yahooBase)}`;
+            const MY_WORKER_URL = "https://tofarmer-proxy.tofarmer-api.workers.dev/"; 
+            
+            const targetProxy = `${MY_WORKER_URL}/?url=${encodeURIComponent(yahooBase)}`;
 
-    try {
-        const res = await fetch(targetProxy, { cache: 'no-store' });
-        
-        if (!res.ok) {
-            throw new Error(`HTTP Error Status: ${res.status}`);
-        }
+            try {
+                const res = await fetch(targetProxy, { cache: 'no-store' });
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP Error Status: ${res.status}`);
+                }
 
-        const json = await res.json();
+                const json = await res.json();
 
-        if (!json.chart || !json.chart.result || !json.chart.result[0]) {
-            throw new Error("Struktur data Yahoo Finance tidak valid.");
-        }
+                if (!json.chart || !json.chart.result || !json.chart.result[0]) {
+                    throw new Error("Struktur data Yahoo Finance tidak valid.");
+                }
 
-        const result = json.chart.result[0];
-        const timestamps = result.timestamp;
-        const closes = result.indicators.quote[0].close;
+                const result = json.chart.result[0];
+                const timestamps = result.timestamp;
+                const closes = result.indicators.quote[0].close;
 
-        if (!timestamps || !closes) {
-            throw new Error("Data harga kosong.");
-        }
+                if (!timestamps || !closes) {
+                    throw new Error("Data harga kosong.");
+                }
 
-        let data = [];
-        for (let i = 0; i < timestamps.length; i++) {
-            if (closes[i] !== null && closes[i] !== undefined) {
-                data.push({
-                    date: new Date(timestamps[i] * 1000),
-                    close: closes[i]
-                });
+                let data = [];
+                for (let i = 0; i < timestamps.length; i++) {
+                    if (closes[i] !== null && closes[i] !== undefined) {
+                        data.push({
+                            date: new Date(timestamps[i] * 1000),
+                            close: closes[i]
+                        });
+                    }
+                }
+
+                if (data.length > 0) return data;
+                
+                throw new Error("Array data berukuran 0.");
+            } catch (e) {
+                console.error("Worker fetch failed:", e);
+                throw e;
             }
         }
-
-        if (data.length > 0) return data;
-        
-        throw new Error("Array data berukuran 0.");
-    } catch (e) {
-        console.error("Worker fetch failed:", e);
-        throw e;
-    }
-}
 
         async function runAnalysis() {
             const symbol = document.getElementById("pairSelect").value;
@@ -566,80 +595,78 @@
 
                 let matrixData, labels, ticks;
 
-             if (timeframe === "Daily") {
-    let doyGroup = {};
-    for (let i = 0; i < 366; i++) doyGroup[i] = [];
+                if (timeframe === "Daily") {
+                    let doyGroup = {};
+                    for (let i = 0; i < 366; i++) doyGroup[i] = [];
 
-    returns.forEach(item => {
-        let start = new Date(item.date.getFullYear(), 0, 0);
-        let diff = item.date - start;
-        let oneDay = 1000 * 60 * 60 * 24;
-        let doy = Math.floor(diff / oneDay) - 1; 
-        if (doy >= 0 && doy < 366) doyGroup[doy].push(item.ret);
-    });
+                    returns.forEach(item => {
+                        let start = new Date(item.date.getFullYear(), 0, 0);
+                        let diff = item.date - start;
+                        let oneDay = 1000 * 60 * 60 * 24;
+                        let doy = Math.floor(diff / oneDay) - 1; 
+                        if (doy >= 0 && doy < 366) doyGroup[doy].push(item.ret);
+                    });
 
-    let avgReturns = [];
-    for (let i = 0; i < 366; i++) {
-        let arr = doyGroup[i];
-        let avg = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-        avgReturns.push(avg);
-    }
+                    let avgReturns = [];
+                    for (let i = 0; i < 366; i++) {
+                        let arr = doyGroup[i];
+                        let avg = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+                        avgReturns.push(avg);
+                    }
 
-    let cumsum = [0];
-    for (let i = 0; i < avgReturns.length; i++) {
-        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
-    }
+                    let cumsum = [0];
+                    for (let i = 0; i < avgReturns.length; i++) {
+                        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
+                    }
 
-    matrixData = rollingMean(cumsum, smoothVal);
-    
-    // PERBAIKAN: Buat array berisi 366 string kosong
-    labels = new Array(366).fill('');
-    
-    // Set teks hanya di indeks hari pertama setiap bulan
-    labels[0]   = 'JAN';
-    labels[31]  = 'FEB';
-    labels[59]  = 'MAR';
-    labels[90]  = 'APR';
-    labels[120] = 'MAY';
-    labels[151] = 'JUN';
-    labels[181] = 'JUL';
-    labels[212] = 'AUG';
-    labels[243] = 'SEP';
-    labels[273] = 'OCT';
-    labels[304] = 'NOV';
-    labels[334] = 'DEC';
+                    matrixData = rollingMean(cumsum, smoothVal);
+                    
+                    labels = new Array(366).fill('');
+                    
+                    labels[0]   = 'JAN';
+                    labels[31]  = 'FEB';
+                    labels[59]  = 'MAR';
+                    labels[90]  = 'APR';
+                    labels[120] = 'MAY';
+                    labels[151] = 'JUN';
+                    labels[181] = 'JUL';
+                    labels[212] = 'AUG';
+                    labels[243] = 'SEP';
+                    labels[273] = 'OCT';
+                    labels[304] = 'NOV';
+                    labels[334] = 'DEC';
 
-} else {
-    let slots = new Array(120).fill(0).map(() => []);
+                } else {
+                    let slots = new Array(120).fill(0).map(() => []);
 
-    returns.forEach(item => {
-        let day = item.date.getDay() - 1; 
-        let hour = item.date.getHours();
-        if (day >= 0 && day < 5) {
-            let idx = (day * 24) + hour;
-            if (idx < 120) slots[idx].push(item.ret);
-        }
-    });
+                    returns.forEach(item => {
+                        let day = item.date.getDay() - 1; 
+                        let hour = item.date.getHours();
+                        if (day >= 0 && day < 5) {
+                            let idx = (day * 24) + hour;
+                            if (idx < 120) slots[idx].push(item.ret);
+                        }
+                    });
 
-    let avgReturns = slots.map(arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+                    let avgReturns = slots.map(arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
-    let cumsum = [0];
-    for (let i = 0; i < avgReturns.length; i++) {
-        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
-    }
+                    let cumsum = [0];
+                    for (let i = 0; i < avgReturns.length; i++) {
+                        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
+                    }
 
-    matrixData = rollingMean(cumsum, smoothVal);
-    
-    labels = new Array(120).fill('');
-    labels[0]  = 'MON';
-    labels[24] = 'TUE';
-    labels[48] = 'WED';
-    labels[72] = 'THU';
-    labels[96] = 'FRI';
-}
+                    matrixData = rollingMean(cumsum, smoothVal);
+                    
+                    labels = new Array(120).fill('');
+                    labels[0]  = 'MON';
+                    labels[24] = 'TUE';
+                    labels[48] = 'WED';
+                    labels[72] = 'THU';
+                    labels[96] = 'FRI';
+                }
 
-renderChart(matrixData, labels, symbol, timeframe, rangeVal);
-generateReport(matrixData, timeframe);
+                renderChart(matrixData, labels, symbol, timeframe, rangeVal);
+                generateReport(matrixData, timeframe);
 
             } catch (err) {
                 reportBox.innerHTML = `<span style="color: #ef4444;">Sync Error: ${err.message}</span>`;
@@ -649,112 +676,107 @@ generateReport(matrixData, timeframe);
             }
         }
 
-// Plugin Kustom untuk Menggambar Garis Pembatas (Period Separator)
-const periodSeparatorPlugin = {
-    id: 'periodSeparator',
-    beforeDraw(chart) {
-        // Ambil scales langsung dari instance chart
-        const { ctx, chartArea: { top, bottom }, scales } = chart;
-        
-        // Pastikan scale X sudah terinisialisasi
-        if (!scales || !scales.x) return;
-
-        const labels = chart.data.labels;
-
-        ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; // Warna garis pembatas
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]); // Garis putus-putus
-
-        labels.forEach((label, index) => {
-            // Gambar garis vertikal hanya di posisi indeks yang memiliki teks label (JAN, FEB, MON, dll)
-            if (label !== '') {
-                // Gunakan getPixelForValue untuk mendapatkan posisi koordinat X berdasarkan indeks
-                const xPos = scales.x.getPixelForValue(index);
+        // Plugin Kustom untuk Menggambar Garis Pembatas (Period Separator)
+        const periodSeparatorPlugin = {
+            id: 'periodSeparator',
+            beforeDraw(chart) {
+                const { ctx, chartArea: { top, bottom }, scales } = chart;
                 
-                ctx.beginPath();
-                ctx.moveTo(xPos, top);
-                ctx.lineTo(xPos, bottom);
-                ctx.stroke();
-            }
-        });
+                if (!scales || !scales.x) return;
 
-        ctx.restore();
-    }
-};
+                const labels = chart.data.labels;
 
-// Plugin untuk menggambar Background Solid ke Canvas (agar terbawa saat simpan PNG)
-const customCanvasBackgroundColorPlugin = {
-    id: 'customCanvasBackgroundColor',
-    beforeDraw: (chart, args, options) => {
-        const { ctx } = chart;
-        ctx.save();
-        ctx.globalCompositeOperation = 'destination-over';
-        ctx.fillStyle = options.color || '#0B0F19'; // Warna background (sesuaikan dengan tema dark kamu)
-        ctx.fillRect(0, 0, chart.width, chart.height);
-        ctx.restore();
-    }
-};
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
 
-   function renderChart(data, xLabels, symbol, timeframe, rangeVal) {
-    const ctx = document.getElementById('matrixChart').getContext('2d');
-    if (chartInstance) chartInstance.destroy();
-
-    let displayPair = symbol === "GC=F" ? "XAUUSD" : symbol.replace("=X", "").replace("-USD", "USD");
-
-    chartInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: xLabels,
-            datasets: [{
-                label: `${timeframe.toUpperCase()} MATRIX: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
-                data: data,
-                borderColor: '#4ade80',
-                backgroundColor: 'rgba(74, 222, 128, 0.05)',
-                borderWidth: 2,
-                pointRadius: 0,
-                tension: 0.2,
-                fill: true
-            }]
-        },
-        // DAFTARKAN DUA-DUANYA DI SINI:
-        plugins: [periodSeparatorPlugin, customCanvasBackgroundColorPlugin],
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                // WARNA BACKGROUND KUSTOM UNTUK EXPORT PNG
-                customCanvasBackgroundColor: {
-                    color: '#0d131a' // Sesuaikan kode Hex ini dengan warna background container UI kamu
-                },
-                legend: { 
-                    labels: { 
-                        color: '#f8fafc', 
-                        font: { family: 'Plus Jakarta Sans', weight: '600' } 
-                    } 
-                }
-            },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: {
-                        color: '#fde047',
-                        font: { family: 'JetBrains Mono', size: 10 },
-                        maxRotation: 0,
-                        autoSkip: false
+                labels.forEach((label, index) => {
+                    if (label !== '') {
+                        const xPos = scales.x.getPixelForValue(index);
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(xPos, top);
+                        ctx.lineTo(xPos, bottom);
+                        ctx.stroke();
                     }
+                });
+
+                ctx.restore();
+            }
+        };
+
+        // Plugin untuk menggambar Background Solid ke Canvas
+        const customCanvasBackgroundColorPlugin = {
+            id: 'customCanvasBackgroundColor',
+            beforeDraw: (chart, args, options) => {
+                const { ctx } = chart;
+                ctx.save();
+                ctx.globalCompositeOperation = 'destination-over';
+                ctx.fillStyle = options.color || '#0B0F19';
+                ctx.fillRect(0, 0, chart.width, chart.height);
+                ctx.restore();
+            }
+        };
+
+        function renderChart(data, xLabels, symbol, timeframe, rangeVal) {
+            const ctx = document.getElementById('matrixChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            let displayPair = symbol === "GC=F" ? "XAUUSD" : symbol.replace("=X", "").replace("-USD", "USD");
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: xLabels,
+                    datasets: [{
+                        label: `${timeframe.toUpperCase()} MATRIX: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
+                        data: data,
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.05)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.2,
+                        fill: true
+                    }]
                 },
-                y: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                    ticks: { 
-                        color: '#64748b',
-                        font: { family: 'JetBrains Mono', size: 10 }
+                plugins: [periodSeparatorPlugin, customCanvasBackgroundColorPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        customCanvasBackgroundColor: {
+                            color: '#0d131a'
+                        },
+                        legend: { 
+                            labels: { 
+                                color: '#f8fafc', 
+                                font: { family: 'Plus Jakarta Sans', weight: '600' } 
+                            } 
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#fde047',
+                                font: { family: 'JetBrains Mono', size: 10 },
+                                maxRotation: 0,
+                                autoSkip: false
+                            }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: '#64748b',
+                                font: { family: 'JetBrains Mono', size: 10 }
+                            }
+                        }
                     }
                 }
-            }
+            });
         }
-    });
-}
+
         function generateReport(data, timeframe) {
             const reportBox = document.getElementById("reportContainer");
             const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
@@ -792,30 +814,28 @@ const customCanvasBackgroundColorPlugin = {
             reportBox.innerHTML = html;
         }
 
-      function downloadChart() {
-    if (!chartInstance) return;
-    
-    // Tembak langsung toBase64Image dengan MIME type PNG & Kualitas Maksimal (1.0)
-    const imageURL = chartInstance.toBase64Image('image/png', 1.0);
-    
-    const a = document.createElement('a');
-    a.href = imageURL;
-    a.download = `ToFarmer_Matrix_${Date.now()}.png`;
-    
-    // Dipasang ke DOM sebentar agar compatible di seluruh browser (Chrome/Firefox/Safari)
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
-// Tambahkan di dalam tag <script> pada HTML kamu
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for (let registration of registrations) {
-            registration.unregister();
-            console.log("Service Worker berhasil dihapus.");
+        function downloadChart() {
+            if (!chartInstance) return;
+            
+            const imageURL = chartInstance.toBase64Image('image/png', 1.0);
+            
+            const a = document.createElement('a');
+            a.href = imageURL;
+            a.download = `ToFarmer_Matrix_${Date.now()}.png`;
+            
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
-    });
-}
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let registration of registrations) {
+                    registration.unregister();
+                    console.log("Service Worker berhasil dihapus.");
+                }
+            });
+        }
     </script>
 </body>
 </html>
