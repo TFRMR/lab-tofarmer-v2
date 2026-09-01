@@ -486,71 +486,62 @@
             return result;
         }
 
-        async function fetchYahooData(symbol, timeframe, rangeVal) {
-            let interval = "1d";
-            let range = `${rangeVal}y`;
+       async function fetchYahooData(symbol, timeframe, rangeVal) {
+    let interval = "1d";
+    let range = `${rangeVal}y`;
 
-            if (timeframe === "4H" || timeframe === "1H") {
-                interval = "1h";
-                range = "2y"; 
-            }
+    if (timeframe === "4H" || timeframe === "1H") {
+        interval = "1h";
+        range = "2y"; 
+    }
 
-            const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
+    const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
 
-            // Menggunakan Proxy JSON yang handal & Bypass Service Worker
-            const proxies = [
-                url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&_nc=${Date.now()}`,
-                url => `https://corsproxy.io/?${encodeURIComponent(url)}`
-            ];
+    // Gunakan daftar proxy yang tidak terkena rate-limit/CORS Yahoo
+    const proxies = [
+        url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        url => `https://thingproxy.freeboard.io/fetch/${url}`
+    ];
 
-            for (const getProxyUrl of proxies) {
-                try {
-                    const proxyUrl = getProxyUrl(yahooBase);
-                    
-                    const res = await fetch(proxyUrl, { 
-                        cache: 'no-store',
-                        headers: { 'Accept': 'application/json' }
+    for (const getProxyUrl of proxies) {
+        try {
+            const proxyUrl = getProxyUrl(yahooBase);
+            
+            const res = await fetch(proxyUrl, { 
+                cache: 'no-store',
+                headers: { 'Accept': 'application/json' }
+            });
+            
+            if (!res.ok) continue;
+
+            const json = await res.json();
+            if (!json.chart || !json.chart.result || !json.chart.result[0]) continue;
+
+            const result = json.chart.result[0];
+            const timestamps = result.timestamp;
+            const closes = result.indicators.quote[0].close;
+
+            if (!timestamps || !closes) continue;
+
+            let data = [];
+            for (let i = 0; i < timestamps.length; i++) {
+                if (closes[i] !== null && closes[i] !== undefined) {
+                    data.push({
+                        date: new Date(timestamps[i] * 1000),
+                        close: closes[i]
                     });
-                    if (!res.ok) continue;
-
-                    const text = await res.text();
-                    let json;
-                    
-                    try {
-                        json = JSON.parse(text);
-                        if (json.contents) {
-                            json = JSON.parse(json.contents);
-                        }
-                    } catch (e) {
-                        continue;
-                    }
-
-                    if (!json.chart || !json.chart.result || !json.chart.result[0]) continue;
-
-                    const result = json.chart.result[0];
-                    const timestamps = result.timestamp;
-                    const closes = result.indicators.quote[0].close;
-
-                    if (!timestamps || !closes) continue;
-
-                    let data = [];
-                    for (let i = 0; i < timestamps.length; i++) {
-                        if (closes[i] !== null && closes[i] !== undefined) {
-                            data.push({
-                                date: new Date(timestamps[i] * 1000),
-                                close: closes[i]
-                            });
-                        }
-                    }
-
-                    if (data.length > 0) return data;
-                } catch (e) {
-                    // Lanjut mencoba proxy berikutnya secara silent
                 }
             }
 
-            throw new Error("Gagal mengambil data dari Proxy. Coba refresh browser atau gunakan Cloudflare Worker.");
+            if (data.length > 0) return data;
+        } catch (e) {
+            // Lanjut mencoba proxy berikutnya
         }
+    }
+
+    throw new Error("Gagal mengambil data dari seluruh Proxy. Coba buat Cloudflare Worker kustom.");
+}
 
         async function runAnalysis() {
             const symbol = document.getElementById("pairSelect").value;
@@ -740,6 +731,15 @@
             a.download = `ToFarmer_Matrix_${Date.now()}.png`;
             a.click();
         }
+// Tambahkan di dalam tag <script> pada HTML kamu
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+            registration.unregister();
+            console.log("Service Worker berhasil dihapus.");
+        }
+    });
+}
     </script>
 </body>
 </html>
