@@ -520,64 +520,75 @@
             return result;
         }
 
-        async function fetchYahooData(symbol, timeframe, rangeVal) {
-            let interval = "1d";
-            let range = `${rangeVal}y`;
+       async function fetchYahooData(symbol, timeframe, rangeVal) {
+    let interval = "1d";
+    let range = `${rangeVal}y`;
 
-            if (timeframe === "4H" || timeframe === "1H") {
-                interval = "1h";
-                range = "2y"; 
+    if (timeframe === "4H" || timeframe === "1H") {
+        interval = "1h";
+        range = "2y"; 
+    }
+
+    // Pastikan URL Yahoo Finance di-build secara bersih (Single Encoding)
+    const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
+
+    // Gunakan CORS Proxy gratisan yang lebih stabil & tambahkan timestamp cache-buster agar tidak di-intercept sw.js
+    const proxies = [
+        // Proxy 1: AllOrigins versi JSON (lebih stabil dibanding /raw)
+        url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&_nc=${Date.now()}`,
+        // Proxy 2: Cloudflare Worker CORS Bypass
+        url => `https://cors-proxy.htmldriven.com/?url=${encodeURIComponent(url)}`,
+        // Proxy 3: APIFY / CorsProxy
+        url => `https://proxy.cors.sh/${url}`
+    ];
+
+    for (const getProxyUrl of proxies) {
+        try {
+            const proxyUrl = getProxyUrl(yahooBase);
+            
+            // Tambahkan cache: 'no-store' agar Service Worker tidak mencegat
+            const res = await fetch(proxyUrl, { cache: 'no-store' });
+            if (!res.ok) continue;
+
+            const text = await res.text();
+            let json;
+            
+            try {
+                json = JSON.parse(text);
+                // Jika dari AllOrigins /get, datanya di-wrap dalam properti contents
+                if (json.contents) {
+                    json = JSON.parse(json.contents);
+                }
+            } catch (e) {
+                continue;
             }
 
-            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
+            if (!json.chart || !json.chart.result || !json.chart.result[0]) continue;
 
-            // Multi-proxy Fallback Strategy
-            const proxies = [
-                url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                url => `https://thingproxy.freeboard.io/fetch/${url}`
-            ];
+            const result = json.chart.result[0];
+            const timestamps = result.timestamp;
+            const closes = result.indicators.quote[0].close;
 
-            for (const getProxyUrl of proxies) {
-                try {
-                    const proxyUrl = getProxyUrl(targetUrl);
-                    const res = await fetch(proxyUrl);
-                    if (!res.ok) continue;
+            if (!timestamps || !closes) continue;
 
-                    let json;
-                    const text = await res.text();
-                    try {
-                        json = JSON.parse(text);
-                    } catch(e) {
-                        continue;
-                    }
-
-                    if (!json.chart || !json.chart.result || !json.chart.result[0]) continue;
-
-                    const result = json.chart.result[0];
-                    const timestamps = result.timestamp;
-                    const closes = result.indicators.quote[0].close;
-
-                    if (!timestamps || !closes) continue;
-
-                    let data = [];
-                    for (let i = 0; i < timestamps.length; i++) {
-                        if (closes[i] !== null && closes[i] !== undefined) {
-                            data.push({
-                                date: new Date(timestamps[i] * 1000),
-                                close: closes[i]
-                            });
-                        }
-                    }
-
-                    if (data.length > 0) return data;
-                } catch (e) {
-                    // Coba proxy berikutnya
+            let data = [];
+            for (let i = 0; i < timestamps.length; i++) {
+                if (closes[i] !== null && closes[i] !== undefined) {
+                    data.push({
+                        date: new Date(timestamps[i] * 1000),
+                        close: closes[i]
+                    });
                 }
             }
 
-            throw new Error("Koneksi data Yahoo Finance gagal via proxy. Silakan coba beberapa saat lagi.");
+            if (data.length > 0) return data;
+        } catch (e) {
+            console.warn("Proxy attempt failed, trying next...", e);
         }
+    }
+
+    throw new Error("Semua public proxy diblokir. Solusi terbaik: Buat Cloudflare Worker Proxy sendiri.");
+}
 
         async function runAnalysis() {
             const symbol = document.getElementById("pairSelect").value;
