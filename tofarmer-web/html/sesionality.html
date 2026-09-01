@@ -4,97 +4,487 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ToFarmer Seasonality Analyzer v3.0 [Standalone Web]</title>
-    <!-- Tailwind CSS Standalone (Menghilangkan warning CDN production) -->
-    <link rel="stylesheet" href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+                linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #e2e8f0;
+            position: relative;
+        }
+
+        /* Kabut lembut pegunungan Menoreh */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+            pointer-events: none;
+            animation: fog 14s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes fog {
+            0% { transform: translateX(-3%); }
+            50% { transform: translateX(3%); }
+            100% { transform: translateX(-3%); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1280px;
+            margin: auto;
+            padding: 22px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* =========================
+           HERO HEADER
+        ========================= */
+        .hero {
+            position: relative;
+            padding: 30px 20px 40px;
+            text-align: center;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 10px;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.4), transparent);
+        }
+
+        .logo-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 14px;
+        }
+
+        .logo-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(20, 38, 27, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-size: 1.8rem;
+            transition: .5s;
+        }
+
+        .logo-badge:hover {
+            transform: rotate(8deg) scale(1.05);
+            border-color: #eab308;
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            margin-top: 8px;
+            font-size: .9rem;
+            line-height: 1.6;
+            color: #84a98c;
+            max-width: 650px;
+            margin-inline: auto;
+        }
+
+        /* =========================
+           MAIN PANEL CONTAINER
+        ========================= */
+        .main-box {
+            background: rgba(14, 28, 19, 0.45);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .main-box::before {
+            content: "";
+            position: absolute;
+            top: -120px;
+            right: -120px;
+            width: 240px;
+            height: 240px;
+            background: radial-gradient(circle, rgba(234, 179, 8, 0.08), transparent 70%);
+            pointer-events: none;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 24px;
+        }
+
+        /* =========================
+           SIDEBAR CONTROL PANEL
+        ========================= */
+        .control-panel {
+            background: rgba(18, 35, 24, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-left: 2px solid rgba(34, 197, 94, 0.2);
+            border-radius: 20px;
+            padding: 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #a7f3d0;
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            background: rgba(7, 14, 10, 0.6);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 12px;
+            padding: 10px 14px;
+            color: #f8fafc;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #4ade80;
+            box-shadow: 0 0 12px rgba(74, 222, 128, 0.2);
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+
+        .slider-val {
+            color: #fde047;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        input[type=range] {
+            width: 100%;
+            height: 6px;
+            background: rgba(7, 14, 10, 0.8);
+            border-radius: 4px;
+            outline: none;
+            accent-color: #22c55e;
+        }
+
+        /* BUTTONS */
+        .btn-primary {
+            width: 100%;
+            padding: 14px 20px;
+            border-radius: 999px;
+            border: 1px solid #4ade80;
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+            color: #050b07;
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-bottom: 10px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #4ade80 0%, #16a34a 100%);
+            box-shadow: 0 12px 25px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 999px;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+            background: rgba(20, 36, 26, 0.5);
+            backdrop-filter: blur(12px);
+            color: #fde047;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(234, 179, 8, 0.15);
+            border-color: #fde047;
+            transform: translateY(-2px);
+        }
+
+        /* =========================
+           DISPLAY PANEL
+        ========================= */
+        .display-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: rgba(7, 14, 10, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 20px;
+            padding: 20px;
+            height: 380px;
+            position: relative;
+        }
+
+        .report-card {
+            background: rgba(7, 14, 10, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-left: 2px solid #eab308;
+            border-radius: 20px;
+            padding: 20px;
+            height: 180px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .report-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #fde047;
+        }
+
+        .report-time {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: #64748b;
+        }
+
+        .report-body {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            color: #a7f3d0;
+            overflow-y: auto;
+            flex: 1;
+            line-height: 1.7;
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+        .footer {
+            padding: 40px 20px 30px;
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: .78rem;
+            color: #475569;
+            line-height: 1.9;
+            letter-spacing: .5px;
+        }
+
+        /* =========================
+           RESPONSIVE LAYOUT
+        ========================= */
+        @media(max-width: 1024px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+            .chart-card {
+                height: 320px;
+            }
+        }
+
+        @media(max-width: 768px) {
+            .container { padding: 12px; }
+            .hero { padding: 20px 12px 30px; }
+            .hero h1 { font-size: 2rem; }
+            .main-box { padding: 18px; border-radius: 22px; }
+            .chart-card { height: 280px; padding: 12px; }
+        }
+
+        @media(max-width: 480px) {
+            .hero h1 { font-size: 1.6rem; }
+            .logo-badge { width: 60px; height: 60px; font-size: 1.4rem; }
+            .main-box { padding: 14px; }
+        }
+    </style>
 </head>
-<body class="bg-[#121212] text-gray-200 font-mono h-screen flex flex-col md:flex-row overflow-hidden">
+<body>
 
-    <!-- SIDEBAR PANEL -->
-    <aside class="w-full md:w-80 bg-[#1a1a1a] p-5 flex flex-col justify-between border-r border-gray-800 shrink-0">
-        <div class="space-y-4">
-            <div>
-                <h1 class="text-2xl font-bold text-green-400 tracking-wider">ToFarmer.xyz</h1>
-                <p class="text-xs text-gray-500">Neural Matrix System v3.0 [Standalone Web]</p>
+    <div class="container">
+        <!-- HEADER HERO -->
+        <header class="hero">
+            <div class="logo-wrap">
+                <div class="logo-badge">🌿</div>
             </div>
+            <h1>ToFarmer Seasonality</h1>
+            <p>Sistem Analisis Pola Musiman Pasar Finansial Berbasiskan Neural Matrix</p>
+        </header>
 
-            <div class="space-y-3 text-xs">
-                <!-- Pair Dropdown -->
-                <div>
-                    <label class="block text-gray-400 mb-1">Select Trading Pair:</label>
-                    <select id="pairSelect" class="w-full bg-[#252525] border border-gray-700 rounded p-2 focus:outline-none focus:border-green-500 text-white">
-                        <option value="GC=F">XAUUSD (Gold)</option>
-                        <option value="SI=F">SI=F (Silver)</option>
-                        <option value="EURUSD=X">EURUSD</option>
-                        <option value="GBPUSD=X">GBPUSD</option>
-                        <option value="USDJPY=X">USDJPY</option>
-                        <option value="GBPJPY=X">GBPJPY</option>
-                        <option value="AUDUSD=X">AUDUSD</option>
-                        <option value="BTC-USD">BTCUSD</option>
-                    </select>
-                </div>
+        <!-- MAIN CONTENT PANEL -->
+        <main class="main-box">
+            <div class="grid-layout">
+                
+                <!-- SIDEBAR KONTROL -->
+                <aside class="control-panel">
+                    <div>
+                        <!-- Select Pair -->
+                        <div class="form-group">
+                            <label for="pairSelect">Trading Pair</label>
+                            <select id="pairSelect" class="form-control">
+                                <option value="GC=F">XAUUSD (Gold)</option>
+                                <option value="SI=F">SI=F (Silver)</option>
+                                <option value="EURUSD=X">EURUSD</option>
+                                <option value="GBPUSD=X">GBPUSD</option>
+                                <option value="USDJPY=X">USDJPY</option>
+                                <option value="GBPJPY=X">GBPJPY</option>
+                                <option value="AUDUSD=X">AUDUSD</option>
+                                <option value="BTC-USD">BTCUSD</option>
+                            </select>
+                        </div>
 
-                <!-- Timeframe Dropdown -->
-                <div>
-                    <label class="block text-gray-400 mb-1">Analysis Timeframe:</label>
-                    <select id="tfSelect" onchange="handleTfChange()" class="w-full bg-[#252525] border border-gray-700 rounded p-2 focus:outline-none focus:border-green-500 text-white">
-                        <option value="Daily">Daily (Yearly Cycle)</option>
-                        <option value="4H">4 Hours (Weekly Cycle)</option>
-                        <option value="1H">1 Hour (Weekly Cycle)</option>
-                    </select>
-                </div>
+                        <!-- Select Timeframe -->
+                        <div class="form-group">
+                            <label for="tfSelect">Timeframe Analisis</label>
+                            <select id="tfSelect" onchange="handleTfChange()" class="form-control">
+                                <option value="Daily">Daily (Yearly Cycle)</option>
+                                <option value="4H">4 Hours (Weekly Cycle)</option>
+                                <option value="1H">1 Hour (Weekly Cycle)</option>
+                            </select>
+                        </div>
 
-                <!-- Range Slider -->
-                <div>
-                    <div class="flex justify-between text-gray-400 mb-1">
-                        <span>Range Window:</span>
-                        <span id="rangeVal" class="text-green-400 font-bold">20 Years</span>
+                        <!-- Range Slider -->
+                        <div class="form-group">
+                            <div class="slider-header">
+                                <span>Range Window</span>
+                                <span id="rangeVal" class="slider-val">20 Years</span>
+                            </div>
+                            <input type="range" id="rangeSlider" min="1" max="30" value="20" oninput="updateRangeLabel()">
+                        </div>
+
+                        <!-- Smoothing Slider -->
+                        <div class="form-group">
+                            <div class="slider-header">
+                                <span>Smoothing Filter</span>
+                                <span id="smoothVal" class="slider-val">3 Points</span>
+                            </div>
+                            <input type="range" id="smoothSlider" min="1" max="20" value="3" oninput="document.getElementById('smoothVal').innerText = this.value + ' Points'">
+                        </div>
                     </div>
-                    <input type="range" id="rangeSlider" min="1" max="30" value="20" oninput="updateRangeLabel()" class="w-full accent-green-500">
-                </div>
 
-                <!-- Smoothing Slider -->
-                <div>
-                    <div class="flex justify-between text-gray-400 mb-1">
-                        <span>Smoothing:</span>
-                        <span id="smoothVal" class="text-green-400 font-bold">3 Points</span>
+                    <!-- Tombol Aksi -->
+                    <div style="margin-top: 15px;">
+                        <button onclick="runAnalysis()" id="btnRun" class="btn-primary">
+                            Generate Neural Map
+                        </button>
+                        <button onclick="downloadChart()" class="btn-secondary">
+                            Simpan Grafik (PNG)
+                        </button>
                     </div>
-                    <input type="range" id="smoothSlider" min="1" max="20" value="3" oninput="document.getElementById('smoothVal').innerText = this.value + ' Points'" class="w-full accent-green-500">
-                </div>
+                </aside>
+
+                <!-- DISPLAY PANEL -->
+                <section class="display-panel">
+                    <!-- Chart Display -->
+                    <div class="chart-card">
+                        <canvas id="matrixChart"></canvas>
+                    </div>
+
+                    <!-- Report Display -->
+                    <div class="report-card">
+                        <div class="report-header">
+                            <span class="report-title">Neural Intelligence Report</span>
+                            <span id="reportTime" class="report-time"></span>
+                        </div>
+                        <div id="reportContainer" class="report-body">
+                            <span style="color: #64748b;">// Klik "GENERATE NEURAL MAP" untuk mengunduh dan menganalisis pola historis pasar...</span>
+                        </div>
+                    </div>
+                </section>
+
             </div>
-        </div>
+        </main>
 
-        <div class="mt-4 space-y-2">
-            <button onclick="runAnalysis()" id="btnRun" class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-2.5 rounded transition duration-200 shadow-lg">
-                GENERATE NEURAL MAP
-            </button>
-            <button onclick="downloadChart()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-2 rounded transition duration-200">
-                SAVE CHART (PNG)
-            </button>
-        </div>
-    </aside>
+        <!-- FOOTER HARMONI ALAM -->
+        <footer class="footer">
+            <p class="footer-text">
+                ToFarmer Ecosystem &copy; 2026 • Kebun &amp; Laboratorium Digital Menoreh<br>
+                Dioptimalkan untuk Keputusan Trading Terstruktur (SMC &amp; Seasonality Bias)
+            </p>
+        </footer>
+    </div>
 
-    <!-- MAIN DISPLAY PANEL -->
-    <main class="flex-1 p-5 flex flex-col justify-between h-full overflow-y-auto">
-        <!-- Chart Canvas -->
-        <div class="bg-[#1a1a1a] p-4 rounded-xl border border-gray-800 flex-1 relative min-h-[350px]">
-            <canvas id="matrixChart"></canvas>
-        </div>
-
-        <!-- Intelligence Report Container -->
-        <div class="mt-4 bg-[#1a1a1a] p-4 rounded-xl border border-gray-800 h-48 flex flex-col">
-            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 border-b border-gray-800 pb-1 flex justify-between">
-                <span>Neural Analysis Report</span>
-                <span id="reportTime" class="text-gray-600 font-normal"></span>
-            </h2>
-            <div id="reportContainer" class="text-xs text-green-400 space-y-1 overflow-y-auto font-mono flex-1">
-                <span class="text-gray-600">// Tekan "GENERATE NEURAL MAP" untuk mengunduh data langsung dari Yahoo Finance...</span>
-            </div>
-        </div>
-    </main>
-
-    <!-- JAVASCRIPT LOGIC ENGINE -->
+    <!-- JAVASCRIPT ENGINE -->
     <script>
         let chartInstance = null;
 
@@ -148,8 +538,6 @@
                 url => `https://thingproxy.freeboard.io/fetch/${url}`
             ];
 
-            let lastError = null;
-
             for (const getProxyUrl of proxies) {
                 try {
                     const proxyUrl = getProxyUrl(targetUrl);
@@ -184,11 +572,11 @@
 
                     if (data.length > 0) return data;
                 } catch (e) {
-                    lastError = e;
+                    // Coba proxy berikutnya
                 }
             }
 
-            throw new Error("Gagal terhubung ke data Yahoo Finance melalui Proxy. Coba beberapa saat lagi.");
+            throw new Error("Koneksi data Yahoo Finance gagal via proxy. Silakan coba beberapa saat lagi.");
         }
 
         async function runAnalysis() {
@@ -201,8 +589,8 @@
             const btnRun = document.getElementById("btnRun");
             
             btnRun.disabled = true;
-            btnRun.innerText = "CONNECTING NEURAL MATRIX...";
-            reportBox.innerHTML = '<span class="text-yellow-500 animate-pulse">> Fetching live market feeds via Yahoo API...</span>';
+            btnRun.innerText = "PROSES NEURAL MATRIX...";
+            reportBox.innerHTML = '<span style="color: #fde047;">> Mengambil data historis pasar via Yahoo Finance...</span>';
 
             try {
                 const rawData = await fetchYahooData(symbol, timeframe, rangeVal);
@@ -275,7 +663,7 @@
                 generateReport(matrixData, timeframe);
 
             } catch (err) {
-                reportBox.innerHTML = `<span class="text-red-500">Sync Error: ${err.message}</span>`;
+                reportBox.innerHTML = `<span style="color: #ef4444;">Sync Error: ${err.message}</span>`;
             } finally {
                 btnRun.disabled = false;
                 btnRun.innerText = "GENERATE NEURAL MAP";
@@ -295,10 +683,12 @@
                     datasets: [{
                         label: `${timeframe.toUpperCase()} MATRIX: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
                         data: data,
-                        borderColor: '#00FF41',
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.05)',
                         borderWidth: 2,
                         pointRadius: 0,
-                        tension: 0.15
+                        tension: 0.2,
+                        fill: true
                     }]
                 },
                 options: {
@@ -306,9 +696,10 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            grid: { color: '#262626' },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
                             ticks: {
-                                color: '#00FF41',
+                                color: '#fde047',
+                                font: { family: 'JetBrains Mono', size: 11 },
                                 callback: function(val) {
                                     let idx = ticks.indexOf(val);
                                     return idx !== -1 ? xLabels[idx] : '';
@@ -316,12 +707,20 @@
                             }
                         },
                         y: {
-                            grid: { color: '#262626' },
-                            ticks: { color: '#888888' }
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { 
+                                color: '#64748b',
+                                font: { family: 'JetBrains Mono', size: 10 }
+                            }
                         }
                     },
                     plugins: {
-                        legend: { labels: { color: '#FFFFFF', font: { family: 'monospace' } } }
+                        legend: { 
+                            labels: { 
+                                color: '#f8fafc', 
+                                font: { family: 'Plus Jakarta Sans', weight: '600' } 
+                            } 
+                        }
                     }
                 }
             });
@@ -340,27 +739,27 @@
                 [0, 23, "MON"], [24, 47, "TUE"], [48, 71, "WED"], [72, 95, "THU"], [96, 119, "FRI"]
             ];
 
-            let html = `<div class="text-gray-300 font-bold mb-1">=== ToFarmer INTELLIGENCE MATRIX ===</div>`;
+            let html = `<div style="color: #f8fafc; font-weight: bold; margin-bottom: 6px;">=== ToFarmer INTELLIGENCE MATRIX ===</div>`;
 
             bounds.forEach(([start, end, name]) => {
                 if (start < data.length && end < data.length) {
                     let diff = data[end] - data[start];
                     let phase = "RANGING        ↔";
-                    let color = "text-yellow-400";
+                    let color = "#fde047"; // Kuning
 
                     if (diff > 0.05) {
                         phase = "TRENDING UP    ▲";
-                        color = "text-green-400";
+                        color = "#4ade80"; // Hijau
                     } else if (diff < -0.05) {
                         phase = "TRENDING DOWN  ▼";
-                        color = "text-red-400";
+                        color = "#f87171"; // Merah
                     }
 
-                    html += `<div class="${color}">[${name}] ${phase} | Impact Score: ${diff > 0 ? '+' : ''}${diff.toFixed(2)}%</div>`;
+                    html += `<div style="color: ${color};">[${name}] ${phase} | Impact: ${diff > 0 ? '+' : ''}${diff.toFixed(2)}%</div>`;
                 }
             });
 
-            html += `<div class="text-gray-500 border-t border-gray-800 mt-2 pt-1">Operational Note: Align with Weekly/Daily SMC Bias.</div>`;
+            html += `<div style="color: #64748b; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 8px; padding-top: 4px;">Catatan: Selaraskan arah bias dengan struktur Market SMC (HTF Orderflow).</div>`;
             reportBox.innerHTML = html;
         }
 
