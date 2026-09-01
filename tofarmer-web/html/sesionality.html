@@ -683,7 +683,20 @@ const periodSeparatorPlugin = {
     }
 };
 
-     function renderChart(data, xLabels, symbol, timeframe, rangeVal) {
+// Plugin untuk menggambar Background Solid ke Canvas (agar terbawa saat simpan PNG)
+const customCanvasBackgroundColorPlugin = {
+    id: 'customCanvasBackgroundColor',
+    beforeDraw: (chart, args, options) => {
+        const { ctx } = chart;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.fillStyle = options.color || '#0B0F19'; // Warna background (sesuaikan dengan tema dark kamu)
+        ctx.fillRect(0, 0, chart.width, chart.height);
+        ctx.restore();
+    }
+};
+
+   function renderChart(data, xLabels, symbol, timeframe, rangeVal) {
     const ctx = document.getElementById('matrixChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
 
@@ -704,13 +717,25 @@ const periodSeparatorPlugin = {
                 fill: true
             }]
         },
-        plugins: [periodSeparatorPlugin], // <-- DAFTARKAN PLUGIN DI SINI
+        // DAFTARKAN DUA-DUANYA DI SINI:
+        plugins: [periodSeparatorPlugin, customCanvasBackgroundColorPlugin],
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+                // WARNA BACKGROUND KUSTOM UNTUK EXPORT PNG
+                customCanvasBackgroundColor: {
+                    color: '#0d131a' // Sesuaikan kode Hex ini dengan warna background container UI kamu
+                },
+                legend: { 
+                    labels: { 
+                        color: '#f8fafc', 
+                        font: { family: 'Plus Jakarta Sans', weight: '600' } 
+                    } 
+                }
+            },
             scales: {
                 x: {
-                    // Matikan grid x bawaan agar tidak bentrok/double dengan separator kustom
                     grid: { display: false },
                     ticks: {
                         color: '#fde047',
@@ -725,14 +750,6 @@ const periodSeparatorPlugin = {
                         color: '#64748b',
                         font: { family: 'JetBrains Mono', size: 10 }
                     }
-                }
-            },
-            plugins: {
-                legend: { 
-                    labels: { 
-                        color: '#f8fafc', 
-                        font: { family: 'Plus Jakarta Sans', weight: '600' } 
-                    } 
                 }
             }
         }
@@ -775,13 +792,21 @@ const periodSeparatorPlugin = {
             reportBox.innerHTML = html;
         }
 
-        function downloadChart() {
-            if (!chartInstance) return;
-            const a = document.createElement('a');
-            a.href = chartInstance.toBase64Image();
-            a.download = `ToFarmer_Matrix_${Date.now()}.png`;
-            a.click();
-        }
+      function downloadChart() {
+    if (!chartInstance) return;
+    
+    // Tembak langsung toBase64Image dengan MIME type PNG & Kualitas Maksimal (1.0)
+    const imageURL = chartInstance.toBase64Image('image/png', 1.0);
+    
+    const a = document.createElement('a');
+    a.href = imageURL;
+    a.download = `ToFarmer_Matrix_${Date.now()}.png`;
+    
+    // Dipasang ke DOM sebentar agar compatible di seluruh browser (Chrome/Firefox/Safari)
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
 // Tambahkan di dalam tag <script> pada HTML kamu
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
