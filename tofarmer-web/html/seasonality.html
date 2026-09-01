@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToFarmer Seasonality Analyzer v3.0 [Online Client-Side]</title>
+    <!-- Tailwind CSS & Chart.js CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-[#121212] text-gray-200 font-mono h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- SIDEBAR PANEL -->
+    <aside class="w-full md:w-80 bg-[#1a1a1a] p-5 flex flex-col justify-between border-r border-gray-800 shrink-0">
+        <div class="space-y-4">
+            <div>
+                <h1 class="text-2xl font-bold text-green-400 tracking-wider">ToFarmer.xyz</h1>
+                <p class="text-xs text-gray-500">Neural Matrix System v3.0 [Standalone Web]</p>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <!-- Pair Dropdown -->
+                <div>
+                    <label class="block text-gray-400 mb-1">Select Trading Pair:</label>
+                    <select id="pairSelect" class="w-full bg-[#252525] border border-gray-700 rounded p-2 focus:outline-none focus:border-green-500 text-white">
+                        <option value="GC=F">XAUUSD (Gold)</option>
+                        <option value="SI=F">SI=F (Silver)</option>
+                        <option value="EURUSD=X">EURUSD</option>
+                        <option value="GBPUSD=X">GBPUSD</option>
+                        <option value="USDJPY=X">USDJPY</option>
+                        <option value="GBPJPY=X">GBPJPY</option>
+                        <option value="AUDUSD=X">AUDUSD</option>
+                        <option value="BTC-USD">BTCUSD</option>
+                    </select>
+                </div>
+
+                <!-- Timeframe Dropdown -->
+                <div>
+                    <label class="block text-gray-400 mb-1">Analysis Timeframe:</label>
+                    <select id="tfSelect" onchange="handleTfChange()" class="w-full bg-[#252525] border border-gray-700 rounded p-2 focus:outline-none focus:border-green-500 text-white">
+                        <option value="Daily">Daily (Yearly Cycle)</option>
+                        <option value="4H">4 Hours (Weekly Cycle)</option>
+                        <option value="1H">1 Hour (Weekly Cycle)</option>
+                    </select>
+                </div>
+
+                <!-- Range Slider -->
+                <div>
+                    <div class="flex justify-between text-gray-400 mb-1">
+                        <span>Range Window:</span>
+                        <span id="rangeVal" class="text-green-400 font-bold">20 Years</span>
+                    </div>
+                    <input type="range" id="rangeSlider" min="1" max="30" value="20" oninput="updateRangeLabel()" class="w-full accent-green-500">
+                </div>
+
+                <!-- Smoothing Slider -->
+                <div>
+                    <div class="flex justify-between text-gray-400 mb-1">
+                        <span>Smoothing:</span>
+                        <span id="smoothVal" class="text-green-400 font-bold">3 Points</span>
+                    </div>
+                    <input type="range" id="smoothSlider" min="1" max="20" value="3" oninput="document.getElementById('smoothVal').innerText = this.value + ' Points'" class="w-full accent-green-500">
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 space-y-2">
+            <button onclick="runAnalysis()" id="btnRun" class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-2.5 rounded transition duration-200 shadow-lg shadow-green-900/30">
+                GENERATE NEURAL MAP
+            </button>
+            <button onclick="downloadChart()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-2 rounded transition duration-200">
+                SAVE CHART (PNG)
+            </button>
+        </div>
+    </aside>
+
+    <!-- MAIN DISPLAY PANEL -->
+    <main class="flex-1 p-5 flex flex-col justify-between h-full overflow-y-auto">
+        <!-- Chart Canvas -->
+        <div class="bg-[#1a1a1a] p-4 rounded-xl border border-gray-800 flex-1 relative min-h-[350px]">
+            <canvas id="matrixChart"></canvas>
+        </div>
+
+        <!-- Intelligence Report Container -->
+        <div class="mt-4 bg-[#1a1a1a] p-4 rounded-xl border border-gray-800 h-48 flex flex-col">
+            <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 border-b border-gray-800 pb-1 flex justify-between">
+                <span>Neural Analysis Report</span>
+                <span id="reportTime" class="text-gray-600 font-normal"></span>
+            </h2>
+            <div id="reportContainer" class="text-xs text-green-400 space-y-1 overflow-y-auto font-mono flex-1">
+                <span class="text-gray-600">// Tekan "GENERATE NEURAL MAP" untuk mengunduh data langsung dari Yahoo Finance...</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- JAVASCRIPT LOGIC ENGINE -->
+    <script>
+        let chartInstance = null;
+
+        function updateRangeLabel() {
+            const tf = document.getElementById("tfSelect").value;
+            const val = document.getElementById("rangeSlider").value;
+            const suffix = tf === "Daily" ? "Years" : "Weeks";
+            document.getElementById("rangeVal").innerText = `${val} ${suffix}`;
+        }
+
+        function handleTfChange() {
+            const tf = document.getElementById("tfSelect").value;
+            const slider = document.getElementById("rangeSlider");
+            if (tf === "Daily") {
+                slider.min = 1; slider.max = 30; slider.value = 20;
+            } else {
+                slider.min = 4; slider.max = 104; slider.value = 52;
+            }
+            updateRangeLabel();
+        }
+
+        // Rolling mean helper (Smoothing)
+        function rollingMean(arr, windowSize) {
+            let result = new Array(arr.length);
+            let half = Math.floor(windowSize / 2);
+            for (let i = 0; i < arr.length; i++) {
+                let start = Math.max(0, i - half);
+                let end = Math.min(arr.length, i + half + 1);
+                let sum = 0;
+                for (let j = start; j < end; j++) sum += arr[j];
+                result[i] = sum / (end - start);
+            }
+            return result;
+        }
+
+        async function fetchYahooData(symbol, timeframe, rangeVal) {
+            let interval = "1d";
+            let range = `${rangeVal}y`;
+
+            if (timeframe === "4H" || timeframe === "1H") {
+                interval = timeframe === "1H" ? "1h" : "1h"; // Yahoo API standar menggunakan 1h
+                range = "2y"; 
+            }
+
+            // CORS Proxy publik untuk memicu fetch data Yahoo Finance dari browser
+            const corsProxy = "https://corsproxy.io/?";
+            const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
+
+            const res = await fetch(corsProxy + encodeURIComponent(targetUrl));
+            if (!res.ok) throw new Error("Gagal mengambil data dari Yahoo Finance API.");
+            const json = await res.json();
+
+            const result = json.chart.result[0];
+            const timestamps = result.timestamp;
+            const closes = result.indicators.quote[0].close;
+
+            let data = [];
+            for (let i = 0; i < timestamps.length; i++) {
+                if (closes[i] !== null && closes[i] !== undefined) {
+                    data.push({
+                        date: new Date(timestamps[i] * 1000),
+                        close: closes[i]
+                    });
+                }
+            }
+            return data;
+        }
+
+        async function runAnalysis() {
+            const symbol = document.getElementById("pairSelect").value;
+            const timeframe = document.getElementById("tfSelect").value;
+            const rangeVal = parseInt(document.getElementById("rangeSlider").value);
+            const smoothVal = parseInt(document.getElementById("smoothSlider").value);
+
+            const reportBox = document.getElementById("reportContainer");
+            const btnRun = document.getElementById("btnRun");
+            
+            btnRun.disabled = true;
+            btnRun.innerText = "CONNECTING NEURAL MATRIX...";
+            reportBox.innerHTML = '<span class="text-yellow-500 animate-pulse">> Fetching live market feeds from Yahoo API...</span>';
+
+            try {
+                const rawData = await fetchYahooData(symbol, timeframe, rangeVal);
+                
+                // Hitung Returns (persentase perubahan)
+                let returns = [];
+                for (let i = 1; i < rawData.length; i++) {
+                    let ret = (rawData[i].close - rawData[i - 1].close) / rawData[i - 1].close;
+                    returns.push({ date: rawData[i].date, ret: ret });
+                }
+
+                let matrixData, labels, ticks;
+
+                if (timeframe === "Daily") {
+                    // Grouping Day of Year (1 - 366)
+                    let doyGroup = {};
+                    for (let i = 1; i <= 366; i++) doyGroup[i] = [];
+
+                    returns.forEach(item => {
+                        let start = new Date(item.date.getFullYear(), 0, 0);
+                        let diff = item.date - start;
+                        let oneDay = 1000 * 60 * 60 * 24;
+                        let doy = Math.floor(diff / oneDay);
+                        if (doyGroup[doy]) doyGroup[doy].push(item.ret);
+                    });
+
+                    let avgReturns = [];
+                    for (let i = 1; i <= 366; i++) {
+                        let arr = doyGroup[i];
+                        let avg = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+                        avgReturns.push(avg);
+                    }
+
+                    // Cumsum * 100
+                    let cumsum = [0];
+                    for (let i = 0; i < avgReturns.length; i++) {
+                        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
+                    }
+
+                    matrixData = rollingMean(cumsum, smoothVal);
+                    labels = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    ticks = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
+
+                } else {
+                    // Weekly Mode (5 Hari * 24 Jam = 120 Slot)
+                    let slots = new Array(120).fill(0).map(() => []);
+
+                    returns.forEach(item => {
+                        let day = item.date.getDay() - 1; // 0: Mon, 4: Fri
+                        let hour = item.date.getHours();
+                        if (day >= 0 && day < 5) {
+                            let idx = (day * 24) + hour;
+                            if (idx < 120) slots[idx].push(item.ret);
+                        }
+                    });
+
+                    let avgReturns = slots.map(arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+
+                    let cumsum = [0];
+                    for (let i = 0; i < avgReturns.length; i++) {
+                        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
+                    }
+
+                    matrixData = rollingMean(cumsum, smoothVal);
+                    labels = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+                    ticks = [0, 24, 48, 72, 96];
+                }
+
+                renderChart(matrixData, labels, ticks, symbol, timeframe, rangeVal);
+                generateReport(matrixData, timeframe);
+
+            } catch (err) {
+                reportBox.innerHTML = `<span class="text-red-500">Sync Error: ${err.message}</span>`;
+            } finally {
+                btnRun.disabled = false;
+                btnRun.innerText = "GENERATE NEURAL MAP";
+            }
+        }
+
+        function renderChart(data, xLabels, ticks, symbol, timeframe, rangeVal) {
+            const ctx = document.getElementById('matrixChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            let displayPair = symbol === "GC=F" ? "XAUUSD" : symbol.replace("=X", "").replace("-USD", "USD");
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map((_, i) => i),
+                    datasets: [{
+                        label: `${timeframe.toUpperCase()} MATRIX: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
+                        data: data,
+                        borderColor: '#00FF41',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            grid: { color: '#262626' },
+                            ticks: {
+                                color: '#00FF41',
+                                callback: function(val) {
+                                    let idx = ticks.indexOf(val);
+                                    return idx !== -1 ? xLabels[idx] : '';
+                                }
+                            }
+                        },
+                        y: {
+                            grid: { color: '#262626' },
+                            ticks: { color: '#888888' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#FFFFFF', font: { family: 'monospace' } } }
+                    }
+                }
+            });
+        }
+
+        function generateReport(data, timeframe) {
+            const reportBox = document.getElementById("reportContainer");
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            document.getElementById("reportTime").innerText = `[${now}]`;
+
+            let bounds = timeframe === "Daily" ? [
+                [1, 31, "JAN"], [32, 59, "FEB"], [60, 90, "MAR"], [91, 120, "APR"],
+                [121, 151, "MAY"], [152, 181, "JUN"], [182, 212, "JUL"], [213, 243, "AUG"],
+                [244, 273, "SEP"], [274, 304, "OCT"], [305, 334, "NOV"], [335, 365, "DEC"]
+            ] : [
+                [0, 23, "MON"], [24, 47, "TUE"], [48, 71, "WED"], [72, 95, "THU"], [96, 119, "FRI"]
+            ];
+
+            let html = `<div class="text-gray-300 font-bold mb-1">=== ToFarmer INTELLIGENCE MATRIX ===</div>`;
+
+            bounds.forEach(([start, end, name]) => {
+                if (start < data.length && end < data.length) {
+                    let diff = data[end] - data[start];
+                    let phase = "RANGING        ↔";
+                    let color = "text-yellow-400";
+
+                    if (diff > 0.05) {
+                        phase = "TRENDING UP    ▲";
+                        color = "text-green-400";
+                    } else if (diff < -0.05) {
+                        phase = "TRENDING DOWN  ▼";
+                        color = "text-red-400";
+                    }
+
+                    html += `<div class="${color}">[${name}] ${phase} | Impact Score: ${diff > 0 ? '+' : ''}${diff.toFixed(2)}%</div>`;
+                }
+            });
+
+            html += `<div class="text-gray-500 border-t border-gray-800 mt-2 pt-1">Operational Note: Align with Weekly/Daily SMC Bias.</div>`;
+            reportBox.innerHTML = html;
+        }
+
+        function downloadChart() {
+            if (!chartInstance) return;
+            const a = document.createElement('a');
+            a.href = chartInstance.toBase64Image();
+            a.download = `ToFarmer_Matrix_${Date.now()}.png`;
+            a.click();
+        }
+    </script>
+</body>
+</html>
