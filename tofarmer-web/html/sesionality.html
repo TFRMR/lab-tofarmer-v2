@@ -653,18 +653,25 @@ generateReport(matrixData, timeframe);
 const periodSeparatorPlugin = {
     id: 'periodSeparator',
     beforeDraw(chart) {
-        const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+        // Ambil scales langsung dari instance chart
+        const { ctx, chartArea: { top, bottom }, scales } = chart;
+        
+        // Pastikan scale X sudah terinisialisasi
+        if (!scales || !scales.x) return;
+
         const labels = chart.data.labels;
 
         ctx.save();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; // Warna garis pembatas (putih transparan)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; // Warna garis pembatas
         ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]); // Garis putus-putus (opsional, hapus baris ini jika ingin garis tegas)
+        ctx.setLineDash([4, 4]); // Garis putus-putus
 
         labels.forEach((label, index) => {
-            // Gambar garis vertikal hanya di posisi indeks yang memiliki teks label (JAN, FEB, MON, TUE, dll)
+            // Gambar garis vertikal hanya di posisi indeks yang memiliki teks label (JAN, FEB, MON, dll)
             if (label !== '') {
-                const xPos = x.getPixelForIndex(index);
+                // Gunakan getPixelForValue untuk mendapatkan posisi koordinat X berdasarkan indeks
+                const xPos = scales.x.getPixelForValue(index);
+                
                 ctx.beginPath();
                 ctx.moveTo(xPos, top);
                 ctx.lineTo(xPos, bottom);
