@@ -566,7 +566,7 @@
 
                 let matrixData, labels, ticks;
 
-               if (timeframe === "Daily") {
+             if (timeframe === "Daily") {
     let doyGroup = {};
     for (let i = 0; i < 366; i++) doyGroup[i] = [];
 
@@ -592,9 +592,22 @@
 
     matrixData = rollingMean(cumsum, smoothVal);
     
-    // PERBAIKAN: Gunakan label bulan dengan rentang indeks yang presisi (total ~366 poin)
-    labels = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    ticks = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    // PERBAIKAN: Buat array berisi 366 string kosong
+    labels = new Array(366).fill('');
+    
+    // Set teks hanya di indeks hari pertama setiap bulan
+    labels[0]   = 'JAN';
+    labels[31]  = 'FEB';
+    labels[59]  = 'MAR';
+    labels[90]  = 'APR';
+    labels[120] = 'MAY';
+    labels[151] = 'JUN';
+    labels[181] = 'JUL';
+    labels[212] = 'AUG';
+    labels[243] = 'SEP';
+    labels[273] = 'OCT';
+    labels[304] = 'NOV';
+    labels[334] = 'DEC';
 
 } else {
     let slots = new Array(120).fill(0).map(() => []);
@@ -616,11 +629,16 @@
     }
 
     matrixData = rollingMean(cumsum, smoothVal);
-    labels = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
-    ticks = [0, 24, 48, 72, 96];
+    
+    labels = new Array(120).fill('');
+    labels[0]  = 'MON';
+    labels[24] = 'TUE';
+    labels[48] = 'WED';
+    labels[72] = 'THU';
+    labels[96] = 'FRI';
 }
 
-renderChart(matrixData, labels, ticks, symbol, timeframe, rangeVal);
+renderChart(matrixData, labels, symbol, timeframe, rangeVal);
 generateReport(matrixData, timeframe);
 
             } catch (err) {
