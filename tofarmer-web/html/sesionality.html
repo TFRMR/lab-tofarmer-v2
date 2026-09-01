@@ -649,7 +649,34 @@ generateReport(matrixData, timeframe);
             }
         }
 
-      function renderChart(data, xLabels, symbol, timeframe, rangeVal) {
+// Plugin Kustom untuk Menggambar Garis Pembatas (Period Separator)
+const periodSeparatorPlugin = {
+    id: 'periodSeparator',
+    beforeDraw(chart) {
+        const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+        const labels = chart.data.labels;
+
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)'; // Warna garis pembatas (putih transparan)
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]); // Garis putus-putus (opsional, hapus baris ini jika ingin garis tegas)
+
+        labels.forEach((label, index) => {
+            // Gambar garis vertikal hanya di posisi indeks yang memiliki teks label (JAN, FEB, MON, TUE, dll)
+            if (label !== '') {
+                const xPos = x.getPixelForIndex(index);
+                ctx.beginPath();
+                ctx.moveTo(xPos, top);
+                ctx.lineTo(xPos, bottom);
+                ctx.stroke();
+            }
+        });
+
+        ctx.restore();
+    }
+};
+
+     function renderChart(data, xLabels, symbol, timeframe, rangeVal) {
     const ctx = document.getElementById('matrixChart').getContext('2d');
     if (chartInstance) chartInstance.destroy();
 
@@ -658,7 +685,7 @@ generateReport(matrixData, timeframe);
     chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: xLabels, // Menggunakan array labels langsung
+            labels: xLabels,
             datasets: [{
                 label: `${timeframe.toUpperCase()} MATRIX: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
                 data: data,
@@ -670,17 +697,19 @@ generateReport(matrixData, timeframe);
                 fill: true
             }]
         },
+        plugins: [periodSeparatorPlugin], // <-- DAFTARKAN PLUGIN DI SINI
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
                 x: {
-                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    // Matikan grid x bawaan agar tidak bentrok/double dengan separator kustom
+                    grid: { display: false },
                     ticks: {
                         color: '#fde047',
                         font: { family: 'JetBrains Mono', size: 10 },
                         maxRotation: 0,
-                        autoSkip: false // Tetap render semua slot label tanpa melewati bulan
+                        autoSkip: false
                     }
                 },
                 y: {
