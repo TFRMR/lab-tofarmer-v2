@@ -566,60 +566,62 @@
 
                 let matrixData, labels, ticks;
 
-                if (timeframe === "Daily") {
-                    let doyGroup = {};
-                    for (let i = 0; i < 366; i++) doyGroup[i] = [];
+               if (timeframe === "Daily") {
+    let doyGroup = {};
+    for (let i = 0; i < 366; i++) doyGroup[i] = [];
 
-                    returns.forEach(item => {
-                        let start = new Date(item.date.getFullYear(), 0, 0);
-                        let diff = item.date - start;
-                        let oneDay = 1000 * 60 * 60 * 24;
-                        let doy = Math.floor(diff / oneDay) - 1; 
-                        if (doy >= 0 && doy < 366) doyGroup[doy].push(item.ret);
-                    });
+    returns.forEach(item => {
+        let start = new Date(item.date.getFullYear(), 0, 0);
+        let diff = item.date - start;
+        let oneDay = 1000 * 60 * 60 * 24;
+        let doy = Math.floor(diff / oneDay) - 1; 
+        if (doy >= 0 && doy < 366) doyGroup[doy].push(item.ret);
+    });
 
-                    let avgReturns = [];
-                    for (let i = 0; i < 366; i++) {
-                        let arr = doyGroup[i];
-                        let avg = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-                        avgReturns.push(avg);
-                    }
+    let avgReturns = [];
+    for (let i = 0; i < 366; i++) {
+        let arr = doyGroup[i];
+        let avg = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+        avgReturns.push(avg);
+    }
 
-                    let cumsum = [0];
-                    for (let i = 0; i < avgReturns.length; i++) {
-                        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
-                    }
+    let cumsum = [0];
+    for (let i = 0; i < avgReturns.length; i++) {
+        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
+    }
 
-                    matrixData = rollingMean(cumsum, smoothVal);
-                    labels = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    ticks = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+    matrixData = rollingMean(cumsum, smoothVal);
+    
+    // PERBAIKAN: Gunakan label bulan dengan rentang indeks yang presisi (total ~366 poin)
+    labels = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+    ticks = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
 
-                } else {
-                    let slots = new Array(120).fill(0).map(() => []);
+} else {
+    let slots = new Array(120).fill(0).map(() => []);
 
-                    returns.forEach(item => {
-                        let day = item.date.getDay() - 1; 
-                        let hour = item.date.getHours();
-                        if (day >= 0 && day < 5) {
-                            let idx = (day * 24) + hour;
-                            if (idx < 120) slots[idx].push(item.ret);
-                        }
-                    });
+    returns.forEach(item => {
+        let day = item.date.getDay() - 1; 
+        let hour = item.date.getHours();
+        if (day >= 0 && day < 5) {
+            let idx = (day * 24) + hour;
+            if (idx < 120) slots[idx].push(item.ret);
+        }
+    });
 
-                    let avgReturns = slots.map(arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
+    let avgReturns = slots.map(arr => arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
-                    let cumsum = [0];
-                    for (let i = 0; i < avgReturns.length; i++) {
-                        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
-                    }
+    let cumsum = [0];
+    for (let i = 0; i < avgReturns.length; i++) {
+        cumsum.push(cumsum[i] + (avgReturns[i] * 100));
+    }
 
-                    matrixData = rollingMean(cumsum, smoothVal);
-                    labels = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
-                    ticks = [0, 24, 48, 72, 96];
-                }
+    matrixData = rollingMean(cumsum, smoothVal);
+    labels = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+    ticks = [0, 24, 48, 72, 96];
+}
 
-                renderChart(matrixData, labels, ticks, symbol, timeframe, rangeVal);
-                generateReport(matrixData, timeframe);
+renderChart(matrixData, labels, ticks, symbol, timeframe, rangeVal);
+generateReport(matrixData, timeframe);
 
             } catch (err) {
                 reportBox.innerHTML = `<span style="color: #ef4444;">Sync Error: ${err.message}</span>`;
@@ -629,62 +631,66 @@
             }
         }
 
-        function renderChart(data, xLabels, ticks, symbol, timeframe, rangeVal) {
-            const ctx = document.getElementById('matrixChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
+       function renderChart(data, xLabels, ticks, symbol, timeframe, rangeVal) {
+    const ctx = document.getElementById('matrixChart').getContext('2d');
+    if (chartInstance) chartInstance.destroy();
 
-            let displayPair = symbol === "GC=F" ? "XAUUSD" : symbol.replace("=X", "").replace("-USD", "USD");
+    let displayPair = symbol === "GC=F" ? "XAUUSD" : symbol.replace("=X", "").replace("-USD", "USD");
 
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.map((_, i) => i),
-                    datasets: [{
-                        label: `${timeframe.toUpperCase()} MATRIX: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
-                        data: data,
-                        borderColor: '#4ade80',
-                        backgroundColor: 'rgba(74, 222, 128, 0.05)',
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        tension: 0.2,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: {
-                                color: '#fde047',
-                                font: { family: 'JetBrains Mono', size: 11 },
-                                callback: function(val) {
-                                    let numericVal = Number(val);
-                                    let idx = ticks.indexOf(numericVal);
-                                    return idx !== -1 ? xLabels[idx] : '';
-                                }
-                            }
-                        },
-                        y: {
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { 
-                                color: '#64748b',
-                                font: { family: 'JetBrains Mono', size: 10 }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { 
-                            labels: { 
-                                color: '#f8fafc', 
-                                font: { family: 'Plus Jakarta Sans', weight: '600' } 
-                            } 
+    chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.map((_, i) => i),
+            datasets: [{
+                label: `${timeframe.toUpperCase()} MATRIX: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
+                data: data,
+                borderColor: '#4ade80',
+                backgroundColor: 'rgba(74, 222, 128, 0.05)',
+                borderWidth: 2,
+                pointRadius: 0,
+                tension: 0.2,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: {
+                        color: '#fde047',
+                        font: { family: 'JetBrains Mono', size: 10 },
+                        maxRotation: 0,
+                        autoSkip: false, // Memaksa Chart.js menampilkan semua tick yang sudah kita tetapkan
+                        callback: function(val) {
+                            let numericVal = Number(val);
+                            
+                            // Toleransi pencarian indeks agar label pasti muncul di posisi terdekat
+                            let matchIndex = ticks.findIndex(t => Math.abs(t - numericVal) < 1.5);
+                            return matchIndex !== -1 ? xLabels[matchIndex] : '';
                         }
                     }
+                },
+                y: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { 
+                        color: '#64748b',
+                        font: { family: 'JetBrains Mono', size: 10 }
+                    }
                 }
-            });
+            },
+            plugins: {
+                legend: { 
+                    labels: { 
+                        color: '#f8fafc', 
+                        font: { family: 'Plus Jakarta Sans', weight: '600' } 
+                    } 
+                }
+            }
         }
+    });
+}
 
         function generateReport(data, timeframe) {
             const reportBox = document.getElementById("reportContainer");
