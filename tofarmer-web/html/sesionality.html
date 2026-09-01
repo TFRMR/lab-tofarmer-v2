@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ToFarmer Seasonality Analyzer v3.0 [Online Client-Side]</title>
-    <!-- Tailwind CSS & Chart.js CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>ToFarmer Seasonality Analyzer v3.0 [Standalone Web]</title>
+    <!-- Tailwind CSS Standalone (Menghilangkan warning CDN production) -->
+    <link rel="stylesheet" href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css">
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-[#121212] text-gray-200 font-mono h-screen flex flex-col md:flex-row overflow-hidden">
@@ -65,7 +66,7 @@
         </div>
 
         <div class="mt-4 space-y-2">
-            <button onclick="runAnalysis()" id="btnRun" class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-2.5 rounded transition duration-200 shadow-lg shadow-green-900/30">
+            <button onclick="runAnalysis()" id="btnRun" class="w-full bg-green-600 hover:bg-green-500 text-black font-bold py-2.5 rounded transition duration-200 shadow-lg">
                 GENERATE NEURAL MAP
             </button>
             <button onclick="downloadChart()" class="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-2 rounded transition duration-200">
@@ -134,32 +135,60 @@
             let range = `${rangeVal}y`;
 
             if (timeframe === "4H" || timeframe === "1H") {
-                interval = timeframe === "1H" ? "1h" : "1h"; // Yahoo API standar menggunakan 1h
+                interval = "1h";
                 range = "2y"; 
             }
 
-            // CORS Proxy publik untuk memicu fetch data Yahoo Finance dari browser
-            const corsProxy = "https://corsproxy.io/?";
             const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`;
 
-            const res = await fetch(corsProxy + encodeURIComponent(targetUrl));
-            if (!res.ok) throw new Error("Gagal mengambil data dari Yahoo Finance API.");
-            const json = await res.json();
+            // Multi-proxy Fallback Strategy
+            const proxies = [
+                url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                url => `https://thingproxy.freeboard.io/fetch/${url}`
+            ];
 
-            const result = json.chart.result[0];
-            const timestamps = result.timestamp;
-            const closes = result.indicators.quote[0].close;
+            let lastError = null;
 
-            let data = [];
-            for (let i = 0; i < timestamps.length; i++) {
-                if (closes[i] !== null && closes[i] !== undefined) {
-                    data.push({
-                        date: new Date(timestamps[i] * 1000),
-                        close: closes[i]
-                    });
+            for (const getProxyUrl of proxies) {
+                try {
+                    const proxyUrl = getProxyUrl(targetUrl);
+                    const res = await fetch(proxyUrl);
+                    if (!res.ok) continue;
+
+                    let json;
+                    const text = await res.text();
+                    try {
+                        json = JSON.parse(text);
+                    } catch(e) {
+                        continue;
+                    }
+
+                    if (!json.chart || !json.chart.result || !json.chart.result[0]) continue;
+
+                    const result = json.chart.result[0];
+                    const timestamps = result.timestamp;
+                    const closes = result.indicators.quote[0].close;
+
+                    if (!timestamps || !closes) continue;
+
+                    let data = [];
+                    for (let i = 0; i < timestamps.length; i++) {
+                        if (closes[i] !== null && closes[i] !== undefined) {
+                            data.push({
+                                date: new Date(timestamps[i] * 1000),
+                                close: closes[i]
+                            });
+                        }
+                    }
+
+                    if (data.length > 0) return data;
+                } catch (e) {
+                    lastError = e;
                 }
             }
-            return data;
+
+            throw new Error("Gagal terhubung ke data Yahoo Finance melalui Proxy. Coba beberapa saat lagi.");
         }
 
         async function runAnalysis() {
@@ -173,7 +202,7 @@
             
             btnRun.disabled = true;
             btnRun.innerText = "CONNECTING NEURAL MATRIX...";
-            reportBox.innerHTML = '<span class="text-yellow-500 animate-pulse">> Fetching live market feeds from Yahoo API...</span>';
+            reportBox.innerHTML = '<span class="text-yellow-500 animate-pulse">> Fetching live market feeds via Yahoo API...</span>';
 
             try {
                 const rawData = await fetchYahooData(symbol, timeframe, rangeVal);
