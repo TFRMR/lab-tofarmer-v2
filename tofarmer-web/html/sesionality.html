@@ -30,7 +30,6 @@
             position: relative;
         }
 
-        /* Kabut lembut pegunungan Menoreh */
         body::before {
             content: "";
             position: fixed;
@@ -56,9 +55,6 @@
             z-index: 2;
         }
 
-        /* =========================
-           HERO HEADER
-        ========================= */
         .hero {
             position: relative;
             padding: 30px 20px 40px;
@@ -124,9 +120,6 @@
             margin-inline: auto;
         }
 
-        /* =========================
-           MAIN PANEL CONTAINER
-        ========================= */
         .main-box {
             background: rgba(14, 28, 19, 0.45);
             backdrop-filter: blur(22px);
@@ -156,9 +149,6 @@
             gap: 24px;
         }
 
-        /* =========================
-           SIDEBAR CONTROL PANEL
-        ========================= */
         .control-panel {
             background: rgba(18, 35, 24, 0.4);
             border: 1px solid rgba(255, 255, 255, 0.03);
@@ -225,7 +215,6 @@
             accent-color: #22c55e;
         }
 
-        /* BUTTONS */
         .btn-primary {
             width: 100%;
             padding: 14px 20px;
@@ -276,9 +265,6 @@
             transform: translateY(-2px);
         }
 
-        /* =========================
-           DISPLAY PANEL
-        ========================= */
         .display-panel {
             display: flex;
             flex-direction: column;
@@ -337,9 +323,6 @@
             line-height: 1.7;
         }
 
-        /* =========================
-           FOOTER
-        ========================= */
         .footer {
             padding: 40px 20px 30px;
             text-align: center;
@@ -352,9 +335,6 @@
             letter-spacing: .5px;
         }
 
-        /* =========================
-           RESPONSIVE LAYOUT
-        ========================= */
         @media(max-width: 1024px) {
             .grid-layout {
                 grid-template-columns: 1fr;
@@ -382,7 +362,6 @@
 <body>
 
     <div class="container">
-        <!-- HEADER HERO -->
         <header class="hero">
             <div class="logo-wrap">
                 <div class="logo-badge">🌿</div>
@@ -391,14 +370,11 @@
             <p>Sistem Analisis Pola Musiman Pasar Finansial Berbasiskan Neural Matrix</p>
         </header>
 
-        <!-- MAIN CONTENT PANEL -->
         <main class="main-box">
             <div class="grid-layout">
                 
-                <!-- SIDEBAR KONTROL -->
                 <aside class="control-panel">
                     <div>
-                        <!-- Select Pair -->
                         <div class="form-group">
                             <label for="pairSelect">Trading Pair</label>
                             <select id="pairSelect" class="form-control">
@@ -413,7 +389,6 @@
                             </select>
                         </div>
 
-                        <!-- Select Timeframe -->
                         <div class="form-group">
                             <label for="tfSelect">Timeframe Analisis</label>
                             <select id="tfSelect" onchange="handleTfChange()" class="form-control">
@@ -423,7 +398,6 @@
                             </select>
                         </div>
 
-                        <!-- Range Slider -->
                         <div class="form-group">
                             <div class="slider-header">
                                 <span>Range Window</span>
@@ -432,7 +406,6 @@
                             <input type="range" id="rangeSlider" min="1" max="30" value="20" oninput="updateRangeLabel()">
                         </div>
 
-                        <!-- Smoothing Slider -->
                         <div class="form-group">
                             <div class="slider-header">
                                 <span>Smoothing Filter</span>
@@ -442,7 +415,6 @@
                         </div>
                     </div>
 
-                    <!-- Tombol Aksi -->
                     <div style="margin-top: 15px;">
                         <button onclick="runAnalysis()" id="btnRun" class="btn-primary">
                             Generate Neural Map
@@ -453,14 +425,11 @@
                     </div>
                 </aside>
 
-                <!-- DISPLAY PANEL -->
                 <section class="display-panel">
-                    <!-- Chart Display -->
                     <div class="chart-card">
                         <canvas id="matrixChart"></canvas>
                     </div>
 
-                    <!-- Report Display -->
                     <div class="report-card">
                         <div class="report-header">
                             <span class="report-title">Neural Intelligence Report</span>
@@ -475,7 +444,6 @@
             </div>
         </main>
 
-        <!-- FOOTER HARMONI ALAM -->
         <footer class="footer">
             <p class="footer-text">
                 ToFarmer Ecosystem &copy; 2026 • Kebun &amp; Laboratorium Digital Menoreh<br>
@@ -484,7 +452,6 @@
         </footer>
     </div>
 
-    <!-- JAVASCRIPT ENGINE -->
     <script>
         let chartInstance = null;
 
@@ -506,7 +473,6 @@
             updateRangeLabel();
         }
 
-        // Rolling mean helper (Smoothing)
         function rollingMean(arr, windowSize) {
             let result = new Array(arr.length);
             let half = Math.floor(windowSize / 2);
@@ -520,75 +486,71 @@
             return result;
         }
 
-       async function fetchYahooData(symbol, timeframe, rangeVal) {
-    let interval = "1d";
-    let range = `${rangeVal}y`;
+        async function fetchYahooData(symbol, timeframe, rangeVal) {
+            let interval = "1d";
+            let range = `${rangeVal}y`;
 
-    if (timeframe === "4H" || timeframe === "1H") {
-        interval = "1h";
-        range = "2y"; 
-    }
-
-    // Pastikan URL Yahoo Finance di-build secara bersih (Single Encoding)
-    const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
-
-    // Gunakan CORS Proxy gratisan yang lebih stabil & tambahkan timestamp cache-buster agar tidak di-intercept sw.js
-    const proxies = [
-        // Proxy 1: AllOrigins versi JSON (lebih stabil dibanding /raw)
-        url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&_nc=${Date.now()}`,
-        // Proxy 2: Cloudflare Worker CORS Bypass
-        url => `https://cors-proxy.htmldriven.com/?url=${encodeURIComponent(url)}`,
-        // Proxy 3: APIFY / CorsProxy
-        url => `https://proxy.cors.sh/${url}`
-    ];
-
-    for (const getProxyUrl of proxies) {
-        try {
-            const proxyUrl = getProxyUrl(yahooBase);
-            
-            // Tambahkan cache: 'no-store' agar Service Worker tidak mencegat
-            const res = await fetch(proxyUrl, { cache: 'no-store' });
-            if (!res.ok) continue;
-
-            const text = await res.text();
-            let json;
-            
-            try {
-                json = JSON.parse(text);
-                // Jika dari AllOrigins /get, datanya di-wrap dalam properti contents
-                if (json.contents) {
-                    json = JSON.parse(json.contents);
-                }
-            } catch (e) {
-                continue;
+            if (timeframe === "4H" || timeframe === "1H") {
+                interval = "1h";
+                range = "2y"; 
             }
 
-            if (!json.chart || !json.chart.result || !json.chart.result[0]) continue;
+            const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
 
-            const result = json.chart.result[0];
-            const timestamps = result.timestamp;
-            const closes = result.indicators.quote[0].close;
+            // Menggunakan Proxy JSON yang handal & Bypass Service Worker
+            const proxies = [
+                url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}&_nc=${Date.now()}`,
+                url => `https://corsproxy.io/?${encodeURIComponent(url)}`
+            ];
 
-            if (!timestamps || !closes) continue;
-
-            let data = [];
-            for (let i = 0; i < timestamps.length; i++) {
-                if (closes[i] !== null && closes[i] !== undefined) {
-                    data.push({
-                        date: new Date(timestamps[i] * 1000),
-                        close: closes[i]
+            for (const getProxyUrl of proxies) {
+                try {
+                    const proxyUrl = getProxyUrl(yahooBase);
+                    
+                    const res = await fetch(proxyUrl, { 
+                        cache: 'no-store',
+                        headers: { 'Accept': 'application/json' }
                     });
+                    if (!res.ok) continue;
+
+                    const text = await res.text();
+                    let json;
+                    
+                    try {
+                        json = JSON.parse(text);
+                        if (json.contents) {
+                            json = JSON.parse(json.contents);
+                        }
+                    } catch (e) {
+                        continue;
+                    }
+
+                    if (!json.chart || !json.chart.result || !json.chart.result[0]) continue;
+
+                    const result = json.chart.result[0];
+                    const timestamps = result.timestamp;
+                    const closes = result.indicators.quote[0].close;
+
+                    if (!timestamps || !closes) continue;
+
+                    let data = [];
+                    for (let i = 0; i < timestamps.length; i++) {
+                        if (closes[i] !== null && closes[i] !== undefined) {
+                            data.push({
+                                date: new Date(timestamps[i] * 1000),
+                                close: closes[i]
+                            });
+                        }
+                    }
+
+                    if (data.length > 0) return data;
+                } catch (e) {
+                    // Lanjut mencoba proxy berikutnya secara silent
                 }
             }
 
-            if (data.length > 0) return data;
-        } catch (e) {
-            console.warn("Proxy attempt failed, trying next...", e);
+            throw new Error("Gagal mengambil data dari Proxy. Coba refresh browser atau gunakan Cloudflare Worker.");
         }
-    }
-
-    throw new Error("Semua public proxy diblokir. Solusi terbaik: Buat Cloudflare Worker Proxy sendiri.");
-}
 
         async function runAnalysis() {
             const symbol = document.getElementById("pairSelect").value;
@@ -606,7 +568,6 @@
             try {
                 const rawData = await fetchYahooData(symbol, timeframe, rangeVal);
                 
-                // Hitung Returns (persentase perubahan)
                 let returns = [];
                 for (let i = 1; i < rawData.length; i++) {
                     let ret = (rawData[i].close - rawData[i - 1].close) / rawData[i - 1].close;
@@ -616,26 +577,24 @@
                 let matrixData, labels, ticks;
 
                 if (timeframe === "Daily") {
-                    // Grouping Day of Year (1 - 366)
                     let doyGroup = {};
-                    for (let i = 1; i <= 366; i++) doyGroup[i] = [];
+                    for (let i = 0; i < 366; i++) doyGroup[i] = [];
 
                     returns.forEach(item => {
                         let start = new Date(item.date.getFullYear(), 0, 0);
                         let diff = item.date - start;
                         let oneDay = 1000 * 60 * 60 * 24;
-                        let doy = Math.floor(diff / oneDay);
-                        if (doyGroup[doy]) doyGroup[doy].push(item.ret);
+                        let doy = Math.floor(diff / oneDay) - 1; 
+                        if (doy >= 0 && doy < 366) doyGroup[doy].push(item.ret);
                     });
 
                     let avgReturns = [];
-                    for (let i = 1; i <= 366; i++) {
+                    for (let i = 0; i < 366; i++) {
                         let arr = doyGroup[i];
                         let avg = arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
                         avgReturns.push(avg);
                     }
 
-                    // Cumsum * 100
                     let cumsum = [0];
                     for (let i = 0; i < avgReturns.length; i++) {
                         cumsum.push(cumsum[i] + (avgReturns[i] * 100));
@@ -643,14 +602,13 @@
 
                     matrixData = rollingMean(cumsum, smoothVal);
                     labels = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    ticks = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
+                    ticks = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
 
                 } else {
-                    // Weekly Mode (5 Hari * 24 Jam = 120 Slot)
                     let slots = new Array(120).fill(0).map(() => []);
 
                     returns.forEach(item => {
-                        let day = item.date.getDay() - 1; // 0: Mon, 4: Fri
+                        let day = item.date.getDay() - 1; 
                         let hour = item.date.getHours();
                         if (day >= 0 && day < 5) {
                             let idx = (day * 24) + hour;
@@ -712,7 +670,8 @@
                                 color: '#fde047',
                                 font: { family: 'JetBrains Mono', size: 11 },
                                 callback: function(val) {
-                                    let idx = ticks.indexOf(val);
+                                    let numericVal = Number(val);
+                                    let idx = ticks.indexOf(numericVal);
                                     return idx !== -1 ? xLabels[idx] : '';
                                 }
                             }
@@ -743,9 +702,9 @@
             document.getElementById("reportTime").innerText = `[${now}]`;
 
             let bounds = timeframe === "Daily" ? [
-                [1, 31, "JAN"], [32, 59, "FEB"], [60, 90, "MAR"], [91, 120, "APR"],
-                [121, 151, "MAY"], [152, 181, "JUN"], [182, 212, "JUL"], [213, 243, "AUG"],
-                [244, 273, "SEP"], [274, 304, "OCT"], [305, 334, "NOV"], [335, 365, "DEC"]
+                [0, 31, "JAN"], [31, 59, "FEB"], [59, 90, "MAR"], [90, 120, "APR"],
+                [120, 151, "MAY"], [151, 181, "JUN"], [181, 212, "JUL"], [212, 243, "AUG"],
+                [243, 273, "SEP"], [273, 304, "OCT"], [304, 334, "NOV"], [334, 365, "DEC"]
             ] : [
                 [0, 23, "MON"], [24, 47, "TUE"], [48, 71, "WED"], [72, 95, "THU"], [96, 119, "FRI"]
             ];
@@ -756,14 +715,14 @@
                 if (start < data.length && end < data.length) {
                     let diff = data[end] - data[start];
                     let phase = "RANGING        ↔";
-                    let color = "#fde047"; // Kuning
+                    let color = "#fde047"; 
 
                     if (diff > 0.05) {
                         phase = "TRENDING UP    ▲";
-                        color = "#4ade80"; // Hijau
+                        color = "#4ade80"; 
                     } else if (diff < -0.05) {
                         phase = "TRENDING DOWN  ▼";
-                        color = "#f87171"; // Merah
+                        color = "#f87171"; 
                     }
 
                     html += `<div style="color: ${color};">[${name}] ${phase} | Impact: ${diff > 0 ? '+' : ''}${diff.toFixed(2)}%</div>`;
