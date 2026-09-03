@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToFarmer Trading Execution Checklist - Menoreh Style</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+    * {
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+    }
+
+    body {
+        font-family:'Plus Jakarta Sans',sans-serif;
+        /* Gradien Warna Hutan Menoreh Kelam di Sore Hari yang Subur */
+        background:
+            radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+            radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+            linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+        min-height:100vh;
+        overflow-x:hidden;
+        color:#e2e8f0;
+        position:relative;
+    }
+
+    /* kabut lembut pegunungan menoreh */
+    body::before {
+        content:"";
+        position:fixed;
+        inset:0;
+        background:
+        linear-gradient(
+        120deg,
+        rgba(255,255,255,.03),
+        rgba(255,255,255,0)
+        );
+        pointer-events:none;
+        animation:fog 14s ease-in-out infinite;
+    }
+
+    @keyframes fog {
+        0%{transform:translateX(-3%)}
+        50%{transform:translateX(3%)}
+        100%{transform:translateX(-3%)}
+    }
+
+    .container {
+        width:100%;
+        max-width:1150px;
+        margin:auto;
+        padding:22px;
+    }
+
+    /* =========================
+    HEADER
+    ========================= */
+
+    .hero {
+        position:relative;
+        padding:40px 20px 30px;
+        text-align:center;
+    }
+
+    .hero::after {
+        content:"";
+        position:absolute;
+        left:50%;
+        bottom:10px;
+        transform:translateX(-50%);
+        width:180px;
+        height:1px;
+        background:
+        linear-gradient(
+        90deg,
+        transparent,
+        rgba(234, 179, 8, 0.4),
+        transparent
+        );
+    }
+
+    .logo-wrap {
+        display:flex;
+        justify-content:center;
+        margin-bottom:18px;
+    }
+
+    .logo {
+        width:95px;
+        height:95px;
+        border-radius:50%;
+        padding:5px;
+        background:rgba(20, 38, 27, 0.6);
+        backdrop-filter:blur(12px);
+        -webkit-backdrop-filter:blur(12px);
+        border: 1px solid rgba(74, 222, 128, 0.25);
+        box-shadow:
+        0 10px 30px rgba(0,0,0,0.5);
+        transition:.5s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+    }
+
+    .logo:hover {
+        transform:rotate(8deg) scale(1.04);
+        border-color: #eab308;
+        box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+    }
+
+    .hero h1 {
+        font-family: 'Playfair Display', serif;
+        font-size:3rem;
+        font-weight:800;
+        letter-spacing:-1px;
+        line-height:1.2;
+        background:
+        linear-gradient(
+        135deg,
+        #fef08a 0%,
+        #4ade80 50%,
+        #22c55e 100%
+        );
+        -webkit-background-clip:text;
+        -webkit-text-fill-color:transparent;
+    }
+
+    .hero p {
+        margin-top:18px;
+        font-size:.98rem;
+        line-height:1.8;
+        color:#84a98c;
+        max-width:650px;
+        margin-inline:auto;
+    }
+
+    /* =========================
+    TOP BUTTON (MENU ATAS CANTIK)
+    ========================= */
+
+    .top-nav {
+        display:flex;
+        justify-content:center;
+        margin-top:20px;
+        margin-bottom:30px;
+    }
+
+    .top-btn {
+        display:inline-flex;
+        align-items:center;
+        gap:10px;
+        padding:14px 28px;
+        border-radius:999px;
+        text-decoration:none;
+        font-size:.83rem;
+        font-weight:700;
+        letter-spacing:.5px;
+        background: rgba(20, 36, 26, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color:#a7f3d0;
+        border:1px solid rgba(74, 222, 128, 0.2);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        transition:.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .top-btn:hover {
+        transform:translateY(-3px);
+        background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+        color:#050b07;
+        border-color: #4ade80;
+        box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+    }
+
+    /* =========================
+    MAIN CARD BOX (PANEL UTAMA BERKABUT)
+    ========================= */
+
+    .main-box {
+        background: rgba(14, 28, 19, 0.45);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border:1px solid rgba(255, 255, 255, 0.05);
+        border-radius:34px;
+        padding:40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        position:relative;
+        overflow:hidden;
+    }
+
+    .main-box::before {
+        content:"";
+        position:absolute;
+        top:-120px;
+        right:-120px;
+        width:240px;
+        height:240px;
+        background:
+        radial-gradient(
+        circle,
+        rgba(234, 179, 8, 0.08),
+        transparent 70%
+        );
+    }
+
+    /* =========================
+    SECTION TITLE
+    ========================= */
+
+    .section {
+        margin-bottom:45px;
+    }
+
+    .section-title {
+        display:flex;
+        align-items:center;
+        gap:14px;
+        margin-bottom:22px;
+        flex-wrap: wrap;
+    }
+
+    .section-title span {
+        font-size:.82rem;
+        font-weight:800;
+        letter-spacing:2px;
+        text-transform:uppercase;
+        color:#fde047;
+    }
+
+    .line {
+        flex: 1;
+        min-width: 30px;
+        height:1px;
+        background:
+        linear-gradient(
+        90deg,
+        rgba(234, 179, 8, 0.3),
+        rgba(34, 197, 94, 0.05),
+        transparent
+        );
+    }
+
+    /* =========================
+    CHECKLIST STYLES
+    ========================= */
+
+    .checklist-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .step-card {
+        background: rgba(18, 35, 24, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-left: 4px solid rgba(34, 197, 94, 0.3);
+        border-radius: 20px;
+        padding: 24px;
+        transition: all 0.3s ease;
+    }
+
+    .step-card:hover {
+        background: rgba(22, 46, 31, 0.6);
+        border-color: rgba(74, 222, 128, 0.25);
+        border-left-color: #4ade80;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .step-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .custom-checkbox {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        border: 2px solid rgba(74, 222, 128, 0.4);
+        background: rgba(7, 14, 10, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .step-card input[type="checkbox"] {
+        display: none;
+    }
+
+    .step-card input[type="checkbox"]:checked + .step-header .custom-checkbox {
+        background: #22c55e;
+        border-color: #4ade80;
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.5);
+    }
+
+    .step-card input[type="checkbox"]:checked + .step-header .custom-checkbox::after {
+        content: '✓';
+        color: #050b07;
+        font-weight: 800;
+        font-size: 16px;
+    }
+
+    .step-title-wrap {
+        flex: 1;
+    }
+
+    .step-number {
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        color: #eab308;
+        text-transform: uppercase;
+        display: block;
+        margin-bottom: 2px;
+    }
+
+    .step-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #f8fafc;
+    }
+
+    .step-body {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .detail-box, .example-box {
+        font-size: 0.88rem;
+        line-height: 1.7;
+    }
+
+    .detail-box h4, .example-box h4 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .detail-box h4 { color: #4ade80; }
+    .example-box h4 { color: #fde047; }
+
+    .detail-box p, .example-box p {
+        color: #94a3b8;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        background: rgba(234, 179, 8, 0.15);
+        color: #fde047;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin-left: 8px;
+    }
+
+    /* =========================
+    FOOTER HARMONI ALAM
+    ========================= */
+
+    .footer {
+        padding:50px 20px 60px;
+        text-align:center;
+    }
+
+    .footer-text {
+        font-size:.78rem;
+        color:#475569;
+        line-height:1.9;
+        letter-spacing:.5px;
+    }
+
+    /* =========================
+    RESPONSIVE DESIGN
+    ========================= */
+
+    @media(max-width:768px){
+        .container { padding:12px; }
+        .hero { padding:24px 12px 25px; }
+        .hero h1 { font-size:2rem; }
+        .hero p { font-size:.85rem; }
+        .main-box { padding:20px 14px; border-radius:22px; }
+        .step-body { grid-template-columns: 1fr; gap: 14px; }
+        .step-title { font-size: 0.95rem; }
+    }
+
+    @media(max-width:480px){
+        .hero h1 { font-size:1.6rem; }
+        .logo { width:75px; height:75px; font-size: 2rem; }
+        .top-btn { padding:12px 20px; font-size:.75rem; }
+        .step-card { padding: 16px; }
+    }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <header class="hero">
+        <div class="logo-wrap">
+            <div class="logo">🌿</div>
+        </div>
+        <h1>Trading Checklist</h1>
+        <p>Sistem Konfirmasi Eksekusi Trading Berbasis Smart Money Concepts (SMC) & Inner Circle Trader (ICT)</p>
+    </header>
+
+    <div class="top-nav">
+        <a href="https://www.tofarmer.xyz" class="top-btn">
+            <span>← Kembali ke ToFarmer</span>
+        </a>
+    </div>
+
+    <main class="main-box">
+
+        <div class="section">
+            <div class="section-title">
+                <span>Konfirmasi Protokol Eksekusi</span>
+                <div class="line"></div>
+            </div>
+
+            <div class="checklist-container">
+
+                <div class="step-card">
+                    <input type="checkbox" id="step1">
+                    <label class="step-header" for="step1">
+                        <div class="custom-checkbox"></div>
+                        <div class="step-title-wrap">
+                            <span class="step-number">Step 01 <span class="badge">Timeframe 4H</span></span>
+                            <div class="step-title">Directional Bias 4H Confirmed</div>
+                        </div>
+                    </label>
+                    <div class="step-body">
+                        <div class="detail-box">
+                            <h4>📌 Penjelasan Baku</h4>
+                            <p>Memvalidasi arah pergerakan harga utama (*Higher Timeframe Bias*) pada grafik 4 Jam. Langkah ini bertujuan agar eksekusi posisi searah dengan aliran dana institusi (*Institutional Order Flow*).</p>
+                        </div>
+                        <div class="example-box">
+                            <h4>💡 Contoh Skenario</h4>
+                            <p><strong>Bullish Bias:</strong> Pada grafik 4H terbentuk struktur <em>Higher High (HH)</em> dan <em>Higher Low (HL)</em> yang jelas, atau harga baru menembus resistance struktural (*Break of Structure*).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <input type="checkbox" id="step2">
+                    <label class="step-header" for="step2">
+                        <div class="custom-checkbox"></div>
+                        <div class="step-title-wrap">
+                            <span class="step-number">Step 02 <span class="badge">Timeframe 15M</span></span>
+                            <div class="step-title">Kill Zone Sweep 15M Confirmed</div>
+                        </div>
+                    </label>
+                    <div class="step-body">
+                        <div class="detail-box">
+                            <h4>📌 Penjelasan Baku</h4>
+                            <p>Memastikan telah terjadi pengambilalihan likuiditas (*Liquidity Sweep*) pada batas level harga tertinggi/terendah di *timeframe* 15 Menit saat jam perdagangan aktif (*Kill Zone* seperti Sesi London atau New York).</p>
+                        </div>
+                        <div class="example-box">
+                            <h4>💡 Contoh Skenario</h4>
+                            <p>Saat Sesi London tiba (sekitar jam 14:00 WIB), harga sengaja didorong turun sejenak untuk menembus titik terendah Asia (*Asian Low Sweep*) demi mengambil *Stop Loss* para trader ritel.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <input type="checkbox" id="step3">
+                    <label class="step-header" for="step3">
+                        <div class="custom-checkbox"></div>
+                        <div class="step-title-wrap">
+                            <span class="step-number">Step 03 <span class="badge">Timeframe 1M</span></span>
+                            <div class="step-title">Reversal Confirmation 1M Confirmed</div>
+                        </div>
+                    </label>
+                    <div class="step-body">
+                        <div class="detail-box">
+                            <h4>📌 Penjelasan Baku</h4>
+                            <p>Mencari bukti konfirmasi perubahan arah tren di grafik 1 Menit setelah likuiditas diambil. Diindikasikan oleh adanya *Market Structure Shift (MSS)* atau *Change of Character (ChoC)* yang dramatis.</p>
+                        </div>
+                        <div class="example-box">
+                            <h4>💡 Contoh Skenario</h4>
+                            <p>Setelah *sweep* terjadi, grafik 1M langsung membuat lonjakan *candle impulsif* ke atas yang sukses mematahkan titik *Lower High* terakhir (*ChoC/MSS*).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <input type="checkbox" id="step4">
+                    <label class="step-header" for="step4">
+                        <div class="custom-checkbox"></div>
+                        <div class="step-title-wrap">
+                            <span class="step-number">Step 04 <span class="badge">Timeframe 5M</span></span>
+                            <div class="step-title">Entry on POI 5M Confirmed</div>
+                        </div>
+                    </label>
+                    <div class="step-body">
+                        <div class="detail-box">
+                            <h4>📌 Penjelasan Baku</h4>
+                            <p>Menunggu harga kembali (*retracement*) masuk ke dalam area perhatian utama (*Point of Interest*) pada grafik 5 Menit, berupa *Order Block (OB)* atau *Fair Value Gap (FVG)* sebelum membuka posisi.</p>
+                        </div>
+                        <div class="example-box">
+                            <h4>💡 Contoh Skenario</h4>
+                            <p>Harga memantul turun perlahan menuju celah *Fair Value Gap (FVG 5M)* atau *Bullish Order Block (OB 5M)*. Kita memasang Limit Order/Entry tepat ketika harga menyentuh batas area tersebut.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <input type="checkbox" id="step5">
+                    <label class="step-header" for="step5">
+                        <div class="custom-checkbox"></div>
+                        <div class="step-title-wrap">
+                            <span class="step-number">Step 05 <span class="badge">Manajemen Risiko</span></span>
+                            <div class="step-title">Risk Management Confirmed</div>
+                        </div>
+                    </label>
+                    <div class="step-body">
+                        <div class="detail-box">
+                            <h4>📌 Penjelasan Baku</h4>
+                            <p>Memastikan parameter batas risiko telah dihitung secara presisi. Meliputi penetapan jarak *Stop Loss (SL)*, *Take Profit (TP)* rasio *Risk to Reward (RR)* minimal, dan batasan ukuran posisi (*Lot Size*).</p>
+                        </div>
+                        <div class="example-box">
+                            <h4>💡 Contoh Skenario</h4>
+                            <p>Batas risiko diatur maksimal 1% dari total modal per transaksi, posisi SL diletakkan beberapa pips di bawah *Low 5M/1M*, dan target TP dipasang pada minimal rasio 1:3 RR.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="footer">
+        <p class="footer-text">
+            © 2026 ToFarmer Trading System. Dikembangkan dengan Disiplin Eksekusi Tinggi.<br>
+            Suasana Pegunungan Menoreh — Kelam, Subur, dan Fokus.
+        </p>
+    </footer>
+
+</div>
+
+</body>
+</html>
