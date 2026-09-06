@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToFarmer - Almanak Dinding & Panduan Pertanian Presisi</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+                linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #e2e8f0;
+            position: relative;
+        }
+
+        /* Kabut gunung Menoreh */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0));
+            pointer-events: none;
+            animation: fog 14s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        @keyframes fog {
+            0% { transform: translateX(-3%); }
+            50% { transform: translateX(3%); }
+            100% { transform: translateX(-3%); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: auto;
+            padding: 22px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* HERO HEADER */
+        .hero {
+            position: relative;
+            padding: 25px 20px 25px;
+            text-align: center;
+        }
+
+        .hero::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: 0px;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.4), transparent);
+        }
+
+        .logo-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .logo {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            padding: 5px;
+            background: rgba(20, 38, 27, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.25);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: .5s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2rem;
+        }
+
+        .logo:hover {
+            transform: rotate(8deg) scale(1.04);
+            border-color: #eab308;
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            line-height: 1.2;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            margin-top: 6px;
+            font-size: .88rem;
+            line-height: 1.6;
+            color: #84a98c;
+            max-width: 680px;
+            margin-inline: auto;
+        }
+
+        /* MAIN CONTAINER (ALMANAK DINDING GLASS) */
+        .main-box {
+            background: rgba(14, 28, 19, 0.55);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            position: relative;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        /* ALMANAK HEADER BANNER */
+        .almanak-header {
+            background: rgba(20, 42, 29, 0.6);
+            border: 1px solid rgba(74, 222, 128, 0.2);
+            border-radius: 20px;
+            padding: 18px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .jawa-date-main {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #fde047;
+            letter-spacing: 1px;
+            text-shadow: 0 0 15px rgba(253, 224, 71, 0.2);
+        }
+
+        .jawa-sub-info {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            font-size: .85rem;
+            font-weight: 700;
+        }
+
+        .badge-jawa {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #a7f3d0;
+            padding: 4px 14px;
+            border-radius: 999px;
+        }
+
+        /* MANGSA HERO DISPLAY */
+        .mangsa-hero {
+            text-align: center;
+            padding-bottom: 25px;
+            margin-bottom: 25px;
+            border-bottom: 1px dashed rgba(74, 222, 128, 0.15);
+        }
+
+        .mangsa-sub {
+            font-size: .75rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #84a98c;
+            margin-bottom: 4px;
+        }
+
+        .mangsa-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.7rem;
+            font-weight: 800;
+            color: #4ade80;
+            margin-bottom: 2px;
+        }
+
+        .mangsa-range {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fde047;
+            margin-bottom: 8px;
+        }
+
+        .mangsa-candra {
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 1.1rem;
+            color: #fef08a;
+            opacity: 0.95;
+        }
+
+        .element-badge {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 5px 16px;
+            border-radius: 20px;
+            font-size: .78rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            background: rgba(234, 179, 8, 0.15);
+            color: #fde047;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        /* SECTION TITLE */
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .section-title span {
+            font-size: .85rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #fde047;
+        }
+
+        .line {
+            flex: 1;
+            min-width: 30px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(234, 179, 8, 0.3), rgba(34, 197, 94, 0.05), transparent);
+        }
+
+        /* GRID INDIKATOR CARDS */
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+        }
+
+        .info-card {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 22px 20px;
+            border-radius: 20px;
+            background: rgba(18, 35, 24, 0.45);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-top: 3px solid #4ade80;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+            transition: all .35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .info-card:hover {
+            transform: translateY(-4px);
+            background: rgba(22, 46, 31, 0.65);
+            border-color: rgba(74, 222, 128, 0.3);
+            border-top-color: #fde047;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header-inner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .card-icon {
+            font-size: 1.7rem;
+        }
+
+        .card-label {
+            font-size: .85rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #f8fafc;
+        }
+
+        .info-card:hover .card-label {
+            color: #fde047;
+        }
+
+        .card-desc {
+            font-size: .86rem;
+            line-height: 1.65;
+            color: #cbd5e1;
+        }
+
+        /* GRID MATRIKS 12 MONGSO */
+        .grid-12 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .mini-card {
+            padding: 12px 10px;
+            border-radius: 14px;
+            background: rgba(18, 35, 24, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            text-align: center;
+            transition: .3s;
+            cursor: pointer;
+        }
+
+        .mini-card:hover {
+            background: rgba(22, 46, 31, 0.55);
+            border-color: rgba(74, 222, 128, 0.3);
+        }
+
+        .mini-card.active {
+            border: 1px solid #eab308;
+            background: rgba(234, 179, 8, 0.12);
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.2);
+        }
+
+        .mini-title {
+            font-size: .78rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-bottom: 2px;
+        }
+
+        .mini-card.active .mini-title {
+            color: #fde047;
+        }
+
+        .mini-date {
+            font-size: .68rem;
+            color: #84a98c;
+        }
+
+        /* FOOTER */
+        .footer {
+            padding: 35px 20px 45px;
+            text-align: center;
+        }
+
+        .footer-text {
+            font-size: .78rem;
+            color: #475569;
+            line-height: 1.8;
+            letter-spacing: .5px;
+        }
+
+        @media(max-width: 768px) {
+            .container { padding: 10px; }
+            .main-box { padding: 20px 12px; border-radius: 20px; }
+            .jawa-date-main { font-size: 1.6rem; }
+            .mangsa-title { font-size: 2.1rem; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .grid-12 { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- HERO HEADER -->
+    <header class="hero">
+        <div class="logo-wrap">
+            <div class="logo">🌿</div>
+        </div>
+        <h1>ToFarmer Agrosistem</h1>
+        <p>Almanak Dinding Digital - Navigasi Tanaman, Rotasi Tanam & Titi Murni Alam</p>
+    </header>
+
+    <!-- MAIN BOX / LEMBARAN ALMANAK DINDING -->
+    <main class="main-box">
+        
+        <!-- BANNER DINDING DINO & PASARAN -->
+        <div class="almanak-header">
+            <div class="jawa-date-main" id="jawa-full-date">Mengalkulasi Kalender Jawa...</div>
+            <div class="jawa-sub-info">
+                <span class="badge-jawa" id="jawa-neptu">Neptu: -</span>
+                <span class="badge-jawa" id="jawa-wuku">Wuku: -</span>
+                <span class="badge-jawa" id="masehi-date">Masehi: -</span>
+            </div>
+        </div>
+
+        <!-- MANGSA AKTIF DISPLAY -->
+        <div class="mangsa-hero">
+            <div class="mangsa-sub">Musim Berjalan (Auto-Sync)</div>
+            <div class="mangsa-title" id="mangsa-nama">-</div>
+            <div class="mangsa-range" id="mangsa-periode">-</div>
+            <div class="mangsa-candra" id="mangsa-candra">-</div>
+            <div>
+                <span class="element-badge" id="mangsa-elemen">Elemen Dominan: -</span>
+            </div>
+        </div>
+
+        <!-- 6 KARTU DETIL PERTANIAN PRESISI -->
+        <div class="section">
+            <div class="section-title">
+                <span>🌱 Panduan Tanaman, Fenomena & Rotasi Lahan</span>
+                <div class="line"></div>
+            </div>
+            
+            <div class="detail-grid">
+                <!-- Card 1: Rekomendasi Tanaman -->
+                <div class="info-card" style="border-top-color: #22c55e;">
+                    <div class="card-header-inner">
+                        <span class="card-icon">🌾</span>
+                        <span class="card-label">Rekomendasi Tanaman</span>
+                    </div>
+                    <div class="card-desc" id="info-rekomendasi">-</div>
+                </div>
+
+                <!-- Card 2: Diagnosa Daun & Akar -->
+                <div class="info-card" style="border-top-color: #4ade80;">
+                    <div class="card-header-inner">
+                        <span class="card-icon">🍃</span>
+                        <span class="card-label">Diagnosa Daun & Akar</span>
+                    </div>
+                    <div class="card-desc" id="info-daun">-</div>
+                </div>
+
+                <!-- Card 3: Diagnosa Bunga & Buah -->
+                <div class="info-card" style="border-top-color: #f43f5e;">
+                    <div class="card-header-inner">
+                        <span class="card-icon">🌸</span>
+                        <span class="card-label">Diagnosa Bunga & Buah</span>
+                    </div>
+                    <div class="card-desc" id="info-bunga">-</div>
+                </div>
+
+                <!-- Card 4: Rotasi Tanam Presisi -->
+                <div class="info-card" style="border-top-color: #38bdf8;">
+                    <div class="card-header-inner">
+                        <span class="card-icon">🔄</span>
+                        <span class="card-label">Siklus Rotasi Tanam</span>
+                    </div>
+                    <div class="card-desc" id="info-rotasi">-</div>
+                </div>
+
+                <!-- Card 5: Fauna & Hama Musim -->
+                <div class="info-card" style="border-top-color: #fde047;">
+                    <div class="card-header-inner">
+                        <span class="card-icon">🦗</span>
+                        <span class="card-label">Fauna & Hama Musim</span>
+                    </div>
+                    <div class="card-desc" id="info-fauna">-</div>
+                </div>
+
+                <!-- Card 6: Aksi Nutrisi & Olah Lahan -->
+                <div class="info-card" style="border-top-color: #a855f7;">
+                    <div class="card-header-inner">
+                        <span class="card-icon">🚜</span>
+                        <span class="card-label">Aksi Lahan ToFarmer</span>
+                    </div>
+                    <div class="card-desc" id="info-aksi">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MATRIKS 12 MONGSO -->
+        <div class="section">
+            <div class="section-title">
+                <span>📜 Matriks 12 Mangsa Pranoto Mongso</span>
+                <div class="line"></div>
+            </div>
+            
+            <div class="grid-12" id="mongso-grid">
+                <!-- Dynamic Grid Items -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <p class="footer-text">
+            Sistem Pertanian Autonomus ToFarmer &copy; <span id="year"></span><br>
+            Diselaraskan dengan Kearifan Menoreh & Ekosistem Alami.
+        </p>
+    </footer>
+</div>
+
+<script>
+    // Database 12 Pranoto Mongso dengan Modul Tanaman & Rotasi Lengkap
+    const pranotoMongsoDB = [
+        {
+            id: 0,
+            nama: "Mongso Kasa",
+            startMonth: 5, startDay: 22,
+            endMonth: 6, endDay: 1,
+            candra: "Setya Seta Muka Ing Tirtas",
+            elemen: "Bantala (Tanah) & Agni (Panas Awal)",
+            rekomendasi: "Pangan: Wijen, Kedelai Tahan Kering. Sayuran: Labu/Oyong. Perkebunan: Panen Kopi & Kakao.",
+            daun: "Daun Randu, Jati, dan Asam berguguran total. Nutrisi & getah turun penuh ke sistem perakaran untuk perlindungan air.",
+            bunga: "Bunga liar minim. Kadar gula (Brix) & aroma buah kopi/kakao yang dipanen mencapai titik tertinggi.",
+            rotasi: "Padi/Sayuran (Musim Lalu) ➔ Tanaman Legum Tahan Kering ➔ Istirahat Lahan (Mulsa Jerami).",
+            fauna: "Belalang mulai bertelur & masuk tanah. Uret (grub) berada di kedalaman tanah dalam fase dorman.",
+            aksi: "Olah tanah dalam (deep tillage), pembuatan hot-bed fermentasi kompos skala besar, penutupan mulsa tebal."
+        },
+        {
+            id: 1,
+            nama: "Mongso Karo",
+            startMonth: 6, startDay: 2,
+            endMonth: 6, endDay: 24,
+            candra: "Pancuran Mas Sumawur Ing Jagad",
+            elemen: "Agni (Panas/Kering) & Bayu",
+            rekomendasi: "Pangan: Wijen, Sorghum, Porang (Fase Dorman). Sayuran: Semangka / Melon (Irigasi terbatas).",
+            daun: "Pohon kayu keras menghentikan pertumbuhan daun muda. Daun cabai melengkung akibat tingkat penguapan ekstrem.",
+            bunga: "Pohon Kapok dan Mangga mulai berbunga. Bunga cabai gampang gugur jika kelembaban media dropped.",
+            rotasi: "Bera / Istirahat Lahan Tanaman Semusim ➔ Penanaman Pohon Pelindung / Tanaman Perkebunan.",
+            fauna: "Burung-burung liar mencari sumber air. Aktivitas mikroba tanah permukaan melambat.",
+            aksi: "Konservasi air presisi, siram asam humat untuk jaga struktur tanah, pembenahan embung."
+        },
+        {
+            id: 2,
+            nama: "Mongso Katelu",
+            startMonth: 6, startDay: 25,
+            endMonth: 7, endDay: 17,
+            candra: "Suta Manut Ing Bapa",
+            elemen: "Bayu (Angin Daging) & Bantala",
+            rekomendasi: "Pangan: Kacang Hijau. Hortikultura: Persiapan Nursery Sawi/Cabai di bawah Shade Net.",
+            daun: "Bambu berdaun muda (semi). Umbi-umbian di dalam tanah melipatgandakan cadangan pati.",
+            bunga: "Mangga membentuk calon buah muda. Bunga tanaman hortikultura outdoor rawan rontok disapu angin dingin.",
+            rotasi: "Kacang Hijau ➔ Pembersihan Gulma Lahan ➔ Aplikasi Pupuk Kandang Matang.",
+            fauna: "Serangga tanah mencari kelembaban di bawah batu/kayu lapuk. Ulat belum menetas.",
+            aksi: "Perataan beds tanam, persiapan nursery terlindung, aplikasi Trichoderma pada media kompos."
+        },
+        {
+            id: 3,
+            nama: "Mongso Kapat",
+            startMonth: 7, startDay: 18,
+            endMonth: 9, endDay: 12,
+            candra: "Waspa Kumembeng ing Jroning Kalbu",
+            elemen: "Agni Ekstrem & Bayu Kering",
+            rekomendasi: "Pangan: Persiapan Semai Padi Gogo / Jagung. Hortikultura: Persemaian Terlindung.",
+            daun: "Tanaman gundul mulai memunculkan titik tunas rahasia. Daun sayuran cepat layu permanente jika tanpa mulsa.",
+            bunga: "Buah kapok pecah membagikan biji. Mangga membesarkan buah (perlu pasokan kalium organik).",
+            rotasi: "Fase Transisi: Penyiapan Lahan Utama untuk Menyambut Hujan Perintis.",
+            fauna: "Burung liar sibuk membuat sarang. Musim kawin hewan unggas & persiapan menetas.",
+            aksi: "Pembuatan parit kelerengan, pengerukan sedimentasi, semprot dekomposer pada tumpukan mulsa."
+        },
+        {
+            id: 4,
+            nama: "Mongso Kalima",
+            startMonth: 9, startDay: 13,
+            endMonth: 10, endDay: 8,
+            candra: "Pancuran Mas Sumawur ing Jagad",
+            elemen: "Tirta (Hujan Perintis) & Bantala",
+            rekomendasi: "Pangan: Jagung Hibrida/Lokal, Kacang Tanah, Singkong. Sayur: Kangkung, Bayam, Buncis.",
+            daun: "Pohon Asam Jawa berdaun muda segar. Tunas-tunas baru bermunculan serentak dalam semalam.",
+            bunga: "Terjadi gugur bunga liar akibat kaget kelembaban hujan pertama (petrichor). Bunga mangga seleksi alam.",
+            rotasi: "Lahan Bekas Bera ➔ Jagung / Kacang Tanah (Legum mengikat Nitrogen untuk menyuburkan tanah).",
+            fauna: "Telur ulat & uret menetas massal. Serangga tanah bangkit dari dormansi.",
+            aksi: "Tanam jagung/palawija awal. Semprot mikroba lokal (POC) untuk menetralkan keasaman hujan pertama."
+        },
+        {
+            id: 5,
+            nama: "Mongso Kanem",
+            startMonth: 10, startDay: 9,
+            endMonth: 11, endDay: 21,
+            candra: "Rasa Mulya Kasucian",
+            elemen: "Tirta (Air Melimpah)",
+            rekomendasi: "Pangan: Padi Sawah, Padi Gogo, Ubi Jalar. Sayur: Sawi, Pakcoy, Terong, Daun Bawang.",
+            daun: "Daun tebal & hijau pekat karena limpahan Nitrogen hujan. Rawan terkena bercak daun (Cercospora).",
+            bunga: "Buah rambutan, durian, dan mangga membesar pesat (fase pengisian sel air). Bunga cabai butuh Kalsium.",
+            rotasi: "Jagung / Palawija ➔ Padi Sawah / Sayuran Daun High-Water Requirement.",
+            fauna: "Cacing tanah aktif penuh menggemburkan tanah. Burung mengasuh anak-anak muda.",
+            aksi: "Penanaman padi/tanaman pangan utama, aplikasi pupuk susulan I (kalsium/silika), penyiangan gulma."
+        },
+        {
+            id: 6,
+            nama: "Mongso Kapitu",
+            startMonth: 11, startDay: 22,
+            endMonth: 0, endDay: 2,
+            candra: "Bisa Kinarya Tetanang",
+            elemen: "Bayu (Prahara Barat) & Tirta Ekstrem",
+            rekomendasi: "Pangan: Padi Vegetatif Akhir. Umbi: Garut, Ganyong, Talas. Hindari semai cabai/tomat terbuka.",
+            daun: "Daun Rawan sobek/rebah akibat angin barat kencang. Warna agak pucat jika akar lemas tergenang air.",
+            bunga: "Bunga cabai/tomat gampang rontok total. Buah rawan lalat buah & serangan patek (Antraknosa).",
+            rotasi: "Fase Proteksi / Cover Crop (Kacang Penutup Tanah) untuk Mencegah Erosi Unsur Hara.",
+            fauna: "Spora jamur & bakteri patogen membelah cepat. Nyamuk & hama air meningkat.",
+            aksi: "Penguatan drainase parit, aplikasi penguat batang (Silika + Kalsium), pasang tiang penopang (lanjaran)."
+        },
+        {
+            id: 7,
+            nama: "Mongso Kawolu",
+            startMonth: 0, startDay: 3,
+            endMonth: 1, endDay: 28,
+            candra: "Anrah ing Sitinggil",
+            elemen: "Tirta & Swara (Awal Suara Alam)",
+            rekomendasi: "Pangan: Padi fase Pembuntingan. Sayur: Cabai, Tomat, Melon (Perawatan Intensif).",
+            daun: "Pertumbuhan daun melambat, energi bergerak fokus menuju pengisian bulir dan pembesaran buah.",
+            bunga: "Padi mulai mengluarkan malai bunga. Bunga hortikultura mekar sempurna karena sinar matahari cukup.",
+            rotasi: "Padi Fase Generatif ➔ Persiapan Penyiangan untuk Tanaman Sela Pasca Panen.",
+            fauna: "Kucing & mamalia memasuki musim kawin. Jangkrik mulai berbunyi di sore hari.",
+            aksi: "Pemupukan Kalium tinggi untuk pembentukan karbohidrat bulir/buah, penyemprotan agen hayati."
+        },
+        {
+            id: 8,
+            nama: "Mongso Kasanga",
+            startMonth: 2, startDay: 1,
+            endMonth: 2, endDay: 25,
+            candra: "Wedaring Wacana Mulya",
+            elemen: "⚡ Swara (Petir & Nyanyian Alam)",
+            rekomendasi: "Pangan: Padi Siap Panen. Sayur: Pemulihan Cabai/Terong. Tanaman Sela: Kedelai / Kacang Hijau.",
+            daun: "Daun bendera padi dan daun bagian bawah mulai menguning alamiah tanda matang organ fisiologis.",
+            bunga: "Penyerbukan tanaman sempurna. Bulir padi mengeras penuh dan menunduk optimal.",
+            rotasi: "Padi Sawah (Panen) ➔ Legum Pasca Panen (Kedelai/Kacang Hijau tanpa Olah Tanah).",
+            fauna: "Serangga Ganjir / Tonggeret bersuara nyaring di hutan. Burung pemakan biji berkumpul.",
+            aksi: "Pengeringan air lahan padi (drainase akhir), penyiapan jaring pengaman burung, pemanenan."
+        },
+        {
+            id: 9,
+            nama: "Mongso Kasada",
+            startMonth: 2, startDay: 26,
+            endMonth: 3, endDay: 18,
+            candra: "Gedhong Sinebit ing Kalbu",
+            elemen: "Bantala & Agni Halus",
+            rekomendasi: "Pangan: Kedelai, Kacang Hijau, Sorghum, Wijen. Hortikultura: Bawang Merah, Semangka.",
+            daun: "Daun tanaman pangan semusim mengering sempurna. Daun tanaman perkebunan (kopi) tumbuh mantap.",
+            bunga: "Bunga Kopi mulai mekar harum secara serentak menyambut kelembaban tersisa.",
+            rotasi: "Padi ➔ Kedelai / Kacang Hijau (Memutus rantai hama penggerek batang padi).",
+            fauna: "Ternak melahirkan anak. Aktivitas hama tanaman pangan utama menurun drastis.",
+            aksi: "Panen raya, pemilahan benih unggul lokal (seed bank ToFarmer), penjemuran & penyimpanan."
+        },
+        {
+            id: 10,
+            nama: "Mongso Dresta",
+            startMonth: 3, startDay: 19,
+            endMonth: 4, endDay: 11,
+            candra: "Sotya Sinarawredi",
+            elemen: "Bayu Kering & Bantala",
+            rekomendasi: "Pangan: Kacang Hijau, Wijen, Ubi Jalar. Hortikultura: Bawang Merah, Melon.",
+            daun: "Daun sayuran berkulit lebih tebal untuk menahan penguapan. Daun pohon peneduh mulai menua.",
+            bunga: "Pembentukan kadar manis (brix) tinggi pada semangka dan buah melon pasca panen.",
+            rotasi: "Kedelai / Kacang Hijau ➔ Pemutuhan Rantai Hama ➔ Bera Ringan dengan Jerami.",
+            fauna: "Burung-burung muda belajar terbang & mandiri. Uret mulai mencari perlindungan tanah.",
+            aksi: "Pemanfaatan jerami sisa untuk penutupan tanah (mulsa organik), pengolahan hasil panen."
+        },
+        {
+            id: 11,
+            nama: "Mongso Sadha",
+            startMonth: 4, startDay: 12,
+            endMonth: 5, endDay: 21,
+            candra: "Tirta Seta Muka ing Jagad",
+            elemen: "Bantala (Istirahat Lahan)",
+            rekomendasi: "Pangan: Porang (Dorman), Garut. Lahan Utama: Fallowing / Istirahat Lahan Total.",
+            daun: "Daun-daun mulai gugur kembali. Energi dan getah tanaman turun dan beristirahat di sistem perakaran.",
+            bunga: "Tidak ada pembentukan bunga baru pada tanaman semusim. Tanaman memperkuat jaringan akar.",
+            rotasi: "Istirahat Lahan (Fallowing) ➔ Penumpukan Bahan Organik untuk Siklus Baru Kasa.",
+            fauna: "Mikroorgananisme tanah melambat. Hewan tanah masuk mode bertahan hidup.",
+            aksi: "Perawatan alat pertanian, penataan tata ruang lahan ToFarmer, evaluasi siklus tahunan."
+        }
+    ];
+
+    const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const hariJawa = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const pasaranJawa = ["Legi", "Pahing", "Pon", "Wage", "Kliwon"];
+    const neptuHari = [5, 4, 3, 7, 8, 6, 9];
+    const neptuPasaran = [5, 9, 7, 4, 8];
+
+    const wukuList = [
+        "Sinta", "Landep", "Wukir", "Kurantil", "Tolu", "Gumbreg", "Warigalit", "Warigagung", "Julungwangi", "Sungsang",
+        "Galungan", "Kuningan", "Langkir", "Mondasiya", "Julungpujut", "Pahang", "Kuruwelut", "Marakeh", "Tambir", "Medangkungan",
+        "Maktal", "Wuye", "Manahil", "Prangbakat", "Bala", "Wugu", "Wayang", "Kulawu", "Dukut", "Watugunung"
+    ];
+
+    // Algoritma Kalender Jawa & Wuku
+    function calculateJawaData(date) {
+        const baseDate = new Date(1900, 0, 1); // 1 Jan 1900 = Senin Pahing
+        const diffTime = date.getTime() - baseDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
+
+        const dayIndex = date.getDay(); 
+        const pasaranIndex = (diffDays + 1) % 5;
+        const correctedPasaran = pasaranIndex < 0 ? pasaranIndex + 5 : pasaranIndex;
+
+        const totalNeptu = neptuHari[dayIndex] + neptuPasaran[correctedPasaran];
+
+        const wukuIndex = Math.floor(((diffDays + 1) % 210) / 7);
+        const correctedWuku = wukuIndex < 0 ? wukuIndex + 30 : wukuIndex;
+
+        return {
+            hari: hariJawa[dayIndex],
+            pasaran: pasaranJawa[correctedPasaran],
+            neptu: totalNeptu,
+            wuku: wukuList[correctedWuku]
+        };
+    }
+
+    function getActiveMongso(date) {
+        const currentMonth = date.getMonth();
+        const currentDay = date.getDate();
+
+        for (let mongso of pranotoMongsoDB) {
+            if (mongso.startMonth <= mongso.endMonth) {
+                if (
+                    (currentMonth > mongso.startMonth || (currentMonth === mongso.startMonth && currentDay >= mongso.startDay)) &&
+                    (currentMonth < mongso.endMonth || (currentMonth === mongso.endMonth && currentDay <= mongso.endDay))
+                ) {
+                    return mongso;
+                }
+            } else {
+                if (
+                    (currentMonth > mongso.startMonth || (currentMonth === mongso.startMonth && currentDay >= mongso.startDay)) ||
+                    (currentMonth < mongso.endMonth || (currentMonth === mongso.endMonth && currentDay <= mongso.endDay))
+                ) {
+                    return mongso;
+                }
+            }
+        }
+        return pranotoMongsoDB[0];
+    }
+
+    function renderDisplay(mongso) {
+        document.getElementById('mangsa-nama').textContent = mongso.nama;
+        document.getElementById('mangsa-candra').textContent = `"${mongso.candra}"`;
+        document.getElementById('mangsa-elemen').textContent = `Elemen Dominan: ${mongso.elemen}`;
+
+        document.getElementById('info-rekomendasi').textContent = mongso.rekomendasi;
+        document.getElementById('info-daun').textContent = mongso.daun;
+        document.getElementById('info-bunga').textContent = mongso.bunga;
+        document.getElementById('info-rotasi').textContent = mongso.rotasi;
+        document.getElementById('info-fauna').textContent = mongso.fauna;
+        document.getElementById('info-aksi').textContent = mongso.aksi;
+
+        const periodeStr = `${mongso.startDay} ${monthNames[mongso.startMonth].substring(0,3)} - ${mongso.endDay} ${monthNames[mongso.endMonth].substring(0,3)}`;
+        document.getElementById('mangsa-periode').textContent = periodeStr;
+
+        document.querySelectorAll('.mini-card').forEach((card, idx) => {
+            if (idx === mongso.id) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('mongso-grid');
+        grid.innerHTML = '';
+
+        pranotoMongsoDB.forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'mini-card';
+            card.onclick = () => renderDisplay(item);
+
+            const periodeStr = `${item.startDay} ${monthNames[item.startMonth].substring(0,3)} - ${item.endDay} ${monthNames[item.endMonth].substring(0,3)}`;
+            
+            card.innerHTML = `
+                <div class="mini-title">${item.nama}</div>
+                <div class="mini-date">${periodeStr}</div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    function initApp() {
+        const now = new Date();
+        document.getElementById('year').textContent = now.getFullYear();
+
+        // Hitung Kalender Jawa
+        const jawa = calculateJawaData(now);
+        document.getElementById('jawa-full-date').textContent = `${jawa.hari} ${jawa.pasaran}`;
+        document.getElementById('jawa-neptu').textContent = `Neptu: ${jawa.neptu}`;
+        document.getElementById('jawa-wuku').textContent = `Wuku: ${jawa.wuku}`;
+
+        const masehiStr = `${now.getDate()} ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+        document.getElementById('masehi-date').textContent = `Masehi: ${masehiStr}`;
+
+        renderGrid();
+        const activeMongso = getActiveMongso(now);
+        renderDisplay(activeMongso);
+    }
+
+    initApp();
+</script>
+</body>
+</html>
