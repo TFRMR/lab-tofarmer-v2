@@ -1,0 +1,3450 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Kompas Resonansi Neptu & Dashboard Eling Lan Waspada</title>
+
+    <!-- Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* =========================================================
+           BASE
+        ========================================================= */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-main: #070e0a;
+            --bg-deep: #050b07;
+            --bg-green: #0d1e14;
+
+            --glass: rgba(14, 28, 19, 0.55);
+            --glass-light: rgba(20, 42, 29, 0.65);
+            --glass-card: rgba(18, 35, 24, 0.48);
+
+            --border: rgba(255, 255, 255, 0.08);
+            --border-soft: rgba(255, 255, 255, 0.045);
+            --border-green: rgba(74, 222, 128, 0.25);
+
+            --text-main: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #84a98c;
+
+            --green: #22c55e;
+            --green-light: #4ade80;
+            --green-soft: #a7f3d0;
+
+            --gold: #eab308;
+            --gold-light: #fde047;
+            --gold-pale: #fef08a;
+
+            --accent-low: #38bdf8;
+            --accent-low-bg: rgba(56, 189, 248, 0.12);
+
+            --accent-mid: #4ade80;
+            --accent-mid-bg: rgba(74, 222, 128, 0.12);
+
+            --accent-high: #fb7185;
+            --accent-high-bg: rgba(251, 113, 133, 0.12);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top right,
+                    rgba(234, 179, 8, 0.09) 0%,
+                    transparent 40%
+                ),
+                radial-gradient(
+                    circle at bottom left,
+                    rgba(34, 197, 94, 0.10) 0%,
+                    transparent 35%
+                ),
+                linear-gradient(
+                    135deg,
+                    #070e0a 0%,
+                    #0d1e14 50%,
+                    #050b07 100%
+                );
+
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: var(--text-main);
+            position: relative;
+        }
+
+        /* Kabut lembut / atmospheric layer */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+
+            background:
+                linear-gradient(
+                    120deg,
+                    rgba(255,255,255,.03),
+                    rgba(255,255,255,0)
+                );
+
+            pointer-events: none;
+            animation: fog 14s ease-in-out infinite;
+            z-index: 0;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+
+            background:
+                radial-gradient(
+                    circle at 50% 0%,
+                    rgba(74, 222, 128, 0.04),
+                    transparent 45%
+                );
+
+            z-index: 0;
+        }
+
+        @keyframes fog {
+            0% {
+                transform: translateX(-3%);
+            }
+
+            50% {
+                transform: translateX(3%);
+            }
+
+            100% {
+                transform: translateX(-3%);
+            }
+        }
+
+        /* =========================================================
+           MAIN CONTAINER
+        ========================================================= */
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: auto;
+            padding: 22px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* =========================================================
+           NAVIGATION
+        ========================================================= */
+
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 10px 18px;
+
+            border-radius: 999px;
+
+            background: rgba(20, 42, 29, 0.70);
+            border: 1px solid rgba(74, 222, 128, 0.30);
+
+            color: var(--green-soft);
+
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+
+            transition: all 0.3s ease;
+
+            box-shadow:
+                0 4px 15px rgba(0,0,0,0.30);
+        }
+
+        .nav-btn:hover {
+            background: rgba(34, 197, 94, 0.25);
+            border-color: var(--gold-light);
+            color: var(--gold-light);
+
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 6px 20px rgba(234, 179, 8, 0.20);
+        }
+
+        /* =========================================================
+           APP CONTAINER
+        ========================================================= */
+
+        .app-container {
+            width: 100%;
+        }
+
+        /* =========================================================
+           HEADER / HERO
+        ========================================================= */
+
+        header {
+            position: relative;
+            padding: 15px 20px 28px;
+            text-align: center;
+        }
+
+        header::after {
+            content: "";
+
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+
+            transform: translateX(-50%);
+
+            width: 220px;
+            height: 1px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(234,179,8,.50),
+                    transparent
+                );
+        }
+
+        .brand-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 6px 15px;
+            margin-bottom: 13px;
+
+            border-radius: 999px;
+
+            background: rgba(34,197,94,.10);
+            border: 1px solid rgba(74,222,128,.25);
+
+            color: var(--green-soft);
+
+            font-size: .75rem;
+            font-weight: 800;
+
+            letter-spacing: .8px;
+            text-transform: uppercase;
+
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .brand-badge i {
+            color: var(--gold-light);
+        }
+
+        header h1 {
+            font-family: 'Playfair Display', serif;
+
+            font-size: 2.5rem;
+            font-weight: 800;
+
+            letter-spacing: -1px;
+            line-height: 1.2;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #fef08a 0%,
+                    #4ade80 50%,
+                    #22c55e 100%
+                );
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+
+            background-clip: text;
+        }
+
+        header p {
+            margin-top: 8px;
+
+            max-width: 720px;
+            margin-inline: auto;
+
+            font-size: .88rem;
+            line-height: 1.7;
+
+            color: var(--text-muted);
+        }
+
+        header p em {
+            color: var(--gold-pale);
+        }
+
+        /* =========================================================
+           CARD / GLASS PANEL
+        ========================================================= */
+
+        .card {
+            position: relative;
+
+            margin-top: 18px;
+            padding: 25px;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    rgba(18, 38, 25, 0.60),
+                    rgba(8, 20, 13, 0.58)
+                );
+
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+
+            border: 1px solid var(--border);
+
+            border-radius: 24px;
+
+            box-shadow:
+                0 20px 60px rgba(0,0,0,.42),
+                inset 0 1px 0 rgba(255,255,255,.025);
+
+            overflow: hidden;
+
+            transition:
+                border-color .3s ease,
+                box-shadow .3s ease;
+        }
+
+        .card::before {
+            content: "";
+
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+
+            height: 1px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(74,222,128,.30),
+                    rgba(234,179,8,.25),
+                    transparent
+                );
+
+            pointer-events: none;
+        }
+
+        .card:hover {
+            border-color: rgba(74,222,128,.16);
+
+            box-shadow:
+                0 22px 65px rgba(0,0,0,.48),
+                0 0 0 1px rgba(74,222,128,.025);
+        }
+
+        /* =========================================================
+           CARD TITLE
+        ========================================================= */
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 15px;
+
+            margin-bottom: 20px;
+
+            flex-wrap: wrap;
+        }
+
+        .card-title h2 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 1.25rem;
+            line-height: 1.35;
+
+            color: var(--text-main);
+        }
+
+        .card-title h2 i {
+            color: var(--gold-light);
+            font-size: 1rem;
+        }
+
+        .card-title > span {
+            color: var(--text-muted) !important;
+        }
+
+        .tag-today {
+            display: inline-flex;
+            align-items: center;
+
+            padding: 5px 12px;
+
+            border-radius: 999px;
+
+            background: rgba(234,179,8,.10);
+            border: 1px solid rgba(234,179,8,.25);
+
+            color: var(--gold-light) !important;
+
+            font-size: .72rem !important;
+            font-weight: 700;
+        }
+
+        /* =========================================================
+           TODAY GRID
+        ========================================================= */
+
+        .today-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 15px;
+        }
+
+        .today-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .metric-box {
+            position: relative;
+
+            min-height: 112px;
+
+            padding: 18px;
+
+            border-radius: 18px;
+
+            background:
+                rgba(18, 35, 24, 0.45);
+
+            border: 1px solid rgba(255,255,255,.045);
+
+            box-shadow:
+                0 8px 25px rgba(0,0,0,.20);
+
+            overflow: hidden;
+
+            transition: .3s ease;
+        }
+
+        .metric-box::after {
+            content: "";
+
+            position: absolute;
+
+            width: 90px;
+            height: 90px;
+
+            right: -35px;
+            bottom: -45px;
+
+            border-radius: 50%;
+
+            background:
+                radial-gradient(
+                    circle,
+                    rgba(74,222,128,.13),
+                    transparent 70%
+                );
+        }
+
+        .metric-box:hover {
+            transform: translateY(-3px);
+
+            border-color:
+                rgba(74,222,128,.20);
+
+            background:
+                rgba(22,46,31,.58);
+        }
+
+        .metric-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+
+            font-size: .72rem;
+            font-weight: 700;
+
+            color: var(--text-muted);
+
+            text-transform: uppercase;
+            letter-spacing: .6px;
+        }
+
+        .metric-label i {
+            color: var(--gold-light);
+        }
+
+        .metric-val {
+            margin-top: 12px;
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: 1.35rem;
+            font-weight: 800;
+
+            color: var(--text-main);
+        }
+
+        .neptu-big {
+            font-size: 2.2rem;
+            line-height: 1;
+
+            color: var(--gold-light);
+
+            text-shadow:
+                0 0 18px rgba(253,224,71,.12);
+        }
+
+        /* =========================================================
+           SUMMARY BOX
+        ========================================================= */
+
+        .today-summary-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+
+            min-height: 112px;
+
+            padding: 18px;
+
+            border-radius: 18px;
+
+            background:
+                rgba(18,35,24,.42);
+
+            border: 1px solid rgba(255,255,255,.045);
+        }
+
+        .status-badge-container {
+            margin-bottom: 10px;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            padding: 6px 13px;
+
+            border-radius: 999px;
+
+            font-size: .72rem;
+            font-weight: 800;
+
+            letter-spacing: .3px;
+        }
+
+        .status-badge.low {
+            color: #7dd3fc;
+
+            background:
+                rgba(56,189,248,.10);
+
+            border:
+                1px solid rgba(56,189,248,.28);
+        }
+
+        .status-badge.mid {
+            color: var(--green-light);
+
+            background:
+                rgba(74,222,128,.10);
+
+            border:
+                1px solid rgba(74,222,128,.28);
+        }
+
+        .status-badge.high {
+            color: var(--accent-high);
+
+            background:
+                rgba(251,113,133,.10);
+
+            border:
+                1px solid rgba(251,113,133,.28);
+        }
+
+        .summary-text {
+            font-size: .82rem;
+            line-height: 1.65;
+            color: var(--text-secondary);
+        }
+
+        /* =========================================================
+           CANVAS WAVE
+        ========================================================= */
+
+        .canvas-container {
+            width: 100%;
+            height: 95px;
+
+            margin-top: 17px;
+
+            border-radius: 17px;
+
+            background:
+                linear-gradient(
+                    180deg,
+                    rgba(5,15,9,.48),
+                    rgba(12,28,18,.35)
+                );
+
+            border:
+                1px solid rgba(255,255,255,.035);
+
+            overflow: hidden;
+
+            position: relative;
+        }
+
+        .canvas-container::before {
+            content: "";
+
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+
+            height: 1px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(255,255,255,.055),
+                    transparent
+                );
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* =========================================================
+           CALCULATOR CONTROLS
+        ========================================================= */
+
+        .calculator-controls {
+            display: grid;
+
+            grid-template-columns:
+                minmax(200px, 1.2fr)
+                minmax(160px, 1fr)
+                minmax(160px, 1fr);
+
+            gap: 13px;
+
+            margin-bottom: 17px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .form-group label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+
+            font-size: .72rem;
+            font-weight: 700;
+
+            color: var(--text-muted);
+
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .form-group label i {
+            color: var(--gold-light);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+
+            min-height: 44px;
+
+            padding: 10px 12px;
+
+            border-radius: 12px;
+
+            border:
+                1px solid rgba(74,222,128,.16);
+
+            background:
+                rgba(8,20,13,.68);
+
+            color: var(--text-main);
+
+            font-family: inherit;
+            font-size: .82rem;
+            font-weight: 600;
+
+            outline: none;
+
+            transition:
+                border-color .25s ease,
+                box-shadow .25s ease,
+                background .25s ease;
+        }
+
+        .form-group input:hover,
+        .form-group select:hover {
+            background:
+                rgba(18,38,25,.75);
+
+            border-color:
+                rgba(74,222,128,.30);
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color:
+                rgba(253,224,71,.50);
+
+            box-shadow:
+                0 0 0 3px rgba(234,179,8,.07);
+        }
+
+        .form-group select option {
+            background: #0d1e14;
+            color: #f8fafc;
+        }
+
+        /* =========================================================
+           DIAGNOSIS
+        ========================================================= */
+
+        .diagnosis-box {
+            margin-top: 20px;
+
+            padding: 19px;
+
+            border-radius: 19px;
+
+            background:
+                rgba(8,20,13,.42);
+
+            border:
+                1px solid rgba(74,222,128,.10);
+        }
+
+        .diagnosis-header {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+
+            margin-bottom: 14px;
+
+            color: var(--gold-light);
+
+            font-family: 'Playfair Display', serif;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .diagnosis-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 12px;
+        }
+
+        .diag-item {
+            padding: 16px;
+
+            border-radius: 15px;
+
+            background:
+                rgba(18,35,24,.45);
+
+            border:
+                1px solid rgba(255,255,255,.035);
+
+            border-left:
+                3px solid var(--green-light);
+
+            transition: .3s ease;
+        }
+
+        .diag-item:hover {
+            transform: translateY(-2px);
+
+            background:
+                rgba(22,46,31,.58);
+
+            border-left-color:
+                var(--gold-light);
+        }
+
+        .diag-item strong {
+            display: block;
+
+            margin-bottom: 7px;
+
+            color: var(--text-main);
+
+            font-size: .82rem;
+            line-height: 1.45;
+        }
+
+        .diag-item p {
+            color: var(--text-secondary);
+
+            font-size: .78rem;
+            line-height: 1.65;
+        }
+
+        /* =========================================================
+           PILAR
+        ========================================================= */
+
+        .pilar-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+
+            gap: 13px;
+        }
+
+        .pilar-card {
+            position: relative;
+
+            padding: 17px;
+
+            min-height: 145px;
+
+            border-radius: 17px;
+
+            background:
+                rgba(18,35,24,.45);
+
+            border:
+                1px solid rgba(255,255,255,.04);
+
+            border-top-width: 3px !important;
+
+            box-shadow:
+                0 8px 25px rgba(0,0,0,.22);
+
+            transition:
+                transform .3s ease,
+                background .3s ease,
+                box-shadow .3s ease;
+        }
+
+        .pilar-card:hover {
+            transform: translateY(-4px);
+
+            background:
+                rgba(22,46,31,.63);
+
+            box-shadow:
+                0 14px 35px rgba(0,0,0,.35);
+        }
+
+        .pilar-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+
+            gap: 10px;
+
+            margin-bottom: 12px;
+        }
+
+        .pilar-name {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+
+            color: var(--text-main);
+
+            font-size: .78rem;
+            font-weight: 800;
+
+            line-height: 1.4;
+        }
+
+        .pilar-name i {
+            color: var(--gold-light);
+        }
+
+        .pilar-header > span:last-child {
+            font-size: .68rem !important;
+
+            white-space: nowrap;
+        }
+
+        .pilar-desc {
+            color: var(--text-secondary);
+
+            font-size: .77rem;
+            line-height: 1.65;
+        }
+
+        /* =========================================================
+           DEFINISI GELOMBANG
+        ========================================================= */
+
+        .def-section {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .def-card {
+            padding: 18px 20px;
+
+            border-radius: 17px;
+
+            background:
+                rgba(18,35,24,.42);
+
+            border-top:
+                1px solid rgba(255,255,255,.035);
+
+            border-right:
+                1px solid rgba(255,255,255,.035);
+
+            border-bottom:
+                1px solid rgba(255,255,255,.035);
+
+            transition:
+                background .3s ease,
+                transform .3s ease;
+        }
+
+        .def-card:hover {
+            background:
+                rgba(22,46,31,.56);
+
+            transform: translateX(3px);
+        }
+
+        .def-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 12px;
+
+            margin-bottom: 12px;
+
+            flex-wrap: wrap;
+        }
+
+        .def-header h3 {
+            font-family: 'Playfair Display', serif;
+
+            font-size: .98rem;
+            line-height: 1.45;
+        }
+
+        .def-header h3 i {
+            margin-right: 5px;
+        }
+
+        .def-body p {
+            color: var(--text-secondary);
+
+            font-size: .80rem;
+            line-height: 1.7;
+
+            margin-bottom: 9px;
+        }
+
+        .def-body p strong {
+            color: var(--text-main);
+        }
+
+        .def-tag {
+            display: inline-flex;
+            align-items: center;
+
+            padding: 5px 10px;
+
+            border-radius: 999px;
+
+            font-size: .65rem;
+            font-weight: 800;
+
+            letter-spacing: .3px;
+
+            white-space: nowrap;
+        }
+
+        .def-tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+
+            margin-top: 11px;
+        }
+
+        .def-tag-list .def-tag {
+            background:
+                rgba(255,255,255,.035);
+
+            border:
+                1px solid rgba(255,255,255,.055);
+
+            color: var(--text-secondary);
+        }
+
+        /* =========================================================
+           TRICK / HAFALAN
+        ========================================================= */
+
+        .trick-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+
+            gap: 14px;
+        }
+
+        .trick-card {
+            padding: 18px;
+
+            border-radius: 17px;
+
+            background:
+                rgba(18,35,24,.43);
+
+            border:
+                1px solid rgba(255,255,255,.04);
+
+            transition: .3s ease;
+        }
+
+        .trick-card:hover {
+            background:
+                rgba(22,46,31,.60);
+
+            border-color:
+                rgba(74,222,128,.20);
+
+            transform: translateY(-3px);
+        }
+
+        .trick-card h4 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            margin-bottom: 13px;
+
+            font-family: 'Playfair Display', serif;
+
+            font-size: .95rem;
+
+            color: var(--gold-light);
+        }
+
+        .trick-card h4 i {
+            color: var(--green-light);
+        }
+
+        .trick-list {
+            list-style: none;
+
+            display: flex;
+            flex-direction: column;
+
+            gap: 7px;
+        }
+
+        .trick-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 10px;
+
+            padding: 8px 10px;
+
+            border-radius: 10px;
+
+            background:
+                rgba(255,255,255,.025);
+
+            color: var(--text-secondary);
+
+            font-size: .76rem;
+        }
+
+        .trick-list li:hover {
+            background:
+                rgba(74,222,128,.06);
+
+            color: var(--text-main);
+        }
+
+        .trick-list .val {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            min-width: 30px;
+            height: 25px;
+
+            border-radius: 8px;
+
+            background:
+                rgba(234,179,8,.10);
+
+            border:
+                1px solid rgba(234,179,8,.18);
+
+            color: var(--gold-light);
+
+            font-weight: 800;
+            font-size: .70rem;
+        }
+
+        /* =========================================================
+           FOOTER
+        ========================================================= */
+
+        footer {
+            padding: 35px 20px 45px;
+
+            text-align: center;
+        }
+
+        footer p {
+            font-size: .72rem;
+
+            color: #475569;
+
+            line-height: 1.8;
+
+            letter-spacing: .5px;
+        }
+
+        /* =========================================================
+           SELECTION
+        ========================================================= */
+
+        ::selection {
+            background: rgba(74,222,128,.25);
+            color: #fff;
+        }
+
+        /* =========================================================
+           SCROLLBAR
+        ========================================================= */
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #050b07;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background:
+                rgba(74,222,128,.25);
+
+            border-radius: 999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background:
+                rgba(253,224,71,.35);
+        }
+
+        /* =========================================================
+           RESPONSIVE
+        ========================================================= */
+
+        @media (max-width: 900px) {
+
+            .today-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .calculator-controls {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .pilar-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .container {
+                padding: 10px;
+            }
+
+            .nav-bar {
+                justify-content: center;
+            }
+
+            .nav-btn {
+                flex: 1;
+                justify-content: center;
+                min-width: 140px;
+            }
+
+            header {
+                padding:
+                    12px
+                    10px
+                    25px;
+            }
+
+            header h1 {
+                font-size: 2rem;
+            }
+
+            header p {
+                font-size: .80rem;
+            }
+
+            .card {
+                padding: 18px 13px;
+                border-radius: 20px;
+            }
+
+            .card-title h2 {
+                font-size: 1.05rem;
+            }
+
+            .today-metrics {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .calculator-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .diagnosis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .pilar-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .trick-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-box {
+                padding: 15px;
+            }
+
+            .metric-val {
+                font-size: 1.15rem;
+            }
+
+            .neptu-big {
+                font-size: 1.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+
+            .container {
+                padding: 7px;
+            }
+
+            .nav-btn {
+                width: 100%;
+                flex: 1 1 100%;
+            }
+
+            header h1 {
+                font-size: 1.65rem;
+            }
+
+            .brand-badge {
+                font-size: .65rem;
+            }
+
+            .today-metrics {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                margin-top: 12px;
+            }
+
+            .def-card {
+                padding:
+                    16px 14px;
+            }
+
+            .def-header h3 {
+                font-size: .90rem;
+            }
+
+            .trick-list li {
+                font-size: .70rem;
+            }
+        }
+
+        /* =========================================================
+           REDUCED MOTION
+        ========================================================= */
+
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- NAVIGASI UTAMA -->
+    <nav class="nav-bar">
+
+        <a href="https://www.tofarmer.xyz" class="nav-btn">
+            <span>🧭</span>
+            Beranda
+        </a>
+
+        <a href="/html/fitur-ilmu.html" class="nav-btn">
+            <span>📜</span>
+            Fitur & Info
+        </a>
+
+    </nav>
+
+
+    <div class="app-container">
+
+        <!-- =====================================================
+             HEADER
+        ====================================================== -->
+
+        <header>
+
+            <div class="brand-badge">
+                <i class="fa-solid fa-seedling"></i>
+                Ekosistem ToFarmer
+            </div>
+
+            <h1>
+                KOMPAS RESONANSI NEPTU & PETUNG
+            </h1>
+
+            <p>
+                Navigasi Gelombang Energi Mikrokosmos & Makrokosmos
+                untuk Menjaga Kesadaran
+                <em>Eling lan Waspada</em>
+            </p>
+
+        </header>
+
+
+        <!-- =====================================================
+             CARD 1 — STATUS HARI INI
+        ====================================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+
+                <h2>
+                    <i class="fa-solid fa-compass-drafting"></i>
+                    Status Energi Hari Ini
+                </h2>
+
+                <span
+                    class="tag-today"
+                    id="todayDateStr">
+                    Loading...
+                </span>
+
+            </div>
+
+
+            <div class="today-grid">
+
+                <div class="today-metrics">
+
+                    <div class="metric-box">
+
+                        <div class="metric-label">
+                            <i class="fa-regular fa-calendar-days"></i>
+                            Weton Hari Ini:
+                        </div>
+
+                        <div
+                            class="metric-val"
+                            id="todayWeton">
+                            --
+                        </div>
+
+                    </div>
+
+
+                    <div class="metric-box">
+
+                        <div class="metric-label">
+                            <i class="fa-solid fa-calculator"></i>
+                            Total Neptu:
+                        </div>
+
+                        <div
+                            class="metric-val neptu-big"
+                            id="todayNeptuVal">
+                            --
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="today-summary-box">
+
+                    <div class="status-badge-container">
+
+                        <div
+                            class="status-badge low"
+                            id="todayBadge">
+
+                            <i class="fa-solid fa-wave-square"></i>
+
+                            <span id="todayKategori">
+                                Loading...
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="summary-text"
+                        id="todaySummaryText">
+
+                        Memuat data resonansi hari ini...
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="canvas-container">
+                <canvas id="todayCanvas"></canvas>
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             CARD 2 — KALKULATOR
+        ====================================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+
+                <h2>
+                    <i class="fa-solid fa-calculator"></i>
+                    Kalkulator Resonansi & Diagnosa Kejadian
+                </h2>
+
+                <span style="font-size:0.8rem;">
+                    Cek tanggal lalu/akan datang
+                </span>
+
+            </div>
+
+
+            <div class="calculator-controls">
+
+                <div class="form-group">
+
+                    <label for="calcDate">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        Pilih Tanggal Kalender:
+                    </label>
+
+                    <input
+                        type="date"
+                        id="calcDate"
+                        onchange="onDatePickerChange()">
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="calcHari">
+                        <i class="fa-solid fa-sun"></i>
+                        Hari (7):
+                    </label>
+
+                    <select
+                        id="calcHari"
+                        onchange="onManualSelectChange()">
+
+                        <option value="3">
+                            Selasa (3)
+                        </option>
+
+                        <option value="4">
+                            Senin (4)
+                        </option>
+
+                        <option value="5">
+                            Minggu (5)
+                        </option>
+
+                        <option value="6">
+                            Jumat (6)
+                        </option>
+
+                        <option value="7">
+                            Rabu (7)
+                        </option>
+
+                        <option value="8">
+                            Kamis (8)
+                        </option>
+
+                        <option value="9">
+                            Sabtu (9)
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                    <label for="calcPasaran">
+                        <i class="fa-solid fa-moon"></i>
+                        Pasaran (5):
+                    </label>
+
+                    <select
+                        id="calcPasaran"
+                        onchange="onManualSelectChange()">
+
+                        <option value="4">
+                            Wage (4)
+                        </option>
+
+                        <option value="5">
+                            Legi (5)
+                        </option>
+
+                        <option value="7">
+                            Pon (7)
+                        </option>
+
+                        <option value="8">
+                            Kliwon (8)
+                        </option>
+
+                        <option value="9">
+                            Pahing (9)
+                        </option>
+
+                    </select>
+
+                </div>
+
+            </div>
+
+
+            <div class="today-grid">
+
+                <div class="today-metrics">
+
+                    <div class="metric-box">
+
+                        <div class="metric-label">
+                            <i class="fa-solid fa-layer-group"></i>
+                            Weton Terpilih:
+                        </div>
+
+                        <div
+                            class="metric-val"
+                            id="calcWeton">
+                            Selasa Wage
+                        </div>
+
+                    </div>
+
+
+                    <div class="metric-box">
+
+                        <div class="metric-label">
+                            <i class="fa-solid fa-bolt"></i>
+                            Total Neptu:
+                        </div>
+
+                        <div
+                            class="metric-val neptu-big"
+                            id="calcNeptuVal">
+                            7
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="today-summary-box">
+
+                    <div class="status-badge-container">
+
+                        <div
+                            class="status-badge low"
+                            id="calcBadge">
+
+                            <i class="fa-solid fa-wave-square"></i>
+
+                            <span id="calcKategori">
+                                Menciut / Inward
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        class="summary-text"
+                        id="calcSummaryText">
+
+                        Gelombang energi rendah/menciut.
+                        Sangat ideal untuk kerja fokus dalam,
+                        riset, koding, dan pengendapan aset.
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="canvas-container">
+                <canvas id="calcCanvas"></canvas>
+            </div>
+
+
+            <!-- Diagnosa Retrospeksi -->
+
+            <div class="diagnosis-box">
+
+                <div class="diagnosis-header">
+                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                    Diagnosa & Mengapa Ada Peristiwa Tertentu di Hari Ini?
+                </div>
+
+                <div
+                    class="diagnosis-grid"
+                    id="diagnosisContent">
+
+                    <!-- Injected via JS -->
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             CARD 3 — KOMPAS 5 PILAR
+        ====================================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+
+                <h2>
+                    <i class="fa-solid fa-diagram-project"></i>
+                    Kompas Aksi 5 Pilar ToFarmer
+                </h2>
+
+                <span style="font-size:0.8rem;">
+                    Sesuai hasil hitungan kalkulator
+                </span>
+
+            </div>
+
+
+            <p
+                style="
+                    font-size:0.85rem;
+                    color:var(--text-secondary);
+                    margin-bottom:15px;
+                    line-height:1.6;
+                ">
+
+                Rekomendasi eksekusi pilar ekosistem
+                berdasarkan kesesuaian gelombang energi:
+
+            </p>
+
+
+            <div
+                class="pilar-grid"
+                id="pilarContainer">
+
+                <!-- Injected via JS -->
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             CARD 4 — DEFINISI GELOMBANG
+        ====================================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+
+                <h2>
+                    <i class="fa-solid fa-book-open-reader"></i>
+                    Bedah Spektrum Gelombang Energi
+                </h2>
+
+            </div>
+
+
+            <div class="def-section">
+
+
+                <!-- LOW -->
+
+                <div
+                    class="def-card"
+                    style="border-left:4px solid var(--accent-low);">
+
+                    <div class="def-header">
+
+                        <h3 style="color:var(--accent-low);">
+
+                            <i class="fa-solid fa-compress"></i>
+
+                            Neptu Kecil (7 - 10) :
+                            Gelombang Menciut & Inward
+
+                        </h3>
+
+                        <span
+                            class="def-tag"
+                            style="
+                                background:var(--accent-low-bg);
+                                color:var(--accent-low);
+                            ">
+
+                            Amplitudo Rapat
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="def-body">
+
+                        <p>
+                            <strong>
+                                Definisi & Sifat Murni:
+                            </strong>
+
+                            Alam sedang "menarik napas".
+                            Energi lingkungan cenderung dingin,
+                            tenang, dan masuk ke dalam.
+                            Daya dorong eksternal rendah,
+                            namun daya simpan dan kestabilan
+                            internal sangat tinggi.
+                        </p>
+
+
+                        <p>
+                            <strong>
+                                Manifestasi Psiko-Fisik:
+                            </strong>
+
+                            Pikiran lebih gampang diajak hening,
+                            betah berlama-lama membedah data/kode rumit.
+                            Tidak banyak gangguan bising dari luar.
+                        </p>
+
+
+                        <div class="def-tag-list">
+
+                            <span class="def-tag">
+                                <strong>Fungsi:</strong>
+                                Koding, Riset, Fallowing,
+                                Meditasi, Penulisan Baku
+                            </span>
+
+                            <span
+                                class="def-tag"
+                                style="color:var(--accent-high);">
+
+                                <strong>Waspada:</strong>
+                                Apatis, Lemas,
+                                Memaksa Ekspansi Publik
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- MID -->
+
+                <div
+                    class="def-card"
+                    style="border-left:4px solid var(--accent-mid);">
+
+                    <div class="def-header">
+
+                        <h3 style="color:var(--accent-mid);">
+
+                            <i class="fa-solid fa-water"></i>
+
+                            Neptu Sedang (11 - 13) :
+                            Gelombang Mengalir & Harmonis
+
+                        </h3>
+
+                        <span
+                            class="def-tag"
+                            style="
+                                background:var(--accent-mid-bg);
+                                color:var(--accent-mid);
+                            ">
+
+                            Amplitudo Stabil
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="def-body">
+
+                        <p>
+                            <strong>
+                                Definisi & Sifat Murni:
+                            </strong>
+
+                            Energi berada dalam ritme
+                            konstan/fleksibel.
+                            Ibarat sungai di dataran rendah
+                            yang mengalir tenang tanpa
+                            menghantam batu.
+                            Sangat adaptif untuk aktivitas rutin.
+                        </p>
+
+
+                        <p>
+                            <strong>
+                                Manifestasi Psiko-Fisik:
+                            </strong>
+
+                            Emosi stabil, fisik siap diajak
+                            beraktivitas sedang, komunikasi
+                            sosial terjalin lancar tanpa
+                            banyak friksi.
+                        </p>
+
+
+                        <div class="def-tag-list">
+
+                            <span class="def-tag">
+
+                                <strong>Fungsi:</strong>
+                                Operasional Harian,
+                                Perawatan Lahan,
+                                Diskusi Tim,
+                                Sirkulasi Cashflow
+
+                            </span>
+
+                            <span
+                                class="def-tag"
+                                style="color:var(--accent-high);">
+
+                                <strong>Waspada:</strong>
+                                Terlalu Santai,
+                                Kecerobohan Kecil
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- HIGH -->
+
+                <div
+                    class="def-card"
+                    style="border-left:4px solid var(--accent-high);">
+
+                    <div class="def-header">
+
+                        <h3 style="color:var(--accent-high);">
+
+                            <i class="fa-solid fa-burst"></i>
+
+                            Neptu Besar (14 - 18) :
+                            Gelombang Meluap & Outward
+
+                        </h3>
+
+                        <span
+                            class="def-tag"
+                            style="
+                                background:var(--accent-high-bg);
+                                color:var(--accent-high);
+                            ">
+
+                            Amplitudo Tinggi
+
+                        </span>
+
+                    </div>
+
+
+                    <div class="def-body">
+
+                        <p>
+                            <strong>
+                                Definisi & Sifat Murni:
+                            </strong>
+
+                            Alam sedang "menghembuskan napas"
+                            dengan kuat.
+                            Energi meluap, ekspansif, panas,
+                            dan berdaya pendorong besar.
+                            Menggerakkan massa dan momentum eksternal.
+                        </p>
+
+
+                        <p>
+                            <strong>
+                                Manifestasi Psiko-Fisik:
+                            </strong>
+
+                            Vitalitas dan adrenalin meningkat,
+                            ada dorongan untuk bertindak/bicara.
+                            Namun emosi emosional lebih sensitif
+                            dan mudah tersulut.
+                        </p>
+
+
+                        <div class="def-tag-list">
+
+                            <span class="def-tag">
+
+                                <strong>Fungsi:</strong>
+                                Peluncuran Produk,
+                                Rilis Vlog,
+                                Kerja Fisik Berat,
+                                Compounding Aset
+
+                            </span>
+
+                            <span
+                                class="def-tag"
+                                style="color:var(--accent-high);">
+
+                                <strong>Waspada:</strong>
+                                Gesekan Emosi,
+                                Keputusan Impulsif,
+                                Kecerobohan Fisik
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             CARD 5 — JEMBATAN KELEDAI
+        ====================================================== -->
+
+        <div class="card">
+
+            <div class="card-title">
+
+                <h2>
+                    <i class="fa-solid fa-brain"></i>
+                    Trik Cepat Hafal (Jembatan Keledai)
+                </h2>
+
+            </div>
+
+
+            <div class="trick-grid">
+
+
+                <div class="trick-card">
+
+                    <h4>
+                        <i class="fa-solid fa-sun"></i>
+                        Hari / Siklus 7 (3 - 9)
+                    </h4>
+
+
+                    <ul class="trick-list">
+
+                        <li>
+                            <span>
+                                Selasa (Paling Kecil)
+                            </span>
+
+                            <span class="val">
+                                3
+                            </span>
+                        </li>
+
+                        <li>
+                            <span>
+                                Senin & Minggu
+                            </span>
+
+                            <span class="val">
+                                4 & 5
+                            </span>
+                        </li>
+
+                        <li>
+                            <span>
+                                Jumat & Rabu
+                            </span>
+
+                            <span class="val">
+                                6 & 7
+                            </span>
+                        </li>
+
+                        <li>
+                            <span>
+                                Kamis
+                            </span>
+
+                            <span class="val">
+                                8
+                            </span>
+                        </li>
+
+                        <li>
+                            <span>
+                                Sabtu (Paling Besar)
+                            </span>
+
+                            <span class="val">
+                                9
+                            </span>
+                        </li>
+
+                    </ul>
+
+                </div>
+
+
+                <div class="trick-card">
+
+                    <h4>
+                        <i class="fa-solid fa-moon"></i>
+                        Pasaran / Siklus 5 (4 - 9)
+                    </h4>
+
+
+                    <ul class="trick-list">
+
+                        <li>
+                            <span>
+                                Wage (Wa-Pat)
+                            </span>
+
+                            <span class="val">
+                                4
+                            </span>
+                        </li>
+
+                        <li>
+                            <span>
+                                Legi (L-egi / Lima)
+                            </span>
+
+                            <span class="val">
+                                5
+                            </span>
+                        </li>
+
+                        <li>
+                            <span>
+                                Pon (P-on / Pitu)
+                            </span>
+
+                            <span class="val">
+                                7
+                            </span>
+                        </li>
+
+                        <li>
+                            <span>
+                                Kliwon (Kli-W-on / Wolu)
+                            </span>
+
+                            <span class="val">
+                                8
+                            </span>
+                        </li>
+
+                        <li>
+                            <span>
+                                Pahing (P-ahing / Paling Tinggi)
+                            </span>
+
+                            <span class="val">
+                                9
+                            </span>
+                        </li>
+
+                    </ul>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             FOOTER
+        ====================================================== -->
+
+        <footer>
+
+            <p>
+                Ekosistem ToFarmer &copy; 2026 —
+                Navigasi Sains Tradisional & Harmoni Alam
+            </p>
+
+        </footer>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    /* =========================================================
+       DATA MAPS
+    ========================================================= */
+
+    const HARI_MAP = [
+
+        {
+            name: "Minggu",
+            val: 5
+        },
+
+        {
+            name: "Senin",
+            val: 4
+        },
+
+        {
+            name: "Selasa",
+            val: 3
+        },
+
+        {
+            name: "Rabu",
+            val: 7
+        },
+
+        {
+            name: "Kamis",
+            val: 8
+        },
+
+        {
+            name: "Jumat",
+            val: 6
+        },
+
+        {
+            name: "Sabtu",
+            val: 9
+        }
+
+    ];
+
+
+    const PASARAN_NAMES = [
+        "Legi",
+        "Pahing",
+        "Pon",
+        "Wage",
+        "Kliwon"
+    ];
+
+
+    const PASARAN_VALS = {
+
+        "Legi": 5,
+        "Pahing": 9,
+        "Pon": 7,
+        "Wage": 4,
+        "Kliwon": 8
+
+    };
+
+
+    /* =========================================================
+       ANCHOR DATE
+    ========================================================= */
+
+    /*
+        Jan 1, 1900 adalah Selasa Pahing
+    */
+
+    const ANCHOR_DATE =
+        new Date(1900, 0, 1);
+
+    const ANCHOR_PASARAN_IDX = 1;
+
+
+    function getPasaranFromDate(dateObj) {
+
+        const diffDays =
+            Math.floor(
+                (
+                    dateObj - ANCHOR_DATE
+                )
+                /
+                (1000 * 60 * 60 * 24)
+            );
+
+
+        let pasaranIdx =
+            (
+                ANCHOR_PASARAN_IDX +
+                diffDays
+            ) % 5;
+
+
+        if (pasaranIdx < 0) {
+            pasaranIdx += 5;
+        }
+
+
+        return PASARAN_NAMES[pasaranIdx];
+
+    }
+
+
+    /* =========================================================
+       INITIALIZE PAGE
+    ========================================================= */
+
+    window.onload = function () {
+
+        initToday();
+
+
+        /*
+            Set default date picker
+            menggunakan tanggal hari ini
+        */
+
+        const todayStr =
+            new Date()
+                .toISOString()
+                .split('T')[0];
+
+
+        document.getElementById(
+            'calcDate'
+        ).value = todayStr;
+
+
+        onDatePickerChange();
+
+    };
+
+
+    /* =========================================================
+       TODAY
+    ========================================================= */
+
+    function initToday() {
+
+        const now = new Date();
+
+
+        const options = {
+
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+
+        };
+
+
+        document.getElementById(
+            'todayDateStr'
+        ).innerText =
+            now.toLocaleDateString(
+                'id-ID',
+                options
+            );
+
+
+        const dayIdx =
+            now.getDay();
+
+
+        const hariObj =
+            HARI_MAP[dayIdx];
+
+
+        const pasaranName =
+            getPasaranFromDate(now);
+
+
+        const pasaranVal =
+            PASARAN_VALS[pasaranName];
+
+
+        const totalNeptu =
+            hariObj.val +
+            pasaranVal;
+
+
+        document.getElementById(
+            'todayWeton'
+        ).innerText =
+            `${hariObj.name} ${pasaranName}`;
+
+
+        document.getElementById(
+            'todayNeptuVal'
+        ).innerText =
+            totalNeptu;
+
+
+        updateSummaryUI(
+
+            totalNeptu,
+
+            'todayBadge',
+            'todayKategori',
+            'todaySummaryText',
+            'todayCanvas'
+
+        );
+
+    }
+
+
+    /* =========================================================
+       DATE PICKER
+    ========================================================= */
+
+    function onDatePickerChange() {
+
+        const dateInput =
+            document.getElementById(
+                'calcDate'
+            ).value;
+
+
+        if (!dateInput) {
+            return;
+        }
+
+
+        const dateParts =
+            dateInput.split('-');
+
+
+        const dateObj =
+            new Date(
+                dateParts[0],
+                dateParts[1] - 1,
+                dateParts[2]
+            );
+
+
+        const dayIdx =
+            dateObj.getDay();
+
+
+        const hariObj =
+            HARI_MAP[dayIdx];
+
+
+        const pasaranName =
+            getPasaranFromDate(dateObj);
+
+
+        const pasaranVal =
+            PASARAN_VALS[pasaranName];
+
+
+        /*
+            Update Select Dropdowns
+        */
+
+        document.getElementById(
+            'calcHari'
+        ).value =
+            hariObj.val;
+
+
+        document.getElementById(
+            'calcPasaran'
+        ).value =
+            pasaranVal;
+
+
+        processCalculator(
+
+            hariObj.name,
+            pasaranName,
+            hariObj.val,
+            pasaranVal
+
+        );
+
+    }
+
+
+    /* =========================================================
+       MANUAL SELECT
+    ========================================================= */
+
+    function onManualSelectChange() {
+
+        const hariVal =
+            parseInt(
+                document.getElementById(
+                    'calcHari'
+                ).value
+            );
+
+
+        const pasaranVal =
+            parseInt(
+                document.getElementById(
+                    'calcPasaran'
+                ).value
+            );
+
+
+        const hariObj =
+            HARI_MAP.find(
+                h => h.val === hariVal
+            )
+            ||
+            {
+                name: "Hari"
+            };
+
+
+        let pasaranName =
+            "Pasaran";
+
+
+        for (
+            let p in PASARAN_VALS
+        ) {
+
+            if (
+                PASARAN_VALS[p] ===
+                pasaranVal
+            ) {
+
+                pasaranName = p;
+
+                break;
+
+            }
+
+        }
+
+
+        processCalculator(
+
+            hariObj.name,
+            pasaranName,
+            hariVal,
+            pasaranVal
+
+        );
+
+    }
+
+
+    /* =========================================================
+       CALCULATOR
+    ========================================================= */
+
+    function processCalculator(
+
+        hariName,
+        pasaranName,
+        hariVal,
+        pasaranVal
+
+    ) {
+
+        const totalNeptu =
+            hariVal +
+            pasaranVal;
+
+
+        document.getElementById(
+            'calcWeton'
+        ).innerText =
+            `${hariName} ${pasaranName}`;
+
+
+        document.getElementById(
+            'calcNeptuVal'
+        ).innerText =
+            totalNeptu;
+
+
+        updateSummaryUI(
+
+            totalNeptu,
+
+            'calcBadge',
+            'calcKategori',
+            'calcSummaryText',
+            'calcCanvas'
+
+        );
+
+
+        updateDiagnosis(
+            totalNeptu
+        );
+
+
+        updatePillars(
+            totalNeptu
+        );
+
+    }
+
+
+    /* =========================================================
+       SUMMARY UI
+    ========================================================= */
+
+    function updateSummaryUI(
+
+        neptu,
+        badgeId,
+        catId,
+        textId,
+        canvasId
+
+    ) {
+
+        const badgeEl =
+            document.getElementById(
+                badgeId
+            );
+
+
+        const catEl =
+            document.getElementById(
+                catId
+            );
+
+
+        const textEl =
+            document.getElementById(
+                textId
+            );
+
+
+        let category = "";
+        let text = "";
+        let color = "";
+        let scale = 1;
+
+
+        /*
+            LOW
+        */
+
+        if (neptu <= 10) {
+
+            category =
+                "Menciut / Inward";
+
+
+            text =
+                "Gelombang energi alam sedang mengendap dan tenang. Waktu terbaik untuk memperkuat akar: riset dalam, koding, konsolidasi aset, serta menjaga ketenangan batin.";
+
+
+            color =
+                "#38bdf8";
+
+
+            scale = 1;
+
+
+            badgeEl.className =
+                "status-badge low";
+
+        }
+
+
+        /*
+            MID
+        */
+
+        else if (neptu <= 13) {
+
+            category =
+                "Mengalir / Flow";
+
+
+            text =
+                "Gelombang energi berada dalam ritme harmonis dan adaptif. Sangat baik untuk operasional harian, perawatan lahan, koordinasi tim, serta transaksi sirkulasi harian.";
+
+
+            color =
+                "#4ade80";
+
+
+            scale = 2;
+
+
+            badgeEl.className =
+                "status-badge mid";
+
+        }
+
+
+        /*
+            HIGH
+        */
+
+        else {
+
+            category =
+                "Meluap / Outward";
+
+
+            text =
+                "Gelombang energi berada di puncak ekspansif. Sangat berdaya untuk peluncuran narasi/produk, aksi fisik berat, dan compounding; namun waspadai gesekan emosi.";
+
+
+            color =
+                "#fb7185";
+
+
+            scale = 3;
+
+
+            badgeEl.className =
+                "status-badge high";
+
+        }
+
+
+        catEl.innerText =
+            category;
+
+
+        textEl.innerText =
+            text;
+
+
+        drawWaveCanvas(
+            canvasId,
+            scale,
+            color
+        );
+
+    }
+
+
+    /* =========================================================
+       WAVE CANVAS
+    ========================================================= */
+
+    function drawWaveCanvas(
+
+        canvasId,
+        scale,
+        color
+
+    ) {
+
+        const canvas =
+            document.getElementById(
+                canvasId
+            );
+
+
+        if (!canvas) {
+            return;
+        }
+
+
+        const ctx =
+            canvas.getContext('2d');
+
+
+        /*
+            Gunakan ukuran aktual container
+        */
+
+        canvas.width =
+            canvas.offsetWidth;
+
+
+        canvas.height =
+            canvas.offsetHeight;
+
+
+        ctx.clearRect(
+            0,
+            0,
+            canvas.width,
+            canvas.height
+        );
+
+
+        ctx.beginPath();
+
+
+        ctx.lineWidth = 2.5;
+
+
+        ctx.strokeStyle =
+            color;
+
+
+        const width =
+            canvas.width;
+
+
+        const height =
+            canvas.height;
+
+
+        const amplitude =
+            scale * 14;
+
+
+        const frequency =
+            scale * 0.02;
+
+
+        for (
+            let x = 0;
+            x < width;
+            x++
+        ) {
+
+            const y =
+                height / 2 +
+                Math.sin(
+                    x * frequency
+                ) *
+                amplitude;
+
+
+            if (x === 0) {
+
+                ctx.moveTo(
+                    x,
+                    y
+                );
+
+            }
+
+            else {
+
+                ctx.lineTo(
+                    x,
+                    y
+                );
+
+            }
+
+        }
+
+
+        ctx.stroke();
+
+    }
+
+
+    /* =========================================================
+       DIAGNOSIS
+    ========================================================= */
+
+    function updateDiagnosis(neptu) {
+
+        const diagEl =
+            document.getElementById(
+                'diagnosisContent'
+            );
+
+
+        let html = "";
+
+
+        /*
+            LOW
+        */
+
+        if (neptu <= 10) {
+
+            html = `
+
+                <div class="diag-item">
+
+                    <strong>
+                        Mengapa Komunikasi Terasa Kaku / Respon Luar Lambat?
+                    </strong>
+
+                    <p>
+                        Karena energi harian bersifat Inward
+                        (masuk ke dalam). Lingkungan sedang pasif,
+                        sehingga promosi atau negosiasi keras
+                        akan terasa berat.
+                    </p>
+
+                </div>
+
+
+                <div class="diag-item">
+
+                    <strong>
+                        Mengapa Ide Koding / Riset Mengalir Lancar?
+                    </strong>
+
+                    <p>
+                        Frekuensi gelombang rapat memfasilitasi hening.
+                        Hambatan mental rendah untuk aktivitas komputasi
+                        dan penataan logika.
+                    </p>
+
+                </div>
+
+            `;
+
+        }
+
+
+        /*
+            MID
+        */
+
+        else if (neptu <= 13) {
+
+            html = `
+
+                <div class="diag-item">
+
+                    <strong>
+                        Mengapa Diskusi Tim Terasa Santai & Ringan?
+                    </strong>
+
+                    <p>
+                        Energi dalam ritme seimbang (Flow).
+                        Tidak ada tekanan berlebihan dari alam,
+                        membuat interaksi sosial berjalan fleksibel.
+                    </p>
+
+                </div>
+
+
+                <div class="diag-item">
+
+                    <strong>
+                        Mengapa Tidak Ada Kejutan Besar Hari Ini?
+                    </strong>
+
+                    <p>
+                        Gelombang energi bersifat menjaga kesinambungan,
+                        bukan membuat lompatan drastis.
+                        Fokus pada penyelesaian tugas rutin.
+                    </p>
+
+                </div>
+
+            `;
+
+        }
+
+
+        /*
+            HIGH
+        */
+
+        else {
+
+            html = `
+
+                <div class="diag-item">
+
+                    <strong>
+                        Mengapa Mudah Terjadi Gesekan / Adu Argumen?
+                    </strong>
+
+                    <p>
+                        Amplitudo gelombang meluap (Outward)
+                        meningkatkan vitalitas dan emosi sosial.
+                        Percikan kecil mudah membakar jika tidak ada
+                        rem kesadaran.
+                    </p>
+
+                </div>
+
+
+                <div class="diag-item">
+
+                    <strong>
+                        Mengapa Aksi Fisik & Rilis Karya Sangat Berdampak?
+                    </strong>
+
+                    <p>
+                        Energi pendorong sedang tinggi.
+                        Apapun narasi atau tindakan yang diluncurkan
+                        hari ini memiliki daya jangkau eksternal yang luas.
+                    </p>
+
+                </div>
+
+            `;
+
+        }
+
+
+        diagEl.innerHTML =
+            html;
+
+    }
+
+
+    /* =========================================================
+       PILARS
+    ========================================================= */
+
+    function updatePillars(neptu) {
+
+        const pillarEl =
+            document.getElementById(
+                'pilarContainer'
+            );
+
+
+        let html = "";
+
+
+        /*
+            LOW
+        */
+
+        if (neptu <= 10) {
+
+            html = `
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-low);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-code"></i>
+
+                            Pilar 2 (AI & Sistem)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-low);
+                                font-weight:700;
+                            ">
+
+                            Prioritas
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Eksekusi refactoring kode,
+                        penulisan algoritma,
+                        dan debugging arsitektur sistem.
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-low);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-piggy-bank"></i>
+
+                            Pilar 4 (Nabung Receh)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-low);
+                                font-weight:700;
+                            ">
+
+                            Pengendapan
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Momen mengandangkan dana dingin,
+                        evaluasi manajemen risiko,
+                        dan menahan spekulasi.
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-low);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-book"></i>
+
+                            Pilar 5 (Petapa / R&D)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-low);
+                                font-weight:700;
+                            ">
+
+                            Riset Dalam
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Menulis dokumentasi baku,
+                        kajian literatur,
+                        dan penyatuan niat ekosistem.
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }
+
+
+        /*
+            MID
+        */
+
+        else if (neptu <= 13) {
+
+            html = `
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-mid);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-leaf"></i>
+
+                            Pilar 3 (Lahan & Permakultur)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-mid);
+                                font-weight:700;
+                            ">
+
+                            Perawatan
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Sangat cocok untuk penyiangan gulma,
+                        menyiram, serta perawatan rutin
+                        tanaman harian.
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-mid);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-users"></i>
+
+                            Pilar 1 (Narasi & Komunitas)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-mid);
+                                font-weight:700;
+                            ">
+
+                            Harmoni
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Mengadakan rapat koordinasi harian,
+                        menjaga silaturahmi,
+                        dan obrolan tim internal.
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-mid);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-coins"></i>
+
+                            Pilar 4 (Sirkulasi Aset)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-mid);
+                                font-weight:700;
+                            ">
+
+                            Sirkulasi
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Menjaga siklus transaksi
+                        mikro-ekosistem tetap berjalan
+                        secara konsisten.
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }
+
+
+        /*
+            HIGH
+        */
+
+        else {
+
+            html = `
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-high);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-bullhorn"></i>
+
+                            Pilar 1 (Narasi & Vlog)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-high);
+                                font-weight:700;
+                            ">
+
+                            Gebrakan
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Waktu terbaik merilis konten utama,
+                        siaran publik, kampanye besar,
+                        dan unjuk karya.
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-high);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-tractor"></i>
+
+                            Pilar 3 (Olah Lahan Berat)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-high);
+                                font-weight:700;
+                            ">
+
+                            Kerja Fisik
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Gunakan energi meluap untuk
+                        land clearing, pemindahan material,
+                        atau pembuatan bedengan baru.
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="pilar-card"
+                    style="
+                        border-top:
+                        3px solid var(--accent-high);
+                    ">
+
+                    <div class="pilar-header">
+
+                        <span class="pilar-name">
+
+                            <i class="fa-solid fa-chart-line"></i>
+
+                            Pilar 4 (Compounding)
+
+                        </span>
+
+                        <span
+                            style="
+                                color:var(--accent-high);
+                                font-weight:700;
+                            ">
+
+                            Ekspansi
+
+                        </span>
+
+                    </div>
+
+                    <div class="pilar-desc">
+
+                        Eksekusi keputusan investasi
+                        atau ekspansi unit modal ekosistem
+                        secara terukur.
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }
+
+
+        pillarEl.innerHTML =
+            html;
+
+    }
+
+</script>
+
+</body>
+</html>
