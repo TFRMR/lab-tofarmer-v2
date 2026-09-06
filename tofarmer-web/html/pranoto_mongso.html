@@ -54,10 +54,45 @@
             z-index: 1;
         }
 
+        /* BAR NAVIGASI TAMPILAN */
+        .nav-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 999px;
+            background: rgba(20, 42, 29, 0.7);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: #a7f3d0;
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-btn:hover {
+            background: rgba(34, 197, 94, 0.25);
+            border-color: #fde047;
+            color: #fde047;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(234, 179, 8, 0.2);
+        }
+
         /* HERO HEADER */
         .hero {
             position: relative;
-            padding: 25px 20px 25px;
+            padding: 15px 20px 25px;
             text-align: center;
         }
 
@@ -132,7 +167,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
             position: relative;
             overflow: hidden;
-            margin-top: 20px;
+            margin-top: 15px;
         }
 
         /* ALMANAK HEADER BANNER */
@@ -370,6 +405,7 @@
 
         @media(max-width: 768px) {
             .container { padding: 10px; }
+            .nav-bar { justify-content: center; }
             .main-box { padding: 20px 12px; border-radius: 20px; }
             .jawa-date-main { font-size: 1.6rem; }
             .mangsa-title { font-size: 2.1rem; }
@@ -381,6 +417,16 @@
 <body>
 
 <div class="container">
+    <!-- NAVIGASI UTAMA -->
+    <nav class="nav-bar">
+        <a href="https://www.tofarmer.xyz" class="nav-btn">
+            <span>🏠</span> Beranda (tofarmer.xyz)
+        </a>
+        <a href="/html/fitur-ilmu.html" class="nav-btn">
+            <span>📚</span> Fitur & Info Ilmu
+        </a>
+    </nav>
+
     <!-- HERO HEADER -->
     <header class="hero">
         <div class="logo-wrap">
@@ -495,24 +541,24 @@
     <!-- FOOTER -->
     <footer class="footer">
         <p class="footer-text">
-            Sistem Pertanian Autonomus ToFarmer &copy; <span id="year"></span><br>
+            Sistem Pertanian Autonomous ToFarmer &copy; <span id="year"></span><br>
             Diselaraskan dengan Kearifan Menoreh & Ekosistem Alami.
         </p>
     </footer>
 </div>
 
 <script>
-    // Database 12 Pranoto Mongso dengan Modul Tanaman & Rotasi Lengkap
+    // Database Patokan Pranoto Mongso Presisi (Index Bulan JavaScript: 0 = Jan, 11 = Des)
     const pranotoMongsoDB = [
         {
             id: 0,
             nama: "Mongso Kasa",
-            startMonth: 5, startDay: 22,
-            endMonth: 6, endDay: 1,
+            startMonth: 5, startDay: 22, // 22 Juni
+            endMonth: 7, endDay: 1,     // 1 Agustus
             candra: "Setya Seta Muka Ing Tirtas",
             elemen: "Bantala (Tanah) & Agni (Panas Awal)",
             rekomendasi: "Pangan: Wijen, Kedelai Tahan Kering. Sayuran: Labu/Oyong. Perkebunan: Panen Kopi & Kakao.",
-            daun: "Daun Randu, Jati, dan Asam berguguran total. Nutrisi & getah turun penuh ke sistem perakaran untuk perlindungan air.",
+            daun: "Daun Randu, Jati, dan Asam berguguran total. Nutrisi & getah turun penuh ke sistem perakaran.",
             bunga: "Bunga liar minim. Kadar gula (Brix) & aroma buah kopi/kakao yang dipanen mencapai titik tertinggi.",
             rotasi: "Padi/Sayuran (Musim Lalu) ➔ Tanaman Legum Tahan Kering ➔ Istirahat Lahan (Mulsa Jerami).",
             fauna: "Belalang mulai bertelur & masuk tanah. Uret (grub) berada di kedalaman tanah dalam fase dorman.",
@@ -521,12 +567,12 @@
         {
             id: 1,
             nama: "Mongso Karo",
-            startMonth: 6, startDay: 2,
-            endMonth: 6, endDay: 24,
+            startMonth: 7, startDay: 2,   // 2 Agustus
+            endMonth: 7, endDay: 24,    // 24 Agustus
             candra: "Pancuran Mas Sumawur Ing Jagad",
             elemen: "Agni (Panas/Kering) & Bayu",
             rekomendasi: "Pangan: Wijen, Sorghum, Porang (Fase Dorman). Sayuran: Semangka / Melon (Irigasi terbatas).",
-            daun: "Pohon kayu keras menghentikan pertumbuhan daun muda. Daun cabai melengkung akibat tingkat penguapan ekstrem.",
+            daun: "Pohon kayu keras menghentikan pertumbuhan daun muda. Daun cabai melengkung akibat penguapan.",
             bunga: "Pohon Kapok dan Mangga mulai berbunga. Bunga cabai gampang gugur jika kelembaban media dropped.",
             rotasi: "Bera / Istirahat Lahan Tanaman Semusim ➔ Penanaman Pohon Pelindung / Tanaman Perkebunan.",
             fauna: "Burung-burung liar mencari sumber air. Aktivitas mikroba tanah permukaan melambat.",
@@ -535,13 +581,13 @@
         {
             id: 2,
             nama: "Mongso Katelu",
-            startMonth: 6, startDay: 25,
-            endMonth: 7, endDay: 17,
+            startMonth: 7, startDay: 25,  // 25 Agustus
+            endMonth: 8, endDay: 17,    // 17 September
             candra: "Suta Manut Ing Bapa",
             elemen: "Bayu (Angin Daging) & Bantala",
             rekomendasi: "Pangan: Kacang Hijau. Hortikultura: Persiapan Nursery Sawi/Cabai di bawah Shade Net.",
             daun: "Bambu berdaun muda (semi). Umbi-umbian di dalam tanah melipatgandakan cadangan pati.",
-            bunga: "Mangga membentuk calon buah muda. Bunga tanaman hortikultura outdoor rawan rontok disapu angin dingin.",
+            bunga: "Mangga membentuk calon buah muda. Bunga tanaman hortikultura outdoor rawan rontok disapu angin.",
             rotasi: "Kacang Hijau ➔ Pembersihan Gulma Lahan ➔ Aplikasi Pupuk Kandang Matang.",
             fauna: "Serangga tanah mencari kelembaban di bawah batu/kayu lapuk. Ulat belum menetas.",
             aksi: "Perataan beds tanam, persiapan nursery terlindung, aplikasi Trichoderma pada media kompos."
@@ -549,12 +595,12 @@
         {
             id: 3,
             nama: "Mongso Kapat",
-            startMonth: 7, startDay: 18,
-            endMonth: 9, endDay: 12,
+            startMonth: 8, startDay: 18,  // 18 September
+            endMonth: 9, endDay: 12,    // 12 Oktober
             candra: "Waspa Kumembeng ing Jroning Kalbu",
             elemen: "Agni Ekstrem & Bayu Kering",
             rekomendasi: "Pangan: Persiapan Semai Padi Gogo / Jagung. Hortikultura: Persemaian Terlindung.",
-            daun: "Tanaman gundul mulai memunculkan titik tunas rahasia. Daun sayuran cepat layu permanente jika tanpa mulsa.",
+            daun: "Tanaman gundul mulai memunculkan titik tunas rahasia. Daun sayuran cepat layu jika tanpa mulsa.",
             bunga: "Buah kapok pecah membagikan biji. Mangga membesarkan buah (perlu pasokan kalium organik).",
             rotasi: "Fase Transisi: Penyiapan Lahan Utama untuk Menyambut Hujan Perintis.",
             fauna: "Burung liar sibuk membuat sarang. Musim kawin hewan unggas & persiapan menetas.",
@@ -563,68 +609,68 @@
         {
             id: 4,
             nama: "Mongso Kalima",
-            startMonth: 9, startDay: 13,
-            endMonth: 10, endDay: 8,
+            startMonth: 9, startDay: 13,  // 13 Oktober
+            endMonth: 10, endDay: 8,    // 8 November
             candra: "Pancuran Mas Sumawur ing Jagad",
             elemen: "Tirta (Hujan Perintis) & Bantala",
             rekomendasi: "Pangan: Jagung Hibrida/Lokal, Kacang Tanah, Singkong. Sayur: Kangkung, Bayam, Buncis.",
             daun: "Pohon Asam Jawa berdaun muda segar. Tunas-tunas baru bermunculan serentak dalam semalam.",
-            bunga: "Terjadi gugur bunga liar akibat kaget kelembaban hujan pertama (petrichor). Bunga mangga seleksi alam.",
+            bunga: "Terjadi gugur bunga liar akibat kaget kelembaban hujan pertama (petrichor).",
             rotasi: "Lahan Bekas Bera ➔ Jagung / Kacang Tanah (Legum mengikat Nitrogen untuk menyuburkan tanah).",
             fauna: "Telur ulat & uret menetas massal. Serangga tanah bangkit dari dormansi.",
-            aksi: "Tanam jagung/palawija awal. Semprot mikroba lokal (POC) untuk menetralkan keasaman hujan pertama."
+            aksi: "Tanam jagung/palawija awal. Semprot mikroba lokal (POC) untuk menetralkan keasaman hujan."
         },
         {
             id: 5,
             nama: "Mongso Kanem",
-            startMonth: 10, startDay: 9,
-            endMonth: 11, endDay: 21,
+            startMonth: 10, startDay: 9,  // 9 November
+            endMonth: 11, endDay: 21,   // 21 Desember
             candra: "Rasa Mulya Kasucian",
             elemen: "Tirta (Air Melimpah)",
             rekomendasi: "Pangan: Padi Sawah, Padi Gogo, Ubi Jalar. Sayur: Sawi, Pakcoy, Terong, Daun Bawang.",
-            daun: "Daun tebal & hijau pekat karena limpahan Nitrogen hujan. Rawan terkena bercak daun (Cercospora).",
-            bunga: "Buah rambutan, durian, dan mangga membesar pesat (fase pengisian sel air). Bunga cabai butuh Kalsium.",
+            daun: "Daun tebal & hijau pekat karena limpahan Nitrogen hujan. Rawan terkena bercak daun.",
+            bunga: "Buah rambutan, durian, dan mangga membesar pesat. Bunga cabai butuh Kalsium.",
             rotasi: "Jagung / Palawija ➔ Padi Sawah / Sayuran Daun High-Water Requirement.",
             fauna: "Cacing tanah aktif penuh menggemburkan tanah. Burung mengasuh anak-anak muda.",
-            aksi: "Penanaman padi/tanaman pangan utama, aplikasi pupuk susulan I (kalsium/silika), penyiangan gulma."
+            aksi: "Penanaman padi/tanaman pangan utama, aplikasi pupuk susulan I (kalsium/silika)."
         },
         {
             id: 6,
             nama: "Mongso Kapitu",
-            startMonth: 11, startDay: 22,
-            endMonth: 0, endDay: 2,
+            startMonth: 11, startDay: 22, // 22 Desember
+            endMonth: 1, endDay: 2,     // 2 Februari
             candra: "Bisa Kinarya Tetanang",
             elemen: "Bayu (Prahara Barat) & Tirta Ekstrem",
-            rekomendasi: "Pangan: Padi Vegetatif Akhir. Umbi: Garut, Ganyong, Talas. Hindari semai cabai/tomat terbuka.",
-            daun: "Daun Rawan sobek/rebah akibat angin barat kencang. Warna agak pucat jika akar lemas tergenang air.",
-            bunga: "Bunga cabai/tomat gampang rontok total. Buah rawan lalat buah & serangan patek (Antraknosa).",
+            rekomendasi: "Pangan: Padi Vegetatif Akhir. Umbi: Garut, Ganyong, Talas. Hindari semai terbuka.",
+            daun: "Daun Rawan sobek/rebah akibat angin barat kencang. Warna agak pucat jika akar lemas.",
+            bunga: "Bunga cabai/tomat gampang rontok total. Buah rawan lalat buah & patek (Antraknosa).",
             rotasi: "Fase Proteksi / Cover Crop (Kacang Penutup Tanah) untuk Mencegah Erosi Unsur Hara.",
             fauna: "Spora jamur & bakteri patogen membelah cepat. Nyamuk & hama air meningkat.",
-            aksi: "Penguatan drainase parit, aplikasi penguat batang (Silika + Kalsium), pasang tiang penopang (lanjaran)."
+            aksi: "Penguatan drainase parit, aplikasi penguat batang (Silika + Kalsium), pasang lanjaran."
         },
         {
             id: 7,
             nama: "Mongso Kawolu",
-            startMonth: 0, startDay: 3,
-            endMonth: 1, endDay: 28,
+            startMonth: 1, startDay: 3,   // 3 Februari
+            endMonth: 1, endDay: 28,    // 28 Februari
             candra: "Anrah ing Sitinggil",
             elemen: "Tirta & Swara (Awal Suara Alam)",
-            rekomendasi: "Pangan: Padi fase Pembuntingan. Sayur: Cabai, Tomat, Melon (Perawatan Intensif).",
-            daun: "Pertumbuhan daun melambat, energi bergerak fokus menuju pengisian bulir dan pembesaran buah.",
-            bunga: "Padi mulai mengluarkan malai bunga. Bunga hortikultura mekar sempurna karena sinar matahari cukup.",
+            rekomendasi: "Pangan: Padi Fase Pembuntingan. Sayur: Cabai, Tomat, Melon (Perawatan Intensif).",
+            daun: "Pertumbuhan daun melambat, energi bergerak fokus menuju pengisian bulir dan buah.",
+            bunga: "Padi mulai mengeluarkan malai bunga. Bunga mekar sempurna karena sinar matahari cukup.",
             rotasi: "Padi Fase Generatif ➔ Persiapan Penyiangan untuk Tanaman Sela Pasca Panen.",
             fauna: "Kucing & mamalia memasuki musim kawin. Jangkrik mulai berbunyi di sore hari.",
-            aksi: "Pemupukan Kalium tinggi untuk pembentukan karbohidrat bulir/buah, penyemprotan agen hayati."
+            aksi: "Pemupukan Kalium tinggi untuk pembentukan karbohidrat bulir/buah."
         },
         {
             id: 8,
             nama: "Mongso Kasanga",
-            startMonth: 2, startDay: 1,
-            endMonth: 2, endDay: 25,
+            startMonth: 2, startDay: 1,   // 1 Maret
+            endMonth: 2, endDay: 25,    // 25 Maret
             candra: "Wedaring Wacana Mulya",
             elemen: "⚡ Swara (Petir & Nyanyian Alam)",
-            rekomendasi: "Pangan: Padi Siap Panen. Sayur: Pemulihan Cabai/Terong. Tanaman Sela: Kedelai / Kacang Hijau.",
-            daun: "Daun bendera padi dan daun bagian bawah mulai menguning alamiah tanda matang organ fisiologis.",
+            rekomendasi: "Pangan: Padi Siap Panen. Sayur: Pemulihan Cabai/Terong. Tanaman Sela: Kedelai.",
+            daun: "Daun bendera padi dan daun bagian bawah mulai menguning alamiah tanda matang.",
             bunga: "Penyerbukan tanaman sempurna. Bulir padi mengeras penuh dan menunduk optimal.",
             rotasi: "Padi Sawah (Panen) ➔ Legum Pasca Panen (Kedelai/Kacang Hijau tanpa Olah Tanah).",
             fauna: "Serangga Ganjir / Tonggeret bersuara nyaring di hutan. Burung pemakan biji berkumpul.",
@@ -633,12 +679,12 @@
         {
             id: 9,
             nama: "Mongso Kasada",
-            startMonth: 2, startDay: 26,
-            endMonth: 3, endDay: 18,
+            startMonth: 2, startDay: 26,  // 26 Maret
+            endMonth: 3, endDay: 18,    // 18 April
             candra: "Gedhong Sinebit ing Kalbu",
             elemen: "Bantala & Agni Halus",
             rekomendasi: "Pangan: Kedelai, Kacang Hijau, Sorghum, Wijen. Hortikultura: Bawang Merah, Semangka.",
-            daun: "Daun tanaman pangan semusim mengering sempurna. Daun tanaman perkebunan (kopi) tumbuh mantap.",
+            daun: "Daun tanaman pangan semusim mengering sempurna. Daun tanaman perkebunan tumbuh mantap.",
             bunga: "Bunga Kopi mulai mekar harum secara serentak menyambut kelembaban tersisa.",
             rotasi: "Padi ➔ Kedelai / Kacang Hijau (Memutus rantai hama penggerek batang padi).",
             fauna: "Ternak melahirkan anak. Aktivitas hama tanaman pangan utama menurun drastis.",
@@ -647,12 +693,12 @@
         {
             id: 10,
             nama: "Mongso Dresta",
-            startMonth: 3, startDay: 19,
-            endMonth: 4, endDay: 11,
+            startMonth: 3, startDay: 19,  // 19 April
+            endMonth: 4, endDay: 11,    // 11 Mei
             candra: "Sotya Sinarawredi",
             elemen: "Bayu Kering & Bantala",
             rekomendasi: "Pangan: Kacang Hijau, Wijen, Ubi Jalar. Hortikultura: Bawang Merah, Melon.",
-            daun: "Daun sayuran berkulit lebih tebal untuk menahan penguapan. Daun pohon peneduh mulai menua.",
+            daun: "Daun sayuran berkulit lebih tebal untuk menahan penguapan. Daun peneduh mulai menua.",
             bunga: "Pembentukan kadar manis (brix) tinggi pada semangka dan buah melon pasca panen.",
             rotasi: "Kedelai / Kacang Hijau ➔ Pemutuhan Rantai Hama ➔ Bera Ringan dengan Jerami.",
             fauna: "Burung-burung muda belajar terbang & mandiri. Uret mulai mencari perlindungan tanah.",
@@ -661,13 +707,13 @@
         {
             id: 11,
             nama: "Mongso Sadha",
-            startMonth: 4, startDay: 12,
-            endMonth: 5, endDay: 21,
+            startMonth: 4, startDay: 12,  // 12 Mei
+            endMonth: 5, endDay: 21,    // 21 Juni
             candra: "Tirta Seta Muka ing Jagad",
             elemen: "Bantala (Istirahat Lahan)",
             rekomendasi: "Pangan: Porang (Dorman), Garut. Lahan Utama: Fallowing / Istirahat Lahan Total.",
-            daun: "Daun-daun mulai gugur kembali. Energi dan getah tanaman turun dan beristirahat di sistem perakaran.",
-            bunga: "Tidak ada pembentukan bunga baru pada tanaman semusim. Tanaman memperkuat jaringan akar.",
+            daun: "Daun-daun mulai gugur kembali. Energi dan getah tanaman turun dan beristirahat di akar.",
+            bunga: "Tidak ada pembentukan bunga baru pada tanaman semusim. Tanaman memperkuat akar.",
             rotasi: "Istirahat Lahan (Fallowing) ➔ Penumpukan Bahan Organik untuk Siklus Baru Kasa.",
             fauna: "Mikroorgananisme tanah melambat. Hewan tanah masuk mode bertahan hidup.",
             aksi: "Perawatan alat pertanian, penataan tata ruang lahan ToFarmer, evaluasi siklus tahunan."
@@ -686,9 +732,8 @@
         "Maktal", "Wuye", "Manahil", "Prangbakat", "Bala", "Wugu", "Wayang", "Kulawu", "Dukut", "Watugunung"
     ];
 
-    // Algoritma Kalender Jawa & Wuku
     function calculateJawaData(date) {
-        const baseDate = new Date(1900, 0, 1); // 1 Jan 1900 = Senin Pahing
+        const baseDate = new Date(1900, 0, 1); 
         const diffTime = date.getTime() - baseDate.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 3600 * 24));
 
@@ -710,27 +755,26 @@
     }
 
     function getActiveMongso(date) {
-        const currentMonth = date.getMonth();
+        const currentMonth = date.getMonth(); 
         const currentDay = date.getDate();
 
         for (let mongso of pranotoMongsoDB) {
-            if (mongso.startMonth <= mongso.endMonth) {
-                if (
-                    (currentMonth > mongso.startMonth || (currentMonth === mongso.startMonth && currentDay >= mongso.startDay)) &&
-                    (currentMonth < mongso.endMonth || (currentMonth === mongso.endMonth && currentDay <= mongso.endDay))
-                ) {
+            const startVal = mongso.startMonth * 100 + mongso.startDay;
+            const endVal = mongso.endMonth * 100 + mongso.endDay;
+            const currentVal = currentMonth * 100 + currentDay;
+
+            if (startVal <= endVal) {
+                if (currentVal >= startVal && currentVal <= endVal) {
                     return mongso;
                 }
             } else {
-                if (
-                    (currentMonth > mongso.startMonth || (currentMonth === mongso.startMonth && currentDay >= mongso.startDay)) ||
-                    (currentMonth < mongso.endMonth || (currentMonth === mongso.endMonth && currentDay <= mongso.endDay))
-                ) {
+                // Untuk kasus Lintas Tahun (Mongso Kapitu)
+                if (currentVal >= startVal || currentVal <= endVal) {
                     return mongso;
                 }
             }
         }
-        return pranotoMongsoDB[0];
+        return pranotoMongsoDB[2]; // Default ke Katelu jika rentang bermasalah
     }
 
     function renderDisplay(mongso) {
@@ -780,7 +824,6 @@
         const now = new Date();
         document.getElementById('year').textContent = now.getFullYear();
 
-        // Hitung Kalender Jawa
         const jawa = calculateJawaData(now);
         document.getElementById('jawa-full-date').textContent = `${jawa.hari} ${jawa.pasaran}`;
         document.getElementById('jawa-neptu').textContent = `Neptu: ${jawa.neptu}`;
