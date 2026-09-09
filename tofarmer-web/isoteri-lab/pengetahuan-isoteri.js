@@ -615,3 +615,57 @@ ws_tutup(soket)
 ];
 
 if (typeof module !== "undefined" && module.exports) module.exports = { PENGETAHUAN_ISOTERI };
+
+{
+  kategori: "Web",
+  judul: "JS Interop -- Memanggil Library JavaScript",
+  isi: `Fitur JS interop memungkinkan kode Isoteri memanggil library JavaScript pihak ketiga (Chart.js, D3, Math.js, dll).
+
+**Fungsi:**
+| Fungsi | Tujuan |
+|--------|--------|
+| js_global(nama) | Ambil referensi ke window[nama] |
+| js_panggil(objek, metode, ...args) | Panggil method |
+| js_panggil_bebas(fungsi, ...args) | Panggil fungsi JS |
+| js_baru(konstruktor, ...args) | Buat instans |
+| js_ambil(objek, properti) | Baca property |
+| js_atur(objek, properti, nilai) | Set property |
+| js_ke_peta(objek) | Convert ke Peta Isoteri |`,
+},
+
+{
+  kategori: "Bahasa",
+  judul: "Type Conversion Functions",
+  isi: `Konversi: Angka(), Desimal(), Teks(), Bool(), Daftar(), Peta(), Fungsi(), Instans().`,
+},
+
+{
+  kategori: "Web",
+  judul: "DOM Event Removal",
+  isi: `dom_hapus_ketika(elemen, event) - Hapus event listener.`,
+},
+
+{
+  kategori: "Web",
+  judul: "JS Interop -- Memanggil Library JavaScript",
+  isi: `Fitur JS interop memungkinkan kode Isoteri memanggil library JavaScript pihak ketiga (Chart.js, D3, Math.js, dll).
+
+Fungsi-fungsi:
+- js_global(nama) - Ambil referensi ke window[nama]
+- js_panggil(objek, metode, ...args) - Panggil method
+- js_panggil_bebas(fungsi, ...args) - Panggil fungsi JS
+- js_baru(konstruktor, ...args) - new konstruktor()
+- js_ambil(objek, properti) - Baca property
+- js_atur(objek, properti, nilai) - Set property
+- js_ke_peta(objek) - Convert ke Peta Isoteri`,
+},
+{
+  kategori: "Bahasa",
+  judul: "Type Conversion Functions",
+  isi: `Konversi: Angka(), Desimal(), Teks(), Bool(), Daftar(), Peta(), Fungsi(), Instans().`,
+},
+{
+  kategori: "Web",
+  judul: "DOM Event Removal",
+  isi: `dom_hapus_ketika(elemen, event) - Hapus event listener.`,
+},
