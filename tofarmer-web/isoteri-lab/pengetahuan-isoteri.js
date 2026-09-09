@@ -1,6 +1,7 @@
 // Pengetahuan Bahasa Isoteri -- basis pengetahuan LENGKAP buat AI Studio.
-// Disusun dari docs/REFERENSI.md, docs/KETERBATASAN.md, dan runtime/web/README.md
-// milik proyek Isoteri asli (per Agustus 2026). Dipakai untuk DUA hal sekaligus:
+// Disusun dari docs/REFERENSI.md, docs/KETERBATASAN.md, runtime/web/README.md,
+// dan docs/FILOSOFI.md milik proyek Isoteri asli (per September 2026).
+// Dipakai untuk DUA hal sekaligus:
 //   1. Konteks penuh yang dikirim ke Gemini tiap kali generate/konversi halaman
 //      (BUKAN retrieval-berbasis-kata-kunci yang rapuh -- seluruh isi ini muat
 //      nyaman di jendela konteks model modern, jadi tidak ada risiko "informasi
@@ -142,17 +143,30 @@ fungsi nama_fungsi(param1: Tipe1, param2: Tipe2) {
 
 {
   kategori: "Bahasa",
-  judul: "Closure (Fungsi Anonim)",
+  judul: "Closure (Fungsi Anonim) & Capture Transitif",
   isi: `\`\`\`
 ingat kuadrat = fungsi(n) {
     kembalikan n * n
 }
 tampilkan kuadrat(5)     catatan: 25
+
+catatan: nested closure dengan capture transitif
+ingat ambang = 10
+ingat buat_filter = fungsi(min, max) {
+    kembalikan fungsi(x) {
+        kembalikan x >= min dan x <= max   catatan: capture 'min' dan 'max'
+    }
+}
+ingat filter_sedang = buat_filter(10, 20)   catatan: hasilnya CLOSURE yang capture min=10, max=20
+tampilkan filter_sedang(15)     catatan: benar
 \`\`\`
+
 - Closure adalah EKSPRESI \`fungsi(params) { badan }\` -- dipakai di mana pun ekspresi diterima (ditugaskan ke variabel, dilewatkan sebagai argumen, jadi properti \`aksi\`/\`render\` komponen, dst).
-- Menangkap (capture) variabel dari scope pembungkus -- TAPI itu SNAPSHOT NILAI, bukan referensi hidup (kalau variabel yang ditangkap berubah SETELAH closure dibuat, closure-nya TIDAK ikut berubah -- beda dari JS/Python).
-- Closure di dalam fungsi lain TIDAK BISA rekursi ke dirinya sendiri.
-- Memanggil sebuah variabel (\`f(x)\`) otomatis terdeteksi sebagai "panggil closure" kalau \`f\` variabel, atau "panggil fungsi statis" kalau \`f\` nama fungsi.`
+- **Capture transitif:** Closure bersarang (closure di dalam closure) boleh capture variabel dari ANY level pembungkus, tidak cuma langsung. Contoh: closure inner capture \`min\`/\`max\` dari closure outer, dan outer capture \`ambang\` dari level atas -- semua otomatis tersimpan.
+- Menangkap (capture) adalah SNAPSHOT NILAI pada saat closure dibuat -- bukan referensi hidup. Jika variabel di-assign ulang SETELAH closure dibuat, closure masih pegang nilai lama.
+- Closure di dalam closure (nested) BISA rekursi ke dirinya sendiri lewat nama variabelnya.
+- Memanggil sebuah variabel (\`f(x)\`) otomatis terdeteksi sebagai "panggil closure" kalau \`f\` variabel, atau "panggil fungsi statis" kalau \`f\` nama fungsi top-level.
+- **Closure di \`petakan\`/\`saring\`/\`urutkan\`:** Sekarang closure literal langsung bisa dilewatkan (tidak perlu Teks nama fungsi lagi). Closure dengan capture juga bisa: \`saring(daftar, fungsi(x) { kembalikan x > ambang })\` dimana \`ambang\` tertangkap dari luar.`
 },
 
 {
@@ -234,6 +248,38 @@ coba {
 
 {
   kategori: "Bahasa",
+  judul: "Modul & Import (muat) -- impor fungsi/bentuk dari berkas lain",
+  isi: `\`\`\`
+muat "matematika"             catatan: impor dari file matematika.iso (lokal) ATAU paket (isoteri.toml)
+muat "perpustakaan/utilitas"  catatan: path relatif, otomatis cari ke atas sampai ketemu isoteri.toml
+
+catatan: di matematika.iso:
+fungsi kuadratkan(n) { kembalikan n * n }
+\`\`\`
+
+Modul dideklarasikan di level atas program (bukan di dalam fungsi). Nama yang diimpor ditambahkan ke scope global program -- fungsi/bentuk dari modul boleh dipanggil seperti fungsi lokal. 
+
+**Package Manager (Milestone C):**
+Kalau ada \`isoteri.toml\` di direktori proyek:
+- \`muat "nama_paket"\` (tanpa path \`/\`, tanpa akhiran \`.iso\`) = cari di dependensi yang didaftar di \`isoteri.toml\` (lokal maupun git registry).
+- Resolusi: cek direktori ke atas sampai ketemu \`isoteri.toml\`, lalu ke \`<path_dependensi>/src/lib.iso\`.
+- Hanya SATU modul per paket yang bisa diimpor (entrypoint = \`src/lib.iso\`).
+
+**Tabrakan nama lintas-modul:** Kalau dua modul mendefinisikan fungsi/bentuk dengan nama sama, kompilasi gagal dengan pesan jelas (tidak diam-diam menimpa).`
+},
+
+{
+  kategori: "Bahasa",
+  judul: "Format Kode -- isoteri format (pembersih otomatis)",
+  isi: `\`\`\`
+isoteri format program.iso              catatan: rapikan di tempat, cetak ulang dari AST
+isoteri format program.iso --cek        catatan: mode CI, exit nonzero kalau belum rapi, tidak menulis
+\`\`\`
+Indentasi 4 spasi, kurung minimal tapi benar secara presedensi, satu gaya konsisten. Komentar (\`catatan: ...\`) dipertahankan. Idempoten -- format dua kali hasilnya sama.`
+},
+
+{
+  kategori: "Bahasa",
   judul: "Fungsi Bawaan (Standard Library) -- Tabel Lengkap",
   isi: `**List & Peta:**
 | Fungsi | Signature |
@@ -257,6 +303,70 @@ Kalau butuh operasi yang TIDAK ADA di daftar ini (localStorage, fetch, dst.) -- 
 },
 
 // =====================================================================
+// PROJECT MANAGEMENT & BUILD TOOLS
+// =====================================================================
+
+{
+  kategori: "Tools",
+  judul: "Project Initialization & Package Manager -- isoteri.toml",
+  isi: `\`\`\`
+isoteri init aplikasi_saya          catatan: buat proyek baru: direktori, isoteri.toml, src/main.iso
+isoteri tambah matematika ../lib_matematika      catatan: dependensi lokal
+isoteri tambah warna --git https://github.com/x/warna --tag v1.0.0   catatan: git registry
+isoteri                              catatan: jalankan (default: src/main.iso kalau ada isoteri.toml)
+isoteri uji                          catatan: jalankan tiap .iso di tes/ folder, exit nonzero kalau ada gagal
+isoteri bangun aplikasi_saya -o keluaran   catatan: AOT compilation -> executable native mandiri
+isoteri ekspor-web aplikasi_saya -o bundle.json   catatan: kompilasi -> bytecode JSON buat browser
+\`\`\`
+
+**isoteri.toml** -- manifest proyek, format TOML sederhana:
+\`\`\`
+[paket]
+nama = "aplikasi_saya"
+versi = "1.0.0"
+
+[dependensi]
+matematika = { path = "../lib_matematika" }
+warna = { git = "https://github.com/x/warna", tag = "v1.0.0" }
+\`\`\`
+
+**Resolusi modul:** \`muat "nama_paket"\` dikompilasi sebagai:
+1. Cari \`isoteri.toml\` ke atas dari file saat ini
+2. Baca path/git dari section \`[dependensi]\`
+3. Lokasi lokal: \`<path>/src/lib.iso\`. Git: \`git clone --depth 1 --branch <tag> <URL> ~/.isoteri/cache/<hash>\`, ambil \`src/lib.iso\` dari sana
+
+**Kasus uji (\`isoteri uji\`):** Harus ada folder \`tes/\` dengan file \`.iso` (opsional). Tiap file dijalankan -- kalau ada \`gagal_uji("pesan")\` atau error runtime, uji gagal. Exit code \`0\` = semua lolos, nonzero = ada yang gagal (bagus buat CI).
+
+**Cache & Offline:** Git dependensi di-clone sekali ke \`~/.isoteri/cache/\` (set lewat env \`ISOTERI_CACHE_DIR\`), tidak di-fetch ulang. Kalau tag/rev sudah ada di cache, langsung pakai (offline-friendly).`
+},
+
+{
+  kategori: "Tools",
+  judul: "Kompilasi & Deployment",
+  isi: `\`\`\`
+catatan: AOT -- hasilkan executable native mandiri
+isoteri bangun program.iso -o program
+./program
+
+catatan: Web export -- jalankan di browser/Node.js
+isoteri ekspor-web program.iso -o program.isoweb.json
+node runtime/web/jalankan-node.js program.isoweb.json
+# atau buka browser, muat isoteri-vm.js + program.isoweb.json, panggil vm.jalankan()
+\`\`\`
+
+**AOT (Ahead-of-Time):** Sebelum \`isoteri bangun\`, pastikan kode lolos kompilasi (jalankan \`isoteri program.iso\` dulu). Binary hasil AOT bisa didistribusikan tanpa Isoteri compiler, standalone execution.
+
+**Web Export:** Hasilkan bytecode JSON (kompatibel dengan \`isoteri-vm.js\`, interpreter JavaScript minimal). Bytecode lebih kecil dari source, gak ada source leak. Performa web: bytecode VM jalankan fungsi numerik murni pakai Cranelift JIT dari sisi JS (sama seperti native), sisanya bytecode interpretasi (cukup cepat buat CRUD/dashboard).
+
+**Verifikasi:** Dua jalur (native bytecode + JIT + web export) **diverifikasi identik** lewat:
+\`\`\`
+isoteri via-ir program.iso                catatan: validasi lewat IR linear (internal)
+isoteri ekspor-web program.iso -o b.json  catatan: web bytecode
+diff <(isoteri program.iso) <(node runtime/web/jalankan-node.js b.json)   catatan: harus kosong
+\`\`\``
+},
+
+// =====================================================================
 // WEB RUNTIME -- INI YANG DIPAKAI BUAT HALAMAN HTML (pengganti JS)
 // =====================================================================
 
@@ -270,6 +380,8 @@ Kalau butuh operasi yang TIDAK ADA di daftar ini (localStorage, fetch, dst.) -- 
 3. HTML akhir memuat \`isoteri-vm.js\` (interpreter JS KECIL yang HANYA menjalankan bytecode -- BUKAN tempat menulis logika aplikasi) + fetch bundle JSON-nya + \`vm.jalankan()\`.
 
 **Konsekuensi penting buat Studio ini:** HTML final YANG DIHASILKAN AI cukup berisi markup (\`<body>\`) + CSS + SATU blok \`<script>\` LOADER standar (~10 baris, SELALU SAMA, tidak pernah berubah, tidak mengandung logika aplikasi apa pun) yang memuat bundle & menjalankan VM. SELURUH logika interaktif (tombol, form, render ulang, dst) ditulis di file \`.iso\` TERPISAH, bukan inline di HTML.
+
+**Bytecode Web vs Native:** Bytecode yang dihasilkan \`isoteri ekspor-web\` identik secara semantik dengan bytecode native (diverifikasi lewat regression test), jadi program perilakunya sama di browser maupun native. Fungsi numerik murni masih dikompilasi JIT (via Cranelift) di sisi web juga (lewat interpreter JS), jadi performa sebanding.
 
 Representasi elemen DOM di Isoteri: nilai \`ElemenDOM\` (dikembalikan \`dom_pilih()\`/\`dom_buat()\`), dilewatkan ke fungsi \`dom_*\` lain sebagai argumen pertama.`
 },
