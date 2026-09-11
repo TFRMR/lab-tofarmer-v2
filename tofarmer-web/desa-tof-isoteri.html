@@ -558,58 +558,33 @@
     
     async function initIsoteriVM() {
         try {
-            // Check VM available
-            if (typeof window.IsoteriVM === 'undefined') {
-                console.warn('[Isoteri] VM not available, JS fallback only');
+            if (typeof window.IsoteriVM === "undefined") {
+                console.warn("[Isoteri] VM not available, JS fallback only");
                 return;
             }
             
-            // Load bytecode FIRST
             let bytecode = null;
             try {
-                const response = await fetch('./isoteri-lab/game-logic.isoweb.json');
+                const response = await fetch("./isoteri-lab/game-logic.isoweb.json");
                 if (!response.ok) {
-                    console.warn('[Isoteri] Bytecode not found (404), using JS only');
+                    console.warn("[Isoteri] Bytecode not found");
                     return;
                 }
                 bytecode = await response.json();
-                console.log('[Isoteri] Bytecode loaded');
+                console.log("[Isoteri] Bytecode loaded");
             } catch (e) {
-                console.warn('[Isoteri] Bytecode load failed:', e.message);
+                console.warn("[Isoteri] Bytecode load failed:", e.message);
                 return;
             }
             
-            // THEN create VM with bytecode
             isoteriVM = new window.IsoteriVM(bytecode, { tampilkan: (text) => console.log(text) });
             useIsoteriCalculations = true;
-            console.log('[Isoteri] VM loaded, calculations enabled');
+            console.log("[Isoteri] VM loaded, calculations enabled");
         } catch (e) {
-            console.error('[Isoteri] Init error:', e);
-        }
-    } else {
-                console.warn('[Isoteri] VM not available, JS fallback only');
-                return;
-            }
-            
-            // Load compiled bytecode game-logic.isoweb.json
-            try {
-                const response = await fetch('./isoteri-lab/game-logic.isoweb.json');
-                if (response.ok) {
-                    gameLobytecode = await response.json();
-                    useIsoteriCalculations = true;
-                    console.log('[Isoteri] Bytecode loaded, calculations enabled');
-                } else {
-                    console.warn('[Isoteri] Bytecode not found, using JS only');
-                }
-            } catch (e) {
-                console.warn('[Isoteri] Bytecode load failed:', e.message);
-            }
-        } catch (e) {
-            console.error('[Isoteri] Init error:', e);
+            console.error("[Isoteri] Init error:", e);
         }
     }
-    
-    // Hybrid wrapper: try Isoteri, fallback to JS
+
     function isoteriCall(funcName, ...args) {
         if (!useIsoteriCalculations || !isoteriVM) return null;
         try {
