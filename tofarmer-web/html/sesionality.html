@@ -429,33 +429,11 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="periodMode">Mode Periode Data</label>
-                            <select id="periodMode" onchange="handlePeriodModeChange()" class="form-control">
-                                <option value="rolling">Mundur dari sekarang</option>
-                                <option value="custom">Tanggal historis (Backtest)</option>
-                            </select>
-                        </div>
-
-                        <div id="rollingControls">
-                            <div class="form-group">
-                                <div class="slider-header">
-                                    <span>Range Window</span>
-                                    <span id="rangeVal" class="slider-val">20 Years</span>
-                                </div>
-                                <input type="range" id="rangeSlider" min="1" max="30" value="20" oninput="updateRangeLabel()">
+                            <div class="slider-header">
+                                <span>Range Window</span>
+                                <span id="rangeVal" class="slider-val">20 Years</span>
                             </div>
-                        </div>
-
-                        <div id="customControls" style="display:none;">
-                            <div class="form-group">
-                                <label for="startDate">Mulai Analisis</label>
-                                <input type="date" id="startDate" class="form-control">
-                            </div>
-                            <div class="form-group">
-                                <label for="endDate">Sampai Analisis</label>
-                                <input type="date" id="endDate" class="form-control">
-                            </div>
-                            <div id="periodHint" style="font-size:.68rem; color:#64748b; line-height:1.55; margin-top:-8px; margin-bottom:14px;"></div>
+                            <input type="range" id="rangeSlider" min="1" max="30" value="20" oninput="updateRangeLabel()">
                         </div>
 
                         <div class="form-group">
@@ -514,22 +492,6 @@
             document.getElementById("rangeVal").innerText = `${val} ${suffix}`;
         }
 
-        function handlePeriodModeChange() {
-            const mode = document.getElementById("periodMode").value;
-            document.getElementById("rollingControls").style.display = mode === "rolling" ? "block" : "none";
-            document.getElementById("customControls").style.display = mode === "custom" ? "block" : "none";
-            updatePeriodHint();
-        }
-
-        function updatePeriodHint() {
-            const tf = document.getElementById("tfSelect").value;
-            const hint = document.getElementById("periodHint");
-            if (!hint) return;
-            hint.innerText = tf === "Daily"
-                ? "Contoh: 2018-01-01 → 2024-12-31 untuk backtest seasonality tahunan."
-                : "Contoh: 2024-01-01 → 2024-12-31. Catatan: data 1H Yahoo Finance memiliki batas historis.";
-        }
-
         function handleTfChange() {
             const tf = document.getElementById("tfSelect").value;
             const slider = document.getElementById("rangeSlider");
@@ -539,36 +501,6 @@
                 slider.min = 4; slider.max = 104; slider.value = 52;
             }
             updateRangeLabel();
-            updatePeriodHint();
-        }
-
-        function validateCustomPeriod() {
-            const start = document.getElementById("startDate").value;
-            const end = document.getElementById("endDate").value;
-            if (!start || !end) throw new Error("Tanggal mulai dan tanggal akhir wajib diisi untuk mode Backtest.");
-
-            const startDate = new Date(`${start}T00:00:00`);
-            const endDate = new Date(`${end}T23:59:59`);
-            if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-                throw new Error("Format tanggal tidak valid.");
-            }
-            if (startDate >= endDate) throw new Error("Tanggal mulai harus lebih awal daripada tanggal akhir.");
-            return { start, end };
-        }
-
-        function getPeriodConfig(timeframe) {
-            const mode = document.getElementById("periodMode").value;
-            if (mode === "custom") {
-                const { start, end } = validateCustomPeriod();
-                return { mode, startDate: start, endDate: end, label: `${start} → ${end}` };
-            }
-
-            const rangeVal = parseInt(document.getElementById("rangeSlider").value);
-            return {
-                mode,
-                rangeVal,
-                label: `${periodConfig.label}`
-            };
         }
 
         function rollingMean(arr, windowSize) {
@@ -584,31 +516,30 @@
             return result;
         }
 
-        async function fetchYahooData(symbol, timeframe, periodConfig) {
+        async function fetchYahooData(symbol, timeframe, rangeVal) {
             let interval = "1d";
+            let range = `${rangeVal}y`;
 
             if (timeframe === "4H" || timeframe === "1H") {
                 interval = "1h";
+                range = "2y"; 
             }
 
-            let periodParams = "";
-            if (periodConfig.mode === "custom") {
-                const startUnix = Math.floor(new Date(`${periodConfig.startDate}T00:00:00`).getTime() / 1000);
-                const endUnix = Math.floor(new Date(`${periodConfig.endDate}T23:59:59`).getTime() / 1000);
-                periodParams = `period1=${startUnix}&period2=${endUnix}`;
-            } else {
-                periodParams = `range=${periodConfig.rangeVal}y`;
-            }
+            const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
 
-            const yahooBase = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&${periodParams}`;
-            const MY_WORKER_URL = "https://tofarmer-proxy.tofarmer-api.workers.dev/";
+            const MY_WORKER_URL = "https://tofarmer-proxy.tofarmer-api.workers.dev/"; 
+            
             const targetProxy = `${MY_WORKER_URL}/?url=${encodeURIComponent(yahooBase)}`;
 
             try {
                 const res = await fetch(targetProxy, { cache: 'no-store' });
-                if (!res.ok) throw new Error(`HTTP Error Status: ${res.status}`);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP Error Status: ${res.status}`);
+                }
 
                 const json = await res.json();
+
                 if (!json.chart || !json.chart.result || !json.chart.result[0]) {
                     throw new Error("Struktur data Yahoo Finance tidak valid.");
                 }
@@ -617,7 +548,9 @@
                 const timestamps = result.timestamp;
                 const closes = result.indicators.quote[0].close;
 
-                if (!timestamps || !closes) throw new Error("Data harga kosong.");
+                if (!timestamps || !closes) {
+                    throw new Error("Data harga kosong.");
+                }
 
                 let data = [];
                 for (let i = 0; i < timestamps.length; i++) {
@@ -630,6 +563,7 @@
                 }
 
                 if (data.length > 0) return data;
+                
                 throw new Error("Array data berukuran 0.");
             } catch (e) {
                 console.error("Worker fetch failed:", e);
@@ -640,6 +574,7 @@
         async function runAnalysis() {
             const symbol = document.getElementById("pairSelect").value;
             const timeframe = document.getElementById("tfSelect").value;
+            const rangeVal = parseInt(document.getElementById("rangeSlider").value);
             const smoothVal = parseInt(document.getElementById("smoothSlider").value);
 
             const reportBox = document.getElementById("reportContainer");
@@ -650,9 +585,7 @@
             reportBox.innerHTML = '<span style="color: #fde047;">> Mengambil data historis pasar via Yahoo Finance...</span>';
 
             try {
-                const periodConfig = getPeriodConfig(timeframe);
-                const rawData = await fetchYahooData(symbol, timeframe, periodConfig);
-                if (rawData.length < 2) throw new Error("Data historis terlalu sedikit untuk menghitung return.");
+                const rawData = await fetchYahooData(symbol, timeframe, rangeVal);
                 
                 let returns = [];
                 for (let i = 1; i < rawData.length; i++) {
@@ -732,8 +665,8 @@
                     labels[96] = 'FRI';
                 }
 
-                renderChart(matrixData, labels, symbol, timeframe, periodConfig);
-                generateReport(matrixData, timeframe, periodConfig);
+                renderChart(matrixData, labels, symbol, timeframe, rangeVal);
+                generateReport(matrixData, timeframe);
 
             } catch (err) {
                 reportBox.innerHTML = `<span style="color: #ef4444;">Sync Error: ${err.message}</span>`;
@@ -786,7 +719,7 @@
             }
         };
 
-        function renderChart(data, xLabels, symbol, timeframe, periodConfig) {
+        function renderChart(data, xLabels, symbol, timeframe, rangeVal) {
             const ctx = document.getElementById('matrixChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
 
@@ -797,7 +730,7 @@
                 data: {
                     labels: xLabels,
                     datasets: [{
-                        label: `${timeframe.toUpperCase()} MATRIX - ToFarmer: ${displayPair} (${periodConfig.label})`,
+                        label: `${timeframe.toUpperCase()} MATRIX - ToFarmer: ${displayPair} (${rangeVal} ${timeframe === "Daily" ? "Years" : "Weeks"})`,
                         data: data,
                         borderColor: '#4ade80',
                         backgroundColor: 'rgba(74, 222, 128, 0.05)',
@@ -844,7 +777,7 @@
             });
         }
 
-        function generateReport(data, timeframe, periodConfig) {
+        function generateReport(data, timeframe) {
             const reportBox = document.getElementById("reportContainer");
             const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
             document.getElementById("reportTime").innerText = `[${now}]`;
@@ -858,7 +791,6 @@
             ];
 
             let html = `<div style="color: #f8fafc; font-weight: bold; margin-bottom: 6px;">=== ToFarmer INTELLIGENCE MATRIX ===</div>`;
-            html += `<div style="color:#94a3b8; margin-bottom:8px;">Data Window: ${periodConfig.label}</div>`;
 
             bounds.forEach(([start, end, name]) => {
                 if (start < data.length && end < data.length) {
@@ -895,16 +827,6 @@
             a.click();
             document.body.removeChild(a);
         }
-
-        (function initPeriodControls() {
-            const end = new Date();
-            const start = new Date(end);
-            start.setFullYear(start.getFullYear() - 5);
-            const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-            document.getElementById("startDate").value = fmt(start);
-            document.getElementById("endDate").value = fmt(end);
-            updatePeriodHint();
-        })();
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
