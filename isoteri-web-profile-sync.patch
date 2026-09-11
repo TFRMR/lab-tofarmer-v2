@@ -1,0 +1,191 @@
+diff --git a/tofarmer-web/isoteri-lab/pengetahuan-isoteri.js b/tofarmer-web/isoteri-lab/pengetahuan-isoteri.js
+--- a/tofarmer-web/isoteri-lab/pengetahuan-isoteri.js
++++ b/tofarmer-web/isoteri-lab/pengetahuan-isoteri.js
+@@ -1,16 +1,36 @@
+-// Pengetahuan Bahasa Isoteri -- basis pengetahuan LENGKAP buat AI Studio.
++// Pengetahuan Isoteri Web -- basis pengetahuan lengkap untuk AI Studio.
+ // Disusun dari docs/REFERENSI.md, docs/KETERBATASAN.md, runtime/web/README.md,
+ // dan docs/FILOSOFI.md milik proyek Isoteri asli (per September 2026).
+ // Dipakai untuk DUA hal sekaligus:
+ //   1. Konteks penuh yang dikirim ke Gemini tiap kali generate/konversi halaman
+ //      (BUKAN retrieval-berbasis-kata-kunci yang rapuh -- seluruh isi ini muat
+ //      nyaman di jendela konteks model modern, jadi tidak ada risiko "informasi
+ //      penting kelewat gara-gara kata kuncinya gak ketebak").
+ //   2. Panel referensi yang bisa dicari di UI Studio (searchable, bukan cuma
+ //      "hasil RAG" yang muncul-hilang).
+ //
++// BATAS PROFIL:
++// File ini merepresentasikan PROFIL ISOTERI UNTUK WEB/APPLICATION STUDIO,
++// bukan keseluruhan toolchain native Isoteri. Fitur native seperti JIT
++// Cranelift, AOT executable, IR internal, package/test CLI, filesystem
++// sinkron, dan `ulang selaras` tidak boleh dipresentasikan sebagai fitur
++// browser bila memang tidak tersedia di runtime web.
++//
++// SUMBER KEBENARAN RUNTIME:
++// runtime/web/isoteri-vm.js pada repo Isoteri adalah runtime browser yang
++// dipakai Studio. Jika runtime berubah, audit profil ini terhadap
++// runtime/web/README.md sebelum menambah atau menghapus API dari knowledge.
++//
+ // Struktur: array {kategori, judul, isi} -- 'isi' pakai Markdown ringan
+ // (heading kecil, code fence) supaya gampang dirender apa adanya di panel
+ // maupun dikirim mentah sebagai teks prompt.
+
+ const PENGETAHUAN_ISOTERI = [
++
++{
++  kategori: "Profil Web",
++  judul: "Batas Kemampuan: Isoteri Web vs Native",
++  isi: `Studio ini menargetkan **Isoteri sebagai application language di atas standar web**:
++HTML untuk struktur, CSS untuk presentasi, dan Isoteri untuk application logic/behavior.
++
++| Area | Status di Studio Web | Catatan |
++|---|---|---|
++| Bahasa inti | DIDUKUNG | Variabel, kontrol alur, fungsi/closure, bentuk, koleksi, error handling, builtin, dll. |
++| Bytecode + VM browser | DIDUKUNG | Output \`isoteri ekspor-web\` dijalankan oleh \`isoteri-vm.js\`. |
++| DOM / event / form | DIDUKUNG | Gunakan API \`dom_*\`, bukan manipulasi DOM JavaScript langsung. |
++| localStorage | DIDUKUNG | Gunakan \`simpan_lokal\`, \`ambil_lokal\`, \`hapus_lokal\`. |
++| Timer | DIDUKUNG | Gunakan \`tunda\`, \`interval_mulai\`, \`interval_hentikan\`. |
++| Async fetch | DIDUKUNG | Gunakan \`unduh_async\` / \`unduh_lanjut_async\`. |
++| Router / state / component | DIDUKUNG | Gunakan API rute, state, dan komponen Isoteri web. |
++| Canvas 2D | DIDUKUNG | Ikuti API Canvas yang terdokumentasi di \`runtime/web/README.md\`. |
++| WebSocket | DIDUKUNG | Ikuti API WebSocket yang terdokumentasi di \`runtime/web/README.md\`. |
++| JIT Cranelift | TIDAK BERLAKU DI BROWSER | JIT native tetap merupakan jalur runtime native; web VM menjalankan bytecode. |
++| AOT executable | TIDAK BERLAKU DI STUDIO | Gunakan toolchain native untuk binary standalone. |
++| IR internal | TIDAK BERLAKU SEBAGAI API WEB | Jangan mengarang API IR untuk halaman web. |
++| Package manager / CLI test | DI LUAR PROFIL WEB | Ini bagian toolchain Isoteri native/project, bukan API browser. |
++| \`ulang selaras\` | TIDAK DIDUKUNG DI WEB | Fitur paralel native; jangan dipakai untuk halaman web. |
++| \`unduh()\` sinkron | TIDAK DIDUKUNG DI WEB | Gunakan async fetch web. |
++| \`baca_berkas()\` / \`tulis_berkas()\` | TIDAK DIDUKUNG DI WEB | Browser sandbox tidak menyediakan filesystem sinkron seperti native. |
++
++**Aturan AI Studio:** jangan menyebut profil web ini sebagai "seluruh implementasi Isoteri".
++Gunakan istilah **Isoteri Web/Application Profile** atau **fitur Isoteri yang tersedia di browser**.
++Jika sebuah kebutuhan tidak punya API web yang terdokumentasi, jangan mengarang nama fungsi.
++`,
++},
+
+ // =====================================================================
+ // BAHASA INTI
+ // =====================================================================
+diff --git a/tofarmer-web/isoteri-lab/app.js b/tofarmer-web/isoteri-lab/app.js
+--- a/tofarmer-web/isoteri-lab/app.js
++++ b/tofarmer-web/isoteri-lab/app.js
+@@ -1,9 +1,9 @@
+-// Isoteri AI Studio -- logic aplikasi.
++// Isoteri Web/Application Studio -- logic aplikasi.
+ // PENTING (baca ini kalau mau extend): file JS ini adalah TOOLING STUDIO itu
+ // sendiri (berjalan di browser untuk membangun halaman), BUKAN bagian dari
+ // halaman OUTPUT yang dihasilkan. Halaman OUTPUT (lihat buildFullHtml())
+ // cuma dapat ~10 baris JS loader murni (fetch bundle + jalankan VM) --
+ // SELURUH logika aplikasi di halaman output ditulis Isoteri (.iso), bukan
+ // di sini. Lihat pengetahuan-isoteri.js untuk basis pengetahuan AI-nya.
+@@ -50,7 +50,7 @@
+
+-  return `Kamu adalah asisten ahli Bahasa Isoteri -- bahasa scripting bersintaks Indonesia yang dipakai sebagai PENGGANTI JavaScript untuk logika interaktif halaman web (compiler asli ditulis Rust, jalan di browser lewat bytecode yang sudah dikompilasi).
++  return `Kamu adalah asisten ahli Isoteri Web/Application Profile -- Bahasa Isoteri dipakai sebagai application language untuk logika interaktif halaman web di atas HTML/CSS/browser standards (compiler asli ditulis Rust, output web berjalan lewat bytecode + VM browser).
+
+ ${ATURAN_OUTPUT}
+
+ [REFERENSI LENGKAP BAHASA ISOTERI -- PATUHI PERSIS SINTAKS & FUNGSI BAWAAN INI, JANGAN MENGARANG SINTAKS/FUNGSI YANG TIDAK ADA DI SINI]
+
+ ${bangunKontekPengetahuan()}
+
+ [AKHIR REFERENSI]
+
+ ${tugas}`;
+ }
+diff --git a/tofarmer-web/isoteri-lab/ISOTERI_WEB_PROFILE.md b/tofarmer-web/isoteri-lab/ISOTERI_WEB_PROFILE.md
+new file mode 100644
+--- /dev/null
++++ b/tofarmer-web/isoteri-lab/ISOTERI_WEB_PROFILE.md
+@@ -0,0 +1,73 @@
++# Isoteri Web/Application Profile
++
++Dokumen ini adalah kontrak praktis untuk `isoteri-lab`.
++
++## Tujuan
++
++`isoteri-lab` bukan salinan seluruh toolchain Isoteri. Ia adalah **Web/Application Profile**:
++
++- HTML tetap menangani struktur.
++- CSS tetap menangani presentasi.
++- Isoteri menangani application logic dan behavior.
++- Browser/Web APIs dipakai melalui API web Isoteri yang terdokumentasi.
++- JavaScript residual hanya boleh dipakai jika memang belum ada padanan API Isoteri.
++
++Dengan model ini, Studio tetap mewakili kemampuan Isoteri yang relevan untuk aplikasi web tanpa mengklaim bahwa browser menjalankan seluruh runtime native.
++
++## Capability Matrix
++
++| Kapabilitas | Profil Web | Kebijakan |
++|---|---|---|
++| Sintaks dan bahasa inti | Ya | Jadikan knowledge utama AI. |
++| Bytecode web + `isoteri-vm.js` | Ya | Runtime harus mengikuti `runtime/web/isoteri-vm.js`. |
++| DOM | Ya | Gunakan `dom_*`. |
++| Event | Ya | Gunakan `dom_ketika` / API event terkait. |
++| Form | Ya | Gunakan API form Isoteri. |
++| localStorage | Ya | Gunakan `simpan_lokal`, `ambil_lokal`, `hapus_lokal`. |
++| Timer | Ya | Gunakan `tunda`, `interval_mulai`, `interval_hentikan`. |
++| Async fetch | Ya | Gunakan `unduh_async` / `unduh_lanjut_async`. |
++| Router | Ya | Gunakan `rute_*`. |
++| State | Ya | Gunakan `state_*`. |
++| Components | Ya | Gunakan `komponen_*`. |
++| Canvas 2D | Ya | Ikuti API yang ada di `runtime/web/README.md`. |
++| WebSocket | Ya | Ikuti API yang ada di `runtime/web/README.md`. |
++| JIT Cranelift | Tidak | Native-only concern; bukan API browser. |
++| AOT executable | Tidak | Native build concern. |
++| IR internal | Tidak | Jangan diekspos sebagai API Studio. |
++| Package manager / CLI | Tidak | Toolchain project, bukan runtime halaman. |
++| `ulang selaras` | Tidak | Deliberately unsupported oleh web export. |
++| `unduh()` sinkron | Tidak | Gunakan async web API. |
++| `baca_berkas()` | Tidak | Tidak cocok dengan browser sandbox. |
++| `tulis_berkas()` | Tidak | Tidak cocok dengan browser sandbox. |
++
++## Source of Truth
++
++Saat Isoteri berubah, audit Studio terhadap:
++
++1. `docs/REFERENSI.md`
++2. `docs/KETERBATASAN.md`
++3. `runtime/web/README.md`
++4. `runtime/web/isoteri-vm.js`
++
++Jangan menganggap README Studio atau prompt AI sebagai sumber kebenaran runtime.
++
++## Runtime Synchronization
++
++Pada audit September 2026, `isoteri-lab/isoteri-vm.js` identik dengan
++`runtime/web/isoteri-vm.js` dari repo Isoteri. Pertahankan invariant ini.
++
++Jika runtime berubah:
++
++```bash
++cp ../isoteri/runtime/web/isoteri-vm.js tofarmer-web/isoteri-lab/isoteri-vm.js
++```
++
++atau lakukan sinkronisasi melalui mekanisme CI/release yang lebih tepat.
++
++## WASM
++
++Repo Isoteri juga memiliki jalur compiler WASM-native untuk browser yang menghasilkan
++format JSON yang dikonsumsi VM web yang sama. Jalur ini **bukan alasan untuk mengganti VM
++Studio sekarang**. Studio tetap boleh memakai JSON + VM selama capability matrix-nya jelas.
++
++Jika WASM-native menjadi jalur produksi, tambahkan capability/test gate tersendiri; jangan
++diam-diam mengklaim bahwa Studio sudah memakai native machine code di browser.
++
++## Residual JavaScript
++
++Output Studio harus mengutamakan Isoteri. `JS_SISA` hanya boleh berisi API browser yang
++benar-benar belum memiliki padanan Isoteri yang terdokumentasi. Setiap residual JS harus
++memiliki alasan singkat dan tidak boleh menggantikan API Isoteri yang sudah tersedia.
++
++## Definition of Done
++
++Perubahan pada `isoteri-lab` dianggap selaras jika:
++
++- runtime web sama dengan sumber kebenaran;
++- capability matrix tetap eksplisit;
++- prompt AI tidak mengklaim fitur native sebagai fitur browser;
++- fitur web baru ditambahkan ke knowledge setelah diverifikasi di `runtime/web/README.md`;
++- unsupported web features tetap ditandai unsupported, bukan disimulasikan dengan sintaks palsu;
++- contoh/demo web diuji dengan compiler/export web yang aktual.
