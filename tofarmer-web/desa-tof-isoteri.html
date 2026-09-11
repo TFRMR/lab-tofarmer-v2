@@ -558,11 +558,35 @@
     
     async function initIsoteriVM() {
         try {
-            // Load isoteri-vm.js (should be in isoteri-lab folder)
-            if (typeof window.IsoteriVM !== 'undefined') {
-                isoteriVM = new window.IsoteriVM(gameLobytecode, { tampilkan: (text) => console.log(text) });
-                console.log('[Isoteri] VM loaded');
-            } else {
+            // Check VM available
+            if (typeof window.IsoteriVM === 'undefined') {
+                console.warn('[Isoteri] VM not available, JS fallback only');
+                return;
+            }
+            
+            // Load bytecode FIRST
+            let bytecode = null;
+            try {
+                const response = await fetch('./isoteri-lab/game-logic.isoweb.json');
+                if (!response.ok) {
+                    console.warn('[Isoteri] Bytecode not found (404), using JS only');
+                    return;
+                }
+                bytecode = await response.json();
+                console.log('[Isoteri] Bytecode loaded');
+            } catch (e) {
+                console.warn('[Isoteri] Bytecode load failed:', e.message);
+                return;
+            }
+            
+            // THEN create VM with bytecode
+            isoteriVM = new window.IsoteriVM(bytecode, { tampilkan: (text) => console.log(text) });
+            useIsoteriCalculations = true;
+            console.log('[Isoteri] VM loaded, calculations enabled');
+        } catch (e) {
+            console.error('[Isoteri] Init error:', e);
+        }
+    } else {
                 console.warn('[Isoteri] VM not available, JS fallback only');
                 return;
             }
