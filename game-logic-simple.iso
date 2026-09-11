@@ -1,0 +1,88 @@
+catatan: ToFarmer Game Logic - Isoteri version
+
+ingat WATER_MAX_STOCK = 10
+ingat BERINGIN_HEALTH_THRESHOLD_HIGH = 70
+ingat BERINGIN_HEALTH_THRESHOLD_LOW = 30
+ingat WATER_REGEN_MINUTES_NORMAL = 5
+ingat WATER_REGEN_MINUTES_MEDIUM = 60
+ingat WATER_REGEN_MINUTES_LOW = 360
+
+fungsi menit(a, b) {
+  kalau (a < b) {
+    kembalikan a
+  } lainnya {
+    kembalikan b
+  }
+}
+
+fungsi maksimal(a, b) {
+  kalau (a > b) {
+    kembalikan a
+  } lainnya {
+    kembalikan b
+  }
+}
+
+fungsi hitungBonus(yieldDariGaya, speedDariGaya, yieldDariDekorasi, speedDariDekorasi, beringinHealthPct) {
+  ingat yieldTotal = yieldDariGaya + yieldDariDekorasi
+  ingat speedTotal = speedDariGaya + speedDariDekorasi
+  
+  kalau (beringinHealthPct >= BERINGIN_HEALTH_THRESHOLD_HIGH) {
+    yieldTotal = yieldTotal + 5.0
+    speedTotal = speedTotal + 5.0
+  }
+  
+  yieldTotal = menit(yieldTotal, 100.0)
+  speedTotal = menit(speedTotal, 60.0)
+  
+  kembalikan yieldTotal
+}
+
+fungsi hitungRewardPanen(rewardXpBase, yieldPctBonus, plantCostXp, waterRequired) {
+  ingat yieldMultiplier = 1.0 + (yieldPctBonus / 100.0)
+  ingat baseReward = rewardXpBase * yieldMultiplier
+  ingat totalCostXp = plantCostXp + waterRequired
+  ingat minReward = maksimal(50.0, totalCostXp * 2.0)
+  
+  kembalikan maksimal(baseReward, minReward)
+}
+
+fungsi estimasiStokAir(currentStock, lastRegenAtMs, hasOwnGayam, beringinHealthPct, nowMs) {
+  kalau (currentStock >= WATER_MAX_STOCK) {
+    kembalikan WATER_MAX_STOCK
+  }
+  
+  ingat regenMinutes = 0
+  kalau (hasOwnGayam) {
+    regenMinutes = WATER_REGEN_MINUTES_NORMAL
+  } lainnya kalau (beringinHealthPct <= 0.0) {
+    kembalikan currentStock
+  } lainnya kalau (beringinHealthPct < BERINGIN_HEALTH_THRESHOLD_LOW) {
+    regenMinutes = WATER_REGEN_MINUTES_LOW
+  } lainnya kalau (beringinHealthPct < BERINGIN_HEALTH_THRESHOLD_HIGH) {
+    regenMinutes = WATER_REGEN_MINUTES_MEDIUM
+  } lainnya {
+    regenMinutes = WATER_REGEN_MINUTES_NORMAL
+  }
+  
+  ingat elapsedMs = nowMs - lastRegenAtMs
+  ingat elapsedMinutes = elapsedMs / 60000.0
+  ingat regenUnits = elapsedMinutes / regenMinutes
+  
+  ingat newStock = currentStock + regenUnits
+  kembalikan menit(WATER_MAX_STOCK, newStock)
+}
+
+fungsi validasiTanam(lahanKosong, pupukCount, bibitCount, pupukRequired, bibitRequired) {
+  kalau (!lahanKosong) {
+    kembalikan salah
+  }
+  kalau (pupukCount < pupukRequired) {
+    kembalikan salah
+  }
+  kalau (bibitCount < bibitRequired) {
+    kembalikan salah
+  }
+  
+  kembalikan benar
+}
