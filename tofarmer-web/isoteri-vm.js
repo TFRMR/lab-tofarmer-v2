@@ -295,6 +295,41 @@ class IsoteriVM {
     }
   }
 
+  /** API publik: panggil fungsi Isoteri by-nama dari JS, dengan argumen & hasil
+   *  auto-encode/decode dari/ke tipe JS primitif (number/string/boolean/null/array).
+   *  Melempar IsoteriError kalau nama fungsi tidak ditemukan atau argumen salah jumlah. */
+  panggil(namaFungsi, argsJs = []) {
+    const idx = this.namaKeIndeks[namaFungsi];
+    if (idx === undefined) throw new IsoteriError(`Fungsi "${namaFungsi}" tidak ditemukan.`);
+    const argumen = argsJs.map((a) => this._encodeJs(a));
+    const hasil = this.panggilFungsiDenganArgumen(idx, argumen);
+    return this._decodeJs(hasil);
+  }
+
+  /** JS primitif -> Isoteri Value. */
+  _encodeJs(a) {
+    if (a === null || a === undefined) return KOSONG;
+    if (typeof a === "boolean") return { t: "Bool", v: a };
+    if (typeof a === "number") return Number.isInteger(a) ? { t: "Angka", v: a } : { t: "Desimal", v: a };
+    if (typeof a === "string") return { t: "Teks", v: a };
+    if (Array.isArray(a)) return { t: "Daftar", v: a.map((x) => this._encodeJs(x)) };
+    throw new IsoteriError(`Tipe argumen JS tidak didukung untuk panggil(): ${typeof a}`);
+  }
+
+  /** Isoteri Value -> JS primitif. */
+  _decodeJs(v) {
+    switch (v.t) {
+      case "Angka": case "Desimal": return v.v;
+      case "Teks": return v.v;
+      case "Bool": return v.v;
+      case "Kosong": return null;
+      case "Daftar": return v.v.map((x) => this._decodeJs(x));
+      case "Peta": return Object.fromEntries(v.v.map(([k, vv]) => [k, this._decodeJs(vv)]));
+      case "Instans": return Object.fromEntries(v.v.map(([k, vv]) => [k, this._decodeJs(vv)]));
+      default: return v;
+    }
+  }
+
   /** Setara panggil_fungsi_dengan_argumen() -- dipakai closure (PanggilNilai) & callback bawaan. */
   panggilFungsiDenganArgumen(idx, argumen) {
     const f = this.fungsi[idx];
@@ -1745,9 +1780,6 @@ function valueKeJsonStr(v) {
   }
 }
 
-if (typeof window !== "undefined") {
-  window.IsoteriVM = IsoteriVM;
-}
 if (typeof module !== "undefined" && module.exports) {
   module.exports = { IsoteriVM, IsoteriError };
 }

@@ -578,6 +578,7 @@
             }
             
             isoteriVM = new window.IsoteriVM(bytecode, { tampilkan: (text) => console.log(text) });
+            isoteriVM.jalankan(); // WAJIB: init semua variabel global top-level sebelum panggil() dipakai
             useIsoteriCalculations = true;
             console.log("[Isoteri] VM loaded, calculations enabled");
         } catch (e) {
@@ -588,7 +589,7 @@
     function isoteriCall(funcName, ...args) {
         if (!useIsoteriCalculations || !isoteriVM) return null;
         try {
-            const result = isoteriVM.call(funcName, args);
+            const result = isoteriVM.panggil(funcName, args);
             return result;
         } catch (e) {
             console.warn(`[Isoteri] ${funcName} failed, fallback to JS`);
