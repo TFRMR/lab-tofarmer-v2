@@ -592,7 +592,7 @@
             const result = isoteriVM.panggil(funcName, args);
             return result;
         } catch (e) {
-            console.warn(`[Isoteri] ${funcName} failed, fallback to JS`);
+            console.warn(`[Isoteri] ${funcName} failed, fallback to JS:`, e.message);
             return null;
         }
     }
@@ -892,7 +892,7 @@
 
     // ============== PEMBIBITAN 🌱 (dari nol jadi bibit siap tanam) ==============
     async function refreshPembibitanPanel() {
-        const gudangEl = document.getElementById('pembibitan-gudang');
+        const gudangEl = document.getElementById('pembibitan-inline-gudang');
         const listEl = document.getElementById('pembibitan-list');
         try {
             const [{ data: gudang }, { data: proses }] = await Promise.all([
