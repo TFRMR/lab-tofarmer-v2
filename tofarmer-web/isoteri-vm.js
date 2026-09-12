@@ -1780,6 +1780,10 @@ function valueKeJsonStr(v) {
   }
 }
 
+if (typeof window !== "undefined") {
+  window.IsoteriVM = IsoteriVM;
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = { IsoteriVM, IsoteriError };
 }
