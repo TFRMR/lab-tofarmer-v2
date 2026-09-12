@@ -86,3 +86,11 @@ fungsi validasiTanam(lahanKosong, pupukCount, bibitCount, pupukRequired, bibitRe
   
   kembalikan benar
 }
+
+fungsi hitungWaktuTumbuhMs(growSeconds, speedPctBonus, prunedCount) {
+  ingat detik = growSeconds * (1.0 - speedPctBonus / 100.0) * (1.0 - (prunedCount * 0.1))
+  kalau (detik < 10.0) {
+    detik = 10.0
+  }
+  kembalikan detik * 1000.0
+}
