@@ -894,6 +894,7 @@
     async function refreshPembibitanPanel() {
         const gudangEl = document.getElementById('pembibitan-inline-gudang');
         const listEl = document.getElementById('pembibitan-list');
+        if (!gudangEl) return; // Panel pembibitan-list belum ada di modal ini; skip diam-diam.
         try {
             const [{ data: gudang }, { data: proses }] = await Promise.all([
                 db.from('inventaris_bibit').select('bibit_id, qty, bibit_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
@@ -903,6 +904,8 @@
             gudangEl.innerHTML = (gudang && gudang.length)
                 ? '🎒 Gudang bibit: ' + gudang.map(g => `${(g.bibit_catalog && g.bibit_catalog.nama) || g.bibit_id} ×${g.qty}`).join(', ')
                 : '🎒 Gudang bibit masih kosong.';
+
+            if (!listEl) return;
 
             if (!proses || !proses.length) {
                 listEl.innerHTML = '<p style="font-size:11px; color:#94a3b8; text-align:center;">Belum ada proses pembibitan berjalan.</p>';
@@ -941,8 +944,8 @@
                 </div>`;
             }).join('');
         } catch (e) {
-            gudangEl.innerText = 'Gagal memuat gudang bibit.';
-            listEl.innerHTML = '';
+            if (gudangEl) gudangEl.innerText = 'Gagal memuat gudang bibit.';
+            if (listEl) listEl.innerHTML = '';
         }
     }
 
