@@ -1,0 +1,47 @@
+# Run this Python script to fix the function
+
+import re
+
+with open('desa-tof-isoteri.html', 'r') as f:
+    content = f.read()
+
+# Find and replace function
+pattern = r'    async function initIsoteriVM\(\) \{[\s\S]*?    \}'
+replacement = '''    async function initIsoteriVM() {
+        try {
+            // Check VM available
+            if (typeof window.IsoteriVM === 'undefined') {
+                console.warn('[Isoteri] VM not available, JS fallback only');
+                return;
+            }
+            
+            // Load bytecode FIRST
+            let bytecode = null;
+            try {
+                const response = await fetch('./isoteri-lab/game-logic.isoweb.json');
+                if (!response.ok) {
+                    console.warn('[Isoteri] Bytecode not found (404), using JS only');
+                    return;
+                }
+                bytecode = await response.json();
+                console.log('[Isoteri] Bytecode loaded');
+            } catch (e) {
+                console.warn('[Isoteri] Bytecode load failed:', e.message);
+                return;
+            }
+            
+            // THEN create VM with bytecode
+            isoteriVM = new window.IsoteriVM(bytecode, { tampilkan: (text) => console.log(text) });
+            useIsoteriCalculations = true;
+            console.log('[Isoteri] VM loaded, calculations enabled');
+        } catch (e) {
+            console.error('[Isoteri] Init error:', e);
+        }
+    }'''
+
+new_content = re.sub(pattern, replacement, content)
+
+with open('desa-tof-isoteri.html', 'w') as f:
+    f.write(new_content)
+
+print("Fixed!")

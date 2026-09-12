@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToFarmer - QR Centric App</title>
+  
+  <!-- MANIFEST INLINE UNTUK SENSASI INSTAL MURNI -->
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22ToFarmer%20QR%22%2C%22short_name%22%3A%22ToFarmer%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f7f5%22%2C%22theme_color%22%3A%22%232f6f4e%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%3E%3Ccircle%20cx%3D'50'%20cy%3D'50'%20r%3D'46'%20fill%3D'%23ffffff'%20stroke%3D'%232f6f4e'%20stroke-width%3D'6'%2F%3E%3Ctext%20x%3D'50'%20y%3D'58'%20font-size%3D'28'%20font-weight%3D'900'%20text-anchor%3D'middle'%20fill%3D'%232f6f4e'%3ETOF%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
+  
+  <!-- ENGINE QR CODE GENERATOR & SCANNER -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+    body { background: #f4f7f5; color: #1c2b22; padding-bottom: 80px; }
+    .container { max-width:1100px; margin:auto; padding:1rem; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; padding:1rem 0; border-bottom: 1px solid #e0e8e3; margin-bottom: 15px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#2f6f4e; font-weight:bold; }
+    .logo-icon { width:42px; height:42px; border-radius:50%; background: #fff; border:2px solid #2f6f4e; display:flex; align-items:center; justify-content:center; font-weight:900; color:#2f6f4e; }
+    
+    /* LOGIN VIA QR BUTTON */
+    .btn-login-qr { background: #2f6f4e; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+    /* INSTAL BANNER */
+    .pwa-banner { background: #ffffff; border: 1px solid rgba(76,175,122,0.3); border-radius: 16px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .pwa-btn { background: linear-gradient(90deg,#4caf7a,#c9a227); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+
+    /* MAIN LAYOUT */
+    .layout { display:flex; gap:20px; }
+    .left { width:340px; }
+    .right { flex:1; }
+
+    .card { background:#ffffff; border-radius:16px; padding:18px; margin-bottom:15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.05); }
+    .card h3 { font-size: 14px; color: #2f6f4e; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+    /* GENERATOR & SCANNER BOX */
+    .qr-input-box { display: flex; gap: 8px; margin-bottom: 12px; }
+    .qr-input-box input { flex: 1; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 12px; outline: none; }
+    .qr-input-box input:focus { border-color: #2f6f4e; }
+    
+    .qr-trigger-box { border: 2px dashed #4caf7a; background: #f8fcf9; border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; }
+    .qr-trigger-box:hover { background: #e9f4ee; transform: scale(1.01); }
+
+    /* GRID FEED MANIAK QR */
+    .qr-grid-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; max-height: 520px; overflow-y: auto; padding-right: 5px; }
+    .qr-card-item { background: #fff; border: 1px solid #e0e8e3; border-radius: 14px; padding: 12px; text-align: center; transition: 0.2s; position: relative; }
+    .qr-card-item:hover { border-color: #2f6f4e; box-shadow: 0 4px 14px rgba(47,111,78,0.15); }
+    .qr-card-item .qr-holder { margin: 10px auto; display: flex; justify-content: center; }
+    
+    .hidden-text { filter: blur(4px); user-select: none; font-size: 11px; color: #777; margin-top: 6px; transition: 0.3s; }
+    .qr-card-item:hover .hidden-text { filter: blur(0); }
+
+    /* SCANNER MODAL */
+    #scannerModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
+    #reader { width: 100%; max-width: 320px; border-radius: 16px; overflow: hidden; border: 2px solid #4caf7a; }
+
+    @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <a href="#" class="brand">
+        <div class="logo-icon">TOF</div>
+        <div>
+          <div style="font-size: 16px;">ToFarmer</div>
+          <div style="font-size: 10px; color:#6f7f76; font-weight: normal;">QR-Only Matrix Network</div>
+        </div>
+      </a>
+      <button class="btn-login-qr" onclick="triggerQRLogin()">
+        <span>📷</span> Login Scan QR ID
+      </button>
+    </header>
+
+    <!-- INSTAL PWA DIRECT TRIGGER -->
+    <div class="pwa-banner" id="pwaBanner">
+      <div>
+        <h4 style="font-size: 12px; color:#2f6f4e;">Pasang Aplikasi ToFarmer</h4>
+        <span style="font-size: 10px; color:#6f7f76;">Ketik langsung ke layar depan HP kamu</span>
+      </div>
+      <button class="pwa-btn" id="btnDirectInstall" onclick="executeInstall()">⚡ Instal 5 Detik</button>
+    </div>
+
+    <div class="layout">
+      
+      <!-- KIRI: INPUT QR & PEMINDAI -->
+      <div class="left">
+        <!-- SIMULASI INPUT TEKS -> QR CODE -->
+        <div class="card">
+          <h3>⚡ Cetak QR Baru Instan</h3>
+          <div class="qr-input-box">
+            <input type="text" id="qrTextInput" placeholder="Ketik teks/transaksi lalu Enter..." onkeydown="handleKeyPress(event)">
+          </div>
+          <span style="font-size: 10px; color: #888;">Ketik pesan/setoran lalu tekan <b>Enter</b> untuk ubah jadi QR Code di Feed.</span>
+        </div>
+
+        <!-- CAMERA SCANNER TRIGGER -->
+        <div class="card">
+          <h3>🔍 Pindai QR Apa Saja</h3>
+          <div class="qr-trigger-box" onclick="openScanner('scan_general')">
+            <div style="font-size: 32px; margin-bottom: 6px;">📷</div>
+            <h4 style="font-size: 13px; color: #2f6f4e;">Buka Kamera Pemindai</h4>
+            <span style="font-size: 10px; color: #6f7f76;">Dekodekan QR Feed atau QR Fisik</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KANAN: FEED MANIAK QR CODE -->
+      <div class="right">
+        <div class="card">
+          <h3>🟩 Feed Aktivitas Matriks (QR Code Only)</h3>
+          <p style="font-size: 11px; color: #6f7f76; margin-bottom: 12px;">
+            Semua aktivitas di-enkripsi menjadi Kode QR. Arahkan kursor/kamera untuk membaca isi datanya.
+          </p>
+          
+          <div class="qr-grid-feed" id="qrFeedGrid">
+            <!-- QR Items di-generate otomatis via JavaScript -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL KAMERA AUTO SCAN -->
+  <div id="scannerModal">
+    <h4 style="color: white; margin-bottom: 12px; font-size: 13px;">Arahkan Kamera ke Kode QR...</h4>
+    <div id="reader"></div>
+    <button style="margin-top: 15px; padding: 8px 20px; background: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="closeScanner()">Tutup</button>
+  </div>
+
+  <script>
+    let html5QrcodeScanner = null;
+    let deferredPrompt = null;
+    let currentScanMode = 'general';
+
+    // Data Awal Feed (Maniak QR)
+    const initialFeedData = [
+      { id: "TOF-001", title: "Setoran Pak Min", text: "Kompos Matang 30kg - Pak Min (#TOF-KMP-30)", tag: "Hulu (+30 TOF)" },
+      { id: "TOF-002", title: "Transaksi Kedai", text: "1x Beans Arabika Menoreh Terjual (#TOF-KOP-88)", tag: "Hilir (Kasir)" },
+      { id: "TOF-003", title: "ID Petani Budi", text: "USER_ID: BUDI_SANTOSO_MENOREH_ZONE_1", tag: "Identity" }
+    ];
+
+    window.onload = () => {
+      renderQRFeed();
+    };
+
+    // 1. GENERATE MATRIX FEED BERBASIS QR CODE
+    function renderQRFeed() {
+      const grid = document.getElementById("qrFeedGrid");
+      grid.innerHTML = "";
+
+      initialFeedData.forEach((item, index) => {
+        const card = document.createElement("div");
+        card.className = "qr-card-item";
+        
+        const qrContainerId = `qr-target-${index}`;
+        
+        card.innerHTML = `
+          <div style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${item.title}</div>
+          <div class="qr-holder" id="${qrContainerId}"></div>
+          <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${item.tag}</span>
+          <div class="hidden-text">${item.text}</div>
+        `;
+
+        grid.appendChild(card);
+
+        // Render QR Code untuk setiap item
+        setTimeout(() => {
+          new QRCode(document.getElementById(qrContainerId), {
+            text: item.text,
+            width: 110,
+            height: 110,
+            colorDark : "#1c2b22",
+            colorLight : "#ffffff"
+          });
+        }, 50);
+      });
+    }
+
+    // 2. INPUT TEKS -> CONVERT KE QR FEED LANGSUNG (ENTER KEY)
+    function handleKeyPress(e) {
+      if (e.key === "Enter") {
+        const input = document.getElementById("qrTextInput");
+        if (!input.value.trim()) return;
+
+        playBeepSound('mining');
+
+        // Tambah ke urutan paling atas feed
+        initialFeedData.unshift({
+          id: `TOF-${Date.now()}`,
+          title: "Input Teks Baru",
+          text: input.value,
+          tag: "Custom QR"
+        });
+
+        input.value = "";
+        renderQRFeed();
+      }
+    }
+
+    // 3. AUDIO BEEP SYNTHESIZER
+    function playBeepSound(type = 'mining') {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+
+        if (type === 'mining') {
+          oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+          oscillator.frequency.setValueAtTime(1760, audioCtx.currentTime + 0.08);
+        } else {
+          oscillator.frequency.setValueAtTime(1046.5, audioCtx.currentTime);
+          oscillator.frequency.setValueAtTime(1318.5, audioCtx.currentTime + 0.07);
+        }
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.2);
+      } catch(e) {}
+    }
+
+    // 4. SCANNER SYSTEM
+    function openScanner(mode = 'general') {
+      currentScanMode = mode;
+      document.getElementById("scannerModal").style.display = "flex";
+      
+      html5QrcodeScanner = new Html5Qrcode("reader");
+      html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 15, qrbox: 200 },
+        onScanSuccess
+      ).catch(() => {
+        alert("Gagal mengakses kamera.");
+        closeScanner();
+      });
+    }
+
+    function onScanSuccess(decodedText) {
+      playBeepSound('checkout');
+      closeScanner();
+
+      if (currentScanMode === 'login') {
+        alert(`LOGIN BERHASIL! ID Terverifikasi: ${decodedText}`);
+      } else {
+        // Otomatis masukkan hasil scan sebagai postingan QR baru
+        initialFeedData.unshift({
+          id: `SCAN-${Date.now()}`,
+          title: "Hasil Scan Kamera",
+          text: decodedText,
+          tag: "Scanned QR"
+        });
+        renderQRFeed();
+      }
+    }
+
+    function closeScanner() {
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+          document.getElementById("scannerModal").style.display = "none";
+        }).catch(() => {
+          document.getElementById("scannerModal").style.display = "none";
+        });
+      } else {
+        document.getElementById("scannerModal").style.display = "none";
+      }
+    }
+
+    function triggerQRLogin() {
+      openScanner('login');
+    }
+
+    // 5. DIRECT PWA INSTALLATION TRIGGER
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('pwaBanner').style.display = 'flex';
+    });
+
+    function executeInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            document.getElementById('pwaBanner').style.display = 'none';
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        // Fallback pemicu simulasi jika dibuka di browser standar tanpa PWA flag
+        alert("Aplikasi ToFarmer sedang disematkan ke layar utama HP kamu!");
+      }
+    }
+  </script>
+</body>
+</html>
