@@ -206,6 +206,37 @@
         .care-btn-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
         .care-btn { padding: 6px 8px; font-size: 10px; font-weight: bold; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; background: rgba(255,255,255,0.06); color: #e2e8f0; }
         .care-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ===== REDESIGN: modal Lahan Pertanian jadi full-modal lega + card besar ===== */
+        .modal-overlay.farm-modal-wide { background: rgba(2,4,3,0.8); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay.farm-modal-wide .modal-box { width: min(94vw, 460px); max-width: 460px; max-height: 88vh; padding: 18px 16px; font-size: 14px; }
+        .modal-overlay.farm-modal-wide .modal-username { font-size: 20px; }
+
+        .plot-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px; margin-bottom: 12px; text-align: left; display: flex; gap: 12px; }
+        .plot-card-icon { font-size: 34px; line-height: 1; flex-shrink: 0; width: 44px; text-align: center; }
+        .plot-card-body { flex: 1; min-width: 0; }
+        .plot-card-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+        .plot-card-sub { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+
+        .care-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .care-bar-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+        .care-bar-track { flex: 1; height: 8px; border-radius: 5px; background: rgba(255,255,255,0.08); overflow: hidden; }
+        .care-bar-fill { height: 100%; border-radius: 5px; transition: width 0.3s ease; }
+        .care-bar-fill.water { background: #38bdf8; }
+        .care-bar-fill.fertilize { background: #eab308; }
+        .care-bar-fill.prune { background: #4ade80; }
+        .care-bar-label { font-size: 11px; color: #cbd5e1; min-width: 34px; text-align: right; flex-shrink: 0; }
+
+        .plot-btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+        .plot-btn { padding: 10px 4px; font-size: 12px; font-weight: 700; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); cursor: pointer; background: rgba(255,255,255,0.06); color: #e2e8f0; text-align: center; }
+        .plot-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .plot-btn-cooldown { font-size: 9px; display: block; color: #94a3b8; margin-top: 2px; }
+
+        .plot-harvest-btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 800; border-radius: 12px; border: none; cursor: pointer; background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; margin-top: 10px; box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
+        .plot-status-text { font-size: 13px; color: #fbbf24; margin-top: 8px; display: block; }
+        .plot-status-text.warn { color: #fca5a5; }
+        .plot-crop-btn { padding: 12px 10px; font-size: 13px; font-weight: 700; border-radius: 12px; cursor: pointer; background: #1e3a1f; color: #4ade80; border: 1px solid rgba(74,222,128,0.35); width: 100%; margin-top: 8px; text-align: left; }
+        .plot-crop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .care-progress { font-size: 9px; color: #94a3b8; margin-top: 3px; }
 
         /* MODAL KOMPOS & PUPUK */
@@ -415,7 +446,7 @@
     </div>
 </div>
 
-<div id="farm-modal" class="modal-overlay side-panel" onclick="closeFarmModal(event)">
+<div id="farm-modal" class="modal-overlay farm-modal-wide" onclick="closeFarmModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px;">
         <button class="modal-close-x" onclick="document.getElementById('farm-modal').classList.remove('active')">✕</button>
         <span class="island-icon" style="font-size: 40px;">🌾</span>
@@ -1600,46 +1631,49 @@
             const farm = farms[key];
 
             if (!farm || farm.landState === 'fertile') {
-                // Sementara cuma ubi jalar yang bisa ditanam BARU (sudah ada SOP/ilmu bakunya).
-                // Tanaman lain menunggu SOP ditulis dulu -- konsisten dengan pengecekan di fn_plant_crop.
                 const cropButtons = getAllCropDefs().filter(c => c.id === 'ubi_jalar').map(c => {
                     const syaratBibit = BIBIT_CATALOG.find(b => b.crop_id === c.id);
                     if (!syaratBibit) {
-                        return `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name} (${c.plant_cost_xp} XP)</button>`;
+                        return `<button class="plot-crop-btn" onclick="plantCrop('${key}','${c.id}')">${c.icon} Tanam ${c.name} — ${c.plant_cost_xp} XP</button>`;
                     }
                     const stok = myBibitStock[syaratBibit.id] || 0;
                     if (stok < 1) {
-                        return `<button class="btn-crop" disabled title="Buat dulu lewat menu Pembibitan" style="opacity:0.5;">${c.icon} ${c.name} — ⚠️ Butuh Bibit (0)</button>`;
+                        return `<button class="plot-crop-btn" disabled title="Buat dulu lewat menu Pembibitan">${c.icon} ${c.name} — butuh bibit (0 di gudang)</button>`;
                     }
-                    return `<button class="btn-crop" onclick="plantCrop('${key}','${c.id}')">${c.icon} ${c.name} (${c.plant_cost_xp} XP) — 🎒 Bibit: ${stok}</button>`;
+                    return `<button class="plot-crop-btn" onclick="plantCrop('${key}','${c.id}')">${c.icon} Tanam ${c.name} — ${c.plant_cost_xp} XP (bibit: ${stok})</button>`;
                 }).join('');
-                return `<div class="farm-plot-card"><strong>Petak Tanah (${key}) • Subur</strong><div class="farm-crop-row">${cropButtons}</div></div>`;
-            }
-
-            if (farm.landState === 'barren') {
-                return `<div class="farm-plot-card"><strong>Petak Tanah (${key}) • 🟤 Tandus</strong>
-                    <span class="farm-barren-text">Tanah habis unsur hara. Pupuk dahulu untuk menyuburkan kembali.</span>
-                    <div class="care-btn-row"><button class="care-btn" onclick="fertilizeBarrenAction('${key}')">🌿 Pupuk Tanah (butuh 1 pupuk)</button></div>
+                return `<div class="plot-card">
+                    <div class="plot-card-icon">🟩</div>
+                    <div class="plot-card-body">
+                        <div class="plot-card-title">Petak ${key}</div>
+                        <div class="plot-card-sub">Tanah subur, siap ditanami</div>
+                        ${cropButtons}
+                    </div>
                 </div>`;
             }
 
-            // planted
+            if (farm.landState === 'barren') {
+                return `<div class="plot-card">
+                    <div class="plot-card-icon">🟤</div>
+                    <div class="plot-card-body">
+                        <div class="plot-card-title">Petak ${key}</div>
+                        <div class="plot-card-sub">Tanah tandus — unsur hara habis</div>
+                        <button class="plot-crop-btn" onclick="fertilizeBarrenAction('${key}')">🌿 Pupuk tanah (butuh 1 pupuk)</button>
+                    </div>
+                </div>`;
+            }
+
             const cropDef = getCropDef(farm.cropId);
             if (!cropDef) {
                 console.warn('Crop definition tidak ditemukan untuk', farm.cropId);
-                return `<div class="farm-plot-card"><strong>Petak Tanah (${key})</strong><span class="farm-barren-text">⚠️ Data tanaman belum sinkron, coba tutup &amp; buka lagi menu ini.</span></div>`;
+                return `<div class="plot-card"><div class="plot-card-icon">⚠️</div><div class="plot-card-body"><div class="plot-card-title">Petak ${key}</div><span class="plot-status-text warn">Data belum sinkron, coba tutup &amp; buka lagi.</span></div></div>`;
             }
             const growMs = computeEffectiveGrowMs(cropDef, farm);
-            // PENTING: jika plantedAt belum tersinkron (null/undefined) dari server, JANGAN anggap
-            // waktu sudah lama berlalu (Date.now() - null jadi angka raksasa -> bug tombol panen
-            // aktif padahal baru ditanam). Anggap saja baru ditanam (elapsed = 0) sampai data valid.
             const elapsed = farm.plantedAt ? (Date.now() - farm.plantedAt) : 0;
             const timeReady = elapsed >= growMs;
             const careReady = (farm.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farm.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farm.prunedCount || 0) >= CARE_TREAT_REQUIRED;
             const reward = computeEffectiveReward(cropDef, farm);
 
-            // Cek jeda waktu (cooldown) tiap jenis perawatan -- tombolnya nonaktif SELAMA
-            // dalam masa jeda, bukan cuma pas syaratnya sudah terpenuhi.
             const now = Date.now();
             const waterCooldownMs = (Number(cropDef.water_cooldown_seconds) || 0) * 1000;
             const fertilizeCooldownMs = (Number(cropDef.fertilize_cooldown_seconds) || 0) * 1000;
@@ -1650,32 +1684,53 @@
 
             let statusLine;
             if (timeReady && careReady) {
-                statusLine = `<button class="btn-harvest" onclick="harvestCropAction('${key}')">🧺 Panen ${cropDef.fruit_icon} (+${reward} XP)</button>`;
+                statusLine = `<button class="plot-harvest-btn" onclick="harvestCropAction('${key}')">🧺 Panen ${cropDef.fruit_icon} — +${reward} XP</button>`;
             } else if (timeReady && !careReady) {
-                statusLine = `<span class="farm-barren-text">⚠️ Sudah waktunya, tapi perawatan belum cukup (siram/pupuk/rawat).</span>`;
+                statusLine = `<span class="plot-status-text warn">⚠️ Sudah waktunya, tapi perawatan belum cukup.</span>`;
             } else {
-                statusLine = `<span class="farm-growing-text">🌱 ${cropDef.name} sedang tumbuh (~${formatDuration(growMs - elapsed)} lagi)...</span>`;
+                statusLine = `<span class="plot-status-text">🌱 Tumbuh ~${formatDuration(growMs - elapsed)} lagi</span>`;
             }
 
-            // Status khusus tanaman yang bisa panen berulang (cabai/tomat/pohon tahunan)
             const perennialInfo = cropDef.is_perennial && farm.harvestCount > 0
-                ? `<div class="care-progress">🌳 Sudah panen ke-${farm.harvestCount}${cropDef.max_harvest_count ? ' dari maks ' + cropDef.max_harvest_count : ''} (masih produktif)</div>`
+                ? `<div class="plot-card-sub">🌳 Panen ke-${farm.harvestCount}${cropDef.max_harvest_count ? ' / ' + cropDef.max_harvest_count : ''}</div>`
                 : '';
 
-            return `<div class="farm-plot-card">
-                <strong>Petak Tanah (${key}) • ${cropDef.icon} ${cropDef.name}</strong>
-                ${perennialInfo}
-                <div class="care-progress">💧 Air: ${farm.waterCount}/${cropDef.water_required} &nbsp; 🌿 Pupuk: ${farm.fertilizeCount}/${cropDef.fertilize_required} &nbsp; ✂️ Rawat: ${farm.prunedCount}/${CARE_TREAT_REQUIRED}</div>
-                <div class="care-btn-row">
-                    <button class="care-btn" onclick="waterCropAction('${key}')" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram (1 Air)${waterOnCooldown ? ' ⏳ ' + formatDuration(waterCooldownMs - (now - farm.lastWateredAt)) : (estimateWaterStock() < 1 ? ' (air habis)' : '')}</button>
-                    <button class="care-btn" onclick="fertilizeCropAction('${key}')" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk (1 pupuk)${fertilizeOnCooldown ? ' ⏳ ' + formatDuration(fertilizeCooldownMs - (now - farm.lastFertilizedAt)) : ''}</button>
-                    <button class="care-btn" onclick="pruneCropAction('${key}')" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat (2 XP)${pruneOnCooldown ? ' ⏳ ' + formatDuration(pruneCooldownMs - (now - farm.lastPrunedAt)) : ''}</button>
+            const waterPct = Math.min(100, Math.round(((farm.waterCount||0) / (cropDef.water_required||1)) * 100));
+            const fertPct = Math.min(100, Math.round(((farm.fertilizeCount||0) / (cropDef.fertilize_required||1)) * 100));
+            const prunePct = Math.min(100, Math.round(((farm.prunedCount||0) / (CARE_TREAT_REQUIRED||1)) * 100));
+
+            return `<div class="plot-card">
+                <div class="plot-card-icon">${cropDef.icon}</div>
+                <div class="plot-card-body">
+                    <div class="plot-card-title">${cropDef.name}</div>
+                    <div class="plot-card-sub">Petak ${key}</div>
+                    ${perennialInfo}
+                    <div class="care-bar-row">
+                        <span class="care-bar-icon">💧</span>
+                        <div class="care-bar-track"><div class="care-bar-fill water" style="width:${waterPct}%;"></div></div>
+                        <span class="care-bar-label">${farm.waterCount}/${cropDef.water_required}</span>
+                    </div>
+                    <div class="care-bar-row">
+                        <span class="care-bar-icon">🌿</span>
+                        <div class="care-bar-track"><div class="care-bar-fill fertilize" style="width:${fertPct}%;"></div></div>
+                        <span class="care-bar-label">${farm.fertilizeCount}/${cropDef.fertilize_required}</span>
+                    </div>
+                    <div class="care-bar-row">
+                        <span class="care-bar-icon">✂️</span>
+                        <div class="care-bar-track"><div class="care-bar-fill prune" style="width:${prunePct}%;"></div></div>
+                        <span class="care-bar-label">${farm.prunedCount}/${CARE_TREAT_REQUIRED}</span>
+                    </div>
+                    <div class="plot-btn-grid">
+                        <button class="plot-btn" onclick="waterCropAction('${key}')" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram${waterOnCooldown ? `<span class="plot-btn-cooldown">${formatDuration(waterCooldownMs - (now - farm.lastWateredAt))}</span>` : (estimateWaterStock() < 1 ? '<span class="plot-btn-cooldown">air habis</span>' : '')}</button>
+                        <button class="plot-btn" onclick="fertilizeCropAction('${key}')" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk${fertilizeOnCooldown ? `<span class="plot-btn-cooldown">${formatDuration(fertilizeCooldownMs - (now - farm.lastFertilizedAt))}</span>` : ''}</button>
+                        <button class="plot-btn" onclick="pruneCropAction('${key}')" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat${pruneOnCooldown ? `<span class="plot-btn-cooldown">${formatDuration(pruneCooldownMs - (now - farm.lastPrunedAt))}</span>` : ''}</button>
+                    </div>
+                    ${statusLine}
                 </div>
-                ${statusLine}
             </div>`;
           } catch (e) {
             console.error('renderFarmList: gagal render petak', key, e);
-            return `<div class="farm-plot-card"><strong>Petak Tanah (${key})</strong><span class="farm-barren-text">⚠️ Gagal memuat data petak ini. Coba tutup &amp; buka lagi menu Bertani.</span></div>`;
+            return `<div class="plot-card"><div class="plot-card-icon">⚠️</div><div class="plot-card-body"><div class="plot-card-title">Petak ${key}</div><span class="plot-status-text warn">Gagal memuat, coba tutup &amp; buka lagi.</span></div></div>`;
           }
         }).join('');
     }
