@@ -898,13 +898,14 @@
         if (!gudangEl) return; // Panel pembibitan-list belum ada di modal ini; skip diam-diam.
         try {
             const [{ data: gudang }, { data: proses }] = await Promise.all([
-                db.from('inventaris_bibit').select('bibit_id, qty, bibit_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
+                db.from('inventaris_barang').select('barang_id, qty, barang_catalog(nama)').eq('owner_id', myUserId).eq('barang_id', 'ubi_jalar_mentah').gt('qty', 0),
                 db.from('village_pembibitan').select('id, bibit_id, status, dilindungi, mulai_at, bibit_catalog(nama, waktu_tunas_seconds)').eq('owner_id', myUserId).in('status', ['punya_bahan', 'sudah_dipotong', 'ditancapkan']),
             ]);
 
-            gudangEl.innerHTML = (gudang && gudang.length)
-                ? '🎒 Gudang bibit: ' + gudang.map(g => `${(g.bibit_catalog && g.bibit_catalog.nama) || g.bibit_id} ×${g.qty}`).join(', ')
-                : '🎒 Gudang bibit masih kosong.';
+            const stokUbiMentah = (gudang && gudang[0] && gudang[0].qty) || 0;
+            gudangEl.innerHTML = (stokUbiMentah > 0)
+                ? `🎒 Ubi mentah di gudang: ×${stokUbiMentah} <button class="care-btn" style="margin-left:6px;" onclick="mulaiPembibitanUbi()">🌱 Mulai Pembibitan (5 XP)</button>`
+                : '🎒 Gudang ubi mentah masih kosong. Beli dulu di atas.';
 
             if (!listEl) return;
 
@@ -964,6 +965,18 @@
             if (data.queued) { showToast(data.message); return; }
             if (!data.success) { showToast(data.message || 'Gagal membeli bahan.', true); return; }
             showToastWithEdukasi(`🍠 Ubi segar didapat! -${data.cost} XP.`, data.edukasi);
+            await refreshMyProfile();
+            await refreshPembibitanPanel();
+        });
+    }
+
+    async function mulaiPembibitanUbi() {
+        await runFarmActionLocked('mulai-pembibitan', async () => {
+            const { data, error } = await callRpcOrQueue('fn_mulai_pembibitan', { p_user: myUserId, p_bibit_id: 'bibit_ubi_jalar' }, 'Mulai pembibitan ubi jalar');
+            if (error) { showToast('Gagal mulai pembibitan: ' + error.message, true); return; }
+            if (data.queued) { showToast(data.message); return; }
+            if (!data.success) { showToast(data.message || 'Gagal mulai pembibitan.', true); return; }
+            showToastWithEdukasi(`🌱 Pembibitan dimulai! -${data.cost} XP.`, data.edukasi);
             await refreshMyProfile();
             await refreshPembibitanPanel();
         });
