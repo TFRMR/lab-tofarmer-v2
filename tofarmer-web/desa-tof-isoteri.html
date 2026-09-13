@@ -51,16 +51,16 @@
 
         /* ===== MODE GRID (eksperimen ringan, pengganti isometric) ===== */
         #grid-world-wrap { position: absolute; inset: 0; overflow: auto; -webkit-overflow-scrolling: touch; background: var(--bg); padding: 12px; box-sizing: border-box; }
-        #grid-world { display: inline-grid; gap: 1px; }
-        .gtile { width: 26px; height: 26px; background: rgba(74,222,128,0.02); border: 0.5px solid rgba(74,222,128,0.06); box-sizing: border-box; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .gtile-road { background: rgba(30,41,59,0.9); border-color: rgba(148,163,184,0.3); }
-        .gtile-farm { background: rgba(107,142,78,0.25); border-color: rgba(74,222,128,0.4); }
-        .gtile-mountain { background: rgba(87,83,78,0.45); border-color: rgba(120,113,108,0.5); }
-        .gtile-hill { background: rgba(180,142,90,0.28); border-color: rgba(180,142,90,0.45); }
-        .gtile-river { background: rgba(56,189,248,0.28); border-color: rgba(56,189,248,0.45); }
-        .gtile-tree { background: rgba(34,139,34,0.22); border-color: rgba(34,139,34,0.45); }
-        .gtile-ready { box-shadow: 0 0 0 2px #fbbf24 inset; }
-        .gtile span { font-size: 14px; line-height: 1; }
+        #grid-world { display: inline-grid; gap: 0; }
+        .gtile { width: 28px; height: 28px; background: rgba(74,222,128,0.015); border: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .gtile-road { background: rgba(51,65,85,0.85); }
+        .gtile-farm { background: rgba(107,142,78,0.3); box-shadow: inset 0 0 0 1px rgba(74,222,128,0.25); }
+        .gtile-mountain { background: rgba(87,83,78,0.4); }
+        .gtile-hill { background: rgba(168,138,94,0.3); }
+        .gtile-river { background: rgba(56,189,248,0.32); }
+        .gtile-tree { background: rgba(34,139,34,0.22); }
+        .gtile-ready { box-shadow: inset 0 0 0 2px #fbbf24; }
+        .gtile span { font-size: 13px; line-height: 1; opacity: 0.85; }
 
         /* Kunci interaksi hover ubin saat mode edit arsitek aktif */
         .edit-mode .tile { cursor: move !important; }
@@ -791,7 +791,11 @@
                 if (ground) {
                     const cls = getGridTileTerrainClass(ground.type);
                     if (cls) cell.classList.add(cls);
-                    const icon = getGridTileIcon(ground.type);
+                    // Ikon cuma muncul sesekali (pola deterministik dari koordinat), BUKAN di
+                    // setiap petak sejenis -- biar area gunung/hutan terasa "kawasan alami"
+                    // yang menyatu (dari warna latar), bukan wallpaper ikon berulang kaku.
+                    const showIcon = ((x * 7 + y * 13) % 5) === 0;
+                    const icon = showIcon ? getGridTileIcon(ground.type) : '';
                     if (icon) cell.innerHTML = `<span>${icon}</span>`;
                 }
 
