@@ -1,0 +1,1563 @@
+```html
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <title>SCAN SAJA</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    header {
+      padding: 24px 20px 18px;
+      background: #111827;
+      color: white;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 38px;
+      letter-spacing: -2px;
+    }
+
+    header p {
+      margin: 5px 0 0;
+      opacity: .75;
+    }
+
+    main {
+      max-width: 650px;
+      margin: auto;
+      padding: 16px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 22px;
+      padding: 20px;
+      margin-bottom: 15px;
+      box-shadow: 0 5px 25px rgba(0,0,0,.06);
+    }
+
+    .hero {
+      text-align: center;
+      padding: 28px 20px;
+    }
+
+    .hero-icon {
+      font-size: 58px;
+    }
+
+    .hero h2 {
+      margin: 8px 0;
+      font-size: 28px;
+    }
+
+    .muted {
+      color: #6b7280;
+    }
+
+    .status {
+      padding: 14px;
+      border-radius: 14px;
+      background: #f3f4f6;
+      margin-top: 15px;
+    }
+
+    .status.ok {
+      background: #ecfdf5;
+    }
+
+    .status.warning {
+      background: #fffbeb;
+    }
+
+    .big-xp {
+      font-size: 54px;
+      font-weight: 800;
+      letter-spacing: -3px;
+    }
+
+    .level {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .progress {
+      height: 13px;
+      background: #e5e7eb;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress div {
+      height: 100%;
+      width: 0%;
+      background: #111827;
+      transition: width .4s ease;
+    }
+
+    button {
+      width: 100%;
+      border: 0;
+      border-radius: 15px;
+      padding: 16px;
+      margin-top: 10px;
+      background: #111827;
+      color: white;
+      font-size: 17px;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    button:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+    }
+
+    .mission {
+      border: 2px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 17px;
+      margin-top: 12px;
+    }
+
+    .mission.active {
+      border-color: #111827;
+    }
+
+    .mission-title {
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .mission-reward {
+      margin-top: 5px;
+      color: #6b7280;
+    }
+
+    .distance {
+      font-size: 31px;
+      font-weight: 800;
+      margin-top: 10px;
+    }
+
+    video,
+    canvas,
+    img {
+      width: 100%;
+      border-radius: 16px;
+      margin-top: 12px;
+    }
+
+    canvas {
+      display: none;
+    }
+
+    .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .badge {
+      background: #f3f4f6;
+      border-radius: 999px;
+      padding: 9px 13px;
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .log {
+      border-top: 1px solid #e5e7eb;
+      padding: 11px 0;
+    }
+
+    .small {
+      font-size: 13px;
+    }
+
+    .coords {
+      font-family: monospace;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .qr {
+      display: flex;
+      justify-content: center;
+      margin-top: 15px;
+    }
+
+    .qr canvas {
+      display: block;
+      width: 220px;
+      height: 220px;
+    }
+
+    .offline {
+      font-weight: 700;
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <h1>SCAN SAJA</h1>
+  <p>Dunia nyata → aktivitas → XP</p>
+</header>
+
+<main>
+
+  <!-- PLAYER -->
+  <section class="card hero">
+    <div class="hero-icon">🎮</div>
+
+    <h2 id="playerName">
+      Explorer
+    </h2>
+
+    <div class="big-xp">
+      <span id="xp">0</span>
+      XP
+    </div>
+
+    <div class="level">
+      Level <span id="level">1</span>
+    </div>
+
+    <div class="progress">
+      <div id="xpBar"></div>
+    </div>
+
+    <p class="muted">
+      Aktivitas hari ini:
+      <b id="activityCount">0</b>
+    </p>
+  </section>
+
+
+  <!-- CONNECTION -->
+  <section class="card">
+
+    <b>Status</b>
+
+    <div class="status">
+
+      <div>
+        📡 Internet:
+        <b id="networkStatus">checking...</b>
+      </div>
+
+      <div style="margin-top:7px">
+        📍 GPS:
+        <b id="gpsStatus">belum aktif</b>
+      </div>
+
+      <div style="margin-top:7px">
+        💾 Data:
+        <b id="storageStatus">local/offline ready</b>
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <!-- QUEST -->
+  <section class="card">
+
+    <h3>🎯 Quest</h3>
+
+    <div class="mission active">
+
+      <div class="mission-title">
+        Temukan Pos Rahasia
+      </div>
+
+      <div class="mission-reward">
+        📍 Pergi ke lokasi quest
+        <br>
+        📸 Ambil foto sebagai bukti
+        <br>
+        ⭐ Reward: 100 XP
+      </div>
+
+      <div class="distance">
+
+        <span id="distance">
+          --
+        </span>
+
+        <span class="small">
+          meter
+        </span>
+
+      </div>
+
+      <div
+        id="locationMessage"
+        class="status warning">
+
+        Tekan tombol GPS untuk mulai.
+
+      </div>
+
+      <button
+        onclick="startGPS()">
+
+        📍 CEK LOKASI
+
+      </button>
+
+      <button
+        id="photoButton"
+        onclick="takePhoto()"
+        disabled>
+
+        📸 AMBIL BUKTI
+
+      </button>
+
+    </div>
+
+  </section>
+
+
+  <!-- CAMERA -->
+  <section
+    id="cameraSection"
+    class="card"
+    style="display:none">
+
+    <h3>📸 Bukti Lokasi</h3>
+
+    <video
+      id="video"
+      autoplay
+      playsinline>
+    </video>
+
+    <canvas id="canvas"></canvas>
+
+    <button onclick="capturePhoto()">
+      📷 FOTO SEKARANG
+    </button>
+
+    <button
+      class="secondary"
+      onclick="closeCamera()">
+
+      Tutup kamera
+
+    </button>
+
+  </section>
+
+
+  <!-- RESULT -->
+  <section
+    id="resultSection"
+    class="card"
+    style="display:none">
+
+    <h3>✅ Validasi</h3>
+
+    <div id="resultMessage"></div>
+
+    <img id="photoResult">
+
+  </section>
+
+
+  <!-- BADGES -->
+  <section class="card">
+
+    <h3>🏆 Badge</h3>
+
+    <div
+      id="badges"
+      class="badges">
+
+      <span class="badge">
+        👣 Pemula
+      </span>
+
+    </div>
+
+  </section>
+
+
+  <!-- DYNAMIC QR -->
+  <section class="card">
+
+    <h3>🔳 Dynamic Challenge</h3>
+
+    <p class="muted">
+
+      Ini contoh QR digital.
+      Tidak perlu printer.
+
+    </p>
+
+    <div class="qr">
+
+      <canvas id="qrCanvas"></canvas>
+
+    </div>
+
+    <p
+      id="tokenInfo"
+      class="small"
+      style="text-align:center">
+
+    </p>
+
+    <button onclick="generateQR()">
+
+      🔄 GENERATE CHALLENGE
+
+    </button>
+
+  </section>
+
+
+  <!-- LOG -->
+  <section class="card">
+
+    <h3>📜 Activity Log</h3>
+
+    <div id="activityLog">
+
+      Belum ada aktivitas.
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<script>
+
+/*
+========================================================
+SCAN SAJA
+Prototype 0.2
+
+Fitur:
+
+- GPS
+- Geofence
+- Camera
+- Photo proof
+- Offline localStorage
+- XP
+- Level
+- Badge
+- Activity log
+- Dynamic QR
+
+Tidak membutuhkan backend.
+========================================================
+*/
+
+
+/* =====================================================
+   CONFIGURATION
+===================================================== */
+
+/*
+  GANTI koordinat di bawah dengan lokasi yang ingin
+  kamu jadikan quest.
+
+  Contoh:
+  latitude  = -7.7956
+  longitude = 110.3695
+
+  Untuk testing pertama, kamu bisa mendapatkan
+  koordinat dari browser/device.
+*/
+
+const QUEST = {
+
+  id: "pos-rahasia-001",
+
+  title: "Pos Rahasia",
+
+  /*
+    GANTI DUA ANGKA INI
+  */
+
+  latitude: -7.7956,
+
+  longitude: 110.3695,
+
+  /*
+    Radius validasi.
+    50 = 50 meter
+  */
+
+  radius: 50,
+
+  reward: 100
+
+};
+
+
+/* =====================================================
+   STATE
+===================================================== */
+
+let state = {
+
+  xp: 0,
+
+  activities: 0,
+
+  badges: [
+    "👣 Pemula"
+  ],
+
+  logs: [],
+
+  gps: null,
+
+  locationValid: false,
+
+  photo: null
+
+};
+
+
+/* =====================================================
+   LOAD DATA
+===================================================== */
+
+function loadState() {
+
+  try {
+
+    const saved =
+      localStorage.getItem("scanSajaState");
+
+    if (saved) {
+
+      state =
+        JSON.parse(saved);
+
+    }
+
+  } catch (error) {
+
+    console.log(
+      "Local storage unavailable",
+      error
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   SAVE DATA
+===================================================== */
+
+function saveState() {
+
+  try {
+
+    localStorage.setItem(
+      "scanSajaState",
+      JSON.stringify(state)
+    );
+
+  } catch (error) {
+
+    console.log(error);
+
+  }
+
+}
+
+
+/* =====================================================
+   UI
+===================================================== */
+
+function updateUI() {
+
+  document.getElementById("xp")
+    .textContent = state.xp;
+
+  const level =
+    Math.floor(state.xp / 100) + 1;
+
+  document.getElementById("level")
+    .textContent = level;
+
+  const progress =
+    state.xp % 100;
+
+  document.getElementById("xpBar")
+    .style.width = progress + "%";
+
+  document.getElementById("activityCount")
+    .textContent =
+      state.activities;
+
+
+  /*
+    BADGES
+  */
+
+  const badges =
+    document.getElementById("badges");
+
+  badges.innerHTML = "";
+
+  state.badges.forEach(
+    badge => {
+
+      const element =
+        document.createElement("span");
+
+      element.className =
+        "badge";
+
+      element.textContent =
+        badge;
+
+      badges.appendChild(
+        element
+      );
+
+    }
+  );
+
+
+  /*
+    LOG
+  */
+
+  const log =
+    document.getElementById(
+      "activityLog"
+    );
+
+  if (!state.logs.length) {
+
+    log.innerHTML =
+      "Belum ada aktivitas.";
+
+  } else {
+
+    log.innerHTML =
+      state.logs
+        .slice()
+        .reverse()
+        .map(item => {
+
+          return `
+            <div class="log">
+              <b>${item.text}</b>
+              <br>
+              <span class="muted small">
+                ${item.time}
+              </span>
+            </div>
+          `;
+
+        })
+        .join("");
+
+  }
+
+}
+
+
+/* =====================================================
+   ADD XP
+===================================================== */
+
+function addXP(amount, reason) {
+
+  const oldLevel =
+    Math.floor(state.xp / 100) + 1;
+
+  state.xp += amount;
+
+  state.activities++;
+
+  const newLevel =
+    Math.floor(state.xp / 100) + 1;
+
+
+  addLog(
+    `⭐ +${amount} XP — ${reason}`
+  );
+
+
+  /*
+    LEVEL UP
+  */
+
+  if (newLevel > oldLevel) {
+
+    addBadge(
+      `🚀 Level ${newLevel}`
+    );
+
+    addLog(
+      `🎉 LEVEL UP! Sekarang Level ${newLevel}`
+    );
+
+  }
+
+
+  saveState();
+
+  updateUI();
+
+}
+
+
+/* =====================================================
+   LOG
+===================================================== */
+
+function addLog(text) {
+
+  state.logs.push({
+
+    text,
+
+    time:
+      new Date()
+        .toLocaleString("id-ID")
+
+  });
+
+  saveState();
+
+  updateUI();
+
+}
+
+
+/* =====================================================
+   BADGE
+===================================================== */
+
+function addBadge(badge) {
+
+  if (
+    !state.badges.includes(badge)
+  ) {
+
+    state.badges.push(
+      badge
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   GPS
+===================================================== */
+
+function startGPS() {
+
+  if (!navigator.geolocation) {
+
+    alert(
+      "Browser ini tidak mendukung GPS."
+    );
+
+    return;
+
+  }
+
+
+  document.getElementById(
+    "gpsStatus"
+  ).textContent =
+    "mencari lokasi...";
+
+
+  navigator.geolocation.getCurrentPosition(
+
+    function(position) {
+
+      const lat =
+        position.coords.latitude;
+
+      const lon =
+        position.coords.longitude;
+
+      const accuracy =
+        position.coords.accuracy;
+
+
+      state.gps = {
+
+        latitude: lat,
+
+        longitude: lon,
+
+        accuracy: accuracy,
+
+        time: Date.now()
+
+      };
+
+
+      document.getElementById(
+        "gpsStatus"
+      ).textContent =
+        `aktif ±${Math.round(accuracy)}m`;
+
+
+      checkLocation();
+
+    },
+
+    function(error) {
+
+      document.getElementById(
+        "gpsStatus"
+      ).textContent =
+        "gagal";
+
+      document.getElementById(
+        "locationMessage"
+      ).textContent =
+        "GPS gagal. Pastikan izin lokasi diberikan.";
+
+    },
+
+    {
+
+      enableHighAccuracy: true,
+
+      timeout: 15000,
+
+      maximumAge: 0
+
+    }
+
+  );
+
+}
+
+
+/* =====================================================
+   DISTANCE
+===================================================== */
+
+function calculateDistance(
+
+  lat1,
+  lon1,
+  lat2,
+  lon2
+
+) {
+
+  const R =
+    6371000;
+
+  const dLat =
+    (lat2 - lat1)
+    * Math.PI / 180;
+
+  const dLon =
+    (lon2 - lon1)
+    * Math.PI / 180;
+
+
+  const a =
+
+    Math.sin(dLat / 2)
+    * Math.sin(dLat / 2)
+
+    +
+
+    Math.cos(
+      lat1 * Math.PI / 180
+    )
+
+    *
+
+    Math.cos(
+      lat2 * Math.PI / 180
+    )
+
+    *
+
+    Math.sin(dLon / 2)
+    * Math.sin(dLon / 2);
+
+
+  const c =
+    2 * Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    );
+
+
+  return R * c;
+
+}
+
+
+/* =====================================================
+   LOCATION VALIDATION
+===================================================== */
+
+function checkLocation() {
+
+  if (!state.gps)
+    return;
+
+
+  const distance =
+    calculateDistance(
+
+      state.gps.latitude,
+
+      state.gps.longitude,
+
+      QUEST.latitude,
+
+      QUEST.longitude
+
+    );
+
+
+  document.getElementById(
+    "distance"
+  ).textContent =
+    Math.round(distance);
+
+
+  const message =
+    document.getElementById(
+      "locationMessage"
+    );
+
+
+  /*
+    LOCATION VALID
+  */
+
+  if (
+    distance <= QUEST.radius
+  ) {
+
+    state.locationValid =
+      true;
+
+
+    message.className =
+      "status ok";
+
+
+    message.innerHTML =
+
+      `🎯 <b>LOKASI DITEMUKAN!</b>
+       <br>
+       Kamu berada dalam radius quest.`;
+
+
+    document.getElementById(
+      "photoButton"
+    ).disabled = false;
+
+
+    addBadge(
+      "📍 Explorer"
+    );
+
+    saveState();
+
+    updateUI();
+
+  }
+
+  /*
+    LOCATION NOT VALID
+  */
+
+  else {
+
+    state.locationValid =
+      false;
+
+
+    message.className =
+      "status warning";
+
+
+    message.innerHTML =
+
+      `🚶 Masih terlalu jauh.
+       <br>
+       Target berada sekitar
+       <b>${Math.round(distance)} meter</b>
+       dari kamu.`;
+
+
+    document.getElementById(
+      "photoButton"
+    ).disabled = true;
+
+  }
+
+}
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+let cameraStream = null;
+
+
+async function takePhoto() {
+
+  if (!state.locationValid) {
+
+    alert(
+      "Kamu belum berada di lokasi quest."
+    );
+
+    return;
+
+  }
+
+
+  const section =
+    document.getElementById(
+      "cameraSection"
+    );
+
+
+  section.style.display =
+    "block";
+
+
+  try {
+
+    cameraStream =
+      await navigator.mediaDevices
+        .getUserMedia({
+
+          video: {
+
+            facingMode: {
+              ideal: "environment"
+            }
+
+          },
+
+          audio: false
+
+        });
+
+
+    document.getElementById(
+      "video"
+    ).srcObject =
+      cameraStream;
+
+  }
+
+  catch (error) {
+
+    alert(
+      "Kamera tidak dapat digunakan: "
+      + error.message
+    );
+
+  }
+
+}
+
+
+/* =====================================================
+   CAPTURE
+===================================================== */
+
+function capturePhoto() {
+
+  const video =
+    document.getElementById(
+      "video"
+    );
+
+  const canvas =
+    document.getElementById(
+      "canvas"
+    );
+
+
+  canvas.width =
+    video.videoWidth;
+
+  canvas.height =
+    video.videoHeight;
+
+
+  const ctx =
+    canvas.getContext(
+      "2d"
+    );
+
+
+  ctx.drawImage(
+
+    video,
+
+    0,
+
+    0,
+
+    canvas.width,
+
+    canvas.height
+
+  );
+
+
+  const photo =
+    canvas.toDataURL(
+      "image/jpeg",
+      0.75
+    );
+
+
+  state.photo =
+    photo;
+
+
+  /*
+    Stop camera
+  */
+
+  closeCamera();
+
+
+  /*
+    Show result
+  */
+
+  document.getElementById(
+    "resultSection"
+  ).style.display =
+    "block";
+
+
+  document.getElementById(
+    "photoResult"
+  ).src =
+    photo;
+
+
+  document.getElementById(
+    "resultMessage"
+  ).innerHTML =
+
+    `
+      📍 GPS:
+      <b>VALID</b>
+      <br>
+
+      📸 Foto:
+      <b>CAPTURED</b>
+      <br>
+
+      ⏱️ Waktu:
+      <b>${new Date().toLocaleString(
+        "id-ID"
+      )}</b>
+
+      <div class="status ok"
+           style="margin-top:15px">
+
+        🎉 Quest berhasil divalidasi!
+
+        <br><br>
+
+        ⭐ +${QUEST.reward} XP
+
+      </div>
+    `;
+
+
+  /*
+    Reward
+  */
+
+  addXP(
+    QUEST.reward,
+    `Quest "${QUEST.title}" selesai`
+  );
+
+
+  addBadge(
+    "🎯 Quest Hunter"
+  );
+
+
+  saveState();
+
+  updateUI();
+
+
+  /*
+    Prevent repeat reward in this simple prototype
+  */
+
+  document.getElementById(
+    "photoButton"
+  ).disabled =
+    true;
+
+}
+
+
+/* =====================================================
+   CLOSE CAMERA
+===================================================== */
+
+function closeCamera() {
+
+  if (cameraStream) {
+
+    cameraStream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+    cameraStream =
+      null;
+
+  }
+
+
+  document.getElementById(
+    "cameraSection"
+  ).style.display =
+    "none";
+
+}
+
+
+/* =====================================================
+   NETWORK
+===================================================== */
+
+function updateNetworkStatus() {
+
+  const online =
+    navigator.onLine;
+
+
+  document.getElementById(
+    "networkStatus"
+  ).textContent =
+    online
+      ? "ONLINE"
+      : "OFFLINE";
+
+
+  document.getElementById(
+    "storageStatus"
+  ).textContent =
+    "tersimpan di perangkat";
+
+}
+
+
+window.addEventListener(
+  "online",
+  updateNetworkStatus
+);
+
+
+window.addEventListener(
+  "offline",
+  updateNetworkStatus
+);
+
+
+/* =====================================================
+   DYNAMIC QR
+===================================================== */
+
+/*
+  Prototype QR generator sederhana.
+
+  Kita tidak memakai library eksternal,
+  sehingga halaman tetap bisa dibuka offline.
+
+  Untuk QR sungguhan yang dapat dibaca semua scanner,
+  versi berikutnya sebaiknya menggunakan library QR
+  yang dibundel lokal atau encoder native.
+*/
+
+function generateQR() {
+
+  const token =
+
+    "SCAN-SAJA-" +
+
+    QUEST.id +
+
+    "-" +
+
+    Math.random()
+      .toString(36)
+      .substring(2, 10)
+      .toUpperCase();
+
+
+  document.getElementById(
+    "tokenInfo"
+  ).textContent =
+    token;
+
+
+  /*
+    Untuk prototype visual:
+    gunakan canvas sebagai representasi challenge.
+
+    Token sebenarnya yang nantinya dikodekan menjadi QR.
+  */
+
+  const canvas =
+    document.getElementById(
+      "qrCanvas"
+    );
+
+  const ctx =
+    canvas.getContext(
+      "2d"
+    );
+
+
+  canvas.width =
+    220;
+
+  canvas.height =
+    220;
+
+
+  ctx.fillStyle =
+    "white";
+
+  ctx.fillRect(
+    0,
+    0,
+    220,
+    220
+  );
+
+
+  /*
+    deterministic-ish visual pattern
+  */
+
+  let seed = 0;
+
+  for (
+    let i = 0;
+    i < token.length;
+    i++
+  ) {
+
+    seed +=
+      token.charCodeAt(i);
+
+  }
+
+
+  const size =
+    11;
+
+  const cell =
+    20;
+
+
+  for (
+    let y = 0;
+    y < size;
+    y++
+  ) {
+
+    for (
+      let x = 0;
+      x < size;
+      x++
+    ) {
+
+      const value =
+
+        (
+          seed
+          +
+          x * 31
+          +
+          y * 17
+          +
+          x * y
+        ) % 7;
+
+
+      if (
+        value < 3
+      ) {
+
+        ctx.fillStyle =
+          "#111827";
+
+        ctx.fillRect(
+
+          x * cell,
+
+          y * cell,
+
+          cell,
+
+          cell
+
+        );
+
+      }
+
+    }
+
+  }
+
+
+  /*
+    Finder patterns
+  */
+
+  drawFinder(
+    ctx,
+    0,
+    0
+  );
+
+  drawFinder(
+    ctx,
+    160,
+    0
+  );
+
+  drawFinder(
+    ctx,
+    0,
+    160
+  );
+
+}
+
+
+function drawFinder(
+  ctx,
+  x,
+  y
+) {
+
+  ctx.fillStyle =
+    "#111827";
+
+  ctx.fillRect(
+    x,
+    y,
+    60,
+    60
+  );
+
+
+  ctx.fillStyle =
+    "white";
+
+  ctx.fillRect(
+    x + 10,
+    y + 10,
+    40,
+    40
+  );
+
+
+  ctx.fillStyle =
+    "#111827";
+
+  ctx.fillRect(
+    x + 20,
+    y + 20,
+    20,
+    20
+  );
+
+}
+
+
+/* =====================================================
+   INIT
+===================================================== */
+
+loadState();
+
+updateUI();
+
+updateNetworkStatus();
+
+generateQR();
+
+
+/*
+  Inform user about HTTPS requirement.
+*/
+
+console.log(
+  "SCAN SAJA initialized."
+);
+
+console.log(
+  "GPS/camera biasanya membutuhkan HTTPS atau localhost."
+);
+
+</script>
+
+</body>
+</html>
+```

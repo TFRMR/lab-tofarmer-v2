@@ -24,7 +24,8 @@
     .logo-icon { width:42px; height:42px; border-radius:50%; background: #fff; border:2px solid #2f6f4e; display:flex; align-items:center; justify-content:center; font-weight:900; color:#2f6f4e; }
     
     /* LOGIN VIA QR BUTTON */
-    .btn-login-qr { background: #2f6f4e; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .btn-login-qr { background: #2f6f4e; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-login-qr:hover { background: #24583e; }
 
     /* INSTAL BANNER */
     .pwa-banner { background: #ffffff; border: 1px solid rgba(76,175,122,0.3); border-radius: 16px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
@@ -47,13 +48,19 @@
     .qr-trigger-box:hover { background: #e9f4ee; transform: scale(1.01); }
 
     /* GRID FEED MANIAK QR */
-    .qr-grid-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; max-height: 520px; overflow-y: auto; padding-right: 5px; }
-    .qr-card-item { background: #fff; border: 1px solid #e0e8e3; border-radius: 14px; padding: 12px; text-align: center; transition: 0.2s; position: relative; }
-    .qr-card-item:hover { border-color: #2f6f4e; box-shadow: 0 4px 14px rgba(47,111,78,0.15); }
+    .qr-grid-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; max-height: 520px; overflow-y: auto; padding-right: 5px; }
+    
+    /* MODALITAS ITEM: KONDISI SEBELUM & SESUDAH SCAN */
+    .qr-card-item { background: #fff; border: 1px solid #e0e8e3; border-radius: 14px; padding: 14px; text-align: center; transition: all 0.3s ease; position: relative; cursor: pointer; }
+    .qr-card-item:hover { border-color: #2f6f4e; box-shadow: 0 6px 16px rgba(47,111,78,0.12); }
     .qr-card-item .qr-holder { margin: 10px auto; display: flex; justify-content: center; }
     
-    .hidden-text { filter: blur(4px); user-select: none; font-size: 11px; color: #777; margin-top: 6px; transition: 0.3s; }
-    .qr-card-item:hover .hidden-text { filter: blur(0); }
+    /* STATE JIKA SUDAH DI-SCAN (QR HILANG, TAMPIL TEKS DEKODE) */
+    .qr-card-item.revealed { text-align: left; background: #fdfdfd; border-left: 4px solid #2f6f4e; cursor: default; animation: revealAnim 0.4s ease-out; }
+    @keyframes revealAnim { from { opacity: 0.4; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+    
+    .revealed-content { margin-top: 8px; font-size: 13px; color: #1c2b22; font-weight: 500; line-height: 1.4; word-break: break-word; }
+    .scan-prompt { font-size: 10px; color: #888; margin-top: 6px; font-style: italic; }
 
     /* SCANNER MODAL */
     #scannerModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
@@ -91,8 +98,7 @@
       
       <!-- KIRI: INPUT QR & PEMINDAI -->
       <div class="left">
-       
-
+        
         <!-- CAMERA SCANNER TRIGGER -->
         <div class="card">
           <h3>🔍 Pindai QR Apa Saja</h3>
@@ -101,7 +107,9 @@
             <h4 style="font-size: 13px; color: #2f6f4e;">Buka Kamera Pemindai</h4>
             <span style="font-size: 10px; color: #6f7f76;">Dekodekan QR Feed atau QR Fisik</span>
           </div>
- <!-- SIMULASI INPUT TEKS -> QR CODE -->
+        </div>
+
+        <!-- SIMULASI INPUT TEKS -> QR CODE -->
         <div class="card">
           <h3>⚡ Cetak QR Baru Instan</h3>
           <div class="qr-input-box">
@@ -109,7 +117,7 @@
           </div>
           <span style="font-size: 10px; color: #888;">Ketik pesan/setoran lalu tekan <b>Enter</b> untuk ubah jadi QR Code di Feed.</span>
         </div>
-        </div>
+
       </div>
 
       <!-- KANAN: FEED MANIAK QR CODE -->
@@ -117,7 +125,7 @@
         <div class="card">
           <h3>🟩 Feed Aktivitas Matriks (QR Code Only)</h3>
           <p style="font-size: 11px; color: #6f7f76; margin-bottom: 12px;">
-            Semua aktivitas di-enkripsi menjadi Kode QR. Arahkan kursor/kamera untuk membaca isi datanya.
+            Setiap postingan berupa Kode QR. Ketuk atau scan QR untuk mengonversi menjadi teks logs feed.
           </p>
           
           <div class="qr-grid-feed" id="qrFeedGrid">
@@ -141,51 +149,81 @@
     let deferredPrompt = null;
     let currentScanMode = 'general';
 
-    // Data Awal Feed (Maniak QR)
+    // Data Feed (Status scanned menentukan apakah QR tampil atau hilang digantikan teks)
     const initialFeedData = [
-      { id: "TOF-001", title: "Setoran Pak Min", text: "Kompos Matang 30kg - Pak Min (#TOF-KMP-30)", tag: "Hulu (+30 TOF)" },
-      { id: "TOF-002", title: "Transaksi Kedai", text: "1x Beans Arabika Menoreh Terjual (#TOF-KOP-88)", tag: "Hilir (Kasir)" },
-      { id: "TOF-003", title: "ID Petani Budi", text: "USER_ID: BUDI_SANTOSO_MENOREH_ZONE_1", tag: "Identity" }
+      { id: "TOF-001", title: "Setoran Pak Min", text: "Kompos Matang 30kg disetorkan oleh Pak Min (#TOF-KMP-30)", tag: "Hulu (+30 TOF)", scanned: false },
+      { id: "TOF-002", title: "Transaksi Kedai", text: "1x Beans Arabika Menoreh Terjual di Kedai (#TOF-KOP-88)", tag: "Hilir (Kasir)", scanned: false },
+      { id: "TOF-003", title: "ID Petani Budi", text: "USER_ID: BUDI_SANTOSO_MENOREH_ZONE_1 - Terverifikasi", tag: "Identity", scanned: false }
     ];
 
     window.onload = () => {
       renderQRFeed();
     };
 
-    // 1. GENERATE MATRIX FEED BERBASIS QR CODE
+    // 1. GENERATE MATRIX FEED (LOGIKA HILANGNYA QR JIKA SUDAH DI-SCAN)
     function renderQRFeed() {
       const grid = document.getElementById("qrFeedGrid");
       grid.innerHTML = "";
 
       initialFeedData.forEach((item, index) => {
         const card = document.createElement("div");
-        card.className = "qr-card-item";
-        
         const qrContainerId = `qr-target-${index}`;
-        
-        card.innerHTML = `
-          <div style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${item.title}</div>
-          <div class="qr-holder" id="${qrContainerId}"></div>
-          <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${item.tag}</span>
-          <div class="hidden-text">${item.text}</div>
-        `;
+
+        if (item.scanned) {
+          // KONDISI SUDAH DI-SCAN: QR CODE HILANG -> TAMPIL LOG TEKS NATIVE
+          card.className = "qr-card-item revealed";
+          card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${item.title}</span>
+              <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${item.tag}</span>
+            </div>
+            <div class="revealed-content">LOG: ${item.text}</div>
+            <div style="font-size: 9px; color: #c9a227; margin-top: 6px; font-weight: bold;">✓ Terdekodekan & Terverifikasi</div>
+          `;
+        } else {
+          // KONDISI BELUM DI-SCAN: TAMPILKAN QR CODE LENGKAP
+          card.className = "qr-card-item";
+          card.onclick = () => revealQRItem(index); // Ketuk langsung untuk simulasi dekode scan
+          
+          card.innerHTML = `
+            <div style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${item.title}</div>
+            <div class="qr-holder" id="${qrContainerId}"></div>
+            <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${item.tag}</span>
+            <div class="scan-prompt">Ketuk / Scan untuk baca isi</div>
+          `;
+
+          grid.appendChild(card);
+
+          // Render objek QR Code
+          setTimeout(() => {
+            const container = document.getElementById(qrContainerId);
+            if (container) {
+              new QRCode(container, {
+                text: item.text,
+                width: 110,
+                height: 110,
+                colorDark : "#1c2b22",
+                colorLight : "#ffffff"
+              });
+            }
+          }, 50);
+          return;
+        }
 
         grid.appendChild(card);
-
-        // Render QR Code untuk setiap item
-        setTimeout(() => {
-          new QRCode(document.getElementById(qrContainerId), {
-            text: item.text,
-            width: 110,
-            height: 110,
-            colorDark : "#1c2b22",
-            colorLight : "#ffffff"
-          });
-        }, 50);
       });
     }
 
-    // 2. INPUT TEKS -> CONVERT KE QR FEED LANGSUNG (ENTER KEY)
+    // MEMBUKA / MENDEKODE KODE QR (UBAH STATE SCANNED -> TRUE)
+    function revealQRItem(index) {
+      if (!initialFeedData[index].scanned) {
+        initialFeedData[index].scanned = true;
+        playBeepSound('success_chime'); // 🔔 Suara Sukses Dopamin Dekode QR
+        renderQRFeed();
+      }
+    }
+
+    // 2. INPUT TEKS -> GENERATE KODE QR BARU DI FEED
     function handleKeyPress(e) {
       if (e.key === "Enter") {
         const input = document.getElementById("qrTextInput");
@@ -193,12 +231,13 @@
 
         playBeepSound('mining');
 
-        // Tambah ke urutan paling atas feed
+        // Masuk sebagai QR Code baru (belum di-scan)
         initialFeedData.unshift({
           id: `TOF-${Date.now()}`,
           title: "Input Teks Baru",
           text: input.value,
-          tag: "Custom QR"
+          tag: "Custom QR",
+          scanned: false
         });
 
         input.value = "";
@@ -206,7 +245,7 @@
       }
     }
 
-    // 3. AUDIO BEEP SYNTHESIZER
+    // 3. AUDIO SYNTHESIZER MULTI-TONE (DOPAMINE SOUNDS)
     function playBeepSound(type = 'mining') {
       try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -217,21 +256,36 @@
         gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
 
         if (type === 'mining') {
+          // BEEP PENAMBANGAN HULU
           oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
           oscillator.frequency.setValueAtTime(1760, audioCtx.currentTime + 0.08);
-        } else {
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.start();
+          oscillator.stop(audioCtx.currentTime + 0.18);
+        } else if (type === 'checkout') {
+          // CHIME TRANSAKSI KASIR KEDAI
           oscillator.frequency.setValueAtTime(1046.5, audioCtx.currentTime);
           oscillator.frequency.setValueAtTime(1318.5, audioCtx.currentTime + 0.07);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.start();
+          oscillator.stop(audioCtx.currentTime + 0.22);
+        } else if (type === 'success_chime') {
+          // 🔔 CHIME SUKSES HARMONIS (UNTUK REVEAL & LOGIN SCAN)
+          const now = audioCtx.currentTime;
+          oscillator.frequency.setValueAtTime(523.25, now); // C5
+          oscillator.frequency.setValueAtTime(659.25, now + 0.08); // E5
+          oscillator.frequency.setValueAtTime(783.99, now + 0.16); // G5
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.start();
+          oscillator.stop(now + 0.3);
         }
-
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.2);
       } catch(e) {}
     }
 
-    // 4. SCANNER SYSTEM
+    // 4. PEMINDAI KAMERA DENGAN PENCOCOKAN OTOMATIS KE FEED
     function openScanner(mode = 'general') {
       currentScanMode = mode;
       document.getElementById("scannerModal").style.display = "flex";
@@ -248,18 +302,21 @@
     }
 
     function onScanSuccess(decodedText) {
-      playBeepSound('checkout');
       closeScanner();
 
       if (currentScanMode === 'login') {
-        alert(`LOGIN BERHASIL! ID Terverifikasi: ${decodedText}`);
+        playBeepSound('success_chime');
+        alert(`LOGIN BERHASIL VIA QR ID!\nID Terverifikasi: ${decodedText}`);
       } else {
-        // Otomatis masukkan hasil scan sebagai postingan QR baru
+        playBeepSound('success_chime');
+
+        // Otomatis masukkan hasil scan dan langsung tandai scanned: true (Tampil Teks)
         initialFeedData.unshift({
           id: `SCAN-${Date.now()}`,
           title: "Hasil Scan Kamera",
           text: decodedText,
-          tag: "Scanned QR"
+          tag: "Scanned QR",
+          scanned: true
         });
         renderQRFeed();
       }
@@ -298,7 +355,6 @@
           deferredPrompt = null;
         });
       } else {
-        // Fallback pemicu simulasi jika dibuka di browser standar tanpa PWA flag
         alert("Aplikasi ToFarmer sedang disematkan ke layar utama HP kamu!");
       }
     }
