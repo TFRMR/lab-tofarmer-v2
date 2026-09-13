@@ -405,7 +405,12 @@
     <div class="kebun-content">
         <div class="kebun-header">
             <div class="kebun-title">🌾 Kebun Saya</div>
-            <button class="btn" style="min-width:auto; padding:8px 14px;" onclick="openVillageMap()">🗺️ Desa</button>
+            <div style="display:flex; gap:6px;">
+                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="document.getElementById('farm-modal').classList.add('active'); renderFarmList();" title="Semua Lahan">🌾</button>
+                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openPasarModal()" title="Pasar">🛒</button>
+                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openCompostMenu()" title="Kompos & Pupuk">🧪</button>
+                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openVillageMap()" title="Peta Desa">🗺️</button>
+            </div>
         </div>
         <div class="kebun-plant-stage" id="kebun-plant-stage"></div>
         <div class="kebun-status-text" id="kebun-status-text"></div>
@@ -2542,7 +2547,13 @@
         renderKebunSayaHome();
     }
 
+    let worldBuilt = false;
     function openVillageMap() {
+        if (!worldBuilt) {
+            buildWorld();
+            centerMapOnVillage();
+            worldBuilt = true;
+        }
         document.getElementById('kebun-saya-screen').style.display = 'none';
     }
 
@@ -2570,7 +2581,7 @@
             const sig = 'fertile-' + key;
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ empty: true }); lastKebunPlantSignature = sig; }
             statusEl.innerText = `Petak ${key} subur, siap ditanami.`;
-            actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="document.getElementById('kebun-saya-screen').style.display='none'; document.getElementById('farm-modal').classList.add('active'); renderFarmList();">🌱 Tanam Sekarang</button>`;
+            actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="document.getElementById('farm-modal').classList.add('active'); renderFarmList();">🌱 Tanam Sekarang</button>`;
         } else if (farm.landState === 'barren') {
             const sig = 'barren-' + key;
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ barren: true }); lastKebunPlantSignature = sig; }
@@ -3220,8 +3231,12 @@
             await refreshMyBibitStock();
             await loadWorldState();
 
-            buildWorld();
-            centerMapOnVillage();
+            // buildWorld() DITUNDA -- baru dibangun pas user beneran klik peta pertama kali
+            // (lihat openVillageMap()), supaya beban 900 tile TIDAK mengganjal load awal yang
+            // sekarang fokus ke layar Kebun Saya. Data (farms/claimedTiles/dst) tetap mengalir
+            // normal lewat subscribeRealtime() terlepas dari kapan peta digambar -- aman karena
+            // updateTileFarmVisual/updateTileClaimVisual sudah punya guard "if (!entry) return"
+            // kalau tileNodeMap belum terisi.
             await ensureMyHouseRow();
             subscribeRealtime();
             updateOfflineQueueBadge();
