@@ -259,6 +259,22 @@
         .goods-card-btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .goods-section-title { font-size: 14px; font-weight: 700; color: #e0ac4a; margin: 14px 0 8px; }
         .goods-empty-text { font-size: 13px; color: #94a3b8; }
+
+        /* ===== KEBUN SAYA -- layar utama baru (Shopee Tanam-style) ===== */
+        #kebun-saya-screen { position: fixed; inset: 0; z-index: 5000; display: none; flex-direction: column; }
+        .kebun-backdrop { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+        .kebun-content { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100%; }
+        .kebun-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; }
+        .kebun-title { font-size: 16px; font-weight: 700; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.7); }
+        .kebun-plant-stage { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 220px; position: relative; }
+        .kebun-plant-stage svg { width: 70%; max-width: 260px; }
+        .kebun-status-text { text-align: center; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.8); font-size: 14px; margin-bottom: 10px; padding: 0 20px; }
+        .kebun-action-row { display: flex; gap: 10px; padding: 0 16px 14px; justify-content: center; flex-wrap: wrap; }
+        .kebun-other-plots { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 18px; }
+        .kebun-plot-thumb { flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
+        .kebun-reopen-btn { position: fixed; top: 64px; left: 10px; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--ui); border: 1px solid var(--accent); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        @keyframes kebunFxFloat { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.6); } 40% { opacity:1; transform:translate(-50%,-90%) scale(1.2); } 100% { opacity:0; transform:translate(-50%,-140%) scale(1); } }
+        .kebun-fx { position: absolute; left: 50%; top: 50%; font-size: 30px; transform: translate(-50%,-50%); pointer-events: none; animation: kebunFxFloat 0.9s ease-out forwards; }
         .care-progress { font-size: 9px; color: #94a3b8; margin-top: 3px; }
 
         /* MODAL KOMPOS & PUPUK */
@@ -383,6 +399,21 @@
         <div id="grid-world"></div>
     </div>
 </div>
+
+<div id="kebun-saya-screen">
+    <div class="kebun-backdrop" id="kebun-backdrop"></div>
+    <div class="kebun-content">
+        <div class="kebun-header">
+            <div class="kebun-title">🌾 Kebun Saya</div>
+            <button class="btn" style="min-width:auto; padding:8px 14px;" onclick="openVillageMap()">🗺️ Desa</button>
+        </div>
+        <div class="kebun-plant-stage" id="kebun-plant-stage"></div>
+        <div class="kebun-status-text" id="kebun-status-text"></div>
+        <div class="kebun-action-row" id="kebun-action-row"></div>
+        <div class="kebun-other-plots" id="kebun-other-plots"></div>
+    </div>
+</div>
+<button class="kebun-reopen-btn" onclick="document.getElementById('kebun-saya-screen').style.display='flex'; renderKebunSayaHome();">🌾</button>
 
 <div id="island-modal" class="modal-overlay side-panel" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
@@ -2351,9 +2382,247 @@
         }
     }
 
+    // ===== KEBUN SAYA -- tanaman besar SVG, layar utama baru =====
+    const KEBUN_BACKDROP_SVG = `<svg viewBox="0 0 380 300" width="100%" height="100%" preserveAspectRatio="xMidYMax slice">
+        <defs>
+            <linearGradient id="kbSky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#241735"/>
+                <stop offset="45%" stop-color="#5b2f4f"/>
+                <stop offset="72%" stop-color="#c9613f"/>
+                <stop offset="100%" stop-color="#f2b544"/>
+            </linearGradient>
+            <radialGradient id="kbSun" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ffe9a8" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#ffe9a8" stop-opacity="0"/>
+            </radialGradient>
+        </defs>
+        <rect x="0" y="0" width="380" height="300" fill="url(#kbSky)"/>
+        <circle cx="190" cy="170" r="70" fill="url(#kbSun)"/>
+        <circle cx="190" cy="170" r="30" fill="#ffdf94"/>
+        <path d="M0 190 Q60 150 120 175 T240 165 T380 185 L380 300 L0 300 Z" fill="#132a1c" opacity="0.55"/>
+        <path d="M0 215 Q80 175 160 205 T320 195 T380 210 L380 300 L0 300 Z" fill="#0d1f14" opacity="0.8"/>
+        <path d="M0 245 Q100 220 190 240 T380 230 L380 300 L0 300 Z" fill="#08140c"/>
+    </svg>`;
+
+    function renderPlantSVG(o) {
+        const W = 200, H = 200;
+        if (o.empty) {
+            return `<svg viewBox="0 0 ${W} ${H}">
+                <ellipse cx="100" cy="165" rx="70" ry="16" fill="#2a1f14"/>
+                <ellipse cx="100" cy="160" rx="60" ry="12" fill="#3d2b1c"/>
+            </svg>`;
+        }
+        if (o.barren) {
+            return `<svg viewBox="0 0 ${W} ${H}">
+                <ellipse cx="100" cy="165" rx="70" ry="16" fill="#3a2a1a"/>
+                <ellipse cx="100" cy="160" rx="60" ry="12" fill="#4a3624"/>
+                <path d="M100 160 C 96 140 108 120 98 100" stroke="#6b5238" stroke-width="5" fill="none" stroke-linecap="round"/>
+                <path d="M98 100 L 88 92 M98 100 L 106 90" stroke="#5a4530" stroke-width="3" fill="none" stroke-linecap="round"/>
+            </svg>`;
+        }
+        const pct = Math.max(0.08, Math.min(1, o.growthPct || 0));
+        const stemH = 30 + pct * 90;
+        const leafCount = Math.max(2, Math.round(pct * 8));
+        const dull = !o.careReady && o.timeReady;
+        const leafColorA = dull ? '#8a9a6f' : '#5cbb6d';
+        const leafColorB = dull ? '#7a8a5f' : '#3c8a4e';
+        const positions = [
+            {x:-10,y:-15,rot:-30,s:0.6}, {x:10,y:-22,rot:30,s:0.65},
+            {x:-15,y:-38,rot:-35,s:0.75}, {x:15,y:-45,rot:35,s:0.8},
+            {x:-18,y:-58,rot:-25,s:0.9}, {x:18,y:-65,rot:25,s:0.95},
+            {x:-14,y:-78,rot:-15,s:1}, {x:14,y:-84,rot:15,s:1}
+        ];
+        let leaves = '';
+        for (let i = 0; i < leafCount; i++) {
+            const p = positions[i];
+            const color = i % 2 === 0 ? leafColorA : leafColorB;
+            leaves += `<use href="#leafShape" transform="translate(${100+p.x},${160+p.y}) rotate(${p.rot}) scale(${p.s})" fill="${color}"/>`;
+        }
+        const ready = o.timeReady && o.careReady;
+        let extras = '';
+        if (ready) {
+            extras += `<circle cx="100" cy="${160-stemH*0.6}" r="55" fill="#ffe9a8" opacity="0.12"/>`;
+            extras += `<ellipse cx="80" cy="162" rx="14" ry="9" fill="#e0a34a"/>`;
+            extras += `<ellipse cx="118" cy="164" rx="11" ry="7" fill="#d1923f"/>`;
+        }
+        if (dull) {
+            extras += `<circle cx="100" cy="${160-stemH}" r="${40+stemH*0.3}" fill="none" stroke="#fbbf24" stroke-width="2" stroke-dasharray="4 4" opacity="0.55"/>`;
+        }
+        return `<svg viewBox="0 0 ${W} ${H}">
+            <defs><path id="leafShape" d="M0 0 C -14 -4 -18 -18 -6 -26 C 4 -18 6 -6 0 0 Z"/></defs>
+            <ellipse cx="100" cy="165" rx="70" ry="16" fill="#1e3a1f"/>
+            <ellipse cx="100" cy="160" rx="60" ry="12" fill="#2a4a2a"/>
+            ${extras}
+            <path d="M100 160 C 96 ${160-stemH*0.5} 104 ${160-stemH*0.8} 100 ${160-stemH}" stroke="#3f6b2e" stroke-width="5" fill="none" stroke-linecap="round"/>
+            ${leaves}
+        </svg>`;
+    }
+
+    let audioCtxSingleton = null;
+    function getAudioCtx() {
+        if (!audioCtxSingleton) {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            audioCtxSingleton = new AC();
+        }
+        return audioCtxSingleton;
+    }
+    function playTone(freq, durationMs, type, volume) {
+        try {
+            const ctx = getAudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = type || 'sine';
+            osc.frequency.value = freq;
+            gain.gain.value = volume || 0.06;
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + durationMs/1000);
+            osc.stop(ctx.currentTime + durationMs/1000 + 0.02);
+        } catch (e) { /* audio tidak tersedia, abaikan diam-diam */ }
+    }
+    function playSoundWater() { playTone(660, 180, 'sine', 0.06); setTimeout(() => playTone(880, 150, 'sine', 0.05), 90); }
+    function playSoundFertilize() { playTone(420, 140, 'triangle', 0.06); }
+    function playSoundHarvest() { playTone(523, 120, 'sine', 0.07); setTimeout(() => playTone(659, 120, 'sine', 0.07), 90); setTimeout(() => playTone(784, 200, 'sine', 0.08), 180); }
+
+    function showActionFx(emoji) {
+        const stage = document.getElementById('kebun-plant-stage');
+        if (!stage) return;
+        const fx = document.createElement('div');
+        fx.className = 'kebun-fx';
+        fx.textContent = emoji;
+        stage.appendChild(fx);
+        setTimeout(() => fx.remove(), 950);
+    }
+
+    function pickFeaturedTileKey() {
+        const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername);
+        if (!myTiles.length) return null;
+        if (window.__kebunPinnedTile && myTiles.includes(window.__kebunPinnedTile)) return window.__kebunPinnedTile;
+        let bestKey = null, bestScore = -1;
+        for (const key of myTiles) {
+            const farm = farms[key];
+            let score = 0;
+            if (!farm || farm.landState === 'fertile') score = 1;
+            else if (farm.landState === 'barren') score = 2;
+            else {
+                const cropDef = getCropDef(farm.cropId);
+                if (cropDef) {
+                    const growMs = computeEffectiveGrowMs(cropDef, farm);
+                    const elapsed = farm.plantedAt ? (Date.now() - farm.plantedAt) : 0;
+                    const timeReady = elapsed >= growMs;
+                    const careReady = (farm.waterCount||0) >= (Number(cropDef.water_required)||0) && (farm.fertilizeCount||0) >= (Number(cropDef.fertilize_required)||0) && (farm.prunedCount||0) >= CARE_TREAT_REQUIRED;
+                    if (timeReady && careReady) score = 5;
+                    else if (timeReady && !careReady) score = 4;
+                    else score = 3;
+                }
+            }
+            if (score > bestScore) { bestScore = score; bestKey = key; }
+        }
+        return bestKey;
+    }
+
+    function buildCareButtonsHtml(key, farm, cropDef) {
+        const now = Date.now();
+        const waterCooldownMs = (Number(cropDef.water_cooldown_seconds)||0)*1000;
+        const fertilizeCooldownMs = (Number(cropDef.fertilize_cooldown_seconds)||0)*1000;
+        const pruneCooldownMs = (Number(cropDef.prune_cooldown_seconds)||0)*1000;
+        const waterOnCooldown = farm.lastWateredAt && (now - farm.lastWateredAt) < waterCooldownMs;
+        const fertilizeOnCooldown = farm.lastFertilizedAt && (now - farm.lastFertilizedAt) < fertilizeCooldownMs;
+        const pruneOnCooldown = farm.lastPrunedAt && (now - farm.lastPrunedAt) < pruneCooldownMs;
+        return `
+            <button class="plot-btn" onclick="showActionFx('💧'); playSoundWater(); waterCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram</button>
+            <button class="plot-btn" onclick="showActionFx('✨'); playSoundFertilize(); fertilizeCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk</button>
+            <button class="plot-btn" onclick="pruneCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat</button>
+        `;
+    }
+
+    function focusFeaturedTile(key) {
+        window.__kebunPinnedTile = key;
+        renderKebunSayaHome();
+    }
+
+    function openVillageMap() {
+        document.getElementById('kebun-saya-screen').style.display = 'none';
+    }
+
+    function renderKebunSayaHome() {
+        const key = pickFeaturedTileKey();
+        const stageEl = document.getElementById('kebun-plant-stage');
+        const statusEl = document.getElementById('kebun-status-text');
+        const actionEl = document.getElementById('kebun-action-row');
+        const othersEl = document.getElementById('kebun-other-plots');
+        if (!stageEl) return;
+
+        if (!key) {
+            stageEl.innerHTML = renderPlantSVG({ empty: true });
+            statusEl.innerText = 'Anda belum punya lahan. Klaim tanah dulu di menu Desa.';
+            actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="openVillageMap()">🗺️ Buka Peta Desa</button>`;
+            othersEl.innerHTML = '';
+            return;
+        }
+
+        const farm = farms[key];
+        if (!farm || farm.landState === 'fertile') {
+            stageEl.innerHTML = renderPlantSVG({ empty: true });
+            statusEl.innerText = `Petak ${key} subur, siap ditanami.`;
+            actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="document.getElementById('kebun-saya-screen').style.display='none'; document.getElementById('farm-modal').classList.add('active'); renderFarmList();">🌱 Tanam Sekarang</button>`;
+        } else if (farm.landState === 'barren') {
+            stageEl.innerHTML = renderPlantSVG({ barren: true });
+            statusEl.innerText = `Petak ${key} tandus, perlu dipupuk.`;
+            actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="fertilizeBarrenAction('${key}').then(() => renderKebunSayaHome())">🌿 Pupuk Tanah</button>`;
+        } else {
+            const cropDef = getCropDef(farm.cropId);
+            if (!cropDef) { statusEl.innerText = 'Data tanaman belum sinkron.'; return; }
+            const growMs = computeEffectiveGrowMs(cropDef, farm);
+            const elapsed = farm.plantedAt ? (Date.now() - farm.plantedAt) : 0;
+            const growthPct = Math.min(1, elapsed / growMs);
+            const timeReady = elapsed >= growMs;
+            const careReady = (farm.waterCount||0) >= (Number(cropDef.water_required)||0) && (farm.fertilizeCount||0) >= (Number(cropDef.fertilize_required)||0) && (farm.prunedCount||0) >= CARE_TREAT_REQUIRED;
+            stageEl.innerHTML = renderPlantSVG({ growthPct, careReady, timeReady });
+
+            if (timeReady && careReady) {
+                const reward = computeEffectiveReward(cropDef, farm);
+                statusEl.innerText = `${cropDef.name} siap dipanen! +${reward} XP`;
+                actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="harvestCropAction('${key}').then(() => { showActionFx('🎉'); playSoundHarvest(); renderKebunSayaHome(); })">🧺 Panen Sekarang</button>`;
+            } else if (timeReady && !careReady) {
+                statusEl.innerText = `${cropDef.name} sudah waktunya, tapi masih butuh perawatan.`;
+                actionEl.innerHTML = buildCareButtonsHtml(key, farm, cropDef);
+            } else {
+                statusEl.innerText = `${cropDef.name} sedang tumbuh (~${formatDuration(growMs - elapsed)} lagi)`;
+                actionEl.innerHTML = buildCareButtonsHtml(key, farm, cropDef);
+            }
+        }
+
+        const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername && k !== key);
+        othersEl.innerHTML = myTiles.map(k => {
+            const f = farms[k];
+            let icon = '🟩';
+            if (f && f.landState === 'barren') icon = '🟤';
+            else if (f && f.landState === 'planted') {
+                const cd = getCropDef(f.cropId);
+                icon = cd ? cd.icon : '🌱';
+            }
+            return `<div class="kebun-plot-thumb" onclick="focusFeaturedTile('${k}')">${icon}</div>`;
+        }).join('');
+    }
+
+    function checkKebunReadyAndShow() {
+        if (myUsername) {
+            const b = document.getElementById('kebun-backdrop');
+            if (b && !b.innerHTML) b.innerHTML = KEBUN_BACKDROP_SVG;
+            document.getElementById('kebun-saya-screen').style.display = 'flex';
+            renderKebunSayaHome();
+        } else {
+            setTimeout(checkKebunReadyAndShow, 400);
+        }
+    }
+    setTimeout(checkKebunReadyAndShow, 800);
+
     function refreshAllFarmVisuals() {
         Object.keys(farms).forEach(key => updateTileFarmVisual(key));
         if (document.getElementById('farm-modal').classList.contains('active')) renderFarmList();
+        if (document.getElementById('kebun-saya-screen').style.display !== 'none') renderKebunSayaHome();
     }
     setInterval(refreshAllFarmVisuals, 8000);
 
