@@ -1,0 +1,1342 @@
+```html
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#2f6f4e">
+
+  <title>Admin SCAN SAJA | ToFarmer</title>
+
+  <style>
+    :root {
+      --green-dark: #2f6f4e;
+      --green: #4caf7a;
+      --gold: #c9a227;
+      --bg: #f4f7f5;
+      --text: #1c2b22;
+      --muted: #6f7f76;
+      --card: #fff;
+      --border: rgba(0,0,0,.06);
+      --shadow: 0 8px 30px rgba(30,60,45,.07);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    header {
+      background: var(--green-dark);
+      color: #fff;
+    }
+
+    .nav {
+      max-width: 1100px;
+      min-height: 68px;
+      margin: auto;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 850;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,.12);
+      border-radius: 12px;
+    }
+
+    .admin-badge {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(201,162,39,.18);
+      border: 1px solid rgba(201,162,39,.4);
+      color: #fff6c8;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px 16px 50px;
+    }
+
+    .hero {
+      background:
+        linear-gradient(
+          135deg,
+          #2f6f4e,
+          #4caf7a
+        );
+      color: white;
+      border-radius: 22px;
+      padding: 25px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: 35px;
+      letter-spacing: -1.7px;
+    }
+
+    .hero p {
+      margin: 8px 0 0;
+      opacity: .88;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: .8fr 1.2fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 19px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+
+    h2,
+    h3 {
+      margin-top: 0;
+    }
+
+    .field {
+      margin-top: 13px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 6px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #dfe6e1;
+      background: #fbfdfc;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 13px;
+      font: inherit;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--green);
+      box-shadow: 0 0 0 3px rgba(76,175,122,.12);
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .three {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+
+    .checkbox {
+      display: flex;
+      gap: 9px;
+      align-items: center;
+      padding: 11px 12px;
+      background: #f4f7f5;
+      border-radius: 11px;
+      margin-top: 8px;
+    }
+
+    .checkbox input {
+      width: auto;
+      margin: 0;
+    }
+
+    button {
+      border: 0;
+      border-radius: 13px;
+      padding: 13px 16px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: .18s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      width: 100%;
+      margin-top: 15px;
+      background:
+        linear-gradient(
+          90deg,
+          var(--green),
+          var(--gold)
+        );
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #edf2ef;
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: #fff0f0;
+      color: #a53b3b;
+    }
+
+    .tasks {
+      display: grid;
+      gap: 11px;
+    }
+
+    .task {
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 15px;
+    }
+
+    .task-title {
+      font-size: 18px;
+      font-weight: 850;
+    }
+
+    .task-desc {
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.45;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 6px 9px;
+      background: #eef4f0;
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .chip.gold {
+      background: #fff8df;
+      color: #705b10;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .task-actions button {
+      flex: 1;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      line-height: 1.45;
+      background: #f2f5f3;
+    }
+
+    .status.ok {
+      background: #eaf7ef;
+      color: #205f3f;
+    }
+
+    .status.error {
+      background: #fff0f0;
+      color: #8c3030;
+    }
+
+    .status.warning {
+      background: #fff8df;
+      color: #715d12;
+    }
+
+    .empty {
+      padding: 30px 10px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .security-box {
+      padding: 13px;
+      border-radius: 13px;
+      background: #fff8df;
+      color: #6c5810;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 15px;
+    }
+
+    .coords-preview {
+      font-family: monospace;
+      font-size: 12px;
+      word-break: break-all;
+      margin-top: 7px;
+    }
+
+    @media (max-width: 820px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .two,
+      .three {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header>
+  <div class="nav">
+    <div class="brand">
+      <div class="brand-icon">🌿</div>
+      <div>
+        <div>ToFarmer</div>
+        <div style="font-size:10px;opacity:.7;">
+          ADMIN • SCAN SAJA
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-badge">
+      ADMIN PANEL
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <h1>Contribution Manager</h1>
+    <p>
+      Tentukan pekerjaan nyata yang ingin divalidasi
+      oleh komunitas ToFarmer.
+    </p>
+  </section>
+
+  <div class="layout">
+
+    <div>
+
+      <section class="card">
+
+        <h2>Buat Tugas Baru</h2>
+
+        <div class="security-box">
+          🔐 Halaman ini hanya boleh digunakan oleh
+          profil dengan <strong>role = admin</strong>.
+          Role tidak ditentukan dari username.
+        </div>
+
+        <form id="taskForm">
+
+          <div class="field">
+            <label for="title">
+              Nama tugas
+            </label>
+
+            <input
+              id="title"
+              required
+              maxlength="120"
+              placeholder="Contoh: Validasi Mata Air Desa">
+          </div>
+
+          <div class="field">
+            <label for="description">
+              Deskripsi
+            </label>
+
+            <textarea
+              id="description"
+              maxlength="1000"
+              placeholder="Jelaskan apa yang harus dilakukan user."></textarea>
+          </div>
+
+          <div class="field">
+            <label for="type">
+              Jenis kontribusi
+            </label>
+
+            <select id="type">
+              <option value="location">
+                Lokasi
+              </option>
+
+              <option value="mata_air">
+                Mata Air
+              </option>
+
+              <option value="pohon">
+                Pohon
+              </option>
+
+              <option value="infrastruktur">
+                Infrastruktur
+              </option>
+
+              <option value="survey">
+                Survey
+              </option>
+
+              <option value="other">
+                Lainnya
+              </option>
+            </select>
+          </div>
+
+          <div class="field">
+
+            <label>
+              Lokasi tugas
+            </label>
+
+            <div class="two">
+
+              <input
+                id="latitude"
+                required
+                type="number"
+                step="any"
+                placeholder="Latitude">
+
+              <input
+                id="longitude"
+                required
+                type="number"
+                step="any"
+                placeholder="Longitude">
+
+            </div>
+
+            <button
+              type="button"
+              class="btn-secondary"
+              id="useAdminLocation"
+              style="margin-top:9px;width:100%;">
+              📍 Gunakan lokasi perangkat saya
+            </button>
+
+            <div
+              class="coords-preview"
+              id="coordsPreview">
+              Koordinat belum ditentukan.
+            </div>
+
+          </div>
+
+          <div class="field">
+            <label for="radius">
+              Radius validasi (meter)
+            </label>
+
+            <input
+              id="radius"
+              type="number"
+              min="5"
+              max="5000"
+              value="50"
+              required>
+          </div>
+
+          <div class="field">
+            <label>
+              Bukti yang diperlukan
+            </label>
+
+            <label class="checkbox">
+              <input
+                type="checkbox"
+                checked
+                disabled>
+              📍 GPS wajib
+            </label>
+
+            <label class="checkbox">
+              <input
+                id="photoRequired"
+                type="checkbox"
+                checked>
+              📸 Foto wajib
+            </label>
+          </div>
+
+          <div class="field">
+
+            <label>
+              Reward
+            </label>
+
+            <div class="two">
+
+              <div>
+                <input
+                  id="rewardTof"
+                  type="number"
+                  min="0"
+                  step="any"
+                  value="1"
+                  required>
+                <div
+                  style="font-size:11px;color:#6f7f76;margin-top:4px;">
+                  TOF
+                </div>
+              </div>
+
+              <div>
+                <input
+                  id="rewardXp"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="100"
+                  required>
+                <div
+                  style="font-size:11px;color:#6f7f76;margin-top:4px;">
+                  XP
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="field">
+
+            <label for="status">
+              Status
+            </label>
+
+            <select id="status">
+              <option value="active">
+                Aktif — tampil ke user
+              </option>
+
+              <option value="draft">
+                Draft — belum tampil
+              </option>
+            </select>
+
+          </div>
+
+          <button
+            class="btn-primary"
+            id="saveButton"
+            type="submit">
+            🌿 TERBITKAN TUGAS
+          </button>
+
+        </form>
+
+        <div
+          id="formStatus"
+          style="display:none;">
+        </div>
+
+      </section>
+
+    </div>
+
+    <div>
+
+      <section class="card">
+
+        <div style="
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          gap:10px;
+          margin-bottom:13px;
+        ">
+
+          <div>
+            <h2>Tugas ToFarmer</h2>
+
+            <div
+              style="font-size:12px;color:#6f7f76;">
+              Semua tugas yang dibuat admin.
+            </div>
+          </div>
+
+          <button
+            class="btn-secondary"
+            id="refreshButton">
+            ↻
+          </button>
+
+        </div>
+
+        <div
+          id="taskList"
+          class="tasks">
+          <div class="empty">
+            Memuat tugas...
+          </div>
+        </div>
+
+      </section>
+
+      <section class="card">
+
+        <h3>Aturan Admin</h3>
+
+        <div class="status warning">
+          Admin menentukan <strong>pekerjaan</strong>,
+          bukan mencetak TOF sesuka hati.
+        </div>
+
+        <div
+          style="
+            margin-top:12px;
+            color:#6f7f76;
+            font-size:13px;
+            line-height:1.6;
+          ">
+          Reward yang dimasukkan di sini adalah
+          reward kontribusi yang sudah ditentukan
+          oleh sistem ToFarmer.
+          Pada tahap produksi, pemberian TOF harus
+          dilakukan melalui backend/RPC yang aman,
+          bukan update langsung dari browser.
+        </div>
+
+      </section>
+
+    </div>
+
+  </div>
+
+</main>
+
+<script type="module">
+
+import { supabase } from "../js/supabase-client.js";
+
+let adminProfile = null;
+
+const $ = id =>
+  document.getElementById(id);
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function requireLogin() {
+
+  const wallet =
+    localStorage.getItem("tof_wallet");
+
+  const username =
+    localStorage.getItem(
+      "tof_login_username"
+    );
+
+  if (!wallet || !username) {
+
+    localStorage.setItem(
+      "redirect_to",
+      window.location.pathname
+    );
+
+    window.location.href =
+      "./login.html";
+
+    return false;
+  }
+
+  return true;
+}
+
+async function checkAdmin() {
+
+  const wallet =
+    localStorage.getItem("tof_wallet");
+
+  const { data, error } =
+    await supabase
+      .from("profiles")
+      .select(
+        "id, username, role"
+      )
+      .eq("id", wallet)
+      .single();
+
+  if (
+    error ||
+    !data ||
+    data.role !== "admin"
+  ) {
+
+    document.body.innerHTML = `
+      <div style="
+        min-height:100vh;
+        display:grid;
+        place-items:center;
+        padding:20px;
+        background:#f4f7f5;
+        font-family:system-ui;
+        color:#1c2b22;
+      ">
+        <div style="
+          max-width:450px;
+          background:white;
+          border-radius:20px;
+          padding:30px;
+          text-align:center;
+          box-shadow:0 10px 35px rgba(0,0,0,.08);
+        ">
+          <div style="font-size:50px;">
+            🔒
+          </div>
+
+          <h2>
+            Akses Ditolak
+          </h2>
+
+          <p style="color:#6f7f76;">
+            Akun ini bukan Admin ToFarmer.
+          </p>
+
+          <button
+            onclick="location.href='./scan-saja.html'"
+            style="
+              border:0;
+              border-radius:12px;
+              padding:13px 18px;
+              background:#2f6f4e;
+              color:white;
+              font-weight:800;
+              cursor:pointer;
+            ">
+            Kembali ke SCAN SAJA
+          </button>
+        </div>
+      </div>
+    `;
+
+    return false;
+  }
+
+  adminProfile = data;
+
+  return true;
+}
+
+function updateCoordinatesPreview() {
+
+  const lat =
+    $("latitude").value;
+
+  const lon =
+    $("longitude").value;
+
+  if (lat && lon) {
+
+    $("coordsPreview").textContent =
+      `📍 ${lat}, ${lon}`;
+
+  } else {
+
+    $("coordsPreview").textContent =
+      "Koordinat belum ditentukan.";
+  }
+}
+
+function useDeviceLocation() {
+
+  if (!navigator.geolocation) {
+
+    alert(
+      "Browser tidak mendukung GPS."
+    );
+
+    return;
+  }
+
+  $("useAdminLocation").disabled =
+    true;
+
+  $("useAdminLocation").textContent =
+    "📍 Mencari lokasi...";
+
+  navigator.geolocation.getCurrentPosition(
+
+    position => {
+
+      $("latitude").value =
+        position.coords.latitude;
+
+      $("longitude").value =
+        position.coords.longitude;
+
+      updateCoordinatesPreview();
+
+      $("useAdminLocation").disabled =
+        false;
+
+      $("useAdminLocation").textContent =
+        "✓ Lokasi perangkat digunakan";
+    },
+
+    error => {
+
+      console.error(error);
+
+      alert(
+        "Lokasi tidak dapat diambil."
+      );
+
+      $("useAdminLocation").disabled =
+        false;
+
+      $("useAdminLocation").textContent =
+        "📍 Gunakan lokasi perangkat saya";
+    },
+
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
+}
+
+async function createTask(event) {
+
+  event.preventDefault();
+
+  if (!adminProfile) {
+    return;
+  }
+
+  const title =
+    $("title").value.trim();
+
+  const description =
+    $("description").value.trim();
+
+  const type =
+    $("type").value;
+
+  const latitude =
+    Number($("latitude").value);
+
+  const longitude =
+    Number($("longitude").value);
+
+  const radius =
+    Number($("radius").value);
+
+  const rewardTof =
+    Number($("rewardTof").value);
+
+  const rewardXp =
+    Number($("rewardXp").value);
+
+  const status =
+    $("status").value;
+
+  const photoRequired =
+    $("photoRequired").checked;
+
+  if (!title) {
+    showFormStatus(
+      "Nama tugas wajib diisi.",
+      "error"
+    );
+    return;
+  }
+
+  if (
+    !Number.isFinite(latitude) ||
+    latitude < -90 ||
+    latitude > 90
+  ) {
+    showFormStatus(
+      "Latitude tidak valid.",
+      "error"
+    );
+    return;
+  }
+
+  if (
+    !Number.isFinite(longitude) ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    showFormStatus(
+      "Longitude tidak valid.",
+      "error"
+    );
+    return;
+  }
+
+  if (
+    !Number.isFinite(radius) ||
+    radius < 5
+  ) {
+    showFormStatus(
+      "Radius minimal 5 meter.",
+      "error"
+    );
+    return;
+  }
+
+  if (
+    !Number.isFinite(rewardTof) ||
+    rewardTof < 0
+  ) {
+    showFormStatus(
+      "Reward TOF tidak valid.",
+      "error"
+    );
+    return;
+  }
+
+  if (
+    !Number.isFinite(rewardXp) ||
+    rewardXp < 0
+  ) {
+    showFormStatus(
+      "Reward XP tidak valid.",
+      "error"
+    );
+    return;
+  }
+
+  $("saveButton").disabled =
+    true;
+
+  $("saveButton").textContent =
+    "Menyimpan...";
+
+  /*
+    validation_type disimpan sebagai string
+    supaya scan-saja tahu bukti apa yang diperlukan.
+  */
+
+  const validationType =
+    photoRequired
+      ? "gps+photo"
+      : "gps";
+
+  const { data, error } =
+    await supabase
+      .from("tof_contribution_points")
+      .insert({
+        title,
+        description,
+        type,
+        latitude,
+        longitude,
+        radius,
+        reward_tof: rewardTof,
+        reward_xp: rewardXp,
+        validation_type: validationType,
+        status,
+        created_by: adminProfile.id
+      })
+      .select()
+      .single();
+
+  if (error) {
+
+    console.error(error);
+
+    showFormStatus(
+      "Gagal membuat tugas: " +
+      error.message,
+      "error"
+    );
+
+    $("saveButton").disabled =
+      false;
+
+    $("saveButton").textContent =
+      "🌿 TERBITKAN TUGAS";
+
+    return;
+  }
+
+  console.log(
+    "Task created:",
+    data
+  );
+
+  showFormStatus(
+    "✓ Tugas berhasil dibuat.",
+    "ok"
+  );
+
+  $("taskForm").reset();
+
+  $("radius").value = 50;
+  $("rewardTof").value = 1;
+  $("rewardXp").value = 100;
+  $("status").value = "active";
+  $("photoRequired").checked = true;
+
+  updateCoordinatesPreview();
+
+  $("saveButton").disabled =
+    false;
+
+  $("saveButton").textContent =
+    "🌿 TERBITKAN TUGAS";
+
+  await loadTasks();
+}
+
+function showFormStatus(
+  message,
+  type
+) {
+
+  const el =
+    $("formStatus");
+
+  el.textContent =
+    message;
+
+  el.className =
+    "status " + type;
+
+  el.style.display =
+    "block";
+
+  setTimeout(() => {
+    el.style.display =
+      "none";
+  }, 5000);
+}
+
+async function loadTasks() {
+
+  const list =
+    $("taskList");
+
+  list.innerHTML =
+    '<div class="empty">Memuat...</div>';
+
+  const { data, error } =
+    await supabase
+      .from("tof_contribution_points")
+      .select(`
+        id,
+        title,
+        description,
+        type,
+        latitude,
+        longitude,
+        radius,
+        reward_tof,
+        reward_xp,
+        validation_type,
+        status,
+        created_at
+      `)
+      .order("created_at", {
+        ascending: false
+      });
+
+  if (error) {
+
+    list.innerHTML = `
+      <div class="status error">
+        ${escapeHtml(error.message)}
+      </div>
+    `;
+
+    return;
+  }
+
+  if (!data?.length) {
+
+    list.innerHTML =
+      '<div class="empty">Belum ada tugas.</div>';
+
+    return;
+  }
+
+  list.innerHTML =
+    data.map(task => {
+
+      const active =
+        task.status === "active";
+
+      return `
+        <article class="task">
+
+          <div class="task-title">
+            ${escapeHtml(task.title)}
+          </div>
+
+          <div class="task-desc">
+            ${escapeHtml(
+              task.description || "-"
+            )}
+          </div>
+
+          <div class="chips">
+
+            <span class="chip">
+              ${escapeHtml(task.type)}
+            </span>
+
+            <span class="chip">
+              📍 ${Number(task.radius)} m
+            </span>
+
+            <span class="chip">
+              ${escapeHtml(
+                task.validation_type
+              )}
+            </span>
+
+            <span class="chip gold">
+              🪙 ${Number(task.reward_tof)} TOF
+            </span>
+
+            <span class="chip gold">
+              ⭐ ${Number(task.reward_xp)} XP
+            </span>
+
+            <span class="chip">
+              ${active ? "🟢 Aktif" : "⚪ " + escapeHtml(task.status)}
+            </span>
+
+          </div>
+
+          <div style="
+            margin-top:9px;
+            color:#6f7f76;
+            font-size:11px;
+          ">
+            📍 ${Number(task.latitude).toFixed(6)},
+            ${Number(task.longitude).toFixed(6)}
+          </div>
+
+          <div class="task-actions">
+
+            <button
+              class="btn-secondary"
+              data-toggle="${escapeHtml(task.id)}"
+              data-status="${active ? "draft" : "active"}">
+              ${active ? "Nonaktifkan" : "Aktifkan"}
+            </button>
+
+            <button
+              class="btn-danger"
+              data-delete="${escapeHtml(task.id)}">
+              Hapus
+            </button>
+
+          </div>
+
+        </article>
+      `;
+
+    }).join("");
+
+  document
+    .querySelectorAll("[data-toggle]")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () =>
+          toggleTask(
+            button.dataset.toggle,
+            button.dataset.status
+          )
+      );
+
+    });
+
+  document
+    .querySelectorAll("[data-delete]")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () =>
+          deleteTask(
+            button.dataset.delete
+          )
+      );
+
+    });
+}
+
+async function toggleTask(
+  id,
+  status
+) {
+
+  const { error } =
+    await supabase
+      .from("tof_contribution_points")
+      .update({ status })
+      .eq("id", id);
+
+  if (error) {
+
+    alert(
+      "Gagal mengubah status: " +
+      error.message
+    );
+
+    return;
+  }
+
+  await loadTasks();
+}
+
+async function deleteTask(id) {
+
+  const ok =
+    confirm(
+      "Hapus tugas ini?"
+    );
+
+  if (!ok) return;
+
+  const { error } =
+    await supabase
+      .from("tof_contribution_points")
+      .delete()
+      .eq("id", id);
+
+  if (error) {
+
+    alert(
+      "Gagal menghapus: " +
+      error.message
+    );
+
+    return;
+  }
+
+  await loadTasks();
+}
+
+$("taskForm")
+  .addEventListener(
+    "submit",
+    createTask
+  );
+
+$("useAdminLocation")
+  .addEventListener(
+    "click",
+    useDeviceLocation
+  );
+
+$("latitude")
+  .addEventListener(
+    "input",
+    updateCoordinatesPreview
+  );
+
+$("longitude")
+  .addEventListener(
+    "input",
+    updateCoordinatesPreview
+  );
+
+$("refreshButton")
+  .addEventListener(
+    "click",
+    loadTasks
+  );
+
+async function init() {
+
+  if (!requireLogin()) {
+    return;
+  }
+
+  const allowed =
+    await checkAdmin();
+
+  if (!allowed) {
+    return;
+  }
+
+  await loadTasks();
+}
+
+init();
+
+</script>
+
+</body>
+</html>
+```

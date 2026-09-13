@@ -4,217 +4,491 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#2f6f4e">
 
-  <title>SCAN SAJA</title>
+  <title>SCAN SAJA | ToFarmer</title>
 
   <style>
+    :root {
+      --tf-green-dark: #2f6f4e;
+      --tf-green: #4caf7a;
+      --tf-gold: #c9a227;
+      --tf-bg: #f4f7f5;
+      --tf-text: #1c2b22;
+      --tf-muted: #6f7f76;
+      --tf-border: rgba(0,0,0,.06);
+      --tf-card: #fff;
+      --tf-shadow: 0 8px 30px rgba(30,60,45,.07);
+      --tf-radius: 16px;
+    }
+
     * {
       box-sizing: border-box;
     }
 
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: #f3f4f6;
-      color: #111827;
+      background: var(--tf-bg);
+      color: var(--tf-text);
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
     }
 
     header {
-      padding: 24px 20px 18px;
-      background: #111827;
-      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--tf-green-dark);
+      color: #fff;
+      box-shadow: 0 3px 18px rgba(0,0,0,.12);
     }
 
-    header h1 {
-      margin: 0;
-      font-size: 38px;
-      letter-spacing: -2px;
-    }
-
-    header p {
-      margin: 5px 0 0;
-      opacity: .75;
-    }
-
-    main {
-      max-width: 650px;
+    .nav {
+      max-width: 1100px;
       margin: auto;
-      padding: 16px;
+      min-height: 68px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
     }
 
-    .card {
-      background: white;
-      border-radius: 22px;
-      padding: 20px;
-      margin-bottom: 15px;
-      box-shadow: 0 5px 25px rgba(0,0,0,.06);
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 850;
+      letter-spacing: -.5px;
     }
 
-    .hero {
-      text-align: center;
-      padding: 28px 20px;
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: rgba(255,255,255,.13);
+      font-size: 21px;
     }
 
-    .hero-icon {
-      font-size: 58px;
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 9px;
     }
 
-    .hero h2 {
-      margin: 8px 0;
-      font-size: 28px;
-    }
-
-    .muted {
-      color: #6b7280;
-    }
-
-    .status {
-      padding: 14px;
-      border-radius: 14px;
-      background: #f3f4f6;
-      margin-top: 15px;
-    }
-
-    .status.ok {
-      background: #ecfdf5;
-    }
-
-    .status.warning {
-      background: #fffbeb;
-    }
-
-    .big-xp {
-      font-size: 54px;
-      font-weight: 800;
-      letter-spacing: -3px;
-    }
-
-    .level {
-      font-size: 18px;
+    .wallet-pill,
+    .admin-pill {
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,.12);
+      font-size: 13px;
       font-weight: 700;
     }
 
-    .progress {
-      height: 13px;
-      background: #e5e7eb;
+    .admin-pill {
+      color: #fff6c8;
+      border: 1px solid rgba(201,162,39,.45);
+    }
+
+    main {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px 16px 50px;
+    }
+
+    .hero {
+      background:
+        linear-gradient(
+          135deg,
+          rgba(47,111,78,.98),
+          rgba(76,175,122,.92)
+        );
+      color: #fff;
+      border-radius: 22px;
+      padding: 27px;
+      margin-bottom: 18px;
+      box-shadow: var(--tf-shadow);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.4fr .8fr;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(32px, 6vw, 52px);
+      letter-spacing: -2.5px;
+      line-height: 1;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      max-width: 650px;
+      opacity: .9;
+      line-height: 1.55;
+    }
+
+    .profile-box {
+      background: rgba(255,255,255,.13);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .profile-name {
+      font-size: 19px;
+      font-weight: 800;
+    }
+
+    .balance-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .balance {
+      background: rgba(255,255,255,.11);
+      border-radius: 13px;
+      padding: 12px;
+    }
+
+    .balance small {
+      display: block;
+      opacity: .78;
+      font-size: 11px;
+    }
+
+    .balance strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 22px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.45fr .75fr;
+      gap: 18px;
+    }
+
+    .card {
+      background: var(--tf-card);
+      border: 1px solid var(--tf-border);
+      border-radius: var(--tf-radius);
+      padding: 19px;
+      box-shadow: var(--tf-shadow);
+      margin-bottom: 18px;
+    }
+
+    .card h2,
+    .card h3 {
+      margin: 0;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .muted {
+      color: var(--tf-muted);
+    }
+
+    .small {
+      font-size: 12px;
+    }
+
+    .status {
+      padding: 13px;
+      border-radius: 13px;
+      background: #f2f5f3;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
+
+    .status.ok {
+      background: #eaf7ef;
+      color: #205f3f;
+    }
+
+    .status.warning {
+      background: #fff8df;
+      color: #715d12;
+    }
+
+    .status.error {
+      background: #fff0f0;
+      color: #8c3030;
+    }
+
+    .task-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .task {
+      border: 1px solid var(--tf-border);
+      border-radius: 16px;
+      padding: 16px;
+      transition: .2s ease;
+    }
+
+    .task:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(30,60,45,.07);
+    }
+
+    .task-title {
+      font-size: 19px;
+      font-weight: 850;
+    }
+
+    .task-description {
+      color: var(--tf-muted);
+      margin-top: 5px;
+      line-height: 1.5;
+    }
+
+    .task-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 11px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: #f0f5f2;
+      color: #365244;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .chip.reward {
+      background: #fff8df;
+      color: #725b09;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 9px;
+      margin-top: 14px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 13px;
+      padding: 13px 16px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: .18s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(
+        90deg,
+        var(--tf-green),
+        var(--tf-gold)
+      );
+      color: #fff;
+      flex: 1;
+    }
+
+    .btn-secondary {
+      background: #edf2ef;
+      color: var(--tf-text);
+    }
+
+    .btn-danger {
+      background: #fff0f0;
+      color: #a53b3b;
+    }
+
+    .selected-task {
+      border: 2px solid var(--tf-green);
+      background: #fbfefc;
+    }
+
+    .selected-title {
+      font-size: 23px;
+      font-weight: 850;
+      margin-bottom: 5px;
+    }
+
+    .distance {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      margin-top: 13px;
+    }
+
+    .distance span {
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .proof-box {
+      margin-top: 16px;
+    }
+
+    video,
+    #photoPreview {
+      display: block;
+      width: 100%;
+      max-height: 430px;
+      object-fit: cover;
+      border-radius: 15px;
+      background: #15231b;
+    }
+
+    #photoPreview {
+      display: none;
+      margin-top: 10px;
+    }
+
+    .action-stack {
+      display: grid;
+      gap: 9px;
+      margin-top: 13px;
+    }
+
+    .xp-number {
+      font-size: 43px;
+      font-weight: 900;
+      letter-spacing: -2px;
+    }
+
+    .xp-bar {
+      height: 10px;
+      background: #e7ece9;
       border-radius: 99px;
       overflow: hidden;
       margin-top: 10px;
     }
 
-    .progress div {
+    .xp-bar > div {
       height: 100%;
-      width: 0%;
-      background: #111827;
+      width: 0;
+      background: linear-gradient(
+        90deg,
+        var(--tf-green),
+        var(--tf-gold)
+      );
       transition: width .4s ease;
     }
 
-    button {
-      width: 100%;
-      border: 0;
-      border-radius: 15px;
-      padding: 16px;
-      margin-top: 10px;
-      background: #111827;
-      color: white;
-      font-size: 17px;
-      font-weight: 750;
-      cursor: pointer;
+    .info-list {
+      display: grid;
+      gap: 9px;
+      margin-top: 13px;
     }
 
-    button.secondary {
-      background: #e5e7eb;
-      color: #111827;
-    }
-
-    button:disabled {
-      opacity: .4;
-      cursor: not-allowed;
-    }
-
-    .mission {
-      border: 2px solid #e5e7eb;
-      border-radius: 18px;
-      padding: 17px;
-      margin-top: 12px;
-    }
-
-    .mission.active {
-      border-color: #111827;
-    }
-
-    .mission-title {
-      font-size: 20px;
-      font-weight: 800;
-    }
-
-    .mission-reward {
-      margin-top: 5px;
-      color: #6b7280;
-    }
-
-    .distance {
-      font-size: 31px;
-      font-weight: 800;
-      margin-top: 10px;
-    }
-
-    video,
-    canvas,
-    img {
-      width: 100%;
-      border-radius: 16px;
-      margin-top: 12px;
-    }
-
-    canvas {
-      display: none;
-    }
-
-    .badges {
+    .info-item {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .badge {
-      background: #f3f4f6;
-      border-radius: 999px;
-      padding: 9px 13px;
-      font-size: 14px;
-      font-weight: 650;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 9px;
+      border-bottom: 1px solid #edf0ee;
     }
 
     .log {
-      border-top: 1px solid #e5e7eb;
       padding: 11px 0;
+      border-bottom: 1px solid #edf0ee;
     }
 
-    .small {
-      font-size: 13px;
+    .empty {
+      padding: 28px 10px;
+      text-align: center;
+      color: var(--tf-muted);
     }
 
-    .coords {
-      font-family: monospace;
-      font-size: 13px;
-      word-break: break-all;
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 100;
+      max-width: 360px;
+      padding: 14px 16px;
+      background: #1c2b22;
+      color: #fff;
+      border-radius: 14px;
+      box-shadow: 0 15px 35px rgba(0,0,0,.18);
+      transform: translateY(130px);
+      opacity: 0;
+      transition: .25s ease;
     }
 
-    .qr {
-      display: flex;
-      justify-content: center;
-      margin-top: 15px;
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
     }
 
-    .qr canvas {
-      display: block;
-      width: 220px;
-      height: 220px;
+    @media (max-width: 820px) {
+      .hero-grid,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .hero {
+        padding: 22px;
+      }
+
+      .nav-right .wallet-pill {
+        display: none;
+      }
     }
 
-    .offline {
-      font-weight: 700;
+    @media (max-width: 520px) {
+      main {
+        padding: 13px 11px 40px;
+      }
+
+      .card {
+        padding: 15px;
+      }
+
+      .task-actions {
+        flex-direction: column;
+      }
+
+      .task-actions button {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -222,594 +496,675 @@
 <body>
 
 <header>
-  <h1>SCAN SAJA</h1>
-  <p>Dunia nyata → aktivitas → XP</p>
+  <div class="nav">
+    <a class="brand" href="/">
+      <div class="brand-icon">🌿</div>
+      <div>
+        <div>ToFarmer</div>
+        <div style="font-size:10px;opacity:.72;font-weight:600;">
+          SCAN SAJA
+        </div>
+      </div>
+    </a>
+
+    <div class="nav-right">
+      <div class="wallet-pill" id="walletLabel">...</div>
+      <div class="admin-pill" id="adminLink" style="display:none;">
+        ADMIN
+      </div>
+    </div>
+  </div>
 </header>
 
 <main>
 
-  <!-- PLAYER -->
-  <section class="card hero">
-    <div class="hero-icon">🎮</div>
-
-    <h2 id="playerName">
-      Explorer
-    </h2>
-
-    <div class="big-xp">
-      <span id="xp">0</span>
-      XP
-    </div>
-
-    <div class="level">
-      Level <span id="level">1</span>
-    </div>
-
-    <div class="progress">
-      <div id="xpBar"></div>
-    </div>
-
-    <p class="muted">
-      Aktivitas hari ini:
-      <b id="activityCount">0</b>
-    </p>
-  </section>
-
-
-  <!-- CONNECTION -->
-  <section class="card">
-
-    <b>Status</b>
-
-    <div class="status">
+  <section class="hero">
+    <div class="hero-grid">
 
       <div>
-        📡 Internet:
-        <b id="networkStatus">checking...</b>
+        <h1>SCAN SAJA</h1>
+        <p>
+          Kerjakan aktivitas nyata di sekitar kita.
+          Datang ke lokasi, ambil bukti, dan biarkan
+          ToFarmer mencatat kontribusimu.
+        </p>
       </div>
 
-      <div style="margin-top:7px">
-        📍 GPS:
-        <b id="gpsStatus">belum aktif</b>
-      </div>
+      <div class="profile-box">
+        <div class="profile-name" id="profileName">
+          Memuat profil...
+        </div>
 
-      <div style="margin-top:7px">
-        💾 Data:
-        <b id="storageStatus">local/offline ready</b>
+        <div class="balance-row">
+          <div class="balance">
+            <small>TOF</small>
+            <strong id="tofBalance">0</strong>
+          </div>
+
+          <div class="balance">
+            <small>XP</small>
+            <strong id="profileXp">0</strong>
+          </div>
+        </div>
       </div>
 
     </div>
-
   </section>
 
+  <div class="layout">
 
-  <!-- QUEST -->
-  <section class="card">
+    <div>
 
-    <h3>🎯 Quest</h3>
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h2>Tugas di Sekitar</h2>
+            <div class="muted small">
+              Tugas dibuat oleh Admin ToFarmer.
+            </div>
+          </div>
 
-    <div class="mission active">
+          <button
+            class="btn-secondary"
+            id="refreshButton">
+            ↻ Muat ulang
+          </button>
+        </div>
 
-      <div class="mission-title">
-        Temukan Pos Rahasia
-      </div>
+        <div id="taskList" class="task-list">
+          <div class="empty">
+            Memuat tugas...
+          </div>
+        </div>
+      </section>
 
-      <div class="mission-reward">
-        📍 Pergi ke lokasi quest
-        <br>
-        📸 Ambil foto sebagai bukti
-        <br>
-        ⭐ Reward: 100 XP
-      </div>
+      <section
+        class="card"
+        id="validationCard"
+        style="display:none;">
 
-      <div class="distance">
+        <div class="card-header">
+          <div>
+            <h2>Validasi Kontribusi</h2>
+            <div class="muted small">
+              Ikuti instruksi tugas yang dipilih.
+            </div>
+          </div>
+        </div>
 
-        <span id="distance">
-          --
-        </span>
+        <div class="selected-task">
+          <div class="selected-title" id="selectedTitle">
+            -
+          </div>
 
-        <span class="small">
-          meter
-        </span>
+          <div class="muted" id="selectedDescription">
+            -
+          </div>
 
-      </div>
+          <div class="task-meta">
+            <span class="chip" id="selectedRadius">
+              📍 -
+            </span>
 
-      <div
-        id="locationMessage"
-        class="status warning">
+            <span class="chip reward" id="selectedReward">
+              🪙 -
+            </span>
+          </div>
 
-        Tekan tombol GPS untuk mulai.
+          <div class="distance">
+            <span id="distanceValue">--</span>
+            <span>meter dari titik tugas</span>
+          </div>
 
-      </div>
+          <div
+            class="status warning"
+            id="locationStatus">
+            Tekan "Cek Lokasi" untuk mulai.
+          </div>
 
-      <button
-        onclick="startGPS()">
+          <div class="action-stack">
 
-        📍 CEK LOKASI
+            <button
+              class="btn-primary"
+              id="gpsButton">
+              📍 CEK LOKASI
+            </button>
 
-      </button>
+            <button
+              class="btn-secondary"
+              id="cameraButton"
+              disabled>
+              📸 BUKTI FOTO
+            </button>
 
-      <button
-        id="photoButton"
-        onclick="takePhoto()"
-        disabled>
+          </div>
 
-        📸 AMBIL BUKTI
+          <div
+            class="proof-box"
+            id="cameraBox"
+            style="display:none;">
 
-      </button>
+            <video
+              id="camera"
+              autoplay
+              playsinline>
+            </video>
+
+            <canvas
+              id="canvas"
+              style="display:none;">
+            </canvas>
+
+            <button
+              class="btn-primary"
+              id="captureButton">
+              📷 Ambil Foto
+            </button>
+
+            <button
+              class="btn-secondary"
+              id="closeCameraButton">
+              Tutup Kamera
+            </button>
+
+            <img
+              id="photoPreview"
+              alt="Bukti foto">
+          </div>
+
+          <div
+            class="status"
+            id="submitStatus"
+            style="display:none;">
+          </div>
+
+          <button
+            class="btn-primary"
+            id="submitButton"
+            disabled
+            style="margin-top:13px;">
+            ✓ KIRIM VALIDASI
+          </button>
+
+        </div>
+      </section>
 
     </div>
 
-  </section>
+    <aside>
 
+      <section class="card">
+        <h3>Progress</h3>
 
-  <!-- CAMERA -->
-  <section
-    id="cameraSection"
-    class="card"
-    style="display:none">
+        <div class="xp-number">
+          <span id="xpValue">0</span>
+          <span style="font-size:15px;">XP</span>
+        </div>
 
-    <h3>📸 Bukti Lokasi</h3>
+        <strong>
+          Level <span id="levelValue">1</span>
+        </strong>
 
-    <video
-      id="video"
-      autoplay
-      playsinline>
-    </video>
+        <div class="xp-bar">
+          <div id="xpBar"></div>
+        </div>
 
-    <canvas id="canvas"></canvas>
+        <div class="muted small" style="margin-top:8px;">
+          XP kontribusi tercatat di profil ToFarmer.
+        </div>
+      </section>
 
-    <button onclick="capturePhoto()">
-      📷 FOTO SEKARANG
-    </button>
+      <section class="card">
+        <h3>Status</h3>
 
-    <button
-      class="secondary"
-      onclick="closeCamera()">
+        <div class="info-list">
+          <div class="info-item">
+            <span>Internet</span>
+            <strong id="networkStatus">...</strong>
+          </div>
 
-      Tutup kamera
+          <div class="info-item">
+            <span>GPS</span>
+            <strong id="gpsState">Belum aktif</strong>
+          </div>
 
-    </button>
+          <div class="info-item">
+            <span>Tugas selesai</span>
+            <strong id="completedCount">0</strong>
+          </div>
+        </div>
+      </section>
 
-  </section>
+      <section class="card">
+        <h3>Aktivitas Terakhir</h3>
 
+        <div id="activityLog">
+          <div class="empty">
+            Belum ada aktivitas.
+          </div>
+        </div>
+      </section>
 
-  <!-- RESULT -->
-  <section
-    id="resultSection"
-    class="card"
-    style="display:none">
+    </aside>
 
-    <h3>✅ Validasi</h3>
-
-    <div id="resultMessage"></div>
-
-    <img id="photoResult">
-
-  </section>
-
-
-  <!-- BADGES -->
-  <section class="card">
-
-    <h3>🏆 Badge</h3>
-
-    <div
-      id="badges"
-      class="badges">
-
-      <span class="badge">
-        👣 Pemula
-      </span>
-
-    </div>
-
-  </section>
-
-
-  <!-- DYNAMIC QR -->
-  <section class="card">
-
-    <h3>🔳 Dynamic Challenge</h3>
-
-    <p class="muted">
-
-      Ini contoh QR digital.
-      Tidak perlu printer.
-
-    </p>
-
-    <div class="qr">
-
-      <canvas id="qrCanvas"></canvas>
-
-    </div>
-
-    <p
-      id="tokenInfo"
-      class="small"
-      style="text-align:center">
-
-    </p>
-
-    <button onclick="generateQR()">
-
-      🔄 GENERATE CHALLENGE
-
-    </button>
-
-  </section>
-
-
-  <!-- LOG -->
-  <section class="card">
-
-    <h3>📜 Activity Log</h3>
-
-    <div id="activityLog">
-
-      Belum ada aktivitas.
-
-    </div>
-
-  </section>
+  </div>
 
 </main>
 
+<div class="toast" id="toast"></div>
 
-<script>
+<script type="module">
 
-/*
-========================================================
-SCAN SAJA
-Prototype 0.2
-
-Fitur:
-
-- GPS
-- Geofence
-- Camera
-- Photo proof
-- Offline localStorage
-- XP
-- Level
-- Badge
-- Activity log
-- Dynamic QR
-
-Tidak membutuhkan backend.
-========================================================
-*/
-
-
-/* =====================================================
-   CONFIGURATION
-===================================================== */
+import { supabase } from "../js/supabase-client.js";
 
 /*
-  GANTI koordinat di bawah dengan lokasi yang ingin
-  kamu jadikan quest.
+=========================================================
+SCAN SAJA — DATABASE VERSION
+=========================================================
 
-  Contoh:
-  latitude  = -7.7956
-  longitude = 110.3695
+Tidak ada quest yang di-hardcode di sini.
 
-  Untuk testing pertama, kamu bisa mendapatkan
-  koordinat dari browser/device.
+Tugas berasal dari:
+
+    tof_contribution_points
+
+Admin membuatnya melalui:
+
+    admin-scan-saja.html
+
+Validasi prototype:
+
+    GPS
+    +
+    radius
+    +
+    foto
+
+Reward:
+
+    profiles.saldo_tof
+    profiles.xp
+
+Catatan:
+Untuk produksi, reward sebaiknya dipindahkan ke
+SECURITY DEFINER RPC / backend setelah Supabase Auth
+diterapkan.
+=========================================================
 */
 
-const QUEST = {
+let currentUser = null;
+let currentTask = null;
+let currentPosition = null;
+let currentPhotoData = null;
+let cameraStream = null;
 
-  id: "pos-rahasia-001",
+const $ = id => document.getElementById(id);
 
-  title: "Pos Rahasia",
-
-  /*
-    GANTI DUA ANGKA INI
-  */
-
-  latitude: -7.7956,
-
-  longitude: 110.3695,
-
-  /*
-    Radius validasi.
-    50 = 50 meter
-  */
-
-  radius: 50,
-
-  reward: 100
-
-};
-
-
-/* =====================================================
-   STATE
-===================================================== */
-
-let state = {
-
-  xp: 0,
-
-  activities: 0,
-
-  badges: [
-    "👣 Pemula"
-  ],
-
-  logs: [],
-
-  gps: null,
-
-  locationValid: false,
-
-  photo: null
-
-};
-
-
-/* =====================================================
-   LOAD DATA
-===================================================== */
-
-function loadState() {
-
-  try {
-
-    const saved =
-      localStorage.getItem("scanSajaState");
-
-    if (saved) {
-
-      state =
-        JSON.parse(saved);
-
-    }
-
-  } catch (error) {
-
-    console.log(
-      "Local storage unavailable",
-      error
-    );
-
-  }
-
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
+function showToast(message) {
+  const el = $("toast");
+  el.textContent = message;
+  el.classList.add("show");
 
-/* =====================================================
-   SAVE DATA
-===================================================== */
+  clearTimeout(window.__toastTimer);
 
-function saveState() {
+  window.__toastTimer = setTimeout(() => {
+    el.classList.remove("show");
+  }, 3200);
+}
 
-  try {
+function setStatus(element, message, type = "") {
+  element.textContent = message;
+  element.className = "status " + type;
+}
 
+function distanceMeters(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+
+  const p1 = lat1 * Math.PI / 180;
+  const p2 = lat2 * Math.PI / 180;
+
+  const dp =
+    (lat2 - lat1) *
+    Math.PI / 180;
+
+  const dl =
+    (lon2 - lon1) *
+    Math.PI / 180;
+
+  const a =
+    Math.sin(dp / 2) ** 2 +
+    Math.cos(p1) *
+    Math.cos(p2) *
+    Math.sin(dl / 2) ** 2;
+
+  return R * 2 *
+    Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    );
+}
+
+function calculateLevel(xp) {
+  return Math.floor(Math.sqrt(Math.max(0, xp) / 100)) + 1;
+}
+
+function updateProgress(xp) {
+  const level = calculateLevel(xp);
+
+  $("xpValue").textContent = xp || 0;
+  $("profileXp").textContent = xp || 0;
+  $("levelValue").textContent = level;
+
+  const levelBase = Math.max(0, (level - 1) ** 2 * 100);
+  const nextBase = level ** 2 * 100;
+
+  let percentage = 0;
+
+  if (nextBase > levelBase) {
+    percentage =
+      ((xp - levelBase) /
+      (nextBase - levelBase)) * 100;
+  }
+
+  percentage =
+    Math.max(0, Math.min(100, percentage));
+
+  $("xpBar").style.width =
+    percentage + "%";
+}
+
+function requireLogin() {
+  const wallet =
+    localStorage.getItem("tof_wallet");
+
+  const username =
+    localStorage.getItem("tof_login_username");
+
+  if (!wallet || !username) {
     localStorage.setItem(
-      "scanSajaState",
-      JSON.stringify(state)
+      "redirect_to",
+      window.location.pathname +
+      window.location.search
     );
 
-  } catch (error) {
+    window.location.href =
+      "./login.html";
 
-    console.log(error);
-
+    return false;
   }
 
+  return true;
 }
 
+async function loadProfile() {
 
-/* =====================================================
-   UI
-===================================================== */
+  const wallet =
+    localStorage.getItem("tof_wallet");
 
-function updateUI() {
+  if (!wallet) return;
 
-  document.getElementById("xp")
-    .textContent = state.xp;
+  const { data, error } =
+    await supabase
+      .from("profiles")
+      .select(
+        "id, username, saldo_tof, xp, rank, role"
+      )
+      .eq("id", wallet)
+      .single();
 
-  const level =
-    Math.floor(state.xp / 100) + 1;
+  if (error || !data) {
+    console.error(error);
+    showToast("Profil tidak dapat dimuat.");
+    return;
+  }
 
-  document.getElementById("level")
-    .textContent = level;
+  currentUser = data;
 
-  const progress =
-    state.xp % 100;
+  $("profileName").textContent =
+    data.username || "Pengguna ToFarmer";
 
-  document.getElementById("xpBar")
-    .style.width = progress + "%";
+  $("walletLabel").textContent =
+    data.id;
 
-  document.getElementById("activityCount")
-    .textContent =
-      state.activities;
+  $("tofBalance").textContent =
+    Number(data.saldo_tof || 0);
 
+  updateProgress(
+    Number(data.xp || 0)
+  );
 
-  /*
-    BADGES
-  */
+  if (data.role === "admin") {
+    $("adminLink").style.display =
+      "block";
 
-  const badges =
-    document.getElementById("badges");
+    $("adminLink").style.cursor =
+      "pointer";
 
-  badges.innerHTML = "";
+    $("adminLink").onclick = () => {
+      window.location.href =
+        "./admin-scan-saja.html";
+    };
+  }
+}
 
-  state.badges.forEach(
-    badge => {
+async function loadTasks() {
 
-      const element =
-        document.createElement("span");
+  const list = $("taskList");
 
-      element.className =
-        "badge";
+  list.innerHTML =
+    '<div class="empty">Memuat tugas...</div>';
 
-      element.textContent =
-        badge;
+  const { data, error } =
+    await supabase
+      .from("tof_contribution_points")
+      .select(`
+        id,
+        title,
+        description,
+        type,
+        latitude,
+        longitude,
+        radius,
+        reward_tof,
+        reward_xp,
+        validation_type,
+        status,
+        created_at
+      `)
+      .eq("status", "active")
+      .order("created_at", {
+        ascending: false
+      });
 
-      badges.appendChild(
-        element
+  if (error) {
+    console.error(error);
+
+    list.innerHTML = `
+      <div class="status error">
+        Gagal mengambil tugas:
+        ${escapeHtml(error.message)}
+      </div>
+    `;
+
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    list.innerHTML = `
+      <div class="empty">
+        Belum ada tugas aktif dari Admin.
+      </div>
+    `;
+
+    return;
+  }
+
+  list.innerHTML =
+    data.map(task => {
+
+      const validation =
+        task.validation_type ||
+        "gps+photo";
+
+      return `
+        <article class="task">
+
+          <div class="task-title">
+            ${escapeHtml(task.title)}
+          </div>
+
+          <div class="task-description">
+            ${escapeHtml(
+              task.description ||
+              "Tidak ada deskripsi."
+            )}
+          </div>
+
+          <div class="task-meta">
+
+            <span class="chip">
+              📍 ${Number(task.radius || 50)} m
+            </span>
+
+            <span class="chip">
+              📸 ${escapeHtml(validation)}
+            </span>
+
+            <span class="chip reward">
+              🪙 ${Number(task.reward_tof || 0)} TOF
+            </span>
+
+            <span class="chip reward">
+              ⭐ ${Number(task.reward_xp || 0)} XP
+            </span>
+
+          </div>
+
+          <div class="task-actions">
+
+            <button
+              class="btn-primary"
+              data-start-task="${escapeHtml(task.id)}">
+              Mulai Validasi
+            </button>
+
+          </div>
+
+        </article>
+      `;
+
+    }).join("");
+
+  document
+    .querySelectorAll("[data-start-task]")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const task =
+            data.find(
+              item =>
+                String(item.id) ===
+                String(button.dataset.startTask)
+            );
+
+          selectTask(task);
+        }
       );
 
-    }
+    });
+}
+
+function selectTask(task) {
+
+  currentTask = task;
+  currentPosition = null;
+  currentPhotoData = null;
+
+  $("validationCard").style.display =
+    "block";
+
+  $("selectedTitle").textContent =
+    task.title;
+
+  $("selectedDescription").textContent =
+    task.description ||
+    "Ikuti instruksi kontribusi.";
+
+  $("selectedRadius").textContent =
+    `📍 ${Number(task.radius || 50)} meter`;
+
+  $("selectedReward").textContent =
+    `🪙 ${Number(task.reward_tof || 0)} TOF + ${Number(task.reward_xp || 0)} XP`;
+
+  $("distanceValue").textContent =
+    "--";
+
+  setStatus(
+    $("locationStatus"),
+    "Tekan \"CEK LOKASI\" untuk mulai.",
+    "warning"
   );
 
+  $("cameraButton").disabled =
+    true;
 
-  /*
-    LOG
-  */
+  $("submitButton").disabled =
+    true;
 
-  const log =
-    document.getElementById(
-      "activityLog"
-    );
+  $("photoPreview").style.display =
+    "none";
 
-  if (!state.logs.length) {
+  $("submitStatus").style.display =
+    "none";
 
-    log.innerHTML =
-      "Belum ada aktivitas.";
+  $("validationCard")
+    .scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+}
 
-  } else {
+function checkLocation() {
 
-    log.innerHTML =
-      state.logs
-        .slice()
-        .reverse()
-        .map(item => {
-
-          return `
-            <div class="log">
-              <b>${item.text}</b>
-              <br>
-              <span class="muted small">
-                ${item.time}
-              </span>
-            </div>
-          `;
-
-        })
-        .join("");
-
+  if (!currentTask) {
+    showToast("Pilih tugas terlebih dahulu.");
+    return;
   }
-
-}
-
-
-/* =====================================================
-   ADD XP
-===================================================== */
-
-function addXP(amount, reason) {
-
-  const oldLevel =
-    Math.floor(state.xp / 100) + 1;
-
-  state.xp += amount;
-
-  state.activities++;
-
-  const newLevel =
-    Math.floor(state.xp / 100) + 1;
-
-
-  addLog(
-    `⭐ +${amount} XP — ${reason}`
-  );
-
-
-  /*
-    LEVEL UP
-  */
-
-  if (newLevel > oldLevel) {
-
-    addBadge(
-      `🚀 Level ${newLevel}`
-    );
-
-    addLog(
-      `🎉 LEVEL UP! Sekarang Level ${newLevel}`
-    );
-
-  }
-
-
-  saveState();
-
-  updateUI();
-
-}
-
-
-/* =====================================================
-   LOG
-===================================================== */
-
-function addLog(text) {
-
-  state.logs.push({
-
-    text,
-
-    time:
-      new Date()
-        .toLocaleString("id-ID")
-
-  });
-
-  saveState();
-
-  updateUI();
-
-}
-
-
-/* =====================================================
-   BADGE
-===================================================== */
-
-function addBadge(badge) {
-
-  if (
-    !state.badges.includes(badge)
-  ) {
-
-    state.badges.push(
-      badge
-    );
-
-  }
-
-}
-
-
-/* =====================================================
-   GPS
-===================================================== */
-
-function startGPS() {
 
   if (!navigator.geolocation) {
-
-    alert(
-      "Browser ini tidak mendukung GPS."
+    setStatus(
+      $("locationStatus"),
+      "Browser tidak mendukung GPS.",
+      "error"
     );
 
     return;
-
   }
 
+  $("gpsButton").disabled = true;
+  $("gpsButton").textContent =
+    "📍 Mencari lokasi...";
 
-  document.getElementById(
-    "gpsStatus"
-  ).textContent =
-    "mencari lokasi...";
-
+  $("gpsState").textContent =
+    "Mencari...";
 
   navigator.geolocation.getCurrentPosition(
 
-    function(position) {
+    position => {
+
+      currentPosition = position;
 
       const lat =
         position.coords.latitude;
@@ -820,438 +1175,129 @@ function startGPS() {
       const accuracy =
         position.coords.accuracy;
 
+      const distance =
+        distanceMeters(
+          lat,
+          lon,
+          Number(currentTask.latitude),
+          Number(currentTask.longitude)
+        );
 
-      state.gps = {
+      $("distanceValue").textContent =
+        Math.round(distance);
 
-        latitude: lat,
+      $("gpsState").textContent =
+        `${Math.round(accuracy)} m akurasi`;
 
-        longitude: lon,
+      const radius =
+        Number(currentTask.radius || 50);
 
-        accuracy: accuracy,
+      if (distance <= radius) {
 
-        time: Date.now()
+        setStatus(
+          $("locationStatus"),
+          `✓ Kamu berada dalam radius tugas. Akurasi GPS ±${Math.round(accuracy)} meter.`,
+          "ok"
+        );
 
-      };
+        $("cameraButton").disabled =
+          false;
 
+        if (
+          currentPhotoData
+        ) {
+          $("submitButton").disabled =
+            false;
+        }
 
-      document.getElementById(
-        "gpsStatus"
-      ).textContent =
-        `aktif ±${Math.round(accuracy)}m`;
+      } else {
 
+        setStatus(
+          $("locationStatus"),
+          `Kamu masih ${Math.round(distance)} meter dari titik tugas. Maksimal ${radius} meter.`,
+          "warning"
+        );
 
-      checkLocation();
+        $("cameraButton").disabled =
+          true;
 
+        $("submitButton").disabled =
+          true;
+      }
+
+      $("gpsButton").disabled =
+        false;
+
+      $("gpsButton").textContent =
+        "↻ CEK LOKASI LAGI";
     },
 
-    function(error) {
+    error => {
 
-      document.getElementById(
-        "gpsStatus"
-      ).textContent =
-        "gagal";
+      console.error(error);
 
-      document.getElementById(
-        "locationMessage"
-      ).textContent =
-        "GPS gagal. Pastikan izin lokasi diberikan.";
+      $("gpsState").textContent =
+        "Gagal";
 
+      setStatus(
+        $("locationStatus"),
+        "GPS gagal. Pastikan izin lokasi aktif dan coba lagi.",
+        "error"
+      );
+
+      $("gpsButton").disabled =
+        false;
+
+      $("gpsButton").textContent =
+        "📍 CEK LOKASI";
     },
 
     {
-
       enableHighAccuracy: true,
-
       timeout: 15000,
-
       maximumAge: 0
-
     }
-
   );
-
 }
 
+async function openCamera() {
 
-/* =====================================================
-   DISTANCE
-===================================================== */
+  if (!navigator.mediaDevices?.getUserMedia) {
 
-function calculateDistance(
-
-  lat1,
-  lon1,
-  lat2,
-  lon2
-
-) {
-
-  const R =
-    6371000;
-
-  const dLat =
-    (lat2 - lat1)
-    * Math.PI / 180;
-
-  const dLon =
-    (lon2 - lon1)
-    * Math.PI / 180;
-
-
-  const a =
-
-    Math.sin(dLat / 2)
-    * Math.sin(dLat / 2)
-
-    +
-
-    Math.cos(
-      lat1 * Math.PI / 180
-    )
-
-    *
-
-    Math.cos(
-      lat2 * Math.PI / 180
-    )
-
-    *
-
-    Math.sin(dLon / 2)
-    * Math.sin(dLon / 2);
-
-
-  const c =
-    2 * Math.atan2(
-      Math.sqrt(a),
-      Math.sqrt(1 - a)
-    );
-
-
-  return R * c;
-
-}
-
-
-/* =====================================================
-   LOCATION VALIDATION
-===================================================== */
-
-function checkLocation() {
-
-  if (!state.gps)
-    return;
-
-
-  const distance =
-    calculateDistance(
-
-      state.gps.latitude,
-
-      state.gps.longitude,
-
-      QUEST.latitude,
-
-      QUEST.longitude
-
-    );
-
-
-  document.getElementById(
-    "distance"
-  ).textContent =
-    Math.round(distance);
-
-
-  const message =
-    document.getElementById(
-      "locationMessage"
-    );
-
-
-  /*
-    LOCATION VALID
-  */
-
-  if (
-    distance <= QUEST.radius
-  ) {
-
-    state.locationValid =
-      true;
-
-
-    message.className =
-      "status ok";
-
-
-    message.innerHTML =
-
-      `🎯 <b>LOKASI DITEMUKAN!</b>
-       <br>
-       Kamu berada dalam radius quest.`;
-
-
-    document.getElementById(
-      "photoButton"
-    ).disabled = false;
-
-
-    addBadge(
-      "📍 Explorer"
-    );
-
-    saveState();
-
-    updateUI();
-
-  }
-
-  /*
-    LOCATION NOT VALID
-  */
-
-  else {
-
-    state.locationValid =
-      false;
-
-
-    message.className =
-      "status warning";
-
-
-    message.innerHTML =
-
-      `🚶 Masih terlalu jauh.
-       <br>
-       Target berada sekitar
-       <b>${Math.round(distance)} meter</b>
-       dari kamu.`;
-
-
-    document.getElementById(
-      "photoButton"
-    ).disabled = true;
-
-  }
-
-}
-
-
-/* =====================================================
-   CAMERA
-===================================================== */
-
-let cameraStream = null;
-
-
-async function takePhoto() {
-
-  if (!state.locationValid) {
-
-    alert(
-      "Kamu belum berada di lokasi quest."
+    showToast(
+      "Kamera tidak tersedia di browser ini."
     );
 
     return;
-
   }
-
-
-  const section =
-    document.getElementById(
-      "cameraSection"
-    );
-
-
-  section.style.display =
-    "block";
-
 
   try {
 
     cameraStream =
-      await navigator.mediaDevices
-        .getUserMedia({
+      await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: {
+            ideal: "environment"
+          }
+        },
+        audio: false
+      });
 
-          video: {
-
-            facingMode: {
-              ideal: "environment"
-            }
-
-          },
-
-          audio: false
-
-        });
-
-
-    document.getElementById(
-      "video"
-    ).srcObject =
+    $("camera").srcObject =
       cameraStream;
 
+    $("cameraBox").style.display =
+      "block";
+
+  } catch (error) {
+
+    console.error(error);
+
+    showToast(
+      "Izin kamera ditolak atau kamera tidak tersedia."
+    );
   }
-
-  catch (error) {
-
-    alert(
-      "Kamera tidak dapat digunakan: "
-      + error.message
-    );
-
-  }
-
 }
-
-
-/* =====================================================
-   CAPTURE
-===================================================== */
-
-function capturePhoto() {
-
-  const video =
-    document.getElementById(
-      "video"
-    );
-
-  const canvas =
-    document.getElementById(
-      "canvas"
-    );
-
-
-  canvas.width =
-    video.videoWidth;
-
-  canvas.height =
-    video.videoHeight;
-
-
-  const ctx =
-    canvas.getContext(
-      "2d"
-    );
-
-
-  ctx.drawImage(
-
-    video,
-
-    0,
-
-    0,
-
-    canvas.width,
-
-    canvas.height
-
-  );
-
-
-  const photo =
-    canvas.toDataURL(
-      "image/jpeg",
-      0.75
-    );
-
-
-  state.photo =
-    photo;
-
-
-  /*
-    Stop camera
-  */
-
-  closeCamera();
-
-
-  /*
-    Show result
-  */
-
-  document.getElementById(
-    "resultSection"
-  ).style.display =
-    "block";
-
-
-  document.getElementById(
-    "photoResult"
-  ).src =
-    photo;
-
-
-  document.getElementById(
-    "resultMessage"
-  ).innerHTML =
-
-    `
-      📍 GPS:
-      <b>VALID</b>
-      <br>
-
-      📸 Foto:
-      <b>CAPTURED</b>
-      <br>
-
-      ⏱️ Waktu:
-      <b>${new Date().toLocaleString(
-        "id-ID"
-      )}</b>
-
-      <div class="status ok"
-           style="margin-top:15px">
-
-        🎉 Quest berhasil divalidasi!
-
-        <br><br>
-
-        ⭐ +${QUEST.reward} XP
-
-      </div>
-    `;
-
-
-  /*
-    Reward
-  */
-
-  addXP(
-    QUEST.reward,
-    `Quest "${QUEST.title}" selesai`
-  );
-
-
-  addBadge(
-    "🎯 Quest Hunter"
-  );
-
-
-  saveState();
-
-  updateUI();
-
-
-  /*
-    Prevent repeat reward in this simple prototype
-  */
-
-  document.getElementById(
-    "photoButton"
-  ).disabled =
-    true;
-
-}
-
-
-/* =====================================================
-   CLOSE CAMERA
-===================================================== */
 
 function closeCamera() {
 
@@ -1259,302 +1305,526 @@ function closeCamera() {
 
     cameraStream
       .getTracks()
-      .forEach(
-        track =>
-          track.stop()
+      .forEach(track =>
+        track.stop()
       );
 
-    cameraStream =
-      null;
-
+    cameraStream = null;
   }
 
+  $("camera").srcObject = null;
 
-  document.getElementById(
-    "cameraSection"
-  ).style.display =
+  $("cameraBox").style.display =
     "none";
-
 }
 
+function capturePhoto() {
 
-/* =====================================================
-   NETWORK
-===================================================== */
-
-function updateNetworkStatus() {
-
-  const online =
-    navigator.onLine;
-
-
-  document.getElementById(
-    "networkStatus"
-  ).textContent =
-    online
-      ? "ONLINE"
-      : "OFFLINE";
-
-
-  document.getElementById(
-    "storageStatus"
-  ).textContent =
-    "tersimpan di perangkat";
-
-}
-
-
-window.addEventListener(
-  "online",
-  updateNetworkStatus
-);
-
-
-window.addEventListener(
-  "offline",
-  updateNetworkStatus
-);
-
-
-/* =====================================================
-   DYNAMIC QR
-===================================================== */
-
-/*
-  Prototype QR generator sederhana.
-
-  Kita tidak memakai library eksternal,
-  sehingga halaman tetap bisa dibuka offline.
-
-  Untuk QR sungguhan yang dapat dibaca semua scanner,
-  versi berikutnya sebaiknya menggunakan library QR
-  yang dibundel lokal atau encoder native.
-*/
-
-function generateQR() {
-
-  const token =
-
-    "SCAN-SAJA-" +
-
-    QUEST.id +
-
-    "-" +
-
-    Math.random()
-      .toString(36)
-      .substring(2, 10)
-      .toUpperCase();
-
-
-  document.getElementById(
-    "tokenInfo"
-  ).textContent =
-    token;
-
-
-  /*
-    Untuk prototype visual:
-    gunakan canvas sebagai representasi challenge.
-
-    Token sebenarnya yang nantinya dikodekan menjadi QR.
-  */
+  const video =
+    $("camera");
 
   const canvas =
-    document.getElementById(
-      "qrCanvas"
+    $("canvas");
+
+  if (
+    !video.videoWidth ||
+    !video.videoHeight
+  ) {
+    showToast("Kamera belum siap.");
+    return;
+  }
+
+  const maxWidth = 1280;
+
+  const scale =
+    Math.min(
+      1,
+      maxWidth / video.videoWidth
+    );
+
+  canvas.width =
+    Math.round(
+      video.videoWidth * scale
+    );
+
+  canvas.height =
+    Math.round(
+      video.videoHeight * scale
     );
 
   const ctx =
-    canvas.getContext(
-      "2d"
+    canvas.getContext("2d");
+
+  ctx.drawImage(
+    video,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  currentPhotoData =
+    canvas.toDataURL(
+      "image/jpeg",
+      .82
     );
 
+  $("photoPreview").src =
+    currentPhotoData;
 
-  canvas.width =
-    220;
+  $("photoPreview").style.display =
+    "block";
 
-  canvas.height =
-    220;
+  closeCamera();
 
+  if (currentPosition) {
 
-  ctx.fillStyle =
-    "white";
+    const distance =
+      distanceMeters(
+        currentPosition.coords.latitude,
+        currentPosition.coords.longitude,
+        Number(currentTask.latitude),
+        Number(currentTask.longitude)
+      );
 
-  ctx.fillRect(
-    0,
-    0,
-    220,
-    220
-  );
-
-
-  /*
-    deterministic-ish visual pattern
-  */
-
-  let seed = 0;
-
-  for (
-    let i = 0;
-    i < token.length;
-    i++
-  ) {
-
-    seed +=
-      token.charCodeAt(i);
-
-  }
-
-
-  const size =
-    11;
-
-  const cell =
-    20;
-
-
-  for (
-    let y = 0;
-    y < size;
-    y++
-  ) {
-
-    for (
-      let x = 0;
-      x < size;
-      x++
+    if (
+      distance <=
+      Number(currentTask.radius || 50)
     ) {
-
-      const value =
-
-        (
-          seed
-          +
-          x * 31
-          +
-          y * 17
-          +
-          x * y
-        ) % 7;
-
-
-      if (
-        value < 3
-      ) {
-
-        ctx.fillStyle =
-          "#111827";
-
-        ctx.fillRect(
-
-          x * cell,
-
-          y * cell,
-
-          cell,
-
-          cell
-
-        );
-
-      }
-
+      $("submitButton").disabled =
+        false;
     }
-
   }
 
+  showToast(
+    "Bukti foto berhasil diambil."
+  );
+}
+
+async function submitValidation() {
+
+  if (!currentUser) {
+    showToast("Profil belum siap.");
+    return;
+  }
+
+  if (!currentTask) {
+    showToast("Tugas belum dipilih.");
+    return;
+  }
+
+  if (!currentPosition) {
+    showToast("Ambil lokasi GPS terlebih dahulu.");
+    return;
+  }
+
+  if (!currentPhotoData) {
+    showToast("Ambil foto bukti terlebih dahulu.");
+    return;
+  }
+
+  const lat =
+    currentPosition.coords.latitude;
+
+  const lon =
+    currentPosition.coords.longitude;
+
+  const accuracy =
+    currentPosition.coords.accuracy;
+
+  const distance =
+    distanceMeters(
+      lat,
+      lon,
+      Number(currentTask.latitude),
+      Number(currentTask.longitude)
+    );
+
+  const radius =
+    Number(currentTask.radius || 50);
+
+  if (distance > radius) {
+
+    setStatus(
+      $("submitStatus"),
+      "Validasi ditolak: posisi berada di luar radius tugas.",
+      "error"
+    );
+
+    $("submitStatus").style.display =
+      "block";
+
+    return;
+  }
+
+  $("submitButton").disabled = true;
+  $("submitButton").textContent =
+    "Mengirim validasi...";
 
   /*
-    Finder patterns
+    Prototype menyimpan foto sebagai data URL.
+    Ini sengaja agar langsung bisa dites tanpa
+    konfigurasi Supabase Storage.
+
+    Untuk production:
+    upload foto ke Storage dan simpan URL/path,
+    lalu reward dilakukan server-side.
   */
 
-  drawFinder(
-    ctx,
-    0,
-    0
+  const { data: existing } =
+    await supabase
+      .from("tof_contribution_claims")
+      .select("id")
+      .eq("point_id", currentTask.id)
+      .eq("user_id", currentUser.id)
+      .in("status", [
+        "approved",
+        "pending"
+      ])
+      .limit(1);
+
+  if (existing?.length) {
+
+    setStatus(
+      $("submitStatus"),
+      "Tugas ini sudah pernah kamu klaim.",
+      "warning"
+    );
+
+    $("submitStatus").style.display =
+      "block";
+
+    $("submitButton").disabled =
+      false;
+
+    $("submitButton").textContent =
+      "✓ KIRIM VALIDASI";
+
+    return;
+  }
+
+  /*
+    Ambil saldo terbaru supaya reward tidak
+    menggunakan nilai lama dari localStorage.
+  */
+
+  const { data: freshProfile, error: profileError } =
+    await supabase
+      .from("profiles")
+      .select("saldo_tof, xp")
+      .eq("id", currentUser.id)
+      .single();
+
+  if (profileError || !freshProfile) {
+
+    setStatus(
+      $("submitStatus"),
+      "Profil gagal diperbarui. Validasi belum dikirim.",
+      "error"
+    );
+
+    $("submitStatus").style.display =
+      "block";
+
+    $("submitButton").disabled =
+      false;
+
+    $("submitButton").textContent =
+      "✓ KIRIM VALIDASI";
+
+    return;
+  }
+
+  const newTof =
+    Number(freshProfile.saldo_tof || 0) +
+    Number(currentTask.reward_tof || 0);
+
+  const newXp =
+    Number(freshProfile.xp || 0) +
+    Number(currentTask.reward_xp || 0);
+
+  /*
+    INSERT CLAIM
+  */
+
+  const { error: claimError } =
+    await supabase
+      .from("tof_contribution_claims")
+      .insert({
+        user_id: currentUser.id,
+        point_id: currentTask.id,
+        latitude: lat,
+        longitude: lon,
+        gps_accuracy: accuracy,
+        distance_meters: distance,
+        photo_data: currentPhotoData,
+        status: "approved",
+        reward_tof: Number(
+          currentTask.reward_tof || 0
+        ),
+        reward_xp: Number(
+          currentTask.reward_xp || 0
+        )
+      });
+
+  if (claimError) {
+
+    console.error(claimError);
+
+    setStatus(
+      $("submitStatus"),
+      "Gagal menyimpan validasi: " +
+      claimError.message,
+      "error"
+    );
+
+    $("submitStatus").style.display =
+      "block";
+
+    $("submitButton").disabled =
+      false;
+
+    $("submitButton").textContent =
+      "✓ KIRIM VALIDASI";
+
+    return;
+  }
+
+  /*
+    UPDATE PROFILE
+
+    Ini masih prototype.
+    Production sebaiknya memakai RPC
+    atomic + server-side authorization.
+  */
+
+  const { error: rewardError } =
+    await supabase
+      .from("profiles")
+      .update({
+        saldo_tof: newTof,
+        xp: newXp
+      })
+      .eq("id", currentUser.id);
+
+  if (rewardError) {
+
+    console.error(rewardError);
+
+    setStatus(
+      $("submitStatus"),
+      "Kontribusi tercatat tetapi reward gagal diperbarui. Perlu pemeriksaan admin.",
+      "error"
+    );
+
+    $("submitStatus").style.display =
+      "block";
+
+    $("submitButton").disabled =
+      false;
+
+    $("submitButton").textContent =
+      "✓ KIRIM VALIDASI";
+
+    return;
+  }
+
+  /*
+    Update local profile
+  */
+
+  currentUser.saldo_tof =
+    newTof;
+
+  currentUser.xp =
+    newXp;
+
+  $("tofBalance").textContent =
+    newTof;
+
+  updateProgress(newXp);
+
+  localStorage.setItem(
+    "tof_xp",
+    newXp
   );
 
-  drawFinder(
-    ctx,
-    160,
-    0
+  localStorage.setItem(
+    "tof_level",
+    calculateLevel(newXp)
   );
 
-  drawFinder(
-    ctx,
-    0,
-    160
+  setStatus(
+    $("submitStatus"),
+    `✓ Kontribusi berhasil! +${Number(currentTask.reward_tof || 0)} TOF dan +${Number(currentTask.reward_xp || 0)} XP masuk ke profil.`,
+    "ok"
   );
 
+  $("submitStatus").style.display =
+    "block";
+
+  $("completedCount").textContent =
+    Number(
+      $("completedCount").textContent
+    ) + 1;
+
+  addActivity(
+    `✓ ${currentTask.title} — +${Number(currentTask.reward_tof || 0)} TOF / +${Number(currentTask.reward_xp || 0)} XP`
+  );
+
+  showToast(
+    "Kontribusi berhasil dicatat."
+  );
+
+  $("submitButton").textContent =
+    "✓ SUDAH TERVALIDASI";
+
+  $("submitButton").disabled =
+    true;
 }
 
+function addActivity(text) {
 
-function drawFinder(
-  ctx,
-  x,
-  y
-) {
+  const key =
+    "tof_scan_activity";
 
-  ctx.fillStyle =
-    "#111827";
+  let logs = [];
 
-  ctx.fillRect(
-    x,
-    y,
-    60,
-    60
+  try {
+    logs =
+      JSON.parse(
+        localStorage.getItem(key) ||
+        "[]"
+      );
+  } catch {}
+
+  logs.push({
+    text,
+    time:
+      new Date().toLocaleString("id-ID")
+  });
+
+  logs =
+    logs.slice(-20);
+
+  localStorage.setItem(
+    key,
+    JSON.stringify(logs)
   );
 
-
-  ctx.fillStyle =
-    "white";
-
-  ctx.fillRect(
-    x + 10,
-    y + 10,
-    40,
-    40
-  );
-
-
-  ctx.fillStyle =
-    "#111827";
-
-  ctx.fillRect(
-    x + 20,
-    y + 20,
-    20,
-    20
-  );
-
+  renderActivity();
 }
 
+function renderActivity() {
 
-/* =====================================================
-   INIT
-===================================================== */
+  let logs = [];
 
-loadState();
+  try {
+    logs =
+      JSON.parse(
+        localStorage.getItem(
+          "tof_scan_activity"
+        ) || "[]"
+      );
+  } catch {}
 
-updateUI();
+  if (!logs.length) {
 
-updateNetworkStatus();
+    $("activityLog").innerHTML =
+      '<div class="empty">Belum ada aktivitas.</div>';
 
-generateQR();
+    return;
+  }
 
+  $("activityLog").innerHTML =
+    logs
+      .slice()
+      .reverse()
+      .slice(0, 8)
+      .map(item => `
+        <div class="log">
+          <strong>
+            ${escapeHtml(item.text)}
+          </strong>
+          <div class="muted small">
+            ${escapeHtml(item.time)}
+          </div>
+        </div>
+      `)
+      .join("");
+}
 
-/*
-  Inform user about HTTPS requirement.
-*/
+function updateNetwork() {
 
-console.log(
-  "SCAN SAJA initialized."
+  $("networkStatus").textContent =
+    navigator.onLine
+      ? "Online"
+      : "Offline";
+}
+
+$("gpsButton")
+  .addEventListener(
+    "click",
+    checkLocation
+  );
+
+$("cameraButton")
+  .addEventListener(
+    "click",
+    openCamera
+  );
+
+$("captureButton")
+  .addEventListener(
+    "click",
+    capturePhoto
+  );
+
+$("closeCameraButton")
+  .addEventListener(
+    "click",
+    closeCamera
+  );
+
+$("submitButton")
+  .addEventListener(
+    "click",
+    submitValidation
+  );
+
+$("refreshButton")
+  .addEventListener(
+    "click",
+    async () => {
+      await loadTasks();
+      showToast("Tugas diperbarui.");
+    }
+  );
+
+window.addEventListener(
+  "online",
+  updateNetwork
 );
 
-console.log(
-  "GPS/camera biasanya membutuhkan HTTPS atau localhost."
+window.addEventListener(
+  "offline",
+  updateNetwork
 );
+
+async function init() {
+
+  if (!requireLogin()) {
+    return;
+  }
+
+  updateNetwork();
+  renderActivity();
+
+  await loadProfile();
+  await loadTasks();
+}
+
+init();
 
 </script>
 
