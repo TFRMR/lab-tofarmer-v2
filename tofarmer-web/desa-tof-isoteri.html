@@ -275,6 +275,9 @@
         .kebun-reopen-btn { position: fixed; top: 64px; left: 10px; z-index: 900; width: 44px; height: 44px; border-radius: 50%; background: var(--ui); border: 1px solid var(--accent); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         @keyframes kebunFxFloat { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.6); } 40% { opacity:1; transform:translate(-50%,-90%) scale(1.2); } 100% { opacity:0; transform:translate(-50%,-140%) scale(1); } }
         .kebun-fx { position: absolute; left: 50%; top: 50%; font-size: 30px; transform: translate(-50%,-50%); pointer-events: none; animation: kebunFxFloat 0.9s ease-out forwards; }
+        @keyframes kebunBurst { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.4); } 70% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); } }
+        @keyframes kebunRewardPop { 0% { opacity:0; transform:translate(-50%,-30%) scale(0.5); } 25% { opacity:1; transform:translate(-50%,-60%) scale(1.15); } 70% { opacity:1; transform:translate(-50%,-90%) scale(1); } 100% { opacity:0; transform:translate(-50%,-120%) scale(0.95); } }
+        @keyframes kebunFlash { 0% { opacity:0; } 30% { opacity:1; } 100% { opacity:0; } }
         .care-progress { font-size: 9px; color: #94a3b8; margin-top: 3px; }
 
         /* MODAL KOMPOS & PUPUK */
@@ -2488,7 +2491,42 @@
     }
     function playSoundWater() { playTone(660, 180, 'sine', 0.06); setTimeout(() => playTone(880, 150, 'sine', 0.05), 90); }
     function playSoundFertilize() { playTone(420, 140, 'triangle', 0.06); }
-    function playSoundHarvest() { playTone(523, 120, 'sine', 0.07); setTimeout(() => playTone(659, 120, 'sine', 0.07), 90); setTimeout(() => playTone(784, 200, 'sine', 0.08), 180); }
+    function playSoundHarvest() {
+        playTone(196, 90, 'sine', 0.05);
+        setTimeout(() => playTone(523, 110, 'sine', 0.07), 60);
+        setTimeout(() => playTone(659, 110, 'sine', 0.07), 150);
+        setTimeout(() => playTone(784, 130, 'sine', 0.08), 240);
+        setTimeout(() => playTone(1047, 240, 'sine', 0.09), 340);
+    }
+
+    function celebrateHarvest(reward) {
+        playSoundHarvest();
+        const stage = document.getElementById('kebun-plant-stage');
+        if (!stage) return;
+
+        const flash = document.createElement('div');
+        flash.style.cssText = 'position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle, rgba(255,233,168,0.55) 0%, rgba(255,233,168,0) 65%); pointer-events:none; animation: kebunFlash 0.7s ease-out forwards;';
+        stage.appendChild(flash);
+        setTimeout(() => flash.remove(), 750);
+
+        const particles = ['✨','🎉','⭐','🌟','💫'];
+        for (let i = 0; i < 10; i++) {
+            const p = document.createElement('div');
+            p.textContent = particles[i % particles.length];
+            const angle = (Math.PI * 2 * i) / 10 + (Math.random()*0.4-0.2);
+            const dist = 60 + Math.random()*40;
+            const dx = Math.cos(angle) * dist, dy = Math.sin(angle) * dist;
+            p.style.cssText = `position:absolute; left:50%; top:50%; font-size:${18+Math.random()*10}px; pointer-events:none; transform:translate(-50%,-50%); --dx:${dx}px; --dy:${dy}px; animation: kebunBurst 1s ease-out forwards;`;
+            stage.appendChild(p);
+            setTimeout(() => p.remove(), 1050);
+        }
+
+        const rewardEl = document.createElement('div');
+        rewardEl.textContent = `+${reward} XP`;
+        rewardEl.style.cssText = 'position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); font-size:26px; font-weight:800; color:#fbbf24; text-shadow:0 2px 8px rgba(0,0,0,0.8); pointer-events:none; animation: kebunRewardPop 1.3s ease-out forwards;';
+        stage.appendChild(rewardEl);
+        setTimeout(() => rewardEl.remove(), 1350);
+    }
 
     function showActionFx(emoji) {
         const stage = document.getElementById('kebun-plant-stage');
@@ -2608,7 +2646,7 @@
             if (timeReady && careReady) {
                 const reward = computeEffectiveReward(cropDef, farm);
                 statusEl.innerText = `${cropDef.name} siap dipanen! +${reward} XP`;
-                actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="harvestCropAction('${key}').then(() => { showActionFx('🎉'); playSoundHarvest(); renderKebunSayaHome(); })">🧺 Panen Sekarang</button>`;
+                actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="kebunActionStart(); harvestCropAction('${key}').then(() => { celebrateHarvest(${reward}); renderKebunSayaHome(); })">🧺 Panen Sekarang</button>`;
             } else if (timeReady && !careReady) {
                 statusEl.innerText = `${cropDef.name} sudah waktunya, tapi masih butuh perawatan.`;
                 actionEl.innerHTML = buildCareButtonsHtml(key, farm, cropDef);
