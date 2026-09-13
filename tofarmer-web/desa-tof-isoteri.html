@@ -237,6 +237,15 @@
         .plot-status-text.warn { color: #fca5a5; }
         .plot-crop-btn { padding: 12px 10px; font-size: 13px; font-weight: 700; border-radius: 12px; cursor: pointer; background: #1e3a1f; color: #4ade80; border: 1px solid rgba(74,222,128,0.35); width: 100%; margin-top: 8px; text-align: left; }
         .plot-crop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ===== Kartu generik barang/proses/listing (Pasar) ===== */
+        .goods-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; text-align: left; }
+        .goods-card-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 2px; }
+        .goods-card-sub { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
+        .goods-card-btn { width: 100%; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; background: linear-gradient(135deg, #e0ac4a, #a16207); color: #fff; }
+        .goods-card-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .goods-section-title { font-size: 14px; font-weight: 700; color: #e0ac4a; margin: 14px 0 8px; }
+        .goods-empty-text { font-size: 13px; color: #94a3b8; }
         .care-progress { font-size: 9px; color: #94a3b8; margin-top: 3px; }
 
         /* MODAL KOMPOS & PUPUK */
@@ -467,8 +476,8 @@
     </div>
 </div>
 
-<div id="compost-modal" class="modal-overlay side-panel" onclick="closeCompostModal(event)">
-    <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px;">
+<div id="compost-modal" class="modal-overlay farm-modal-wide" onclick="closeCompostModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
         <button class="modal-close-x" onclick="document.getElementById('compost-modal').classList.remove('active')">✕</button>
         <span class="island-icon" style="font-size: 40px;">🧪</span>
         <div class="modal-username" style="color:#fbbf24;">Gudang &amp; Kompos</div>
@@ -514,8 +523,8 @@
     <button id="btn-cairkan-tof" onclick="openCairkanModal()" style="width:100%; margin-top:6px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:600; cursor:pointer;">☕ Cairkan ke TOF</button>
 </div>
 
-<div id="pasar-modal" class="modal-overlay side-panel" onclick="closePasarModal(event)">
-    <div class="modal-box island-modal-box" onclick="event.stopPropagation()" style="max-width:340px;">
+<div id="pasar-modal" class="modal-overlay farm-modal-wide" onclick="closePasarModal(event)">
+    <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <button class="modal-close-x" onclick="document.getElementById('pasar-modal').classList.remove('active')">✕</button>
         <span class="island-icon">🛒</span>
         <div class="modal-username" style="color:#e0ac4a;">Pasar &amp; Olahan</div>
@@ -953,27 +962,27 @@
 
                 let tahapLabel, tombolHtml;
                 if (p.status === 'punya_bahan') {
-                    tahapLabel = '1/3 · Sudah punya bahan (ubi segar)';
-                    tombolHtml = `<button class="care-btn" onclick="potongBasahiBibit('${p.id}')">✂️ Potong &amp; Basahi (1 XP)</button>`;
+                    tahapLabel = '1/3 · Punya bahan (ubi segar)';
+                    tombolHtml = `<button class="goods-card-btn" onclick="potongBasahiBibit('${p.id}')">✂️ Potong &amp; basahi — 1 XP</button>`;
                 } else if (p.status === 'sudah_dipotong') {
                     tahapLabel = '2/3 · Sudah dipotong &amp; dibasahi';
-                    tombolHtml = `<button class="care-btn" onclick="tancapkanBibit('${p.id}')">🌱 Tancapkan ke Tanah (2 XP)</button>`;
+                    tombolHtml = `<button class="goods-card-btn" onclick="tancapkanBibit('${p.id}')">🌱 Tancapkan ke tanah — 2 XP</button>`;
                 } else {
-                    tahapLabel = '3/3 · Tertancap, ' + (p.dilindungi ? '🛡️ dilindungi (aman)' : '⚠️ belum dilindungi (risiko dimakan hewan!)');
+                    tahapLabel = '3/3 · ' + (p.dilindungi ? '🛡️ Dilindungi, aman' : '⚠️ Belum dilindungi, risiko dimakan hewan');
                     tombolHtml = `
-                        ${!p.dilindungi ? `<button class="care-btn" onclick="pasangPelindungBibit('${p.id}')">🛡️ Pasang Pelindung (8 XP)</button>` : ''}
-                        <button class="care-btn" onclick="cekHasilBibit('${p.id}')" ${!siap ? 'disabled' : ''}>🔍 Cek Hasil</button>`;
+                        ${!p.dilindungi ? `<button class="goods-card-btn" style="margin-bottom:6px;" onclick="pasangPelindungBibit('${p.id}')">🛡️ Pasang pelindung — 8 XP</button>` : ''}
+                        <button class="goods-card-btn" onclick="cekHasilBibit('${p.id}')" ${!siap ? 'disabled' : ''}>🔍 Cek hasil</button>`;
                 }
 
                 const statusWaktu = p.status === 'ditancapkan'
                     ? (siap ? '✅ Tunas siap dicek' : '🌱 ' + formatDuration(waktuTunas * 1000 - elapsed) + ' lagi')
                     : '';
 
-                return `<div class="farm-plot-card">
-                    <strong>${namaBibit}</strong>
-                    <div class="care-progress">${tahapLabel}</div>
-                    ${statusWaktu ? `<div class="care-progress">${statusWaktu}</div>` : ''}
-                    <div class="care-btn-row">${tombolHtml}</div>
+                return `<div class="goods-card">
+                    <div class="goods-card-title">${namaBibit}</div>
+                    <div class="goods-card-sub">${tahapLabel}</div>
+                    ${statusWaktu ? `<div class="goods-card-sub">${statusWaktu}</div>` : ''}
+                    ${tombolHtml}
                 </div>`;
             }).join('');
         } catch (e) {
@@ -1077,79 +1086,64 @@
         const bebasListEl = document.getElementById('pasar-bebas-list');
 
         try {
-            const [{ data: gudang }, { data: bibit }, { data: proses }, { data: hargaKoperasi }, { data: listingOrang }] = await Promise.all([
+            const [{ data: gudang }, { data: proses }, { data: hargaKoperasi }, { data: listingOrang }] = await Promise.all([
                 db.from('inventaris_barang').select('barang_id, qty, barang_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
-                db.from('inventaris_bibit').select('bibit_id, qty, bibit_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0),
                 db.from('village_proses_produksi').select('id, proses_id, status, mulai_at, proses_produksi_catalog(nama, waktu_proses_seconds)').eq('owner_id', myUserId).eq('status', 'diproses'),
                 db.from('koperasi_harga').select('barang_id, harga_beli_xp, barang_catalog(nama)'),
                 db.from('pasar_bebas').select('id, penjual_id, barang_id, qty, harga_per_unit_xp, barang_catalog(nama), profiles(username)').eq('status', 'terbuka').neq('penjual_id', myUserId),
             ]);
 
-            // Gudang + Bibit
             const gudangList = (gudang || []).map(g => `${(g.barang_catalog && g.barang_catalog.nama) || g.barang_id} ×${g.qty}`);
-            const bibitList = (bibit || []).map(b => `🌱 ${(b.bibit_catalog && b.bibit_catalog.nama) || b.bibit_id} ×${b.qty}`);
-            const semuaInventaris = [...gudangList, ...bibitList];
-            gudangEl.innerHTML = semuaInventaris.length
-                ? '🎒 Gudang: ' + semuaInventaris.join(', ')
-                : '🎒 Gudang masih kosong. Panen ubi jalar atau beli bibit dulu ya.';
+            gudangEl.innerHTML = gudangList.length
+                ? '🎒 Gudang: ' + gudangList.join(', ')
+                : '🎒 Gudang masih kosong. Panen atau beli ubi jalar dulu.';
 
-            // Olahan berjalan
             olahanEl.innerHTML = (proses && proses.length) ? proses.map(p => {
                 const nama = (p.proses_produksi_catalog && p.proses_produksi_catalog.nama) || p.proses_id;
                 const waktu = (p.proses_produksi_catalog && p.proses_produksi_catalog.waktu_proses_seconds) || 0;
                 const elapsed = Date.now() - new Date(p.mulai_at).getTime();
                 const siap = elapsed >= waktu * 1000;
-                return `<div class="farm-plot-card">
-                    <strong>${nama}</strong>
-                    <div class="care-progress">${siap ? '✅ Matang, siap diambil' : '🔥 ' + formatDuration(waktu * 1000 - elapsed) + ' lagi'}</div>
-                    <button class="care-btn" onclick="ambilHasilProduksi('${p.id}')" ${!siap ? 'disabled' : ''}>🍲 Ambil Hasil</button>
+                return `<div class="goods-card">
+                    <div class="goods-card-title">🔥 ${nama}</div>
+                    <div class="goods-card-sub">${siap ? '✅ Matang, siap diambil' : '⏳ ' + formatDuration(waktu * 1000 - elapsed) + ' lagi'}</div>
+                    <button class="goods-card-btn" onclick="ambilHasilProduksi('${p.id}')" ${!siap ? 'disabled' : ''}>🍲 Ambil hasil</button>
                 </div>`;
             }).join('') : '';
 
-            // Jual cepat ke koperasi -- cuma tampilkan barang yang beneran ada di gudang
             const gudangMap = {};
             (gudang || []).forEach(g => { gudangMap[g.barang_id] = g.qty; });
             koperasiEl.innerHTML = (hargaKoperasi || []).filter(h => gudangMap[h.barang_id] > 0).map(h => {
                 const nama = (h.barang_catalog && h.barang_catalog.nama) || h.barang_id;
-                return `<div class="care-btn-row" style="margin-bottom:4px;">
-                    <button class="care-btn" onclick="jualKeKoperasi('${h.barang_id}', ${gudangMap[h.barang_id]})">Jual semua ${nama} (×${gudangMap[h.barang_id]}) @ ${h.harga_beli_xp} XP/unit</button>
+                return `<div class="goods-card">
+                    <div class="goods-card-title">${nama} ×${gudangMap[h.barang_id]}</div>
+                    <div class="goods-card-sub">@${h.harga_beli_xp} XP/unit</div>
+                    <button class="goods-card-btn" onclick="jualKeKoperasi('${h.barang_id}', ${gudangMap[h.barang_id]})">🏪 Jual semua — ${h.harga_beli_xp * gudangMap[h.barang_id]} XP</button>
                 </div>`;
-            }).join('') || '<p style="font-size:10px; color:#94a3b8;">Belum ada barang buat dijual ke koperasi.</p>';
+            }).join('') || '<p class="goods-empty-text">Belum ada barang buat dijual ke koperasi.</p>';
 
-            // Buat listing pasar bebas -- pakai barang & bibit yang ada
-            const bebasListingItems = [];
-            (gudang || []).forEach(g => {
-                bebasListingItems.push({
-                    id: g.barang_id,
-                    nama: (g.barang_catalog && g.barang_catalog.nama) || g.barang_id,
-                    qty: g.qty,
-                    icon: ''
-                });
-            });
-            (bibit || []).forEach(b => {
-                bebasListingItems.push({
-                    id: b.bibit_id,
-                    nama: (b.bibit_catalog && b.bibit_catalog.nama) || b.bibit_id,
-                    qty: b.qty,
-                    icon: '🌱 '
-                });
-            });
-            
+            const bebasListingItems = (gudang || []).map(g => ({
+                id: g.barang_id,
+                nama: (g.barang_catalog && g.barang_catalog.nama) || g.barang_id,
+                qty: g.qty,
+            }));
+
             bebasJualEl.innerHTML = bebasListingItems.length ? bebasListingItems.map(item => `
-                <div style="display:flex; gap:4px; margin-bottom:4px;">
-                    <input id="jual-bebas-harga-${item.id}" type="number" min="1" placeholder="Harga/unit XP" style="flex:1; padding:5px; border-radius:6px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#e2e8f0; font-size:10px;" />
-                    <button class="care-btn" onclick="pasangListingPasar('${item.id}', ${item.qty})">Jual ${item.icon}${item.nama} (×${item.qty})</button>
+                <div class="goods-card">
+                    <div class="goods-card-title">${item.nama} ×${item.qty}</div>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <input id="jual-bebas-harga-${item.id}" type="number" min="1" placeholder="Harga/unit XP" style="flex:1; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(0,0,0,0.25); color:#e2e8f0; font-size:13px;" />
+                        <button class="goods-card-btn" style="width:auto; padding:10px 16px;" onclick="pasangListingPasar('${item.id}', ${item.qty})">Pasang jual</button>
+                    </div>
                 </div>
-            `).join('') : '';
+            `).join('') : '<p class="goods-empty-text">Belum ada barang buat dijual bebas.</p>';
 
-            // Listing orang lain
             bebasListEl.innerHTML = (listingOrang && listingOrang.length) ? listingOrang.map(l => `
-                <div class="farm-plot-card">
-                    <strong>${(l.barang_catalog && l.barang_catalog.nama) || l.barang_id} ×${l.qty}</strong>
-                    <div class="care-progress">@${(l.profiles && l.profiles.username) || '???'} — ${l.harga_per_unit_xp} XP/unit</div>
-                    <button class="care-btn" onclick="beliDariPasar('${l.id}', ${l.qty})">Beli semua (${l.harga_per_unit_xp * l.qty} XP)</button>
+                <div class="goods-card">
+                    <div class="goods-card-title">${(l.barang_catalog && l.barang_catalog.nama) || l.barang_id} ×${l.qty}</div>
+                    <div class="goods-card-sub">Dijual oleh ${(l.profiles && l.profiles.username) || '???'} — ${l.harga_per_unit_xp} XP/unit</div>
+                    <button class="goods-card-btn" onclick="beliDariPasar('${l.id}', ${l.qty})">🛒 Beli semua — ${l.harga_per_unit_xp * l.qty} XP</button>
                 </div>
-            `).join('') : '<p style="font-size:10px; color:#94a3b8;">Belum ada yang jual di pasar bebas.</p>';
+            `).join('') : '<p class="goods-empty-text">Belum ada yang jual di pasar bebas.</p>';
 
         } catch (e) {
             gudangEl.innerText = 'Gagal memuat data pasar.';
