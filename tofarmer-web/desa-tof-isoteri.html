@@ -2546,6 +2546,8 @@
         document.getElementById('kebun-saya-screen').style.display = 'none';
     }
 
+    let lastKebunPlantSignature = null;
+
     function renderKebunSayaHome() {
         const key = pickFeaturedTileKey();
         const stageEl = document.getElementById('kebun-plant-stage');
@@ -2555,7 +2557,8 @@
         if (!stageEl) return;
 
         if (!key) {
-            stageEl.innerHTML = renderPlantSVG({ empty: true });
+            const sig = 'empty-no-tile';
+            if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ empty: true }); lastKebunPlantSignature = sig; }
             statusEl.innerText = 'Anda belum punya lahan. Klaim tanah dulu di menu Desa.';
             actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="openVillageMap()">🗺️ Buka Peta Desa</button>`;
             othersEl.innerHTML = '';
@@ -2564,11 +2567,13 @@
 
         const farm = farms[key];
         if (!farm || farm.landState === 'fertile') {
-            stageEl.innerHTML = renderPlantSVG({ empty: true });
+            const sig = 'fertile-' + key;
+            if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ empty: true }); lastKebunPlantSignature = sig; }
             statusEl.innerText = `Petak ${key} subur, siap ditanami.`;
             actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="document.getElementById('kebun-saya-screen').style.display='none'; document.getElementById('farm-modal').classList.add('active'); renderFarmList();">🌱 Tanam Sekarang</button>`;
         } else if (farm.landState === 'barren') {
-            stageEl.innerHTML = renderPlantSVG({ barren: true });
+            const sig = 'barren-' + key;
+            if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ barren: true }); lastKebunPlantSignature = sig; }
             statusEl.innerText = `Petak ${key} tandus, perlu dipupuk.`;
             actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="fertilizeBarrenAction('${key}').then(() => renderKebunSayaHome())">🌿 Pupuk Tanah</button>`;
         } else {
@@ -2579,7 +2584,9 @@
             const growthPct = Math.min(1, elapsed / growMs);
             const timeReady = elapsed >= growMs;
             const careReady = (farm.waterCount||0) >= (Number(cropDef.water_required)||0) && (farm.fertilizeCount||0) >= (Number(cropDef.fertilize_required)||0) && (farm.prunedCount||0) >= CARE_TREAT_REQUIRED;
-            stageEl.innerHTML = renderPlantSVG({ growthPct, careReady, timeReady });
+            const leafCount = Math.max(2, Math.round(Math.max(0.08, Math.min(1, growthPct)) * 8));
+            const sig = `${key}|${farm.cropId}|${leafCount}|${timeReady}|${careReady}`;
+            if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ growthPct, careReady, timeReady }); lastKebunPlantSignature = sig; }
 
             if (timeReady && careReady) {
                 const reward = computeEffectiveReward(cropDef, farm);
