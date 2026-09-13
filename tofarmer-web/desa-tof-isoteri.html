@@ -49,6 +49,19 @@
         .tile-claimed-other { outline: 2px solid rgba(248, 113, 113, 0.6); outline-offset: -2px; }
         .tile-barren { background: rgba(120, 72, 40, 0.55) !important; }
 
+        /* ===== MODE GRID (eksperimen ringan, pengganti isometric) ===== */
+        #grid-world-wrap { position: absolute; inset: 0; overflow: auto; -webkit-overflow-scrolling: touch; background: var(--bg); padding: 12px; box-sizing: border-box; }
+        #grid-world { display: inline-grid; gap: 1px; }
+        .gtile { width: 26px; height: 26px; background: rgba(74,222,128,0.02); border: 0.5px solid rgba(74,222,128,0.06); box-sizing: border-box; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .gtile-road { background: rgba(30,41,59,0.9); border-color: rgba(148,163,184,0.3); }
+        .gtile-farm { background: rgba(107,142,78,0.25); border-color: rgba(74,222,128,0.4); }
+        .gtile-mountain { background: rgba(87,83,78,0.45); border-color: rgba(120,113,108,0.5); }
+        .gtile-hill { background: rgba(180,142,90,0.28); border-color: rgba(180,142,90,0.45); }
+        .gtile-river { background: rgba(56,189,248,0.28); border-color: rgba(56,189,248,0.45); }
+        .gtile-tree { background: rgba(34,139,34,0.22); border-color: rgba(34,139,34,0.45); }
+        .gtile-ready { box-shadow: 0 0 0 2px #fbbf24 inset; }
+        .gtile span { font-size: 14px; line-height: 1; }
+
         /* Kunci interaksi hover ubin saat mode edit arsitek aktif */
         .edit-mode .tile { cursor: move !important; }
         .edit-mode .tile:hover { background: transparent !important; }
@@ -366,6 +379,9 @@
 
 <div id="viewport">
     <div id="world" class="locked-mode"></div>
+    <div id="grid-world-wrap" style="display:none;">
+        <div id="grid-world"></div>
+    </div>
 </div>
 
 <div id="island-modal" class="modal-overlay side-panel" onclick="closeIslandModal(event)">
@@ -577,6 +593,7 @@
         <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
         <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
         <button class="btn" onclick="rotateMap()">🔄 Putar Sisi</button>
+        <button class="btn" onclick="toggleGridMode()">🧪 Mode Grid (uji)</button>
     </div>
     <button class="btn btn-fab-main" id="btn-fab-main" onclick="toggleControlsMenu()">☰ Menu</button>
 </div>
@@ -709,6 +726,99 @@
     let lastRotationTriggerTime = 0;
 
     const GRID_SIZE = 30;
+
+    // ===== MODE GRID (eksperimen) -- render alternatif pakai CSS Grid biasa,
+    // TIDAK menyentuh sistem isometric lama sama sekali. Sumber data (rawTerrainData,
+    // claimedTiles, farms) persis sama; cuma cara gambarnya beda & lebih ringan.
+    let gridModeActive = false;
+
+    function toggleGridMode() {
+        const wrap = document.getElementById('grid-world-wrap');
+        const iso = document.getElementById('world');
+        if (!gridModeActive) {
+            if (typeof rawTerrainData === 'undefined' || !rawTerrainData || !rawTerrainData.length) {
+                showToast('Data peta belum siap, tunggu sebentar lalu coba lagi.', true);
+                return;
+            }
+            buildWorldGrid();
+            wrap.style.display = 'block';
+            iso.style.display = 'none';
+            gridModeActive = true;
+        } else {
+            wrap.style.display = 'none';
+            iso.style.display = '';
+            gridModeActive = false;
+        }
+    }
+
+    function getGridTileTerrainClass(type) {
+        switch (type) {
+            case 'paved_road': return 'gtile-road';
+            case 'soil_farm': return 'gtile-farm';
+            case 'mountain': return 'gtile-mountain';
+            case 'hill': return 'gtile-hill';
+            case 'river': return 'gtile-river';
+            case 'tree': return 'gtile-tree';
+            default: return '';
+        }
+    }
+
+    function getGridTileIcon(type) {
+        switch (type) {
+            case 'mountain': return '⛰️';
+            case 'hill': return '🌄';
+            case 'river': return '💧';
+            case 'tree': return '🌳';
+            default: return '';
+        }
+    }
+
+    function buildWorldGrid() {
+        const gridEl = document.getElementById('grid-world');
+        gridEl.innerHTML = '';
+        gridEl.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 26px)`;
+        gridEl.style.gridTemplateRows = `repeat(${GRID_SIZE}, 26px)`;
+
+        for (let y = 0; y < GRID_SIZE; y++) {
+            for (let x = 0; x < GRID_SIZE; x++) {
+                const cell = document.createElement('div');
+                cell.className = 'gtile';
+                cell.style.gridColumn = String(x + 1);
+                cell.style.gridRow = String(y + 1);
+                cell.onclick = (e) => selectTile(x, y, e);
+
+                const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+                if (ground) {
+                    const cls = getGridTileTerrainClass(ground.type);
+                    if (cls) cell.classList.add(cls);
+                    const icon = getGridTileIcon(ground.type);
+                    if (icon) cell.innerHTML = `<span>${icon}</span>`;
+                }
+
+                const key = `${x},${y}`;
+                const claim = claimedTiles[key];
+                if (claim) cell.classList.add(claim.ownerUsername === myUsername ? 'tile-claimed-mine' : 'tile-claimed-other');
+
+                const farmData = farms[key];
+                if (farmData && farmData.landState === 'planted') {
+                    const cropDef = getCropDef(farmData.cropId);
+                    if (cropDef) {
+                        const growMs = computeEffectiveGrowMs(cropDef, farmData);
+                        const elapsed = farmData.plantedAt ? (Date.now() - farmData.plantedAt) : 0;
+                        const timeReady = elapsed >= growMs;
+                        const careReady = (farmData.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farmData.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farmData.prunedCount || 0) >= CARE_TREAT_REQUIRED;
+                        const icon = (timeReady && careReady) ? cropDef.fruit_icon : cropDef.icon;
+                        cell.innerHTML = `<span>${icon}</span>`;
+                        if (timeReady && careReady) cell.classList.add('gtile-ready');
+                    }
+                } else if (farmData && farmData.landState === 'barren') {
+                    cell.innerHTML = `<span>🟤</span>`;
+                }
+
+                gridEl.appendChild(cell);
+            }
+        }
+    }
     const TILE_WIDTH = 100;   
     const TILE_HEIGHT = 50;   
     
