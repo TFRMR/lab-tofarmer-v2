@@ -2527,6 +2527,12 @@
         return bestKey;
     }
 
+    function kebunActionStart() {
+        const row = document.getElementById('kebun-action-row');
+        if (!row) return;
+        row.querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+    }
+
     function buildCareButtonsHtml(key, farm, cropDef) {
         const now = Date.now();
         const waterCooldownMs = (Number(cropDef.water_cooldown_seconds)||0)*1000;
@@ -2536,9 +2542,9 @@
         const fertilizeOnCooldown = farm.lastFertilizedAt && (now - farm.lastFertilizedAt) < fertilizeCooldownMs;
         const pruneOnCooldown = farm.lastPrunedAt && (now - farm.lastPrunedAt) < pruneCooldownMs;
         return `
-            <button class="plot-btn" onclick="showActionFx('💧'); playSoundWater(); waterCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram</button>
-            <button class="plot-btn" onclick="showActionFx('✨'); playSoundFertilize(); fertilizeCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk</button>
-            <button class="plot-btn" onclick="pruneCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat</button>
+            <button class="plot-btn" onclick="kebunActionStart(); showActionFx('💧'); playSoundWater(); waterCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram</button>
+            <button class="plot-btn" onclick="kebunActionStart(); showActionFx('✨'); playSoundFertilize(); fertilizeCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk</button>
+            <button class="plot-btn" onclick="kebunActionStart(); pruneCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat</button>
         `;
     }
 
@@ -2640,7 +2646,7 @@
     function refreshAllFarmVisuals() {
         Object.keys(farms).forEach(key => updateTileFarmVisual(key));
         if (document.getElementById('farm-modal').classList.contains('active')) renderFarmList();
-        if (document.getElementById('kebun-saya-screen').style.display !== 'none') renderKebunSayaHome();
+        if (document.getElementById('kebun-saya-screen').style.display !== 'none' && farmActionLocks.size === 0) renderKebunSayaHome();
     }
     setInterval(refreshAllFarmVisuals, 8000);
 
