@@ -2196,13 +2196,37 @@
         Object.keys(claimedTiles).forEach(key => updateTileClaimVisual(key));
     }
 
+    // Signature ringkas dari apa yang SEHARUSNYA tampil di petak ini -- dipakai untuk
+    // skip total remove+recreate DOM kalau tidak ada perubahan visual (anti-kedip/flicker).
+    // Cukup gabungkan field yang benar-benar mempengaruhi ikon/badge yang dirender.
+    function computeFarmVisualSignature(farmData) {
+        if (!farmData) return 'empty';
+        if (farmData.landState === 'barren') return 'barren';
+        if (farmData.landState !== 'planted') return 'fertile';
+        const cropDef = getCropDef(farmData.cropId);
+        if (!cropDef) return 'nodef:' + farmData.cropId;
+        const growMs = computeEffectiveGrowMs(cropDef, farmData);
+        const elapsed = farmData.plantedAt ? (Date.now() - farmData.plantedAt) : 0;
+        const timeReady = elapsed >= growMs;
+        const careReady = (farmData.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farmData.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farmData.prunedCount || 0) >= CARE_TREAT_REQUIRED;
+        const reward = timeReady && careReady ? computeEffectiveReward(cropDef, farmData) : 0;
+        return `${farmData.cropId}|${timeReady}|${careReady}|${reward}`;
+    }
+
     function updateTileFarmVisual(key) {
         const entry = tileNodeMap[key];
         if (!entry) return;
+
+        const farmData = farms[key];
+        const signature = computeFarmVisualSignature(farmData);
+        // Sudah persis sama seperti render terakhir -- tidak ada yang berubah secara visual,
+        // jadi JANGAN sentuh DOM sama sekali. Ini yang mencegah kedip tiap 8 detik.
+        if (entry.lastVisualSignature === signature) return;
+        entry.lastVisualSignature = signature;
+
         if (entry.cropIconEl) { entry.cropIconEl.remove(); entry.cropIconEl = null; }
         if (entry.badgeEl) { entry.badgeEl.remove(); entry.badgeEl = null; }
 
-        const farmData = farms[key];
         entry.tileEl.classList.toggle('tile-barren', !!(farmData && farmData.landState === 'barren'));
 
         if (farmData) {
