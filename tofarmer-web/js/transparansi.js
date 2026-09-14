@@ -80,7 +80,7 @@ async function loadReport() {
         <div class="card" style="text-align:center;">
           <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
           <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">
-            TOTAL: TOF ${totalAll.toLocaleString("id-ID")}
+            TOTAL: TOF ${totalAll.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 5 })}
           </p>
           <p style="font-size:0.8rem; color:#64748b;">SOURCE: ✅ SUPABASE</p>
         </div>`;
@@ -89,42 +89,52 @@ async function loadReport() {
     let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA (${wallets.length})</h3>`;
     
     wallets.forEach(u => {
-      const walletAddress = u.id; // id di profiles adalah Alamat Wallet
-      const username = u.username || "";
+      const walletAddress = (u.id || "").trim();
+      const username = (u.username || "").trim();
       const balance = Number(u.saldo_tof || 0);
 
-      // Identifier unik user (alamat wallet & username)
-      const userKeys = [walletAddress, username].filter(Boolean);
-      
+      // Identifier unik user (alamat wallet & username) dalam bentuk lowercase
+      const userKeys = [
+        walletAddress.toLowerCase(),
+        username.toLowerCase(),
+        username ? `@${username.toLowerCase()}` : ""
+      ].filter(Boolean);
+
       const displayName = username 
         ? `@${username}` 
         : (walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}` : "Anonim");
 
       // Match transaksi dari tof_history
       const txsRaw = history.filter(tx => {
-        const txTargets = [tx.wallet, tx.username, tx.sender, tx.receiver].filter(Boolean);
-        return userKeys.some(k => txTargets.includes(k));
+        const fields = [
+          tx.wallet,
+          tx.username,
+          tx.sender,
+          tx.receiver
+        ].filter(Boolean).map(v => String(v).trim().toLowerCase());
+
+        return userKeys.some(k => fields.includes(k));
       });
 
       // Filter duplikat transaksi berdasarkan tx_id
       const uniqueTxMap = new Map();
       txsRaw.forEach(t => {
-        if (t.tx_id) {
-          uniqueTxMap.set(t.tx_id, t);
-        } else {
-          const fallbackKey = `${t.created_at}_${t.amount}_${t.note}`;
-          uniqueTxMap.set(fallbackKey, t);
-        }
+        const key = t.tx_id || `${t.created_at}_${t.amount}_${t.note}`;
+        uniqueTxMap.set(key, t);
       });
       const txs = Array.from(uniqueTxMap.values());
 
       let txRows = "";
       if (txs.length === 0) {
-        txRows = `<tr><td colspan="2" style="padding:12px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
+        txRows = `<tr><td colspan="2" style="padding:12px; text-align:center; color:#64748b;">Belum ada catatan transaksi di database. Klik "Sync" untuk sinkronisasi.</td></tr>`;
       } else {
         txs.forEach(tx => {
+          const sender = String(tx.sender || "").trim().toLowerCase();
+          const receiver = String(tx.receiver || "").trim().toLowerCase();
+          const txWallet = String(tx.wallet || "").trim().toLowerCase();
+
           // Tentukan arah uang (+ penerima / - pengirim)
-          const isReceiver = tx.receiver === walletAddress || tx.wallet === walletAddress || (username && tx.receiver === username);
+          const isReceiver = userKeys.includes(receiver) || (userKeys.includes(txWallet) && !userKeys.includes(sender));
           const sign = isReceiver ? "+" : "-";
           const color = isReceiver ? "#4ade80" : "#f87171";
           
@@ -145,7 +155,7 @@ async function loadReport() {
                 <div style="font-size:0.75rem; color:#94a3b8; margin-top:3px; word-break:break-word;">${noteText}</div>
               </td>
               <td style="text-align:right; color:${color}; font-weight:bold; white-space:nowrap; vertical-align:top; padding:10px 8px;">
-                ${sign} ${Number(tx.amount || 0).toLocaleString("id-ID")} TOF
+                ${sign} ${Number(tx.amount || 0).toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 5 })} TOF
               </td>
             </tr>`;
         });
@@ -163,7 +173,7 @@ async function loadReport() {
               <tfoot>
                 <tr style="border-top:2px solid #22c55e;">
                   <td style="padding:10px 8px; font-weight:bold;">SALDO SAAT INI</td>
-                  <td style="padding:10px 8px; text-align:right; color:#fde047; font-weight:bold;">TOF ${balance.toLocaleString("id-ID")}</td>
+                  <td style="padding:10px 8px; text-align:right; color:#fde047; font-weight:bold;">TOF ${balance.toLocaleString("id-ID", { minimumFractionDigits: 0, maximumFractionDigits: 5 })}</td>
                 </tr>
               </tfoot>
             </table>
@@ -197,6 +207,12 @@ async function fetchWalletTx(wallet, username, minRound = null) {
   let nextToken = null, allTx = [];
   let safetyLoop = 0;
 
+  // Pastikan wallet berbentuk alamat Algorand 58 karakter
+  if (!wallet || wallet.trim().length !== 58) {
+    console.warn(`⚠️ Skip Sync Algonode: '${wallet}' bukan alamat wallet Algorand valid (harus 58 karakter).`);
+    return [];
+  }
+
   do {
     safetyLoop++;
     if (safetyLoop > 50) break;
@@ -207,35 +223,46 @@ async function fetchWalletTx(wallet, username, minRound = null) {
     if (nextToken) params.set("next-token", nextToken);
     if (minRound && minRound > 0) params.set("min-round", String(minRound));
 
-    const res = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`);
-    if (!res.ok) break;
-
-    const data = await res.json();
-    const transactions = data.transactions || [];
-    if (transactions.length === 0) break;
-
-    for (const tx of transactions) {
-      const transfer = tx["asset-transfer-transaction"];
-      if (transfer && Number(transfer["asset-id"]) === TOF_ASSET_ID) {
-        let note = "";
-        try { if (tx.note) note = atob(tx.note); } catch(e){}
-        
-        allTx.push({
-          wallet, 
-          username: username || null, 
-          tx_id: tx.id,
-          amount: Number(transfer.amount || 0) / 1000000,
-          note, 
-          category: note.toUpperCase().includes("NABUNG") ? "NABUNG_RECEH" : "DANA_MASUK",
-          sender: tx.sender || null, 
-          receiver: transfer.receiver || null,
-          round: Number(tx["confirmed-round"] || tx["round-time"] || 0),
-          created_at: tx["round-time"] ? new Date(Number(tx["round-time"]) * 1000).toISOString() : new Date().toISOString()
-        });
+    try {
+      const res = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`);
+      if (!res.ok) {
+        console.error(`❌ HTTP Error Algonode status ${res.status} untuk wallet ${wallet}`);
+        break;
       }
-    }
 
-    nextToken = data["next-token"] || null;
+      const data = await res.json();
+      const transactions = data.transactions || [];
+      if (transactions.length === 0) break;
+
+      for (const tx of transactions) {
+        const transfer = tx["asset-transfer-transaction"];
+        if (transfer && Number(transfer["asset-id"]) === TOF_ASSET_ID) {
+          let note = "";
+          try { if (tx.note) note = atob(tx.note); } catch(e){}
+          
+          const rawAmount = Number(transfer.amount || 0);
+          const formattedAmount = rawAmount > 1000 ? rawAmount / 1000000 : rawAmount;
+
+          allTx.push({
+            wallet: wallet, 
+            username: username || null, 
+            tx_id: tx.id,
+            amount: formattedAmount,
+            note: note, 
+            category: note.toUpperCase().includes("NABUNG") ? "NABUNG_RECEH" : "DANA_MASUK",
+            sender: tx.sender || null, 
+            receiver: transfer.receiver || null,
+            round: Number(tx["confirmed-round"] || tx["round-time"] || 0),
+            created_at: tx["round-time"] ? new Date(Number(tx["round-time"]) * 1000).toISOString() : new Date().toISOString()
+          });
+        }
+      }
+
+      nextToken = data["next-token"] || null;
+    } catch (e) {
+      console.error("Error fetching transactions:", e);
+      break;
+    }
   } while (nextToken);
 
   return allTx;
@@ -273,19 +300,25 @@ async function syncData() {
         await client.from("tof_history").upsert(txs, { onConflict: "tx_id" });
       }
 
-      // Ambil balance dari Algonode Indexer
-      const resBal = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}`);
-      let balance = 0;
-      if (resBal.ok) {
-        const dataBal = await resBal.json();
-        const tofAsset = (dataBal.account?.assets || []).find(a => Number(a["asset-id"]) === TOF_ASSET_ID);
-        if (tofAsset) balance = Number(tofAsset.amount || 0) / 1000000;
-      }
+      // Ambil balance real-time dari Algonode Indexer
+      try {
+        const resBal = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}`);
+        if (resBal.ok) {
+          const dataBal = await resBal.json();
+          const tofAsset = (dataBal.account?.assets || []).find(a => Number(a["asset-id"]) === TOF_ASSET_ID);
+          if (tofAsset) {
+            const rawBal = Number(tofAsset.amount || 0);
+            const balance = rawBal > 1000 ? rawBal / 1000000 : rawBal;
 
-      // Update saldo langsung ke tabel profiles (kolom saldo_tof)
-      await client.from("profiles").update({
-        saldo_tof: balance
-      }).eq("id", wallet);
+            // Update saldo langsung ke tabel profiles (kolom saldo_tof)
+            await client.from("profiles").update({
+              saldo_tof: balance
+            }).eq("id", wallet);
+          }
+        }
+      } catch (e) {
+        console.error("Gagal update saldo wallet:", wallet, e);
+      }
 
       const maxTxRound = txs.reduce((max, t) => t.round > max ? t.round : max, 0);
       const latestNodeRound = await getLatestNodeRound();
