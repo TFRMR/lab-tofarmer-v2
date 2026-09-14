@@ -144,129 +144,89 @@ function normalizeTransaction(tx, wallet, username) {
 
 
 // =========================================================
-// 5. AMBIL TRANSAKSI DARI ALGO NODE
-//
-// PENTING:
-// Fungsi ini menggunakan PAGINATION.
-// Jadi seluruh histori dapat diambil.
+// 5. AMBIL TRANSAKSI DARI ALGO NODE (FIX: FILTER ASSET ID)
 // =========================================================
-
 async function getWalletTxPage(
   wallet,
   nextToken = null,
   minRound = null
 ) {
-
-  const params =
-    new URLSearchParams();
-
+  const params = new URLSearchParams();
   params.set("limit", "1000");
+  
+  // PERBAIKAN: Minta Algonode memfilter hanya asset TOF dari server
+  params.set("asset-id", String(TOF_ASSET_ID));
 
   if (nextToken) {
-
-    params.set(
-      "next-token",
-      nextToken
-    );
+    params.set("next-token", nextToken);
   }
 
-  if (
-    minRound !== null &&
-    minRound !== undefined &&
-    minRound > 0
-  ) {
-
-    params.set(
-      "min-round",
-      String(minRound)
-    );
+  if (minRound !== null && minRound !== undefined && minRound > 0) {
+    params.set("min-round", String(minRound));
   }
 
-  const url =
-    `${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`;
-
-  const response =
-    await fetch(url);
+  const url = `${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`;
+  const response = await fetch(url);
 
   if (!response.ok) {
-
-    throw new Error(
-      `Algonode error ${response.status}: ${response.statusText}`
-    );
+    throw new Error(`Algonode error ${response.status}: ${response.statusText}`);
   }
 
-  const data =
-    await response.json();
+  const data = await response.json();
 
   return {
-
-    transactions:
-      data.transactions || [],
-
-    nextToken:
-      data["next-token"] || null
+    transactions: data.transactions || [],
+    nextToken: data["next-token"] || null
   };
 }
 
 
 // =========================================================
-// 6. AMBIL SEMUA TRANSAKSI
-//
-// Digunakan untuk FIRST FULL SYNC.
+// 6. AMBIL SEMUA TRANSAKSI (FIX: REMOVE INFINITE LOOP)
 // =========================================================
-
 async function getAllWalletTransactions(
   wallet,
   username,
   onProgress = null
 ) {
-
   let nextToken = null;
-
   let allTransactions = [];
-
   let page = 0;
 
   do {
-
     page++;
 
-    const result =
-      await getWalletTxPage(
-        wallet,
-        nextToken,
-        null
-      );
+    const result = await getWalletTxPage(
+      wallet,
+      nextToken,
+      null
+    );
 
-    const transactions =
-      result.transactions;
+    const transactions = result.transactions;
+
+    // PERBAIKAN KUNCI: Hentikan loop jika transaksi dari API sudah kosong!
+    if (!transactions || transactions.length === 0) {
+      break;
+    }
 
     for (const tx of transactions) {
-
-      const normalized =
-        normalizeTransaction(
-          tx,
-          wallet,
-          username
-        );
+      const normalized = normalizeTransaction(
+        tx,
+        wallet,
+        username
+      );
 
       if (normalized) {
-
-        allTransactions.push(
-          normalized
-        );
+        allTransactions.push(normalized);
       }
     }
 
-    nextToken =
-      result.nextToken;
+    nextToken = result.nextToken;
 
     if (onProgress) {
-
       onProgress({
         page,
-        count:
-          allTransactions.length
+        count: allTransactions.length
       });
     }
 
@@ -274,62 +234,47 @@ async function getAllWalletTransactions(
 
   return allTransactions;
 }
-
-
 // =========================================================
-// 7. AMBIL TRANSAKSI BARU
-//
-// Setelah FULL SYNC selesai,
-// sinkronisasi berikutnya dimulai dari round terakhir.
+// 7. AMBIL TRANSAKSI BARU (FIX: REMOVE INFINITE LOOP)
 // =========================================================
-
 async function getNewWalletTransactions(
   wallet,
   username,
   lastRound
 ) {
-
   let nextToken = null;
-
   let allTransactions = [];
 
   do {
+    const result = await getWalletTxPage(
+      wallet,
+      nextToken,
+      lastRound
+    );
 
-    const result =
-      await getWalletTxPage(
+    // PERBAIKAN KUNCI: Hentikan loop jika tidak ada transaksi baru
+    if (!result.transactions || result.transactions.length === 0) {
+      break;
+    }
+
+    for (const tx of result.transactions) {
+      const normalized = normalizeTransaction(
+        tx,
         wallet,
-        nextToken,
-        lastRound
+        username
       );
 
-    for (
-      const tx of result.transactions
-    ) {
-
-      const normalized =
-        normalizeTransaction(
-          tx,
-          wallet,
-          username
-        );
-
       if (normalized) {
-
-        allTransactions.push(
-          normalized
-        );
+        allTransactions.push(normalized);
       }
     }
 
-    nextToken =
-      result.nextToken;
+    nextToken = result.nextToken;
 
   } while (nextToken);
 
   return allTransactions;
 }
-
-
 // =========================================================
 // 8. SIMPAN TRANSAKSI KE SUPABASE
 //
