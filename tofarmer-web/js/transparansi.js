@@ -68,7 +68,7 @@ async function getBalancesFromSupabase() {
 }
 
 // ---------------------------------------------------------
-// 2. RENDER REPORT (DENGAN LAYOUT RAPI & DEDUPING TX)
+// 2. RENDER REPORT (DENGAN MATCHING WALLET + USERNAME)
 // ---------------------------------------------------------
 async function loadReport() {
   setStatus("⚡ Memuat data dari Supabase...");
@@ -77,22 +77,18 @@ async function loadReport() {
     const history = await getHistoryFromSupabase();
     const balances = await getBalancesFromSupabase();
 
+    // Map Saldo berdasarkan wallet & username
     const balanceMap = {};
     balances.forEach(b => { 
-      if (b.wallet) balanceMap[b.wallet] = Number(b.balance || 0); 
-    });
-
-    const grouped = {};
-    history.forEach(tx => {
-      const key = tx.wallet;
-      if (key) {
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(tx);
-      }
+      if (b.wallet) balanceMap[b.wallet] = Number(b.balance || 0);
+      if (b.username) balanceMap[b.username] = Number(b.balance || 0);
     });
 
     let totalAll = 0;
-    wallets.forEach(u => totalAll += Number(balanceMap[u.id] || 0));
+    wallets.forEach(u => {
+      const bal = balanceMap[u.id] || balanceMap[u.username] || 0;
+      totalAll += Number(bal);
+    });
 
     if (summaryEl) {
       summaryEl.innerHTML = `
@@ -107,12 +103,24 @@ async function loadReport() {
 
     let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA (${wallets.length})</h3>`;
     
-    // LOOP SEMUA WALLET SECARA AMAN
+    // LOOP SEMUA WALLET
     wallets.forEach(u => {
-      const wallet = u.id;
-      const txsRaw = grouped[wallet] || [];
-      const balance = Number(balanceMap[wallet] || 0);
-      const displayName = u.username ? `@${u.username}` : wallet;
+      const walletId = u.id;
+      const username = u.username || "";
+      const displayName = username ? `@${username}` : walletId;
+
+      // Ambil saldo dari ID atau Username
+      const balance = Number(balanceMap[walletId] ?? balanceMap[username] ?? 0);
+
+      // FLEXIBLE MATCHING: Cari transaksi yang cocok dengan ID ATAU Username
+      const txsRaw = history.filter(tx => {
+        const matchWallet = tx.wallet && (tx.wallet === walletId || tx.wallet === username);
+        const matchUser = tx.username && (tx.username === username || tx.username === walletId);
+        const matchSender = tx.sender && (tx.sender === walletId || tx.sender === username);
+        const matchReceiver = tx.receiver && (tx.receiver === walletId || tx.receiver === username);
+        
+        return matchWallet || matchUser || matchSender || matchReceiver;
+      });
 
       // Filter duplikat berdasarkan tx_id unik per user
       const uniqueTxMap = new Map();
@@ -124,11 +132,11 @@ async function loadReport() {
         txRows = `<tr><td colspan="2" style="padding:12px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
       } else {
         txs.forEach(tx => {
-          const isReceiver = tx.receiver === wallet;
+          // Penentuan Arah Transaksi (+ / -)
+          const isReceiver = tx.receiver === walletId || tx.receiver === username || tx.wallet === walletId;
           const sign = isReceiver ? "+" : "-";
           const color = isReceiver ? "#4ade80" : "#f87171";
           
-          // Format tanggal yang aman dari NaN
           let dateStr = "-";
           if (tx.created_at) {
             const d = new Date(tx.created_at);
@@ -152,7 +160,7 @@ async function loadReport() {
         });
       }
 
-      // RENDER DETAILED CARD PER-USER
+      // RENDER ACCORDION CARD
       html += `
         <details class="card" style="margin-bottom:15px;">
           <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none; display:flex; justify-content:space-between; align-items:center;">
