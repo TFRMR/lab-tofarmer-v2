@@ -1,34 +1,84 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#2f6f4e">
+  <meta charset="UTF-8">
 
-  <title>SCAN SAJA | ToFarmer</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+
+  <meta
+    name="theme-color"
+    content="#2f6f4e"
+  >
+
+  <meta
+    name="description"
+    content="SCAN SAJA ToFarmer — kontribusi nyata berbasis lokasi"
+  >
+
+  <title>SCAN SAJA — ToFarmer</title>
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  >
 
   <style>
+
     :root {
+
       --tf-green-dark: #2f6f4e;
       --tf-green: #4caf7a;
       --tf-gold: #c9a227;
+
       --tf-bg: #f4f7f5;
       --tf-text: #1c2b22;
       --tf-muted: #6f7f76;
-      --tf-border: rgba(0,0,0,.06);
-      --tf-card: #fff;
-      --tf-shadow: 0 8px 30px rgba(30,60,45,.07);
+
+      --tf-white: #ffffff;
+
+      --tf-border:
+        rgba(0, 0, 0, 0.06);
+
+      --tf-shadow:
+        0 8px 30px rgba(
+          30,
+          60,
+          45,
+          0.07
+        );
+
       --tf-radius: 16px;
+
+      --tf-gradient:
+        linear-gradient(
+          90deg,
+          #4caf7a,
+          #c9a227
+        );
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
+
       margin: 0;
-      background: var(--tf-bg);
-      color: var(--tf-text);
+
+      background:
+        var(--tf-bg);
+
+      color:
+        var(--tf-text);
+
       font-family:
         Inter,
         system-ui,
@@ -38,857 +88,1242 @@
         sans-serif;
     }
 
-    a {
-      color: inherit;
-      text-decoration: none;
+    button {
+      font: inherit;
+      cursor: pointer;
     }
 
-    header {
+    .tf-header {
+
       position: sticky;
       top: 0;
-      z-index: 20;
-      background: var(--tf-green-dark);
+
+      z-index: 1000;
+
+      background:
+        var(--tf-green-dark);
+
       color: #fff;
-      box-shadow: 0 3px 18px rgba(0,0,0,.12);
+
+      box-shadow:
+        0 3px 18px
+        rgba(0, 0, 0, 0.12);
     }
 
-    .nav {
+    .tf-nav {
+
       max-width: 1100px;
+
+      min-height: 64px;
+
       margin: auto;
-      min-height: 68px;
-      padding: 12px 18px;
+
+      padding:
+        10px 16px;
+
       display: flex;
+
       align-items: center;
-      justify-content: space-between;
-      gap: 15px;
+
+      justify-content:
+        space-between;
+
+      gap: 12px;
     }
 
-    .brand {
+    .tf-brand {
+
       display: flex;
+
       align-items: center;
+
       gap: 10px;
+
+      color: #fff;
+
+      text-decoration: none;
+
       font-weight: 850;
-      letter-spacing: -.5px;
     }
 
-    .brand-icon {
+    .tf-brand-icon {
+
       width: 40px;
       height: 40px;
+
       display: grid;
+
       place-items: center;
+
       border-radius: 12px;
-      background: rgba(255,255,255,.13);
+
+      background:
+        rgba(255,255,255,0.12);
+
       font-size: 21px;
     }
 
-    .nav-right {
-      display: flex;
-      align-items: center;
-      gap: 9px;
+    .tf-brand-sub {
+
+      display: block;
+
+      font-size: 10px;
+
+      opacity: 0.72;
+
+      letter-spacing:
+        0.04em;
     }
 
-    .wallet-pill,
-    .admin-pill {
-      border-radius: 999px;
-      padding: 8px 12px;
-      background: rgba(255,255,255,.12);
-      font-size: 13px;
-      font-weight: 700;
+    .tf-user-pill {
+
+      padding:
+        8px 12px;
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(255,255,255,0.12);
+
+      font-size: 12px;
+
+      font-weight: 800;
     }
 
-    .admin-pill {
-      color: #fff6c8;
-      border: 1px solid rgba(201,162,39,.45);
-    }
+    .tf-main {
 
-    main {
       max-width: 1100px;
+
       margin: auto;
-      padding: 20px 16px 50px;
+
+      padding:
+        18px 14px 60px;
     }
 
-    .hero {
+    .tf-hero {
+
+      margin-bottom: 18px;
+
+      padding: 24px;
+
+      border-radius: 22px;
+
+      color: #fff;
+
       background:
         linear-gradient(
           135deg,
-          rgba(47,111,78,.98),
-          rgba(76,175,122,.92)
+          var(--tf-green-dark),
+          var(--tf-green)
         );
-      color: #fff;
-      border-radius: 22px;
-      padding: 27px;
-      margin-bottom: 18px;
-      box-shadow: var(--tf-shadow);
+
+      box-shadow:
+        var(--tf-shadow);
     }
 
-    .hero-grid {
+    .tf-hero-grid {
+
       display: grid;
-      grid-template-columns: 1.4fr .8fr;
-      gap: 20px;
-      align-items: center;
-    }
 
-    .hero h1 {
-      margin: 0;
-      font-size: clamp(32px, 6vw, 52px);
-      letter-spacing: -2.5px;
-      line-height: 1;
-    }
+      grid-template-columns:
+        1.4fr 0.7fr;
 
-    .hero p {
-      margin: 12px 0 0;
-      max-width: 650px;
-      opacity: .9;
-      line-height: 1.55;
-    }
-
-    .profile-box {
-      background: rgba(255,255,255,.13);
-      border: 1px solid rgba(255,255,255,.16);
-      border-radius: 18px;
-      padding: 18px;
-    }
-
-    .profile-name {
-      font-size: 19px;
-      font-weight: 800;
-    }
-
-    .balance-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 12px;
-    }
-
-    .balance {
-      background: rgba(255,255,255,.11);
-      border-radius: 13px;
-      padding: 12px;
-    }
-
-    .balance small {
-      display: block;
-      opacity: .78;
-      font-size: 11px;
-    }
-
-    .balance strong {
-      display: block;
-      margin-top: 3px;
-      font-size: 22px;
-    }
-
-    .layout {
-      display: grid;
-      grid-template-columns: 1.45fr .75fr;
       gap: 18px;
-    }
 
-    .card {
-      background: var(--tf-card);
-      border: 1px solid var(--tf-border);
-      border-radius: var(--tf-radius);
-      padding: 19px;
-      box-shadow: var(--tf-shadow);
-      margin-bottom: 18px;
-    }
-
-    .card h2,
-    .card h3 {
-      margin: 0;
-    }
-
-    .card-header {
-      display: flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 14px;
     }
 
-    .muted {
-      color: var(--tf-muted);
+    .tf-hero h1 {
+
+      margin: 0;
+
+      font-size:
+        clamp(34px, 7vw, 52px);
+
+      line-height: 1;
+
+      letter-spacing:
+        -2px;
     }
 
-    .small {
-      font-size: 12px;
+    .tf-hero p {
+
+      max-width: 720px;
+
+      margin:
+        10px 0 0;
+
+      line-height:
+        1.6;
+
+      opacity:
+        0.92;
     }
 
-    .status {
-      padding: 13px;
-      border-radius: 13px;
-      background: #f2f5f3;
-      margin-top: 12px;
-      line-height: 1.5;
+    .tf-profile-box {
+
+      padding: 15px;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.14);
+
+      border-radius:
+        16px;
+
+      background:
+        rgba(255,255,255,0.10);
     }
 
-    .status.ok {
-      background: #eaf7ef;
-      color: #205f3f;
-    }
+    .tf-profile-name {
 
-    .status.warning {
-      background: #fff8df;
-      color: #715d12;
-    }
-
-    .status.error {
-      background: #fff0f0;
-      color: #8c3030;
-    }
-
-    .task-list {
-      display: grid;
-      gap: 12px;
-    }
-
-    .task {
-      border: 1px solid var(--tf-border);
-      border-radius: 16px;
-      padding: 16px;
-      transition: .2s ease;
-    }
-
-    .task:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(30,60,45,.07);
-    }
-
-    .task-title {
-      font-size: 19px;
       font-weight: 850;
     }
 
-    .task-description {
-      color: var(--tf-muted);
-      margin-top: 5px;
-      line-height: 1.5;
+    .tf-stats {
+
+      display: grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
+      gap: 8px;
+
+      margin-top: 10px;
     }
 
-    .task-meta {
+    .tf-stat {
+
+      padding: 10px;
+
+      border-radius:
+        12px;
+
+      background:
+        rgba(255,255,255,0.10);
+    }
+
+    .tf-stat small {
+
+      display: block;
+
+      font-size: 11px;
+
+      opacity:
+        0.76;
+    }
+
+    .tf-stat strong {
+
+      font-size: 21px;
+    }
+
+    .tf-layout {
+
+      display: grid;
+
+      grid-template-columns:
+        1.25fr 0.75fr;
+
+      gap: 18px;
+
+      align-items:
+        start;
+    }
+
+    .tf-card {
+
+      margin-bottom: 18px;
+
+      padding: 17px;
+
+      border:
+        1px solid
+        var(--tf-border);
+
+      border-radius:
+        var(--tf-radius);
+
+      background:
+        var(--tf-white);
+
+      box-shadow:
+        var(--tf-shadow);
+    }
+
+    .tf-card h2,
+    .tf-card h3 {
+
+      margin: 0;
+    }
+
+    .tf-card-title {
+
       display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-      margin-top: 11px;
+
+      justify-content:
+        space-between;
+
+      align-items:
+        flex-start;
+
+      gap: 12px;
     }
 
-    .chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      border-radius: 999px;
-      padding: 7px 10px;
-      background: #f0f5f2;
-      color: #365244;
-      font-size: 12px;
-      font-weight: 750;
+    .tf-muted {
+      color:
+        var(--tf-muted);
     }
 
-    .chip.reward {
-      background: #fff8df;
-      color: #725b09;
+    .tf-small {
+      font-size:
+        12px;
     }
 
-    .task-actions {
-      display: flex;
-      gap: 9px;
+    .tf-task-list {
+
+      display: grid;
+
+      gap: 11px;
+
       margin-top: 14px;
     }
 
-    button {
-      appearance: none;
-      border: 0;
-      border-radius: 13px;
-      padding: 13px 16px;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: .18s ease;
+    .tf-task {
+
+      padding: 14px;
+
+      border:
+        1px solid
+        var(--tf-border);
+
+      border-radius:
+        15px;
+
+      transition:
+        0.15s ease;
     }
 
-    button:hover {
-      transform: translateY(-1px);
+    .tf-task.selected {
+
+      border:
+        2px solid
+        var(--tf-green);
+
+      background:
+        #fbfefc;
     }
 
-    button:disabled {
-      opacity: .45;
-      cursor: not-allowed;
-      transform: none;
-    }
+    .tf-task-title {
 
-    .btn-primary {
-      background: linear-gradient(
-        90deg,
-        var(--tf-green),
-        var(--tf-gold)
-      );
-      color: #fff;
-      flex: 1;
-    }
+      font-size: 18px;
 
-    .btn-secondary {
-      background: #edf2ef;
-      color: var(--tf-text);
-    }
-
-    .btn-danger {
-      background: #fff0f0;
-      color: #a53b3b;
-    }
-
-    .selected-task {
-      border: 2px solid var(--tf-green);
-      background: #fbfefc;
-    }
-
-    .selected-title {
-      font-size: 23px;
       font-weight: 850;
-      margin-bottom: 5px;
     }
 
-    .distance {
-      font-size: 36px;
-      font-weight: 900;
-      letter-spacing: -1px;
-      margin-top: 13px;
+    .tf-task-desc {
+
+      margin-top: 4px;
+
+      color:
+        var(--tf-muted);
+
+      line-height:
+        1.5;
+
+      font-size:
+        13px;
     }
 
-    .distance span {
-      font-size: 14px;
-      font-weight: 650;
-      letter-spacing: 0;
-    }
+    .tf-chips {
 
-    .proof-box {
-      margin-top: 16px;
-    }
-
-    video,
-    #photoPreview {
-      display: block;
-      width: 100%;
-      max-height: 430px;
-      object-fit: cover;
-      border-radius: 15px;
-      background: #15231b;
-    }
-
-    #photoPreview {
-      display: none;
-      margin-top: 10px;
-    }
-
-    .action-stack {
-      display: grid;
-      gap: 9px;
-      margin-top: 13px;
-    }
-
-    .xp-number {
-      font-size: 43px;
-      font-weight: 900;
-      letter-spacing: -2px;
-    }
-
-    .xp-bar {
-      height: 10px;
-      background: #e7ece9;
-      border-radius: 99px;
-      overflow: hidden;
-      margin-top: 10px;
-    }
-
-    .xp-bar > div {
-      height: 100%;
-      width: 0;
-      background: linear-gradient(
-        90deg,
-        var(--tf-green),
-        var(--tf-gold)
-      );
-      transition: width .4s ease;
-    }
-
-    .info-list {
-      display: grid;
-      gap: 9px;
-      margin-top: 13px;
-    }
-
-    .info-item {
       display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      padding-bottom: 9px;
-      border-bottom: 1px solid #edf0ee;
+
+      flex-wrap: wrap;
+
+      gap: 7px;
+
+      margin-top: 10px;
     }
 
-    .log {
-      padding: 11px 0;
-      border-bottom: 1px solid #edf0ee;
+    .tf-chip {
+
+      padding:
+        6px 9px;
+
+      border-radius:
+        999px;
+
+      background:
+        #f0f5f2;
+
+      color:
+        #365244;
+
+      font-size:
+        12px;
+
+      font-weight:
+        750;
     }
 
-    .empty {
-      padding: 28px 10px;
-      text-align: center;
-      color: var(--tf-muted);
+    .tf-chip-gold {
+
+      color:
+        #725b09;
+
+      background:
+        #fff8df;
     }
 
-    .toast {
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      z-index: 100;
-      max-width: 360px;
-      padding: 14px 16px;
-      background: #1c2b22;
+    .tf-btn {
+
+      min-height:
+        42px;
+
+      padding:
+        11px 14px;
+
+      border: 0;
+
+      border-radius:
+        12px;
+
+      font-weight:
+        800;
+    }
+
+    .tf-btn-primary {
+
       color: #fff;
-      border-radius: 14px;
-      box-shadow: 0 15px 35px rgba(0,0,0,.18);
-      transform: translateY(130px);
-      opacity: 0;
-      transition: .25s ease;
+
+      background:
+        var(--tf-gradient);
     }
 
-    .toast.show {
-      transform: translateY(0);
-      opacity: 1;
+    .tf-btn-secondary {
+
+      color:
+        var(--tf-text);
+
+      background:
+        #edf2ef;
     }
 
-    @media (max-width: 820px) {
-      .hero-grid,
-      .layout {
-        grid-template-columns: 1fr;
+    .tf-btn-full {
+      width: 100%;
+    }
+
+    .tf-btn:disabled {
+
+      cursor:
+        not-allowed;
+
+      opacity:
+        0.45;
+    }
+
+    #tfMap {
+
+      width: 100%;
+
+      height: 300px;
+
+      margin-top: 12px;
+
+      border-radius:
+        15px;
+    }
+
+    /*
+     * NAVIGASI
+     */
+
+    .tf-navigation {
+
+      text-align:
+        center;
+    }
+
+    .tf-arrow-wrap {
+
+      width:
+        155px;
+
+      height:
+        155px;
+
+      margin:
+        12px auto;
+
+      display:
+        grid;
+
+      place-items:
+        center;
+
+      border:
+        7px solid
+        #e4ece7;
+
+      border-radius:
+        50%;
+
+      background:
+        #f0f5f2;
+    }
+
+    .tf-arrow {
+
+      font-size:
+        84px;
+
+      line-height:
+        1;
+
+      transform:
+        rotate(0deg);
+
+      transition:
+        transform
+        0.12s linear;
+    }
+
+    .tf-distance {
+
+      font-size:
+        40px;
+
+      font-weight:
+        900;
+
+      letter-spacing:
+        -1px;
+    }
+
+    .tf-distance small {
+
+      font-size:
+        13px;
+
+      letter-spacing:
+        0;
+
+      font-weight:
+        650;
+    }
+
+    .tf-nav-status {
+
+      margin-top:
+        10px;
+
+      padding:
+        12px;
+
+      border-radius:
+        12px;
+
+      background:
+        #f1f4f2;
+
+      line-height:
+        1.5;
+
+      text-align:
+        left;
+    }
+
+    .tf-ok {
+
+      color:
+        #205f3f;
+
+      background:
+        #eaf7ef;
+    }
+
+    .tf-warning {
+
+      color:
+        #715d12;
+
+      background:
+        #fff8df;
+    }
+
+    .tf-error {
+
+      color:
+        #8c3030;
+
+      background:
+        #fff0f0;
+    }
+
+    .tf-info-list {
+
+      display:
+        grid;
+
+      gap:
+        8px;
+
+      margin-top:
+        12px;
+    }
+
+    .tf-info-row {
+
+      display:
+        flex;
+
+      justify-content:
+        space-between;
+
+      gap:
+        10px;
+
+      padding-bottom:
+        8px;
+
+      border-bottom:
+        1px solid
+        #edf0ee;
+    }
+
+    /*
+     * CAMERA
+     */
+
+    .tf-video {
+
+      width:
+        100%;
+
+      max-height:
+        380px;
+
+      display:
+        block;
+
+      object-fit:
+        cover;
+
+      border-radius:
+        14px;
+
+      background:
+        #15231b;
+    }
+
+    .tf-preview {
+
+      width:
+        100%;
+
+      max-height:
+        380px;
+
+      display:
+        none;
+
+      object-fit:
+        cover;
+
+      margin-top:
+        8px;
+
+      border-radius:
+        14px;
+
+      background:
+        #15231b;
+    }
+
+    .tf-camera-actions {
+
+      display:
+        flex;
+
+      gap:
+        8px;
+
+      margin-top:
+        8px;
+    }
+
+    /*
+     * CLAIMS
+     */
+
+    .tf-claim {
+
+      padding:
+        10px 0;
+
+      border-bottom:
+        1px solid
+        #edf0ee;
+
+      line-height:
+        1.5;
+    }
+
+    .tf-claim:last-child {
+      border-bottom:
+        0;
+    }
+
+    .tf-status-box {
+
+      margin-top:
+        10px;
+
+      padding:
+        11px;
+
+      border-radius:
+        11px;
+
+      background:
+        #f1f4f2;
+
+      font-size:
+        13px;
+
+      line-height:
+        1.5;
+    }
+
+    .tf-empty {
+
+      padding:
+        25px 10px;
+
+      text-align:
+        center;
+
+      color:
+        var(--tf-muted);
+    }
+
+    .tf-toast {
+
+      position:
+        fixed;
+
+      right:
+        15px;
+
+      bottom:
+        15px;
+
+      z-index:
+        5000;
+
+      max-width:
+        360px;
+
+      padding:
+        13px 15px;
+
+      border-radius:
+        13px;
+
+      color:
+        #fff;
+
+      background:
+        #1c2b22;
+
+      opacity:
+        0;
+
+      transform:
+        translateY(120px);
+
+      transition:
+        0.22s ease;
+
+      pointer-events:
+        none;
+    }
+
+    .tf-toast.show {
+
+      opacity:
+        1;
+
+      transform:
+        translateY(0);
+    }
+
+    @media (max-width: 850px) {
+
+      .tf-hero-grid,
+      .tf-layout {
+
+        grid-template-columns:
+          1fr;
       }
 
-      .hero {
-        padding: 22px;
-      }
-
-      .nav-right .wallet-pill {
-        display: none;
+      #tfMap {
+        height:
+          280px;
       }
     }
 
     @media (max-width: 520px) {
-      main {
-        padding: 13px 11px 40px;
+
+      .tf-main {
+        padding:
+          12px 10px 45px;
       }
 
-      .card {
-        padding: 15px;
+      .tf-card {
+        padding:
+          14px;
       }
 
-      .task-actions {
-        flex-direction: column;
+      .tf-camera-actions {
+        flex-direction:
+          column;
       }
 
-      .task-actions button {
-        width: 100%;
+      .tf-arrow-wrap {
+
+        width:
+          135px;
+
+        height:
+          135px;
+      }
+
+      .tf-arrow {
+        font-size:
+          72px;
       }
     }
+
   </style>
 </head>
 
 <body>
 
-<header>
-  <div class="nav">
-    <a class="brand" href="/">
-      <div class="brand-icon">🌿</div>
-      <div>
-        <div>ToFarmer</div>
-        <div style="font-size:10px;opacity:.72;font-weight:600;">
+<header class="tf-header">
+
+  <div class="tf-nav">
+
+    <a
+      class="tf-brand"
+      href="/"
+    >
+      <span class="tf-brand-icon">
+        🌿
+      </span>
+
+      <span>
+        ToFarmer
+        <span class="tf-brand-sub">
           SCAN SAJA
-        </div>
-      </div>
+        </span>
+      </span>
     </a>
 
-    <div class="nav-right">
-      <div class="wallet-pill" id="walletLabel">...</div>
-      <div class="admin-pill" id="adminLink" style="display:none;">
-        ADMIN
-      </div>
-    </div>
+    <span
+      class="tf-user-pill"
+      id="userPill"
+    >
+      Memuat...
+    </span>
+
   </div>
+
 </header>
 
-<main>
+<main class="tf-main">
 
-  <section class="hero">
-    <div class="hero-grid">
+  <!-- HERO -->
+
+  <section class="tf-hero">
+
+    <div class="tf-hero-grid">
 
       <div>
-        <h1>SCAN SAJA</h1>
+
+        <h1>
+          SCAN SAJA
+        </h1>
+
         <p>
-          Kerjakan aktivitas nyata di sekitar kita.
-          Datang ke lokasi, ambil bukti, dan biarkan
-          ToFarmer mencatat kontribusimu.
+          Datang ke lokasi, ikuti arah,
+          ambil bukti, dan catat kontribusi
+          nyata di sekitar kita.
         </p>
+
       </div>
 
-      <div class="profile-box">
-        <div class="profile-name" id="profileName">
-          Memuat profil...
+      <div class="tf-profile-box">
+
+        <div
+          class="tf-profile-name"
+          id="profileName"
+        >
+          Memuat...
         </div>
 
-        <div class="balance-row">
-          <div class="balance">
+        <div class="tf-stats">
+
+          <div class="tf-stat">
             <small>TOF</small>
-            <strong id="tofBalance">0</strong>
+            <strong id="profileTof">
+              0
+            </strong>
           </div>
 
-          <div class="balance">
+          <div class="tf-stat">
             <small>XP</small>
-            <strong id="profileXp">0</strong>
+            <strong id="profileXp">
+              0
+            </strong>
           </div>
+
         </div>
+
       </div>
 
     </div>
+
   </section>
 
-  <div class="layout">
 
-    <div>
+  <div class="tf-layout">
 
-      <section class="card">
-        <div class="card-header">
+    <!-- LEFT -->
+
+    <section>
+
+      <!-- TASK LIST -->
+
+      <div class="tf-card">
+
+        <div class="tf-card-title">
+
           <div>
-            <h2>Tugas di Sekitar</h2>
-            <div class="muted small">
-              Tugas dibuat oleh Admin ToFarmer.
+            <h2>
+              Tugas aktif
+            </h2>
+
+            <div class="tf-muted tf-small">
+              Pilih lokasi yang ingin kamu kerjakan.
             </div>
           </div>
 
           <button
-            class="btn-secondary"
-            id="refreshButton">
-            ↻ Muat ulang
+            class="tf-btn tf-btn-secondary"
+            id="refreshTasks"
+            type="button"
+          >
+            ↻
           </button>
+
         </div>
 
-        <div id="taskList" class="task-list">
-          <div class="empty">
+        <div
+          id="taskList"
+          class="tf-task-list"
+        >
+          <div class="tf-empty">
             Memuat tugas...
           </div>
         </div>
-      </section>
 
-      <section
-        class="card"
-        id="validationCard"
-        style="display:none;">
+      </div>
 
-        <div class="card-header">
+
+      <!-- MAP -->
+
+      <div class="tf-card">
+
+        <div class="tf-card-title">
+
           <div>
-            <h2>Validasi Kontribusi</h2>
-            <div class="muted small">
-              Ikuti instruksi tugas yang dipilih.
+            <h2>
+              Peta
+            </h2>
+
+            <div class="tf-muted tf-small">
+              Posisi tugas dan posisi GPS kamu.
             </div>
           </div>
+
         </div>
 
-        <div class="selected-task">
-          <div class="selected-title" id="selectedTitle">
+        <div id="tfMap"></div>
+
+      </div>
+
+    </section>
+
+
+    <!-- RIGHT -->
+
+    <section>
+
+      <!-- NAVIGATION -->
+
+      <div
+        class="tf-card"
+        id="navigationCard"
+        style="display:none"
+      >
+
+        <div class="tf-navigation">
+
+          <h2>
+            🧭 Navigasi
+          </h2>
+
+          <div
+            class="tf-muted tf-small"
+            id="navigationTitle"
+          >
             -
           </div>
 
-          <div class="muted" id="selectedDescription">
-            -
+          <div class="tf-arrow-wrap">
+
+            <div
+              class="tf-arrow"
+              id="directionArrow"
+            >
+              ↑
+            </div>
+
           </div>
 
-          <div class="task-meta">
-            <span class="chip" id="selectedRadius">
-              📍 -
+          <div class="tf-distance">
+
+            <span id="distanceValue">
+              --
             </span>
 
-            <span class="chip reward" id="selectedReward">
-              🪙 -
-            </span>
-          </div>
-
-          <div class="distance">
-            <span id="distanceValue">--</span>
-            <span>meter dari titik tugas</span>
-          </div>
-
-          <div
-            class="status warning"
-            id="locationStatus">
-            Tekan "Cek Lokasi" untuk mulai.
-          </div>
-
-          <div class="action-stack">
-
-            <button
-              class="btn-primary"
-              id="gpsButton">
-              📍 CEK LOKASI
-            </button>
-
-            <button
-              class="btn-secondary"
-              id="cameraButton"
-              disabled>
-              📸 BUKTI FOTO
-            </button>
+            <small>
+              meter
+            </small>
 
           </div>
 
           <div
-            class="proof-box"
-            id="cameraBox"
-            style="display:none;">
+            class="tf-nav-status"
+            id="navigationStatus"
+          >
+            Mencari lokasi GPS...
+          </div>
 
-            <video
-              id="camera"
-              autoplay
-              playsinline>
-            </video>
+          <div class="tf-info-list">
 
-            <canvas
-              id="canvas"
-              style="display:none;">
-            </canvas>
+            <div class="tf-info-row">
 
-            <button
-              class="btn-primary"
-              id="captureButton">
-              📷 Ambil Foto
-            </button>
+              <span>
+                Bearing
+              </span>
 
-            <button
-              class="btn-secondary"
-              id="closeCameraButton">
-              Tutup Kamera
-            </button>
+              <strong
+                id="bearingValue"
+              >
+                --
+              </strong>
 
-            <img
-              id="photoPreview"
-              alt="Bukti foto">
+            </div>
+
+            <div class="tf-info-row">
+
+              <span>
+                GPS accuracy
+              </span>
+
+              <strong
+                id="accuracyValue"
+              >
+                --
+              </strong>
+
+            </div>
+
+            <div class="tf-info-row">
+
+              <span>
+                Target
+              </span>
+
+              <strong
+                id="targetCoordinate"
+              >
+                --
+              </strong>
+
+            </div>
+
           </div>
 
           <div
-            class="status"
-            id="submitStatus"
-            style="display:none;">
+            style="margin-top:10px"
+          >
+
+            <button
+              class="tf-btn tf-btn-secondary tf-btn-full"
+              id="compassButton"
+              type="button"
+            >
+              🧭 Aktifkan kompas
+            </button>
+
           </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- PROOF -->
+
+      <div
+        class="tf-card"
+        id="proofCard"
+        style="display:none"
+      >
+
+        <h2>
+          📷 Bukti lokasi
+        </h2>
+
+        <div
+          class="tf-muted tf-small"
+          style="margin-top:4px"
+        >
+          Setelah masuk radius, ambil foto
+          sebagai bukti aktivitas.
+        </div>
+
+        <div style="margin-top:12px">
+
+          <video
+            class="tf-video"
+            id="cameraVideo"
+            autoplay
+            playsinline
+            muted
+          ></video>
+
+          <img
+            class="tf-preview"
+            id="photoPreview"
+            alt="Pratinjau foto bukti"
+          >
+
+        </div>
+
+        <div
+          class="tf-camera-actions"
+        >
 
           <button
-            class="btn-primary"
-            id="submitButton"
+            class="tf-btn tf-btn-secondary"
+            id="cameraButton"
+            type="button"
+          >
+            Buka kamera
+          </button>
+
+          <button
+            class="tf-btn tf-btn-secondary"
+            id="captureButton"
+            type="button"
             disabled
-            style="margin-top:13px;">
-            ✓ KIRIM VALIDASI
+          >
+            Ambil foto
           </button>
 
         </div>
-      </section>
 
-    </div>
-
-    <aside>
-
-      <section class="card">
-        <h3>Progress</h3>
-
-        <div class="xp-number">
-          <span id="xpValue">0</span>
-          <span style="font-size:15px;">XP</span>
+        <div
+          class="tf-status-box"
+          id="proofStatus"
+        >
+          Belum ada foto bukti.
         </div>
 
-        <strong>
-          Level <span id="levelValue">1</span>
-        </strong>
+        <button
+          class="tf-btn tf-btn-primary tf-btn-full"
+          id="submitButton"
+          type="button"
+          disabled
+          style="margin-top:10px"
+        >
+          Kirim kontribusi
+        </button>
 
-        <div class="xp-bar">
-          <div id="xpBar"></div>
+      </div>
+
+
+      <!-- CLAIM STATUS -->
+
+      <div class="tf-card">
+
+        <h3>
+          Status kontribusi
+        </h3>
+
+        <div
+          id="claimList"
+          class="tf-muted tf-small"
+          style="margin-top:10px"
+        >
+          Memuat...
         </div>
 
-        <div class="muted small" style="margin-top:8px;">
-          XP kontribusi tercatat di profil ToFarmer.
-        </div>
-      </section>
+      </div>
 
-      <section class="card">
-        <h3>Status</h3>
-
-        <div class="info-list">
-          <div class="info-item">
-            <span>Internet</span>
-            <strong id="networkStatus">...</strong>
-          </div>
-
-          <div class="info-item">
-            <span>GPS</span>
-            <strong id="gpsState">Belum aktif</strong>
-          </div>
-
-          <div class="info-item">
-            <span>Tugas selesai</span>
-            <strong id="completedCount">0</strong>
-          </div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h3>Aktivitas Terakhir</h3>
-
-        <div id="activityLog">
-          <div class="empty">
-            Belum ada aktivitas.
-          </div>
-        </div>
-      </section>
-
-    </aside>
+    </section>
 
   </div>
 
 </main>
 
-<div class="toast" id="toast"></div>
+<div
+  class="tf-toast"
+  id="toast"
+></div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script type="module">
 
-import { supabase } from "../js/supabase-client.js";
+  import { supabase }
+    from "../js/supabase-client.js";
 
-/*
-=========================================================
-SCAN SAJA — DATABASE VERSION
-=========================================================
+  /*
+   * ============================================================
+   * EXISTING TOFARMER LOGIN
+   * ============================================================
+   */
 
-Tidak ada quest yang di-hardcode di sini.
-
-Tugas berasal dari:
-
-    tof_contribution_points
-
-Admin membuatnya melalui:
-
-    admin-scan-saja.html
-
-Validasi prototype:
-
-    GPS
-    +
-    radius
-    +
-    foto
-
-Reward:
-
-    profiles.saldo_tof
-    profiles.xp
-
-Catatan:
-Untuk produksi, reward sebaiknya dipindahkan ke
-SECURITY DEFINER RPC / backend setelah Supabase Auth
-diterapkan.
-=========================================================
-*/
-
-let currentUser = null;
-let currentTask = null;
-let currentPosition = null;
-let currentPhotoData = null;
-let cameraStream = null;
-
-const $ = id => document.getElementById(id);
-
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function showToast(message) {
-  const el = $("toast");
-  el.textContent = message;
-  el.classList.add("show");
-
-  clearTimeout(window.__toastTimer);
-
-  window.__toastTimer = setTimeout(() => {
-    el.classList.remove("show");
-  }, 3200);
-}
-
-function setStatus(element, message, type = "") {
-  element.textContent = message;
-  element.className = "status " + type;
-}
-
-function distanceMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-
-  const p1 = lat1 * Math.PI / 180;
-  const p2 = lat2 * Math.PI / 180;
-
-  const dp =
-    (lat2 - lat1) *
-    Math.PI / 180;
-
-  const dl =
-    (lon2 - lon1) *
-    Math.PI / 180;
-
-  const a =
-    Math.sin(dp / 2) ** 2 +
-    Math.cos(p1) *
-    Math.cos(p2) *
-    Math.sin(dl / 2) ** 2;
-
-  return R * 2 *
-    Math.atan2(
-      Math.sqrt(a),
-      Math.sqrt(1 - a)
-    );
-}
-
-function calculateLevel(xp) {
-  return Math.floor(Math.sqrt(Math.max(0, xp) / 100)) + 1;
-}
-
-function updateProgress(xp) {
-  const level = calculateLevel(xp);
-
-  $("xpValue").textContent = xp || 0;
-  $("profileXp").textContent = xp || 0;
-  $("levelValue").textContent = level;
-
-  const levelBase = Math.max(0, (level - 1) ** 2 * 100);
-  const nextBase = level ** 2 * 100;
-
-  let percentage = 0;
-
-  if (nextBase > levelBase) {
-    percentage =
-      ((xp - levelBase) /
-      (nextBase - levelBase)) * 100;
-  }
-
-  percentage =
-    Math.max(0, Math.min(100, percentage));
-
-  $("xpBar").style.width =
-    percentage + "%";
-}
-
-function requireLogin() {
   const wallet =
-    localStorage.getItem("tof_wallet");
+    localStorage.getItem(
+      "tof_wallet"
+    );
 
   const username =
-    localStorage.getItem("tof_login_username");
+    localStorage.getItem(
+      "tof_login_username"
+    );
 
   if (!wallet || !username) {
+
     localStorage.setItem(
       "redirect_to",
       window.location.pathname +
@@ -898,935 +1333,1729 @@ function requireLogin() {
     window.location.href =
       "./login.html";
 
-    return false;
+    throw new Error(
+      "Login required"
+    );
   }
 
-  return true;
-}
 
-async function loadProfile() {
+  /*
+   * ============================================================
+   * STATE
+   * ============================================================
+   */
 
-  const wallet =
-    localStorage.getItem("tof_wallet");
+  let profile = null;
 
-  if (!wallet) return;
+  let tasks = [];
 
-  const { data, error } =
-    await supabase
-      .from("profiles")
-      .select(
-        "id, username, saldo_tof, xp, rank, role"
-      )
-      .eq("id", wallet)
-      .single();
+  let selectedTask = null;
 
-  if (error || !data) {
-    console.error(error);
-    showToast("Profil tidak dapat dimuat.");
-    return;
-  }
+  let currentPosition = null;
 
-  currentUser = data;
+  let gpsWatchId = null;
 
-  $("profileName").textContent =
-    data.username || "Pengguna ToFarmer";
+  let map = null;
 
-  $("walletLabel").textContent =
-    data.id;
+  let userMarker = null;
 
-  $("tofBalance").textContent =
-    Number(data.saldo_tof || 0);
+  let targetMarker = null;
 
-  updateProgress(
-    Number(data.xp || 0)
-  );
+  let targetCircle = null;
 
-  if (data.role === "admin") {
-    $("adminLink").style.display =
-      "block";
+  let cameraStream = null;
 
-    $("adminLink").style.cursor =
-      "pointer";
+  let photoData = null;
 
-    $("adminLink").onclick = () => {
-      window.location.href =
-        "./admin-scan-saja.html";
-    };
-  }
-}
+  let compassHeading = null;
 
-async function loadTasks() {
 
-  const list = $("taskList");
+  /*
+   * ============================================================
+   * HELPERS
+   * ============================================================
+   */
 
-  list.innerHTML =
-    '<div class="empty">Memuat tugas...</div>';
+  const $ =
+    (id) =>
+      document.getElementById(id);
 
-  const { data, error } =
-    await supabase
-      .from("tof_contribution_points")
-      .select(`
-        id,
-        title,
-        description,
-        type,
-        latitude,
-        longitude,
-        radius,
-        reward_tof,
-        reward_xp,
-        validation_type,
-        status,
-        created_at
-      `)
-      .eq("status", "active")
-      .order("created_at", {
-        ascending: false
-      });
 
-  if (error) {
-    console.error(error);
+  function escapeHtml(value) {
 
-    list.innerHTML = `
-      <div class="status error">
-        Gagal mengambil tugas:
-        ${escapeHtml(error.message)}
-      </div>
-    `;
+    return String(value ?? "")
+      .replace(
+        /[&<>"']/g,
+        (char) => {
 
-    return;
-  }
+          const chars = {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+          };
 
-  if (!data || data.length === 0) {
-    list.innerHTML = `
-      <div class="empty">
-        Belum ada tugas aktif dari Admin.
-      </div>
-    `;
-
-    return;
-  }
-
-  list.innerHTML =
-    data.map(task => {
-
-      const validation =
-        task.validation_type ||
-        "gps+photo";
-
-      return `
-        <article class="task">
-
-          <div class="task-title">
-            ${escapeHtml(task.title)}
-          </div>
-
-          <div class="task-description">
-            ${escapeHtml(
-              task.description ||
-              "Tidak ada deskripsi."
-            )}
-          </div>
-
-          <div class="task-meta">
-
-            <span class="chip">
-              📍 ${Number(task.radius || 50)} m
-            </span>
-
-            <span class="chip">
-              📸 ${escapeHtml(validation)}
-            </span>
-
-            <span class="chip reward">
-              🪙 ${Number(task.reward_tof || 0)} TOF
-            </span>
-
-            <span class="chip reward">
-              ⭐ ${Number(task.reward_xp || 0)} XP
-            </span>
-
-          </div>
-
-          <div class="task-actions">
-
-            <button
-              class="btn-primary"
-              data-start-task="${escapeHtml(task.id)}">
-              Mulai Validasi
-            </button>
-
-          </div>
-
-        </article>
-      `;
-
-    }).join("");
-
-  document
-    .querySelectorAll("[data-start-task]")
-    .forEach(button => {
-
-      button.addEventListener(
-        "click",
-        () => {
-
-          const task =
-            data.find(
-              item =>
-                String(item.id) ===
-                String(button.dataset.startTask)
-            );
-
-          selectTask(task);
+          return chars[char];
         }
       );
-
-    });
-}
-
-function selectTask(task) {
-
-  currentTask = task;
-  currentPosition = null;
-  currentPhotoData = null;
-
-  $("validationCard").style.display =
-    "block";
-
-  $("selectedTitle").textContent =
-    task.title;
-
-  $("selectedDescription").textContent =
-    task.description ||
-    "Ikuti instruksi kontribusi.";
-
-  $("selectedRadius").textContent =
-    `📍 ${Number(task.radius || 50)} meter`;
-
-  $("selectedReward").textContent =
-    `🪙 ${Number(task.reward_tof || 0)} TOF + ${Number(task.reward_xp || 0)} XP`;
-
-  $("distanceValue").textContent =
-    "--";
-
-  setStatus(
-    $("locationStatus"),
-    "Tekan \"CEK LOKASI\" untuk mulai.",
-    "warning"
-  );
-
-  $("cameraButton").disabled =
-    true;
-
-  $("submitButton").disabled =
-    true;
-
-  $("photoPreview").style.display =
-    "none";
-
-  $("submitStatus").style.display =
-    "none";
-
-  $("validationCard")
-    .scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-}
-
-function checkLocation() {
-
-  if (!currentTask) {
-    showToast("Pilih tugas terlebih dahulu.");
-    return;
   }
 
-  if (!navigator.geolocation) {
-    setStatus(
-      $("locationStatus"),
-      "Browser tidak mendukung GPS.",
-      "error"
+
+  function formatNumber(
+    value
+  ) {
+
+    return Number(
+      value || 0
+    ).toLocaleString(
+      "id-ID",
+      {
+        maximumFractionDigits: 2
+      }
+    );
+  }
+
+
+  function showToast(
+    message
+  ) {
+
+    const element =
+      $("toast");
+
+    element.textContent =
+      message;
+
+    element.classList.add(
+      "show"
     );
 
-    return;
+    clearTimeout(
+      showToast.timer
+    );
+
+    showToast.timer =
+      setTimeout(
+        () => {
+          element.classList.remove(
+            "show"
+          );
+        },
+        3200
+      );
   }
 
-  $("gpsButton").disabled = true;
-  $("gpsButton").textContent =
-    "📍 Mencari lokasi...";
 
-  $("gpsState").textContent =
-    "Mencari...";
+  /*
+   * ============================================================
+   * GEO CALCULATIONS
+   * ============================================================
+   */
 
-  navigator.geolocation.getCurrentPosition(
+  function toRadians(
+    degrees
+  ) {
 
-    position => {
+    return degrees *
+      Math.PI /
+      180;
+  }
 
-      currentPosition = position;
 
-      const lat =
-        position.coords.latitude;
+  function toDegrees(
+    radians
+  ) {
 
-      const lon =
-        position.coords.longitude;
+    return radians *
+      180 /
+      Math.PI;
+  }
 
-      const accuracy =
-        position.coords.accuracy;
 
-      const distance =
-        distanceMeters(
-          lat,
-          lon,
-          Number(currentTask.latitude),
-          Number(currentTask.longitude)
+  /*
+   * Haversine distance
+   */
+
+  function calculateDistance(
+    lat1,
+    lon1,
+    lat2,
+    lon2
+  ) {
+
+    const earthRadius =
+      6371000;
+
+    const phi1 =
+      toRadians(lat1);
+
+    const phi2 =
+      toRadians(lat2);
+
+    const deltaPhi =
+      toRadians(
+        lat2 - lat1
+      );
+
+    const deltaLambda =
+      toRadians(
+        lon2 - lon1
+      );
+
+    const a =
+      Math.sin(
+        deltaPhi / 2
+      ) ** 2 +
+      Math.cos(phi1) *
+      Math.cos(phi2) *
+      Math.sin(
+        deltaLambda / 2
+      ) ** 2;
+
+    const c =
+      2 *
+      Math.atan2(
+        Math.sqrt(a),
+        Math.sqrt(1 - a)
+      );
+
+    return earthRadius * c;
+  }
+
+
+  /*
+   * Bearing:
+   * 0 = Utara
+   * 90 = Timur
+   * 180 = Selatan
+   * 270 = Barat
+   */
+
+  function calculateBearing(
+    lat1,
+    lon1,
+    lat2,
+    lon2
+  ) {
+
+    const phi1 =
+      toRadians(lat1);
+
+    const phi2 =
+      toRadians(lat2);
+
+    const lambda1 =
+      toRadians(lon1);
+
+    const lambda2 =
+      toRadians(lon2);
+
+    const y =
+      Math.sin(
+        lambda2 - lambda1
+      ) *
+      Math.cos(phi2);
+
+    const x =
+      Math.cos(phi1) *
+      Math.sin(phi2) -
+      Math.sin(phi1) *
+      Math.cos(phi2) *
+      Math.cos(
+        lambda2 - lambda1
+      );
+
+    return (
+      toDegrees(
+        Math.atan2(y, x)
+      ) + 360
+    ) % 360;
+  }
+
+
+  function bearingDirection(
+    bearing
+  ) {
+
+    const directions = [
+      "Utara",
+      "Timur Laut",
+      "Timur",
+      "Tenggara",
+      "Selatan",
+      "Barat Daya",
+      "Barat",
+      "Barat Laut"
+    ];
+
+    return directions[
+      Math.round(
+        bearing / 45
+      ) % 8
+    ];
+  }
+
+
+  /*
+   * ============================================================
+   * PROFILE
+   * ============================================================
+   */
+
+  async function loadProfile() {
+
+    const {
+      data,
+      error
+    } =
+      await supabase
+        .from("profiles")
+        .select(
+          [
+            "id",
+            "username",
+            "saldo_tof",
+            "xp",
+            "level",
+            "rank"
+          ].join(",")
+        )
+        .eq(
+          "id",
+          wallet
+        )
+        .eq(
+          "username",
+          username
+        )
+        .single();
+
+    if (error || !data) {
+
+      showToast(
+        "Profil login tidak ditemukan."
+      );
+
+      throw new Error(
+        "Profile not found"
+      );
+    }
+
+    profile = data;
+
+    $("profileName")
+      .textContent =
+      data.username;
+
+    $("userPill")
+      .textContent =
+      data.username;
+
+    $("profileTof")
+      .textContent =
+      formatNumber(
+        data.saldo_tof
+      );
+
+    $("profileXp")
+      .textContent =
+      formatNumber(
+        data.xp
+      );
+  }
+
+
+  /*
+   * ============================================================
+   * MAP
+   * ============================================================
+   */
+
+  function initMap() {
+
+    map =
+      L.map(
+        "tfMap"
+      );
+
+    map.setView(
+      [-7.7956, 110.3695],
+      10
+    );
+
+    L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution:
+          "&copy; OpenStreetMap contributors"
+      }
+    ).addTo(map);
+  }
+
+
+  function updateUserMarker() {
+
+    if (!currentPosition) {
+      return;
+    }
+
+    const point = [
+      currentPosition.lat,
+      currentPosition.lon
+    ];
+
+    if (!userMarker) {
+
+      userMarker =
+        L.circleMarker(
+          point,
+          {
+            radius: 8,
+            color: "#2f6f4e",
+            fillColor: "#4caf7a",
+            fillOpacity: 1,
+            weight: 3
+          }
+        ).addTo(map);
+
+      userMarker.bindPopup(
+        "Posisi kamu"
+      );
+
+    } else {
+
+      userMarker.setLatLng(
+        point
+      );
+    }
+  }
+
+
+  function updateTargetMarker() {
+
+    if (!selectedTask) {
+      return;
+    }
+
+    const point = [
+      selectedTask.latitude,
+      selectedTask.longitude
+    ];
+
+    if (!targetMarker) {
+
+      targetMarker =
+        L.marker(
+          point
+        ).addTo(map);
+
+      targetMarker.bindPopup(
+        escapeHtml(
+          selectedTask.title
+        )
+      );
+
+    } else {
+
+      targetMarker.setLatLng(
+        point
+      );
+
+      targetMarker
+        .setPopupContent(
+          escapeHtml(
+            selectedTask.title
+          )
         );
+    }
 
-      $("distanceValue").textContent =
-        Math.round(distance);
+    const radius =
+      Number(
+        selectedTask.radius
+      );
 
-      $("gpsState").textContent =
-        `${Math.round(accuracy)} m akurasi`;
+    if (!targetCircle) {
 
-      const radius =
-        Number(currentTask.radius || 50);
+      targetCircle =
+        L.circle(
+          point,
+          {
+            radius,
+            color: "#2f6f4e",
+            fillColor: "#4caf7a",
+            fillOpacity: 0.08,
+            weight: 2
+          }
+        ).addTo(map);
 
-      if (distance <= radius) {
+    } else {
 
-        setStatus(
-          $("locationStatus"),
-          `✓ Kamu berada dalam radius tugas. Akurasi GPS ±${Math.round(accuracy)} meter.`,
-          "ok"
-        );
+      targetCircle.setLatLng(
+        point
+      );
 
-        $("cameraButton").disabled =
-          false;
+      targetCircle.setRadius(
+        radius
+      );
+    }
+  }
 
-        if (
-          currentPhotoData
-        ) {
-          $("submitButton").disabled =
-            false;
-        }
 
-      } else {
+  /*
+   * ============================================================
+   * TASKS
+   * ============================================================
+   */
 
-        setStatus(
-          $("locationStatus"),
-          `Kamu masih ${Math.round(distance)} meter dari titik tugas. Maksimal ${radius} meter.`,
-          "warning"
-        );
+  async function loadTasks() {
 
-        $("cameraButton").disabled =
-          true;
+    $("taskList").innerHTML =
+      `<div class="tf-empty">
+        Memuat tugas...
+      </div>`;
 
-        $("submitButton").disabled =
-          true;
+    try {
+
+      const {
+        data,
+        error
+      } =
+        await supabase
+          .from(
+            "tof_contribution_points"
+          )
+          .select(
+            [
+              "id",
+              "title",
+              "description",
+              "type",
+              "latitude",
+              "longitude",
+              "radius",
+              "reward_tof",
+              "reward_xp",
+              "validation_type",
+              "status"
+            ].join(",")
+          )
+          .eq(
+            "status",
+            "active"
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false
+            }
+          );
+
+      if (error) {
+        throw error;
       }
 
-      $("gpsButton").disabled =
-        false;
+      tasks =
+        data || [];
 
-      $("gpsButton").textContent =
-        "↻ CEK LOKASI LAGI";
-    },
+      renderTasks();
 
-    error => {
+    } catch (error) {
 
       console.error(error);
 
-      $("gpsState").textContent =
-        "Gagal";
-
-      setStatus(
-        $("locationStatus"),
-        "GPS gagal. Pastikan izin lokasi aktif dan coba lagi.",
-        "error"
-      );
-
-      $("gpsButton").disabled =
-        false;
-
-      $("gpsButton").textContent =
-        "📍 CEK LOKASI";
-    },
-
-    {
-      enableHighAccuracy: true,
-      timeout: 15000,
-      maximumAge: 0
+      $("taskList").innerHTML =
+        `<div class="tf-status-box tf-error">
+          Gagal memuat tugas:
+          ${escapeHtml(
+            error.message
+          )}
+        </div>`;
     }
-  );
-}
-
-async function openCamera() {
-
-  if (!navigator.mediaDevices?.getUserMedia) {
-
-    showToast(
-      "Kamera tidak tersedia di browser ini."
-    );
-
-    return;
   }
 
-  try {
 
-    cameraStream =
-      await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: {
-            ideal: "environment"
-          }
-        },
-        audio: false
-      });
+  function renderTasks() {
 
-    $("camera").srcObject =
-      cameraStream;
+    if (!tasks.length) {
 
-    $("cameraBox").style.display =
+      $("taskList").innerHTML =
+        `<div class="tf-empty">
+          Belum ada tugas aktif.
+        </div>`;
+
+      return;
+    }
+
+    $("taskList").innerHTML =
+      tasks.map(
+        (task) => {
+
+          const selectedClass =
+            selectedTask &&
+            selectedTask.id ===
+              task.id
+              ? " selected"
+              : "";
+
+          return `
+            <article
+              class="tf-task${selectedClass}"
+            >
+
+              <div
+                class="tf-task-title"
+              >
+                ${escapeHtml(
+                  task.title
+                )}
+              </div>
+
+              <div
+                class="tf-task-desc"
+              >
+                ${escapeHtml(
+                  task.description ||
+                  "Tidak ada deskripsi."
+                )}
+              </div>
+
+              <div class="tf-chips">
+
+                <span class="tf-chip">
+                  📍 Radius
+                  ${formatNumber(
+                    task.radius
+                  )} m
+                </span>
+
+                <span
+                  class="tf-chip tf-chip-gold"
+                >
+                  🪙
+                  ${formatNumber(
+                    task.reward_tof
+                  )}
+                  TOF
+                </span>
+
+                <span class="tf-chip">
+                  ⭐
+                  ${formatNumber(
+                    task.reward_xp
+                  )}
+                  XP
+                </span>
+
+                <span class="tf-chip">
+                  ${escapeHtml(
+                    task.validation_type
+                  )}
+                </span>
+
+              </div>
+
+              <button
+                class="tf-btn tf-btn-primary tf-btn-full"
+                style="margin-top:11px"
+                type="button"
+                data-start-task="${escapeHtml(
+                  task.id
+                )}"
+              >
+                Mulai navigasi
+              </button>
+
+            </article>
+          `;
+        }
+      ).join("");
+
+    tasks.forEach(
+      (task) => {
+
+        const button =
+          document.querySelector(
+            `[data-start-task="${CSS.escape(task.id)}"]`
+          );
+
+        if (button) {
+
+          button.onclick =
+            () => {
+              selectTask(task);
+            };
+        }
+      }
+    );
+  }
+
+
+  /*
+   * ============================================================
+   * SELECT TASK
+   * ============================================================
+   */
+
+  function selectTask(
+    task
+  ) {
+
+    selectedTask =
+      task;
+
+    photoData =
+      null;
+
+    $("navigationCard")
+      .style.display =
       "block";
 
-  } catch (error) {
+    $("proofCard")
+      .style.display =
+      "block";
 
-    console.error(error);
+    $("navigationTitle")
+      .textContent =
+      task.title;
 
-    showToast(
-      "Izin kamera ditolak atau kamera tidak tersedia."
-    );
-  }
-}
+    $("targetCoordinate")
+      .textContent =
+      `${Number(
+        task.latitude
+      ).toFixed(5)}, ${Number(
+        task.longitude
+      ).toFixed(5)}`;
 
-function closeCamera() {
+    $("proofStatus")
+      .className =
+      "tf-status-box";
 
-  if (cameraStream) {
+    $("proofStatus")
+      .textContent =
+      "Belum ada foto bukti.";
 
-    cameraStream
-      .getTracks()
-      .forEach(track =>
-        track.stop()
+    $("photoPreview")
+      .style.display =
+      "none";
+
+    $("photoPreview")
+      .removeAttribute(
+        "src"
       );
 
-    cameraStream = null;
+    $("submitButton")
+      .disabled = true;
+
+    updateTargetMarker();
+
+    renderTasks();
+
+    updateNavigation();
+
+    $("navigationCard")
+      .scrollIntoView({
+        behavior:
+          "smooth",
+        block:
+          "start"
+      });
   }
 
-  $("camera").srcObject = null;
 
-  $("cameraBox").style.display =
-    "none";
-}
+  /*
+   * ============================================================
+   * GPS
+   * ============================================================
+   */
 
-function capturePhoto() {
+  function startGps() {
 
-  const video =
-    $("camera");
+    if (!navigator.geolocation) {
 
-  const canvas =
-    $("canvas");
+      $("navigationStatus")
+        .className =
+        "tf-nav-status tf-error";
 
-  if (
-    !video.videoWidth ||
-    !video.videoHeight
-  ) {
-    showToast("Kamera belum siap.");
-    return;
+      $("navigationStatus")
+        .textContent =
+        "Perangkat tidak mendukung GPS.";
+
+      return;
+    }
+
+    gpsWatchId =
+      navigator.geolocation.watchPosition(
+
+        (position) => {
+
+          currentPosition = {
+
+            lat:
+              position.coords.latitude,
+
+            lon:
+              position.coords.longitude,
+
+            accuracy:
+              position.coords.accuracy
+          };
+
+          updateUserMarker();
+
+          updateNavigation();
+
+        },
+
+        (error) => {
+
+          $("navigationStatus")
+            .className =
+            "tf-nav-status tf-error";
+
+          $("navigationStatus")
+            .textContent =
+            "GPS gagal: " +
+            error.message;
+        },
+
+        {
+          enableHighAccuracy:
+            true,
+
+          maximumAge:
+            3000,
+
+          timeout:
+            15000
+        }
+      );
   }
 
-  const maxWidth = 1280;
 
-  const scale =
-    Math.min(
-      1,
-      maxWidth / video.videoWidth
-    );
+  /*
+   * ============================================================
+   * NAVIGATION
+   * ============================================================
+   */
 
-  canvas.width =
-    Math.round(
-      video.videoWidth * scale
-    );
+  function updateNavigation() {
 
-  canvas.height =
-    Math.round(
-      video.videoHeight * scale
-    );
-
-  const ctx =
-    canvas.getContext("2d");
-
-  ctx.drawImage(
-    video,
-    0,
-    0,
-    canvas.width,
-    canvas.height
-  );
-
-  currentPhotoData =
-    canvas.toDataURL(
-      "image/jpeg",
-      .82
-    );
-
-  $("photoPreview").src =
-    currentPhotoData;
-
-  $("photoPreview").style.display =
-    "block";
-
-  closeCamera();
-
-  if (currentPosition) {
+    if (
+      !selectedTask ||
+      !currentPosition
+    ) {
+      return;
+    }
 
     const distance =
-      distanceMeters(
-        currentPosition.coords.latitude,
-        currentPosition.coords.longitude,
-        Number(currentTask.latitude),
-        Number(currentTask.longitude)
+      calculateDistance(
+        currentPosition.lat,
+        currentPosition.lon,
+
+        selectedTask.latitude,
+        selectedTask.longitude
+      );
+
+    const bearing =
+      calculateBearing(
+        currentPosition.lat,
+        currentPosition.lon,
+
+        selectedTask.latitude,
+        selectedTask.longitude
+      );
+
+    const radius =
+      Number(
+        selectedTask.radius
+      );
+
+    $("distanceValue")
+      .textContent =
+      formatNumber(
+        distance
+      );
+
+    $("bearingValue")
+      .textContent =
+      `${formatNumber(
+        bearing
+      )}° · ${bearingDirection(
+        bearing
+      )}`;
+
+    $("accuracyValue")
+      .textContent =
+      `± ${formatNumber(
+        currentPosition.accuracy
+      )} m`;
+
+    /*
+     * Kalau compass aktif:
+     * arrow menunjukkan arah target relatif
+     * terhadap orientasi HP.
+     *
+     * Kalau tidak:
+     * arrow tetap menunjukkan bearing absolut.
+     */
+
+    let arrowRotation =
+      bearing;
+
+    if (
+      compassHeading !== null
+    ) {
+
+      arrowRotation =
+        (
+          bearing -
+          compassHeading +
+          360
+        ) % 360;
+    }
+
+    $("directionArrow")
+      .style.transform =
+      `rotate(${arrowRotation}deg)`;
+
+    const insideRadius =
+      distance <= radius;
+
+    if (insideRadius) {
+
+      $("navigationStatus")
+        .className =
+        "tf-nav-status tf-ok";
+
+      $("navigationStatus")
+        .textContent =
+        "✓ Kamu sudah berada di dalam radius tugas. Ambil foto bukti.";
+
+    } else {
+
+      const remaining =
+        Math.max(
+          0,
+          distance - radius
+        );
+
+      $("navigationStatus")
+        .className =
+        "tf-nav-status tf-warning";
+
+      $("navigationStatus")
+        .textContent =
+        `Hadapkan HP ke arah panah. ` +
+        `Masih sekitar ${formatNumber(
+          remaining
+        )} m dari radius validasi.`;
+    }
+
+    updateSubmitState(
+      insideRadius
+    );
+  }
+
+
+  function updateSubmitState(
+    insideRadius = false
+  ) {
+
+    if (
+      !selectedTask ||
+      !currentPosition
+    ) {
+
+      $("submitButton")
+        .disabled = true;
+
+      return;
+    }
+
+    const distance =
+      calculateDistance(
+        currentPosition.lat,
+        currentPosition.lon,
+
+        selectedTask.latitude,
+        selectedTask.longitude
+      );
+
+    const valid =
+      distance <=
+      Number(
+        selectedTask.radius
+      );
+
+    $("submitButton")
+      .disabled =
+      !valid ||
+      !photoData;
+  }
+
+
+  /*
+   * ============================================================
+   * COMPASS
+   * ============================================================
+   */
+
+  async function enableCompass() {
+
+    if (
+      typeof DeviceOrientationEvent ===
+      "undefined"
+    ) {
+
+      showToast(
+        "Kompas tidak tersedia. GPS + bearing tetap bisa digunakan."
+      );
+
+      return;
+    }
+
+    try {
+
+      /*
+       * iOS/Safari membutuhkan permission.
+       */
+
+      if (
+        typeof DeviceOrientationEvent
+          .requestPermission ===
+        "function"
+      ) {
+
+        const permission =
+          await DeviceOrientationEvent
+            .requestPermission();
+
+        if (
+          permission !==
+          "granted"
+        ) {
+
+          showToast(
+            "Izin kompas ditolak. GPS + bearing tetap bisa digunakan."
+          );
+
+          return;
+        }
+      }
+
+      window.addEventListener(
+        "deviceorientationabsolute",
+        handleOrientation,
+        true
+      );
+
+      window.addEventListener(
+        "deviceorientation",
+        handleOrientation,
+        true
+      );
+
+      $("compassButton")
+        .textContent =
+        "🧭 Kompas aktif";
+
+      showToast(
+        "Kompas aktif."
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      showToast(
+        "Kompas tidak tersedia. Gunakan GPS + bearing."
+      );
+    }
+  }
+
+
+  function handleOrientation(
+    event
+  ) {
+
+    let heading = null;
+
+    /*
+     * iOS
+     */
+
+    if (
+      typeof event.webkitCompassHeading ===
+      "number"
+    ) {
+
+      heading =
+        event.webkitCompassHeading;
+    }
+
+    /*
+     * Android / browser umum
+     */
+
+    else if (
+      typeof event.alpha ===
+      "number"
+    ) {
+
+      heading =
+        (
+          360 -
+          event.alpha
+        ) % 360;
+    }
+
+    if (
+      heading !== null &&
+      Number.isFinite(heading)
+    ) {
+
+      compassHeading =
+        heading;
+
+      updateNavigation();
+    }
+  }
+
+
+  /*
+   * ============================================================
+   * CAMERA
+   * ============================================================
+   */
+
+  async function openCamera() {
+
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      showToast(
+        "Kamera tidak tersedia di browser ini."
+      );
+
+      return;
+    }
+
+    try {
+
+      if (cameraStream) {
+
+        cameraStream
+          .getTracks()
+          .forEach(
+            track =>
+              track.stop()
+          );
+      }
+
+      cameraStream =
+        await navigator
+          .mediaDevices
+          .getUserMedia({
+
+            video: {
+              facingMode: {
+                ideal:
+                  "environment"
+              },
+
+              width: {
+                ideal:
+                  1280
+              }
+            },
+
+            audio:
+              false
+          });
+
+      $("cameraVideo")
+        .srcObject =
+        cameraStream;
+
+      $("captureButton")
+        .disabled =
+        false;
+
+      showToast(
+        "Kamera aktif."
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      showToast(
+        "Kamera tidak dapat dibuka: " +
+        error.message
+      );
+    }
+  }
+
+
+  function capturePhoto() {
+
+    if (!cameraStream) {
+      return;
+    }
+
+    const video =
+      $("cameraVideo");
+
+    if (
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
+
+      showToast(
+        "Kamera belum siap."
+      );
+
+      return;
+    }
+
+    const canvas =
+      document.createElement(
+        "canvas"
+      );
+
+    /*
+     * Batasi ukuran foto agar payload
+     * tidak terlalu besar.
+     */
+
+    const maxWidth =
+      1280;
+
+    const scale =
+      Math.min(
+        1,
+        maxWidth /
+          video.videoWidth
+      );
+
+    canvas.width =
+      Math.round(
+        video.videoWidth *
+        scale
+      );
+
+    canvas.height =
+      Math.round(
+        video.videoHeight *
+        scale
+      );
+
+    const context =
+      canvas.getContext(
+        "2d"
+      );
+
+    context.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+
+    photoData =
+      canvas.toDataURL(
+        "image/jpeg",
+        0.78
+      );
+
+    $("photoPreview")
+      .src =
+      photoData;
+
+    $("photoPreview")
+      .style.display =
+      "block";
+
+    $("proofStatus")
+      .className =
+      "tf-status-box tf-ok";
+
+    $("proofStatus")
+      .textContent =
+      "✓ Foto bukti siap dikirim.";
+
+    updateNavigation();
+  }
+
+
+  /*
+   * ============================================================
+   * CLAIM
+   * ============================================================
+   */
+
+  async function submitClaim() {
+
+    if (
+      !selectedTask ||
+      !currentPosition ||
+      !photoData
+    ) {
+      return;
+    }
+
+    const distance =
+      calculateDistance(
+        currentPosition.lat,
+        currentPosition.lon,
+
+        selectedTask.latitude,
+        selectedTask.longitude
       );
 
     if (
-      distance <=
-      Number(currentTask.radius || 50)
+      distance >
+      Number(
+        selectedTask.radius
+      )
     ) {
-      $("submitButton").disabled =
-        false;
+
+      showToast(
+        "Kamu belum berada di dalam radius."
+      );
+
+      updateNavigation();
+
+      return;
+    }
+
+    /*
+     * Cek claim sebelumnya.
+     *
+     * Ini bukan satu-satunya proteksi yang dibutuhkan.
+     * Server-side validation tetap wajib.
+     */
+
+    try {
+
+      const {
+        data: existingClaims,
+        error: claimLookupError
+      } =
+        await supabase
+          .from(
+            "tof_contribution_claims"
+          )
+          .select(
+            "id,status"
+          )
+          .eq(
+            "user_id",
+            profile.id
+          )
+          .eq(
+            "point_id",
+            selectedTask.id
+          )
+          .limit(50);
+
+      if (claimLookupError) {
+        throw claimLookupError;
+      }
+
+      const alreadyClaimed =
+        (existingClaims || [])
+          .some(
+            claim =>
+              claim.status ===
+                "pending" ||
+              claim.status ===
+                "approved"
+          );
+
+      if (alreadyClaimed) {
+
+        showToast(
+          "Tugas ini sudah pernah kamu klaim."
+        );
+
+        return;
+      }
+
+      $("submitButton")
+        .disabled = true;
+
+      $("submitButton")
+        .textContent =
+        "Mengirim...";
+
+      /*
+       * ========================================================
+       * PRODUCTION SCHEMA
+       * ========================================================
+       *
+       * tof_contribution_claims:
+       *
+       * id
+       * user_id text
+       * point_id uuid
+       * latitude double precision
+       * longitude double precision
+       * gps_accuracy double precision
+       * distance_meters double precision
+       * photo_data text
+       * status text
+       * reward_tof numeric
+       * reward_xp integer
+       * created_at
+       * reviewed_at
+       * reviewed_by
+       * reviewer_note
+       *
+       * Jangan mengirim wallet_id.
+       */
+
+      const payload = {
+
+        user_id:
+          profile.id,
+
+        point_id:
+          selectedTask.id,
+
+        latitude:
+          currentPosition.lat,
+
+        longitude:
+          currentPosition.lon,
+
+        gps_accuracy:
+          currentPosition.accuracy,
+
+        distance_meters:
+          distance,
+
+        photo_data:
+          photoData,
+
+        /*
+         * Claim baru masuk pending.
+         */
+
+        status:
+          "pending",
+
+        /*
+         * Nilai ini berasal dari task.
+         *
+         * PENTING:
+         * untuk production secure, server/Edge Function
+         * harus mengabaikan reward dari client dan mengambil
+         * reward langsung dari tof_contribution_points.
+         */
+
+        reward_tof:
+          selectedTask.reward_tof,
+
+        reward_xp:
+          selectedTask.reward_xp
+      };
+
+      const {
+        error
+      } =
+        await supabase
+          .from(
+            "tof_contribution_claims"
+          )
+          .insert(
+            payload
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      /*
+       * Kamera dimatikan setelah submit.
+       */
+
+      stopCamera();
+
+      photoData =
+        null;
+
+      $("photoPreview")
+        .style.display =
+        "none";
+
+      $("photoPreview")
+        .removeAttribute(
+          "src"
+        );
+
+      $("proofStatus")
+        .className =
+        "tf-status-box tf-ok";
+
+      $("proofStatus")
+        .textContent =
+        "✓ Kontribusi terkirim dan menunggu validasi.";
+
+      $("submitButton")
+        .textContent =
+        "Kirim kontribusi";
+
+      showToast(
+        "Kontribusi berhasil dikirim."
+      );
+
+      await loadClaims();
+
+    } catch (error) {
+
+      console.error(error);
+
+      $("submitButton")
+        .textContent =
+        "Kirim kontribusi";
+
+      showToast(
+        "Gagal mengirim kontribusi: " +
+        error.message
+      );
+
+      updateNavigation();
     }
   }
 
-  showToast(
-    "Bukti foto berhasil diambil."
-  );
-}
 
-async function submitValidation() {
+  function stopCamera() {
 
-  if (!currentUser) {
-    showToast("Profil belum siap.");
-    return;
-  }
+    if (!cameraStream) {
+      return;
+    }
 
-  if (!currentTask) {
-    showToast("Tugas belum dipilih.");
-    return;
-  }
-
-  if (!currentPosition) {
-    showToast("Ambil lokasi GPS terlebih dahulu.");
-    return;
-  }
-
-  if (!currentPhotoData) {
-    showToast("Ambil foto bukti terlebih dahulu.");
-    return;
-  }
-
-  const lat =
-    currentPosition.coords.latitude;
-
-  const lon =
-    currentPosition.coords.longitude;
-
-  const accuracy =
-    currentPosition.coords.accuracy;
-
-  const distance =
-    distanceMeters(
-      lat,
-      lon,
-      Number(currentTask.latitude),
-      Number(currentTask.longitude)
-    );
-
-  const radius =
-    Number(currentTask.radius || 50);
-
-  if (distance > radius) {
-
-    setStatus(
-      $("submitStatus"),
-      "Validasi ditolak: posisi berada di luar radius tugas.",
-      "error"
-    );
-
-    $("submitStatus").style.display =
-      "block";
-
-    return;
-  }
-
-  $("submitButton").disabled = true;
-  $("submitButton").textContent =
-    "Mengirim validasi...";
-
-  /*
-    Prototype menyimpan foto sebagai data URL.
-    Ini sengaja agar langsung bisa dites tanpa
-    konfigurasi Supabase Storage.
-
-    Untuk production:
-    upload foto ke Storage dan simpan URL/path,
-    lalu reward dilakukan server-side.
-  */
-
-  const { data: existing } =
-    await supabase
-      .from("tof_contribution_claims")
-      .select("id")
-      .eq("point_id", currentTask.id)
-      .eq("user_id", currentUser.id)
-      .in("status", [
-        "approved",
-        "pending"
-      ])
-      .limit(1);
-
-  if (existing?.length) {
-
-    setStatus(
-      $("submitStatus"),
-      "Tugas ini sudah pernah kamu klaim.",
-      "warning"
-    );
-
-    $("submitStatus").style.display =
-      "block";
-
-    $("submitButton").disabled =
-      false;
-
-    $("submitButton").textContent =
-      "✓ KIRIM VALIDASI";
-
-    return;
-  }
-
-  /*
-    Ambil saldo terbaru supaya reward tidak
-    menggunakan nilai lama dari localStorage.
-  */
-
-  const { data: freshProfile, error: profileError } =
-    await supabase
-      .from("profiles")
-      .select("saldo_tof, xp")
-      .eq("id", currentUser.id)
-      .single();
-
-  if (profileError || !freshProfile) {
-
-    setStatus(
-      $("submitStatus"),
-      "Profil gagal diperbarui. Validasi belum dikirim.",
-      "error"
-    );
-
-    $("submitStatus").style.display =
-      "block";
-
-    $("submitButton").disabled =
-      false;
-
-    $("submitButton").textContent =
-      "✓ KIRIM VALIDASI";
-
-    return;
-  }
-
-  const newTof =
-    Number(freshProfile.saldo_tof || 0) +
-    Number(currentTask.reward_tof || 0);
-
-  const newXp =
-    Number(freshProfile.xp || 0) +
-    Number(currentTask.reward_xp || 0);
-
-  /*
-    INSERT CLAIM
-  */
-
-  const { error: claimError } =
-    await supabase
-      .from("tof_contribution_claims")
-      .insert({
-        user_id: currentUser.id,
-        point_id: currentTask.id,
-        latitude: lat,
-        longitude: lon,
-        gps_accuracy: accuracy,
-        distance_meters: distance,
-        photo_data: currentPhotoData,
-        status: "approved",
-        reward_tof: Number(
-          currentTask.reward_tof || 0
-        ),
-        reward_xp: Number(
-          currentTask.reward_xp || 0
-        )
-      });
-
-  if (claimError) {
-
-    console.error(claimError);
-
-    setStatus(
-      $("submitStatus"),
-      "Gagal menyimpan validasi: " +
-      claimError.message,
-      "error"
-    );
-
-    $("submitStatus").style.display =
-      "block";
-
-    $("submitButton").disabled =
-      false;
-
-    $("submitButton").textContent =
-      "✓ KIRIM VALIDASI";
-
-    return;
-  }
-
-  /*
-    UPDATE PROFILE
-
-    Ini masih prototype.
-    Production sebaiknya memakai RPC
-    atomic + server-side authorization.
-  */
-
-  const { error: rewardError } =
-    await supabase
-      .from("profiles")
-      .update({
-        saldo_tof: newTof,
-        xp: newXp
-      })
-      .eq("id", currentUser.id);
-
-  if (rewardError) {
-
-    console.error(rewardError);
-
-    setStatus(
-      $("submitStatus"),
-      "Kontribusi tercatat tetapi reward gagal diperbarui. Perlu pemeriksaan admin.",
-      "error"
-    );
-
-    $("submitStatus").style.display =
-      "block";
-
-    $("submitButton").disabled =
-      false;
-
-    $("submitButton").textContent =
-      "✓ KIRIM VALIDASI";
-
-    return;
-  }
-
-  /*
-    Update local profile
-  */
-
-  currentUser.saldo_tof =
-    newTof;
-
-  currentUser.xp =
-    newXp;
-
-  $("tofBalance").textContent =
-    newTof;
-
-  updateProgress(newXp);
-
-  localStorage.setItem(
-    "tof_xp",
-    newXp
-  );
-
-  localStorage.setItem(
-    "tof_level",
-    calculateLevel(newXp)
-  );
-
-  setStatus(
-    $("submitStatus"),
-    `✓ Kontribusi berhasil! +${Number(currentTask.reward_tof || 0)} TOF dan +${Number(currentTask.reward_xp || 0)} XP masuk ke profil.`,
-    "ok"
-  );
-
-  $("submitStatus").style.display =
-    "block";
-
-  $("completedCount").textContent =
-    Number(
-      $("completedCount").textContent
-    ) + 1;
-
-  addActivity(
-    `✓ ${currentTask.title} — +${Number(currentTask.reward_tof || 0)} TOF / +${Number(currentTask.reward_xp || 0)} XP`
-  );
-
-  showToast(
-    "Kontribusi berhasil dicatat."
-  );
-
-  $("submitButton").textContent =
-    "✓ SUDAH TERVALIDASI";
-
-  $("submitButton").disabled =
-    true;
-}
-
-function addActivity(text) {
-
-  const key =
-    "tof_scan_activity";
-
-  let logs = [];
-
-  try {
-    logs =
-      JSON.parse(
-        localStorage.getItem(key) ||
-        "[]"
+    cameraStream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
       );
-  } catch {}
 
-  logs.push({
-    text,
-    time:
-      new Date().toLocaleString("id-ID")
-  });
+    cameraStream =
+      null;
 
-  logs =
-    logs.slice(-20);
+    $("cameraVideo")
+      .srcObject =
+      null;
 
-  localStorage.setItem(
-    key,
-    JSON.stringify(logs)
-  );
-
-  renderActivity();
-}
-
-function renderActivity() {
-
-  let logs = [];
-
-  try {
-    logs =
-      JSON.parse(
-        localStorage.getItem(
-          "tof_scan_activity"
-        ) || "[]"
-      );
-  } catch {}
-
-  if (!logs.length) {
-
-    $("activityLog").innerHTML =
-      '<div class="empty">Belum ada aktivitas.</div>';
-
-    return;
+    $("captureButton")
+      .disabled =
+      true;
   }
 
-  $("activityLog").innerHTML =
-    logs
-      .slice()
-      .reverse()
-      .slice(0, 8)
-      .map(item => `
-        <div class="log">
-          <strong>
-            ${escapeHtml(item.text)}
-          </strong>
-          <div class="muted small">
-            ${escapeHtml(item.time)}
-          </div>
-        </div>
-      `)
-      .join("");
-}
 
-function updateNetwork() {
+  /*
+   * ============================================================
+   * CLAIM HISTORY
+   * ============================================================
+   */
 
-  $("networkStatus").textContent =
-    navigator.onLine
-      ? "Online"
-      : "Offline";
-}
+  async function loadClaims() {
 
-$("gpsButton")
-  .addEventListener(
-    "click",
-    checkLocation
-  );
+    $("claimList").textContent =
+      "Memuat...";
 
-$("cameraButton")
-  .addEventListener(
-    "click",
-    openCamera
-  );
+    try {
 
-$("captureButton")
-  .addEventListener(
-    "click",
-    capturePhoto
-  );
+      const {
+        data,
+        error
+      } =
+        await supabase
+          .from(
+            "tof_contribution_claims"
+          )
+          .select(
+            [
+              "id",
+              "point_id",
+              "status",
+              "reward_tof",
+              "reward_xp",
+              "created_at"
+            ].join(",")
+          )
+          .eq(
+            "user_id",
+            profile.id
+          )
+          .order(
+            "created_at",
+            {
+              ascending:
+                false
+            }
+          )
+          .limit(10);
 
-$("closeCameraButton")
-  .addEventListener(
-    "click",
-    closeCamera
-  );
+      if (error) {
+        throw error;
+      }
 
-$("submitButton")
-  .addEventListener(
-    "click",
-    submitValidation
-  );
+      if (!data || !data.length) {
 
-$("refreshButton")
-  .addEventListener(
-    "click",
+        $("claimList").innerHTML =
+          `<div class="tf-empty">
+            Belum ada kontribusi.
+          </div>`;
+
+        return;
+      }
+
+      $("claimList").innerHTML =
+        data.map(
+          (claim) => {
+
+            const date =
+              new Date(
+                claim.created_at
+              ).toLocaleString(
+                "id-ID"
+              );
+
+            return `
+              <div class="tf-claim">
+
+                <strong>
+                  ${escapeHtml(
+                    claim.status
+                  )}
+                </strong>
+
+                ·
+
+                ${formatNumber(
+                  claim.reward_tof
+                )}
+                TOF
+
+                ·
+
+                ${formatNumber(
+                  claim.reward_xp
+                )}
+                XP
+
+                <br>
+
+                <span class="tf-muted">
+                  ${escapeHtml(
+                    date
+                  )}
+                </span>
+
+              </div>
+            `;
+          }
+        ).join("");
+
+    } catch (error) {
+
+      console.error(error);
+
+      $("claimList").innerHTML =
+        `<div class="tf-status-box tf-error">
+          Tidak dapat memuat status kontribusi.
+        </div>`;
+    }
+  }
+
+
+  /*
+   * ============================================================
+   * BUTTON EVENTS
+   * ============================================================
+   */
+
+  $("refreshTasks")
+    .onclick =
     async () => {
+
       await loadTasks();
-      showToast("Tugas diperbarui.");
+      await loadClaims();
+    };
+
+
+  $("compassButton")
+    .onclick =
+    enableCompass;
+
+
+  $("cameraButton")
+    .onclick =
+    openCamera;
+
+
+  $("captureButton")
+    .onclick =
+    capturePhoto;
+
+
+  $("submitButton")
+    .onclick =
+    submitClaim;
+
+
+  /*
+   * ============================================================
+   * CLEANUP
+   * ============================================================
+   */
+
+  window.addEventListener(
+    "beforeunload",
+    () => {
+
+      if (
+        gpsWatchId !== null
+      ) {
+
+        navigator.geolocation
+          .clearWatch(
+            gpsWatchId
+          );
+      }
+
+      stopCamera();
     }
   );
 
-window.addEventListener(
-  "online",
-  updateNetwork
-);
 
-window.addEventListener(
-  "offline",
-  updateNetwork
-);
-
-async function init() {
-
-  if (!requireLogin()) {
-    return;
-  }
-
-  updateNetwork();
-  renderActivity();
+  /*
+   * ============================================================
+   * INIT
+   * ============================================================
+   */
 
   await loadProfile();
-  await loadTasks();
-}
 
-init();
+  initMap();
+
+  await loadTasks();
+
+  await loadClaims();
+
+  startGps();
 
 </script>
 
 </body>
 </html>
-
