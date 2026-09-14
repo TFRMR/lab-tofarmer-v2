@@ -85,7 +85,7 @@ async function loadReport() {
         </div>`;
     }
 
-    let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL TRANSAKSI SEMUA ANGGOTA (${wallets.length})</h3>`;
+    let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 KLIK KARTU UNTUK LHAT DETAIL TRANSAKSI SEMUA ANGGOTA (${wallets.length})</h3>`;
     
     wallets.forEach(u => {
       const walletAddress = (u.id || "").trim();
