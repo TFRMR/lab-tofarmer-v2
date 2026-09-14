@@ -17,7 +17,7 @@ function setStatus(msg) {
 }
 
 // ---------------------------------------------------------
-// 1. SUPABASE READERS (SAFE READ)
+// 1. SUPABASE READERS (BERDASARKAN SKEMA REAL)
 // ---------------------------------------------------------
 async function getAllWallets() {
   const client = getSupabase();
@@ -27,7 +27,7 @@ async function getAllWallets() {
   while (true) {
     const { data, error } = await client
       .from("profiles")
-      .select("id, username, wallet")
+      .select("id, username, saldo_tof") // Kolom valid dari tabel profiles (id = alamat wallet, saldo_tof = balance)
       .range(page * size, (page + 1) * size - 1);
 
     if (error) throw error;
@@ -41,6 +41,8 @@ async function getAllWallets() {
 
 async function getHistoryFromSupabase() {
   const client = getSupabase();
+  if (!client) throw new Error("Supabase Client belum siap");
+
   let allData = [], page = 0, size = 1000;
   while (true) {
     const { data, error } = await client
@@ -58,37 +60,19 @@ async function getHistoryFromSupabase() {
   return allData;
 }
 
-async function getBalancesFromSupabase() {
-  const client = getSupabase();
-  const { data, error } = await client
-    .from("tof_balances")
-    .select("wallet, username, balance, updated_at");
-  if (error) throw error;
-  return data || [];
-}
-
 // ---------------------------------------------------------
-// 2. RENDER REPORT (DENGAN MATCHING WALLET + USERNAME)
+// 2. RENDER REPORT (DENGAN MATCHING ALAMAT WALLET + USERNAME)
 // ---------------------------------------------------------
 async function loadReport() {
   setStatus("⚡ Memuat data dari Supabase...");
   try {
     const wallets = await getAllWallets();
     const history = await getHistoryFromSupabase();
-    const balances = await getBalancesFromSupabase();
 
-    // Map Saldo berdasarkan wallet & username/id
-    const balanceMap = {};
-    balances.forEach(b => { 
-      if (b.wallet) balanceMap[b.wallet] = Number(b.balance || 0);
-      if (b.username) balanceMap[b.username] = Number(b.balance || 0);
-      if (b.id) balanceMap[b.id] = Number(b.balance || 0);
-    });
-
+    // Hitung Total Seluruh Ekosistem dari profiles.saldo_tof
     let totalAll = 0;
     wallets.forEach(u => {
-      const bal = balanceMap[u.wallet] || balanceMap[u.id] || balanceMap[u.username] || 0;
-      totalAll += Number(bal);
+      totalAll += Number(u.saldo_tof || 0);
     });
 
     if (summaryEl) {
@@ -105,13 +89,18 @@ async function loadReport() {
     let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA (${wallets.length})</h3>`;
     
     wallets.forEach(u => {
-      // Kumpulkan seluruh identifier yang dimiliki user
-      const userKeys = [u.id, u.username, u.wallet].filter(Boolean);
-      const displayName = u.username ? `@${u.username}` : (u.id || u.wallet);
+      const walletAddress = u.id; // id di profiles adalah Alamat Wallet
+      const username = u.username || "";
+      const balance = Number(u.saldo_tof || 0);
 
-      const balance = Number(balanceMap[u.wallet] ?? balanceMap[u.id] ?? balanceMap[u.username] ?? 0);
+      // Identifier unik user (alamat wallet & username)
+      const userKeys = [walletAddress, username].filter(Boolean);
+      
+      const displayName = username 
+        ? `@${username}` 
+        : (walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}` : "Anonim");
 
-      // Match transaksi jika salah satu key cocok dengan wallet/username/sender/receiver
+      // Match transaksi dari tof_history
       const txsRaw = history.filter(tx => {
         const txTargets = [tx.wallet, tx.username, tx.sender, tx.receiver].filter(Boolean);
         return userKeys.some(k => txTargets.includes(k));
@@ -120,8 +109,12 @@ async function loadReport() {
       // Filter duplikat transaksi berdasarkan tx_id
       const uniqueTxMap = new Map();
       txsRaw.forEach(t => {
-        if (t.tx_id) uniqueTxMap.set(t.tx_id, t);
-        else uniqueTxMap.set(JSON.stringify(t), t);
+        if (t.tx_id) {
+          uniqueTxMap.set(t.tx_id, t);
+        } else {
+          const fallbackKey = `${t.created_at}_${t.amount}_${t.note}`;
+          uniqueTxMap.set(fallbackKey, t);
+        }
       });
       const txs = Array.from(uniqueTxMap.values());
 
@@ -130,7 +123,8 @@ async function loadReport() {
         txRows = `<tr><td colspan="2" style="padding:12px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
       } else {
         txs.forEach(tx => {
-          const isReceiver = userKeys.includes(tx.receiver) || userKeys.includes(tx.wallet);
+          // Tentukan arah uang (+ penerima / - pengirim)
+          const isReceiver = tx.receiver === walletAddress || tx.wallet === walletAddress || (username && tx.receiver === username);
           const sign = isReceiver ? "+" : "-";
           const color = isReceiver ? "#4ade80" : "#f87171";
           
@@ -184,12 +178,12 @@ async function loadReport() {
     setStatus(`❌ Error: ${err.message}`);
   }
 }
+
 // ---------------------------------------------------------
-// 3. ALGONODE SYNC (PENYEMPURNAAN PAGINATION & API ENDPOINT)
+// 3. ALGONODE SYNC & UPDATE DB
 // ---------------------------------------------------------
 async function getLatestNodeRound() {
   try {
-    // Menggunakan Endpoint status resmi Algonode
     const res = await fetch("https://mainnet-api.algonode.cloud/v2/status");
     if (!res.ok) return 0;
     const data = await res.json();
@@ -237,7 +231,6 @@ async function fetchWalletTx(wallet, username, minRound = null) {
           receiver: transfer.receiver || null,
           round: Number(tx["confirmed-round"] || tx["round-time"] || 0),
           created_at: tx["round-time"] ? new Date(Number(tx["round-time"]) * 1000).toISOString() : new Date().toISOString()
-          // Field synced_at dihapus karena tidak ada di schema Supabase
         });
       }
     }
@@ -262,7 +255,7 @@ async function syncData() {
 
     for (let i = 0; i < wallets.length; i++) {
       const u = wallets[i];
-      const wallet = u.id;
+      const wallet = u.id; // Alamat wallet dari profiles.id
       const username = u.username || wallet;
 
       setStatus(`🔄 Sync (${i + 1}/${wallets.length}): ${username}...`);
@@ -280,7 +273,7 @@ async function syncData() {
         await client.from("tof_history").upsert(txs, { onConflict: "tx_id" });
       }
 
-      // Ambil balance
+      // Ambil balance dari Algonode Indexer
       const resBal = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}`);
       let balance = 0;
       if (resBal.ok) {
@@ -289,9 +282,10 @@ async function syncData() {
         if (tofAsset) balance = Number(tofAsset.amount || 0) / 1000000;
       }
 
-      await client.from("tof_balances").upsert({
-        wallet, username: username || null, balance, updated_at: new Date().toISOString()
-      }, { onConflict: "wallet" });
+      // Update saldo langsung ke tabel profiles (kolom saldo_tof)
+      await client.from("profiles").update({
+        saldo_tof: balance
+      }).eq("id", wallet);
 
       const maxTxRound = txs.reduce((max, t) => t.round > max ? t.round : max, 0);
       const latestNodeRound = await getLatestNodeRound();
@@ -313,7 +307,7 @@ async function syncData() {
   }
 }
 
-// Inisialisasi setelah DOM selesai dimuat sepenuhnya
+// Inisialisasi setelah DOM selesai dimuat
 document.addEventListener("DOMContentLoaded", () => {
   if (syncBtn) syncBtn.addEventListener("click", syncData);
   loadReport();
