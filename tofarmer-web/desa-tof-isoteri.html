@@ -278,6 +278,10 @@
         @keyframes kebunBurst { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.4); } 70% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); } }
         @keyframes kebunRewardPop { 0% { opacity:0; transform:translate(-50%,-30%) scale(0.5); } 25% { opacity:1; transform:translate(-50%,-60%) scale(1.15); } 70% { opacity:1; transform:translate(-50%,-90%) scale(1); } 100% { opacity:0; transform:translate(-50%,-120%) scale(0.95); } }
         @keyframes kebunFlash { 0% { opacity:0; } 30% { opacity:1; } 100% { opacity:0; } }
+        .kebun-empty-hint { font-size: 13px; color: #cbd5e1; text-shadow: 0 1px 4px rgba(0,0,0,0.6); animation: kebunPulseText 2.2s ease-in-out infinite; }
+        @keyframes kebunPulseText { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .kebun-empty-glow { animation: kebunPulseGlow 3s ease-in-out infinite; }
+        @keyframes kebunPulseGlow { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.3; } }
         .care-progress { font-size: 9px; color: #94a3b8; margin-top: 3px; }
 
         /* MODAL KOMPOS & PUPUK */
@@ -2415,10 +2419,14 @@
     function renderPlantSVG(o) {
         const W = 200, H = 200;
         if (o.empty) {
-            return `<svg viewBox="0 0 ${W} ${H}">
-                <ellipse cx="100" cy="165" rx="70" ry="16" fill="#2a1f14"/>
-                <ellipse cx="100" cy="160" rx="60" ry="12" fill="#3d2b1c"/>
-            </svg>`;
+            return `<div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+                <svg viewBox="0 0 ${W} ${H}">
+                    <circle cx="100" cy="150" r="70" class="kebun-empty-glow" fill="#ffe9a8"/>
+                    <ellipse cx="100" cy="165" rx="70" ry="16" fill="#2a1f14"/>
+                    <ellipse cx="100" cy="160" rx="60" ry="12" fill="#3d2b1c"/>
+                </svg>
+                <div class="kebun-empty-hint">🌱 Yuk tanam di sini</div>
+            </div>`;
         }
         if (o.barren) {
             return `<svg viewBox="0 0 ${W} ${H}">
