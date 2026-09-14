@@ -15,17 +15,30 @@ const syncBtn = document.getElementById("syncBtn");
 // =========================================================
 
 async function getAllWallets() {
+  let allProfiles = [];
+  let from = 0;
+  const pageSize = 1000;
 
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("id, username");
+  while (true) {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("id, username")
+      .range(from, from + pageSize - 1);
 
-  if (error) {
-    console.error("Gagal mengambil profiles:", error);
-    throw error;
+    if (error) {
+      console.error("Gagal mengambil profiles:", error);
+      throw error;
+    }
+
+    if (!data || data.length === 0) break;
+
+    allProfiles.push(...data);
+    if (data.length < pageSize) break;
+
+    from += pageSize;
   }
 
-  return data || [];
+  return allProfiles;
 }
 
 
@@ -1160,13 +1173,6 @@ function formatRow(tx) {
 }
 
 
-// =========================================================
-// 23. LOAD REPORT
-//
-// PENTING:
-// Fungsi ini SEKARANG HANYA membaca SUPABASE.
-// Tidak ada fetch Algonode.
-// =========================================================
 
 // =========================================================
 // 23. LOAD REPORT (PATOKAN UTAMA: TABEL PROFILES)
