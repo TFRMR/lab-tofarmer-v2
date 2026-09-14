@@ -1,1080 +1,88 @@
 const supabaseClient = window.supabaseClient;
-
 const TOF_ASSET_ID = 3558306283;
-const ALGONODE_INDEXER =
-  "https://mainnet-idx.algonode.cloud/v2";
+const ALGONODE_INDEXER = "https://mainnet-idx.algonode.cloud/v2";
 
 const summaryEl = document.getElementById("summary");
 const feedEl = document.getElementById("feed");
 const statusEl = document.getElementById("status");
 const syncBtn = document.getElementById("syncBtn");
 
+function setStatus(msg) {
+  if (statusEl) statusEl.innerText = msg;
+  console.log(msg);
+}
 
-// =========================================================
-// 1. AMBIL SEMUA WALLET USER
-// =========================================================
-
+// ---------------------------------------------------------
+// 1. SUPABASE READERS (SOLUSI CORS: SEQUENTIAL FETCH)
+// ---------------------------------------------------------
 async function getAllWallets() {
-  let allProfiles = [];
-  let from = 0;
-  const pageSize = 1000;
-
+  let allProfiles = [], page = 0, size = 1000;
   while (true) {
     const { data, error } = await supabaseClient
       .from("profiles")
       .select("id, username")
-      .range(from, from + pageSize - 1);
+      .range(page * size, (page + 1) * size - 1);
 
-    if (error) {
-      console.error("Gagal mengambil profiles:", error);
-      throw error;
-    }
-
+    if (error) throw error;
     if (!data || data.length === 0) break;
-
     allProfiles.push(...data);
-    if (data.length < pageSize) break;
-
-    from += pageSize;
+    if (data.length < size) break;
+    page++;
   }
-
   return allProfiles;
 }
 
-
-// =========================================================
-// 2. DECODE NOTE
-// =========================================================
-
-function decodeNote(note) {
-
-  if (!note) return "";
-
-  try {
-
-    return atob(note);
-
-  } catch (error) {
-
-    return "";
-
-  }
-}
-
-
-// =========================================================
-// 3. KATEGORI TRANSAKSI
-// =========================================================
-
-function categorize(note = "") {
-
-  const n = note.toUpperCase();
-
-  if (!n) return "DANA_MASUK";
-
-  if (n.includes("NABUNG")) return "NABUNG_RECEH";
-  if (n.includes("REWARD")) return "REWARD";
-  if (n.includes("DONASI")) return "DONASI";
-  if (n.includes("LIQUID")) return "LIQUIDITAS";
-  if (n.includes("TRANSAKSI")) return "TRANSAKSI";
-
-  return "DANA_MASUK";
-}
-
-
-// =========================================================
-// 4. KONVERSI TRANSAKSI ALGORAND → DATA SUPABASE
-// =========================================================
-
-function normalizeTransaction(tx, wallet, username) {
-
-  const transfer =
-    tx["asset-transfer-transaction"];
-
-  if (!transfer) {
-    return null;
-  }
-
-  const assetId =
-    transfer["asset-id"];
-
-  if (assetId !== TOF_ASSET_ID) {
-    return null;
-  }
-
-  const amountRaw =
-    Number(transfer.amount || 0);
-
-  const amount =
-    amountRaw / 1000000;
-
-  const note =
-    decodeNote(tx.note);
-
-  return {
-
-    wallet: wallet,
-
-    username: username || null,
-
-    tx_id: tx.id,
-
-    amount: amount,
-
-    note: note,
-
-    category: categorize(note),
-
-    sender: tx.sender || null,
-
-    receiver: transfer.receiver || null,
-
-    round: Number(tx["confirmed-round"] || tx["round-time"] || 0),
-
-    created_at:
-      tx["round-time"]
-        ? new Date(
-            Number(tx["round-time"]) * 1000
-          ).toISOString()
-        : null,
-
-    synced_at: new Date().toISOString()
-  };
-}
-
-
-// =========================================================
-// 5. AMBIL TRANSAKSI DARI ALGO NODE (FIX: FILTER ASSET ID)
-// =========================================================
-async function getWalletTxPage(wallet, nextToken = null, minRound = null) {
-  const params = new URLSearchParams();
-  params.set("limit", "1000");
-  
-  // FIX 1: Filter aset langsung dari server Algonode agar tidak menarik TX ALGO biasa
-  params.set("asset-id", String(TOF_ASSET_ID));
-
-  if (nextToken) {
-    params.set("next-token", nextToken);
-  }
-
-  if (minRound !== null && minRound !== undefined && minRound > 0) {
-    params.set("min-round", String(minRound));
-  }
-
-  const url = `${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`;
-  const response = await fetch(url);
-
-  if (!response.ok) {
-    // FIX 2: Jika wallet baru/kosong dan 404, anggap transaksi 0 tanpa melempar error crash
-    if (response.status === 404) {
-      return { transactions: [], nextToken: null };
-    }
-    throw new Error(`Algonode error ${response.status}: ${response.statusText}`);
-  }
-
-  const data = await response.json();
-
-  return {
-    transactions: data.transactions || [],
-    nextToken: data["next-token"] || null
-  };
-}
-
-// =========================================================
-// 6. AMBIL SEMUA TRANSAKSI (FIRST FULL SYNC)
-// =========================================================
-async function getAllWalletTransactions(wallet, username, onProgress = null) {
-  let nextToken = null;
-  let allTransactions = [];
-  let page = 0;
-
-  do {
-    page++;
-    const result = await getWalletTxPage(wallet, nextToken, null);
-    const transactions = result.transactions;
-
-    // FIX 3: Paksa LOOP BERHENTI jika transaksi dari API kosong
-    if (!transactions || transactions.length === 0) {
-      break;
-    }
-
-    for (const tx of transactions) {
-      const normalized = normalizeTransaction(tx, wallet, username);
-      if (normalized) {
-        allTransactions.push(normalized);
-      }
-    }
-
-    nextToken = result.nextToken;
-
-    if (onProgress) {
-      onProgress({ page, count: allTransactions.length });
-    }
-
-  } while (nextToken);
-
-  return allTransactions;
-}
-
-// =========================================================
-// 7. AMBIL TRANSAKSI BARU (INCREMENTAL SYNC)
-// =========================================================
-async function getNewWalletTransactions(wallet, username, lastRound) {
-  let nextToken = null;
-  let allTransactions = [];
-
-  do {
-    const result = await getWalletTxPage(wallet, nextToken, lastRound);
-
-    // FIX 4: Paksa LOOP BERHENTI jika tidak ada transaksi baru
-    if (!result.transactions || result.transactions.length === 0) {
-      break;
-    }
-
-    for (const tx of result.transactions) {
-      const normalized = normalizeTransaction(tx, wallet, username);
-      if (normalized) {
-        allTransactions.push(normalized);
-      }
-    }
-
-    nextToken = result.nextToken;
-
-  } while (nextToken);
-
-  return allTransactions;
-}
-
-// =========================================================
-// HELPER: AMBIL ROUND DARI NETWORK ALGONODE
-// =========================================================
-async function getLatestNodeRound() {
-  try {
-    const response = await fetch(`${ALGONODE_INDEXER}/health`);
-    if (!response.ok) return 0;
-    const data = await response.json();
-    return Number(data["round"] || 0);
-  } catch (e) {
-    return 0;
-  }
-}
-// =========================================================
-// 8. SIMPAN TRANSAKSI KE SUPABASE
-//
-// Batch supaya tidak melakukan INSERT satu per satu.
-// =========================================================
-
-async function saveTransactions(
-  transactions
-) {
-
-  if (!transactions.length) {
-
-    return;
-  }
-
-  const batchSize = 500;
-
-  for (
-    let i = 0;
-    i < transactions.length;
-    i += batchSize
-  ) {
-
-    const batch =
-      transactions.slice(
-        i,
-        i + batchSize
-      );
-
-    const { error } =
-      await supabaseClient
-        .from("tof_history")
-        .upsert(
-          batch,
-          {
-            onConflict: "tx_id"
-          }
-        );
-
-    if (error) {
-
-      console.error(
-        "Gagal menyimpan transaksi:",
-        error
-      );
-
-      throw error;
-    }
-  }
-}
-
-
-// =========================================================
-// 9. AMBIL BALANCE WALLET DARI ALGO NODE
-// =========================================================
-
-async function getWalletBalance(
-  wallet
-) {
-
-  const url =
-    `${ALGONODE_INDEXER}/accounts/${wallet}`;
-
-  const response =
-    await fetch(url);
-
-  if (!response.ok) {
-
-    throw new Error(
-      `Gagal mengambil balance ${wallet}`
-    );
-  }
-
-  const data =
-    await response.json();
-
-  const assets =
-    data.account?.assets || [];
-
-  const tof =
-    assets.find(
-      asset =>
-        Number(asset["asset-id"]) ===
-        TOF_ASSET_ID
-    );
-
-  if (!tof) {
-
-    return 0;
-  }
-
-  return (
-    Number(tof.amount || 0) /
-    1000000
-  );
-}
-// =========================================================
-
-// =========================================================
-// 10. SIMPAN BALANCE KE SUPABASE
-// =========================================================
-
-async function saveWalletBalance(
-  wallet,
-  username,
-  balance
-) {
-
-  const { error } =
-    await supabaseClient
-      .from("tof_balances")
-      .upsert(
-        {
-          wallet: wallet,
-
-          username:
-            username || null,
-
-          balance: balance,
-
-          updated_at:
-            new Date().toISOString()
-        },
-        {
-          onConflict: "wallet"
-        }
-      );
-
-  if (error) {
-
-    console.error(
-      "Gagal menyimpan balance:",
-      error
-    );
-
-    throw error;
-  }
-}
-
-
-// =========================================================
-// 11. AMBIL STATUS SYNC
-// =========================================================
-
-async function getSyncState(
-  wallet
-) {
-
-  const { data, error } =
-    await supabaseClient
-      .from("tof_sync_state")
-      .select("*")
-      .eq("wallet", wallet)
-      .maybeSingle();
-
-  if (error) {
-
-    console.error(
-      "Gagal mengambil sync state:",
-      error
-    );
-
-    throw error;
-  }
-
-  return data;
-}
-
-
-// =========================================================
-// 12. SIMPAN STATUS SYNC
-// =========================================================
-
-async function saveSyncState(
-  wallet,
-  username,
-  lastRound,
-  status,
-  errorMessage = null
-) {
-
-  const { error } =
-    await supabaseClient
-      .from("tof_sync_state")
-      .upsert(
-        {
-          wallet: wallet,
-
-          username:
-            username || null,
-
-          last_round:
-            Number(lastRound || 0),
-
-          last_sync_at:
-            new Date().toISOString(),
-
-          sync_status:
-            status,
-
-          sync_error:
-            errorMessage
-        },
-        {
-          onConflict: "wallet"
-        }
-      );
-
-  if (error) {
-
-    console.error(
-      "Gagal menyimpan sync state:",
-      error
-    );
-
-    throw error;
-  }
-}
-
-
-// =========================================================
-// 13. CARI ROUND TERBESAR
-// =========================================================
-
-function getHighestRound(
-  transactions
-) {
-
-  let highest = 0;
-
-  for (
-    const tx of transactions
-  ) {
-
-    const round =
-      Number(tx.round || 0);
-
-    if (round > highest) {
-
-      highest = round;
-    }
-  }
-
-  return highest;
-}
-
-
-// =========================================================
-// 14. FULL SYNC SATU WALLET
-//
-// Ini untuk pertama kali.
-// SEMUA histori diambil.
-// =========================================================
-
-async function fullSyncWallet(
-  wallet,
-  username,
-  walletIndex,
-  totalWallet
-) {
-
-  console.log(
-    `[FULL SYNC] ${username} ${wallet}`
-  );
-
-  await saveSyncState(
-    wallet,
-    username,
-    0,
-    "SYNCING",
-    null
-  );
-
-  setStatus(
-    `🔄 FULL SYNC ${walletIndex}/${totalWallet}: ${username} — mengambil seluruh histori...`
-  );
-
-  const transactions =
-    await getAllWalletTransactions(
-      wallet,
-      username,
-      progress => {
-
-        setStatus(
-          `🔄 FULL SYNC ${walletIndex}/${totalWallet}: ${username} — halaman ${progress.page}, ${progress.count} transaksi TOF`
-        );
-      }
-    );
-
-  console.log(
-    `FULL SYNC ${username}:`,
-    transactions.length,
-    "transaksi"
-  );
-
-  // Simpan semua transaksi
-  await saveTransactions(
-    transactions
-  );
-
-  setStatus(
-    `💾 ${username}: ${transactions.length} transaksi tersimpan. Mengambil saldo...`
-  );
-
-  // Ambil saldo terbaru
-  const balance =
-    await getWalletBalance(wallet);
-
-  await saveWalletBalance(
-    wallet,
-    username,
-    balance
-  );
-
-  // Cari round tertinggi
-  const highestRound =
-    getHighestRound(
-      transactions
-    );
-
-  await saveSyncState(
-    wallet,
-    username,
-    highestRound,
-    "SUCCESS",
-    null
-  );
-
-  return {
-
-    transactionCount:
-      transactions.length,
-
-    balance:
-      balance,
-
-    lastRound:
-      highestRound
-  };
-}
-
-
-// =========================================================
-// 15. INCREMENTAL SYNC SATU WALLET (FIXED INFINITE LOOP)
-// =========================================================
-async function incrementalSyncWallet(wallet, username, walletIndex, totalWallet) {
-  const state = await getSyncState(wallet);
-  const lastRound = Number(state?.last_round || 0);
-
-  if (!state || lastRound <= 0) {
-    return await fullSyncWallet(wallet, username, walletIndex, totalWallet);
-  }
-
-  console.log(`[INCREMENTAL] ${username}, mulai round ${lastRound + 1}`);
-  await saveSyncState(wallet, username, lastRound, "SYNCING", null);
-
-  setStatus(`🔄 SYNC ${walletIndex}/${totalWallet}: ${username} — mencari transaksi baru...`);
-
-  // FIX 5: Mulai cari dari (lastRound + 1)
-  const transactions = await getNewWalletTransactions(wallet, username, lastRound + 1);
-
-  if (transactions.length > 0) {
-    await saveTransactions(transactions);
-  }
-
-  const balance = await getWalletBalance(wallet);
-  await saveWalletBalance(wallet, username, balance);
-
-  const highestTxRound = getHighestRound(transactions);
-  const currentNetworkRound = await getLatestNodeRound();
-
-  // FIX 6: Pastikan lastRound selalu maju walaupun 0 transaksi baru
-  const newLastRound = Math.max(lastRound, highestTxRound, currentNetworkRound);
-
-  await saveSyncState(wallet, username, newLastRound, "SUCCESS", null);
-
-  return {
-    transactionCount: transactions.length,
-    balance: balance,
-    lastRound: newLastRound
-  };
-}
-// =========================================================
-// 16. DETEKSI APAKAH SUDAH PERNAH FULL SYNC
-// =========================================================
-
-async function isFirstSync() {
-
-  const { data, error } =
-    await supabaseClient
-      .from("tof_sync_state")
-      .select("wallet, last_round");
-
-  if (error) {
-
-    throw error;
-  }
-
-  if (!data || data.length === 0) {
-
-    return true;
-  }
-
-  return data.some(
-    row =>
-      Number(row.last_round || 0) <= 0
-  );
-}
-
-
-// =========================================================
-// 17. SYNC SEMUA WALLET
-// =========================================================
-
-async function syncData() {
-
-  if (syncBtn) {
-
-    syncBtn.disabled = true;
-  }
-
-  try {
-
-    const wallets =
-      await getAllWallets();
-
-    if (!wallets.length) {
-
-      throw new Error(
-        "Tidak ada wallet di profiles."
-      );
-    }
-
-    const firstSync =
-      await isFirstSync();
-
-    console.log(
-      "FIRST SYNC:",
-      firstSync
-    );
-
-    if (firstSync) {
-
-      setStatus(
-        "🚀 FIRST SYNC: mengambil seluruh histori blockchain..."
-      );
-
-    } else {
-
-      setStatus(
-        "🔄 Incremental Sync: mencari data blockchain terbaru..."
-      );
-    }
-
-    let totalTransactions = 0;
-
-    let totalBalance = 0;
-
-    for (
-      let i = 0;
-      i < wallets.length;
-      i++
-    ) {
-
-      const user =
-        wallets[i];
-
-      const wallet =
-        user.id;
-
-      const username =
-        user.username || wallet;
-
-      try {
-
-        let result;
-
-        if (firstSync) {
-
-          result =
-            await fullSyncWallet(
-              wallet,
-              username,
-              i + 1,
-              wallets.length
-            );
-
-        } else {
-
-          result =
-            await incrementalSyncWallet(
-              wallet,
-              username,
-              i + 1,
-              wallets.length
-            );
-        }
-
-        totalTransactions +=
-          result.transactionCount;
-
-        totalBalance +=
-          result.balance;
-
-      } catch (walletError) {
-
-        console.error(
-          `Sync wallet ${wallet} gagal:`,
-          walletError
-        );
-
-        await saveSyncState(
-          wallet,
-          username,
-          0,
-          "ERROR",
-          walletError.message
-        );
-
-        // Jangan menghentikan semua wallet
-        // hanya karena satu wallet gagal.
-        setStatus(
-          `⚠️ ${username} gagal: ${walletError.message}`
-        );
-      }
-    }
-
-    setStatus(
-      `✅ Sync selesai. ${totalTransactions} transaksi diproses. Total saldo TOF: ${totalBalance.toLocaleString()}`
-    );
-
-    // Setelah sync selesai,
-    // LOAD DARI SUPABASE.
-    await loadReport();
-
-  } catch (error) {
-
-    console.error(
-      "SYNC ERROR:",
-      error
-    );
-
-    setStatus(
-      `❌ Gagal sync: ${error.message}`
-    );
-
-  } finally {
-
-    if (syncBtn) {
-
-      syncBtn.disabled = false;
-    }
-  }
-}
-
-
-// =========================================================
-// 18. AMBIL SEMUA DATA HISTORY DARI SUPABASE
-//
-// TIDAK ADA ALGONODE DI SINI.
-// =========================================================
-
 async function getHistoryFromSupabase() {
-
-  const pageSize = 1000;
-
-  let from = 0;
-
-  let allData = [];
-
+  let allData = [], page = 0, size = 1000;
   while (true) {
+    const { data, error } = await supabaseClient
+      .from("tof_history")
+      .select("wallet, username, tx_id, amount, note, category, sender, receiver, round, created_at")
+      .order("created_at", { ascending: false })
+      .range(page * size, (page + 1) * size - 1);
 
-    const to =
-      from + pageSize - 1;
-
-    const { data, error } =
-      await supabaseClient
-        .from("tof_history")
-        .select(`
-          wallet,
-          username,
-          tx_id,
-          amount,
-          note,
-          category,
-          sender,
-          receiver,
-          round,
-          created_at
-        `)
-        .order(
-          "created_at",
-          {
-            ascending: false
-          }
-        )
-        .range(from, to);
-
-    if (error) {
-
-      console.error(
-        "Gagal load history:",
-        error
-      );
-
-      throw error;
-    }
-
-    if (!data || data.length === 0) {
-
-      break;
-    }
-
-    allData.push(
-      ...data
-    );
-
-    if (data.length < pageSize) {
-
-      break;
-    }
-
-    from += pageSize;
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allData.push(...data);
+    if (data.length < size) break;
+    page++;
   }
-
   return allData;
 }
 
-
-// =========================================================
-// 19. AMBIL BALANCE DARI SUPABASE
-//
-// INI TIDAK LAGI HIT ALGO NODE.
-// =========================================================
-
 async function getBalancesFromSupabase() {
-
-  const { data, error } =
-    await supabaseClient
-      .from("tof_balances")
-      .select(
-        "wallet, username, balance, updated_at"
-      );
-
-  if (error) {
-
-    console.error(
-      "Gagal load balance:",
-      error
-    );
-
-    throw error;
-  }
-
+  const { data, error } = await supabaseClient
+    .from("tof_balances")
+    .select("wallet, username, balance, updated_at");
+  if (error) throw error;
   return data || [];
 }
 
-
-// =========================================================
-// 20. GROUPING USER
-// =========================================================
-
-function groupByUser(data) {
-
-  const grouped = {};
-
-  data.forEach(tx => {
-
-    const user =
-      tx.username ||
-      tx.wallet;
-
-    if (!grouped[user]) {
-
-      grouped[user] = {
-
-        txs: [],
-
-        wallet:
-          tx.wallet
-      };
-    }
-
-    grouped[user].txs.push(tx);
-
-  });
-
-  return grouped;
-}
-
-
-// =========================================================
-// 21. FORMAT LABEL
-// =========================================================
-
-function getCategoryLabel(
-  category
-) {
-
-  if (
-    category ===
-    "NABUNG_RECEH"
-  ) {
-
-    return "SETOR NABUNG RECEH";
-  }
-
-  if (
-    category ===
-    "REWARD"
-  ) {
-
-    return "REWARD";
-  }
-
-  if (
-    category ===
-    "DONASI"
-  ) {
-
-    return "DONASI";
-  }
-
-  if (
-    category ===
-    "LIQUIDITAS"
-  ) {
-
-    return "LIQUIDITAS";
-  }
-
-  if (
-    category ===
-    "TRANSAKSI"
-  ) {
-
-    return "TRANSAKSI";
-  }
-
-  return "DANA MASUK / KELUAR";
-}
-
-
-// =========================================================
-// 22. FORMAT BARIS
-// =========================================================
-
-function formatRow(tx) {
-
-  const d =
-    new Date(
-      tx.created_at
-    );
-
-  const date =
-    d.toLocaleDateString();
-
-  const time =
-    d.toLocaleTimeString();
-
-  const type =
-    tx.category ||
-    "DANA_MASUK";
-
-  const label =
-    getCategoryLabel(type);
-
-  return `${date} | ${time} | TOF ${Number(tx.amount || 0).toLocaleString()} | ${label}`;
-}
-
-
-
-// =========================================================
-// 23. LOAD REPORT (PATOKAN UTAMA: TABEL PROFILES)
-// =========================================================
-
+// ---------------------------------------------------------
+// 2. RENDER REPORT (MEMBACA DARI SUPABASE SAJA)
+// ---------------------------------------------------------
 async function loadReport() {
   setStatus("⚡ Memuat data dari Supabase...");
-
   try {
-    const [wallets, history, balances] = await Promise.all([
-      getAllWallets(),
-      getHistoryFromSupabase(),
-      getBalancesFromSupabase()
-    ]);
+    const wallets = await getAllWallets();
+    const history = await getHistoryFromSupabase();
+    const balances = await getBalancesFromSupabase();
 
-    // Mapping balance berdasarkan wallet ATAU username
     const balanceMap = {};
-    balances.forEach(row => {
-      if (row.wallet) balanceMap[row.wallet] = Number(row.balance || 0);
-    });
+    balances.forEach(b => { if (b.wallet) balanceMap[b.wallet] = Number(b.balance || 0); });
 
-    // Group history berdasarkan wallet dan username untuk antisipasi ketidakcocokan
-    const groupedByWallet = {};
-    const groupedByUsername = {};
-
+    const grouped = {};
     history.forEach(tx => {
-      if (tx.wallet) {
-        if (!groupedByWallet[tx.wallet]) groupedByWallet[tx.wallet] = [];
-        groupedByWallet[tx.wallet].push(tx);
-      }
-      if (tx.username) {
-        const cleanUser = tx.username.replace('@', '').toLowerCase();
-        if (!groupedByUsername[cleanUser]) groupedByUsername[cleanUser] = [];
-        groupedByUsername[cleanUser].push(tx);
+      const key = tx.wallet;
+      if (key) {
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(tx);
       }
     });
-
-    if (summaryEl) summaryEl.innerHTML = "";
-    if (feedEl) feedEl.innerHTML = "";
 
     let totalAll = 0;
-    wallets.forEach(user => {
-      totalAll += Number(balanceMap[user.id] || 0);
-    });
+    wallets.forEach(u => totalAll += Number(balanceMap[u.id] || 0));
 
-    // SUMMARY
     if (summaryEl) {
       summaryEl.innerHTML = `
         <div class="card" style="text-align:center;">
@@ -1082,70 +90,39 @@ async function loadReport() {
           <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">
             TOTAL: TOF ${totalAll.toLocaleString()}
           </p>
-          <p style="font-size:0.8rem; color:#64748b;">SOURCE: ✅ SUPABASE (Patokan Profiles)</p>
-        </div>
-      `;
+          <p style="font-size:0.8rem; color:#64748b;">SOURCE: ✅ SUPABASE</p>
+        </div>`;
     }
 
     let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
-
-    // RENDER BERDASARKAN TABEL PROFILES UTAMA
-    for (const user of wallets) {
-      const wallet = user.id;
-      const usernameClean = (user.username || "").replace('@', '').toLowerCase();
-      
-      // Ambil transaksi berdasarkan wallet ID atau kecocokan username
-      let txs = groupedByWallet[wallet] || (usernameClean ? groupedByUsername[usernameClean] : []) || [];
+    for (const u of wallets) {
+      const wallet = u.id;
+      const txs = grouped[wallet] || [];
       const balance = Number(balanceMap[wallet] || 0);
 
       html += `
-        <details class="card" style="margin-bottom:15px; border-left:3px solid #22c55e;">
+        <details class="card" style="margin-bottom:15px;">
           <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
-            👤 ${user.username ? '@' + user.username : wallet}
-            <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">
-              (${txs.length} transaksi — klik lihat detail)
-            </span>
+            👤 ${u.username ? '@' + u.username : wallet}
+            <span style="font-size:0.8rem; color:#64748b;">(${txs.length} transaksi)</span>
           </summary>
           <div style="margin-top:15px;">
-            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
-              <thead>
-                <tr style="color:#64748b; border-bottom:1px solid #334155;">
-                  <th style="padding:5px;">Tanggal / Memo</th>
-                  <th style="padding:5px; text-align:right;">Jumlah</th>
-                </tr>
-              </thead>
-              <tbody>
-      `;
-
+            <table style="width:100%; font-size:0.9rem;">
+              <tbody>`;
+      
       if (txs.length === 0) {
-        html += `
-          <tr>
-            <td colspan="2" style="padding:10px; text-align:center; color:#64748b; font-style:italic;">
-              Belum ada catatan transaksi tercatat.
-            </td>
-          </tr>
-        `;
+        html += `<tr><td style="padding:10px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
       } else {
         txs.forEach(tx => {
-          const amount = Number(tx.amount || 0);
           const isReceiver = tx.receiver === wallet;
-          const isSender = tx.sender === wallet;
-          const sign = isReceiver ? "+" : (isSender ? "-" : "");
-          const color = isReceiver ? "#4ade80" : (isSender ? "#f87171" : "#64748b");
+          const sign = isReceiver ? "+" : "-";
+          const color = isReceiver ? "#4ade80" : "#f87171";
           const date = tx.created_at ? new Date(tx.created_at).toLocaleDateString() : "-";
-          const note = tx.note || "-";
-
           html += `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <td style="padding:8px 5px;">
-                ${date}
-                <div style="font-size:0.7rem; color:#64748b;">${note}</div>
-              </td>
-              <td style="text-align:right; color:${color}; font-weight:bold;">
-                ${sign} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0 })}
-              </td>
-            </tr>
-          `;
+              <td style="padding:8px 5px;">${date} <div style="font-size:0.7rem; color:#64748b;">${tx.note || "-"}</div></td>
+              <td style="text-align:right; color:${color}; font-weight:bold;">${sign} ${Number(tx.amount || 0).toLocaleString()}</td>
+            </tr>`;
         });
       }
 
@@ -1154,69 +131,136 @@ async function loadReport() {
               <tfoot>
                 <tr style="border-top:2px solid #22c55e;">
                   <td style="padding:10px 5px; font-weight:bold;">SALDO</td>
-                  <td style="padding:10px 5px; text-align:right; color:#fde047;">
-                    TOF ${balance.toLocaleString()}
-                  </td>
+                  <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${balance.toLocaleString()}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
-        </details>
-      `;
+        </details>`;
     }
 
-    if (feedEl) {
-      feedEl.innerHTML = html;
-    }
-    setStatus(`⚡ Data termuat berdasarkan ${wallets.length} profil terdaftar.`);
-
-  } catch (error) {
-    console.error("LOAD REPORT ERROR:", error);
-    setStatus(`❌ Gagal memuat data: ${error.message}`);
+    if (feedEl) feedEl.innerHTML = html;
+    setStatus(`⚡ Termuat ${wallets.length} profil.`);
+  } catch (err) {
+    console.error(err);
+    setStatus(`❌ Error: ${err.message}`);
   }
 }
 
-// =========================================================
-// 24. STATUS HELPER
-// =========================================================
+// ---------------------------------------------------------
+// 3. ALGONODE SYNC (SAFE PAGINATION & NO INFINITE LOOP)
+// ---------------------------------------------------------
+async function getLatestNodeRound() {
+  try {
+    const res = await fetch(`${ALGONODE_INDEXER}/health`);
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return Number(data.round || 0);
+  } catch (e) { return 0; }
+}
 
-function setStatus(message) {
+async function getWalletTxPage(wallet, nextToken = null, minRound = null) {
+  const params = new URLSearchParams();
+  params.set("limit", "1000");
+  params.set("asset-id", String(TOF_ASSET_ID));
+  if (nextToken) params.set("next-token", nextToken);
+  if (minRound && minRound > 0) params.set("min-round", String(minRound));
 
-  if (statusEl) {
-
-    statusEl.innerText =
-      message;
+  const res = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`);
+  if (!res.ok) {
+    if (res.status === 404) return { transactions: [], nextToken: null };
+    throw new Error(`Algonode error ${res.status}`);
   }
-
-  console.log(
-    message
-  );
+  const data = await res.json();
+  return { transactions: data.transactions || [], nextToken: data["next-token"] || null };
 }
 
+async function fetchWalletTx(wallet, username, minRound = null) {
+  let nextToken = null, allTx = [];
+  do {
+    const res = await getWalletTxPage(wallet, nextToken, minRound);
+    if (!res.transactions || res.transactions.length === 0) break; // FIX BREAK LOOP
 
-// =========================================================
-// 25. EVENT BUTTON
-// =========================================================
+    for (const tx of res.transactions) {
+      const transfer = tx["asset-transfer-transaction"];
+      if (transfer && Number(transfer["asset-id"]) === TOF_ASSET_ID) {
+        let note = "";
+        try { if (tx.note) note = atob(tx.note); } catch(e){}
+        allTx.push({
+          wallet, username: username || null, tx_id: tx.id,
+          amount: Number(transfer.amount || 0) / 1000000,
+          note, category: note.toUpperCase().includes("NABUNG") ? "NABUNG_RECEH" : "DANA_MASUK",
+          sender: tx.sender || null, receiver: transfer.receiver || null,
+          round: Number(tx["confirmed-round"] || tx["round-time"] || 0),
+          created_at: tx["round-time"] ? new Date(Number(tx["round-time"]) * 1000).toISOString() : null,
+          synced_at: new Date().toISOString()
+        });
+      }
+    }
+    nextToken = res.nextToken;
+  } while (nextToken);
 
-if (syncBtn) {
-
-  syncBtn.addEventListener(
-    "click",
-    syncData
-  );
+  return allTx;
 }
 
+async function syncData() {
+  if (syncBtn) syncBtn.disabled = true;
+  try {
+    const wallets = await getAllWallets();
+    let totalTx = 0;
 
-// =========================================================
-// 26. AUTO LOAD
-//
-// INI SANGAT PENTING:
-//
-// Ketika halaman dibuka,
-// TIDAK memanggil Algonode.
-//
-// Hanya:
-// Supabase → Website
-// =========================================================
+    for (let i = 0; i < wallets.length; i++) {
+      const u = wallets[i];
+      const wallet = u.id;
+      const username = u.username || wallet;
 
+      setStatus(`🔄 Sync (${i + 1}/${wallets.length}): ${username}...`);
+
+      const { data: syncState } = await supabaseClient
+        .from("tof_sync_state").select("last_round").eq("wallet", wallet).maybeSingle();
+
+      const lastRound = Number(syncState?.last_round || 0);
+      const minRound = lastRound > 0 ? lastRound + 1 : null;
+
+      const txs = await fetchWalletTx(wallet, username, minRound);
+      totalTx += txs.length;
+
+      if (txs.length > 0) {
+        await supabaseClient.from("tof_history").upsert(txs, { onConflict: "tx_id" });
+      }
+
+      // Ambil balance
+      const resBal = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}`);
+      let balance = 0;
+      if (resBal.ok) {
+        const dataBal = await resBal.json();
+        const tofAsset = (dataBal.account?.assets || []).find(a => Number(a["asset-id"]) === TOF_ASSET_ID);
+        if (tofAsset) balance = Number(tofAsset.amount || 0) / 1000000;
+      }
+
+      await supabaseClient.from("tof_balances").upsert({
+        wallet, username: username || null, balance, updated_at: new Date().toISOString()
+      }, { onConflict: "wallet" });
+
+      const maxTxRound = txs.reduce((max, t) => t.round > max ? t.round : max, 0);
+      const latestNodeRound = await getLatestNodeRound();
+      const newLastRound = Math.max(lastRound, maxTxRound, latestNodeRound);
+
+      await supabaseClient.from("tof_sync_state").upsert({
+        wallet, username: username || null, last_round: newLastRound,
+        last_sync_at: new Date().toISOString(), sync_status: "SUCCESS"
+      }, { onConflict: "wallet" });
+    }
+
+    setStatus(`✅ Sync Selesai! ${totalTx} transaksi baru diproses.`);
+    await loadReport();
+  } catch (err) {
+    console.error(err);
+    setStatus(`❌ Gagal Sync: ${err.message}`);
+  } finally {
+    if (syncBtn) syncBtn.disabled = false;
+  }
+}
+
+if (syncBtn) syncBtn.addEventListener("click", syncData);
 loadReport();
