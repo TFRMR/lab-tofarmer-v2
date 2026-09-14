@@ -371,7 +371,15 @@ async function getWalletBalance(
     1000000
   );
 }
-
+// =========================================================
+// AMBIL ROUND/BLOCK TERBARU DARI ALGONODE
+// =========================================================
+async function getLatestNodeRound() {
+  const response = await fetch(`${ALGONODE_INDEXER}/health`);
+  if (!response.ok) return 0;
+  const data = await response.json();
+  return Number(data["round"] || 0);
+}
 
 // =========================================================
 // 10. SIMPAN BALANCE KE SUPABASE
@@ -618,9 +626,7 @@ async function fullSyncWallet(
 
 
 // =========================================================
-// 15. INCREMENTAL SYNC SATU WALLET
-//
-// Ini dipakai setelah FULL SYNC.
+// 15. INCREMENTAL SYNC SATU WALLET (FIXED INFINITE LOOP)
 // =========================================================
 
 async function incrementalSyncWallet(
@@ -630,18 +636,11 @@ async function incrementalSyncWallet(
   totalWallet
 ) {
 
-  const state =
-    await getSyncState(wallet);
+  const state = await getSyncState(wallet);
+  const lastRound = Number(state?.last_round || 0);
 
-  const lastRound =
-    Number(
-      state?.last_round || 0
-    );
-
-  // Kalau belum pernah full sync,
-  // otomatis jalankan FULL SYNC.
+  // Jika belum pernah full sync, jalankan FULL SYNC
   if (!state || lastRound <= 0) {
-
     return await fullSyncWallet(
       wallet,
       username,
@@ -650,62 +649,43 @@ async function incrementalSyncWallet(
     );
   }
 
-  console.log(
-    `[INCREMENTAL] ${username}, mulai round ${lastRound}`
-  );
+  console.log(`[INCREMENTAL] ${username}, mulai dari round ${lastRound + 1}`);
 
-  await saveSyncState(
-    wallet,
-    username,
-    lastRound,
-    "SYNCING",
-    null
-  );
+  await saveSyncState(wallet, username, lastRound, "SYNCING", null);
 
   setStatus(
     `🔄 SYNC ${walletIndex}/${totalWallet}: ${username} — mencari transaksi baru...`
   );
 
-  const transactions =
-    await getNewWalletTransactions(
-      wallet,
-      username,
-      lastRound
-    );
-
-  console.log(
-    `NEW ${username}:`,
-    transactions.length,
-    "transaksi"
-  );
-
-  // Simpan transaksi baru
-  await saveTransactions(
-    transactions
-  );
-
-  // Balance selalu diperbarui
-  const balance =
-    await getWalletBalance(wallet);
-
-  await saveWalletBalance(
+  // PERBAIKAN 1: Tarik data mulai dari round SETELAH lastRound (lastRound + 1)
+  const transactions = await getNewWalletTransactions(
     wallet,
     username,
-    balance
+    lastRound + 1
   );
 
-  const highestRound =
-    getHighestRound(
-      transactions
-    );
+  console.log(`NEW ${username}:`, transactions.length, "transaksi");
 
-  // Kalau tidak ada transaksi baru,
-  // tetap pertahankan lastRound lama.
-  const newLastRound =
-    Math.max(
-      lastRound,
-      highestRound
-    );
+  // Simpan transaksi baru jika ada
+  if (transactions.length > 0) {
+    await saveTransactions(transactions);
+  }
+
+  // Balance tetap diperbarui
+  const balance = await getWalletBalance(wallet);
+  await saveWalletBalance(wallet, username, balance);
+
+  // PERBAIKAN 2: Ambil round tertinggi dari transaksi BARU, 
+  // atau jika 0 transaksi baru, ambil status round jaringan Algorand saat ini.
+  const highestTxRound = getHighestRound(transactions);
+  const currentNetworkRound = await getLatestNodeRound();
+
+  // Tentukan round terakhir yang baru
+  const newLastRound = Math.max(
+    lastRound,
+    highestTxRound,
+    currentNetworkRound
+  );
 
   await saveSyncState(
     wallet,
@@ -716,15 +696,9 @@ async function incrementalSyncWallet(
   );
 
   return {
-
-    transactionCount:
-      transactions.length,
-
-    balance:
-      balance,
-
-    lastRound:
-      newLastRound
+    transactionCount: transactions.length,
+    balance: balance,
+    lastRound: newLastRound
   };
 }
 
