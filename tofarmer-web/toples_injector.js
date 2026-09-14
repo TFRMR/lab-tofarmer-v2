@@ -149,7 +149,7 @@ if (!profileData && inputWallet) {
                 if (!transaksiDitemukan) {
                     contentLedger += "🏺 Belum ada dana yang ditransitkan...\n";
                 }
-                contentLedger += "\n==================================================";
+                contentLedger += "\n===Hanya 10 transaksi Terbaru yang Tampil===";
             }
         } catch (e) {
             console.error("Gagal memproses data ledger:", e);
