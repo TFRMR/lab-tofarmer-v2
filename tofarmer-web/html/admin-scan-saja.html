@@ -1,57 +1,2096 @@
-<!doctype html>
-<html lang="id"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ToFarmer — Admin SCAN SAJA</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<style>
-*{box-sizing:border-box}body{margin:0;background:#f4f7f5;color:#1c2b22;font:14px Inter,system-ui,sans-serif}
-.wrap{max-width:1180px;margin:auto;padding:16px}.head{display:flex;justify-content:space-between;align-items:center;padding:8px 0 16px;border-bottom:1px solid #e0e8e3;margin-bottom:16px}
-.brand{display:flex;gap:10px;align-items:center;color:#2f6f4e;text-decoration:none}.logo{width:42px;height:42px;border:2px solid #2f6f4e;border-radius:50%;display:grid;place-items:center;background:#fff;font-weight:900}
-.card{background:#fff;border:1px solid rgba(0,0,0,.05);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 4px 12px rgba(0,0,0,.03)}
-.grid{display:grid;grid-template-columns:390px 1fr;gap:18px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}.stat{background:#fff;border-radius:12px;padding:12px}.stat b{display:block;font-size:21px;color:#2f6f4e}.muted{font-size:11px;color:#6f7f76}
-h3{font-size:14px;color:#2f6f4e;margin:0 0 12px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.full{grid-column:1/-1}
-label{display:block;font-size:10px;font-weight:800;color:#52635a;margin-bottom:5px}input,textarea,select{width:100%;padding:10px;border:1px solid #d5e0d9;border-radius:9px;background:#fff;color:#1c2b22}textarea{min-height:72px}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;font-size:11px;cursor:pointer}.green{background:#2f6f4e;color:#fff}.gold{background:linear-gradient(90deg,#4caf7a,#c9a227);color:#fff}.light{background:#fff;color:#2f6f4e;border:1px solid #dce7e0}.danger{background:#fff;color:#a33;border:1px solid #ecc}
-#map{height:500px;border-radius:14px;overflow:hidden}.search{display:flex;gap:8px;margin-bottom:10px}.search input{flex:1}.task{padding:11px;border:1px solid #e0e8e3;border-radius:11px;margin:8px 0;cursor:pointer}.task:hover{border-color:#4caf7a}.task b{color:#2f6f4e}.badge{float:right;background:#e9f4ee;color:#2f6f4e;padding:3px 7px;border-radius:99px;font-size:9px;font-weight:800}
-.notice{padding:10px;border-radius:10px;background:#f8fcf9;font-size:11px}.error{background:#fff2f2;color:#923}.ok{background:#edf8f1;color:#276440}
-.claim{padding:11px 0;border-top:1px solid #e7eee9}.claim:first-child{border-top:0}
-#app{display:none}#deny{display:none;text-align:center}
-@media(max-width:850px){.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr}.full{grid-column:auto}.stats{grid-template-columns:1fr 1fr}#map{height:400px}}
-</style></head><body><div class="wrap">
-<header class="head"><a class="brand" href="scan-saja.html"><span class="logo">TOF</span><span><b>ToFarmer</b><small class="muted" style="display:block">Admin · SCAN SAJA</small></span></a><button class="btn light" onclick="location.href='scan-saja.html'">← SCAN SAJA</button></header>
-<div id="deny" class="card"><h3>Akses Admin Diperlukan</h3><p class="muted">Akun harus memiliki role <b>admin</b> atau <b>superadmin</b>.</p></div>
-<main id="app">
-<div class="stats"><div class="stat"><b id="a">0</b><span class="muted">Aktif</span></div><div class="stat"><b id="d">0</b><span class="muted">Draft</span></div><div class="stat"><b id="p">0</b><span class="muted">Paused</span></div><div class="stat"><b id="c">0</b><span class="muted">Claims</span></div></div>
-<div class="grid"><section>
-<div class="card"><h3>📍 Buat / Edit Titik Kontribusi</h3><div id="msg" class="notice">Klik peta atau isi koordinat.</div>
-<form id="form"><input type="hidden" id="id"><div class="fields">
-<div class="full"><label>Judul</label><input id="title" required placeholder="Contoh: Mata Air Desa"></div>
-<div class="full"><label>Deskripsi</label><textarea id="desc" placeholder="Aktivitas yang harus dilakukan..."></textarea></div>
-<div><label>Tipe</label><input id="type" value="location"></div><div><label>Status</label><select id="status"><option>draft</option><option>active</option><option>paused</option></select></div>
-<div><label>Latitude</label><input id="lat" type="number" step="any" required></div><div><label>Longitude</label><input id="lng" type="number" step="any" required></div>
-<div><label>Radius meter</label><input id="radius" type="number" min="1" value="50" required></div><div><label>Reward TOF</label><input id="tof" type="number" min="0" step="any" value="0" required></div>
-<div><label>Reward XP</label><input id="xp" type="number" min="0" value="0" required></div><div><label>Validasi</label><select id="validation"><option value="gps+photo">gps+photo</option><option value="gps">gps</option><option value="photo">photo</option></select></div>
-</div><div class="row"><button class="btn gold">Simpan</button><button type="button" class="btn light" onclick="newPoint()">Titik Baru</button><button type="button" id="del" class="btn danger" disabled onclick="delPoint()">Hapus</button></div></form></div>
-<div class="card"><h3>🗂️ Tugas</h3><div class="row"><button class="btn light" onclick="loadTasks('all')">Semua</button><button class="btn light" onclick="loadTasks('active')">Aktif</button><button class="btn light" onclick="loadTasks('draft')">Draft</button></div><div id="tasks"></div></div>
-</section>
-<section><div class="card"><h3>🗺️ Pilih Lokasi</h3><div class="search"><input id="search" placeholder="Cari desa, kecamatan, lokasi..."><button class="btn green" onclick="searchPlace()">Cari</button><button class="btn light" onclick="myLocation()">GPS Saya</button></div><div id="map"></div><p class="muted">Klik marker/peta atau geser marker untuk mengisi koordinat.</p></div>
-<div class="card"><h3>📋 Contribution Claims</h3><div class="notice">Monitoring read-only. Halaman ini tidak mencetak atau mengubah saldo TOF.</div><div id="claims"></div></div></section></div></main></div>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+
+  <meta name="theme-color" content="#2f6f4e">
+  <meta
+    name="description"
+    content="Panel Admin SCAN SAJA ToFarmer"
+  >
+
+  <title>Admin SCAN SAJA — ToFarmer</title>
+
+  <!-- Leaflet -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    crossorigin=""
+  >
+
+  <style>
+    :root {
+      --tf-green-dark: #2f6f4e;
+      --tf-green: #4caf7a;
+      --tf-gold: #c9a227;
+      --tf-bg: #f4f7f5;
+      --tf-text: #1c2b22;
+      --tf-muted: #6f7f76;
+      --tf-white: #ffffff;
+      --tf-border: rgba(0, 0, 0, 0.06);
+      --tf-danger: #b53b3b;
+      --tf-warning: #8a6d18;
+
+      --tf-radius: 16px;
+      --tf-shadow: 0 8px 30px rgba(30, 60, 45, 0.07);
+      --tf-gradient: linear-gradient(
+        90deg,
+        var(--tf-green),
+        var(--tf-gold)
+      );
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background: var(--tf-bg);
+      color: var(--tf-text);
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .tf-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: var(--tf-green-dark);
+      color: #fff;
+      box-shadow: 0 3px 18px rgba(0, 0, 0, 0.12);
+    }
+
+    .tf-nav {
+      max-width: 1180px;
+      min-height: 64px;
+      margin: 0 auto;
+      padding: 10px 16px;
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .tf-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 850;
+    }
+
+    .tf-brand-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 21px;
+    }
+
+    .tf-brand-sub {
+      display: block;
+      margin-top: 1px;
+      font-size: 10px;
+      font-weight: 600;
+      opacity: 0.72;
+      letter-spacing: 0.04em;
+    }
+
+    .tf-admin-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .tf-main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 18px 14px 60px;
+    }
+
+    .tf-hero {
+      margin-bottom: 18px;
+      padding: 24px;
+      border-radius: 22px;
+      color: #fff;
+      background:
+        linear-gradient(
+          135deg,
+          var(--tf-green-dark),
+          var(--tf-green)
+        );
+      box-shadow: var(--tf-shadow);
+    }
+
+    .tf-hero h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 46px);
+      line-height: 1.05;
+      letter-spacing: -1.5px;
+    }
+
+    .tf-hero p {
+      max-width: 760px;
+      margin: 10px 0 0;
+      line-height: 1.6;
+      opacity: 0.92;
+    }
+
+    .tf-layout {
+      display: grid;
+      grid-template-columns: minmax(330px, 0.78fr) minmax(420px, 1.22fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .tf-card {
+      margin-bottom: 18px;
+      padding: 18px;
+      border: 1px solid var(--tf-border);
+      border-radius: var(--tf-radius);
+      background: var(--tf-white);
+      box-shadow: var(--tf-shadow);
+    }
+
+    .tf-card h2,
+    .tf-card h3 {
+      margin: 0;
+    }
+
+    .tf-card-title {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .tf-muted {
+      color: var(--tf-muted);
+    }
+
+    .tf-small {
+      font-size: 12px;
+    }
+
+    .tf-form {
+      margin-top: 8px;
+    }
+
+    .tf-field {
+      display: grid;
+      gap: 6px;
+      margin-top: 13px;
+    }
+
+    .tf-field label {
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .tf-field input,
+    .tf-field textarea,
+    .tf-field select {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #dfe7e2;
+      border-radius: 11px;
+      outline: none;
+      background: #fff;
+      color: var(--tf-text);
+    }
+
+    .tf-field input:focus,
+    .tf-field textarea:focus,
+    .tf-field select:focus {
+      border-color: var(--tf-green);
+      box-shadow: 0 0 0 3px rgba(76, 175, 122, 0.12);
+    }
+
+    .tf-field textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .tf-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .tf-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+
+    .tf-btn {
+      min-height: 42px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 12px;
+      font-weight: 800;
+    }
+
+    .tf-btn-primary {
+      color: #fff;
+      background: var(--tf-gradient);
+    }
+
+    .tf-btn-secondary {
+      color: var(--tf-text);
+      background: #edf2ef;
+    }
+
+    .tf-btn-danger {
+      color: var(--tf-danger);
+      background: #fff0f0;
+    }
+
+    .tf-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+    }
+
+    .tf-btn-full {
+      width: 100%;
+    }
+
+    .tf-status {
+      margin-top: 12px;
+      padding: 11px 12px;
+      border-radius: 11px;
+      background: #f1f4f2;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tf-status.ok {
+      color: #205f3f;
+      background: #eaf7ef;
+    }
+
+    .tf-status.warning {
+      color: #715d12;
+      background: #fff8df;
+    }
+
+    .tf-status.error {
+      color: #8c3030;
+      background: #fff0f0;
+    }
+
+    #tfMap {
+      width: 100%;
+      height: 480px;
+      overflow: hidden;
+      border-radius: 15px;
+    }
+
+    .tf-map-toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tf-map-search {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tf-map-search input {
+      min-width: 0;
+      flex: 1;
+      padding: 11px 12px;
+      border: 1px solid #dfe7e2;
+      border-radius: 11px;
+      outline: none;
+    }
+
+    .tf-coordinate {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .tf-coordinate-box {
+      padding: 10px 11px;
+      border-radius: 11px;
+      background: #f1f5f2;
+    }
+
+    .tf-coordinate-box small {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--tf-muted);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .tf-coordinate-box strong {
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    .tf-task-list {
+      margin-top: 12px;
+    }
+
+    .tf-task {
+      padding: 14px;
+      border: 1px solid var(--tf-border);
+      border-radius: 14px;
+    }
+
+    .tf-task + .tf-task {
+      margin-top: 10px;
+    }
+
+    .tf-task-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .tf-task-title {
+      font-weight: 850;
+      font-size: 17px;
+    }
+
+    .tf-task-desc {
+      margin-top: 4px;
+      color: var(--tf-muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .tf-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .tf-chip {
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: #f0f5f2;
+      color: #365244;
+      font-size: 11px;
+      font-weight: 750;
+    }
+
+    .tf-chip-gold {
+      color: #725b09;
+      background: #fff8df;
+    }
+
+    .tf-task-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 11px;
+    }
+
+    .tf-empty {
+      padding: 25px 10px;
+      color: var(--tf-muted);
+      text-align: center;
+    }
+
+    .tf-loading {
+      padding: 20px 10px;
+      color: var(--tf-muted);
+      text-align: center;
+    }
+
+    .tf-toast {
+      position: fixed;
+      right: 15px;
+      bottom: 15px;
+      z-index: 5000;
+
+      max-width: 360px;
+      padding: 13px 15px;
+      border-radius: 13px;
+
+      color: #fff;
+      background: #1c2b22;
+
+      opacity: 0;
+      transform: translateY(120px);
+      transition: 0.22s ease;
+      pointer-events: none;
+    }
+
+    .tf-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tf-security-note {
+      padding: 12px;
+      border-radius: 12px;
+      color: #715d12;
+      background: #fff8df;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    @media (max-width: 900px) {
+      .tf-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #tfMap {
+        height: 390px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .tf-main {
+        padding: 12px 10px 45px;
+      }
+
+      .tf-card {
+        padding: 14px;
+      }
+
+      .tf-grid-2,
+      .tf-coordinate,
+      .tf-map-toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .tf-map-search {
+        flex-direction: column;
+      }
+
+      .tf-task-head {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<header class="tf-header">
+  <div class="tf-nav">
+    <a class="tf-brand" href="/">
+      <span class="tf-brand-icon">🌿</span>
+      <span>
+        ToFarmer
+        <span class="tf-brand-sub">ADMIN · SCAN SAJA</span>
+      </span>
+    </a>
+
+    <span class="tf-admin-pill" id="adminIdentity">
+      Memeriksa akses...
+    </span>
+  </div>
+</header>
+
+<main class="tf-main">
+
+  <section class="tf-hero">
+    <h1>Admin SCAN SAJA</h1>
+    <p>
+      Buat dan kelola titik aktivitas nyata tanpa mengubah kode aplikasi.
+      Tentukan lokasi langsung dari peta, cari lokasi, atau gunakan GPS perangkat.
+    </p>
+  </section>
+
+  <div class="tf-layout">
+
+    <!-- FORM -->
+    <section>
+
+      <div class="tf-card">
+
+        <div class="tf-card-title">
+          <div>
+            <h2 id="formHeading">Buat tugas</h2>
+            <div class="tf-muted tf-small">
+              Titik kontribusi yang akan terlihat oleh pengguna SCAN SAJA.
+            </div>
+          </div>
+        </div>
+
+        <div class="tf-form">
+
+          <div class="tf-field">
+            <label for="taskTitle">Nama tugas</label>
+            <input
+              id="taskTitle"
+              type="text"
+              maxlength="120"
+              placeholder="Contoh: Validasi Mata Air"
+            >
+          </div>
+
+          <div class="tf-field">
+            <label for="taskDescription">Deskripsi</label>
+            <textarea
+              id="taskDescription"
+              placeholder="Jelaskan apa yang harus dilakukan pengguna."
+            ></textarea>
+          </div>
+
+          <div class="tf-field">
+            <label for="taskType">Jenis</label>
+            <input
+              id="taskType"
+              type="text"
+              value="location"
+            >
+          </div>
+
+          <div class="tf-grid-2">
+
+            <div class="tf-field">
+              <label for="taskRadius">
+                Radius validasi (meter)
+              </label>
+              <input
+                id="taskRadius"
+                type="number"
+                min="1"
+                max="5000"
+                step="1"
+                value="50"
+              >
+            </div>
+
+            <div class="tf-field">
+              <label for="taskStatus">Status</label>
+              <select id="taskStatus">
+                <option value="draft">draft</option>
+                <option value="active">active</option>
+                <option value="inactive">inactive</option>
+              </select>
+            </div>
+
+          </div>
+
+          <div class="tf-grid-2">
+
+            <div class="tf-field">
+              <label for="rewardTof">
+                Reward TOF
+              </label>
+              <input
+                id="rewardTof"
+                type="number"
+                min="0"
+                step="0.000001"
+                value="1"
+              >
+            </div>
+
+            <div class="tf-field">
+              <label for="rewardXp">
+                Reward XP
+              </label>
+              <input
+                id="rewardXp"
+                type="number"
+                min="0"
+                step="1"
+                value="100"
+              >
+            </div>
+
+          </div>
+
+          <div class="tf-field">
+            <label for="validationType">
+              Tipe validasi
+            </label>
+
+            <select id="validationType">
+              <option value="gps+photo">
+                GPS + foto
+              </option>
+
+              <option value="gps">
+                GPS
+              </option>
+
+              <option value="photo">
+                Foto
+              </option>
+            </select>
+          </div>
+
+          <div class="tf-coordinate">
+
+            <div class="tf-coordinate-box">
+              <small>LATITUDE</small>
+              <strong id="latitudeText">Belum dipilih</strong>
+            </div>
+
+            <div class="tf-coordinate-box">
+              <small>LONGITUDE</small>
+              <strong id="longitudeText">Belum dipilih</strong>
+            </div>
+
+          </div>
+
+          <div class="tf-actions">
+
+            <button
+              class="tf-btn tf-btn-secondary"
+              id="useGpsButton"
+              type="button"
+            >
+              📍 Gunakan GPS saya
+            </button>
+
+            <button
+              class="tf-btn tf-btn-secondary"
+              id="resetButton"
+              type="button"
+            >
+              Reset
+            </button>
+
+            <button
+              class="tf-btn tf-btn-primary"
+              id="saveButton"
+              type="button"
+            >
+              Simpan tugas
+            </button>
+
+          </div>
+
+          <div
+            class="tf-status"
+            id="formStatus"
+          >
+            Pilih lokasi pada peta.
+          </div>
+
+          <div
+            class="tf-security-note"
+            style="margin-top:12px"
+          >
+            <strong>Catatan:</strong>
+            akses admin di halaman ini mengikuti
+            <code>profiles.role</code>.
+            Otorisasi database production tetap perlu diamankan
+            server-side/Edge Function sebelum Admin CRUD dianggap
+            sebagai security boundary.
+          </div>
+
+        </div>
+      </div>
+
+      <!-- TASK LIST -->
+      <div class="tf-card">
+
+        <div class="tf-card-title">
+          <div>
+            <h2>Tugas tersimpan</h2>
+            <div class="tf-muted tf-small">
+              Semua contribution point yang ada di database.
+            </div>
+          </div>
+
+          <button
+            class="tf-btn tf-btn-secondary"
+            id="reloadTasksButton"
+            type="button"
+          >
+            ↻
+          </button>
+        </div>
+
+        <div
+          id="taskList"
+          class="tf-task-list"
+        >
+          <div class="tf-loading">
+            Memuat tugas...
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- MAP -->
+    <section>
+
+      <div class="tf-card">
+
+        <div class="tf-card-title">
+          <div>
+            <h2>Peta lokasi</h2>
+            <div class="tf-muted tf-small">
+              Klik peta atau geser marker untuk menentukan titik.
+            </div>
+          </div>
+        </div>
+
+        <div class="tf-map-toolbar">
+
+          <div class="tf-map-search">
+
+            <input
+              id="searchLocation"
+              type="search"
+              placeholder="Cari lokasi..."
+              autocomplete="off"
+            >
+
+            <button
+              class="tf-btn tf-btn-secondary"
+              id="searchButton"
+              type="button"
+            >
+              Cari
+            </button>
+
+          </div>
+
+          <button
+            class="tf-btn tf-btn-secondary"
+            id="locateButton"
+            type="button"
+          >
+            📍 Lokasi saya
+          </button>
+
+        </div>
+
+        <div
+          id="mapSearchStatus"
+          class="tf-status"
+          style="display:none"
+        ></div>
+
+        <div
+          id="tfMap"
+          style="margin-top:12px"
+        ></div>
+
+        <div class="tf-coordinate">
+
+          <div class="tf-coordinate-box">
+            <small>LATITUDE</small>
+            <strong id="mapLatitude">-</strong>
+          </div>
+
+          <div class="tf-coordinate-box">
+            <small>LONGITUDE</small>
+            <strong id="mapLongitude">-</strong>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </div>
+
+</main>
+
+<div
+  id="toast"
+  class="tf-toast"
+></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <script type="module">
-import{supabase}from'../js/supabase-client.js';
-const $=x=>document.getElementById(x), esc=x=>String(x??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-let profile,map,marker;
-function login(){let id=localStorage.getItem('tof_wallet'),u=localStorage.getItem('tof_login_username');if(!id||!u){localStorage.setItem('redirect_to','admin-scan-saja.html');location.href='login.html';return null}return{id,u}}
-async function init(){let l=login();if(!l)return;let{data,error}=await supabase.from('profiles').select('id,username,role').eq('id',l.id).eq('username',l.u).single();if(error||!data||!['admin','superadmin'].includes(String(data.role).toLowerCase())){$('deny').style.display='block';return}profile=data;$('app').style.display='block';map=L.map('map').setView([-7.7972,110.3688],12);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);map.on('click',e=>setPoint(e.latlng.lat,e.latlng.lng));newPoint();await loadTasks('all');await loadClaims()}
-function setPoint(lat,lng){$('lat').value=Number(lat).toFixed(7);$('lng').value=Number(lng).toFixed(7);if(!marker)marker=L.marker([lat,lng],{draggable:true}).addTo(map);else marker.setLatLng([lat,lng]);marker.off('dragend').on('dragend',()=>{let p=marker.getLatLng();$('lat').value=p.lat.toFixed(7);$('lng').value=p.lng.toFixed(7)});map.setView([lat,lng],16)}
-function newPoint(){$('form').reset();$('id').value='';$('type').value='location';$('status').value='draft';$('radius').value=50;$('tof').value=0;$('xp').value=0;$('validation').value='gps+photo';$('del').disabled=true;if(marker){map.removeLayer(marker);marker=null}}
-window.newPoint=newPoint;
-window.searchPlace=async()=>{let q=$('search').value.trim();if(!q)return;try{let r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&accept-language=id&q='+encodeURIComponent(q));let d=await r.json();if(!d.length){$('msg').textContent='Lokasi tidak ditemukan';return}setPoint(+d[0].lat,+d[0].lon);$('msg').textContent=d[0].display_name}catch(e){$('msg').textContent='Pencarian gagal'}};
-window.myLocation=()=>navigator.geolocation?.getCurrentPosition(p=>setPoint(p.coords.latitude,p.coords.longitude),()=>{$('msg').textContent='GPS gagal'},{enableHighAccuracy:true});
-function edit(t){$('id').value=t.id;$('title').value=t.title||'';$('desc').value=t.description||'';$('type').value=t.type||'location';$('status').value=t.status;$('lat').value=t.latitude;$('lng').value=t.longitude;$('radius').value=t.radius;$('tof').value=t.reward_tof;$('xp').value=t.reward_xp;$('validation').value=t.validation_type||'gps+photo';$('del').disabled=false;setPoint(t.latitude,t.longitude);$('msg').textContent='Mengedit '+t.title}
-window.edit=edit;
-$('form').onsubmit=async e=>{e.preventDefault();let payload={title:$('title').value.trim(),description:$('desc').value.trim(),type:$('type').value.trim()||'location',latitude:+$('lat').value,longitude:+$('lng').value,radius:+$('radius').value,reward_tof:+$('tof').value,reward_xp:+$('xp').value,validation_type:$('validation').value,status:$('status').value};let id=$('id').value,r=id?await supabase.from('tof_contribution_points').update(payload).eq('id',id).select().single():await supabase.from('tof_contribution_points').insert({...payload,created_by:profile.id}).select().single();if(r.error){$('msg').textContent=r.error.message;$('msg').className='notice error'}else{$('msg').textContent='Titik tersimpan';$('msg').className='notice ok';$('id').value=r.data.id;$('del').disabled=false;loadTasks('all')}};
-window.delPoint=async()=>{let id=$('id').value;if(!id||!confirm('Hapus titik ini?'))return;let{error}=await supabase.from('tof_contribution_points').delete().eq('id',id);if(error)$('msg').textContent=error.message;else{newPoint();loadTasks('all')}};
-window.loadTasks=async f=>{let q=supabase.from('tof_contribution_points').select('*').order('created_at',{ascending:false});if(f!='all')q=q.eq('status',f);let{data,error}=await q;if(error)return;$('tasks').innerHTML=(data||[]).map(t=>`<div class="task" onclick='edit(${JSON.stringify(t)})'><span class="badge">${esc(t.status)}</span><b>${esc(t.title)}</b><div class="muted">${+t.latitude.toFixed?.(5)||t.latitude}, ${+t.longitude.toFixed?.(5)||t.longitude} · ${t.radius}m</div><div class="muted">${t.reward_tof} TOF · ${t.reward_xp} XP</div></div>`).join('')||'<p class="muted">Belum ada tugas.</p>';let all=await supabase.from('tof_contribution_points').select('status');if(!all.error){$('a').textContent=all.data.filter(x=>x.status==='active').length;$('d').textContent=all.data.filter(x=>x.status==='draft').length;$('p').textContent=all.data.filter(x=>x.status==='paused').length}};
-async function loadClaims(){let{data,error}=await supabase.from('tof_contribution_claims').select('*').order('created_at',{ascending:false}).limit(30);if(error)return;$('c').textContent=data?.length||0;$('claims').innerHTML=(data||[]).map(x=>`<div class="claim"><b style="font-size:11px;color:#2f6f4e">${esc(x.user_id)}</b> <span class="badge">${esc(x.status)}</span><div class="muted">Point ${esc(x.point_id)} · jarak ${x.distance_meters??'-'}m · akurasi ${x.gps_accuracy??'-'}m</div><div class="muted">${x.reward_tof} TOF · ${x.reward_xp} XP · ${new Date(x.created_at).toLocaleString('id-ID')}</div>${x.photo_data?'<div class="muted">📷 foto tersedia</div>':''}</div>`).join('')||'<p class="muted">Belum ada claim.</p>'}
-init();
-</script><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script></body></html>
+
+  import { supabase } from "../js/supabase-client.js";
+
+  /*
+   * ============================================================
+   * AUTH
+   * ============================================================
+   *
+   * Mengikuti login existing ToFarmer.
+   *
+   * login.js existing menyimpan:
+   *
+   *   tof_wallet
+   *   tof_login_username
+   *
+   * profiles.id = tof_wallet
+   */
+
+  const wallet =
+    localStorage.getItem("tof_wallet");
+
+  const username =
+    localStorage.getItem("tof_login_username");
+
+  if (!wallet || !username) {
+
+    localStorage.setItem(
+      "redirect_to",
+      window.location.pathname +
+      window.location.search
+    );
+
+    window.location.href = "./login.html";
+
+    throw new Error("Login required");
+  }
+
+  /*
+   * ============================================================
+   * HELPERS
+   * ============================================================
+   */
+
+  const $ = (id) =>
+    document.getElementById(id);
+
+  let currentProfile = null;
+  let editingTaskId = null;
+
+  let map = null;
+  let marker = null;
+  let radiusCircle = null;
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+      .replace(/[&<>"']/g, (char) => {
+
+        const map = {
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#039;"
+        };
+
+        return map[char];
+      });
+  }
+
+  function toast(message) {
+
+    const element = $("toast");
+
+    element.textContent = message;
+
+    element.classList.add("show");
+
+    clearTimeout(toast.timer);
+
+    toast.timer =
+      setTimeout(() => {
+        element.classList.remove("show");
+      }, 3200);
+  }
+
+  function setStatus(
+    message,
+    type = ""
+  ) {
+
+    const element = $("formStatus");
+
+    element.textContent = message;
+
+    element.className =
+      "tf-status" +
+      (type ? " " + type : "");
+  }
+
+  function setMapStatus(
+    message,
+    type = ""
+  ) {
+
+    const element =
+      $("mapSearchStatus");
+
+    if (!message) {
+      element.style.display = "none";
+      return;
+    }
+
+    element.style.display = "block";
+    element.textContent = message;
+
+    element.className =
+      "tf-status" +
+      (type ? " " + type : "");
+  }
+
+  /*
+   * ============================================================
+   * PROFILE / ADMIN CHECK
+   * ============================================================
+   */
+
+  async function checkAdmin() {
+
+    const {
+      data,
+      error
+    } = await supabase
+      .from("profiles")
+      .select(
+        "id, username, role, saldo_tof, xp"
+      )
+      .eq("id", wallet)
+      .eq("username", username)
+      .single();
+
+    if (error || !data) {
+
+      document.body.innerHTML = `
+        <main class="tf-main">
+          <section class="tf-card">
+            <h2>Akses ditolak</h2>
+            <p>
+              Profil login tidak ditemukan.
+            </p>
+          </section>
+        </main>
+      `;
+
+      throw new Error(
+        "Profile not found"
+      );
+    }
+
+    currentProfile = data;
+
+    $("adminIdentity").textContent =
+      `${data.username} · ${data.role}`;
+
+    /*
+     * UI gate.
+     *
+     * IMPORTANT:
+     * Ini bukan security boundary karena login existing
+     * menggunakan custom client-side identity.
+     */
+
+    if (
+      data.role !== "admin" &&
+      data.role !== "superadmin"
+    ) {
+
+      document.body.innerHTML = `
+        <main class="tf-main">
+          <section class="tf-card">
+            <h2>Akses ditolak</h2>
+
+            <p class="tf-muted">
+              Halaman ini hanya dapat digunakan
+              oleh admin ToFarmer.
+            </p>
+          </section>
+        </main>
+      `;
+
+      throw new Error(
+        "User is not admin"
+      );
+    }
+  }
+
+  /*
+   * ============================================================
+   * MAP
+   * ============================================================
+   */
+
+  function initMap() {
+
+    map = L.map("tfMap");
+
+    /*
+     * Default center Indonesia.
+     *
+     * Bisa diganti oleh:
+     * - task existing
+     * - search
+     * - GPS admin
+     */
+
+    map.setView(
+      [-7.7956, 110.3695],
+      10
+    );
+
+    L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution:
+          "&copy; OpenStreetMap contributors"
+      }
+    ).addTo(map);
+
+    map.on(
+      "click",
+      (event) => {
+
+        setPoint(
+          event.latlng.lat,
+          event.latlng.lng,
+          true
+        );
+      }
+    );
+  }
+
+  function setPoint(
+    latitude,
+    longitude,
+    centerMap = true
+  ) {
+
+    latitude = Number(latitude);
+    longitude = Number(longitude);
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      return;
+    }
+
+    $("latitudeText").textContent =
+      latitude.toFixed(7);
+
+    $("longitudeText").textContent =
+      longitude.toFixed(7);
+
+    $("mapLatitude").textContent =
+      latitude.toFixed(7);
+
+    $("mapLongitude").textContent =
+      longitude.toFixed(7);
+
+    if (!marker) {
+
+      marker =
+        L.marker(
+          [latitude, longitude],
+          {
+            draggable: true
+          }
+        ).addTo(map);
+
+      marker.on(
+        "dragend",
+        () => {
+
+          const position =
+            marker.getLatLng();
+
+          setPoint(
+            position.lat,
+            position.lng,
+            false
+          );
+        }
+      );
+
+    } else {
+
+      marker.setLatLng([
+        latitude,
+        longitude
+      ]);
+    }
+
+    updateRadiusCircle();
+
+    if (centerMap) {
+
+      map.setView(
+        [latitude, longitude],
+        Math.max(
+          map.getZoom(),
+          15
+        )
+      );
+    }
+
+    setStatus(
+      "Lokasi berhasil dipilih. Kamu bisa menyimpan tugas.",
+      "ok"
+    );
+  }
+
+  function updateRadiusCircle() {
+
+    if (!marker) {
+      return;
+    }
+
+    const position =
+      marker.getLatLng();
+
+    const radius =
+      Number(
+        $("taskRadius").value
+      );
+
+    if (
+      !Number.isFinite(radius) ||
+      radius <= 0
+    ) {
+      return;
+    }
+
+    if (!radiusCircle) {
+
+      radiusCircle =
+        L.circle(
+          [
+            position.lat,
+            position.lng
+          ],
+          {
+            radius,
+            color: "#2f6f4e",
+            fillColor: "#4caf7a",
+            fillOpacity: 0.10,
+            weight: 2
+          }
+        ).addTo(map);
+
+    } else {
+
+      radiusCircle.setLatLng([
+        position.lat,
+        position.lng
+      ]);
+
+      radiusCircle.setRadius(
+        radius
+      );
+    }
+  }
+
+  /*
+   * ============================================================
+   * SEARCH LOCATION
+   * ============================================================
+   *
+   * Nominatim hanya digunakan untuk mencari koordinat.
+   * Data task tetap disimpan di Supabase.
+   */
+
+  async function searchLocation() {
+
+    const query =
+      $("searchLocation")
+        .value
+        .trim();
+
+    if (!query) {
+      return;
+    }
+
+    setMapStatus(
+      "Mencari lokasi..."
+    );
+
+    try {
+
+      const response =
+        await fetch(
+          "https://nominatim.openstreetmap.org/search?" +
+          new URLSearchParams({
+            q: query,
+            format: "jsonv2",
+            limit: "1",
+            "accept-language": "id"
+          }),
+          {
+            headers: {
+              "Accept":
+                "application/json"
+            }
+          }
+        );
+
+      if (!response.ok) {
+        throw new Error(
+          "Search request failed"
+        );
+      }
+
+      const results =
+        await response.json();
+
+      if (!results.length) {
+
+        setMapStatus(
+          "Lokasi tidak ditemukan.",
+          "warning"
+        );
+
+        return;
+      }
+
+      const result =
+        results[0];
+
+      const latitude =
+        Number(result.lat);
+
+      const longitude =
+        Number(result.lon);
+
+      setPoint(
+        latitude,
+        longitude,
+        true
+      );
+
+      setMapStatus(
+        `Lokasi ditemukan: ${result.display_name}`,
+        "ok"
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      setMapStatus(
+        "Pencarian lokasi gagal.",
+        "error"
+      );
+    }
+  }
+
+  /*
+   * ============================================================
+   * GPS ADMIN
+   * ============================================================
+   */
+
+  function useAdminGps() {
+
+    if (!navigator.geolocation) {
+
+      toast(
+        "Perangkat tidak mendukung GPS."
+      );
+
+      return;
+    }
+
+    setStatus(
+      "Mengambil lokasi GPS..."
+    );
+
+    navigator.geolocation.getCurrentPosition(
+
+      (position) => {
+
+        setPoint(
+          position.coords.latitude,
+          position.coords.longitude,
+          true
+        );
+
+        setStatus(
+          `Lokasi GPS berhasil digunakan. Akurasi ±${Math.round(
+            position.coords.accuracy
+          )} meter.`,
+          "ok"
+        );
+      },
+
+      (error) => {
+
+        setStatus(
+          "GPS gagal: " +
+          error.message,
+          "error"
+        );
+      },
+
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 15000
+      }
+    );
+  }
+
+  /*
+   * ============================================================
+   * FORM
+   * ============================================================
+   */
+
+  function resetForm() {
+
+    editingTaskId = null;
+
+    $("formHeading").textContent =
+      "Buat tugas";
+
+    $("taskTitle").value = "";
+    $("taskDescription").value = "";
+    $("taskType").value = "location";
+
+    $("taskRadius").value = "50";
+
+    $("rewardTof").value = "1";
+    $("rewardXp").value = "100";
+
+    $("validationType").value =
+      "gps+photo";
+
+    $("taskStatus").value =
+      "draft";
+
+    $("latitudeText").textContent =
+      "Belum dipilih";
+
+    $("longitudeText").textContent =
+      "Belum dipilih";
+
+    $("mapLatitude").textContent =
+      "-";
+
+    $("mapLongitude").textContent =
+      "-";
+
+    if (marker) {
+
+      map.removeLayer(marker);
+      marker = null;
+    }
+
+    if (radiusCircle) {
+
+      map.removeLayer(
+        radiusCircle
+      );
+
+      radiusCircle = null;
+    }
+
+    setStatus(
+      "Pilih lokasi pada peta."
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+  function loadTaskIntoForm(task) {
+
+    editingTaskId =
+      task.id;
+
+    $("formHeading").textContent =
+      "Edit tugas";
+
+    $("taskTitle").value =
+      task.title || "";
+
+    $("taskDescription").value =
+      task.description || "";
+
+    $("taskType").value =
+      task.type || "location";
+
+    $("taskRadius").value =
+      task.radius ?? 50;
+
+    $("rewardTof").value =
+      task.reward_tof ?? 0;
+
+    $("rewardXp").value =
+      task.reward_xp ?? 0;
+
+    $("validationType").value =
+      task.validation_type ||
+      "gps+photo";
+
+    $("taskStatus").value =
+      task.status || "draft";
+
+    setPoint(
+      task.latitude,
+      task.longitude,
+      true
+    );
+
+    setStatus(
+      "Mode edit aktif.",
+      "ok"
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+  /*
+   * ============================================================
+   * VALIDATE FORM
+   * ============================================================
+   */
+
+  function readForm() {
+
+    const title =
+      $("taskTitle")
+        .value
+        .trim();
+
+    const description =
+      $("taskDescription")
+        .value
+        .trim();
+
+    const type =
+      $("taskType")
+        .value
+        .trim() ||
+      "location";
+
+    const radius =
+      Number(
+        $("taskRadius")
+          .value
+      );
+
+    const rewardTof =
+      Number(
+        $("rewardTof")
+          .value
+      );
+
+    const rewardXp =
+      Number(
+        $("rewardXp")
+          .value
+      );
+
+    const latitude =
+      Number(
+        $("latitudeText")
+          .textContent
+      );
+
+    const longitude =
+      Number(
+        $("longitudeText")
+          .textContent
+      );
+
+    const validationType =
+      $("validationType")
+        .value;
+
+    const status =
+      $("taskStatus")
+        .value;
+
+    if (!title) {
+      throw new Error(
+        "Nama tugas wajib diisi."
+      );
+    }
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      throw new Error(
+        "Lokasi tugas belum dipilih."
+      );
+    }
+
+    if (
+      !Number.isFinite(radius) ||
+      radius <= 0
+    ) {
+      throw new Error(
+        "Radius harus lebih besar dari 0."
+      );
+    }
+
+    if (
+      !Number.isFinite(rewardTof) ||
+      rewardTof < 0
+    ) {
+      throw new Error(
+        "Reward TOF tidak valid."
+      );
+    }
+
+    if (
+      !Number.isFinite(rewardXp) ||
+      rewardXp < 0
+    ) {
+      throw new Error(
+        "Reward XP tidak valid."
+      );
+    }
+
+    return {
+      title,
+      description:
+        description || null,
+
+      type,
+
+      latitude,
+      longitude,
+
+      radius,
+
+      reward_tof:
+        rewardTof,
+
+      reward_xp:
+        Math.round(rewardXp),
+
+      validation_type:
+        validationType,
+
+      status,
+
+      /*
+       * Schema production:
+       * created_by text -> profiles.id text
+       */
+      created_by:
+        currentProfile.id
+    };
+  }
+
+  /*
+   * ============================================================
+   * SAVE TASK
+   * ============================================================
+   */
+
+  async function saveTask() {
+
+    let payload;
+
+    try {
+
+      payload =
+        readForm();
+
+    } catch (error) {
+
+      setStatus(
+        error.message,
+        "error"
+      );
+
+      return;
+    }
+
+    $("saveButton")
+      .disabled = true;
+
+    $("saveButton")
+      .textContent =
+      editingTaskId
+        ? "Menyimpan..."
+        : "Membuat...";
+
+    try {
+
+      let result;
+
+      if (editingTaskId) {
+
+        /*
+         * Existing production table:
+         * tof_contribution_points
+         */
+
+        result =
+          await supabase
+            .from(
+              "tof_contribution_points"
+            )
+            .update({
+              title:
+                payload.title,
+
+              description:
+                payload.description,
+
+              type:
+                payload.type,
+
+              latitude:
+                payload.latitude,
+
+              longitude:
+                payload.longitude,
+
+              radius:
+                payload.radius,
+
+              reward_tof:
+                payload.reward_tof,
+
+              reward_xp:
+                payload.reward_xp,
+
+              validation_type:
+                payload.validation_type,
+
+              status:
+                payload.status
+            })
+            .eq(
+              "id",
+              editingTaskId
+            );
+
+      } else {
+
+        result =
+          await supabase
+            .from(
+              "tof_contribution_points"
+            )
+            .insert(
+              payload
+            );
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      toast(
+        editingTaskId
+          ? "Tugas berhasil diperbarui."
+          : "Tugas berhasil dibuat."
+      );
+
+      resetForm();
+
+      await loadTasks();
+
+    } catch (error) {
+
+      console.error(error);
+
+      setStatus(
+        error.message ||
+        "Gagal menyimpan tugas.",
+        "error"
+      );
+
+    } finally {
+
+      $("saveButton")
+        .disabled = false;
+
+      $("saveButton")
+        .textContent =
+        editingTaskId
+          ? "Simpan perubahan"
+          : "Simpan tugas";
+    }
+  }
+
+  /*
+   * ============================================================
+   * DELETE TASK
+   * ============================================================
+   */
+
+  async function deleteTask(task) {
+
+    const confirmed =
+      window.confirm(
+        `Hapus tugas "${task.title}"?`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+
+      const {
+        error
+      } =
+        await supabase
+          .from(
+            "tof_contribution_points"
+          )
+          .delete()
+          .eq(
+            "id",
+            task.id
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      toast(
+        "Tugas berhasil dihapus."
+      );
+
+      await loadTasks();
+
+    } catch (error) {
+
+      console.error(error);
+
+      toast(
+        "Gagal menghapus tugas: " +
+        error.message
+      );
+    }
+  }
+
+  /*
+   * ============================================================
+   * TASK LIST
+   * ============================================================
+   */
+
+  async function loadTasks() {
+
+    $("taskList").innerHTML =
+      `<div class="tf-loading">
+        Memuat tugas...
+      </div>`;
+
+    try {
+
+      const {
+        data,
+        error
+      } =
+        await supabase
+          .from(
+            "tof_contribution_points"
+          )
+          .select(
+            [
+              "id",
+              "title",
+              "description",
+              "type",
+              "latitude",
+              "longitude",
+              "radius",
+              "reward_tof",
+              "reward_xp",
+              "validation_type",
+              "status",
+              "created_by",
+              "created_at",
+              "updated_at"
+            ].join(",")
+          )
+          .order(
+            "created_at",
+            {
+              ascending: false
+            }
+          );
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data || !data.length) {
+
+        $("taskList").innerHTML =
+          `<div class="tf-empty">
+            Belum ada contribution point.
+          </div>`;
+
+        return;
+      }
+
+      $("taskList").innerHTML =
+        data.map(
+          (task) => {
+
+            return `
+              <article class="tf-task">
+
+                <div class="tf-task-head">
+
+                  <div>
+                    <div class="tf-task-title">
+                      ${escapeHtml(task.title)}
+                    </div>
+
+                    <div class="tf-task-desc">
+                      ${escapeHtml(
+                        task.description ||
+                        "Tidak ada deskripsi."
+                      )}
+                    </div>
+                  </div>
+
+                  <span class="tf-chip">
+                    ${escapeHtml(task.status)}
+                  </span>
+
+                </div>
+
+                <div class="tf-chips">
+
+                  <span class="tf-chip">
+                    📍 ${Number(
+                      task.latitude
+                    ).toFixed(6)},
+                    ${Number(
+                      task.longitude
+                    ).toFixed(6)}
+                  </span>
+
+                  <span class="tf-chip">
+                    Radius ${escapeHtml(
+                      task.radius
+                    )} m
+                  </span>
+
+                  <span class="tf-chip tf-chip-gold">
+                    🪙 ${escapeHtml(
+                      task.reward_tof
+                    )} TOF
+                  </span>
+
+                  <span class="tf-chip">
+                    ⭐ ${escapeHtml(
+                      task.reward_xp
+                    )} XP
+                  </span>
+
+                  <span class="tf-chip">
+                    ${escapeHtml(
+                      task.validation_type
+                    )}
+                  </span>
+
+                </div>
+
+                <div class="tf-task-actions">
+
+                  <button
+                    class="tf-btn tf-btn-secondary"
+                    type="button"
+                    data-edit-task="${escapeHtml(task.id)}"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    class="tf-btn tf-btn-secondary"
+                    type="button"
+                    data-map-task="${escapeHtml(task.id)}"
+                  >
+                    📍 Lihat peta
+                  </button>
+
+                  <button
+                    class="tf-btn tf-btn-danger"
+                    type="button"
+                    data-delete-task="${escapeHtml(task.id)}"
+                  >
+                    Hapus
+                  </button>
+
+                </div>
+
+              </article>
+            `;
+          }
+        ).join("");
+
+      /*
+       * Event buttons
+       */
+
+      data.forEach(
+        (task) => {
+
+          const editButton =
+            document.querySelector(
+              `[data-edit-task="${CSS.escape(task.id)}"]`
+            );
+
+          if (editButton) {
+
+            editButton.onclick =
+              () => {
+                loadTaskIntoForm(task);
+              };
+          }
+
+          const mapButton =
+            document.querySelector(
+              `[data-map-task="${CSS.escape(task.id)}"]`
+            );
+
+          if (mapButton) {
+
+            mapButton.onclick =
+              () => {
+
+                setPoint(
+                  task.latitude,
+                  task.longitude,
+                  true
+                );
+
+                document
+                  .getElementById("tfMap")
+                  .scrollIntoView({
+                    behavior: "smooth",
+                    block: "center"
+                  });
+              };
+          }
+
+          const deleteButton =
+            document.querySelector(
+              `[data-delete-task="${CSS.escape(task.id)}"]`
+            );
+
+          if (deleteButton) {
+
+            deleteButton.onclick =
+              () => {
+                deleteTask(task);
+              };
+          }
+        }
+      );
+
+    } catch (error) {
+
+      console.error(error);
+
+      $("taskList").innerHTML =
+        `<div class="tf-status error">
+          Gagal memuat tugas:
+          ${escapeHtml(error.message)}
+        </div>`;
+    }
+  }
+
+  /*
+   * ============================================================
+   * EVENTS
+   * ============================================================
+   */
+
+  $("saveButton").onclick =
+    saveTask;
+
+  $("resetButton").onclick =
+    resetForm;
+
+  $("useGpsButton").onclick =
+    useAdminGps;
+
+  $("locateButton").onclick =
+    useAdminGps;
+
+  $("searchButton").onclick =
+    searchLocation;
+
+  $("reloadTasksButton").onclick =
+    loadTasks;
+
+  $("searchLocation").addEventListener(
+    "keydown",
+    (event) => {
+
+      if (event.key === "Enter") {
+
+        event.preventDefault();
+
+        searchLocation();
+      }
+    }
+  );
+
+  $("taskRadius").addEventListener(
+    "input",
+    updateRadiusCircle
+  );
+
+  /*
+   * ============================================================
+   * INIT
+   * ============================================================
+   */
+
+  await checkAdmin();
+
+  initMap();
+
+  await loadTasks();
+
+</script>
+
+</body>
+</html>
