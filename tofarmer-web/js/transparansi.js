@@ -161,24 +161,27 @@ async function loadReport() {
 // ---------------------------------------------------------
 async function getLatestNodeRound() {
   try {
-    const res = await fetch(`${ALGONODE_INDEXER}/health`);
+    // Menggunakan Endpoint status resmi Algonode
+    const res = await fetch("https://mainnet-api.algonode.cloud/v2/status");
     if (!res.ok) return 0;
     const data = await res.json();
-    return Number(data.round || 0);
-  } catch (e) { return 0; }
+    return Number(data["last-round"] || 0);
+  } catch (e) {
+    return 0;
+  }
 }
 
 async function fetchWalletTx(wallet, username, minRound = null) {
   let nextToken = null, allTx = [];
-  let safetyLoop = 0; // Mencegah browser hanging jika ada kesalahan API
+  let safetyLoop = 0;
 
   do {
     safetyLoop++;
-    if (safetyLoop > 50) break; // Limit maksimal 50 page per wallet
+    if (safetyLoop > 50) break;
 
     const params = new URLSearchParams();
     params.set("limit", "500");
-    params.set("tx-type", "axfer"); // Hanya tarik transaksi Aset (bukan Algo transfer)
+    params.set("tx-type", "axfer");
     if (nextToken) params.set("next-token", nextToken);
     if (minRound && minRound > 0) params.set("min-round", String(minRound));
 
@@ -194,14 +197,19 @@ async function fetchWalletTx(wallet, username, minRound = null) {
       if (transfer && Number(transfer["asset-id"]) === TOF_ASSET_ID) {
         let note = "";
         try { if (tx.note) note = atob(tx.note); } catch(e){}
+        
         allTx.push({
-          wallet, username: username || null, tx_id: tx.id,
+          wallet, 
+          username: username || null, 
+          tx_id: tx.id,
           amount: Number(transfer.amount || 0) / 1000000,
-          note, category: note.toUpperCase().includes("NABUNG") ? "NABUNG_RECEH" : "DANA_MASUK",
-          sender: tx.sender || null, receiver: transfer.receiver || null,
+          note, 
+          category: note.toUpperCase().includes("NABUNG") ? "NABUNG_RECEH" : "DANA_MASUK",
+          sender: tx.sender || null, 
+          receiver: transfer.receiver || null,
           round: Number(tx["confirmed-round"] || tx["round-time"] || 0),
-          created_at: tx["round-time"] ? new Date(Number(tx["round-time"]) * 1000).toISOString() : null,
-          synced_at: new Date().toISOString()
+          created_at: tx["round-time"] ? new Date(Number(tx["round-time"]) * 1000).toISOString() : new Date().toISOString()
+          // Field synced_at dihapus karena tidak ada di schema Supabase
         });
       }
     }
