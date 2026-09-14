@@ -21,13 +21,13 @@ function setStatus(msg) {
 // ---------------------------------------------------------
 async function getAllWallets() {
   const client = getSupabase();
-  if (!client) throw new Error("Supabase Client belum siap / config-supabase.js error");
+  if (!client) throw new Error("Supabase Client belum siap");
 
   let allProfiles = [], page = 0, size = 1000;
   while (true) {
     const { data, error } = await client
       .from("profiles")
-      .select("id, username")
+      .select("id, username, wallet")
       .range(page * size, (page + 1) * size - 1);
 
     if (error) throw error;
@@ -77,16 +77,17 @@ async function loadReport() {
     const history = await getHistoryFromSupabase();
     const balances = await getBalancesFromSupabase();
 
-    // Map Saldo berdasarkan wallet & username
+    // Map Saldo berdasarkan wallet & username/id
     const balanceMap = {};
     balances.forEach(b => { 
       if (b.wallet) balanceMap[b.wallet] = Number(b.balance || 0);
       if (b.username) balanceMap[b.username] = Number(b.balance || 0);
+      if (b.id) balanceMap[b.id] = Number(b.balance || 0);
     });
 
     let totalAll = 0;
     wallets.forEach(u => {
-      const bal = balanceMap[u.id] || balanceMap[u.username] || 0;
+      const bal = balanceMap[u.wallet] || balanceMap[u.id] || balanceMap[u.username] || 0;
       totalAll += Number(bal);
     });
 
@@ -103,28 +104,25 @@ async function loadReport() {
 
     let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA (${wallets.length})</h3>`;
     
-    // LOOP SEMUA WALLET
     wallets.forEach(u => {
-      const walletId = u.id;
-      const username = u.username || "";
-      const displayName = username ? `@${username}` : walletId;
+      // Kumpulkan seluruh identifier yang dimiliki user
+      const userKeys = [u.id, u.username, u.wallet].filter(Boolean);
+      const displayName = u.username ? `@${u.username}` : (u.id || u.wallet);
 
-      // Ambil saldo dari ID atau Username
-      const balance = Number(balanceMap[walletId] ?? balanceMap[username] ?? 0);
+      const balance = Number(balanceMap[u.wallet] ?? balanceMap[u.id] ?? balanceMap[u.username] ?? 0);
 
-      // FLEXIBLE MATCHING: Cari transaksi yang cocok dengan ID ATAU Username
+      // Match transaksi jika salah satu key cocok dengan wallet/username/sender/receiver
       const txsRaw = history.filter(tx => {
-        const matchWallet = tx.wallet && (tx.wallet === walletId || tx.wallet === username);
-        const matchUser = tx.username && (tx.username === username || tx.username === walletId);
-        const matchSender = tx.sender && (tx.sender === walletId || tx.sender === username);
-        const matchReceiver = tx.receiver && (tx.receiver === walletId || tx.receiver === username);
-        
-        return matchWallet || matchUser || matchSender || matchReceiver;
+        const txTargets = [tx.wallet, tx.username, tx.sender, tx.receiver].filter(Boolean);
+        return userKeys.some(k => txTargets.includes(k));
       });
 
-      // Filter duplikat berdasarkan tx_id unik per user
+      // Filter duplikat transaksi berdasarkan tx_id
       const uniqueTxMap = new Map();
-      txsRaw.forEach(t => uniqueTxMap.set(t.tx_id, t));
+      txsRaw.forEach(t => {
+        if (t.tx_id) uniqueTxMap.set(t.tx_id, t);
+        else uniqueTxMap.set(JSON.stringify(t), t);
+      });
       const txs = Array.from(uniqueTxMap.values());
 
       let txRows = "";
@@ -132,8 +130,7 @@ async function loadReport() {
         txRows = `<tr><td colspan="2" style="padding:12px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
       } else {
         txs.forEach(tx => {
-          // Penentuan Arah Transaksi (+ / -)
-          const isReceiver = tx.receiver === walletId || tx.receiver === username || tx.wallet === walletId;
+          const isReceiver = userKeys.includes(tx.receiver) || userKeys.includes(tx.wallet);
           const sign = isReceiver ? "+" : "-";
           const color = isReceiver ? "#4ade80" : "#f87171";
           
@@ -160,7 +157,6 @@ async function loadReport() {
         });
       }
 
-      // RENDER ACCORDION CARD
       html += `
         <details class="card" style="margin-bottom:15px;">
           <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none; display:flex; justify-content:space-between; align-items:center;">
@@ -169,9 +165,7 @@ async function loadReport() {
           </summary>
           <div style="margin-top:15px; overflow-x:auto;">
             <table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
-              <tbody>
-                ${txRows}
-              </tbody>
+              <tbody>${txRows}</tbody>
               <tfoot>
                 <tr style="border-top:2px solid #22c55e;">
                   <td style="padding:10px 8px; font-weight:bold;">SALDO SAAT INI</td>
