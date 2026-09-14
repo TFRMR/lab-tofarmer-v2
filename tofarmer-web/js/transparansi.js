@@ -1168,460 +1168,151 @@ function formatRow(tx) {
 // Tidak ada fetch Algonode.
 // =========================================================
 
-async function loadReport() {
+// =========================================================
+// 23. LOAD REPORT (PATOKAN UTAMA: TABEL PROFILES)
+// =========================================================
 
-  setStatus(
-    "⚡ Memuat data dari Supabase..."
-  );
+async function loadReport() {
+  setStatus("⚡ Memuat data dari Supabase...");
 
   try {
-
-    // =====================================================
-    // Ambil dua sumber dari Supabase secara paralel
-    // =====================================================
-
-    const [
-      wallets,
-      history,
-      balances
-    ] = await Promise.all([
-
+    const [wallets, history, balances] = await Promise.all([
       getAllWallets(),
-
       getHistoryFromSupabase(),
-
       getBalancesFromSupabase()
-
     ]);
 
-    console.log(
-      "WALLETS:",
-      wallets.length
-    );
-
-    console.log(
-      "HISTORY:",
-      history.length
-    );
-
-    console.log(
-      "BALANCES:",
-      balances.length
-    );
-
-
-    // =====================================================
-    // Mapping balance berdasarkan wallet
-    // =====================================================
-
+    // Mapping balance berdasarkan wallet ATAU username
     const balanceMap = {};
-
     balances.forEach(row => {
-
-      balanceMap[row.wallet] =
-        Number(row.balance || 0);
-
+      if (row.wallet) balanceMap[row.wallet] = Number(row.balance || 0);
     });
 
+    // Group history berdasarkan wallet dan username untuk antisipasi ketidakcocokan
+    const groupedByWallet = {};
+    const groupedByUsername = {};
 
-    // =====================================================
-    // Group history berdasarkan user
-    // =====================================================
+    history.forEach(tx => {
+      if (tx.wallet) {
+        if (!groupedByWallet[tx.wallet]) groupedByWallet[tx.wallet] = [];
+        groupedByWallet[tx.wallet].push(tx);
+      }
+      if (tx.username) {
+        const cleanUser = tx.username.replace('@', '').toLowerCase();
+        if (!groupedByUsername[cleanUser]) groupedByUsername[cleanUser] = [];
+        groupedByUsername[cleanUser].push(tx);
+      }
+    });
 
-    const grouped =
-      groupByUser(history);
-
-
-    // =====================================================
-    // Bersihkan tampilan lama
-    // =====================================================
-
-    if (summaryEl) {
-
-      summaryEl.innerHTML = "";
-    }
-
-    if (feedEl) {
-
-      feedEl.innerHTML = "";
-    }
-
-
-    // =====================================================
-    // Total semua balance
-    // =====================================================
+    if (summaryEl) summaryEl.innerHTML = "";
+    if (feedEl) feedEl.innerHTML = "";
 
     let totalAll = 0;
-
     wallets.forEach(user => {
-
-      totalAll +=
-        Number(
-          balanceMap[user.id] || 0
-        );
-
+      totalAll += Number(balanceMap[user.id] || 0);
     });
 
-
-    // =====================================================
     // SUMMARY
-    // =====================================================
-
     if (summaryEl) {
-
       summaryEl.innerHTML = `
-
-        <div
-          class="card"
-          style="text-align:center;"
-        >
-
-          <h2 style="color:#fde047;">
-            📊 RINGKASAN EKOSISTEM
-          </h2>
-
-          <p
-            style="
-              font-size:1.2rem;
-              font-weight:bold;
-              margin-top:10px;
-            "
-          >
-            TOTAL: TOF
-            ${totalAll.toLocaleString()}
+        <div class="card" style="text-align:center;">
+          <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
+          <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">
+            TOTAL: TOF ${totalAll.toLocaleString()}
           </p>
-
-          <p
-            style="
-              font-size:0.8rem;
-              color:#64748b;
-            "
-          >
-            SOURCE:
-            ✅ SUPABASE
-          </p>
-
-          <p
-            style="
-              font-size:0.75rem;
-              color:#64748b;
-            "
-          >
-            Blockchain → Supabase → Website
-          </p>
-
+          <p style="font-size:0.8rem; color:#64748b;">SOURCE: ✅ SUPABASE (Patokan Profiles)</p>
         </div>
-
       `;
     }
 
+    let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
 
-    // =====================================================
-    // HEADER
-    // =====================================================
-
-    let html = `
-
-      <h3
-        style="
-          margin-bottom:1.5rem;
-          text-align:center;
-        "
-      >
-        👤 DETAIL KONTRIBUSI ANGGOTA
-      </h3>
-
-    `;
-
-
-    // =====================================================
-    // RENDER SETIAP USER
-    // =====================================================
-
-    for (
-      const user of wallets
-    ) {
-
-      const wallet =
-        user.id;
-
-      const username =
-        user.username ||
-        wallet;
-
-      const txs =
-        grouped[username]?.txs ||
-        grouped[wallet]?.txs ||
-        [];
-
-      const balance =
-        Number(
-          balanceMap[wallet] || 0
-        );
-
-
-      // ===================================================
-      // CARD USER
-      // ===================================================
+    // RENDER BERDASARKAN TABEL PROFILES UTAMA
+    for (const user of wallets) {
+      const wallet = user.id;
+      const usernameClean = (user.username || "").replace('@', '').toLowerCase();
+      
+      // Ambil transaksi berdasarkan wallet ID atau kecocokan username
+      let txs = groupedByWallet[wallet] || (usernameClean ? groupedByUsername[usernameClean] : []) || [];
+      const balance = Number(balanceMap[wallet] || 0);
 
       html += `
-
-        <details
-          class="card"
-          style="
-            margin-bottom:15px;
-            border-left:3px solid #22c55e;
-          "
-        >
-
-          <summary
-            style="
-              cursor:pointer;
-              font-weight:bold;
-              color:#fde047;
-              outline:none;
-            "
-          >
-
-            👤 ${username}
-
-            <span
-              style="
-                font-size:0.8rem;
-                color:#64748b;
-                font-weight:normal;
-              "
-            >
-              (${txs.length} transaksi —
-              klik lihat detail)
+        <details class="card" style="margin-bottom:15px; border-left:3px solid #22c55e;">
+          <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
+            👤 ${user.username ? '@' + user.username : wallet}
+            <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">
+              (${txs.length} transaksi — klik lihat detail)
             </span>
-
           </summary>
-
-          <div
-            style="margin-top:15px;"
-          >
-
-            <table
-              style="
-                width:100%;
-                border-collapse:collapse;
-                font-size:0.9rem;
-              "
-            >
-
+          <div style="margin-top:15px;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
               <thead>
-
-                <tr
-                  style="
-                    color:#64748b;
-                    border-bottom:1px solid #334155;
-                  "
-                >
-
-                  <th
-                    style="padding:5px;"
-                  >
-                    Tanggal
-                  </th>
-
-                  <th
-                    style="
-                      padding:5px;
-                      text-align:right;
-                    "
-                  >
-                    Jumlah
-                  </th>
-
+                <tr style="color:#64748b; border-bottom:1px solid #334155;">
+                  <th style="padding:5px;">Tanggal / Memo</th>
+                  <th style="padding:5px; text-align:right;">Jumlah</th>
                 </tr>
-
               </thead>
-
               <tbody>
-
       `;
 
-
-      // ===================================================
-      // TRANSAKSI USER
-      // ===================================================
-
-      txs.forEach(tx => {
-
-        const amount =
-          Number(
-            tx.amount || 0
-          );
-
-        // Tentukan arah transaksi
-        const isReceiver =
-          tx.receiver === wallet;
-
-        const isSender =
-          tx.sender === wallet;
-
-        const sign =
-          isReceiver
-            ? "+"
-            : (
-              isSender
-                ? "-"
-                : ""
-            );
-
-        const color =
-          isReceiver
-            ? "#4ade80"
-            : (
-              isSender
-                ? "#f87171"
-                : "#64748b"
-            );
-
-        const date =
-          tx.created_at
-            ? new Date(
-                tx.created_at
-              ).toLocaleDateString()
-            : "-";
-
-        const note =
-          tx.note ||
-          "-";
-
+      if (txs.length === 0) {
         html += `
-
-          <tr
-            style="
-              border-bottom:
-                1px solid
-                rgba(255,255,255,0.05);
-            "
-          >
-
-            <td
-              style="padding:8px 5px;"
-            >
-
-              ${date}
-
-              <div
-                style="
-                  font-size:0.7rem;
-                  color:#64748b;
-                "
-              >
-
-                ${note}
-
-              </div>
-
+          <tr>
+            <td colspan="2" style="padding:10px; text-align:center; color:#64748b; font-style:italic;">
+              Belum ada catatan transaksi tercatat.
             </td>
-
-            <td
-              style="
-                text-align:right;
-                color:${color};
-                font-weight:bold;
-              "
-            >
-
-              ${sign}
-              ${amount.toLocaleString(
-                undefined,
-                {
-                  minimumFractionDigits: 0
-                }
-              )}
-
-            </td>
-
           </tr>
-
         `;
-      });
+      } else {
+        txs.forEach(tx => {
+          const amount = Number(tx.amount || 0);
+          const isReceiver = tx.receiver === wallet;
+          const isSender = tx.sender === wallet;
+          const sign = isReceiver ? "+" : (isSender ? "-" : "");
+          const color = isReceiver ? "#4ade80" : (isSender ? "#f87171" : "#64748b");
+          const date = tx.created_at ? new Date(tx.created_at).toLocaleDateString() : "-";
+          const note = tx.note || "-";
 
-
-      // ===================================================
-      // FOOTER SALDO
-      // ===================================================
+          html += `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <td style="padding:8px 5px;">
+                ${date}
+                <div style="font-size:0.7rem; color:#64748b;">${note}</div>
+              </td>
+              <td style="text-align:right; color:${color}; font-weight:bold;">
+                ${sign} ${amount.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+              </td>
+            </tr>
+          `;
+        });
+      }
 
       html += `
-
               </tbody>
-
               <tfoot>
-
-                <tr
-                  style="
-                    border-top:2px solid #22c55e;
-                  "
-                >
-
-                  <td
-                    style="
-                      padding:10px 5px;
-                      font-weight:bold;
-                    "
-                  >
-                    SALDO
+                <tr style="border-top:2px solid #22c55e;">
+                  <td style="padding:10px 5px; font-weight:bold;">SALDO</td>
+                  <td style="padding:10px 5px; text-align:right; color:#fde047;">
+                    TOF ${balance.toLocaleString()}
                   </td>
-
-                  <td
-                    style="
-                      padding:10px 5px;
-                      text-align:right;
-                      color:#fde047;
-                    "
-                  >
-
-                    TOF
-                    ${balance.toLocaleString()}
-
-                  </td>
-
                 </tr>
-
               </tfoot>
-
             </table>
-
           </div>
-
         </details>
-
       `;
     }
-
-
-    // =====================================================
-    // TAMPILKAN
-    // =====================================================
 
     if (feedEl) {
-
-      feedEl.innerHTML =
-        html;
+      feedEl.innerHTML = html;
     }
-
-    setStatus(
-      `⚡ ${history.length.toLocaleString()} transaksi dimuat dari Supabase`
-    );
+    setStatus(`⚡ Data termuat berdasarkan ${wallets.length} profil terdaftar.`);
 
   } catch (error) {
-
-    console.error(
-      "LOAD REPORT ERROR:",
-      error
-    );
-
-    setStatus(
-      `❌ Gagal memuat data: ${error.message}`
-    );
+    console.error("LOAD REPORT ERROR:", error);
+    setStatus(`❌ Gagal memuat data: ${error.message}`);
   }
 }
-
 
 // =========================================================
 // 24. STATUS HELPER
