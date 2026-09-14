@@ -245,7 +245,15 @@ async function fetchWalletTx(wallet, username) {
     }
   } while (nextToken);
 
-  return allTx;
+  // De-duplikasi berdasarkan tx_id agar tidak memicu error ON CONFLICT DO UPDATE di Supabase
+  const uniqueMap = new Map();
+  allTx.forEach(item => {
+    if (item.tx_id && !uniqueMap.has(item.tx_id)) {
+      uniqueMap.set(item.tx_id, item);
+    }
+  });
+
+  return Array.from(uniqueMap.values());
 }
 
 async function syncData() {
@@ -271,15 +279,15 @@ async function syncData() {
       const txs = await fetchWalletTx(wallet, username);
       totalTx += txs.length;
 
-     if (txs.length > 0) {
-  const { error: upsertErr } = await client
-    .from("tof_history")
-    .upsert(txs, { onConflict: "tx_id" });
+      if (txs.length > 0) {
+        const { error: upsertErr } = await client
+          .from("tof_history")
+          .upsert(txs, { onConflict: "tx_id" });
 
-  if (upsertErr) {
-    console.error(`❌ Gagal Upsert untuk ${username}:`, upsertErr.message, upsertErr.details);
-  }
-}
+        if (upsertErr) {
+          console.error(`❌ Gagal Upsert untuk ${username}:`, upsertErr.message, upsertErr.details);
+        }
+      }
 
       // Sync Saldo On-chain dari Indexer
       try {
