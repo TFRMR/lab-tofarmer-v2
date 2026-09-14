@@ -421,6 +421,7 @@
                 <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="document.getElementById('farm-modal').classList.add('active'); renderFarmList();" title="Semua Lahan">🌾</button>
                 <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openPasarModal()" title="Pasar">🛒</button>
                 <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openCompostMenu()" title="Kompos & Pupuk">🧪</button>
+                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openVillageMap(); enableEditMode();" title="Tata Rumah">🛠️</button>
                 <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openVillageMap()" title="Peta Desa">🗺️</button>
             </div>
         </div>
@@ -1785,103 +1786,28 @@
         list.innerHTML = myTiles.map(key => {
           try {
             const farm = farms[key];
+            let icon = '🟩', title = `Petak ${key}`, sub = 'Subur, siap ditanami';
 
-            if (!farm || farm.landState === 'fertile') {
-                const cropButtons = getAllCropDefs().filter(c => c.id === 'ubi_jalar').map(c => {
-                    const syaratBibit = BIBIT_CATALOG.find(b => b.crop_id === c.id);
-                    if (!syaratBibit) {
-                        return `<button class="plot-crop-btn" onclick="plantCrop('${key}','${c.id}')">${c.icon} Tanam ${c.name} — ${c.plant_cost_xp} XP</button>`;
-                    }
-                    const stok = myBibitStock[syaratBibit.id] || 0;
-                    if (stok < 1) {
-                        return `<button class="plot-crop-btn" disabled title="Buat dulu lewat menu Pembibitan">${c.icon} ${c.name} — butuh bibit (0 di gudang)</button>`;
-                    }
-                    return `<button class="plot-crop-btn" onclick="plantCrop('${key}','${c.id}')">${c.icon} Tanam ${c.name} — ${c.plant_cost_xp} XP (bibit: ${stok})</button>`;
-                }).join('');
-                return `<div class="plot-card">
-                    <div class="plot-card-icon">🟩</div>
-                    <div class="plot-card-body">
-                        <div class="plot-card-title">Petak ${key}</div>
-                        <div class="plot-card-sub">Tanah subur, siap ditanami</div>
-                        ${cropButtons}
-                    </div>
-                </div>`;
+            if (farm && farm.landState === 'barren') {
+                icon = '🟤'; sub = 'Tandus, perlu dipupuk';
+            } else if (farm && farm.landState === 'planted') {
+                const cropDef = getCropDef(farm.cropId);
+                if (cropDef) {
+                    const growMs = computeEffectiveGrowMs(cropDef, farm);
+                    const elapsed = farm.plantedAt ? (Date.now() - farm.plantedAt) : 0;
+                    const timeReady = elapsed >= growMs;
+                    const careReady = (farm.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farm.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farm.prunedCount || 0) >= CARE_TREAT_REQUIRED;
+                    icon = (timeReady && careReady) ? cropDef.fruit_icon : cropDef.icon;
+                    title = cropDef.name;
+                    sub = (timeReady && careReady) ? 'Siap dipanen! ✨' : (timeReady ? 'Butuh perawatan' : `Tumbuh ~${formatDuration(growMs - elapsed)} lagi`);
+                }
             }
 
-            if (farm.landState === 'barren') {
-                return `<div class="plot-card">
-                    <div class="plot-card-icon">🟤</div>
-                    <div class="plot-card-body">
-                        <div class="plot-card-title">Petak ${key}</div>
-                        <div class="plot-card-sub">Tanah tandus — unsur hara habis</div>
-                        <button class="plot-crop-btn" onclick="fertilizeBarrenAction('${key}')">🌿 Pupuk tanah (butuh 1 pupuk)</button>
-                    </div>
-                </div>`;
-            }
-
-            const cropDef = getCropDef(farm.cropId);
-            if (!cropDef) {
-                console.warn('Crop definition tidak ditemukan untuk', farm.cropId);
-                return `<div class="plot-card"><div class="plot-card-icon">⚠️</div><div class="plot-card-body"><div class="plot-card-title">Petak ${key}</div><span class="plot-status-text warn">Data belum sinkron, coba tutup &amp; buka lagi.</span></div></div>`;
-            }
-            const growMs = computeEffectiveGrowMs(cropDef, farm);
-            const elapsed = farm.plantedAt ? (Date.now() - farm.plantedAt) : 0;
-            const timeReady = elapsed >= growMs;
-            const careReady = (farm.waterCount || 0) >= (Number(cropDef.water_required) || 0) && (farm.fertilizeCount || 0) >= (Number(cropDef.fertilize_required) || 0) && (farm.prunedCount || 0) >= CARE_TREAT_REQUIRED;
-            const reward = computeEffectiveReward(cropDef, farm);
-
-            const now = Date.now();
-            const waterCooldownMs = (Number(cropDef.water_cooldown_seconds) || 0) * 1000;
-            const fertilizeCooldownMs = (Number(cropDef.fertilize_cooldown_seconds) || 0) * 1000;
-            const pruneCooldownMs = (Number(cropDef.prune_cooldown_seconds) || 0) * 1000;
-            const waterOnCooldown = farm.lastWateredAt && (now - farm.lastWateredAt) < waterCooldownMs;
-            const fertilizeOnCooldown = farm.lastFertilizedAt && (now - farm.lastFertilizedAt) < fertilizeCooldownMs;
-            const pruneOnCooldown = farm.lastPrunedAt && (now - farm.lastPrunedAt) < pruneCooldownMs;
-
-            let statusLine;
-            if (timeReady && careReady) {
-                statusLine = `<button class="plot-harvest-btn" onclick="harvestCropAction('${key}')">🧺 Panen ${cropDef.fruit_icon} — +${reward} XP</button>`;
-            } else if (timeReady && !careReady) {
-                statusLine = `<span class="plot-status-text warn">⚠️ Sudah waktunya, tapi perawatan belum cukup.</span>`;
-            } else {
-                statusLine = `<span class="plot-status-text">🌱 Tumbuh ~${formatDuration(growMs - elapsed)} lagi</span>`;
-            }
-
-            const perennialInfo = cropDef.is_perennial && farm.harvestCount > 0
-                ? `<div class="plot-card-sub">🌳 Panen ke-${farm.harvestCount}${cropDef.max_harvest_count ? ' / ' + cropDef.max_harvest_count : ''}</div>`
-                : '';
-
-            const waterPct = Math.min(100, Math.round(((farm.waterCount||0) / (cropDef.water_required||1)) * 100));
-            const fertPct = Math.min(100, Math.round(((farm.fertilizeCount||0) / (cropDef.fertilize_required||1)) * 100));
-            const prunePct = Math.min(100, Math.round(((farm.prunedCount||0) / (CARE_TREAT_REQUIRED||1)) * 100));
-
-            return `<div class="plot-card">
-                <div class="plot-card-icon">${cropDef.icon}</div>
+            return `<div class="plot-card" style="cursor:pointer;" onclick="focusFeaturedTile('${key}'); document.getElementById('farm-modal').classList.remove('active');">
+                <div class="plot-card-icon">${icon}</div>
                 <div class="plot-card-body">
-                    <div class="plot-card-title">${cropDef.name}</div>
-                    <div class="plot-card-sub">Petak ${key}</div>
-                    ${perennialInfo}
-                    <div class="care-bar-row">
-                        <span class="care-bar-icon">💧</span>
-                        <div class="care-bar-track"><div class="care-bar-fill water" style="width:${waterPct}%;"></div></div>
-                        <span class="care-bar-label">${farm.waterCount}/${cropDef.water_required}</span>
-                    </div>
-                    <div class="care-bar-row">
-                        <span class="care-bar-icon">🌿</span>
-                        <div class="care-bar-track"><div class="care-bar-fill fertilize" style="width:${fertPct}%;"></div></div>
-                        <span class="care-bar-label">${farm.fertilizeCount}/${cropDef.fertilize_required}</span>
-                    </div>
-                    <div class="care-bar-row">
-                        <span class="care-bar-icon">✂️</span>
-                        <div class="care-bar-track"><div class="care-bar-fill prune" style="width:${prunePct}%;"></div></div>
-                        <span class="care-bar-label">${farm.prunedCount}/${CARE_TREAT_REQUIRED}</span>
-                    </div>
-                    <div class="plot-btn-grid">
-                        <button class="plot-btn" onclick="waterCropAction('${key}')" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram${waterOnCooldown ? `<span class="plot-btn-cooldown">${formatDuration(waterCooldownMs - (now - farm.lastWateredAt))}</span>` : (estimateWaterStock() < 1 ? '<span class="plot-btn-cooldown">air habis</span>' : '')}</button>
-                        <button class="plot-btn" onclick="fertilizeCropAction('${key}')" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk${fertilizeOnCooldown ? `<span class="plot-btn-cooldown">${formatDuration(fertilizeCooldownMs - (now - farm.lastFertilizedAt))}</span>` : ''}</button>
-                        <button class="plot-btn" onclick="pruneCropAction('${key}')" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat${pruneOnCooldown ? `<span class="plot-btn-cooldown">${formatDuration(pruneCooldownMs - (now - farm.lastPrunedAt))}</span>` : ''}</button>
-                    </div>
-                    ${statusLine}
+                    <div class="plot-card-title">${title}</div>
+                    <div class="plot-card-sub">${sub} · Petak ${key}</div>
                 </div>
             </div>`;
           } catch (e) {
