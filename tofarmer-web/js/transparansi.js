@@ -17,7 +17,7 @@ function setStatus(msg) {
 }
 
 // ---------------------------------------------------------
-// 1. SUPABASE READERS (BERDASARKAN SKEMA REAL)
+// 1. SUPABASE READERS
 // ---------------------------------------------------------
 async function getAllWallets() {
   const client = getSupabase();
@@ -27,7 +27,7 @@ async function getAllWallets() {
   while (true) {
     const { data, error } = await client
       .from("profiles")
-      .select("id, username, saldo_tof") // Kolom valid dari tabel profiles (id = alamat wallet, saldo_tof = balance)
+      .select("id, username, saldo_tof")
       .range(page * size, (page + 1) * size - 1);
 
     if (error) throw error;
@@ -61,7 +61,7 @@ async function getHistoryFromSupabase() {
 }
 
 // ---------------------------------------------------------
-// 2. RENDER REPORT (DENGAN MATCHING ALAMAT WALLET + USERNAME)
+// 2. RENDER REPORT (MATCHING SUPER ACCURATE)
 // ---------------------------------------------------------
 async function loadReport() {
   setStatus("⚡ Memuat data dari Supabase...");
@@ -69,7 +69,6 @@ async function loadReport() {
     const wallets = await getAllWallets();
     const history = await getHistoryFromSupabase();
 
-    // Hitung Total Seluruh Ekosistem dari profiles.saldo_tof
     let totalAll = 0;
     wallets.forEach(u => {
       totalAll += Number(u.saldo_tof || 0);
@@ -93,7 +92,6 @@ async function loadReport() {
       const username = (u.username || "").trim();
       const balance = Number(u.saldo_tof || 0);
 
-      // Identifier unik user (alamat wallet & username) dalam bentuk lowercase
       const userKeys = [
         walletAddress.toLowerCase(),
         username.toLowerCase(),
@@ -104,7 +102,6 @@ async function loadReport() {
         ? `@${username}` 
         : (walletAddress ? `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}` : "Anonim");
 
-      // Match transaksi dari tof_history
       const txsRaw = history.filter(tx => {
         const fields = [
           tx.wallet,
@@ -116,7 +113,6 @@ async function loadReport() {
         return userKeys.some(k => fields.includes(k));
       });
 
-      // Filter duplikat transaksi berdasarkan tx_id
       const uniqueTxMap = new Map();
       txsRaw.forEach(t => {
         const key = t.tx_id || `${t.created_at}_${t.amount}_${t.note}`;
@@ -133,7 +129,6 @@ async function loadReport() {
           const receiver = String(tx.receiver || "").trim().toLowerCase();
           const txWallet = String(tx.wallet || "").trim().toLowerCase();
 
-          // Tentukan arah uang (+ penerima / - pengirim)
           const isReceiver = userKeys.includes(receiver) || (userKeys.includes(txWallet) && !userKeys.includes(sender));
           const sign = isReceiver ? "+" : "-";
           const color = isReceiver ? "#4ade80" : "#f87171";
@@ -190,26 +185,14 @@ async function loadReport() {
 }
 
 // ---------------------------------------------------------
-// 3. ALGONODE SYNC & UPDATE DB
+// 3. ALGONODE SYNC (FULL HISTORY RETRIEVAL)
 // ---------------------------------------------------------
-async function getLatestNodeRound() {
-  try {
-    const res = await fetch("https://mainnet-api.algonode.cloud/v2/status");
-    if (!res.ok) return 0;
-    const data = await res.json();
-    return Number(data["last-round"] || 0);
-  } catch (e) {
-    return 0;
-  }
-}
-
-async function fetchWalletTx(wallet, username, minRound = null) {
+async function fetchWalletTx(wallet, username) {
   let nextToken = null, allTx = [];
   let safetyLoop = 0;
 
-  // Pastikan wallet berbentuk alamat Algorand 58 karakter
   if (!wallet || wallet.trim().length !== 58) {
-    console.warn(`⚠️ Skip Sync Algonode: '${wallet}' bukan alamat wallet Algorand valid (harus 58 karakter).`);
+    console.warn(`⚠️ Skip Sync Algonode: '${wallet}' bukan alamat wallet Algorand valid 58 karakter.`);
     return [];
   }
 
@@ -220,15 +203,12 @@ async function fetchWalletTx(wallet, username, minRound = null) {
     const params = new URLSearchParams();
     params.set("limit", "500");
     params.set("tx-type", "axfer");
+    params.set("asset-id", String(TOF_ASSET_ID));
     if (nextToken) params.set("next-token", nextToken);
-    if (minRound && minRound > 0) params.set("min-round", String(minRound));
 
     try {
       const res = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`);
-      if (!res.ok) {
-        console.error(`❌ HTTP Error Algonode status ${res.status} untuk wallet ${wallet}`);
-        break;
-      }
+      if (!res.ok) break;
 
       const data = await res.json();
       const transactions = data.transactions || [];
@@ -240,8 +220,8 @@ async function fetchWalletTx(wallet, username, minRound = null) {
           let note = "";
           try { if (tx.note) note = atob(tx.note); } catch(e){}
           
-          const rawAmount = Number(transfer.amount || 0);
-          const formattedAmount = rawAmount > 1000 ? rawAmount / 1000000 : rawAmount;
+          // SEMUA TOF MEMILIKI 6 DESIMAL (Selalu dibagi 1.000.000)
+          const formattedAmount = Number(transfer.amount || 0) / 1000000;
 
           allTx.push({
             wallet: wallet, 
@@ -282,55 +262,36 @@ async function syncData() {
 
     for (let i = 0; i < wallets.length; i++) {
       const u = wallets[i];
-      const wallet = u.id; // Alamat wallet dari profiles.id
+      const wallet = u.id;
       const username = u.username || wallet;
 
       setStatus(`🔄 Sync (${i + 1}/${wallets.length}): ${username}...`);
 
-      const { data: syncState } = await client
-        .from("tof_sync_state").select("last_round").eq("wallet", wallet).maybeSingle();
-
-      const lastRound = Number(syncState?.last_round || 0);
-      const minRound = lastRound > 0 ? lastRound + 1 : null;
-
-      const txs = await fetchWalletTx(wallet, username, minRound);
+      // Tarik seluruh riwayat tanpa terhalang minRound
+      const txs = await fetchWalletTx(wallet, username);
       totalTx += txs.length;
 
       if (txs.length > 0) {
         await client.from("tof_history").upsert(txs, { onConflict: "tx_id" });
       }
 
-      // Ambil balance real-time dari Algonode Indexer
+      // Sync Saldo On-chain dari Indexer
       try {
         const resBal = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}`);
         if (resBal.ok) {
           const dataBal = await resBal.json();
           const tofAsset = (dataBal.account?.assets || []).find(a => Number(a["asset-id"]) === TOF_ASSET_ID);
           if (tofAsset) {
-            const rawBal = Number(tofAsset.amount || 0);
-            const balance = rawBal > 1000 ? rawBal / 1000000 : rawBal;
-
-            // Update saldo langsung ke tabel profiles (kolom saldo_tof)
-            await client.from("profiles").update({
-              saldo_tof: balance
-            }).eq("id", wallet);
+            const balance = Number(tofAsset.amount || 0) / 1000000;
+            await client.from("profiles").update({ saldo_tof: balance }).eq("id", wallet);
           }
         }
       } catch (e) {
         console.error("Gagal update saldo wallet:", wallet, e);
       }
-
-      const maxTxRound = txs.reduce((max, t) => t.round > max ? t.round : max, 0);
-      const latestNodeRound = await getLatestNodeRound();
-      const newLastRound = Math.max(lastRound, maxTxRound, latestNodeRound);
-
-      await client.from("tof_sync_state").upsert({
-        wallet, username: username || null, last_round: newLastRound,
-        last_sync_at: new Date().toISOString(), sync_status: "SUCCESS"
-      }, { onConflict: "wallet" });
     }
 
-    setStatus(`✅ Sync Selesai! ${totalTx} transaksi baru diproses.`);
+    setStatus(`✅ Sync Selesai! ${totalTx} transaksi berhasil diperbarui.`);
     await loadReport();
   } catch (err) {
     console.error(err);
@@ -340,7 +301,6 @@ async function syncData() {
   }
 }
 
-// Inisialisasi setelah DOM selesai dimuat
 document.addEventListener("DOMContentLoaded", () => {
   if (syncBtn) syncBtn.addEventListener("click", syncData);
   loadReport();
