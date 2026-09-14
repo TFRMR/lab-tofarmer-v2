@@ -68,7 +68,7 @@ async function getBalancesFromSupabase() {
 }
 
 // ---------------------------------------------------------
-// 2. RENDER REPORT (TERSTRUKTUR & TAMPIL SEMUA WALLET)
+// 2. RENDER REPORT (DENGAN LAYOUT RAPI & DEDUPING TX)
 // ---------------------------------------------------------
 async function loadReport() {
   setStatus("⚡ Memuat data dari Supabase...");
@@ -99,7 +99,7 @@ async function loadReport() {
         <div class="card" style="text-align:center;">
           <h2 style="color:#fde047;">📊 RINGKASAN EKOSISTEM</h2>
           <p style="font-size:1.2rem; font-weight:bold; margin-top:10px;">
-            TOTAL: TOF ${totalAll.toLocaleString()}
+            TOTAL: TOF ${totalAll.toLocaleString("id-ID")}
           </p>
           <p style="font-size:0.8rem; color:#64748b;">SOURCE: ✅ SUPABASE</p>
         </div>`;
@@ -110,35 +110,49 @@ async function loadReport() {
     // LOOP SEMUA WALLET SECARA AMAN
     wallets.forEach(u => {
       const wallet = u.id;
-      const txs = grouped[wallet] || [];
+      const txsRaw = grouped[wallet] || [];
       const balance = Number(balanceMap[wallet] || 0);
       const displayName = u.username ? `@${u.username}` : wallet;
 
+      // Filter duplikat berdasarkan tx_id unik per user
+      const uniqueTxMap = new Map();
+      txsRaw.forEach(t => uniqueTxMap.set(t.tx_id, t));
+      const txs = Array.from(uniqueTxMap.values());
+
       let txRows = "";
       if (txs.length === 0) {
-        txRows = `<tr><td colspan="2" style="padding:10px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
+        txRows = `<tr><td colspan="2" style="padding:12px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
       } else {
         txs.forEach(tx => {
           const isReceiver = tx.receiver === wallet;
           const sign = isReceiver ? "+" : "-";
           const color = isReceiver ? "#4ade80" : "#f87171";
-          const date = tx.created_at ? new Date(tx.created_at).toLocaleDateString("id-ID") : "-";
-          const noteText = tx.note ? tx.note.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "-"; // Sanitize HTML
+          
+          // Format tanggal yang aman dari NaN
+          let dateStr = "-";
+          if (tx.created_at) {
+            const d = new Date(tx.created_at);
+            if (!isNaN(d.getTime())) {
+              dateStr = d.toLocaleDateString("id-ID", { day: 'numeric', month: 'numeric', year: 'numeric' });
+            }
+          }
+          
+          const noteText = tx.note ? tx.note.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "-";
 
           txRows += `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <td style="padding:8px 5px;">
-                ${date} 
-                <div style="font-size:0.75rem; color:#94a3b8;">${noteText}</div>
+              <td style="padding:10px 8px; vertical-align:top;">
+                <div style="font-weight:600; color:#e2e8f0; font-size:0.85rem;">${dateStr}</div>
+                <div style="font-size:0.75rem; color:#94a3b8; margin-top:3px; word-break:break-word;">${noteText}</div>
               </td>
-              <td style="text-align:right; color:${color}; font-weight:bold; white-space:nowrap;">
-                ${sign} ${Number(tx.amount || 0).toLocaleString()} TOF
+              <td style="text-align:right; color:${color}; font-weight:bold; white-space:nowrap; vertical-align:top; padding:10px 8px;">
+                ${sign} ${Number(tx.amount || 0).toLocaleString("id-ID")} TOF
               </td>
             </tr>`;
         });
       }
 
-      // RENDER DETAILED CARD UNTUK PER-USER
+      // RENDER DETAILED CARD PER-USER
       html += `
         <details class="card" style="margin-bottom:15px;">
           <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none; display:flex; justify-content:space-between; align-items:center;">
@@ -152,8 +166,8 @@ async function loadReport() {
               </tbody>
               <tfoot>
                 <tr style="border-top:2px solid #22c55e;">
-                  <td style="padding:10px 5px; font-weight:bold;">SALDO SAAT INI</td>
-                  <td style="padding:10px 5px; text-align:right; color:#fde047; font-weight:bold;">TOF ${balance.toLocaleString()}</td>
+                  <td style="padding:10px 8px; font-weight:bold;">SALDO SAAT INI</td>
+                  <td style="padding:10px 8px; text-align:right; color:#fde047; font-weight:bold;">TOF ${balance.toLocaleString("id-ID")}</td>
                 </tr>
               </tfoot>
             </table>
