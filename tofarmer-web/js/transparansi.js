@@ -146,15 +146,11 @@ function normalizeTransaction(tx, wallet, username) {
 // =========================================================
 // 5. AMBIL TRANSAKSI DARI ALGO NODE (FIX: FILTER ASSET ID)
 // =========================================================
-async function getWalletTxPage(
-  wallet,
-  nextToken = null,
-  minRound = null
-) {
+async function getWalletTxPage(wallet, nextToken = null, minRound = null) {
   const params = new URLSearchParams();
   params.set("limit", "1000");
   
-  // PERBAIKAN: Minta Algonode memfilter hanya asset TOF dari server
+  // FIX 1: Filter aset langsung dari server Algonode agar tidak menarik TX ALGO biasa
   params.set("asset-id", String(TOF_ASSET_ID));
 
   if (nextToken) {
@@ -169,6 +165,10 @@ async function getWalletTxPage(
   const response = await fetch(url);
 
   if (!response.ok) {
+    // FIX 2: Jika wallet baru/kosong dan 404, anggap transaksi 0 tanpa melempar error crash
+    if (response.status === 404) {
+      return { transactions: [], nextToken: null };
+    }
     throw new Error(`Algonode error ${response.status}: ${response.statusText}`);
   }
 
@@ -180,42 +180,26 @@ async function getWalletTxPage(
   };
 }
 
-
 // =========================================================
-// 6. AMBIL SEMUA TRANSAKSI (FIX: REMOVE INFINITE LOOP)
+// 6. AMBIL SEMUA TRANSAKSI (FIRST FULL SYNC)
 // =========================================================
-async function getAllWalletTransactions(
-  wallet,
-  username,
-  onProgress = null
-) {
+async function getAllWalletTransactions(wallet, username, onProgress = null) {
   let nextToken = null;
   let allTransactions = [];
   let page = 0;
 
   do {
     page++;
-
-    const result = await getWalletTxPage(
-      wallet,
-      nextToken,
-      null
-    );
-
+    const result = await getWalletTxPage(wallet, nextToken, null);
     const transactions = result.transactions;
 
-    // PERBAIKAN KUNCI: Hentikan loop jika transaksi dari API sudah kosong!
+    // FIX 3: Paksa LOOP BERHENTI jika transaksi dari API kosong
     if (!transactions || transactions.length === 0) {
       break;
     }
 
     for (const tx of transactions) {
-      const normalized = normalizeTransaction(
-        tx,
-        wallet,
-        username
-      );
-
+      const normalized = normalizeTransaction(tx, wallet, username);
       if (normalized) {
         allTransactions.push(normalized);
       }
@@ -224,46 +208,31 @@ async function getAllWalletTransactions(
     nextToken = result.nextToken;
 
     if (onProgress) {
-      onProgress({
-        page,
-        count: allTransactions.length
-      });
+      onProgress({ page, count: allTransactions.length });
     }
 
   } while (nextToken);
 
   return allTransactions;
 }
+
 // =========================================================
-// 7. AMBIL TRANSAKSI BARU (FIX: REMOVE INFINITE LOOP)
+// 7. AMBIL TRANSAKSI BARU (INCREMENTAL SYNC)
 // =========================================================
-async function getNewWalletTransactions(
-  wallet,
-  username,
-  lastRound
-) {
+async function getNewWalletTransactions(wallet, username, lastRound) {
   let nextToken = null;
   let allTransactions = [];
 
   do {
-    const result = await getWalletTxPage(
-      wallet,
-      nextToken,
-      lastRound
-    );
+    const result = await getWalletTxPage(wallet, nextToken, lastRound);
 
-    // PERBAIKAN KUNCI: Hentikan loop jika tidak ada transaksi baru
+    // FIX 4: Paksa LOOP BERHENTI jika tidak ada transaksi baru
     if (!result.transactions || result.transactions.length === 0) {
       break;
     }
 
     for (const tx of result.transactions) {
-      const normalized = normalizeTransaction(
-        tx,
-        wallet,
-        username
-      );
-
+      const normalized = normalizeTransaction(tx, wallet, username);
       if (normalized) {
         allTransactions.push(normalized);
       }
@@ -274,6 +243,20 @@ async function getNewWalletTransactions(
   } while (nextToken);
 
   return allTransactions;
+}
+
+// =========================================================
+// HELPER: AMBIL ROUND DARI NETWORK ALGONODE
+// =========================================================
+async function getLatestNodeRound() {
+  try {
+    const response = await fetch(`${ALGONODE_INDEXER}/health`);
+    if (!response.ok) return 0;
+    const data = await response.json();
+    return Number(data["round"] || 0);
+  } catch (e) {
+    return 0;
+  }
 }
 // =========================================================
 // 8. SIMPAN TRANSAKSI KE SUPABASE
@@ -372,14 +355,6 @@ async function getWalletBalance(
   );
 }
 // =========================================================
-// AMBIL ROUND/BLOCK TERBARU DARI ALGONODE
-// =========================================================
-async function getLatestNodeRound() {
-  const response = await fetch(`${ALGONODE_INDEXER}/health`);
-  if (!response.ok) return 0;
-  const data = await response.json();
-  return Number(data["round"] || 0);
-}
 
 // =========================================================
 // 10. SIMPAN BALANCE KE SUPABASE
@@ -628,72 +603,36 @@ async function fullSyncWallet(
 // =========================================================
 // 15. INCREMENTAL SYNC SATU WALLET (FIXED INFINITE LOOP)
 // =========================================================
-
-async function incrementalSyncWallet(
-  wallet,
-  username,
-  walletIndex,
-  totalWallet
-) {
-
+async function incrementalSyncWallet(wallet, username, walletIndex, totalWallet) {
   const state = await getSyncState(wallet);
   const lastRound = Number(state?.last_round || 0);
 
-  // Jika belum pernah full sync, jalankan FULL SYNC
   if (!state || lastRound <= 0) {
-    return await fullSyncWallet(
-      wallet,
-      username,
-      walletIndex,
-      totalWallet
-    );
+    return await fullSyncWallet(wallet, username, walletIndex, totalWallet);
   }
 
-  console.log(`[INCREMENTAL] ${username}, mulai dari round ${lastRound + 1}`);
-
+  console.log(`[INCREMENTAL] ${username}, mulai round ${lastRound + 1}`);
   await saveSyncState(wallet, username, lastRound, "SYNCING", null);
 
-  setStatus(
-    `🔄 SYNC ${walletIndex}/${totalWallet}: ${username} — mencari transaksi baru...`
-  );
+  setStatus(`🔄 SYNC ${walletIndex}/${totalWallet}: ${username} — mencari transaksi baru...`);
 
-  // PERBAIKAN 1: Tarik data mulai dari round SETELAH lastRound (lastRound + 1)
-  const transactions = await getNewWalletTransactions(
-    wallet,
-    username,
-    lastRound + 1
-  );
+  // FIX 5: Mulai cari dari (lastRound + 1)
+  const transactions = await getNewWalletTransactions(wallet, username, lastRound + 1);
 
-  console.log(`NEW ${username}:`, transactions.length, "transaksi");
-
-  // Simpan transaksi baru jika ada
   if (transactions.length > 0) {
     await saveTransactions(transactions);
   }
 
-  // Balance tetap diperbarui
   const balance = await getWalletBalance(wallet);
   await saveWalletBalance(wallet, username, balance);
 
-  // PERBAIKAN 2: Ambil round tertinggi dari transaksi BARU, 
-  // atau jika 0 transaksi baru, ambil status round jaringan Algorand saat ini.
   const highestTxRound = getHighestRound(transactions);
   const currentNetworkRound = await getLatestNodeRound();
 
-  // Tentukan round terakhir yang baru
-  const newLastRound = Math.max(
-    lastRound,
-    highestTxRound,
-    currentNetworkRound
-  );
+  // FIX 6: Pastikan lastRound selalu maju walaupun 0 transaksi baru
+  const newLastRound = Math.max(lastRound, highestTxRound, currentNetworkRound);
 
-  await saveSyncState(
-    wallet,
-    username,
-    newLastRound,
-    "SUCCESS",
-    null
-  );
+  await saveSyncState(wallet, username, newLastRound, "SUCCESS", null);
 
   return {
     transactionCount: transactions.length,
@@ -701,8 +640,6 @@ async function incrementalSyncWallet(
     lastRound: newLastRound
   };
 }
-
-
 // =========================================================
 // 16. DETEKSI APAKAH SUDAH PERNAH FULL SYNC
 // =========================================================
