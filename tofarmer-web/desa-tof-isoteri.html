@@ -2510,6 +2510,21 @@
         row.querySelectorAll('button').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
     }
 
+    function buildPlantButtonsHtml(key) {
+        return getAllCropDefs().filter(c => c.id === 'ubi_jalar').map(c => {
+            const syaratBibit = BIBIT_CATALOG.find(b => b.crop_id === c.id);
+            if (!syaratBibit) {
+                return `<button class="plot-crop-btn" onclick="kebunActionStart(); plantCrop('${key}','${c.id}').then(() => renderKebunSayaHome())">${c.icon} Tanam ${c.name} — ${c.plant_cost_xp} XP</button>`;
+            }
+            const stok = myBibitStock[syaratBibit.id] || 0;
+            if (stok < 1) {
+                return `<button class="plot-crop-btn" disabled>${c.icon} ${c.name} — butuh bibit (0 di gudang)</button>
+                        <button class="plot-crop-btn" style="margin-top:6px;" onclick="document.getElementById('farm-modal').classList.add('active');">🌱 Buka Pembibitan (bikin bibit dulu)</button>`;
+            }
+            return `<button class="plot-crop-btn" onclick="kebunActionStart(); plantCrop('${key}','${c.id}').then(() => renderKebunSayaHome())">${c.icon} Tanam ${c.name} — ${c.plant_cost_xp} XP (bibit: ${stok})</button>`;
+        }).join('');
+    }
+
     function buildCareButtonsHtml(key, farm, cropDef) {
         const now = Date.now();
         const waterCooldownMs = (Number(cropDef.water_cooldown_seconds)||0)*1000;
@@ -2598,7 +2613,7 @@
             const sig = 'fertile-' + key;
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ empty: true }); lastKebunPlantSignature = sig; }
             statusEl.innerText = `Petak ${key} subur, siap ditanami.`;
-            actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="document.getElementById('farm-modal').classList.add('active'); renderFarmList();">🌱 Tanam Sekarang</button>`;
+            actionEl.innerHTML = buildPlantButtonsHtml(key);
         } else if (farm.landState === 'barren') {
             const sig = 'barren-' + key;
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ barren: true }); lastKebunPlantSignature = sig; }
