@@ -282,6 +282,11 @@
         @keyframes kebunPulseText { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
         .kebun-empty-glow { animation: kebunPulseGlow 3s ease-in-out infinite; }
         @keyframes kebunPulseGlow { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.3; } }
+
+        /* ===== Bottom sheet (Pasar & Kompos) -- pohon tetap "mengintip" di atas ===== */
+        .modal-overlay.bottom-sheet { align-items: flex-end; justify-content: center; background: rgba(2,4,3,0.4); backdrop-filter: blur(2px); padding: 0; }
+        .modal-overlay.bottom-sheet .modal-box { width: 100%; max-width: 480px; max-height: 75vh; border-radius: 20px 20px 0 0; margin: 0; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275); }
+        .modal-overlay.bottom-sheet.active .modal-box { transform: translateY(0); }
         .care-progress { font-size: 9px; color: #94a3b8; margin-top: 3px; }
 
         /* MODAL KOMPOS & PUPUK */
@@ -535,7 +540,7 @@
     </div>
 </div>
 
-<div id="compost-modal" class="modal-overlay farm-modal-wide" onclick="closeCompostModal(event)">
+<div id="compost-modal" class="modal-overlay bottom-sheet" onclick="closeCompostModal(event)">
     <div class="modal-box" onclick="event.stopPropagation()">
         <button class="modal-close-x" onclick="document.getElementById('compost-modal').classList.remove('active')">✕</button>
         <span class="island-icon" style="font-size: 40px;">🧪</span>
@@ -582,7 +587,7 @@
     <button id="btn-cairkan-tof" onclick="openCairkanModal()" style="width:100%; margin-top:6px; padding:5px; font-size:10px; border:none; border-radius:8px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:600; cursor:pointer;">☕ Cairkan ke TOF</button>
 </div>
 
-<div id="pasar-modal" class="modal-overlay farm-modal-wide" onclick="closePasarModal(event)">
+<div id="pasar-modal" class="modal-overlay bottom-sheet" onclick="closePasarModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <button class="modal-close-x" onclick="document.getElementById('pasar-modal').classList.remove('active')">✕</button>
         <span class="island-icon">🛒</span>
@@ -2611,6 +2616,40 @@
 
     let lastKebunPlantSignature = null;
 
+    async function klaimLahanOtomatis() {
+        if (isGuestUser()) { showToast('Login dulu untuk klaim tanah.', true); return; }
+        const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername);
+        let refX = GRID_SIZE / 2, refY = GRID_SIZE / 2;
+        if (myTiles.length) {
+            let sx = 0, sy = 0;
+            myTiles.forEach(k => { const [x, y] = k.split(',').map(Number); sx += x; sy += y; });
+            refX = sx / myTiles.length; refY = sy / myTiles.length;
+        }
+        let best = null, bestDist = Infinity;
+        for (let x = 0; x < GRID_SIZE; x++) {
+            for (let y = 0; y < GRID_SIZE; y++) {
+                const key = `${x},${y}`;
+                if (claimedTiles[key]) continue;
+                const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+                if (ground && ['paved_road', 'mountain', 'tree'].includes(ground.type)) continue;
+                const dist = Math.hypot(x - refX, y - refY);
+                if (dist < bestDist) { bestDist = dist; best = { x, y }; }
+            }
+        }
+        if (!best) { showToast('Tidak ada lagi lahan kosong yang bisa diklaim di desa.', true); return; }
+
+        const { data, error } = await db.rpc('fn_claim_tile', { p_user: myUserId, p_x: best.x, p_y: best.y });
+        if (error) { showToast('Gagal klaim tanah: ' + error.message, true); return; }
+        if (!data.success) { showToast(data.message || 'Gagal klaim tanah.', true); return; }
+
+        const key = `${best.x},${best.y}`;
+        claimedTiles[key] = { ownerId: myUserId, ownerUsername: myUsername };
+        showToast(`📍 Berhasil klaim petak baru! -${data.cost} XP.`);
+        await refreshMyProfile();
+        window.__kebunPinnedTile = key;
+        renderKebunSayaHome();
+    }
+
     function renderKebunSayaHome() {
         const key = pickFeaturedTileKey();
         const stageEl = document.getElementById('kebun-plant-stage');
@@ -2622,8 +2661,8 @@
         if (!key) {
             const sig = 'empty-no-tile';
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ empty: true }); lastKebunPlantSignature = sig; }
-            statusEl.innerText = 'Anda belum punya lahan. Klaim tanah dulu di menu Desa.';
-            actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="openVillageMap()">🗺️ Buka Peta Desa</button>`;
+            statusEl.innerText = 'Anda belum punya lahan. Klaim lahan pertama, dipilihkan otomatis.';
+            actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="klaimLahanOtomatis()">📍 Klaim Lahan</button>`;
             othersEl.innerHTML = '';
             return;
         }
@@ -2674,7 +2713,7 @@
                 icon = cd ? cd.icon : '🌱';
             }
             return `<div class="kebun-plot-thumb" onclick="focusFeaturedTile('${k}')">${icon}</div>`;
-        }).join('');
+        }).join('') + `<div class="kebun-plot-thumb" onclick="klaimLahanOtomatis()" title="Klaim lahan baru">➕</div>`;
     }
 
     function checkKebunReadyAndShow() {
