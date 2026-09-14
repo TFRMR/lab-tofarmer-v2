@@ -1,4 +1,8 @@
-const supabaseClient = window.supabaseClient;
+// Memastikan supabaseClient siap saat dipanggil
+function getSupabase() {
+  return window.supabaseClient || (window.supabase && window.supabase.createClient ? window.supabase : null);
+}
+
 const TOF_ASSET_ID = 3558306283;
 const ALGONODE_INDEXER = "https://mainnet-idx.algonode.cloud/v2";
 
@@ -13,12 +17,15 @@ function setStatus(msg) {
 }
 
 // ---------------------------------------------------------
-// 1. SUPABASE READERS (SOLUSI CORS: SEQUENTIAL FETCH)
+// 1. SUPABASE READERS (SAFE READ)
 // ---------------------------------------------------------
 async function getAllWallets() {
+  const client = getSupabase();
+  if (!client) throw new Error("Supabase Client belum siap / config-supabase.js error");
+
   let allProfiles = [], page = 0, size = 1000;
   while (true) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await client
       .from("profiles")
       .select("id, username")
       .range(page * size, (page + 1) * size - 1);
@@ -33,9 +40,10 @@ async function getAllWallets() {
 }
 
 async function getHistoryFromSupabase() {
+  const client = getSupabase();
   let allData = [], page = 0, size = 1000;
   while (true) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await client
       .from("tof_history")
       .select("wallet, username, tx_id, amount, note, category, sender, receiver, round, created_at")
       .order("created_at", { ascending: false })
@@ -51,7 +59,8 @@ async function getHistoryFromSupabase() {
 }
 
 async function getBalancesFromSupabase() {
-  const { data, error } = await supabaseClient
+  const client = getSupabase();
+  const { data, error } = await client
     .from("tof_balances")
     .select("wallet, username, balance, updated_at");
   if (error) throw error;
@@ -59,7 +68,7 @@ async function getBalancesFromSupabase() {
 }
 
 // ---------------------------------------------------------
-// 2. RENDER REPORT (MEMBACA DARI SUPABASE SAJA)
+// 2. RENDER REPORT
 // ---------------------------------------------------------
 async function loadReport() {
   setStatus("⚡ Memuat data dari Supabase...");
@@ -148,7 +157,7 @@ async function loadReport() {
 }
 
 // ---------------------------------------------------------
-// 3. ALGONODE SYNC (SAFE PAGINATION & NO INFINITE LOOP)
+// 3. ALGONODE SYNC (PENYEMPURNAAN PAGINATION & API ENDPOINT)
 // ---------------------------------------------------------
 async function getLatestNodeRound() {
   try {
@@ -159,29 +168,28 @@ async function getLatestNodeRound() {
   } catch (e) { return 0; }
 }
 
-async function getWalletTxPage(wallet, nextToken = null, minRound = null) {
-  const params = new URLSearchParams();
-  params.set("limit", "1000");
-  params.set("asset-id", String(TOF_ASSET_ID));
-  if (nextToken) params.set("next-token", nextToken);
-  if (minRound && minRound > 0) params.set("min-round", String(minRound));
-
-  const res = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`);
-  if (!res.ok) {
-    if (res.status === 404) return { transactions: [], nextToken: null };
-    throw new Error(`Algonode error ${res.status}`);
-  }
-  const data = await res.json();
-  return { transactions: data.transactions || [], nextToken: data["next-token"] || null };
-}
-
 async function fetchWalletTx(wallet, username, minRound = null) {
   let nextToken = null, allTx = [];
-  do {
-    const res = await getWalletTxPage(wallet, nextToken, minRound);
-    if (!res.transactions || res.transactions.length === 0) break; // FIX BREAK LOOP
+  let safetyLoop = 0; // Mencegah browser hanging jika ada kesalahan API
 
-    for (const tx of res.transactions) {
+  do {
+    safetyLoop++;
+    if (safetyLoop > 50) break; // Limit maksimal 50 page per wallet
+
+    const params = new URLSearchParams();
+    params.set("limit", "500");
+    params.set("tx-type", "axfer"); // Hanya tarik transaksi Aset (bukan Algo transfer)
+    if (nextToken) params.set("next-token", nextToken);
+    if (minRound && minRound > 0) params.set("min-round", String(minRound));
+
+    const res = await fetch(`${ALGONODE_INDEXER}/accounts/${wallet}/transactions?${params.toString()}`);
+    if (!res.ok) break;
+
+    const data = await res.json();
+    const transactions = data.transactions || [];
+    if (transactions.length === 0) break;
+
+    for (const tx of transactions) {
       const transfer = tx["asset-transfer-transaction"];
       if (transfer && Number(transfer["asset-id"]) === TOF_ASSET_ID) {
         let note = "";
@@ -197,13 +205,20 @@ async function fetchWalletTx(wallet, username, minRound = null) {
         });
       }
     }
-    nextToken = res.nextToken;
+
+    nextToken = data["next-token"] || null;
   } while (nextToken);
 
   return allTx;
 }
 
 async function syncData() {
+  const client = getSupabase();
+  if (!client) {
+    alert("Supabase belum terhubung!");
+    return;
+  }
+
   if (syncBtn) syncBtn.disabled = true;
   try {
     const wallets = await getAllWallets();
@@ -216,7 +231,7 @@ async function syncData() {
 
       setStatus(`🔄 Sync (${i + 1}/${wallets.length}): ${username}...`);
 
-      const { data: syncState } = await supabaseClient
+      const { data: syncState } = await client
         .from("tof_sync_state").select("last_round").eq("wallet", wallet).maybeSingle();
 
       const lastRound = Number(syncState?.last_round || 0);
@@ -226,7 +241,7 @@ async function syncData() {
       totalTx += txs.length;
 
       if (txs.length > 0) {
-        await supabaseClient.from("tof_history").upsert(txs, { onConflict: "tx_id" });
+        await client.from("tof_history").upsert(txs, { onConflict: "tx_id" });
       }
 
       // Ambil balance
@@ -238,7 +253,7 @@ async function syncData() {
         if (tofAsset) balance = Number(tofAsset.amount || 0) / 1000000;
       }
 
-      await supabaseClient.from("tof_balances").upsert({
+      await client.from("tof_balances").upsert({
         wallet, username: username || null, balance, updated_at: new Date().toISOString()
       }, { onConflict: "wallet" });
 
@@ -246,7 +261,7 @@ async function syncData() {
       const latestNodeRound = await getLatestNodeRound();
       const newLastRound = Math.max(lastRound, maxTxRound, latestNodeRound);
 
-      await supabaseClient.from("tof_sync_state").upsert({
+      await client.from("tof_sync_state").upsert({
         wallet, username: username || null, last_round: newLastRound,
         last_sync_at: new Date().toISOString(), sync_status: "SUCCESS"
       }, { onConflict: "wallet" });
@@ -262,5 +277,8 @@ async function syncData() {
   }
 }
 
-if (syncBtn) syncBtn.addEventListener("click", syncData);
-loadReport();
+// Inisialisasi setelah DOM selesai dimuat sepenuhnya
+document.addEventListener("DOMContentLoaded", () => {
+  if (syncBtn) syncBtn.addEventListener("click", syncData);
+  loadReport();
+});
