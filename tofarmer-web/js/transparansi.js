@@ -68,7 +68,7 @@ async function getBalancesFromSupabase() {
 }
 
 // ---------------------------------------------------------
-// 2. RENDER REPORT
+// 2. RENDER REPORT (TERSTRUKTUR & TAMPIL SEMUA WALLET)
 // ---------------------------------------------------------
 async function loadReport() {
   setStatus("⚡ Memuat data dari Supabase...");
@@ -78,7 +78,9 @@ async function loadReport() {
     const balances = await getBalancesFromSupabase();
 
     const balanceMap = {};
-    balances.forEach(b => { if (b.wallet) balanceMap[b.wallet] = Number(b.balance || 0); });
+    balances.forEach(b => { 
+      if (b.wallet) balanceMap[b.wallet] = Number(b.balance || 0); 
+    });
 
     const grouped = {};
     history.forEach(tx => {
@@ -103,59 +105,69 @@ async function loadReport() {
         </div>`;
     }
 
-    let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA</h3>`;
-    for (const u of wallets) {
+    let html = `<h3 style="margin-bottom:1.5rem; text-align:center;">👤 DETAIL KONTRIBUSI ANGGOTA (${wallets.length})</h3>`;
+    
+    // LOOP SEMUA WALLET SECARA AMAN
+    wallets.forEach(u => {
       const wallet = u.id;
       const txs = grouped[wallet] || [];
       const balance = Number(balanceMap[wallet] || 0);
+      const displayName = u.username ? `@${u.username}` : wallet;
 
-      html += `
-        <details class="card" style="margin-bottom:15px;">
-          <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none;">
-            👤 ${u.username ? '@' + u.username : wallet}
-            <span style="font-size:0.8rem; color:#64748b;">(${txs.length} transaksi)</span>
-          </summary>
-          <div style="margin-top:15px;">
-            <table style="width:100%; font-size:0.9rem;">
-              <tbody>`;
-      
+      let txRows = "";
       if (txs.length === 0) {
-        html += `<tr><td style="padding:10px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
+        txRows = `<tr><td colspan="2" style="padding:10px; text-align:center; color:#64748b;">Belum ada catatan transaksi.</td></tr>`;
       } else {
         txs.forEach(tx => {
           const isReceiver = tx.receiver === wallet;
           const sign = isReceiver ? "+" : "-";
           const color = isReceiver ? "#4ade80" : "#f87171";
-          const date = tx.created_at ? new Date(tx.created_at).toLocaleDateString() : "-";
-          html += `
+          const date = tx.created_at ? new Date(tx.created_at).toLocaleDateString("id-ID") : "-";
+          const noteText = tx.note ? tx.note.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "-"; // Sanitize HTML
+
+          txRows += `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-              <td style="padding:8px 5px;">${date} <div style="font-size:0.7rem; color:#64748b;">${tx.note || "-"}</div></td>
-              <td style="text-align:right; color:${color}; font-weight:bold;">${sign} ${Number(tx.amount || 0).toLocaleString()}</td>
+              <td style="padding:8px 5px;">
+                ${date} 
+                <div style="font-size:0.75rem; color:#94a3b8;">${noteText}</div>
+              </td>
+              <td style="text-align:right; color:${color}; font-weight:bold; white-space:nowrap;">
+                ${sign} ${Number(tx.amount || 0).toLocaleString()} TOF
+              </td>
             </tr>`;
         });
       }
 
+      // RENDER DETAILED CARD UNTUK PER-USER
       html += `
+        <details class="card" style="margin-bottom:15px;">
+          <summary style="cursor:pointer; font-weight:bold; color:#fde047; outline:none; display:flex; justify-content:space-between; align-items:center;">
+            <span>👤 ${displayName}</span>
+            <span style="font-size:0.8rem; color:#64748b; font-weight:normal;">(${txs.length} transaksi)</span>
+          </summary>
+          <div style="margin-top:15px; overflow-x:auto;">
+            <table style="width:100%; font-size:0.9rem; border-collapse:collapse;">
+              <tbody>
+                ${txRows}
               </tbody>
               <tfoot>
                 <tr style="border-top:2px solid #22c55e;">
-                  <td style="padding:10px 5px; font-weight:bold;">SALDO</td>
-                  <td style="padding:10px 5px; text-align:right; color:#fde047;">TOF ${balance.toLocaleString()}</td>
+                  <td style="padding:10px 5px; font-weight:bold;">SALDO SAAT INI</td>
+                  <td style="padding:10px 5px; text-align:right; color:#fde047; font-weight:bold;">TOF ${balance.toLocaleString()}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
         </details>`;
-    }
+    });
 
     if (feedEl) feedEl.innerHTML = html;
-    setStatus(`⚡ Termuat ${wallets.length} profil.`);
+    setStatus(`⚡ Berhasil me-render ${wallets.length} profil.`);
   } catch (err) {
     console.error(err);
     setStatus(`❌ Error: ${err.message}`);
   }
 }
-
 // ---------------------------------------------------------
 // 3. ALGONODE SYNC (PENYEMPURNAAN PAGINATION & API ENDPOINT)
 // ---------------------------------------------------------
