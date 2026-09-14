@@ -271,9 +271,15 @@ async function syncData() {
       const txs = await fetchWalletTx(wallet, username);
       totalTx += txs.length;
 
-      if (txs.length > 0) {
-        await client.from("tof_history").upsert(txs, { onConflict: "tx_id" });
-      }
+     if (txs.length > 0) {
+  const { error: upsertErr } = await client
+    .from("tof_history")
+    .upsert(txs, { onConflict: "tx_id" });
+
+  if (upsertErr) {
+    console.error(`❌ Gagal Upsert untuk ${username}:`, upsertErr.message, upsertErr.details);
+  }
+}
 
       // Sync Saldo On-chain dari Indexer
       try {
