@@ -2654,7 +2654,7 @@
             if (timeReady && careReady) {
                 const reward = computeEffectiveReward(cropDef, farm);
                 statusEl.innerText = `${cropDef.name} siap dipanen! +${reward} XP`;
-                actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="kebunActionStart(); harvestCropAction('${key}').then(() => { celebrateHarvest(${reward}); renderKebunSayaHome(); })">🧺 Panen Sekarang</button>`;
+                actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="kebunActionStart(); harvestCropAction('${key}').then(() => { celebrateHarvest(${reward}); setTimeout(() => renderKebunSayaHome(), 1400); })">🧺 Panen Sekarang</button>`;
             } else if (timeReady && !careReady) {
                 statusEl.innerText = `${cropDef.name} sudah waktunya, tapi masih butuh perawatan.`;
                 actionEl.innerHTML = buildCareButtonsHtml(key, farm, cropDef);
