@@ -270,7 +270,7 @@
         .kebun-plant-stage svg { width: 70%; max-width: 260px; }
         .kebun-status-text { text-align: center; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.8); font-size: 14px; margin-bottom: 10px; padding: 0 20px; }
         .kebun-action-row { display: flex; gap: 10px; padding: 0 16px 14px; justify-content: center; flex-wrap: wrap; }
-        .kebun-other-plots { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 18px; }
+        .kebun-other-plots { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 18px; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
         .kebun-plot-thumb { flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
         .kebun-reopen-btn { position: fixed; top: 64px; left: 10px; z-index: 10500; width: 44px; height: 44px; border-radius: 50%; background: var(--ui); border: 1px solid var(--accent); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         @keyframes kebunFxFloat { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.6); } 40% { opacity:1; transform:translate(-50%,-90%) scale(1.2); } 100% { opacity:0; transform:translate(-50%,-140%) scale(1); } }
@@ -278,6 +278,8 @@
         @keyframes kebunBurst { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.4); } 70% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); } }
         @keyframes kebunRewardPop { 0% { opacity:0; transform:translate(-50%,-30%) scale(0.5); } 25% { opacity:1; transform:translate(-50%,-60%) scale(1.15); } 70% { opacity:1; transform:translate(-50%,-90%) scale(1); } 100% { opacity:0; transform:translate(-50%,-120%) scale(0.95); } }
         @keyframes kebunFlash { 0% { opacity:0; } 30% { opacity:1; } 100% { opacity:0; } }
+        #kebun-beringin-scene { position: absolute; right: 0; bottom: 0; width: 110px; height: 42%; max-height: 280px; z-index: 1; cursor: pointer; }
+        #kebun-beringin-scene svg { width: 100%; height: 100%; display: block; }
         .kebun-empty-hint { font-size: 13px; color: #cbd5e1; text-shadow: 0 1px 4px rgba(0,0,0,0.6); animation: kebunPulseText 2.2s ease-in-out infinite; }
         @keyframes kebunPulseText { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
         .kebun-empty-glow { animation: kebunPulseGlow 3s ease-in-out infinite; }
@@ -415,8 +417,9 @@
 <div id="kebun-saya-screen">
     <div class="kebun-backdrop" id="kebun-backdrop"></div>
     <div class="kebun-content">
+        <div id="kebun-beringin-scene" onclick="openBeringinModal()" title="Pohon Beringin Desa -- tap untuk rawat"></div>
         <div class="kebun-header">
-            <div class="kebun-title">🌾 Kebun Saya</div>
+            <div class="kebun-title" id="kebun-title-text">🌾 Kebun Saya</div>
             <div style="display:flex; gap:6px;">
                 <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="document.getElementById('farm-modal').classList.add('active'); renderFarmList();" title="Semua Lahan">🌾</button>
                 <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openPasarModal()" title="Pasar">🛒</button>
@@ -633,16 +636,10 @@
 
 <div class="controls" id="controls-wrap">
     <div class="controls-sub" id="controls-sub">
-        <button id="btn-claim-toggle" class="btn btn-claim-toggle" onclick="toggleClaimMode()">📍 Klaim Tanah</button>
         <button class="btn btn-edit" onclick="enableEditMode()">🛠️ Tata Rumah</button>
-        <button class="btn btn-farm" onclick="openFarmMenu()">🌾 Bertani</button>
-        <button class="btn btn-compost" onclick="openCompostMenu()">🧪 Kompos & Pupuk</button>
-        <button class="btn btn-farm" onclick="openPasarModal()">🛒 Pasar</button>
-        <!-- Nonaktif sementara, belum diperlukan -- <button class="btn btn-island" onclick="openIslandModal()">🏝️ Bikin Pulau</button> -->
         <button class="btn" onclick="adjustZoom(0.15)">➕ Zoom</button>
         <button class="btn" onclick="adjustZoom(-0.15)">➖ Zoom</button>
         <button class="btn" onclick="rotateMap()">🔄 Putar Sisi</button>
-        <button class="btn" onclick="toggleGridMode()">🧪 Mode Grid (uji)</button>
     </div>
     <button class="btn btn-fab-main" id="btn-fab-main" onclick="toggleControlsMenu()">☰ Menu</button>
 </div>
@@ -1535,6 +1532,9 @@
             beringinHealthPct = Number(data.health_pct);
             document.getElementById('beringin-health-label').innerText = Math.round(beringinHealthPct) + '%';
             document.getElementById('beringin-health-bar').style.width = Math.max(0, Math.min(100, beringinHealthPct)) + '%';
+            lastBeringinSignature = null;
+            renderBeringinScene();
+            celebrateBeringin(method);
             await refreshMyProfile();
             showToast(method === 'pupuk' ? '🌿 Pohon beringin dipupuk, terima kasih sudah merawat alam 🙏' : '🙏 Sajen syukur diberikan, semoga air desa tetap lestari.');
         });
@@ -2477,6 +2477,64 @@
         setTimeout(() => fx.remove(), 950);
     }
 
+    function renderBeringinSVG(healthPct) {
+        let leafA, leafB, leafC, poolTint;
+        if (healthPct <= 0) { leafA = '#6b5238'; leafB = '#5a4530'; leafC = '#7a6040'; poolTint = '#3a3428'; }
+        else if (healthPct < 30) { leafA = '#8a7a3f'; leafB = '#7a6a35'; leafC = '#9a8a4f'; poolTint = '#3a4a50'; }
+        else if (healthPct < 70) { leafA = '#7a9a4f'; leafB = '#6a8a45'; leafC = '#8aaa5f'; poolTint = '#2f4a58'; }
+        else { leafA = '#2f6d3f'; leafB = '#3c8a4e'; leafC = '#4fa860'; poolTint = '#2a4a5a'; }
+        return `<svg viewBox="0 0 140 300" preserveAspectRatio="xMaxYMax meet">
+            <path d="M78 210 Q80 150 76 90" stroke="#5a4230" stroke-width="18" fill="none" stroke-linecap="round"/>
+            <path d="M72 262 Q75 235 78 205" stroke="#4a3324" stroke-width="15" fill="none" stroke-linecap="round"/>
+            <path d="M70 258 Q40 248 20 262" stroke="#4a3324" stroke-width="9" fill="none" stroke-linecap="round"/>
+            <path d="M75 256 Q92 244 112 256" stroke="#3d2a1c" stroke-width="8" fill="none" stroke-linecap="round"/>
+            <ellipse cx="55" cy="70" rx="70" ry="55" fill="${leafA}"/>
+            <ellipse cx="95" cy="45" rx="65" ry="55" fill="${leafB}"/>
+            <ellipse cx="40" cy="30" rx="52" ry="44" fill="${leafC}"/>
+            <ellipse cx="60" cy="272" rx="45" ry="14" fill="${poolTint}" opacity="0.75"/>
+            <ellipse cx="52" cy="267" rx="22" ry="5" fill="#8fd0e8" opacity="0.3"/>
+        </svg>`;
+    }
+
+    let lastBeringinSignature = null;
+    function renderBeringinScene() {
+        const scene = document.getElementById('kebun-beringin-scene');
+        if (!scene || typeof beringinHealthPct !== 'number') return;
+        const bucket = beringinHealthPct <= 0 ? 'mati' : beringinHealthPct < 30 ? 'kritis' : beringinHealthPct < 70 ? 'stres' : 'sehat';
+        if (lastBeringinSignature === bucket) return;
+        lastBeringinSignature = bucket;
+        scene.innerHTML = renderBeringinSVG(beringinHealthPct);
+    }
+
+    function celebrateBeringin(method) {
+        playTone(392, 160, 'sine', 0.05);
+        setTimeout(() => playTone(494, 180, 'sine', 0.05), 120);
+        setTimeout(() => playTone(587, 260, 'sine', 0.06), 260);
+        const scene = document.getElementById('kebun-beringin-scene');
+        if (!scene) return;
+        const particles = method === 'sajen' ? ['🙏', '✨', '🕊️'] : ['💧', '🌿', '✨'];
+        for (let i = 0; i < 6; i++) {
+            const p = document.createElement('div');
+            p.textContent = particles[i % particles.length];
+            const angle = (Math.PI * 2 * i) / 6 + (Math.random() * 0.3 - 0.15);
+            const dist = 30 + Math.random() * 25;
+            const dx = Math.cos(angle) * dist, dy = Math.sin(angle) * dist;
+            p.style.cssText = `position:absolute; left:50%; top:60%; font-size:16px; pointer-events:none; transform:translate(-50%,-50%); --dx:${dx}px; --dy:${dy}px; animation: kebunBurst 1s ease-out forwards;`;
+            scene.appendChild(p);
+            setTimeout(() => p.remove(), 1050);
+        }
+    }
+
+    function getPlotNumber(key) {
+        const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername)
+            .sort((a, b) => {
+                const [ax, ay] = a.split(',').map(Number);
+                const [bx, by] = b.split(',').map(Number);
+                return (ax - bx) || (ay - by);
+            });
+        return myTiles.indexOf(key) + 1;
+    }
+
     function pickFeaturedTileKey() {
         const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername);
         if (!myTiles.length) return null;
@@ -2511,18 +2569,19 @@
     }
 
     function buildPlantButtonsHtml(key) {
-        return getAllCropDefs().filter(c => c.id === 'ubi_jalar').map(c => {
+        const inner = getAllCropDefs().filter(c => c.id === 'ubi_jalar').map(c => {
             const syaratBibit = BIBIT_CATALOG.find(b => b.crop_id === c.id);
             if (!syaratBibit) {
-                return `<button class="plot-crop-btn" onclick="kebunActionStart(); plantCrop('${key}','${c.id}').then(() => renderKebunSayaHome())">${c.icon} Tanam ${c.name} — ${c.plant_cost_xp} XP</button>`;
+                return `<button class="plot-crop-btn" onclick="kebunActionStart(); plantCrop('${key}','${c.id}').then(() => renderKebunSayaHome())">${c.icon} Tanam ${c.name}<br><span style="font-size:11px; font-weight:400; opacity:0.8;">${c.plant_cost_xp} XP</span></button>`;
             }
             const stok = myBibitStock[syaratBibit.id] || 0;
             if (stok < 1) {
-                return `<button class="plot-crop-btn" disabled>${c.icon} ${c.name} — butuh bibit (0 di gudang)</button>
-                        <button class="plot-crop-btn" style="margin-top:6px;" onclick="document.getElementById('farm-modal').classList.add('active');">🌱 Buka Pembibitan (bikin bibit dulu)</button>`;
+                return `<button class="plot-crop-btn" disabled>${c.icon} ${c.name}<br><span style="font-size:11px; font-weight:400; opacity:0.7;">Butuh bibit dulu (0)</span></button>
+                        <button class="plot-crop-btn" onclick="document.getElementById('farm-modal').classList.add('active');">🌱 Buka Pembibitan</button>`;
             }
-            return `<button class="plot-crop-btn" onclick="kebunActionStart(); plantCrop('${key}','${c.id}').then(() => renderKebunSayaHome())">${c.icon} Tanam ${c.name} — ${c.plant_cost_xp} XP (bibit: ${stok})</button>`;
+            return `<button class="plot-crop-btn" onclick="kebunActionStart(); plantCrop('${key}','${c.id}').then(() => renderKebunSayaHome())">${c.icon} Tanam ${c.name}<br><span style="font-size:11px; font-weight:400; opacity:0.8;">${c.plant_cost_xp} XP • bibit: ${stok}</span></button>`;
         }).join('');
+        return `<div style="display:flex; flex-direction:column; gap:8px; width:100%;">${inner}</div>`;
     }
 
     function buildCareButtonsHtml(key, farm, cropDef) {
@@ -2601,7 +2660,10 @@
         const statusEl = document.getElementById('kebun-status-text');
         const actionEl = document.getElementById('kebun-action-row');
         const othersEl = document.getElementById('kebun-other-plots');
+        const titleEl = document.getElementById('kebun-title-text');
         if (!stageEl) return;
+        if (titleEl) titleEl.textContent = key ? `🌾 Kebun #${getPlotNumber(key)}` : '🌾 Kebun Saya';
+        renderBeringinScene();
 
         if (!key) {
             const sig = 'empty-no-tile';
@@ -2657,7 +2719,8 @@
                 const cd = getCropDef(f.cropId);
                 icon = cd ? cd.icon : '🌱';
             }
-            return `<div class="kebun-plot-thumb" onclick="focusFeaturedTile('${k}')">${icon}</div>`;
+            const num = getPlotNumber(k);
+            return `<div class="kebun-plot-thumb" onclick="focusFeaturedTile('${k}')" title="Kebun #${num}" style="position:relative;">${icon}<span style="position:absolute; bottom:1px; right:2px; font-size:8px; font-weight:800; color:#fbbf24; background:rgba(0,0,0,0.65); border-radius:4px; padding:0 3px; line-height:1.4;">${num}</span></div>`;
         }).join('') + `<div class="kebun-plot-thumb" onclick="klaimLahanOtomatis()" title="Klaim lahan baru">➕</div>`;
     }
 
