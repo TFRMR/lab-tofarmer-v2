@@ -248,7 +248,7 @@
         .plot-harvest-btn { width: 100%; padding: 14px; font-size: 15px; font-weight: 800; border-radius: 12px; border: none; cursor: pointer; background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; margin-top: 10px; box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
         .plot-status-text { font-size: 13px; color: #fbbf24; margin-top: 8px; display: block; }
         .plot-status-text.warn { color: #fca5a5; }
-        .plot-crop-btn { padding: 12px 10px; font-size: 13px; font-weight: 700; border-radius: 12px; cursor: pointer; background: #1e3a1f; color: #4ade80; border: 1px solid rgba(74,222,128,0.35); width: 100%; margin-top: 8px; text-align: left; }
+        .plot-crop-btn { padding: 12px 22px; font-size: 13px; font-weight: 700; border-radius: 14px; cursor: pointer; background: #1e3a1f; color: #4ade80; border: 1px solid rgba(74,222,128,0.35); width: auto; min-width: 200px; max-width: 88vw; margin: 0 auto; text-align: center; display: block; }
         .plot-crop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
         /* ===== Kartu generik barang/proses/listing (Pasar) ===== */
@@ -278,7 +278,7 @@
         @keyframes kebunBurst { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.4); } 70% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); } }
         @keyframes kebunRewardPop { 0% { opacity:0; transform:translate(-50%,-30%) scale(0.5); } 25% { opacity:1; transform:translate(-50%,-60%) scale(1.15); } 70% { opacity:1; transform:translate(-50%,-90%) scale(1); } 100% { opacity:0; transform:translate(-50%,-120%) scale(0.95); } }
         @keyframes kebunFlash { 0% { opacity:0; } 30% { opacity:1; } 100% { opacity:0; } }
-        #kebun-beringin-scene { position: absolute; right: 0; bottom: 0; width: 110px; height: 42%; max-height: 280px; z-index: 1; cursor: pointer; }
+        #kebun-beringin-scene { position: absolute; right: 0; top: 0; bottom: 0; width: 40vw; max-width: 210px; min-width: 140px; z-index: 1; cursor: pointer; }
         #kebun-beringin-scene svg { width: 100%; height: 100%; display: block; }
         .kebun-empty-hint { font-size: 13px; color: #cbd5e1; text-shadow: 0 1px 4px rgba(0,0,0,0.6); animation: kebunPulseText 2.2s ease-in-out infinite; }
         @keyframes kebunPulseText { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
@@ -2581,7 +2581,7 @@
             }
             return `<button class="plot-crop-btn" onclick="kebunActionStart(); plantCrop('${key}','${c.id}').then(() => renderKebunSayaHome())">${c.icon} Tanam ${c.name}<br><span style="font-size:11px; font-weight:400; opacity:0.8;">${c.plant_cost_xp} XP • bibit: ${stok}</span></button>`;
         }).join('');
-        return `<div style="display:flex; flex-direction:column; gap:8px; width:100%;">${inner}</div>`;
+        return `<div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:100%;">${inner}</div>`;
     }
 
     function buildCareButtonsHtml(key, farm, cropDef) {
