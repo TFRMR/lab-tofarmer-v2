@@ -431,7 +431,7 @@
         <div class="kebun-other-plots" id="kebun-other-plots"></div>
     </div>
 </div>
-<button class="kebun-reopen-btn" onclick="document.getElementById('kebun-saya-screen').style.display='flex'; renderKebunSayaHome();">🌾</button>
+<button class="kebun-reopen-btn" onclick="document.getElementById('kebun-saya-screen').style.display='flex'; renderKebunSayaHome();" style="width:auto; padding:10px 16px; border-radius:22px; font-size:14px; font-weight:700; gap:6px;">🌾 Kebun Saya</button>
 
 <div id="island-modal" class="modal-overlay side-panel" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
@@ -2578,6 +2578,10 @@
             }
         }
         if (!best) { showToast('Tidak ada lagi lahan kosong yang bisa diklaim di desa.', true); return; }
+
+        const ground = rawTerrainData.find(g => g.x_pos === best.x && g.y_pos === best.y);
+        const biayaEstimasi = (ground && ground.claim_cost_xp) || 100;
+        if (!confirm(`Klaim lahan baru di petak (${best.x},${best.y})? Biaya sekitar ${biayaEstimasi} XP.`)) return;
 
         const { data, error } = await db.rpc('fn_claim_tile', { p_user: myUserId, p_x: best.x, p_y: best.y });
         if (error) { showToast('Gagal klaim tanah: ' + error.message, true); return; }
