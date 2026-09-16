@@ -280,7 +280,7 @@
         .edit-hud-banner.active { bottom: 0 !important; }
 
         #desa-profile-screen { position: fixed; inset: 0; z-index: 15500; display: none; flex-direction: column; }
-        .desa-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 22px 20px; text-align: center; width: min(90vw, 320px); }
+        .desa-card { background: rgba(8,16,11,0.82); border: 1px solid rgba(255,255,255,0.15); border-radius: 18px; padding: 22px 20px; text-align: center; width: min(90vw, 320px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .desa-card img { width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover; margin-bottom: 8px; background: #0f172a; }
         .desa-card .desa-name { font-size: 18px; font-weight: 700; color: #fff; }
         .desa-card .desa-house { font-size: 12px; color: #94a3b8; margin: 4px 0 12px; }
@@ -295,7 +295,7 @@
         @keyframes kebunBurst { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.4); } 70% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); } }
         @keyframes kebunRewardPop { 0% { opacity:0; transform:translate(-50%,-30%) scale(0.5); } 25% { opacity:1; transform:translate(-50%,-60%) scale(1.15); } 70% { opacity:1; transform:translate(-50%,-90%) scale(1); } 100% { opacity:0; transform:translate(-50%,-120%) scale(0.95); } }
         @keyframes kebunFlash { 0% { opacity:0; } 30% { opacity:1; } 100% { opacity:0; } }
-        #kebun-beringin-scene { position: absolute; right: 0; top: 58px; bottom: 180px; width: 40vw; max-width: 210px; min-width: 140px; z-index: 1; cursor: pointer; }
+        #kebun-beringin-scene { position: absolute; right: 0; bottom: 180px; width: 40vw; max-width: 210px; min-width: 140px; z-index: 1; cursor: pointer; }
         #kebun-beringin-scene svg { width: 100%; height: 100%; display: block; }
         .kebun-empty-hint { font-size: 13px; color: #cbd5e1; text-shadow: 0 1px 4px rgba(0,0,0,0.6); animation: kebunPulseText 2.2s ease-in-out infinite; }
         @keyframes kebunPulseText { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
@@ -454,7 +454,7 @@
         <div class="kebun-other-plots" id="kebun-other-plots"></div>
     </div>
 </div>
-<button class="kebun-reopen-btn" onclick="showKebunSaya()" style="width:auto; padding:10px 16px; border-radius:22px; font-size:14px; font-weight:700; gap:6px;">🌾 Kebun Saya</button>
+
 
 <div id="desa-profile-screen">
     <div class="kebun-backdrop" id="desa-backdrop"></div>
@@ -2520,7 +2520,7 @@
         else if (healthPct < 30) { leafA = '#8a7a3f'; leafB = '#7a6a35'; leafC = '#9a8a4f'; poolTint = '#3a4a50'; }
         else if (healthPct < 70) { leafA = '#7a9a4f'; leafB = '#6a8a45'; leafC = '#8aaa5f'; poolTint = '#2f4a58'; }
         else { leafA = '#2f6d3f'; leafB = '#3c8a4e'; leafC = '#4fa860'; poolTint = '#2a4a5a'; }
-        return `<svg viewBox="0 0 160 460" preserveAspectRatio="xMaxYMax meet">
+        return `<svg viewBox="0 0 160 460" preserveAspectRatio="xMaxYMax slice">
             <path d="M96 440 Q99 260 95 150" stroke="#5a4230" stroke-width="20" fill="none" stroke-linecap="round"/>
             <path d="M90 430 Q92 400 96 370" stroke="#4a3324" stroke-width="16" fill="none" stroke-linecap="round"/>
             <path d="M86 428 Q55 420 30 435" stroke="#4a3324" stroke-width="9" fill="none" stroke-linecap="round"/>
@@ -2537,6 +2537,8 @@
     function renderBeringinScene() {
         const scene = document.getElementById('kebun-beringin-scene');
         if (!scene || typeof beringinHealthPct !== 'number') return;
+        const headerEl = document.querySelector('.kebun-header');
+        if (headerEl) scene.style.top = (headerEl.offsetHeight + 12) + 'px';
         const bucket = beringinHealthPct <= 0 ? 'mati' : beringinHealthPct < 30 ? 'kritis' : beringinHealthPct < 70 ? 'stres' : 'sehat';
         if (lastBeringinSignature === bucket) return;
         lastBeringinSignature = bucket;
