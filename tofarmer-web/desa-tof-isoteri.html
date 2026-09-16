@@ -278,7 +278,7 @@
         @keyframes kebunBurst { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.4); } 70% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); } }
         @keyframes kebunRewardPop { 0% { opacity:0; transform:translate(-50%,-30%) scale(0.5); } 25% { opacity:1; transform:translate(-50%,-60%) scale(1.15); } 70% { opacity:1; transform:translate(-50%,-90%) scale(1); } 100% { opacity:0; transform:translate(-50%,-120%) scale(0.95); } }
         @keyframes kebunFlash { 0% { opacity:0; } 30% { opacity:1; } 100% { opacity:0; } }
-        #kebun-beringin-scene { position: absolute; right: 0; top: 58px; bottom: 0; width: 40vw; max-width: 210px; min-width: 140px; z-index: 1; cursor: pointer; }
+        #kebun-beringin-scene { position: absolute; right: 0; top: 58px; bottom: 180px; width: 40vw; max-width: 210px; min-width: 140px; z-index: 1; cursor: pointer; }
         #kebun-beringin-scene svg { width: 100%; height: 100%; display: block; }
         .kebun-empty-hint { font-size: 13px; color: #cbd5e1; text-shadow: 0 1px 4px rgba(0,0,0,0.6); animation: kebunPulseText 2.2s ease-in-out infinite; }
         @keyframes kebunPulseText { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
@@ -434,7 +434,7 @@
         <div class="kebun-other-plots" id="kebun-other-plots"></div>
     </div>
 </div>
-<button class="kebun-reopen-btn" onclick="document.getElementById('kebun-saya-screen').style.display='flex'; renderKebunSayaHome();" style="width:auto; padding:10px 16px; border-radius:22px; font-size:14px; font-weight:700; gap:6px;">🌾 Kebun Saya</button>
+<button class="kebun-reopen-btn" onclick="showKebunSaya()" style="width:auto; padding:10px 16px; border-radius:22px; font-size:14px; font-weight:700; gap:6px;">🌾 Kebun Saya</button>
 
 <div id="island-modal" class="modal-overlay side-panel" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
@@ -2611,7 +2611,18 @@
             centerMapOnVillage();
             worldBuilt = true;
         }
+        const world = document.getElementById('world');
+        if (world) world.style.display = '';
         document.getElementById('kebun-saya-screen').style.display = 'none';
+    }
+
+    function showKebunSaya() {
+        document.getElementById('kebun-saya-screen').style.display = 'flex';
+        const world = document.getElementById('world');
+        if (world) world.style.display = 'none';
+        const gridWrap = document.getElementById('grid-world-wrap');
+        if (gridWrap) gridWrap.style.display = 'none';
+        renderKebunSayaHome();
     }
 
     let lastKebunPlantSignature = null;
@@ -2728,8 +2739,7 @@
         if (myUsername) {
             const b = document.getElementById('kebun-backdrop');
             if (b && !b.innerHTML) b.innerHTML = KEBUN_BACKDROP_SVG;
-            document.getElementById('kebun-saya-screen').style.display = 'flex';
-            renderKebunSayaHome();
+            showKebunSaya();
         } else {
             setTimeout(checkKebunReadyAndShow, 400);
         }
