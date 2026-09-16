@@ -275,6 +275,23 @@
         .kebun-reopen-btn { position: fixed; top: 64px; left: 10px; z-index: 10500; width: 44px; height: 44px; border-radius: 50%; background: var(--ui); border: 1px solid var(--accent); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         @keyframes kebunFxFloat { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.6); } 40% { opacity:1; transform:translate(-50%,-90%) scale(1.2); } 100% { opacity:0; transform:translate(-50%,-140%) scale(1); } }
         .kebun-fx { position: absolute; left: 50%; top: 50%; font-size: 30px; transform: translate(-50%,-50%); pointer-events: none; animation: kebunFxFloat 0.9s ease-out forwards; }
+
+        .edit-hud-banner { left: 50% !important; right: auto !important; transform: translateX(-50%) !important; width: min(94vw, 420px) !important; max-width: 420px !important; bottom: -100vh !important; max-height: 80vh; overflow-y: auto; z-index: 16000 !important; transition: bottom 0.3s cubic-bezier(0.175,0.885,0.32,1.275) !important; }
+        .edit-hud-banner.active { bottom: 0 !important; }
+
+        #desa-profile-screen { position: fixed; inset: 0; z-index: 15500; display: none; flex-direction: column; }
+        .desa-card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 18px; padding: 22px 20px; text-align: center; width: min(90vw, 320px); }
+        .desa-card img { width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover; margin-bottom: 8px; background: #0f172a; }
+        .desa-card .desa-name { font-size: 18px; font-weight: 700; color: #fff; }
+        .desa-card .desa-house { font-size: 12px; color: #94a3b8; margin: 4px 0 12px; }
+        .desa-stats-row { display: flex; justify-content: center; gap: 22px; margin-bottom: 12px; }
+        .desa-stat-num { font-size: 16px; font-weight: 800; }
+        .desa-stat-label { font-size: 10px; color: #94a3b8; }
+        .desa-decor-row { font-size: 20px; margin-bottom: 10px; min-height: 24px; }
+        .desa-gudang-text { font-size: 12px; color: #cbd5e1; }
+
+        .kebun-hint { font-size: 10px; color: #cbd5e1; opacity: 0.8; text-align: center; margin-top: 2px; }
+        .kebun-hint-beringin { position: absolute; right: 8px; bottom: 184px; font-size: 9px; color: #cbd5e1; text-shadow: 0 1px 3px rgba(0,0,0,0.8); white-space: nowrap; z-index: 2; cursor: pointer; }
         @keyframes kebunBurst { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.4); } 70% { opacity:1; } 100% { opacity:0; transform:translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1); } }
         @keyframes kebunRewardPop { 0% { opacity:0; transform:translate(-50%,-30%) scale(0.5); } 25% { opacity:1; transform:translate(-50%,-60%) scale(1.15); } 70% { opacity:1; transform:translate(-50%,-90%) scale(1); } 100% { opacity:0; transform:translate(-50%,-120%) scale(0.95); } }
         @keyframes kebunFlash { 0% { opacity:0; } 30% { opacity:1; } 100% { opacity:0; } }
@@ -418,23 +435,43 @@
     <div class="kebun-backdrop" id="kebun-backdrop"></div>
     <div class="kebun-content">
         <div id="kebun-beringin-scene" onclick="openBeringinModal()" title="Pohon Beringin Desa -- tap untuk rawat"></div>
+        <span class="kebun-hint-beringin" onclick="openBeringinModal()">✨ tap untuk rawat</span>
         <div class="kebun-header">
             <div class="kebun-title" id="kebun-title-text">🌾 Kebun Saya</div>
-            <div style="display:flex; gap:6px;">
-                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="document.getElementById('farm-modal').classList.add('active'); renderFarmList();" title="Semua Lahan">🌾</button>
-                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openPasarModal()" title="Pasar">🛒</button>
-                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openCompostMenu()" title="Kompos & Pupuk">🧪</button>
-                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openVillageMap(); enableEditMode();" title="Tata Rumah">🛠️</button>
-                <button class="btn" style="min-width:auto; padding:8px 10px; font-size:15px;" onclick="openVillageMap()" title="Peta Desa">🗺️</button>
+            <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+                <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="document.getElementById('farm-modal').classList.add('active'); renderFarmList();" title="Semua Lahan">🌾</button>
+                <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="openPasarModal()" title="Pasar">🛒</button>
+                <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="openCompostMenu()" title="Kompos & Pupuk">🧪</button>
+                <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="enableEditMode()" title="Tata Rumah">🛠️</button>
+                <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="openDesaProfiles()" title="Warga Desa">🗺️</button>
+                <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="window.location.href='https://www.tofarmer.xyz'" title="Beranda">🏠</button>
             </div>
         </div>
         <div class="kebun-plant-stage" id="kebun-plant-stage"></div>
         <div class="kebun-status-text" id="kebun-status-text"></div>
+        <div class="kebun-hint" id="kebun-hint-text"></div>
         <div class="kebun-action-row" id="kebun-action-row"></div>
         <div class="kebun-other-plots" id="kebun-other-plots"></div>
     </div>
 </div>
 <button class="kebun-reopen-btn" onclick="showKebunSaya()" style="width:auto; padding:10px 16px; border-radius:22px; font-size:14px; font-weight:700; gap:6px;">🌾 Kebun Saya</button>
+
+<div id="desa-profile-screen">
+    <div class="kebun-backdrop" id="desa-backdrop"></div>
+    <div class="kebun-content">
+        <div class="kebun-header">
+            <div class="kebun-title">🏘️ Warga Desa</div>
+            <button class="btn" style="min-width:auto; padding:8px 14px;" onclick="showKebunSaya(); document.getElementById('desa-profile-screen').style.display='none';">✕ Tutup</button>
+        </div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:0 16px;">
+            <div id="desa-profile-card" class="desa-card"></div>
+        </div>
+        <div style="display:flex; justify-content:center; gap:16px; padding:16px;">
+            <button class="btn" onclick="desaProfilePrev()">◀ Sebelumnya</button>
+            <button class="btn" onclick="desaProfileNext()">Berikutnya ▶</button>
+        </div>
+    </div>
+</div>
 
 <div id="island-modal" class="modal-overlay side-panel" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
@@ -2616,6 +2653,63 @@
         document.getElementById('kebun-saya-screen').style.display = 'none';
     }
 
+    let desaProfileIndex = 0;
+
+    function openDesaProfiles() {
+        desaProfileIndex = rawUserData.findIndex(u => u.id === myUserId);
+        if (desaProfileIndex < 0) desaProfileIndex = 0;
+        document.getElementById('kebun-saya-screen').style.display = 'none';
+        const b = document.getElementById('desa-backdrop');
+        if (b && !b.innerHTML) b.innerHTML = KEBUN_BACKDROP_SVG;
+        document.getElementById('desa-profile-screen').style.display = 'flex';
+        renderDesaProfileCard();
+    }
+
+    function desaProfileNext() {
+        if (!rawUserData.length) return;
+        desaProfileIndex = (desaProfileIndex + 1) % rawUserData.length;
+        renderDesaProfileCard();
+    }
+
+    function desaProfilePrev() {
+        if (!rawUserData.length) return;
+        desaProfileIndex = (desaProfileIndex - 1 + rawUserData.length) % rawUserData.length;
+        renderDesaProfileCard();
+    }
+
+    async function renderDesaProfileCard() {
+        const user = rawUserData[desaProfileIndex];
+        const cardEl = document.getElementById('desa-profile-card');
+        if (!user || !cardEl) return;
+
+        const meta = houseMeta[user.id] || { houseStyleId: 'basic', decorItems: [] };
+        const houseStyle = getAllHouseStyles().find(s => s.id === meta.houseStyleId) || getAllHouseStyles()[0];
+        const landCount = Object.values(claimedTiles).filter(c => c.ownerId === user.id).length;
+        const decorCount = (meta.decorItems || []).length;
+
+        cardEl.innerHTML = `
+            <img src="${user.avatar_url || 'https://img.icons8.com/plasticine/100/user.png'}" onerror="this.src='https://img.icons8.com/plasticine/100/user.png'" />
+            <div class="desa-name">@${user.username}</div>
+            <div class="desa-house">${houseStyle ? houseStyle.icon + ' ' + houseStyle.name : ''}</div>
+            <div class="desa-stats-row">
+                <div><div class="desa-stat-num" style="color:#fbbf24;">${user.xp || 0}</div><div class="desa-stat-label">XP</div></div>
+                <div><div class="desa-stat-num" style="color:#4ade80;">${landCount}</div><div class="desa-stat-label">Lahan</div></div>
+            </div>
+            <div class="desa-decor-row">${decorCount ? '🎋 Dekorasi ×' + decorCount : ''}</div>
+            <div class="desa-gudang-text" id="desa-gudang-info">Memuat gudang...</div>
+        `;
+
+        try {
+            const { data: barang } = await db.from('inventaris_barang').select('barang_id, qty, barang_catalog(nama)').eq('owner_id', user.id).gt('qty', 0);
+            const gudangEl = document.getElementById('desa-gudang-info');
+            if (gudangEl && desaProfileIndex === rawUserData.indexOf(user)) {
+                gudangEl.innerText = (barang && barang.length)
+                    ? '🎒 ' + barang.map(b => `${(b.barang_catalog && b.barang_catalog.nama) || b.barang_id} ×${b.qty}`).join(', ')
+                    : '🎒 Gudang kosong';
+            }
+        } catch (e) { /* info gudang opsional, diam-diam gagal */ }
+    }
+
     function showKebunSaya() {
         document.getElementById('kebun-saya-screen').style.display = 'flex';
         const world = document.getElementById('world');
@@ -2672,7 +2766,9 @@
         const actionEl = document.getElementById('kebun-action-row');
         const othersEl = document.getElementById('kebun-other-plots');
         const titleEl = document.getElementById('kebun-title-text');
+        const hintEl = document.getElementById('kebun-hint-text');
         if (!stageEl) return;
+        if (hintEl) hintEl.innerText = '';
         if (titleEl) titleEl.textContent = key ? `🌾 Kebun #${getPlotNumber(key)}` : '🌾 Kebun Saya';
         renderBeringinScene();
 
@@ -2681,6 +2777,7 @@
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ empty: true }); lastKebunPlantSignature = sig; }
             statusEl.innerText = 'Anda belum punya lahan. Klaim lahan pertama, dipilihkan otomatis.';
             actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="klaimLahanOtomatis()">📍 Klaim Lahan</button>`;
+            if (hintEl) hintEl.innerText = '👆 Ketuk tombol di atas buat mulai';
             othersEl.innerHTML = '';
             return;
         }
@@ -2691,11 +2788,13 @@
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ empty: true }); lastKebunPlantSignature = sig; }
             statusEl.innerText = `Petak ${key} subur, siap ditanami.`;
             actionEl.innerHTML = buildPlantButtonsHtml(key);
+            if (hintEl) hintEl.innerText = '🌱 Pilih tanaman buat mulai berkebun';
         } else if (farm.landState === 'barren') {
             const sig = 'barren-' + key;
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ barren: true }); lastKebunPlantSignature = sig; }
             statusEl.innerText = `Petak ${key} tandus, perlu dipupuk.`;
             actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="fertilizeBarrenAction('${key}').then(() => renderKebunSayaHome())">🌿 Pupuk Tanah</button>`;
+            if (hintEl) hintEl.innerText = '🟤 Pupuk dulu biar bisa ditanami lagi';
         } else {
             const cropDef = getCropDef(farm.cropId);
             if (!cropDef) { statusEl.innerText = 'Data tanaman belum sinkron.'; return; }
@@ -2712,12 +2811,15 @@
                 const reward = computeEffectiveReward(cropDef, farm);
                 statusEl.innerText = `${cropDef.name} siap dipanen! +${reward} XP`;
                 actionEl.innerHTML = `<button class="plot-harvest-btn" onclick="kebunActionStart(); harvestCropAction('${key}').then(() => { celebrateHarvest(${reward}); setTimeout(() => renderKebunSayaHome(), 1400); })">🧺 Panen Sekarang</button>`;
+                if (hintEl) hintEl.innerText = '🎉 Ketuk Panen buat ambil hasilnya!';
             } else if (timeReady && !careReady) {
                 statusEl.innerText = `${cropDef.name} sudah waktunya, tapi masih butuh perawatan.`;
                 actionEl.innerHTML = buildCareButtonsHtml(key, farm, cropDef);
+                if (hintEl) hintEl.innerText = '⚠️ Lengkapi siram/pupuk/rawat dulu ya';
             } else {
                 statusEl.innerText = `${cropDef.name} sedang tumbuh (~${formatDuration(growMs - elapsed)} lagi)`;
                 actionEl.innerHTML = buildCareButtonsHtml(key, farm, cropDef);
+                if (hintEl) hintEl.innerText = '💧 Rawat rutin biar tumbuh maksimal';
             }
         }
 
