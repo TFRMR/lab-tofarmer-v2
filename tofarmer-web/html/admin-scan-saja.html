@@ -1170,6 +1170,7 @@
       <a
         href="./login.html"
         class="glass-btn"
+        id="authBtn"
       >
         Login
       </a>
@@ -1799,6 +1800,21 @@ async function initAuth() {
 
   state.user =
     user;
+
+  const authBtn = $('authBtn');
+  if (authBtn) {
+    authBtn.textContent = 'Logout';
+    authBtn.href = '#';
+    authBtn.onclick = (e) => {
+      e.preventDefault();
+      localStorage.removeItem('tof_wallet');
+      localStorage.removeItem('tof_login_username');
+      localStorage.removeItem('tof_level');
+      localStorage.removeItem('tof_rank');
+      localStorage.removeItem('tof_xp');
+      location.href = './login.html';
+    };
+  }
 
 
   const {
