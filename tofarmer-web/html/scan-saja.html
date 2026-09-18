@@ -1590,6 +1590,17 @@
           </div>
 
 
+          <a
+            id="gmapsLink"
+            href="#"
+            target="_blank"
+            rel="noopener"
+            style="display:block;text-align:center;text-decoration:none;margin-bottom:10px;"
+            class="btn"
+          >
+            🧭 Buka Rute di Google Maps
+          </a>
+
           <button
             class="btn gold"
             id="startGps"
@@ -2195,6 +2206,13 @@ function startTask(id) {
     .addTo(state.map)
     .bindPopup(task.title)
     .openPopup();
+
+
+  const gmapsLink = $('gmapsLink');
+  if (gmapsLink) {
+    gmapsLink.href =
+      `https://www.google.com/maps/dir/?api=1&destination=${task.latitude},${task.longitude}&travelmode=walking`;
+  }
 
 
   $('navSection')

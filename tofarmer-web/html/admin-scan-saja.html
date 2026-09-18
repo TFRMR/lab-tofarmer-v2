@@ -1369,6 +1369,21 @@
 
             </div>
 
+            <div
+              id="gpsAccuracyInfo"
+              style="font-size:12px;opacity:0.8;"
+            ></div>
+
+            <a
+              id="gmapsCheckLink"
+              href="#"
+              target="_blank"
+              rel="noopener"
+              style="display:inline-block;margin:4px 0 10px;"
+            >
+              🧭 Cek koordinat ini di Google Maps
+            </a>
+
 
             <div>
 
@@ -2026,6 +2041,13 @@ function setCoords(
       state.map
     );
 
+
+  const gmapsCheckLink = $('gmapsCheckLink');
+  if (gmapsCheckLink) {
+    gmapsCheckLink.href =
+      `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+  }
+
 }
 
 
@@ -2047,6 +2069,12 @@ function myLocation() {
   }
 
 
+  const accuracyInfo = $('gpsAccuracyInfo');
+  if (accuracyInfo) {
+    accuracyInfo.textContent = 'Mengunci GPS...';
+  }
+
+
   navigator.geolocation
     .getCurrentPosition(
 
@@ -2054,7 +2082,8 @@ function myLocation() {
 
         const {
           latitude,
-          longitude
+          longitude,
+          accuracy
         } =
           position.coords;
 
@@ -2063,6 +2092,15 @@ function myLocation() {
           latitude,
           longitude
         );
+
+
+        if (accuracyInfo) {
+          accuracyInfo.textContent =
+            `Akurasi GPS: ± ${Math.round(accuracy || 0)} m` +
+            (accuracy > 30
+              ? ' (kurang presisi — tunggu beberapa detik di ruang terbuka lalu coba lagi)'
+              : ' (cukup presisi)');
+        }
 
 
         state.map.setView(
@@ -2077,6 +2115,10 @@ function myLocation() {
 
       error => {
 
+        if (accuracyInfo) {
+          accuracyInfo.textContent = '';
+        }
+
         alert(
           'GPS gagal: ' +
           error.message
@@ -2089,7 +2131,10 @@ function myLocation() {
           true,
 
         timeout:
-          15000
+          15000,
+
+        maximumAge:
+          0
 
       }
 
