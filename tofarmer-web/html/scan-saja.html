@@ -2,63 +2,74 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  >
-
-  <meta
-    name="theme-color"
-    content="#2f6f4e"
-  >
-
-  <meta
-    name="description"
-    content="SCAN SAJA ToFarmer — kontribusi nyata berbasis lokasi"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#070e0a">
 
   <title>SCAN SAJA — ToFarmer</title>
 
+  <!-- =========================================================
+       FONT
+  ========================================================== -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- =========================================================
+       LEAFLET
+  ========================================================== -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     crossorigin=""
   >
 
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin=""
+  ></script>
+
+  <!-- =========================================================
+       QR SCANNER
+  ========================================================== -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <!-- =========================================================
+       QR GENERATOR
+  ========================================================== -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
   <style>
 
+    /* =========================================================
+       TOFARMER IDENTITY
+    ========================================================== */
+
     :root {
+      --tf-green-dark: #0d1e14;
+      --tf-green: #22c55e;
+      --tf-green-light: #4ade80;
 
-      --tf-green-dark: #2f6f4e;
-      --tf-green: #4caf7a;
-      --tf-gold: #c9a227;
+      --tf-gold: #fde047;
+      --tf-yellow: #fef08a;
 
-      --tf-bg: #f4f7f5;
-      --tf-text: #1c2b22;
-      --tf-muted: #6f7f76;
+      --tf-bg: #070e0a;
+      --tf-bg-dark: #050b07;
 
-      --tf-white: #ffffff;
+      --tf-panel: rgba(14, 28, 19, 0.45);
+      --tf-card: rgba(18, 35, 24, 0.40);
 
-      --tf-border:
-        rgba(0, 0, 0, 0.06);
+      --tf-text: #e2e8f0;
+      --tf-muted: #94a3b8;
+      --tf-green-text: #84a98c;
 
-      --tf-shadow:
-        0 8px 30px rgba(
-          30,
-          60,
-          45,
-          0.07
-        );
+      --tf-border: rgba(74, 222, 128, 0.20);
 
-      --tf-radius: 16px;
-
-      --tf-gradient:
-        linear-gradient(
-          90deg,
-          #4caf7a,
-          #c9a227
-        );
+      --tf-danger: #f87171;
+      --tf-success: #4ade80;
     }
 
     * {
@@ -70,373 +81,541 @@
     }
 
     body {
-
       margin: 0;
+      min-height: 100vh;
+
+      font-family: 'Plus Jakarta Sans', sans-serif;
+
+      color: var(--tf-text);
 
       background:
-        var(--tf-bg);
+        radial-gradient(
+          circle at top right,
+          rgba(234, 179, 8, 0.09) 0%,
+          transparent 40%
+        ),
+        radial-gradient(
+          circle at bottom left,
+          rgba(34, 197, 94, 0.10) 0%,
+          transparent 35%
+        ),
+        linear-gradient(
+          135deg,
+          #070e0a 0%,
+          #0d1e14 50%,
+          #050b07 100%
+        );
 
-      color:
-        var(--tf-text);
-
-      font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
+      overflow-x: hidden;
     }
 
-    button {
-      font: inherit;
-      cursor: pointer;
-    }
+    body::before {
+      content: "";
 
-    .tf-header {
+      position: fixed;
+      inset: -20%;
 
-      position: sticky;
-      top: 0;
-
-      z-index: 1000;
+      pointer-events: none;
 
       background:
-        var(--tf-green-dark);
+        radial-gradient(
+          circle,
+          rgba(255,255,255,0.025),
+          transparent 48%
+        );
 
-      color: #fff;
+      filter: blur(35px);
 
-      box-shadow:
-        0 3px 18px
-        rgba(0, 0, 0, 0.12);
+      animation: fog 16s ease-in-out infinite alternate;
+
+      z-index: -1;
     }
 
-    .tf-nav {
+    @keyframes fog {
 
-      max-width: 1100px;
+      from {
+        transform:
+          translate3d(-2%, 0, 0)
+          scale(1);
+      }
 
-      min-height: 64px;
+      to {
+        transform:
+          translate3d(2%, 1%, 0)
+          scale(1.08);
+      }
 
-      margin: auto;
+    }
 
-      padding:
-        10px 16px;
+    .container {
+      width: 100%;
+      max-width: 1150px;
+
+      margin: 0 auto;
+
+      padding: 22px;
+    }
+
+    /* =========================================================
+       TOP BAR
+    ========================================================== */
+
+    .topbar {
 
       display: flex;
 
+      justify-content: space-between;
       align-items: center;
 
-      justify-content:
-        space-between;
+      gap: 15px;
 
-      gap: 12px;
+      margin-bottom: 26px;
     }
 
-    .tf-brand {
+    .brand {
+
+      color: #ffffff;
+
+      font-weight: 800;
+
+      letter-spacing: 0.5px;
+
+      font-size: 0.95rem;
+    }
+
+    .brand span {
+      color: var(--tf-green-light);
+    }
+
+    .top-actions {
 
       display: flex;
 
+      gap: 8px;
+
+      flex-wrap: wrap;
+
+      justify-content: flex-end;
+    }
+
+    .glass-btn {
+
+      display: inline-flex;
+
       align-items: center;
+      justify-content: center;
 
-      gap: 10px;
+      padding: 10px 15px;
 
-      color: #fff;
+      border-radius: 999px;
+
+      border:
+        1px solid
+        var(--tf-border);
+
+      background:
+        rgba(7, 14, 10, 0.65);
+
+      color: #a7f3d0;
 
       text-decoration: none;
 
-      font-weight: 850;
+      font-size: 0.78rem;
+
+      font-weight: 700;
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        color 0.2s ease;
     }
 
-    .tf-brand-icon {
+    .glass-btn:hover {
 
-      width: 40px;
-      height: 40px;
-
-      display: grid;
-
-      place-items: center;
-
-      border-radius: 12px;
-
-      background:
-        rgba(255,255,255,0.12);
-
-      font-size: 21px;
-    }
-
-    .tf-brand-sub {
-
-      display: block;
-
-      font-size: 10px;
-
-      opacity: 0.72;
-
-      letter-spacing:
-        0.04em;
-    }
-
-    .tf-user-pill {
-
-      padding:
-        8px 12px;
-
-      border-radius:
-        999px;
-
-      background:
-        rgba(255,255,255,0.12);
-
-      font-size: 12px;
-
-      font-weight: 800;
-    }
-
-    .tf-main {
-
-      max-width: 1100px;
-
-      margin: auto;
-
-      padding:
-        18px 14px 60px;
-    }
-
-    .tf-hero {
-
-      margin-bottom: 18px;
-
-      padding: 24px;
-
-      border-radius: 22px;
-
-      color: #fff;
+      transform: translateY(-1px);
 
       background:
         linear-gradient(
           135deg,
-          var(--tf-green-dark),
-          var(--tf-green)
+          #22c55e,
+          #15803d
         );
 
-      box-shadow:
-        var(--tf-shadow);
+      color: #050b07;
     }
 
-    .tf-hero-grid {
+    /* =========================================================
+       HERO
+    ========================================================== */
 
-      display: grid;
+    .hero {
 
-      grid-template-columns:
-        1.4fr 0.7fr;
-
-      gap: 18px;
-
-      align-items: center;
+      padding: 18px 0 30px;
     }
 
-    .tf-hero h1 {
+    .eyebrow {
 
-      margin: 0;
+      color: var(--tf-gold);
+
+      font-size: 0.76rem;
+
+      font-weight: 800;
+
+      letter-spacing: 2px;
+
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+
+      margin: 8px 0 12px;
+
+      font-family:
+        'Playfair Display',
+        serif;
 
       font-size:
-        clamp(34px, 7vw, 52px);
+        clamp(
+          2.4rem,
+          6vw,
+          3.8rem
+        );
 
-      line-height: 1;
-
-      letter-spacing:
-        -2px;
-    }
-
-    .tf-hero p {
-
-      max-width: 720px;
-
-      margin:
-        10px 0 0;
-
-      line-height:
-        1.6;
-
-      opacity:
-        0.92;
-    }
-
-    .tf-profile-box {
-
-      padding: 15px;
-
-      border:
-        1px solid
-        rgba(255,255,255,0.14);
-
-      border-radius:
-        16px;
+      line-height: 1.02;
 
       background:
-        rgba(255,255,255,0.10);
+        linear-gradient(
+          90deg,
+          #fef08a,
+          #4ade80,
+          #22c55e
+        );
+
+      -webkit-background-clip: text;
+      background-clip: text;
+
+      color: transparent;
     }
 
-    .tf-profile-name {
+    .hero p {
 
-      font-weight: 850;
-    }
-
-    .tf-stats {
-
-      display: grid;
-
-      grid-template-columns:
-        1fr 1fr;
-
-      gap: 8px;
-
-      margin-top: 10px;
-    }
-
-    .tf-stat {
-
-      padding: 10px;
-
-      border-radius:
-        12px;
-
-      background:
-        rgba(255,255,255,0.10);
-    }
-
-    .tf-stat small {
-
-      display: block;
-
-      font-size: 11px;
-
-      opacity:
-        0.76;
-    }
-
-    .tf-stat strong {
-
-      font-size: 21px;
-    }
-
-    .tf-layout {
-
-      display: grid;
-
-      grid-template-columns:
-        1.25fr 0.75fr;
-
-      gap: 18px;
-
-      align-items:
-        start;
-    }
-
-    .tf-card {
-
-      margin-bottom: 18px;
-
-      padding: 17px;
-
-      border:
-        1px solid
-        var(--tf-border);
-
-      border-radius:
-        var(--tf-radius);
-
-      background:
-        var(--tf-white);
-
-      box-shadow:
-        var(--tf-shadow);
-    }
-
-    .tf-card h2,
-    .tf-card h3 {
+      max-width: 760px;
 
       margin: 0;
+
+      color: #84a98c;
+
+      line-height: 1.75;
+
+      font-size: 0.96rem;
     }
 
-    .tf-card-title {
+    /* =========================================================
+       MAIN BOX
+    ========================================================== */
+
+    .main-box {
+
+      background:
+        rgba(14, 28, 19, 0.45);
+
+      backdrop-filter:
+        blur(22px);
+
+      -webkit-backdrop-filter:
+        blur(22px);
+
+      border:
+        1px solid
+        rgba(255,255,255,0.055);
+
+      border-radius: 34px;
+
+      padding: 22px;
+
+      box-shadow:
+        0 28px 80px
+        rgba(0,0,0,0.35);
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
 
       display: flex;
 
-      justify-content:
-        space-between;
-
-      align-items:
-        flex-start;
+      align-items: center;
 
       gap: 12px;
+
+      margin-bottom: 15px;
+
+      color: var(--tf-gold);
+
+      font-size: 0.76rem;
+
+      font-weight: 800;
+
+      letter-spacing: 2px;
+
+      text-transform: uppercase;
     }
 
-    .tf-muted {
-      color:
-        var(--tf-muted);
+    .section-title::after {
+
+      content: "";
+
+      flex: 1;
+
+      height: 1px;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(34,197,94,0.65),
+          rgba(234,179,8,0.4),
+          transparent
+        );
     }
 
-    .tf-small {
-      font-size:
-        12px;
-    }
+    /* =========================================================
+       STATS
+    ========================================================== */
 
-    .tf-task-list {
+    .stats {
 
       display: grid;
 
-      gap: 11px;
+      grid-template-columns:
+        repeat(4, 1fr);
 
-      margin-top: 14px;
+      gap: 10px;
     }
 
-    .tf-task {
+    .stat {
 
-      padding: 14px;
+      padding: 15px;
+
+      border-radius: 20px;
+
+      background:
+        rgba(7,14,10,0.52);
+
+      border:
+        1px solid
+        rgba(255,255,255,0.05);
+    }
+
+    .stat strong {
+
+      display: block;
+
+      color: #ffffff;
+
+      font-size: 1.08rem;
+    }
+
+    .stat span {
+
+      display: block;
+
+      margin-top: 4px;
+
+      color: var(--tf-muted);
+
+      font-size: 0.68rem;
+
+      letter-spacing: 0.4px;
+    }
+
+    /* =========================================================
+       GRID / CARD
+    ========================================================== */
+
+    .grid {
+
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(220px, 1fr)
+        );
+
+      gap: 13px;
+    }
+
+    .card {
+
+      position: relative;
+
+      padding: 18px;
+
+      background:
+        rgba(18,35,24,0.40);
+
+      border:
+        1px solid
+        rgba(255,255,255,0.045);
+
+      border-left:
+        3px solid
+        var(--tf-green);
+
+      border-radius: 24px;
+
+      box-shadow:
+        0 15px 40px
+        rgba(0,0,0,0.18);
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .card:hover {
+
+      transform:
+        translateY(-2px);
+
+      background:
+        rgba(22,46,31,0.60);
+
+      border-color:
+        rgba(74,222,128,0.55);
+
+      border-top-color:
+        var(--tf-gold);
+    }
+
+    .card h3 {
+
+      margin: 0 0 7px;
+
+      color: #ffffff;
+
+      font-size: 1rem;
+    }
+
+    .card p {
+
+      margin: 0;
+
+      color: var(--tf-muted);
+
+      font-size: 0.84rem;
+
+      line-height: 1.65;
+    }
+
+    /* =========================================================
+       BUTTON
+    ========================================================== */
+
+    .btn {
+
+      width: 100%;
+
+      margin-top: 14px;
+
+      padding: 12px 14px;
+
+      border: 0;
+
+      border-radius: 16px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #22c55e,
+          #15803d
+        );
+
+      color: #050b07;
+
+      font-family: inherit;
+
+      font-weight: 800;
+
+      cursor: pointer;
+
+      transition:
+        transform 0.15s ease,
+        opacity 0.15s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn.secondary {
+
+      background:
+        rgba(7,14,10,0.70);
+
+      color: #a7f3d0;
+
+      border:
+        1px solid
+        var(--tf-border);
+    }
+
+    .btn.gold {
+
+      background:
+        linear-gradient(
+          135deg,
+          #fef08a,
+          #eab308
+        );
+
+      color: #11180f;
+    }
+
+    /* =========================================================
+       PILLS
+    ========================================================== */
+
+    .pill {
+
+      display: inline-flex;
+
+      align-items: center;
+
+      padding: 5px 9px;
+
+      margin-bottom: 10px;
+
+      border-radius: 999px;
 
       border:
         1px solid
         var(--tf-border);
 
-      border-radius:
-        15px;
-
-      transition:
-        0.15s ease;
-    }
-
-    .tf-task.selected {
-
-      border:
-        2px solid
-        var(--tf-green);
-
       background:
-        #fbfefc;
+        rgba(34,197,94,0.10);
+
+      color: #a7f3d0;
+
+      font-size: 0.66rem;
+
+      font-weight: 800;
     }
 
-    .tf-task-title {
-
-      font-size: 18px;
-
-      font-weight: 850;
-    }
-
-    .tf-task-desc {
-
-      margin-top: 4px;
-
-      color:
-        var(--tf-muted);
-
-      line-height:
-        1.5;
-
-      font-size:
-        13px;
-    }
-
-    .tf-chips {
+    .task-meta {
 
       display: flex;
 
@@ -444,466 +623,493 @@
 
       gap: 7px;
 
-      margin-top: 10px;
+      margin-top: 12px;
     }
 
-    .tf-chip {
+    .task-meta span {
 
-      padding:
-        6px 9px;
+      padding: 5px 8px;
 
-      border-radius:
-        999px;
+      border-radius: 8px;
 
       background:
-        #f0f5f2;
+        rgba(0,0,0,0.18);
 
-      color:
-        #365244;
+      color: var(--tf-muted);
+
+      font-size: 0.68rem;
+    }
+
+    /* =========================================================
+       MAP
+    ========================================================== */
+
+    #map {
+
+      width: 100%;
+
+      height: 360px;
+
+      border-radius: 24px;
+
+      overflow: hidden;
+
+      border:
+        1px solid
+        rgba(74,222,128,0.18);
+
+      background: #08110b;
+    }
+
+    .leaflet-popup-content-wrapper,
+    .leaflet-popup-tip {
+
+      background:
+        #0d1e14;
+
+      color: #e2e8f0;
+    }
+
+    .leaflet-popup-content {
+
+      font-family:
+        'Plus Jakarta Sans',
+        sans-serif;
+    }
+
+    /* =========================================================
+       NAVIGATION
+    ========================================================== */
+
+    .nav-panel {
+
+      display: none;
+
+      grid-template-columns:
+        minmax(0, 1fr)
+        300px;
+
+      gap: 14px;
+    }
+
+    .nav-panel.open {
+      display: grid;
+    }
+
+    .direction {
+
+      min-height: 360px;
+
+      display: grid;
+
+      place-items: center;
+
+      text-align: center;
+
+      border-radius: 24px;
+
+      background:
+        rgba(7,14,10,0.55);
+
+      border:
+        1px solid
+        rgba(255,255,255,0.05);
+    }
+
+    .arrow {
+
+      display: block;
 
       font-size:
-        12px;
+        clamp(
+          5rem,
+          14vw,
+          9rem
+        );
 
-      font-weight:
-        750;
+      line-height: 1;
+
+      color: var(--tf-gold);
+
+      filter:
+        drop-shadow(
+          0 0 22px
+          rgba(234,179,8,0.22)
+        );
+
+      transition:
+        transform 0.25s ease;
     }
 
-    .tf-chip-gold {
+    .distance {
 
-      color:
-        #725b09;
+      margin-top: 8px;
+
+      color: #ffffff;
+
+      font-size: 2rem;
+
+      font-weight: 800;
+    }
+
+    .nav-hint {
+
+      margin-top: 6px;
+
+      color: var(--tf-muted);
+
+      font-size: 0.76rem;
+    }
+
+    .nav-side {
+
+      display: flex;
+
+      flex-direction: column;
+
+      gap: 11px;
+    }
+
+    .mini {
+
+      padding: 15px;
+
+      border-radius: 20px;
 
       background:
-        #fff8df;
+        rgba(18,35,24,0.42);
+
+      border:
+        1px solid
+        rgba(255,255,255,0.05);
     }
 
-    .tf-btn {
+    .mini strong {
 
-      min-height:
-        42px;
+      display: block;
 
-      padding:
-        11px 14px;
+      margin-bottom: 5px;
 
-      border: 0;
+      color: #ffffff;
 
-      border-radius:
-        12px;
-
-      font-weight:
-        800;
+      font-size: 0.85rem;
     }
 
-    .tf-btn-primary {
+    .mini span {
 
-      color: #fff;
+      color: var(--tf-muted);
 
-      background:
-        var(--tf-gradient);
+      font-size: 0.78rem;
+
+      line-height: 1.6;
     }
 
-    .tf-btn-secondary {
+    /* =========================================================
+       FORM
+    ========================================================== */
 
-      color:
-        var(--tf-text);
+    .form-grid {
 
-      background:
-        #edf2ef;
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, 1fr);
+
+      gap: 12px;
     }
 
-    .tf-btn-full {
+    .full {
+      grid-column: 1 / -1;
+    }
+
+    label {
+
+      display: block;
+
+      margin-bottom: 6px;
+
+      color: #a7f3d0;
+
+      font-size: 0.74rem;
+
+      font-weight: 700;
+    }
+
+    input,
+    textarea,
+    select {
+
       width: 100%;
+
+      padding: 12px 13px;
+
+      border-radius: 14px;
+
+      border:
+        1px solid
+        rgba(74,222,128,0.16);
+
+      outline: none;
+
+      background:
+        rgba(3,10,6,0.65);
+
+      color: #ffffff;
+
+      font-family: inherit;
     }
 
-    .tf-btn:disabled {
+    input:focus,
+    textarea:focus,
+    select:focus {
 
-      cursor:
-        not-allowed;
+      border-color:
+        rgba(74,222,128,0.60);
 
-      opacity:
-        0.45;
+      box-shadow:
+        0 0 0 3px
+        rgba(34,197,94,0.08);
     }
 
-    #tfMap {
+    textarea {
+
+      min-height: 100px;
+
+      resize: vertical;
+    }
+
+    /* =========================================================
+       CAMERA
+    ========================================================== */
+
+    .camera {
+      display: none;
+    }
+
+    .camera.open {
+      display: block;
+    }
+
+    #reader {
+
+      max-width: 520px;
+
+      margin: auto;
+
+      overflow: hidden;
+
+      border-radius: 20px;
+
+      background: #000000;
+    }
+
+    /* =========================================================
+       PHOTO
+    ========================================================== */
+
+    .proof-preview {
+
+      display: none;
 
       width: 100%;
 
-      height: 300px;
+      max-height: 360px;
 
       margin-top: 12px;
 
-      border-radius:
-        15px;
-    }
+      object-fit: cover;
 
-    /*
-     * NAVIGASI
-     */
-
-    .tf-navigation {
-
-      text-align:
-        center;
-    }
-
-    .tf-arrow-wrap {
-
-      width:
-        155px;
-
-      height:
-        155px;
-
-      margin:
-        12px auto;
-
-      display:
-        grid;
-
-      place-items:
-        center;
+      border-radius: 20px;
 
       border:
-        7px solid
-        #e4ece7;
-
-      border-radius:
-        50%;
-
-      background:
-        #f0f5f2;
-    }
-
-    .tf-arrow {
-
-      font-size:
-        84px;
-
-      line-height:
-        1;
-
-      transform:
-        rotate(0deg);
-
-      transition:
-        transform
-        0.12s linear;
-    }
-
-    .tf-distance {
-
-      font-size:
-        40px;
-
-      font-weight:
-        900;
-
-      letter-spacing:
-        -1px;
-    }
-
-    .tf-distance small {
-
-      font-size:
-        13px;
-
-      letter-spacing:
-        0;
-
-      font-weight:
-        650;
-    }
-
-    .tf-nav-status {
-
-      margin-top:
-        10px;
-
-      padding:
-        12px;
-
-      border-radius:
-        12px;
-
-      background:
-        #f1f4f2;
-
-      line-height:
-        1.5;
-
-      text-align:
-        left;
-    }
-
-    .tf-ok {
-
-      color:
-        #205f3f;
-
-      background:
-        #eaf7ef;
-    }
-
-    .tf-warning {
-
-      color:
-        #715d12;
-
-      background:
-        #fff8df;
-    }
-
-    .tf-error {
-
-      color:
-        #8c3030;
-
-      background:
-        #fff0f0;
-    }
-
-    .tf-info-list {
-
-      display:
-        grid;
-
-      gap:
-        8px;
-
-      margin-top:
-        12px;
-    }
-
-    .tf-info-row {
-
-      display:
-        flex;
-
-      justify-content:
-        space-between;
-
-      gap:
-        10px;
-
-      padding-bottom:
-        8px;
-
-      border-bottom:
         1px solid
-        #edf0ee;
+        rgba(74,222,128,0.18);
     }
 
-    /*
-     * CAMERA
-     */
+    /* =========================================================
+       FEED
+    ========================================================== */
 
-    .tf-video {
+    .feed {
 
-      width:
-        100%;
+      display: flex;
 
-      max-height:
-        380px;
+      flex-direction: column;
 
-      display:
-        block;
+      gap: 8px;
+    }
 
-      object-fit:
-        cover;
+    .feed-item {
 
-      border-radius:
-        14px;
+      padding: 12px 14px;
+
+      border-radius: 16px;
 
       background:
-        #15231b;
-    }
+        rgba(7,14,10,0.45);
 
-    .tf-preview {
-
-      width:
-        100%;
-
-      max-height:
-        380px;
-
-      display:
-        none;
-
-      object-fit:
-        cover;
-
-      margin-top:
-        8px;
-
-      border-radius:
-        14px;
-
-      background:
-        #15231b;
-    }
-
-    .tf-camera-actions {
-
-      display:
-        flex;
-
-      gap:
-        8px;
-
-      margin-top:
-        8px;
-    }
-
-    /*
-     * CLAIMS
-     */
-
-    .tf-claim {
-
-      padding:
-        10px 0;
-
-      border-bottom:
+      border:
         1px solid
-        #edf0ee;
+        rgba(255,255,255,0.04);
 
-      line-height:
-        1.5;
+      color: var(--tf-muted);
+
+      font-size: 0.79rem;
+
+      line-height: 1.55;
     }
 
-    .tf-claim:last-child {
-      border-bottom:
-        0;
+    .feed-item strong {
+      color: #ffffff;
     }
 
-    .tf-status-box {
+    /* =========================================================
+       NOTICE
+    ========================================================== */
 
-      margin-top:
-        10px;
+    .notice {
 
-      padding:
-        11px;
+      padding: 12px 14px;
 
-      border-radius:
-        11px;
+      border-radius: 15px;
 
       background:
-        #f1f4f2;
+        rgba(234,179,8,0.07);
 
-      font-size:
-        13px;
+      border:
+        1px solid
+        rgba(234,179,8,0.18);
 
-      line-height:
-        1.5;
+      color: #d8d3a4;
+
+      font-size: 0.76rem;
+
+      line-height: 1.6;
     }
 
-    .tf-empty {
-
-      padding:
-        25px 10px;
-
-      text-align:
-        center;
-
-      color:
-        var(--tf-muted);
-    }
-
-    .tf-toast {
-
-      position:
-        fixed;
-
-      right:
-        15px;
-
-      bottom:
-        15px;
-
-      z-index:
-        5000;
-
-      max-width:
-        360px;
-
-      padding:
-        13px 15px;
-
-      border-radius:
-        13px;
-
-      color:
-        #fff;
+    .success {
 
       background:
-        #1c2b22;
+        rgba(34,197,94,0.07);
 
-      opacity:
-        0;
+      border-color:
+        rgba(34,197,94,0.20);
 
-      transform:
-        translateY(120px);
-
-      transition:
-        0.22s ease;
-
-      pointer-events:
-        none;
+      color:
+        #bbf7d0;
     }
 
-    .tf-toast.show {
+    .error {
 
-      opacity:
-        1;
+      background:
+        rgba(127,29,29,0.16);
 
-      transform:
-        translateY(0);
+      border-color:
+        rgba(248,113,113,0.25);
+
+      color:
+        #fecaca;
     }
 
-    @media (max-width: 850px) {
+    .empty {
 
-      .tf-hero-grid,
-      .tf-layout {
+      padding: 25px;
 
+      text-align: center;
+
+      color: var(--tf-muted);
+
+      border:
+        1px dashed
+        rgba(148,163,184,0.16);
+
+      border-radius: 20px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    footer {
+
+      padding: 24px 0 8px;
+
+      text-align: center;
+
+      color: #475569;
+
+      font-size: 0.72rem;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================== */
+
+    @media (max-width: 1024px) {
+
+      .nav-panel.open {
+        grid-template-columns: 1fr;
+      }
+
+      .direction {
+        min-height: 300px;
+      }
+    }
+
+    @media (max-width: 768px) {
+
+      .container {
+        padding: 17px;
+      }
+
+      .main-box {
+        padding: 16px;
+
+        border-radius: 27px;
+      }
+
+      .stats {
         grid-template-columns:
-          1fr;
+          repeat(2, 1fr);
       }
 
-      #tfMap {
-        height:
-          280px;
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .full {
+        grid-column: auto;
+      }
+
+      #map {
+        height: 300px;
       }
     }
 
-    @media (max-width: 520px) {
+    @media (max-width: 480px) {
 
-      .tf-main {
-        padding:
-          12px 10px 45px;
+      .topbar {
+        align-items: flex-start;
       }
 
-      .tf-card {
-        padding:
-          14px;
+      .top-actions {
+        max-width: 190px;
       }
 
-      .tf-camera-actions {
-        flex-direction:
-          column;
+      .main-box {
+        border-radius: 22px;
       }
 
-      .tf-arrow-wrap {
-
-        width:
-          135px;
-
-        height:
-          135px;
+      .grid {
+        grid-template-columns: 1fr;
       }
 
-      .tf-arrow {
-        font-size:
-          72px;
+      .hero p {
+        font-size: 0.88rem;
+      }
+
+      .stat {
+        padding: 12px;
       }
     }
 
@@ -912,2148 +1118,2145 @@
 
 <body>
 
-<header class="tf-header">
+<div class="container">
 
-  <div class="tf-nav">
+  <!-- =======================================================
+       TOP BAR
+  ======================================================== -->
 
-    <a
-      class="tf-brand"
-      href="/"
-    >
-      <span class="tf-brand-icon">
-        🌿
-      </span>
+  <header class="topbar">
 
-      <span>
-        ToFarmer
-        <span class="tf-brand-sub">
-          SCAN SAJA
-        </span>
-      </span>
-    </a>
+    <div class="brand">
+      TO<span>FARMER</span> · SCAN SAJA
+    </div>
 
-    <span
-      class="tf-user-pill"
-      id="userPill"
-    >
-      Memuat...
-    </span>
+    <div class="top-actions">
 
-  </div>
+      <a
+        href="./login.html"
+        class="glass-btn"
+      >
+        Login
+      </a>
 
-</header>
-
-<main class="tf-main">
-
-  <!-- HERO -->
-
-  <section class="tf-hero">
-
-    <div class="tf-hero-grid">
-
-      <div>
-
-        <h1>
-          SCAN SAJA
-        </h1>
-
-        <p>
-          Datang ke lokasi, ikuti arah,
-          ambil bukti, dan catat kontribusi
-          nyata di sekitar kita.
-        </p>
-
-      </div>
-
-      <div class="tf-profile-box">
-
-        <div
-          class="tf-profile-name"
-          id="profileName"
-        >
-          Memuat...
-        </div>
-
-        <div class="tf-stats">
-
-          <div class="tf-stat">
-            <small>TOF</small>
-            <strong id="profileTof">
-              0
-            </strong>
-          </div>
-
-          <div class="tf-stat">
-            <small>XP</small>
-            <strong id="profileXp">
-              0
-            </strong>
-          </div>
-
-        </div>
-
-      </div>
+      <a
+        href="./admin-scan-saja.html"
+        class="glass-btn"
+      >
+        Admin
+      </a>
 
     </div>
+
+  </header>
+
+
+  <!-- =======================================================
+       HERO
+  ======================================================== -->
+
+  <section class="hero">
+
+    <div class="eyebrow">
+      AKTIVITAS NYATA · BUKTI NYATA · KONTRIBUSI NYATA
+    </div>
+
+    <h1>
+      SCAN SAJA.
+    </h1>
+
+    <p>
+      Gunakan HP untuk memindai, menemukan titik aktivitas,
+      mengambil bukti lapangan, lalu mengirim kontribusi.
+      SCAN SAJA menghubungkan aktivitas dunia nyata dengan
+      ekosistem ToFarmer.
+    </p>
 
   </section>
 
 
-  <div class="tf-layout">
+  <!-- =======================================================
+       MAIN
+  ======================================================== -->
 
-    <!-- LEFT -->
+  <main class="main-box">
 
-    <section>
 
-      <!-- TASK LIST -->
+    <!-- =====================================================
+         USER STATS
+    ====================================================== -->
 
-      <div class="tf-card">
+    <section class="section">
 
-        <div class="tf-card-title">
+      <div class="stats">
 
-          <div>
-            <h2>
-              Tugas aktif
-            </h2>
-
-            <div class="tf-muted tf-small">
-              Pilih lokasi yang ingin kamu kerjakan.
-            </div>
-          </div>
-
-          <button
-            class="tf-btn tf-btn-secondary"
-            id="refreshTasks"
-            type="button"
-          >
-            ↻
-          </button>
-
+        <div class="stat">
+          <strong id="userName">—</strong>
+          <span>PEMBURU AKTIVITAS</span>
         </div>
 
-        <div
-          id="taskList"
-          class="tf-task-list"
-        >
-          <div class="tf-empty">
-            Memuat tugas...
-          </div>
+        <div class="stat">
+          <strong id="userXp">0</strong>
+          <span>XP</span>
         </div>
 
-      </div>
-
-
-      <!-- MAP -->
-
-      <div class="tf-card">
-
-        <div class="tf-card-title">
-
-          <div>
-            <h2>
-              Peta
-            </h2>
-
-            <div class="tf-muted tf-small">
-              Posisi tugas dan posisi GPS kamu.
-            </div>
-          </div>
-
+        <div class="stat">
+          <strong id="userTof">0 TOF</strong>
+          <span>SALDO</span>
         </div>
 
-        <div id="tfMap"></div>
+        <div class="stat">
+          <strong id="taskCount">0</strong>
+          <span>TITIK AKTIF</span>
+        </div>
 
       </div>
 
     </section>
 
 
-    <!-- RIGHT -->
+    <!-- =====================================================
+         SCAN / ACTION
+    ====================================================== -->
 
-    <section>
+    <section class="section">
 
-      <!-- NAVIGATION -->
+      <div class="section-title">
+        SCAN & AKSI
+      </div>
 
-      <div
-        class="tf-card"
-        id="navigationCard"
-        style="display:none"
-      >
+      <div class="grid">
 
-        <div class="tf-navigation">
 
-          <h2>
-            🧭 Navigasi
-          </h2>
+        <article class="card">
 
-          <div
-            class="tf-muted tf-small"
-            id="navigationTitle"
+          <h3>
+            📷 Scan QR
+          </h3>
+
+          <p>
+            Pindai QR menggunakan kamera HP untuk membuka
+            data, tautan, atau informasi lapangan.
+          </p>
+
+          <button
+            class="btn"
+            id="openScanner"
           >
-            -
-          </div>
+            Buka Scanner
+          </button>
 
-          <div class="tf-arrow-wrap">
+        </article>
 
-            <div
-              class="tf-arrow"
-              id="directionArrow"
-            >
-              ↑
-            </div>
 
-          </div>
+        <article class="card">
 
-          <div class="tf-distance">
+          <h3>
+            ▣ Generate QR
+          </h3>
 
-            <span id="distanceValue">
-              --
-            </span>
+          <p>
+            Masukkan teks atau data singkat dan buat QR
+            yang dapat dipindai orang lain.
+          </p>
 
-            <small>
-              meter
-            </small>
-
-          </div>
-
-          <div
-            class="tf-nav-status"
-            id="navigationStatus"
+          <button
+            class="btn secondary"
+            id="openGenerator"
           >
-            Mencari lokasi GPS...
-          </div>
+            Buat QR
+          </button>
 
-          <div class="tf-info-list">
+        </article>
 
-            <div class="tf-info-row">
 
-              <span>
-                Bearing
-              </span>
+        <article class="card">
 
-              <strong
-                id="bearingValue"
-              >
-                --
-              </strong>
+          <h3>
+            🧭 Aksi Lapangan
+          </h3>
 
-            </div>
+          <p>
+            Temukan titik kontribusi terdekat, arahkan HP,
+            masuk radius, ambil foto, dan kirim bukti.
+          </p>
 
-            <div class="tf-info-row">
-
-              <span>
-                GPS accuracy
-              </span>
-
-              <strong
-                id="accuracyValue"
-              >
-                --
-              </strong>
-
-            </div>
-
-            <div class="tf-info-row">
-
-              <span>
-                Target
-              </span>
-
-              <strong
-                id="targetCoordinate"
-              >
-                --
-              </strong>
-
-            </div>
-
-          </div>
-
-          <div
-            style="margin-top:10px"
+          <button
+            class="btn gold"
+            id="useFieldAction"
           >
+            Mulai Aksi
+          </button>
 
-            <button
-              class="tf-btn tf-btn-secondary tf-btn-full"
-              id="compassButton"
-              type="button"
-            >
-              🧭 Aktifkan kompas
-            </button>
+        </article>
 
-          </div>
 
-        </div>
+        <article class="card">
+
+          <h3>
+            ▤ Feed
+          </h3>
+
+          <p>
+            Lihat jejak QR yang dipindai dan aktivitas
+            yang sudah dilakukan pada perangkat ini.
+          </p>
+
+          <button
+            class="btn secondary"
+            id="showFeed"
+          >
+            Buka Feed
+          </button>
+
+        </article>
 
       </div>
 
+    </section>
 
-      <!-- PROOF -->
+
+    <!-- =====================================================
+         QR SCANNER
+    ====================================================== -->
+
+    <section
+      class="section"
+      id="scannerSection"
+    >
+
+      <div class="section-title">
+        QR SCANNER
+      </div>
 
       <div
-        class="tf-card"
-        id="proofCard"
-        style="display:none"
+        class="camera"
+        id="scannerBox"
       >
 
-        <h2>
-          📷 Bukti lokasi
-        </h2>
-
-        <div
-          class="tf-muted tf-small"
-          style="margin-top:4px"
-        >
-          Setelah masuk radius, ambil foto
-          sebagai bukti aktivitas.
-        </div>
-
-        <div style="margin-top:12px">
-
-          <video
-            class="tf-video"
-            id="cameraVideo"
-            autoplay
-            playsinline
-            muted
-          ></video>
-
-          <img
-            class="tf-preview"
-            id="photoPreview"
-            alt="Pratinjau foto bukti"
-          >
-
-        </div>
-
-        <div
-          class="tf-camera-actions"
-        >
-
-          <button
-            class="tf-btn tf-btn-secondary"
-            id="cameraButton"
-            type="button"
-          >
-            Buka kamera
-          </button>
-
-          <button
-            class="tf-btn tf-btn-secondary"
-            id="captureButton"
-            type="button"
-            disabled
-          >
-            Ambil foto
-          </button>
-
-        </div>
-
-        <div
-          class="tf-status-box"
-          id="proofStatus"
-        >
-          Belum ada foto bukti.
-        </div>
+        <div id="reader"></div>
 
         <button
-          class="tf-btn tf-btn-primary tf-btn-full"
-          id="submitButton"
-          type="button"
-          disabled
-          style="margin-top:10px"
+          class="btn secondary"
+          id="closeScanner"
         >
-          Kirim kontribusi
+          Tutup Scanner
         </button>
 
       </div>
 
+      <div
+        id="scanResult"
+        class="notice hidden"
+        style="margin-top:12px"
+      ></div>
 
-      <!-- CLAIM STATUS -->
+    </section>
 
-      <div class="tf-card">
 
-        <h3>
-          Status kontribusi
-        </h3>
+    <!-- =====================================================
+         QR GENERATOR
+    ====================================================== -->
 
-        <div
-          id="claimList"
-          class="tf-muted tf-small"
-          style="margin-top:10px"
-        >
-          Memuat...
+    <section
+      class="section hidden"
+      id="generatorSection"
+    >
+
+      <div class="section-title">
+        GENERATE QR
+      </div>
+
+      <div class="form-grid">
+
+        <div class="full">
+
+          <label for="qrText">
+            Teks / URL
+          </label>
+
+          <input
+            id="qrText"
+            type="text"
+            placeholder="Contoh: https://tofarmer.id"
+          >
+
+        </div>
+
+        <div>
+
+          <button
+            class="btn"
+            id="generateQr"
+          >
+            Generate
+          </button>
+
+        </div>
+
+        <div>
+
+          <button
+            class="btn secondary"
+            id="closeGenerator"
+          >
+            Tutup
+          </button>
+
+        </div>
+
+      </div>
+
+      <div
+        id="qrOutput"
+        style="
+          display:grid;
+          place-items:center;
+          margin-top:18px;
+        "
+      ></div>
+
+    </section>
+
+
+    <!-- =====================================================
+         FIELD TASKS
+    ====================================================== -->
+
+    <section
+      class="section"
+      id="fieldSection"
+    >
+
+      <div class="section-title">
+        TITIK KONTRIBUSI AKTIF
+      </div>
+
+      <div
+        class="notice"
+        style="margin-bottom:13px"
+      >
+        GPS menjadi dasar lokasi. Foto menjadi bukti visual.
+        Reward tidak dimint ke saldo pengguna secara langsung
+        dari browser; klaim dicatat sebagai pending untuk
+        proses validasi/settlement.
+      </div>
+
+      <div
+        id="taskGrid"
+        class="grid"
+      >
+
+        <div class="empty">
+          Memuat titik kontribusi…
         </div>
 
       </div>
 
     </section>
 
-  </div>
 
-</main>
+    <!-- =====================================================
+         MAP
+    ====================================================== -->
 
-<div
-  class="tf-toast"
-  id="toast"
-></div>
+    <section class="section">
+
+      <div class="section-title">
+        PETA AKTIVITAS
+      </div>
+
+      <div id="map"></div>
+
+    </section>
 
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- =====================================================
+         NAVIGATION
+    ====================================================== -->
+
+    <section
+      class="section"
+      id="navSection"
+    >
+
+      <div class="section-title">
+        NAVIGASI LAPANGAN
+      </div>
+
+      <div
+        id="navPanel"
+        class="nav-panel"
+      >
+
+        <div class="direction">
+
+          <div>
+
+            <div
+              id="arrow"
+              class="arrow"
+            >
+              ↑
+            </div>
+
+            <div
+              id="distance"
+              class="distance"
+            >
+              —
+            </div>
+
+            <div
+              id="navHint"
+              class="nav-hint"
+            >
+              Hadapkan HP ke arah panah
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="nav-side">
+
+          <div class="mini">
+
+            <strong id="navTarget">
+              Titik
+            </strong>
+
+            <span id="navDescription">
+              —
+            </span>
+
+          </div>
+
+
+          <div class="mini">
+
+            <strong>
+              GPS
+            </strong>
+
+            <span>
+
+              Akurasi:
+              <b id="gpsAccuracy">—</b>
+
+              <br>
+
+              Jarak:
+              <b id="gpsDistance">—</b>
+
+              <br>
+
+              Arah:
+              <b id="gpsBearing">—</b>
+
+            </span>
+
+          </div>
+
+
+          <div class="mini">
+
+            <strong>
+              STATUS RADIUS
+            </strong>
+
+            <span id="geofenceStatus">
+              Menunggu lokasi…
+            </span>
+
+          </div>
+
+
+          <button
+            class="btn gold"
+            id="startGps"
+          >
+            Aktifkan GPS
+          </button>
+
+
+          <button
+            class="btn secondary"
+            id="requestCompass"
+          >
+            Aktifkan Kompas
+          </button>
+
+
+          <button
+            class="btn secondary"
+            id="openProof"
+          >
+            Ambil Foto Bukti
+          </button>
+
+
+          <button
+            class="btn secondary"
+            id="cancelNav"
+          >
+            Tutup Navigasi
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         PHOTO PROOF
+    ====================================================== -->
+
+    <section
+      class="section hidden"
+      id="proofSection"
+    >
+
+      <div class="section-title">
+        BUKTI LAPANGAN
+      </div>
+
+      <div class="form-grid">
+
+        <div class="full">
+
+          <label for="proofPhoto">
+            Foto bukti
+          </label>
+
+          <input
+            id="proofPhoto"
+            type="file"
+            accept="image/*"
+            capture="environment"
+          >
+
+          <img
+            id="proofPreview"
+            class="proof-preview"
+            alt="Pratinjau bukti"
+          >
+
+        </div>
+
+
+        <div>
+
+          <button
+            class="btn gold"
+            id="submitClaim"
+          >
+            Kirim Klaim
+          </button>
+
+        </div>
+
+
+        <div>
+
+          <button
+            class="btn secondary"
+            id="closeProof"
+          >
+            Tutup
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div
+        id="claimMessage"
+        class="notice hidden"
+        style="margin-top:12px"
+      ></div>
+
+    </section>
+
+
+    <!-- =====================================================
+         FEED
+    ====================================================== -->
+
+    <section
+      class="section hidden"
+      id="feedSection"
+    >
+
+      <div class="section-title">
+        FEED PERANGKAT
+      </div>
+
+      <div
+        id="feed"
+        class="feed"
+      ></div>
+
+    </section>
+
+
+  </main>
+
+
+  <footer>
+    ToFarmer · SCAN SAJA · Proof of Contribution
+  </footer>
+
+</div>
+
 
 <script type="module">
 
-  import { supabase }
-    from "../js/supabase-client.js";
+/* ===========================================================
+   SUPABASE
+=========================================================== */
 
-  /*
-   * ============================================================
-   * EXISTING TOFARMER LOGIN
-   * ============================================================
-   */
+import {
+  supabase
+} from './supabase-client.js';
+
+
+/* ===========================================================
+   HELPERS
+=========================================================== */
+
+const $ = id =>
+  document.getElementById(id);
+
+
+function esc(value) {
+
+  return String(value ?? '')
+    .replace(/[&<>"']/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
+
+}
+
+
+/* ===========================================================
+   STATE
+=========================================================== */
+
+const state = {
+
+  user: null,
+
+  tasks: [],
+
+  selected: null,
+
+  position: null,
+
+  watchId: null,
+
+  heading: null,
+
+  map: null,
+
+  navMarker: null,
+
+  taskMarkers: [],
+
+  scanner: null,
+
+  photoData: null
+
+};
+
+
+/* ===========================================================
+   LOGIN
+=========================================================== */
+
+function getUser() {
 
   const wallet =
-    localStorage.getItem(
-      "tof_wallet"
-    );
+    localStorage.getItem('tof_wallet');
 
   const username =
-    localStorage.getItem(
-      "tof_login_username"
-    );
+    localStorage.getItem('tof_login_username');
+
 
   if (!wallet || !username) {
 
     localStorage.setItem(
-      "redirect_to",
-      window.location.pathname +
-      window.location.search
+      'redirect_to',
+      location.pathname + location.search
     );
 
-    window.location.href =
-      "./login.html";
+    location.href = './login.html';
 
-    throw new Error(
-      "Login required"
-    );
+    return null;
   }
 
 
-  /*
-   * ============================================================
-   * STATE
-   * ============================================================
-   */
+  return {
 
-  let profile = null;
+    id: wallet,
 
-  let tasks = [];
+    username: username
 
-  let selectedTask = null;
+  };
 
-  let currentPosition = null;
-
-  let gpsWatchId = null;
-
-  let map = null;
-
-  let userMarker = null;
-
-  let targetMarker = null;
-
-  let targetCircle = null;
-
-  let cameraStream = null;
-
-  let photoData = null;
-
-  let compassHeading = null;
+}
 
 
-  /*
-   * ============================================================
-   * HELPERS
-   * ============================================================
-   */
+/* ===========================================================
+   USER PROFILE
+=========================================================== */
 
-  const $ =
-    (id) =>
-      document.getElementById(id);
+async function loadUser() {
+
+  const user = getUser();
+
+  if (!user) return;
+
+  state.user = user;
+
+  $('userName').textContent =
+    user.username;
 
 
-  function escapeHtml(value) {
+  const {
+    data,
+    error
+  } = await supabase
+    .from('profiles')
+    .select(
+      'username,xp,saldo_tof,level,rank'
+    )
+    .eq('id', user.id)
+    .single();
 
-    return String(value ?? "")
-      .replace(
-        /[&<>"']/g,
-        (char) => {
 
-          const chars = {
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#039;"
-          };
+  if (error || !data) {
 
-          return chars[char];
-        }
-      );
+    return;
   }
 
 
-  function formatNumber(
-    value
-  ) {
+  $('userName').textContent =
+    data.username || user.username;
 
-    return Number(
-      value || 0
-    ).toLocaleString(
-      "id-ID",
-      {
-        maximumFractionDigits: 2
-      }
-    );
-  }
 
+  $('userXp').textContent =
+    Number(data.xp || 0)
+      .toLocaleString('id-ID');
 
-  function showToast(
-    message
-  ) {
 
-    const element =
-      $("toast");
+  $('userTof').textContent =
+    `${Number(data.saldo_tof || 0)
+      .toLocaleString('id-ID')} TOF`;
 
-    element.textContent =
-      message;
+}
 
-    element.classList.add(
-      "show"
-    );
 
-    clearTimeout(
-      showToast.timer
-    );
+/* ===========================================================
+   LOAD CONTRIBUTION POINTS
+=========================================================== */
 
-    showToast.timer =
-      setTimeout(
-        () => {
-          element.classList.remove(
-            "show"
-          );
-        },
-        3200
-      );
-  }
+async function loadTasks() {
 
+  const {
+    data,
+    error
+  } = await supabase
+    .from('tof_contribution_points')
+    .select('*')
+    .eq('status', 'active')
+    .order('created_at', {
+      ascending: false
+    });
 
-  /*
-   * ============================================================
-   * GEO CALCULATIONS
-   * ============================================================
-   */
 
-  function toRadians(
-    degrees
-  ) {
+  if (error) {
 
-    return degrees *
-      Math.PI /
-      180;
-  }
-
-
-  function toDegrees(
-    radians
-  ) {
-
-    return radians *
-      180 /
-      Math.PI;
-  }
-
-
-  /*
-   * Haversine distance
-   */
-
-  function calculateDistance(
-    lat1,
-    lon1,
-    lat2,
-    lon2
-  ) {
-
-    const earthRadius =
-      6371000;
-
-    const phi1 =
-      toRadians(lat1);
-
-    const phi2 =
-      toRadians(lat2);
-
-    const deltaPhi =
-      toRadians(
-        lat2 - lat1
-      );
-
-    const deltaLambda =
-      toRadians(
-        lon2 - lon1
-      );
-
-    const a =
-      Math.sin(
-        deltaPhi / 2
-      ) ** 2 +
-      Math.cos(phi1) *
-      Math.cos(phi2) *
-      Math.sin(
-        deltaLambda / 2
-      ) ** 2;
-
-    const c =
-      2 *
-      Math.atan2(
-        Math.sqrt(a),
-        Math.sqrt(1 - a)
-      );
-
-    return earthRadius * c;
-  }
-
-
-  /*
-   * Bearing:
-   * 0 = Utara
-   * 90 = Timur
-   * 180 = Selatan
-   * 270 = Barat
-   */
-
-  function calculateBearing(
-    lat1,
-    lon1,
-    lat2,
-    lon2
-  ) {
-
-    const phi1 =
-      toRadians(lat1);
-
-    const phi2 =
-      toRadians(lat2);
-
-    const lambda1 =
-      toRadians(lon1);
-
-    const lambda2 =
-      toRadians(lon2);
-
-    const y =
-      Math.sin(
-        lambda2 - lambda1
-      ) *
-      Math.cos(phi2);
-
-    const x =
-      Math.cos(phi1) *
-      Math.sin(phi2) -
-      Math.sin(phi1) *
-      Math.cos(phi2) *
-      Math.cos(
-        lambda2 - lambda1
-      );
-
-    return (
-      toDegrees(
-        Math.atan2(y, x)
-      ) + 360
-    ) % 360;
-  }
-
-
-  function bearingDirection(
-    bearing
-  ) {
-
-    const directions = [
-      "Utara",
-      "Timur Laut",
-      "Timur",
-      "Tenggara",
-      "Selatan",
-      "Barat Daya",
-      "Barat",
-      "Barat Laut"
-    ];
-
-    return directions[
-      Math.round(
-        bearing / 45
-      ) % 8
-    ];
-  }
-
-
-  /*
-   * ============================================================
-   * PROFILE
-   * ============================================================
-   */
-
-  async function loadProfile() {
-
-    const {
-      data,
-      error
-    } =
-      await supabase
-        .from("profiles")
-        .select(
-          [
-            "id",
-            "username",
-            "saldo_tof",
-            "xp",
-            "level",
-            "rank"
-          ].join(",")
-        )
-        .eq(
-          "id",
-          wallet
-        )
-        .eq(
-          "username",
-          username
-        )
-        .single();
-
-    if (error || !data) {
-
-      showToast(
-        "Profil login tidak ditemukan."
-      );
-
-      throw new Error(
-        "Profile not found"
-      );
-    }
-
-    profile = data;
-
-    $("profileName")
-      .textContent =
-      data.username;
-
-    $("userPill")
-      .textContent =
-      data.username;
-
-    $("profileTof")
-      .textContent =
-      formatNumber(
-        data.saldo_tof
-      );
-
-    $("profileXp")
-      .textContent =
-      formatNumber(
-        data.xp
-      );
-  }
-
-
-  /*
-   * ============================================================
-   * MAP
-   * ============================================================
-   */
-
-  function initMap() {
-
-    map =
-      L.map(
-        "tfMap"
-      );
-
-    map.setView(
-      [-7.7956, 110.3695],
-      10
-    );
-
-    L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-      {
-        maxZoom: 19,
-        attribution:
-          "&copy; OpenStreetMap contributors"
-      }
-    ).addTo(map);
-  }
-
-
-  function updateUserMarker() {
-
-    if (!currentPosition) {
-      return;
-    }
-
-    const point = [
-      currentPosition.lat,
-      currentPosition.lon
-    ];
-
-    if (!userMarker) {
-
-      userMarker =
-        L.circleMarker(
-          point,
-          {
-            radius: 8,
-            color: "#2f6f4e",
-            fillColor: "#4caf7a",
-            fillOpacity: 1,
-            weight: 3
-          }
-        ).addTo(map);
-
-      userMarker.bindPopup(
-        "Posisi kamu"
-      );
-
-    } else {
-
-      userMarker.setLatLng(
-        point
-      );
-    }
-  }
-
-
-  function updateTargetMarker() {
-
-    if (!selectedTask) {
-      return;
-    }
-
-    const point = [
-      selectedTask.latitude,
-      selectedTask.longitude
-    ];
-
-    if (!targetMarker) {
-
-      targetMarker =
-        L.marker(
-          point
-        ).addTo(map);
-
-      targetMarker.bindPopup(
-        escapeHtml(
-          selectedTask.title
-        )
-      );
-
-    } else {
-
-      targetMarker.setLatLng(
-        point
-      );
-
-      targetMarker
-        .setPopupContent(
-          escapeHtml(
-            selectedTask.title
-          )
-        );
-    }
-
-    const radius =
-      Number(
-        selectedTask.radius
-      );
-
-    if (!targetCircle) {
-
-      targetCircle =
-        L.circle(
-          point,
-          {
-            radius,
-            color: "#2f6f4e",
-            fillColor: "#4caf7a",
-            fillOpacity: 0.08,
-            weight: 2
-          }
-        ).addTo(map);
-
-    } else {
-
-      targetCircle.setLatLng(
-        point
-      );
-
-      targetCircle.setRadius(
-        radius
-      );
-    }
-  }
-
-
-  /*
-   * ============================================================
-   * TASKS
-   * ============================================================
-   */
-
-  async function loadTasks() {
-
-    $("taskList").innerHTML =
-      `<div class="tf-empty">
-        Memuat tugas...
+    $('taskGrid').innerHTML =
+      `<div class="empty">
+        Titik belum dapat dimuat:
+        ${esc(error.message)}
       </div>`;
 
-    try {
-
-      const {
-        data,
-        error
-      } =
-        await supabase
-          .from(
-            "tof_contribution_points"
-          )
-          .select(
-            [
-              "id",
-              "title",
-              "description",
-              "type",
-              "latitude",
-              "longitude",
-              "radius",
-              "reward_tof",
-              "reward_xp",
-              "validation_type",
-              "status"
-            ].join(",")
-          )
-          .eq(
-            "status",
-            "active"
-          )
-          .order(
-            "created_at",
-            {
-              ascending:
-                false
-            }
-          );
-
-      if (error) {
-        throw error;
-      }
-
-      tasks =
-        data || [];
-
-      renderTasks();
-
-    } catch (error) {
-
-      console.error(error);
-
-      $("taskList").innerHTML =
-        `<div class="tf-status-box tf-error">
-          Gagal memuat tugas:
-          ${escapeHtml(
-            error.message
-          )}
-        </div>`;
-    }
+    return;
   }
 
 
-  function renderTasks() {
+  state.tasks =
+    data || [];
 
-    if (!tasks.length) {
 
-      $("taskList").innerHTML =
-        `<div class="tf-empty">
-          Belum ada tugas aktif.
-        </div>`;
+  $('taskCount').textContent =
+    state.tasks.length;
 
-      return;
-    }
 
-    $("taskList").innerHTML =
-      tasks.map(
-        (task) => {
+  renderTasks();
 
-          const selectedClass =
-            selectedTask &&
-            selectedTask.id ===
-              task.id
-              ? " selected"
-              : "";
+  renderMap();
 
-          return `
-            <article
-              class="tf-task${selectedClass}"
-            >
+}
 
-              <div
-                class="tf-task-title"
-              >
-                ${escapeHtml(
-                  task.title
-                )}
-              </div>
 
-              <div
-                class="tf-task-desc"
-              >
-                ${escapeHtml(
-                  task.description ||
-                  "Tidak ada deskripsi."
-                )}
-              </div>
+/* ===========================================================
+   RENDER TASKS
+=========================================================== */
 
-              <div class="tf-chips">
+function renderTasks() {
 
-                <span class="tf-chip">
-                  📍 Radius
-                  ${formatNumber(
-                    task.radius
-                  )} m
-                </span>
+  if (!state.tasks.length) {
 
-                <span
-                  class="tf-chip tf-chip-gold"
-                >
-                  🪙
-                  ${formatNumber(
-                    task.reward_tof
-                  )}
-                  TOF
-                </span>
+    $('taskGrid').innerHTML =
+      `<div class="empty">
+        Belum ada titik kontribusi aktif.
+      </div>`;
 
-                <span class="tf-chip">
-                  ⭐
-                  ${formatNumber(
-                    task.reward_xp
-                  )}
-                  XP
-                </span>
+    return;
+  }
 
-                <span class="tf-chip">
-                  ${escapeHtml(
-                    task.validation_type
-                  )}
-                </span>
 
-              </div>
+  $('taskGrid').innerHTML =
+    state.tasks.map(task => `
 
-              <button
-                class="tf-btn tf-btn-primary tf-btn-full"
-                style="margin-top:11px"
-                type="button"
-                data-start-task="${escapeHtml(
-                  task.id
-                )}"
-              >
-                Mulai navigasi
-              </button>
+      <article
+        class="card"
+      >
 
-            </article>
-          `;
-        }
-      ).join("");
+        <span class="pill">
+          ${esc(task.type || 'location')}
+        </span>
 
-    tasks.forEach(
-      (task) => {
+        <h3>
+          ${esc(task.title)}
+        </h3>
+
+        <p>
+          ${esc(
+            task.description ||
+            'Kontribusi lapangan ToFarmer.'
+          )}
+        </p>
+
+        <div class="task-meta">
+
+          <span>
+            🎯 ${Number(task.reward_xp || 0)} XP
+          </span>
+
+          <span>
+            ◉ ${Number(task.reward_tof || 0)} TOF
+          </span>
+
+          <span>
+            ◎ ${Number(task.radius || 50)} m
+          </span>
+
+        </div>
+
+        <button
+          class="btn gold task-start"
+          data-id="${esc(task.id)}"
+        >
+          Temukan Titik
+        </button>
+
+      </article>
+
+    `).join('');
+
+
+  document
+    .querySelectorAll('.task-start')
+    .forEach(button => {
+
+      button.addEventListener(
+        'click',
+        () => startTask(button.dataset.id)
+      );
+
+    });
+
+}
+
+
+/* ===========================================================
+   MAP
+=========================================================== */
+
+function renderMap() {
+
+  if (!state.map) {
+
+    state.map =
+      L.map('map', {
+        zoomControl: true
+      })
+      .setView(
+        [-7.7956, 110.3695],
+        12
+      );
+
+
+    L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {
+        maxZoom: 19,
+
+        attribution:
+          '&copy; OpenStreetMap'
+      }
+    ).addTo(state.map);
+
+  }
+
+
+  state.taskMarkers
+    .forEach(marker =>
+      marker.remove()
+    );
+
+
+  state.taskMarkers = [];
+
+
+  state.tasks.forEach(task => {
+
+    const marker =
+      L.marker([
+        task.latitude,
+        task.longitude
+      ])
+      .addTo(state.map);
+
+
+    marker.bindPopup(`
+      <strong>
+        ${esc(task.title)}
+      </strong>
+
+      <br>
+
+      ${esc(task.description || '')}
+
+      <br><br>
+
+      Radius:
+      ${Number(task.radius || 50)}
+      m
+
+      <br>
+
+      Reward:
+      ${Number(task.reward_tof || 0)}
+      TOF /
+      ${Number(task.reward_xp || 0)}
+      XP
+
+      <br><br>
+
+      <button
+        class="map-go"
+        data-point="${esc(task.id)}"
+      >
+        Temukan
+      </button>
+    `);
+
+
+    marker.on(
+      'popupopen',
+      () => {
 
         const button =
           document.querySelector(
-            `[data-start-task="${CSS.escape(task.id)}"]`
+            `[data-point="${CSS.escape(task.id)}"]`
           );
+
 
         if (button) {
 
           button.onclick =
-            () => {
-              selectTask(task);
-            };
+            () => startTask(task.id);
+
         }
+
       }
     );
-  }
 
 
-  /*
-   * ============================================================
-   * SELECT TASK
-   * ============================================================
-   */
+    state.taskMarkers.push(marker);
 
-  function selectTask(
-    task
-  ) {
+  });
 
-    selectedTask =
-      task;
+}
 
-    photoData =
-      null;
 
-    $("navigationCard")
-      .style.display =
-      "block";
+/* ===========================================================
+   START TASK
+=========================================================== */
 
-    $("proofCard")
-      .style.display =
-      "block";
+function startTask(id) {
 
-    $("navigationTitle")
-      .textContent =
-      task.title;
-
-    $("targetCoordinate")
-      .textContent =
-      `${Number(
-        task.latitude
-      ).toFixed(5)}, ${Number(
-        task.longitude
-      ).toFixed(5)}`;
-
-    $("proofStatus")
-      .className =
-      "tf-status-box";
-
-    $("proofStatus")
-      .textContent =
-      "Belum ada foto bukti.";
-
-    $("photoPreview")
-      .style.display =
-      "none";
-
-    $("photoPreview")
-      .removeAttribute(
-        "src"
-      );
-
-    $("submitButton")
-      .disabled = true;
-
-    updateTargetMarker();
-
-    renderTasks();
-
-    updateNavigation();
-
-    $("navigationCard")
-      .scrollIntoView({
-        behavior:
-          "smooth",
-        block:
-          "start"
-      });
-  }
-
-
-  /*
-   * ============================================================
-   * GPS
-   * ============================================================
-   */
-
-  function startGps() {
-
-    if (!navigator.geolocation) {
-
-      $("navigationStatus")
-        .className =
-        "tf-nav-status tf-error";
-
-      $("navigationStatus")
-        .textContent =
-        "Perangkat tidak mendukung GPS.";
-
-      return;
-    }
-
-    gpsWatchId =
-      navigator.geolocation.watchPosition(
-
-        (position) => {
-
-          currentPosition = {
-
-            lat:
-              position.coords.latitude,
-
-            lon:
-              position.coords.longitude,
-
-            accuracy:
-              position.coords.accuracy
-          };
-
-          updateUserMarker();
-
-          updateNavigation();
-
-        },
-
-        (error) => {
-
-          $("navigationStatus")
-            .className =
-            "tf-nav-status tf-error";
-
-          $("navigationStatus")
-            .textContent =
-            "GPS gagal: " +
-            error.message;
-        },
-
-        {
-          enableHighAccuracy:
-            true,
-
-          maximumAge:
-            3000,
-
-          timeout:
-            15000
-        }
-      );
-  }
-
-
-  /*
-   * ============================================================
-   * NAVIGATION
-   * ============================================================
-   */
-
-  function updateNavigation() {
-
-    if (
-      !selectedTask ||
-      !currentPosition
-    ) {
-      return;
-    }
-
-    const distance =
-      calculateDistance(
-        currentPosition.lat,
-        currentPosition.lon,
-
-        selectedTask.latitude,
-        selectedTask.longitude
-      );
-
-    const bearing =
-      calculateBearing(
-        currentPosition.lat,
-        currentPosition.lon,
-
-        selectedTask.latitude,
-        selectedTask.longitude
-      );
-
-    const radius =
-      Number(
-        selectedTask.radius
-      );
-
-    $("distanceValue")
-      .textContent =
-      formatNumber(
-        distance
-      );
-
-    $("bearingValue")
-      .textContent =
-      `${formatNumber(
-        bearing
-      )}° · ${bearingDirection(
-        bearing
-      )}`;
-
-    $("accuracyValue")
-      .textContent =
-      `± ${formatNumber(
-        currentPosition.accuracy
-      )} m`;
-
-    /*
-     * Kalau compass aktif:
-     * arrow menunjukkan arah target relatif
-     * terhadap orientasi HP.
-     *
-     * Kalau tidak:
-     * arrow tetap menunjukkan bearing absolut.
-     */
-
-    let arrowRotation =
-      bearing;
-
-    if (
-      compassHeading !== null
-    ) {
-
-      arrowRotation =
-        (
-          bearing -
-          compassHeading +
-          360
-        ) % 360;
-    }
-
-    $("directionArrow")
-      .style.transform =
-      `rotate(${arrowRotation}deg)`;
-
-    const insideRadius =
-      distance <= radius;
-
-    if (insideRadius) {
-
-      $("navigationStatus")
-        .className =
-        "tf-nav-status tf-ok";
-
-      $("navigationStatus")
-        .textContent =
-        "✓ Kamu sudah berada di dalam radius tugas. Ambil foto bukti.";
-
-    } else {
-
-      const remaining =
-        Math.max(
-          0,
-          distance - radius
-        );
-
-      $("navigationStatus")
-        .className =
-        "tf-nav-status tf-warning";
-
-      $("navigationStatus")
-        .textContent =
-        `Hadapkan HP ke arah panah. ` +
-        `Masih sekitar ${formatNumber(
-          remaining
-        )} m dari radius validasi.`;
-    }
-
-    updateSubmitState(
-      insideRadius
+  const task =
+    state.tasks.find(
+      item =>
+        String(item.id) === String(id)
     );
+
+
+  if (!task) return;
+
+
+  state.selected = task;
+
+
+  $('navPanel')
+    .classList
+    .add('open');
+
+
+  $('navTarget').textContent =
+    task.title;
+
+
+  $('navDescription').textContent =
+    task.description ||
+    'Cari titik sesuai lokasi pada peta.';
+
+
+  if (state.navMarker) {
+
+    state.navMarker.remove();
+
   }
 
 
-  function updateSubmitState(
-    insideRadius = false
-  ) {
+  state.navMarker =
+    L.marker([
+      task.latitude,
+      task.longitude
+    ])
+    .addTo(state.map)
+    .bindPopup(task.title)
+    .openPopup();
 
-    if (
-      !selectedTask ||
-      !currentPosition
-    ) {
 
-      $("submitButton")
-        .disabled = true;
+  $('navSection')
+    .scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
 
-      return;
-    }
 
-    const distance =
-      calculateDistance(
-        currentPosition.lat,
-        currentPosition.lon,
+  startGps();
 
-        selectedTask.latitude,
-        selectedTask.longitude
-      );
+}
 
-    const valid =
-      distance <=
-      Number(
-        selectedTask.radius
-      );
 
-    $("submitButton")
-      .disabled =
-      !valid ||
-      !photoData;
+/* ===========================================================
+   GPS
+=========================================================== */
+
+function startGps() {
+
+  if (!navigator.geolocation) {
+
+    $('geofenceStatus').textContent =
+      'Perangkat tidak mendukung GPS.';
+
+    return;
   }
 
 
-  /*
-   * ============================================================
-   * COMPASS
-   * ============================================================
-   */
+  if (state.watchId) {
 
-  async function enableCompass() {
-
-    if (
-      typeof DeviceOrientationEvent ===
-      "undefined"
-    ) {
-
-      showToast(
-        "Kompas tidak tersedia. GPS + bearing tetap bisa digunakan."
+    navigator.geolocation
+      .clearWatch(
+        state.watchId
       );
 
-      return;
-    }
+  }
 
-    try {
 
-      /*
-       * iOS/Safari membutuhkan permission.
-       */
+  state.watchId =
+    navigator.geolocation.watchPosition(
 
-      if (
-        typeof DeviceOrientationEvent
-          .requestPermission ===
-        "function"
-      ) {
+      position => {
 
-        const permission =
-          await DeviceOrientationEvent
-            .requestPermission();
+        state.position =
+          position;
 
-        if (
-          permission !==
-          "granted"
-        ) {
 
-          showToast(
-            "Izin kompas ditolak. GPS + bearing tetap bisa digunakan."
-          );
+        const {
+          latitude,
+          longitude,
+          accuracy
+        } = position.coords;
 
+
+        $('gpsAccuracy').textContent =
+          `${Math.round(
+            accuracy || 0
+          )} m`;
+
+
+        if (!state.selected) {
           return;
         }
-      }
-
-      window.addEventListener(
-        "deviceorientationabsolute",
-        handleOrientation,
-        true
-      );
-
-      window.addEventListener(
-        "deviceorientation",
-        handleOrientation,
-        true
-      );
-
-      $("compassButton")
-        .textContent =
-        "🧭 Kompas aktif";
-
-      showToast(
-        "Kompas aktif."
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-      showToast(
-        "Kompas tidak tersedia. Gunakan GPS + bearing."
-      );
-    }
-  }
 
 
-  function handleOrientation(
-    event
-  ) {
-
-    let heading = null;
-
-    /*
-     * iOS
-     */
-
-    if (
-      typeof event.webkitCompassHeading ===
-      "number"
-    ) {
-
-      heading =
-        event.webkitCompassHeading;
-    }
-
-    /*
-     * Android / browser umum
-     */
-
-    else if (
-      typeof event.alpha ===
-      "number"
-    ) {
-
-      heading =
-        (
-          360 -
-          event.alpha
-        ) % 360;
-    }
-
-    if (
-      heading !== null &&
-      Number.isFinite(heading)
-    ) {
-
-      compassHeading =
-        heading;
-
-      updateNavigation();
-    }
-  }
-
-
-  /*
-   * ============================================================
-   * CAMERA
-   * ============================================================
-   */
-
-  async function openCamera() {
-
-    if (
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getUserMedia
-    ) {
-
-      showToast(
-        "Kamera tidak tersedia di browser ini."
-      );
-
-      return;
-    }
-
-    try {
-
-      if (cameraStream) {
-
-        cameraStream
-          .getTracks()
-          .forEach(
-            track =>
-              track.stop()
+        const distance =
+          distanceMeters(
+            latitude,
+            longitude,
+            state.selected.latitude,
+            state.selected.longitude
           );
+
+
+        const targetBearing =
+          bearing(
+            latitude,
+            longitude,
+            state.selected.latitude,
+            state.selected.longitude
+          );
+
+
+        $('gpsDistance').textContent =
+          `${Math.round(distance)} m`;
+
+
+        $('gpsBearing').textContent =
+          `${Math.round(targetBearing)}°`;
+
+
+        $('distance').textContent =
+          distance < 1000
+            ? `${Math.round(distance)} m`
+            : `${(
+                distance / 1000
+              ).toFixed(2)} km`;
+
+
+        const radius =
+          Number(
+            state.selected.radius || 50
+          );
+
+
+        const inside =
+          distance <= radius;
+
+
+        if (inside) {
+
+          $('geofenceStatus').textContent =
+            `✓ Kamu berada dalam radius ${radius} m`;
+
+          $('geofenceStatus')
+            .style.color =
+            '#4ade80';
+
+        } else {
+
+          $('geofenceStatus').textContent =
+            `Di luar radius. Mendekat ± ${
+              Math.max(
+                0,
+                Math.round(
+                  distance - radius
+                )
+              )
+            } m`;
+
+          $('geofenceStatus')
+            .style.color =
+            '#fde047';
+
+        }
+
+
+        updateArrow(
+          targetBearing
+        );
+
+
+        if (state.map) {
+
+          state.map.setView(
+            [
+              latitude,
+              longitude
+            ],
+            Math.max(
+              state.map.getZoom(),
+              15
+            )
+          );
+
+        }
+
+      },
+
+      error => {
+
+        $('geofenceStatus').textContent =
+          'GPS belum aktif: ' +
+          error.message;
+
+      },
+
+      {
+        enableHighAccuracy: true,
+
+        maximumAge: 3000,
+
+        timeout: 15000
+
       }
 
-      cameraStream =
-        await navigator
-          .mediaDevices
-          .getUserMedia({
-
-            video: {
-              facingMode: {
-                ideal:
-                  "environment"
-              },
-
-              width: {
-                ideal:
-                  1280
-              }
-            },
-
-            audio:
-              false
-          });
-
-      $("cameraVideo")
-        .srcObject =
-        cameraStream;
-
-      $("captureButton")
-        .disabled =
-        false;
-
-      showToast(
-        "Kamera aktif."
-      );
-
-    } catch (error) {
-
-      console.error(error);
-
-      showToast(
-        "Kamera tidak dapat dibuka: " +
-        error.message
-      );
-    }
-  }
-
-
-  function capturePhoto() {
-
-    if (!cameraStream) {
-      return;
-    }
-
-    const video =
-      $("cameraVideo");
-
-    if (
-      !video.videoWidth ||
-      !video.videoHeight
-    ) {
-
-      showToast(
-        "Kamera belum siap."
-      );
-
-      return;
-    }
-
-    const canvas =
-      document.createElement(
-        "canvas"
-      );
-
-    /*
-     * Batasi ukuran foto agar payload
-     * tidak terlalu besar.
-     */
-
-    const maxWidth =
-      1280;
-
-    const scale =
-      Math.min(
-        1,
-        maxWidth /
-          video.videoWidth
-      );
-
-    canvas.width =
-      Math.round(
-        video.videoWidth *
-        scale
-      );
-
-    canvas.height =
-      Math.round(
-        video.videoHeight *
-        scale
-      );
-
-    const context =
-      canvas.getContext(
-        "2d"
-      );
-
-    context.drawImage(
-      video,
-      0,
-      0,
-      canvas.width,
-      canvas.height
     );
 
-    photoData =
-      canvas.toDataURL(
-        "image/jpeg",
-        0.78
-      );
-
-    $("photoPreview")
-      .src =
-      photoData;
-
-    $("photoPreview")
-      .style.display =
-      "block";
-
-    $("proofStatus")
-      .className =
-      "tf-status-box tf-ok";
-
-    $("proofStatus")
-      .textContent =
-      "✓ Foto bukti siap dikirim.";
-
-    updateNavigation();
-  }
+}
 
 
-  /*
-   * ============================================================
-   * CLAIM
-   * ============================================================
-   */
+/* ===========================================================
+   DISTANCE
+=========================================================== */
 
-  async function submitClaim() {
+function distanceMeters(
+  lat1,
+  lon1,
+  lat2,
+  lon2
+) {
+
+  const R = 6371000;
+
+  const radians =
+    degrees =>
+      degrees *
+      Math.PI /
+      180;
+
+
+  const p1 =
+    radians(lat1);
+
+  const p2 =
+    radians(lat2);
+
+
+  const deltaLat =
+    radians(
+      lat2 - lat1
+    );
+
+
+  const deltaLon =
+    radians(
+      lon2 - lon1
+    );
+
+
+  const a =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(p1) *
+    Math.cos(p2) *
+    Math.sin(deltaLon / 2) ** 2;
+
+
+  return (
+    2 *
+    R *
+    Math.atan2(
+      Math.sqrt(a),
+      Math.sqrt(1 - a)
+    )
+  );
+
+}
+
+
+/* ===========================================================
+   BEARING
+=========================================================== */
+
+function bearing(
+  lat1,
+  lon1,
+  lat2,
+  lon2
+) {
+
+  const radians =
+    degrees =>
+      degrees *
+      Math.PI /
+      180;
+
+
+  const degrees =
+    radians =>
+      radians *
+      180 /
+      Math.PI;
+
+
+  const dLon =
+    radians(
+      lon2 - lon1
+    );
+
+
+  const y =
+    Math.sin(dLon) *
+    Math.cos(
+      radians(lat2)
+    );
+
+
+  const x =
+    Math.cos(
+      radians(lat1)
+    ) *
+    Math.sin(
+      radians(lat2)
+    ) -
+
+    Math.sin(
+      radians(lat1)
+    ) *
+    Math.cos(
+      radians(lat2)
+    ) *
+    Math.cos(dLon);
+
+
+  return (
+    degrees(
+      Math.atan2(y, x)
+    ) + 360
+  ) % 360;
+
+}
+
+
+/* ===========================================================
+   COMPASS ARROW
+=========================================================== */
+
+function updateArrow(
+  targetBearing
+) {
+
+  const heading =
+    state.heading;
+
+
+  const rotation =
+    heading == null
+      ? 0
+      : targetBearing - heading;
+
+
+  $('arrow')
+    .style
+    .transform =
+    `rotate(${rotation}deg)`;
+
+
+  $('navHint').textContent =
+    heading == null
+      ? 'Hadapkan HP ke arah panah — kompas belum aktif'
+      : 'Kompas aktif — hadapkan HP ke arah panah';
+
+}
+
+
+/* ===========================================================
+   COMPASS PERMISSION
+=========================================================== */
+
+async function requestCompass() {
+
+  try {
 
     if (
-      !selectedTask ||
-      !currentPosition ||
-      !photoData
-    ) {
-      return;
-    }
+      typeof DeviceOrientationEvent !==
+        'undefined' &&
 
-    const distance =
-      calculateDistance(
-        currentPosition.lat,
-        currentPosition.lon,
-
-        selectedTask.latitude,
-        selectedTask.longitude
-      );
-
-    if (
-      distance >
-      Number(
-        selectedTask.radius
-      )
+      typeof DeviceOrientationEvent
+        .requestPermission ===
+        'function'
     ) {
 
-      showToast(
-        "Kamu belum berada di dalam radius."
-      );
+      const permission =
+        await DeviceOrientationEvent
+          .requestPermission();
 
-      updateNavigation();
-
-      return;
-    }
-
-    /*
-     * Cek claim sebelumnya.
-     *
-     * Ini bukan satu-satunya proteksi yang dibutuhkan.
-     * Server-side validation tetap wajib.
-     */
-
-    try {
-
-      const {
-        data: existingClaims,
-        error: claimLookupError
-      } =
-        await supabase
-          .from(
-            "tof_contribution_claims"
-          )
-          .select(
-            "id,status"
-          )
-          .eq(
-            "user_id",
-            profile.id
-          )
-          .eq(
-            "point_id",
-            selectedTask.id
-          )
-          .limit(50);
-
-      if (claimLookupError) {
-        throw claimLookupError;
-      }
-
-      const alreadyClaimed =
-        (existingClaims || [])
-          .some(
-            claim =>
-              claim.status ===
-                "pending" ||
-              claim.status ===
-                "approved"
-          );
-
-      if (alreadyClaimed) {
-
-        showToast(
-          "Tugas ini sudah pernah kamu klaim."
-        );
-
-        return;
-      }
-
-      $("submitButton")
-        .disabled = true;
-
-      $("submitButton")
-        .textContent =
-        "Mengirim...";
-
-      /*
-       * ========================================================
-       * PRODUCTION SCHEMA
-       * ========================================================
-       *
-       * tof_contribution_claims:
-       *
-       * id
-       * user_id text
-       * point_id uuid
-       * latitude double precision
-       * longitude double precision
-       * gps_accuracy double precision
-       * distance_meters double precision
-       * photo_data text
-       * status text
-       * reward_tof numeric
-       * reward_xp integer
-       * created_at
-       * reviewed_at
-       * reviewed_by
-       * reviewer_note
-       *
-       * Jangan mengirim wallet_id.
-       */
-
-      const payload = {
-
-        user_id:
-          profile.id,
-
-        point_id:
-          selectedTask.id,
-
-        latitude:
-          currentPosition.lat,
-
-        longitude:
-          currentPosition.lon,
-
-        gps_accuracy:
-          currentPosition.accuracy,
-
-        distance_meters:
-          distance,
-
-        photo_data:
-          photoData,
-
-        /*
-         * Claim baru masuk pending.
-         */
-
-        status:
-          "pending",
-
-        /*
-         * Nilai ini berasal dari task.
-         *
-         * PENTING:
-         * untuk production secure, server/Edge Function
-         * harus mengabaikan reward dari client dan mengambil
-         * reward langsung dari tof_contribution_points.
-         */
-
-        reward_tof:
-          selectedTask.reward_tof,
-
-        reward_xp:
-          selectedTask.reward_xp
-      };
-
-      const {
-        error
-      } =
-        await supabase
-          .from(
-            "tof_contribution_claims"
-          )
-          .insert(
-            payload
-          );
-
-      if (error) {
-        throw error;
-      }
-
-      /*
-       * Kamera dimatikan setelah submit.
-       */
-
-      stopCamera();
-
-      photoData =
-        null;
-
-      $("photoPreview")
-        .style.display =
-        "none";
-
-      $("photoPreview")
-        .removeAttribute(
-          "src"
-        );
-
-      $("proofStatus")
-        .className =
-        "tf-status-box tf-ok";
-
-      $("proofStatus")
-        .textContent =
-        "✓ Kontribusi terkirim dan menunggu validasi.";
-
-      $("submitButton")
-        .textContent =
-        "Kirim kontribusi";
-
-      showToast(
-        "Kontribusi berhasil dikirim."
-      );
-
-      await loadClaims();
-
-    } catch (error) {
-
-      console.error(error);
-
-      $("submitButton")
-        .textContent =
-        "Kirim kontribusi";
-
-      showToast(
-        "Gagal mengirim kontribusi: " +
-        error.message
-      );
-
-      updateNavigation();
-    }
-  }
-
-
-  function stopCamera() {
-
-    if (!cameraStream) {
-      return;
-    }
-
-    cameraStream
-      .getTracks()
-      .forEach(
-        track =>
-          track.stop()
-      );
-
-    cameraStream =
-      null;
-
-    $("cameraVideo")
-      .srcObject =
-      null;
-
-    $("captureButton")
-      .disabled =
-      true;
-  }
-
-
-  /*
-   * ============================================================
-   * CLAIM HISTORY
-   * ============================================================
-   */
-
-  async function loadClaims() {
-
-    $("claimList").textContent =
-      "Memuat...";
-
-    try {
-
-      const {
-        data,
-        error
-      } =
-        await supabase
-          .from(
-            "tof_contribution_claims"
-          )
-          .select(
-            [
-              "id",
-              "point_id",
-              "status",
-              "reward_tof",
-              "reward_xp",
-              "created_at"
-            ].join(",")
-          )
-          .eq(
-            "user_id",
-            profile.id
-          )
-          .order(
-            "created_at",
-            {
-              ascending:
-                false
-            }
-          )
-          .limit(10);
-
-      if (error) {
-        throw error;
-      }
-
-      if (!data || !data.length) {
-
-        $("claimList").innerHTML =
-          `<div class="tf-empty">
-            Belum ada kontribusi.
-          </div>`;
-
-        return;
-      }
-
-      $("claimList").innerHTML =
-        data.map(
-          (claim) => {
-
-            const date =
-              new Date(
-                claim.created_at
-              ).toLocaleString(
-                "id-ID"
-              );
-
-            return `
-              <div class="tf-claim">
-
-                <strong>
-                  ${escapeHtml(
-                    claim.status
-                  )}
-                </strong>
-
-                ·
-
-                ${formatNumber(
-                  claim.reward_tof
-                )}
-                TOF
-
-                ·
-
-                ${formatNumber(
-                  claim.reward_xp
-                )}
-                XP
-
-                <br>
-
-                <span class="tf-muted">
-                  ${escapeHtml(
-                    date
-                  )}
-                </span>
-
-              </div>
-            `;
-          }
-        ).join("");
-
-    } catch (error) {
-
-      console.error(error);
-
-      $("claimList").innerHTML =
-        `<div class="tf-status-box tf-error">
-          Tidak dapat memuat status kontribusi.
-        </div>`;
-    }
-  }
-
-
-  /*
-   * ============================================================
-   * BUTTON EVENTS
-   * ============================================================
-   */
-
-  $("refreshTasks")
-    .onclick =
-    async () => {
-
-      await loadTasks();
-      await loadClaims();
-    };
-
-
-  $("compassButton")
-    .onclick =
-    enableCompass;
-
-
-  $("cameraButton")
-    .onclick =
-    openCamera;
-
-
-  $("captureButton")
-    .onclick =
-    capturePhoto;
-
-
-  $("submitButton")
-    .onclick =
-    submitClaim;
-
-
-  /*
-   * ============================================================
-   * CLEANUP
-   * ============================================================
-   */
-
-  window.addEventListener(
-    "beforeunload",
-    () => {
 
       if (
-        gpsWatchId !== null
+        permission !==
+        'granted'
       ) {
 
-        navigator.geolocation
-          .clearWatch(
-            gpsWatchId
-          );
+        throw new Error(
+          'Izin kompas ditolak.'
+        );
+
       }
 
-      stopCamera();
     }
+
+
+    window.addEventListener(
+      'deviceorientationabsolute',
+      onOrientation,
+      true
+    );
+
+
+    window.addEventListener(
+      'deviceorientation',
+      onOrientation,
+      true
+    );
+
+
+    $('navHint').textContent =
+      'Kompas aktif — hadapkan HP ke arah panah';
+
+  } catch (error) {
+
+    $('navHint').textContent =
+      error.message ||
+      'Kompas tidak tersedia. Gunakan bearing dan peta.';
+
+  }
+
+}
+
+
+/* ===========================================================
+   DEVICE ORIENTATION
+=========================================================== */
+
+function onOrientation(event) {
+
+  let heading = null;
+
+
+  if (
+    typeof event.webkitCompassHeading ===
+    'number'
+  ) {
+
+    heading =
+      event.webkitCompassHeading;
+
+  }
+
+  else if (
+    typeof event.alpha ===
+    'number'
+  ) {
+
+    heading =
+      (360 - event.alpha) % 360;
+
+  }
+
+
+  if (heading != null) {
+
+    state.heading =
+      heading;
+
+
+    if (
+      state.position &&
+      state.selected
+    ) {
+
+      const target =
+        bearing(
+          state.position.coords.latitude,
+          state.position.coords.longitude,
+          state.selected.latitude,
+          state.selected.longitude
+        );
+
+
+      updateArrow(target);
+
+    }
+
+  }
+
+}
+
+
+/* ===========================================================
+   QR SCANNER
+=========================================================== */
+
+async function openScanner() {
+
+  $('scannerBox')
+    .classList
+    .add('open');
+
+
+  if (state.scanner) {
+    return;
+  }
+
+
+  state.scanner =
+    new Html5Qrcode(
+      'reader'
+    );
+
+
+  try {
+
+    await state.scanner.start(
+
+      {
+        facingMode:
+          'environment'
+      },
+
+      {
+        fps: 10,
+
+        qrbox: {
+          width: 250,
+          height: 250
+        }
+
+      },
+
+      decoded => {
+
+        $('scanResult')
+          .classList
+          .remove('hidden');
+
+
+        $('scanResult').innerHTML =
+          `QR terbaca:
+          <strong>
+            ${esc(decoded)}
+          </strong>`;
+
+
+        addFeed(
+          'Scan QR',
+          decoded
+        );
+
+
+        state.scanner
+          .stop()
+          .catch(() => {});
+
+
+        state.scanner = null;
+
+
+        $('scannerBox')
+          .classList
+          .remove('open');
+
+      },
+
+      () => {}
+
+    );
+
+  } catch (error) {
+
+    $('scanResult')
+      .classList
+      .remove('hidden');
+
+
+    $('scanResult').classList.add(
+      'error'
+    );
+
+
+    $('scanResult').textContent =
+      'Kamera tidak dapat dibuka: ' +
+      error.message;
+
+  }
+
+}
+
+
+/* ===========================================================
+   FEED
+=========================================================== */
+
+function addFeed(
+  type,
+  value
+) {
+
+  const feed =
+    JSON.parse(
+      localStorage.getItem(
+        'scan_saja_feed'
+      ) || '[]'
+    );
+
+
+  feed.unshift({
+
+    type,
+
+    value,
+
+    time:
+      new Date()
+        .toLocaleString(
+          'id-ID'
+        )
+
+  });
+
+
+  localStorage.setItem(
+    'scan_saja_feed',
+    JSON.stringify(
+      feed.slice(0, 50)
+    )
   );
 
 
-  /*
-   * ============================================================
-   * INIT
-   * ============================================================
-   */
+  renderFeed();
 
-  await loadProfile();
+}
 
-  initMap();
+
+function renderFeed() {
+
+  const feed =
+    JSON.parse(
+      localStorage.getItem(
+        'scan_saja_feed'
+      ) || '[]'
+    );
+
+
+  if (!feed.length) {
+
+    $('feed').innerHTML =
+      `<div class="empty">
+        Belum ada aktivitas.
+      </div>`;
+
+    return;
+  }
+
+
+  $('feed').innerHTML =
+    feed.map(item => `
+
+      <div class="feed-item">
+
+        <strong>
+          ${esc(item.type)}
+        </strong>
+
+        ·
+
+        ${esc(item.time)}
+
+        <br>
+
+        ${esc(item.value)}
+
+      </div>
+
+    `).join('');
+
+}
+
+
+/* ===========================================================
+   PHOTO
+=========================================================== */
+
+function readPhoto(file) {
+
+  return new Promise(
+    (resolve, reject) => {
+
+      const reader =
+        new FileReader();
+
+
+      reader.onload =
+        () => resolve(
+          reader.result
+        );
+
+
+      reader.onerror =
+        reject;
+
+
+      reader.readAsDataURL(
+        file
+      );
+
+    }
+  );
+
+}
+
+
+/* ===========================================================
+   CLAIM
+=========================================================== */
+
+async function submitClaim() {
+
+  if (
+    !state.user ||
+    !state.selected ||
+    !state.position
+  ) {
+
+    showClaim(
+      'Aktifkan GPS dan pilih titik terlebih dahulu.',
+      true
+    );
+
+    return;
+  }
+
+
+  const file =
+    $('proofPhoto')
+      .files[0];
+
+
+  if (!file) {
+
+    showClaim(
+      'Foto bukti wajib diisi.',
+      true
+    );
+
+    return;
+  }
+
+
+  const coords =
+    state.position.coords;
+
+
+  const task =
+    state.selected;
+
+
+  const distance =
+    distanceMeters(
+      coords.latitude,
+      coords.longitude,
+      task.latitude,
+      task.longitude
+    );
+
+
+  const radius =
+    Number(
+      task.radius || 50
+    );
+
+
+  if (distance > radius) {
+
+    showClaim(
+      `Belum masuk radius.
+       Jarak saat ini
+       ${Math.round(distance)} m.`,
+      true
+    );
+
+    return;
+  }
+
+
+  const photo =
+    await readPhoto(file);
+
+
+  const row = {
+
+    user_id:
+      state.user.id,
+
+    point_id:
+      task.id,
+
+    latitude:
+      coords.latitude,
+
+    longitude:
+      coords.longitude,
+
+    gps_accuracy:
+      coords.accuracy || null,
+
+    distance_meters:
+      distance,
+
+    photo_data:
+      photo,
+
+    status:
+      'pending',
+
+    reward_tof:
+      Number(
+        task.reward_tof || 0
+      ),
+
+    reward_xp:
+      Number(
+        task.reward_xp || 0
+      )
+
+  };
+
+
+  const {
+    error
+  } = await supabase
+    .from(
+      'tof_contribution_claims'
+    )
+    .insert(row);
+
+
+  if (error) {
+
+    showClaim(
+      'Klaim gagal dikirim: ' +
+      error.message,
+      true
+    );
+
+    return;
+  }
+
+
+  showClaim(
+    `Klaim "${task.title}"
+     sudah dikirim dengan status
+     PENDING.
+
+     Reward:
+     ${task.reward_tof || 0} TOF +
+     ${task.reward_xp || 0} XP
+     tercatat pada klaim.`,
+    false
+  );
+
+
+  addFeed(
+    'Klaim lapangan',
+    `${task.title} · pending`
+  );
+
+}
+
+
+function showClaim(
+  message,
+  isError
+) {
+
+  const element =
+    $('claimMessage');
+
+
+  element.classList
+    .remove('hidden');
+
+
+  element.classList
+    .toggle(
+      'error',
+      isError
+    );
+
+
+  element.classList
+    .toggle(
+      'success',
+      !isError
+    );
+
+
+  element.textContent =
+    message;
+
+}
+
+
+/* ===========================================================
+   EVENT HANDLERS
+=========================================================== */
+
+$('openScanner')
+  .onclick =
+  openScanner;
+
+
+$('closeScanner')
+  .onclick =
+  async () => {
+
+    if (state.scanner) {
+
+      await state.scanner
+        .stop()
+        .catch(() => {});
+
+      state.scanner = null;
+
+    }
+
+
+    $('scannerBox')
+      .classList
+      .remove('open');
+
+  };
+
+
+$('openGenerator')
+  .onclick =
+  () => {
+
+    $('generatorSection')
+      .classList
+      .remove('hidden');
+
+
+    $('generatorSection')
+      .scrollIntoView({
+        behavior: 'smooth'
+      });
+
+  };
+
+
+$('closeGenerator')
+  .onclick =
+  () => {
+
+    $('generatorSection')
+      .classList
+      .add('hidden');
+
+  };
+
+
+$('generateQr')
+  .onclick =
+  () => {
+
+    const value =
+      $('qrText')
+        .value
+        .trim();
+
+
+    if (!value) {
+      return;
+    }
+
+
+    $('qrOutput')
+      .innerHTML = '';
+
+
+    new QRCode(
+      $('qrOutput'),
+      {
+        text: value,
+
+        width: 220,
+
+        height: 220,
+
+        colorDark:
+          '#22c55e',
+
+        colorLight:
+          '#070e0a'
+      }
+    );
+
+
+    addFeed(
+      'Generate QR',
+      value
+    );
+
+  };
+
+
+$('useFieldAction')
+  .onclick =
+  () => {
+
+    $('fieldSection')
+      .scrollIntoView({
+        behavior: 'smooth'
+      });
+
+  };
+
+
+$('showFeed')
+  .onclick =
+  () => {
+
+    $('feedSection')
+      .classList
+      .remove('hidden');
+
+
+    $('feedSection')
+      .scrollIntoView({
+        behavior: 'smooth'
+      });
+
+  };
+
+
+$('startGps')
+  .onclick =
+  startGps;
+
+
+$('requestCompass')
+  .onclick =
+  requestCompass;
+
+
+$('cancelNav')
+  .onclick =
+  () => {
+
+    $('navPanel')
+      .classList
+      .remove('open');
+
+    state.selected =
+      null;
+
+  };
+
+
+$('openProof')
+  .onclick =
+  () => {
+
+    $('proofSection')
+      .classList
+      .remove('hidden');
+
+
+    $('proofSection')
+      .scrollIntoView({
+        behavior: 'smooth'
+      });
+
+  };
+
+
+$('closeProof')
+  .onclick =
+  () => {
+
+    $('proofSection')
+      .classList
+      .add('hidden');
+
+  };
+
+
+$('proofPhoto')
+  .onchange =
+  event => {
+
+    const file =
+      event.target.files[0];
+
+
+    if (!file) {
+      return;
+    }
+
+
+    const url =
+      URL.createObjectURL(
+        file
+      );
+
+
+    $('proofPreview')
+      .src = url;
+
+
+    $('proofPreview')
+      .style
+      .display = 'block';
+
+  };
+
+
+$('submitClaim')
+  .onclick =
+  submitClaim;
+
+
+/* ===========================================================
+   INIT
+=========================================================== */
+
+(async function init() {
+
+  await loadUser();
 
   await loadTasks();
 
-  await loadClaims();
+  renderFeed();
 
-  startGps();
+})();
 
 </script>
 
