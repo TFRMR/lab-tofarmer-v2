@@ -1474,6 +1474,15 @@
         PETA AKTIVITAS
       </div>
 
+      <button
+        type="button"
+        id="myLocationBtn"
+        class="glass-btn"
+        style="margin-bottom:10px;"
+      >
+        📍 Lokasi Saya
+      </button>
+
       <div id="map"></div>
 
     </section>
@@ -1781,7 +1790,9 @@ const state = {
 
   scanner: null,
 
-  photoData: null
+  photoData: null,
+
+  myMarker: null
 
 };
 
@@ -2042,6 +2053,16 @@ function renderMap() {
       }
     ).addTo(state.map);
 
+
+    // Layer label (nama jalan, tempat, batas wilayah) di atas citra satelit
+    L.tileLayer(
+      'https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 19,
+        attribution: ''
+      }
+    ).addTo(state.map);
+
   }
 
 
@@ -2189,6 +2210,68 @@ function startTask(id) {
 
 
 /* ===========================================================
+   LOKASI SAYA (marker posisi sendiri)
+=========================================================== */
+
+function updateMyLocationMarker(lat, lng) {
+
+  if (state.myMarker) {
+
+    state.myMarker.setLatLng([lat, lng]);
+
+  } else {
+
+    state.myMarker =
+      L.circleMarker([lat, lng], {
+        radius: 8,
+        color: '#3b82f6',
+        weight: 2,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.9
+      })
+      .addTo(state.map)
+      .bindPopup('Lokasi kamu sekarang');
+
+  }
+
+}
+
+
+function myLocation() {
+
+  if (!navigator.geolocation) {
+
+    alert('GPS tidak tersedia di perangkat ini.');
+
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+
+    position => {
+
+      const { latitude, longitude } = position.coords;
+
+      updateMyLocationMarker(latitude, longitude);
+
+      state.map.setView([latitude, longitude], 16);
+
+    },
+
+    error => {
+
+      alert('Gagal mengambil lokasi: ' + error.message);
+
+    },
+
+    { enableHighAccuracy: true }
+
+  );
+
+}
+
+
+/* ===========================================================
    GPS
 =========================================================== */
 
@@ -2233,6 +2316,12 @@ function startGps() {
           `${Math.round(
             accuracy || 0
           )} m`;
+
+
+        updateMyLocationMarker(
+          latitude,
+          longitude
+        );
 
 
         if (!state.selected) {
@@ -3380,6 +3469,11 @@ $('submitClaim')
   await loadTasks();
 
   renderFeed();
+
+  const myLocationBtn = $('myLocationBtn');
+  if (myLocationBtn) {
+    myLocationBtn.onclick = myLocation;
+  }
 
   syncPendingClaims();
 
