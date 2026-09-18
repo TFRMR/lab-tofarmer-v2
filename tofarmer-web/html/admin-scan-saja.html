@@ -1919,6 +1919,13 @@ async function initAuth() {
 
   await loadClaims();
 
+  syncPendingPoints();
+
+  window.addEventListener(
+    'online',
+    syncPendingPoints
+  );
+
 }
 
 
@@ -2499,6 +2506,94 @@ function locatePoint(id) {
    FORM SUBMIT
 =========================================================== */
 
+/* ===========================================================
+   OFFLINE QUEUE (titik tersimpan saat tidak ada sinyal)
+=========================================================== */
+
+const PENDING_POINTS_KEY = 'tof_pending_points';
+
+function getPendingPoints() {
+  try {
+    return JSON.parse(
+      localStorage.getItem(PENDING_POINTS_KEY) || '[]'
+    );
+  } catch {
+    return [];
+  }
+}
+
+function savePendingPoints(list) {
+  localStorage.setItem(
+    PENDING_POINTS_KEY,
+    JSON.stringify(list)
+  );
+}
+
+function queuePointOffline(payload, isUpdate, pointId) {
+  const list = getPendingPoints();
+  list.push({
+    payload,
+    isUpdate,
+    pointId,
+    queued_at: new Date().toISOString()
+  });
+  savePendingPoints(list);
+}
+
+async function syncPendingPoints() {
+
+  const list = getPendingPoints();
+  if (!list.length) return;
+
+  const remaining = [];
+  let synced = 0;
+
+  for (const item of list) {
+
+    try {
+
+      let result;
+
+      if (item.isUpdate) {
+        result = await supabase
+          .from('tof_contribution_points')
+          .update(item.payload)
+          .eq('id', item.pointId);
+      } else {
+        result = await supabase
+          .from('tof_contribution_points')
+          .insert(item.payload);
+      }
+
+      if (result.error) {
+        console.warn(
+          'Titik tertunda ditolak server:',
+          result.error.message
+        );
+        continue;
+      }
+
+      synced++;
+
+    } catch (err) {
+      remaining.push(item);
+    }
+
+  }
+
+  savePendingPoints(remaining);
+
+  if (synced > 0) {
+    await loadPoints();
+    alert(
+      synced +
+      ' titik tertunda berhasil disinkronkan ke server.'
+    );
+  }
+
+}
+
+
 $('pointForm')
   .onsubmit =
   async event => {
@@ -2567,63 +2662,83 @@ $('pointForm')
     };
 
 
-    let result;
+    const isUpdate = !!$('pointId').value;
+    const pointId = $('pointId').value;
 
 
-    if (
-      $('pointId')
-        .value
-    ) {
+    try {
 
-      result =
-        await supabase
-          .from(
-            'tof_contribution_points'
-          )
-          .update(
-            payload
-          )
-          .eq(
-            'id',
-            $('pointId')
-              .value
-          );
-
-    }
-
-    else {
-
-      result =
-        await supabase
-          .from(
-            'tof_contribution_points'
-          )
-          .insert(
-            payload
-          );
-
-    }
+      let result;
 
 
-    if (result.error) {
+      if (isUpdate) {
+
+        result =
+          await supabase
+            .from(
+              'tof_contribution_points'
+            )
+            .update(
+              payload
+            )
+            .eq(
+              'id',
+              pointId
+            );
+
+      }
+
+      else {
+
+        result =
+          await supabase
+            .from(
+              'tof_contribution_points'
+            )
+            .insert(
+              payload
+            );
+
+      }
+
+
+      if (result.error) {
+
+        alert(
+          'Gagal menyimpan: ' +
+          result.error.message
+        );
+
+        return;
+      }
+
 
       alert(
-        'Gagal menyimpan: ' +
-        result.error.message
+        'Titik berhasil disimpan.'
       );
 
-      return;
+
+      resetForm();
+
+      await loadPoints();
+
+    } catch (networkErr) {
+
+      // Tidak ada sinyal / gagal konek ke server —
+      // simpan dulu di HP, kirim otomatis nanti begitu online lagi.
+      queuePointOffline(payload, isUpdate, pointId);
+
+      alert(
+        'Tidak ada koneksi internet. Titik "' +
+        payload.title +
+        '" disimpan di HP ini dan akan otomatis ' +
+        'terkirim begitu sinyal kembali. ' +
+        'Jangan hapus data browser sebelum sempat terkirim.'
+      );
+
+      resetForm();
+
     }
-
-
-    alert(
-      'Titik berhasil disimpan.'
-    );
-
-
-    resetForm();
-
-    await loadPoints();
 
   };
 
