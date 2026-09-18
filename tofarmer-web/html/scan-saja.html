@@ -2857,6 +2857,85 @@ function readPhoto(file) {
 
 
 /* ===========================================================
+   OFFLINE QUEUE (klaim tersimpan saat tidak ada sinyal)
+=========================================================== */
+
+const PENDING_CLAIMS_KEY = 'tof_pending_claims';
+
+function getPendingClaims() {
+  try {
+    return JSON.parse(
+      localStorage.getItem(PENDING_CLAIMS_KEY) || '[]'
+    );
+  } catch {
+    return [];
+  }
+}
+
+function savePendingClaims(list) {
+  localStorage.setItem(
+    PENDING_CLAIMS_KEY,
+    JSON.stringify(list)
+  );
+}
+
+function queueClaimOffline(row, taskTitle) {
+  const list = getPendingClaims();
+  list.push({
+    row,
+    taskTitle,
+    queued_at: new Date().toISOString()
+  });
+  savePendingClaims(list);
+}
+
+async function syncPendingClaims() {
+
+  const list = getPendingClaims();
+  if (!list.length) return;
+
+  const remaining = [];
+  let synced = 0;
+
+  for (const item of list) {
+
+    try {
+
+      const { error } = await supabase
+        .from('tof_contribution_claims')
+        .insert(item.row);
+
+      if (error) {
+        // ditolak server (bukan soal jaringan) — buang biar tidak nyangkut selamanya
+        console.warn(
+          'Klaim tertunda ditolak server:',
+          error.message
+        );
+        continue;
+      }
+
+      synced++;
+
+    } catch (err) {
+      // masih offline / gagal jaringan — simpan lagi, coba lagi nanti
+      remaining.push(item);
+    }
+
+  }
+
+  savePendingClaims(remaining);
+
+  if (synced > 0) {
+    addFeed(
+      'Sinkronisasi',
+      `${synced} klaim tertunda berhasil dikirim.`
+    );
+  }
+
+}
+
+
+/* ===========================================================
    CLAIM
 =========================================================== */
 
@@ -2972,44 +3051,67 @@ async function submitClaim() {
   };
 
 
-  const {
-    error
-  } = await supabase
-    .from(
-      'tof_contribution_claims'
-    )
-    .insert(row);
+  try {
+
+    const {
+      error
+    } = await supabase
+      .from(
+        'tof_contribution_claims'
+      )
+      .insert(row);
 
 
-  if (error) {
+    if (error) {
+
+      showClaim(
+        'Klaim gagal dikirim: ' +
+        error.message,
+        true
+      );
+
+      return;
+    }
+
 
     showClaim(
-      'Klaim gagal dikirim: ' +
-      error.message,
-      true
+      `Klaim "${task.title}"
+       sudah dikirim dengan status
+       PENDING.
+
+       Reward:
+       ${task.reward_tof || 0} TOF +
+       ${task.reward_xp || 0} XP
+       tercatat pada klaim.`,
+      false
     );
 
-    return;
+
+    addFeed(
+      'Klaim lapangan',
+      `${task.title} · pending`
+    );
+
+  } catch (networkErr) {
+
+    // Tidak ada sinyal / gagal konek ke server —
+    // simpan dulu di HP, kirim otomatis nanti begitu online lagi.
+    queueClaimOffline(row, task.title);
+
+    showClaim(
+      `Tidak ada koneksi internet. Klaim "${task.title}"
+       disimpan di HP ini dan akan otomatis
+       terkirim begitu sinyal kembali.
+       Jangan hapus data browser sebelum sempat terkirim.`,
+      false
+    );
+
+    addFeed(
+      'Klaim tersimpan offline',
+      `${task.title} · menunggu sinyal`
+    );
+
   }
-
-
-  showClaim(
-    `Klaim "${task.title}"
-     sudah dikirim dengan status
-     PENDING.
-
-     Reward:
-     ${task.reward_tof || 0} TOF +
-     ${task.reward_xp || 0} XP
-     tercatat pada klaim.`,
-    false
-  );
-
-
-  addFeed(
-    'Klaim lapangan',
-    `${task.title} · pending`
-  );
 
 }
 
@@ -3278,6 +3380,13 @@ $('submitClaim')
   await loadTasks();
 
   renderFeed();
+
+  syncPendingClaims();
+
+  window.addEventListener(
+    'online',
+    syncPendingClaims
+  );
 
 })();
 
