@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediktor Candlestick via CSV - ToFarmer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background:
+                radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+                radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+                linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            color: #e2e8f0;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(120deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, 0));
+            pointer-events: none;
+            animation: fog 14s ease-in-out infinite;
+        }
+
+        @keyframes fog {
+            0% { transform: translateX(-3%); }
+            50% { transform: translateX(3%); }
+            100% { transform: translateX(-3%); }
+        }
+
+        .container { width: 100%; max-width: 1150px; margin: auto; padding: 22px; }
+
+        .hero { position: relative; padding: 30px 20px 40px; text-align: center; }
+        .hero::after {
+            content: ""; position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%);
+            width: 180px; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.4), transparent);
+        }
+
+        .logo-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+        .logo {
+            width: 80px; height: 80px; border-radius: 50%; padding: 5px;
+            background: rgba(20, 38, 27, 0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(74, 222, 128, 0.25); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: flex; align-items: center; justify-content: center; font-size: 2.2rem;
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 800;
+            background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        .hero p { margin-top: 10px; font-size: .9rem; color: #84a98c; max-width: 650px; margin-inline: auto; }
+
+        .badge-model {
+            display: inline-block; margin-top: 14px; padding: 6px 16px; border-radius: 999px;
+            background: rgba(74, 222, 128, 0.08); border: 1px solid rgba(74, 222, 128, 0.25);
+            font-size: .72rem; color: #86efac; letter-spacing: .5px;
+        }
+
+        .main-box {
+            background: rgba(14, 28, 19, 0.45); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+            border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 34px; padding: 35px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); margin-bottom: 30px;
+        }
+
+        .section-title { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+        .section-title span { font-size: .82rem; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #fde047; }
+        .line { flex: 1; height: 1px; background: linear-gradient(90deg, rgba(234, 179, 8, 0.3), rgba(34, 197, 94, 0.05), transparent); }
+
+        .upload-area {
+            border: 2px dashed rgba(74, 222, 128, 0.3); border-radius: 20px; padding: 30px;
+            text-align: center; background: rgba(18, 35, 24, 0.3); transition: .3s; cursor: pointer;
+        }
+        .upload-area:hover { border-color: #fde047; background: rgba(22, 46, 31, 0.5); }
+        .upload-area input { display: none; }
+
+        .btn-upload {
+            display: inline-block; margin-top: 12px; padding: 10px 24px; border-radius: 999px;
+            background: linear-gradient(135deg, #22c55e 0%, #15803d 100%); color: #050b07;
+            font-weight: 700; font-size: .8rem; text-transform: uppercase; border: 1px solid #4ade80;
+        }
+
+        #fileMeta { margin-top: 14px; font-size: .78rem; color: #84a98c; }
+        #fileError { margin-top: 14px; font-size: .82rem; color: #f87171; display:none; }
+
+        .result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 25px; }
+        .card-result {
+            padding: 24px; border-radius: 24px; background: rgba(18, 35, 24, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.03); border-left: 2px solid rgba(34, 197, 94, 0.15);
+        }
+
+        .res-title { font-size: .75rem; font-weight: 800; letter-spacing: 1px; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; }
+        .res-bias { font-size: 1.6rem; font-weight: 800; color: #fde047; margin-bottom: 8px; }
+        .conf-tag { display:inline-block; font-size:.68rem; font-weight:700; padding:3px 10px; border-radius:999px; margin-bottom:16px; letter-spacing:.5px; text-transform:uppercase; }
+        .conf-lemah { background: rgba(148,163,184,.15); color:#cbd5e1; }
+        .conf-sedang { background: rgba(253,224,71,.12); color:#fde047; }
+        .conf-kuat { background: rgba(74,222,128,.15); color:#4ade80; }
+        .stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: .85rem; gap: 10px; }
+        .stat-row span:first-child { color:#94a3b8; }
+        .stat-row span:last-child { color:#f8fafc; font-weight:bold; text-align: right; }
+        .chart-box { position: relative; height: 200px; }
+        .note-box {
+            margin-top: 18px; padding: 16px 18px; border-radius: 16px;
+            background: rgba(234, 179, 8, 0.06); border: 1px solid rgba(234, 179, 8, 0.15);
+            font-size: .78rem; color: #cbb676; line-height: 1.6;
+        }
+        .footer-text { padding: 40px 20px; text-align: center; font-size: .78rem; color: #475569; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <header class="hero">
+        <div class="logo-wrap"><div class="logo">📈</div></div>
+        <h1>Prediktor Candlestick CSV</h1>
+        <p>Upload histori CSV XAUUSD kamu (format export MetaTrader/MT5, M30). Aplikasi akan membaca pola candle terakhir dan memprediksi 1–3 candle berikutnya berdasarkan model statistik yang sudah dipelajari dari histori 2 tahun.</p>
+        <div class="badge-model" id="modelBadge">Model: histori M30 2 tahun</div>
+    </header>
+
+    <main class="main-box">
+        <div class="section-title">
+            <span>01. UPLOAD HISTORI CSV</span>
+            <div class="line"></div>
+        </div>
+
+        <div class="upload-area" onclick="document.getElementById('csvInput').click()">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">📁</div>
+            <div style="font-size: .95rem; font-weight:700; color: #f8fafc;">Klik di sini untuk memilih file CSV</div>
+            <div style="font-size: .75rem; color: #84a98c; margin-top:4px;">Otomatis mendukung export MT5 (kolom &lt;DATE&gt; &lt;TIME&gt; &lt;OPEN&gt; &lt;HIGH&gt; &lt;LOW&gt; &lt;CLOSE&gt;, dipisah tab) maupun CSV biasa (Open, High, Low, Close, dipisah koma)</div>
+            <div class="btn-upload">Pilih File CSV</div>
+            <input type="file" id="csvInput" accept=".csv,.txt" onchange="prosesFileCSV(event)">
+        </div>
+        <div id="fileMeta"></div>
+        <div id="fileError"></div>
+
+        <div id="hasilContainer" style="display: none; margin-top: 35px;">
+            <div class="section-title">
+                <span>02. KONDISI TERAKHIR & PREDIKSI</span>
+                <div class="line"></div>
+            </div>
+
+            <div class="result-grid">
+
+                <div class="card-result">
+                    <div class="res-title">Kondisi Candle Terakhir (T)</div>
+                    <div class="stat-row"><span>Waktu:</span><span id="deteksiWaktu">-</span></div>
+                    <div class="stat-row"><span>Struktur Pasar:</span><span id="deteksiTrend">-</span></div>
+                    <div class="stat-row"><span>Anatomi Candle:</span><span id="deteksiAnatomi">-</span></div>
+                    <div class="stat-row"><span>ATR(14) lokal:</span><span id="deteksiATR">-</span></div>
+
+                    <div class="res-title" style="margin-top:20px;">Prediksi Candle Berikutnya (T+1)</div>
+                    <div id="resBias" class="res-bias">Bias: --</div>
+                    <div id="confTag" class="conf-tag conf-lemah">Kekuatan sinyal: --</div>
+
+                    <div class="stat-row"><span>Peluang BULLISH:</span><span id="pctBull" style="color:#4ade80">0%</span></div>
+                    <div class="stat-row"><span>Peluang BEARISH:</span><span id="pctBear" style="color:#f87171">0%</span></div>
+                    <div class="stat-row"><span>Perkiraan bentuk T+1:</span><span id="predShape">-</span></div>
+                    <div class="stat-row"><span>Perkiraan range T+1:</span><span id="predRange">-</span></div>
+                    <div class="stat-row"><span>Basis sampel histori:</span><span id="sampleCount">0 kejadian</span></div>
+                    <div class="stat-row"><span>Level pencocokan pola:</span><span id="matchLevel">-</span></div>
+                </div>
+
+                <div class="card-result">
+                    <div class="res-title" style="text-align: center; margin-bottom:12px">Peluang Arah T+1 / T+2 / T+3</div>
+                    <div class="chart-box">
+                        <canvas id="chartProb"></canvas>
+                    </div>
+                    <div class="note-box" id="noteBox"></div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer-text">
+        © ToFarmer — Diproses secara Lokal & Aman di Browser Kamu.<br>
+        Model statistik dari histori M30 XAUUSD, bukan saran finansial. Selalu gunakan manajemen risiko sendiri.
+    </footer>
+
+</div>
+
+<script>
+// =====================================================================
+// PATTERN_DB — dipelajari dari histori M30 XAUUSD 2 tahun
+// (2024.09.01 - 2026.09.18, 24.206 candle usable) oleh analisis offline.
+// Setiap bucket berisi: n (jumlah kejadian), pBull (% candle T+1 bullish),
+// bodyPct (rata2 body T+1 sbg % dari range), atrMult (rata2 range T+1
+// sbg kelipatan ATR14 saat itu), domBody/domWick (bentuk T+1 paling sering),
+// net2Bull/net3Bull (% peluang harga net naik setelah 2/3 candle).
+// =====================================================================
+const PATTERN_DB = {"level3":{"BEAR_TREND_BEAR_LARGE_BALANCED":{"n":504,"pBull":54.2,"bodyPct":42.8,"atrMult":1.18,"domBody":"SMALL","domWick":"LOWER_WICK","net2Bull":55.4,"net3Bull":52.2},"BEAR_TREND_BEAR_LARGE_LOWER_WICK":{"n":1274,"pBull":54.9,"bodyPct":44.3,"atrMult":1.19,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":54.0,"net3Bull":54.8},"BEAR_TREND_BEAR_LARGE_UPPER_WICK":{"n":744,"pBull":51.3,"bodyPct":43.8,"atrMult":1.19,"domBody":"SMALL","domWick":"LOWER_WICK","net2Bull":53.5,"net3Bull":53.2},"BEAR_TREND_BEAR_MED_BALANCED":{"n":543,"pBull":52.3,"bodyPct":45.9,"atrMult":1.13,"domBody":"LARGE","domWick":"LOWER_WICK","net2Bull":52.3,"net3Bull":54.7},"BEAR_TREND_BEAR_MED_LOWER_WICK":{"n":1205,"pBull":52.4,"bodyPct":44.8,"atrMult":1.11,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":53.4,"net3Bull":54.4},"BEAR_TREND_BEAR_MED_UPPER_WICK":{"n":893,"pBull":53.8,"bodyPct":42.4,"atrMult":1.11,"domBody":"SMALL","domWick":"LOWER_WICK","net2Bull":54.8,"net3Bull":53.0},"BEAR_TREND_BEAR_SMALL_BALANCED":{"n":536,"pBull":52.4,"bodyPct":45.3,"atrMult":1.05,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":51.3,"net3Bull":52.6},"BEAR_TREND_BEAR_SMALL_LOWER_WICK":{"n":861,"pBull":51.1,"bodyPct":44.8,"atrMult":1.03,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.1,"net3Bull":52.3},"BEAR_TREND_BEAR_SMALL_UPPER_WICK":{"n":640,"pBull":50.9,"bodyPct":44.5,"atrMult":1.05,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":50.5,"net3Bull":52.7},"BEAR_TREND_BULL_LARGE_BALANCED":{"n":197,"pBull":57.9,"bodyPct":43.3,"atrMult":0.96,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":56.9,"net3Bull":56.3},"BEAR_TREND_BULL_LARGE_LOWER_WICK":{"n":334,"pBull":52.7,"bodyPct":44.7,"atrMult":0.99,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":53.6,"net3Bull":53.0},"BEAR_TREND_BULL_LARGE_UPPER_WICK":{"n":423,"pBull":55.1,"bodyPct":42.8,"atrMult":0.89,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":52.2,"net3Bull":52.2},"BEAR_TREND_BULL_MED_BALANCED":{"n":321,"pBull":48.9,"bodyPct":46.5,"atrMult":1.09,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":48.3,"net3Bull":51.1},"BEAR_TREND_BULL_MED_LOWER_WICK":{"n":619,"pBull":51.5,"bodyPct":43.9,"atrMult":1.01,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":49.9,"net3Bull":51.2},"BEAR_TREND_BULL_MED_UPPER_WICK":{"n":628,"pBull":54.0,"bodyPct":44.5,"atrMult":0.97,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":54.6,"net3Bull":56.1},"BEAR_TREND_BULL_SMALL_BALANCED":{"n":448,"pBull":52.2,"bodyPct":44.6,"atrMult":1.03,"domBody":"SMALL","domWick":"LOWER_WICK","net2Bull":53.6,"net3Bull":52.0},"BEAR_TREND_BULL_SMALL_LOWER_WICK":{"n":705,"pBull":48.2,"bodyPct":44.1,"atrMult":1.03,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":47.4,"net3Bull":50.5},"BEAR_TREND_BULL_SMALL_UPPER_WICK":{"n":622,"pBull":49.2,"bodyPct":46.1,"atrMult":1.05,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.1,"net3Bull":52.3},"BULL_TREND_BEAR_LARGE_BALANCED":{"n":192,"pBull":55.2,"bodyPct":43.1,"atrMult":0.96,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":48.4,"net3Bull":47.9},"BULL_TREND_BEAR_LARGE_LOWER_WICK":{"n":433,"pBull":50.1,"bodyPct":44.2,"atrMult":0.97,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.4,"net3Bull":55.7},"BULL_TREND_BEAR_LARGE_UPPER_WICK":{"n":315,"pBull":50.5,"bodyPct":44.1,"atrMult":0.98,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":50.5,"net3Bull":49.5},"BULL_TREND_BEAR_MED_BALANCED":{"n":374,"pBull":49.7,"bodyPct":44.7,"atrMult":0.96,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":53.2,"net3Bull":51.3},"BULL_TREND_BEAR_MED_LOWER_WICK":{"n":763,"pBull":49.7,"bodyPct":43.2,"atrMult":0.94,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.6,"net3Bull":52.6},"BULL_TREND_BEAR_MED_UPPER_WICK":{"n":556,"pBull":54.0,"bodyPct":44.4,"atrMult":1.06,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.7,"net3Bull":52.2},"BULL_TREND_BEAR_SMALL_BALANCED":{"n":525,"pBull":50.1,"bodyPct":43.9,"atrMult":0.96,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":49.5,"net3Bull":53.3},"BULL_TREND_BEAR_SMALL_LOWER_WICK":{"n":715,"pBull":49.4,"bodyPct":42.8,"atrMult":0.97,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":51.9,"net3Bull":53.6},"BULL_TREND_BEAR_SMALL_UPPER_WICK":{"n":706,"pBull":56.2,"bodyPct":46.2,"atrMult":1.0,"domBody":"LARGE","domWick":"LOWER_WICK","net2Bull":54.8,"net3Bull":55.5},"BULL_TREND_BULL_LARGE_BALANCED":{"n":611,"pBull":51.6,"bodyPct":44.1,"atrMult":1.04,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.2,"net3Bull":49.9},"BULL_TREND_BULL_LARGE_LOWER_WICK":{"n":981,"pBull":48.3,"bodyPct":43.4,"atrMult":1.08,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":51.1,"net3Bull":52.1},"BULL_TREND_BULL_LARGE_UPPER_WICK":{"n":1454,"pBull":50.8,"bodyPct":44.1,"atrMult":1.04,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":51.4,"net3Bull":51.8},"BULL_TREND_BULL_MED_BALANCED":{"n":593,"pBull":51.6,"bodyPct":47.1,"atrMult":1.05,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":52.6,"net3Bull":55.1},"BULL_TREND_BULL_MED_LOWER_WICK":{"n":1044,"pBull":49.0,"bodyPct":43.7,"atrMult":0.99,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":49.5,"net3Bull":48.8},"BULL_TREND_BULL_MED_UPPER_WICK":{"n":1197,"pBull":51.5,"bodyPct":44.0,"atrMult":1.01,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":49.5,"net3Bull":49.6},"BULL_TREND_BULL_SMALL_BALANCED":{"n":601,"pBull":50.6,"bodyPct":44.3,"atrMult":1.01,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":51.2,"net3Bull":51.2},"BULL_TREND_BULL_SMALL_LOWER_WICK":{"n":799,"pBull":49.7,"bodyPct":44.7,"atrMult":1.01,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":49.8,"net3Bull":50.9},"BULL_TREND_BULL_SMALL_UPPER_WICK":{"n":850,"pBull":45.9,"bodyPct":44.1,"atrMult":1.0,"domBody":"SMALL","domWick":"LOWER_WICK","net2Bull":47.9,"net3Bull":49.8}},"level2":{"BEAR_TREND_BEAR_LARGE":{"n":2522,"pBull":53.7,"bodyPct":43.9,"atrMult":1.19,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":54.1,"net3Bull":53.8},"BEAR_TREND_BEAR_MED":{"n":2641,"pBull":52.8,"bodyPct":44.2,"atrMult":1.11,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":53.6,"net3Bull":54.0},"BEAR_TREND_BEAR_SMALL":{"n":2037,"pBull":51.4,"bodyPct":44.8,"atrMult":1.04,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":51.4,"net3Bull":52.5},"BEAR_TREND_BULL_LARGE":{"n":954,"pBull":54.8,"bodyPct":43.6,"atrMult":0.94,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":53.7,"net3Bull":53.4},"BEAR_TREND_BULL_MED":{"n":1568,"pBull":52.0,"bodyPct":44.7,"atrMult":1.01,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":51.5,"net3Bull":53.1},"BEAR_TREND_BULL_SMALL":{"n":1775,"pBull":49.6,"bodyPct":44.9,"atrMult":1.04,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":50.6,"net3Bull":51.5},"BULL_TREND_BEAR_LARGE":{"n":940,"pBull":51.3,"bodyPct":44.0,"atrMult":0.97,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":51.0,"net3Bull":52.0},"BULL_TREND_BEAR_MED":{"n":1693,"pBull":51.1,"bodyPct":44.0,"atrMult":0.98,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.7,"net3Bull":52.2},"BULL_TREND_BEAR_SMALL":{"n":1946,"pBull":52.1,"bodyPct":44.3,"atrMult":0.98,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.3,"net3Bull":54.2},"BULL_TREND_BULL_LARGE":{"n":3046,"pBull":50.1,"bodyPct":43.9,"atrMult":1.05,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":51.4,"net3Bull":51.5},"BULL_TREND_BULL_MED":{"n":2834,"pBull":50.6,"bodyPct":44.5,"atrMult":1.01,"domBody":"MED","domWick":"UPPER_WICK","net2Bull":50.1,"net3Bull":50.5},"BULL_TREND_BULL_SMALL":{"n":2250,"pBull":48.5,"bodyPct":44.4,"atrMult":1.01,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":49.5,"net3Bull":50.6}},"level1":{"BEAR_TREND_BEAR":{"n":7200,"pBull":52.7,"bodyPct":44.3,"atrMult":1.12,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":53.2,"net3Bull":53.5},"BEAR_TREND_BULL":{"n":4297,"pBull":51.6,"bodyPct":44.5,"atrMult":1.01,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":51.6,"net3Bull":52.5},"BULL_TREND_BEAR":{"n":4579,"pBull":51.5,"bodyPct":44.1,"atrMult":0.98,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.2,"net3Bull":53.0},"BULL_TREND_BULL":{"n":8130,"pBull":49.9,"bodyPct":44.2,"atrMult":1.02,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":50.4,"net3Bull":50.9}},"level0":{"BEAR":{"n":11779,"pBull":52.3,"bodyPct":44.2,"atrMult":1.06,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":52.8,"net3Bull":53.3},"BULL":{"n":12427,"pBull":50.5,"bodyPct":44.3,"atrMult":1.02,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":50.8,"net3Bull":51.4}},"overall":{"n":24206,"pBull":51.3,"bodyPct":44.3,"atrMult":1.04,"domBody":"MED","domWick":"LOWER_WICK","net2Bull":51.8,"net3Bull":52.4},"meta":{"rows":24211,"usable":24206}}
+;
+
+const MIN_SAMPLE_L3 = 120; // di bawah ini turun ke level lebih umum
+
+let myChart = null;
+
+function prosesFileCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    document.getElementById('fileError').style.display = 'none';
+
+    Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            try {
+                analisisData(results.data);
+            } catch (e) {
+                showError('Gagal memproses file: ' + e.message);
+            }
+        },
+        error: function(err) {
+            showError('Gagal membaca file CSV: ' + err.message);
+        }
+    });
+}
+
+function showError(msg) {
+    const el = document.getElementById('fileError');
+    el.innerText = msg;
+    el.style.display = 'block';
+}
+
+function analisisData(data) {
+    // Normalisasi nama kolom: buang tanda <> dan spasi, lalu lowercase.
+    // Mendukung format MT5 (<DATE> <TIME> <OPEN> <HIGH> <LOW> <CLOSE> <TICKVOL> <VOL> <SPREAD>)
+    // maupun CSV biasa (Open, High, Low, Close, [Date], [Time]).
+    let cleanData = data.map(row => {
+        let newRow = {};
+        for (let key in row) {
+            let k = key.replace(/[<>]/g, '').trim().toLowerCase();
+            newRow[k] = row[key];
+        }
+        return newRow;
+    }).filter(r => isFinite(r.open) && isFinite(r.high) && isFinite(r.low) && isFinite(r.close));
+
+    if (cleanData.length < 10) {
+        showError('Data CSV terlalu sedikit atau kolom Open/High/Low/Close tidak ditemukan. Pastikan file adalah export MT5 (tab) atau CSV dengan header Open,High,Low,Close.');
+        return;
+    }
+
+    document.getElementById('fileMeta').innerText =
+        `${cleanData.length} candle terbaca` +
+        (cleanData[0].date ? ` • dari ${cleanData[0].date} ${cleanData[0].time || ''} sampai ${cleanData[cleanData.length-1].date} ${cleanData[cleanData.length-1].time || ''}` : '');
+
+    // 1. Hitung anatomi tiap candle (sama persis dgn formula yang dipakai melatih PATTERN_DB)
+    for (let i = 0; i < cleanData.length; i++) {
+        let d = cleanData[i];
+        let range = (d.high - d.low) || 0.00001;
+        let body = Math.abs(d.close - d.open);
+        let bodyPct = (body / range) * 100;
+
+        let upperWick = d.high - Math.max(d.open, d.close);
+        let lowerWick = Math.min(d.open, d.close) - d.low;
+
+        let candleType = d.close >= d.open ? "BULL" : "BEAR";
+        let wickBias = upperWick > (1.5 * lowerWick) ? "UPPER_WICK" :
+                       (lowerWick > (1.5 * upperWick) ? "LOWER_WICK" : "BALANCED");
+        let bodyGroup = bodyPct > 60 ? "LARGE" : (bodyPct > 30 ? "MED" : "SMALL");
+
+        d.candleType = candleType;
+        d.wickBias = wickBias;
+        d.bodyGroup = bodyGroup;
+        d.signature = `${candleType}_${bodyGroup}_${wickBias}`;
+
+        // True Range utk ATR(14)
+        let prevClose = i > 0 ? cleanData[i-1].close : d.close;
+        d.tr = Math.max(d.high - d.low, Math.abs(d.high - prevClose), Math.abs(d.low - prevClose));
+    }
+
+    // 2. Struktur trend (breakout N=2, carry-forward) — identik dengan metode training
+    let trend = "BULL_TREND";
+    for (let i = 0; i < cleanData.length; i++) {
+        if (i >= 2) {
+            if (cleanData[i].close < cleanData[i-2].low) trend = "BEAR_TREND";
+            else if (cleanData[i].close > cleanData[i-2].high) trend = "BULL_TREND";
+        }
+        cleanData[i].trend = trend;
+    }
+
+    // 3. ATR(14) lokal (rata-rata TR 14 candle terakhir)
+    let last = cleanData[cleanData.length - 1];
+    let atrWindow = cleanData.slice(-14);
+    let atr14 = atrWindow.reduce((s, r) => s + r.tr, 0) / atrWindow.length;
+
+    // 4. Lookup PATTERN_DB dengan fallback bertingkat
+    let level3Key = `${last.trend}_${last.signature}`;
+    let level2Key = `${last.trend}_${last.candleType}_${last.bodyGroup}`;
+    let level1Key = `${last.trend}_${last.candleType}`;
+    let level0Key = last.candleType;
+
+    let entry, levelLabel;
+    if (PATTERN_DB.level3[level3Key] && PATTERN_DB.level3[level3Key].n >= MIN_SAMPLE_L3) {
+        entry = PATTERN_DB.level3[level3Key];
+        levelLabel = 'Spesifik (trend + tipe + body + wick)';
+    } else if (PATTERN_DB.level2[level2Key]) {
+        entry = PATTERN_DB.level2[level2Key];
+        levelLabel = 'Menengah (trend + tipe + body)';
+    } else if (PATTERN_DB.level1[level1Key]) {
+        entry = PATTERN_DB.level1[level1Key];
+        levelLabel = 'Umum (trend + tipe candle)';
+    } else if (PATTERN_DB.level0[level0Key]) {
+        entry = PATTERN_DB.level0[level0Key];
+        levelLabel = 'Dasar (tipe candle saja)';
+    } else {
+        entry = PATTERN_DB.overall;
+        levelLabel = 'Baseline (rata-rata seluruh histori)';
+    }
+
+    let pctBull = entry.pBull;
+    let pctBear = (100 - pctBull);
+
+    // 5. Update UI - kondisi terakhir
+    document.getElementById('hasilContainer').style.display = 'block';
+    document.getElementById('deteksiWaktu').innerText = (last.date || '') + ' ' + (last.time || '');
+    document.getElementById('deteksiTrend').innerText = last.trend.replace('_', ' ');
+    document.getElementById('deteksiAnatomi').innerText = last.signature.replace(/_/g, ' ');
+    document.getElementById('deteksiATR').innerText = atr14.toFixed(3);
+
+    // 6. Update UI - prediksi
+    const resBias = document.getElementById('resBias');
+    const confTag = document.getElementById('confTag');
+    let deviasi = Math.abs(pctBull - 50);
+    let confClass, confText;
+    if (deviasi >= 5) { confClass = 'conf-kuat'; confText = 'Cenderung (deviasi ' + deviasi.toFixed(1) + ' pts dari 50/50)'; }
+    else if (deviasi >= 2) { confClass = 'conf-sedang'; confText = 'Sedang (deviasi ' + deviasi.toFixed(1) + ' pts dari 50/50)'; }
+    else { confClass = 'conf-lemah'; confText = 'Lemah — mendekati 50/50 (acak)'; }
+    confTag.className = 'conf-tag ' + confClass;
+    confTag.innerText = confText;
+
+    if (pctBull >= pctBear) {
+        resBias.innerText = `BIAS: BULLISH 🟢 (${pctBull.toFixed(1)}%)`;
+        resBias.style.color = "#4ade80";
+    } else {
+        resBias.innerText = `BIAS: BEARISH 🔴 (${pctBear.toFixed(1)}%)`;
+        resBias.style.color = "#f87171";
+    }
+
+    document.getElementById('pctBull').innerText = pctBull.toFixed(1) + '%';
+    document.getElementById('pctBear').innerText = pctBear.toFixed(1) + '%';
+    document.getElementById('predShape').innerText = `Body ${entry.domBody}, wick ${entry.domWick.replace('_',' ')}`;
+    let estRange = atr14 * entry.atrMult;
+    document.getElementById('predRange').innerText = `~${estRange.toFixed(2)} (≈${entry.atrMult}× ATR, body ~${entry.bodyPct}% dari range)`;
+    document.getElementById('sampleCount').innerText = entry.n.toLocaleString('id-ID') + ' kejadian di histori 2 tahun';
+    document.getElementById('matchLevel').innerText = levelLabel;
+
+    document.getElementById('noteBox').innerHTML =
+        `<b>Catatan jujur:</b> di data M30 XAUUSD, pola bentuk candle + struktur trend sederhana ` +
+        `hanya memberi sedikit pergeseran dari 50/50 (biasanya 45%–58%). Ini bukan sinyal kuat — ` +
+        `gunakan sebagai konteks tambahan, bukan dasar tunggal keputusan, dan selalu pakai stop-loss/manajemen risiko.`;
+
+    renderChart(pctBull, pctBear, entry.net2Bull, entry.net3Bull);
+}
+
+function renderChart(t1Bull, t1Bear, net2Bull, net3Bull) {
+    const ctx = document.getElementById('chartProb').getContext('2d');
+    if (myChart) myChart.destroy();
+
+    myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['T+1', 'T+2 (net)', 'T+3 (net)'],
+            datasets: [
+                {
+                    label: 'Bullish %',
+                    data: [t1Bull, net2Bull, net3Bull],
+                    backgroundColor: 'rgba(74, 222, 128, 0.8)',
+                    borderColor: '#4ade80', borderWidth: 1, borderRadius: 8
+                },
+                {
+                    label: 'Bearish %',
+                    data: [t1Bear, 100 - net2Bull, 100 - net3Bull],
+                    backgroundColor: 'rgba(248, 113, 113, 0.8)',
+                    borderColor: '#f87171', borderWidth: 1, borderRadius: 8
+                }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: true, labels: { color: '#94a3b8', font: { size: 10 } } } },
+            scales: {
+                y: { beginAtZero: true, max: 100, ticks: { color: '#84a98c' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { ticks: { color: '#84a98c' }, grid: { display: false } }
+            }
+        }
+    });
+}
+</script>
+
+</body>
+</html>
