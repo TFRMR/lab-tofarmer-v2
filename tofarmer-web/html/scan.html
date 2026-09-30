@@ -48,15 +48,38 @@
 
     .qr-grid-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; max-height: 520px; overflow-y: auto; padding-right: 5px; }
     
-    .qr-card-item { background: #fff; border: 1px solid #e0e8e3; border-radius: 14px; padding: 14px; text-align: center; transition: all 0.3s ease; position: relative; cursor: pointer; }
+    .qr-card-item { background: #fff; border: 1px solid #e0e8e3; border-radius: 14px; padding: 14px; text-align: center; transition: all 0.3s ease; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
     .qr-card-item:hover { border-color: #2f6f4e; box-shadow: 0 6px 16px rgba(47,111,78,0.12); }
-    .qr-card-item .qr-holder { margin: 10px auto; display: flex; justify-content: center; }
+    .qr-card-item .qr-holder { margin: 10px auto; display: flex; justify-content: center; cursor: pointer; }
     
-    .qr-card-item.revealed { text-align: left; background: #fdfdfd; border-left: 4px solid #2f6f4e; cursor: default; animation: revealAnim 0.4s ease-out; }
+    .qr-card-item.revealed { text-align: left; background: #fdfdfd; border-left: 4px solid #2f6f4e; animation: revealAnim 0.4s ease-out; }
     @keyframes revealAnim { from { opacity: 0.4; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
     
     .revealed-content { margin-top: 8px; font-size: 13px; color: #1c2b22; font-weight: 500; line-height: 1.4; word-break: break-word; }
-    .scan-prompt { font-size: 10px; color: #888; margin-top: 6px; font-style: italic; }
+    .scan-prompt { font-size: 10px; color: #888; margin-top: 4px; font-style: italic; cursor: pointer; }
+
+    /* TOMBOL DOWNLOAD QR */
+    .btn-download-qr {
+      background: #f0f7f3;
+      color: #2f6f4e;
+      border: 1px solid #2f6f4e;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-download-qr:hover {
+      background: #2f6f4e;
+      color: #ffffff;
+    }
 
     #scannerModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
     #reader { width: 100%; max-width: 320px; border-radius: 16px; overflow: hidden; border: 2px solid #4caf7a; }
@@ -112,7 +135,7 @@
         <div class="card">
           <h3>🟩 Feed Aktivitas Matriks (Supabase Live)</h3>
           <p style="font-size: 11px; color: #6f7f76; margin-bottom: 12px;">
-            Setiap postingan tersimpan di Supabase. Ketuk atau scan QR untuk mengonversi menjadi teks logs feed.
+            Unduh gambar QR jika menggunakan 1 HP, atau ketuk/scan langsung untuk konversi ke log teks.
           </p>
           
           <div class="qr-grid-feed" id="qrFeedGrid">
@@ -191,22 +214,28 @@
         if (item.scanned) {
           card.className = "qr-card-item revealed";
           card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${item.title}</span>
-              <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${item.tag || 'Custom QR'}</span>
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${item.title}</span>
+                <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${item.tag || 'Custom QR'}</span>
+              </div>
+              <div class="revealed-content">LOG: ${item.text}</div>
             </div>
-            <div class="revealed-content">LOG: ${item.text}</div>
-            <div style="font-size: 9px; color: #c9a227; margin-top: 6px; font-weight: bold;">✓ Terdekodekan & Terverifikasi</div>
+            <div style="font-size: 9px; color: #c9a227; margin-top: 8px; font-weight: bold;">✓ Terdekodekan & Terverifikasi</div>
           `;
         } else {
           card.className = "qr-card-item";
-          card.onclick = () => revealQRItem(item.id);
           
           card.innerHTML = `
-            <div style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${item.title}</div>
-            <div class="qr-holder" id="${qrContainerId}"></div>
-            <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${item.tag || 'Custom QR'}</span>
-            <div class="scan-prompt">Ketuk / Scan untuk baca isi</div>
+            <div>
+              <div style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${item.title}</div>
+              <div class="qr-holder" id="${qrContainerId}" onclick="revealQRItem('${item.id}')"></div>
+              <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${item.tag || 'Custom QR'}</span>
+              <div class="scan-prompt" onclick="revealQRItem('${item.id}')">Ketuk / Scan untuk baca isi</div>
+            </div>
+            <button class="btn-download-qr" onclick="downloadQRCode('${qrContainerId}', '${item.title}')">
+              <span>📥</span> Download QR Code
+            </button>
           `;
 
           grid.appendChild(card);
@@ -230,7 +259,35 @@
       });
     }
 
-    // 4. UPDATE STATUS SCANNED KE SUPABASE (SAAT KETUK KARTU)
+    // 4. UNDUH QR CODE MENJADI FILE PNG (OPSI 1 HAPE)
+    function downloadQRCode(containerId, title) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const canvas = container.querySelector("canvas");
+      const img = container.querySelector("img");
+
+      let imageSrc = "";
+      if (canvas) {
+        imageSrc = canvas.toDataURL("image/png");
+      } else if (img && img.src) {
+        imageSrc = img.src;
+      } else {
+        alert("Gambar QR sedang diproses, coba sebentar lagi.");
+        return;
+      }
+
+      const cleanTitle = title.replace(/[^a-zA-Z0-9]/g, "_");
+      const downloadLink = document.createElement("a");
+      downloadLink.href = imageSrc;
+      downloadLink.download = `ToFarmer_QR_${cleanTitle}_${Date.now()}.png`;
+
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+
+    // 5. UPDATE STATUS SCANNED KE SUPABASE (SAAT KETUK KARTU/QR)
     async function revealQRItem(id) {
       playBeepSound('success_chime');
 
@@ -244,7 +301,7 @@
       }
     }
 
-    // 5. INPUT TEKS -> SIMPAN KE SUPABASE
+    // 6. INPUT TEKS -> SIMPAN KE SUPABASE
     async function handleKeyPress(e) {
       if (e.key === "Enter") {
         const input = document.getElementById("qrTextInput");
@@ -271,7 +328,7 @@
       }
     }
 
-    // 6. SUARA DOPAMIN
+    // 7. SUARA DOPAMIN
     function playBeepSound(type = 'mining') {
       try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -301,7 +358,7 @@
       } catch(e) {}
     }
 
-    // 7. PEMINDAI KAMERA AUTO SIMPAN KE SUPABASE
+    // 8. PEMINDAI KAMERA AUTO SIMPAN KE SUPABASE
     function openScanner(mode = 'general') {
       currentScanMode = mode;
       document.getElementById("scannerModal").style.display = "flex";
@@ -356,7 +413,7 @@
       openScanner('login');
     }
 
-    // 8. PWA INSTALL TRIGGER
+    // 9. PWA INSTALL TRIGGER
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
