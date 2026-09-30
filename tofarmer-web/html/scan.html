@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ToFarmer - QR Centric App (Supabase Connected)</title>
   
-  <!-- MANIFEST INLINE VALID -->
-  <link rel="manifest" href='data:application/manifest+json,{"name":"ToFarmer QR","short_name":"ToFarmer","start_url":".","display":"standalone","background_color":"#f4f7f5","theme_color":"#2f6f4e","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"46\" fill=\"%23ffffff\" stroke=\"%232f6f4e\" stroke-width=\"6\"/><text x=\"50\" y=\"58\" font-size=\"28\" font-weight=\"900\" text-anchor=\"middle\" fill=\"%232f6f4e\">TOF</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
+  <!-- MANIFEST INLINE VALID (TIDAK SYNTAX ERROR) -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22ToFarmer%20QR%22%2C%22short_name%22%3A%22ToFarmer%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f7f5%22%2C%22theme_color%22%3A%22%232f6f4e%22%7D">
 
   <!-- FAVICON SVG VALID -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
@@ -81,8 +81,26 @@
       color: #ffffff;
     }
 
-    #scannerModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; }
+    /* MODAL SCANNER + FITUR UPLOAD GALERI 1 HP */
+    #scannerModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
     #reader { width: 100%; max-width: 320px; border-radius: 16px; overflow: hidden; border: 2px solid #4caf7a; }
+
+    .upload-gallery-box { margin-top: 15px; text-align: center; }
+    .btn-upload-gallery {
+      background: #2f6f4e;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #4caf7a;
+      transition: 0.2s;
+    }
+    .btn-upload-gallery:hover { background: #24583e; }
 
     @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
   </style>
@@ -117,8 +135,8 @@
           <h3>🔍 Pindai QR Apa Saja</h3>
           <div class="qr-trigger-box" onclick="openScanner('scan_general')">
             <div style="font-size: 32px; margin-bottom: 6px;">📷</div>
-            <h4 style="font-size: 13px; color: #2f6f4e;">Buka Kamera Pemindai</h4>
-            <span style="font-size: 10px; color: #6f7f76;">Dekodekan QR Feed atau QR Fisik</span>
+            <h4 style="font-size: 13px; color: #2f6f4e;">Buka Kamera / Pilih Galeri</h4>
+            <span style="font-size: 10px; color: #6f7f76;">Mendukung pemindaian via Kamera atau File Galeri (1 HP)</span>
           </div>
         </div>
 
@@ -146,20 +164,30 @@
     </div>
   </div>
 
+  <!-- MODAL SCANNER DENGAN OPSI UPLOAD GALERI DARI 1 HP -->
   <div id="scannerModal">
-    <h4 style="color: white; margin-bottom: 12px; font-size: 13px;">Arahkan Kamera ke Kode QR...</h4>
+    <h4 id="scannerModalTitle" style="color: white; margin-bottom: 12px; font-size: 13px; text-align: center;">Arahkan Kamera ke Kode QR...</h4>
+    
     <div id="reader"></div>
+
+    <div class="upload-gallery-box">
+      <label for="qrFileInput" class="btn-upload-gallery">
+        <span>📁</span> Scan / Upload QR dari Galeri (1 HP)
+      </label>
+      <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRFromImageFile(event)">
+    </div>
+
     <button style="margin-top: 15px; padding: 8px 20px; background: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="closeScanner()">Tutup</button>
   </div>
 
   <script>
     // ----------------------------------------------------
-    // KONFIGURASI SUPABASE (Satu variabel instance terpisah)
+    // KONFIGURASI SUPABASE
     // ----------------------------------------------------
     const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
     
-    // Nama variabel diubah menjadi supabaseClient untuk mencegah collision/SyntaxError
+    // Instance bernama supabaseClient untuk menghindari SyntaxError
     const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
     let html5QrcodeScanner = null;
@@ -264,7 +292,7 @@
       });
     }
 
-    // 4. UNDUH QR CODE MENJADI FILE PNG
+    // 4. UNDUH QR CODE MENJADI FILE PNG (OPSI 1 HP)
     function downloadQRCode(containerId, title) {
       const container = document.getElementById(containerId);
       if (!container) return;
@@ -369,22 +397,44 @@
       } catch(e) {}
     }
 
-    // 8. PEMINDAI KAMERA
+    // 8. BUKA MODAL SCANNER (KAMERA & GALERI)
     function openScanner(mode = 'general') {
       currentScanMode = mode;
       document.getElementById("scannerModal").style.display = "flex";
       
+      const titleElem = document.getElementById("scannerModalTitle");
+      if (titleElem) {
+        titleElem.innerText = mode === 'login' ? "Scan QR ID untuk Login (Kamera / Galeri)" : "Arahkan Kamera / Upload QR dari Galeri...";
+      }
+
       html5QrcodeScanner = new Html5Qrcode("reader");
       html5QrcodeScanner.start(
         { facingMode: "environment" },
         { fps: 15, qrbox: 200 },
         onScanSuccess
-      ).catch(() => {
-        alert("Gagal mengakses kamera.");
-        closeScanner();
+      ).catch((err) => {
+        console.warn("Kamera tidak dapat diakses atau ditolak. Pengguna masih bisa menggunakan opsi Upload Galeri.", err);
       });
     }
 
+    // 9. PEMINDAIAN GAMBAR DARI GALERI (SKENARIO 1 HP)
+    async function scanQRFromImageFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const html5QrCode = new Html5Qrcode("reader");
+
+      try {
+        const decodedText = await html5QrCode.scanFile(file, true);
+        onScanSuccess(decodedText);
+      } catch (err) {
+        alert("Gagal membaca QR Code dari gambar. Pastikan gambar QR terlihat jelas dan tidak buram!");
+      } finally {
+        event.target.value = ""; // Reset file input
+      }
+    }
+
+    // 10. CALLBACK SAAT SCAN BERHASIL (KAMERA ATAU GALERI)
     async function onScanSuccess(decodedText) {
       closeScanner();
 
@@ -400,7 +450,7 @@
           .from('qr_logs')
           .insert([
             {
-              title: "Hasil Scan Kamera",
+              title: "Hasil Scan Kamera/Galeri",
               text: decodedText,
               tag: "Scanned QR",
               scanned: true
@@ -425,7 +475,7 @@
       openScanner('login');
     }
 
-    // 9. PWA INSTALL TRIGGER
+    // 11. PWA INSTALL TRIGGER
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
