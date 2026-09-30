@@ -41,6 +41,26 @@
     .user-info-text { font-size: 11px; }
     .btn-logout { background: transparent; border: none; color: #dc2626; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: 5px; }
 
+    .btn-download-myqr {
+      background: #e9f4ee;
+      color: #2f6f4e;
+      border: 1px solid #2f6f4e;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-download-myqr:hover {
+      background: #2f6f4e;
+      color: #ffffff;
+    }
+
     .pwa-banner { background: #ffffff; border: 1px solid rgba(76,175,122,0.3); border-radius: 16px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
     .pwa-btn { background: linear-gradient(90deg,#4caf7a,#c9a227); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
 
@@ -333,6 +353,53 @@
     }
 
     // ----------------------------------------------------
+    // GENERATE & UNDUH KARTU QR UNTUK USER LAMA/BARU
+    // ----------------------------------------------------
+    async function generateAndDownloadQRForLegacyUser(user) {
+      const qrPayload = JSON.stringify({
+        u: user.username,
+        w: user.id || user.wallet_address, // 'id' di tabel profiles adalah Wallet Address Algorand
+        type: 'TOF_MEMBER_CARD'
+      });
+
+      downloadQRCardImage(qrPayload, user.username);
+    }
+
+    function downloadQRCardImage(payloadText, username) {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.display = 'none';
+      document.body.appendChild(tempDiv);
+
+      new QRCode(tempDiv, {
+        text: payloadText,
+        width: 250,
+        height: 250
+      });
+
+      setTimeout(() => {
+        const canvas = tempDiv.querySelector('canvas');
+        const img = tempDiv.querySelector('img');
+        let imageSrc = "";
+
+        if (canvas) {
+          imageSrc = canvas.toDataURL("image/png");
+        } else if (img && img.src) {
+          imageSrc = img.src;
+        }
+
+        if (imageSrc) {
+          const downloadLink = document.createElement("a");
+          downloadLink.href = imageSrc;
+          downloadLink.download = `Kartu_ToFarmer_${username}.png`;
+          downloadLink.click();
+        } else {
+          alert("Gagal memproses Kartu QR. Silakan coba kembali.");
+        }
+        document.body.removeChild(tempDiv);
+      }, 150);
+    }
+
+    // ----------------------------------------------------
     // MANAJEMEN SESI USER LOGGED IN
     // ----------------------------------------------------
     function checkExistingSession() {
@@ -357,6 +424,9 @@
               <b>${currentUserSession.username}</b>
               <div style="font-size:9px; color:#6f7f76;">${currentUserSession.id.substring(0,6)}...${currentUserSession.id.substring(currentUserSession.id.length-4)}</div>
             </div>
+            <button class="btn-download-myqr" onclick="triggerDownloadCurrentSessionQR()">
+              💳 Unduh QR ID
+            </button>
             <button class="btn-logout" onclick="logoutUser()">[Keluar]</button>
           </div>
         `;
@@ -372,8 +442,21 @@
       }
     }
 
+    function triggerDownloadCurrentSessionQR() {
+      if (currentUserSession) {
+        generateAndDownloadQRForLegacyUser(currentUserSession);
+      } else {
+        alert("Silakan login terlebih dahulu!");
+      }
+    }
+
     function logoutUser() {
       localStorage.removeItem('tof_user_session');
+      localStorage.removeItem('tof_wallet');
+      localStorage.removeItem('tof_login_username');
+      localStorage.removeItem('tof_level');
+      localStorage.removeItem('tof_rank');
+      localStorage.removeItem('tof_xp');
       currentUserSession = null;
       renderHeaderProfile();
       alert("Anda telah keluar dari akun.");
@@ -420,12 +503,11 @@
         }
 
         // 4. Unduh Kartu QR Anggota
-        const qrPayload = JSON.stringify({ u: username, w: walletAddress, s: encryptedSeed });
+        const qrPayload = JSON.stringify({ u: username, w: walletAddress, s: encryptedSeed, type: 'TOF_MEMBER_CARD' });
         downloadQRCardImage(qrPayload, username);
 
-        // 5. Simpan Sesi
-        currentUserSession = { id: walletAddress, username: username };
-        localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+        // 5. Simpan Sesi Global & Local
+        saveGlobalSession({ id: walletAddress, username: username, xp: 0, saldo_tof: 0, rank: 'GROWER', level: 1 });
         renderHeaderProfile();
 
         closeAuthModal();
@@ -472,51 +554,52 @@
           return;
         }
 
-        if (data.pin_hash && data.pin_hash !== pinHash) {
+        // Jika user lama belum punya PIN, set PIN pertama kali
+        if (!data.pin_hash) {
+          await supabaseClient
+            .from('profiles')
+            .update({ pin_hash: pinHash })
+            .eq('id', data.id);
+        } else if (data.pin_hash !== pinHash) {
           alert("PIN yang Anda masukkan salah!");
           return;
         }
 
-        // Simpan Sesi
-        currentUserSession = { id: data.id, username: data.username };
-        localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+        // Simpan Sesi Global & Local
+        saveGlobalSession(data);
         renderHeaderProfile();
 
         closeAuthModal();
         playBeepSound('success_chime');
-        alert(`Selamat datang kembali, ${data.username}!`);
+
+        // Tawaran Otomatis Cetak/Unduh QR ID untuk User Lama
+        const wantQR = confirm(`Login Berhasil! Selamat datang, ${data.username}.\n\nApakah Anda ingin mengunduh/menyimpan Kartu QR ID untuk akun Anda?`);
+        if (wantQR) {
+          await generateAndDownloadQRForLegacyUser(data);
+        }
 
       } catch (err) {
         alert("Login Gagal: " + err.message);
       }
     }
 
+    function saveGlobalSession(userData) {
+      currentUserSession = { id: userData.id, username: userData.username };
+      localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+
+      const effectiveXp = (userData.xp || 0) + (userData.saldo_tof || 0) * 1000;
+      const computedLevel = Math.floor(Math.sqrt(effectiveXp / 100)) + 1;
+
+      localStorage.setItem('tof_wallet', userData.id);
+      localStorage.setItem('tof_login_username', userData.username);
+      localStorage.setItem('tof_level', userData.level || computedLevel);
+      localStorage.setItem('tof_rank', userData.rank || 'GROWER');
+      localStorage.setItem('tof_xp', userData.xp || 0);
+    }
+
     function triggerScanForLogin() {
       closeAuthModal();
       openScanner('login');
-    }
-
-    function downloadQRCardImage(payloadText, username) {
-      const tempDiv = document.createElement('div');
-      tempDiv.style.display = 'none';
-      document.body.appendChild(tempDiv);
-
-      new QRCode(tempDiv, {
-        text: payloadText,
-        width: 250,
-        height: 250
-      });
-
-      setTimeout(() => {
-        const canvas = tempDiv.querySelector('canvas');
-        if (canvas) {
-          const downloadLink = document.createElement("a");
-          downloadLink.href = canvas.toDataURL("image/png");
-          downloadLink.download = `Kartu_ToFarmer_${username}.png`;
-          downloadLink.click();
-        }
-        document.body.removeChild(tempDiv);
-      }, 100);
     }
 
     // ----------------------------------------------------
@@ -793,16 +876,14 @@
         try {
           const parsed = JSON.parse(decodedText);
           if (parsed.u && parsed.w) {
-            currentUserSession = { id: parsed.w, username: parsed.u };
-            localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+            saveGlobalSession({ id: parsed.w, username: parsed.u, rank: 'GROWER', level: 1 });
             renderHeaderProfile();
-            alert(`LOGIN BERHASIL!\nSelamat datang, ${parsed.u}`);
+            alert(`LOGIN BERHASIL VIA QR ID!\nSelamat datang, ${parsed.u}`);
             return;
           }
         } catch(e) {
-          // Jika teks biasa (bukan JSON), kita coba anggap sebagai Wallet Address (id)
-          currentUserSession = { id: decodedText, username: decodedText.substring(0,8) };
-          localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+          // Jika teks biasa (bukan JSON), kita anggap sebagai Wallet Address (id)
+          saveGlobalSession({ id: decodedText, username: decodedText.substring(0,8), rank: 'GROWER', level: 1 });
           renderHeaderProfile();
           alert(`LOGIN BERHASIL VIA WALLET ADDRESS!\nID: ${decodedText}`);
         }
