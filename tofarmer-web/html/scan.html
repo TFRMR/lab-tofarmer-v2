@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ToFarmer - QR Centric App (Supabase Connected)</title>
   
-  <!-- MANIFEST INLINE VALID (TIDAK SYNTAX ERROR) -->
+  <!-- MANIFEST INLINE VALID -->
   <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22ToFarmer%20QR%22%2C%22short_name%22%3A%22ToFarmer%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f7f5%22%2C%22theme_color%22%3A%22%232f6f4e%22%7D">
 
   <!-- FAVICON SVG VALID -->
@@ -14,6 +14,9 @@
   <!-- ENGINE QR CODE GENERATOR & SCANNER -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- ALGORAND SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
 
   <!-- SUPABASE JS SDK v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -27,8 +30,16 @@
     .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#2f6f4e; font-weight:bold; }
     .logo-icon { width:42px; height:42px; border-radius:50%; background: #fff; border:2px solid #2f6f4e; display:flex; align-items:center; justify-content:center; font-weight:900; color:#2f6f4e; }
     
+    .header-actions { display: flex; gap: 8px; align-items: center; }
     .btn-login-qr { background: #2f6f4e; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
     .btn-login-qr:hover { background: #24583e; }
+    .btn-outline-action { background: #ffffff; color: #2f6f4e; border: 1px solid #2f6f4e; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-outline-action:hover { background: #e9f4ee; }
+
+    .user-profile-badge { display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid #e0e8e3; padding: 6px 12px; border-radius: 12px; }
+    .user-avatar { width: 28px; height: 28px; border-radius: 50%; background: #2f6f4e; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+    .user-info-text { font-size: 11px; }
+    .btn-logout { background: transparent; border: none; color: #dc2626; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: 5px; }
 
     .pwa-banner { background: #ffffff; border: 1px solid rgba(76,175,122,0.3); border-radius: 16px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
     .pwa-btn { background: linear-gradient(90deg,#4caf7a,#c9a227); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
@@ -81,8 +92,17 @@
       color: #ffffff;
     }
 
-    /* MODAL SCANNER + FITUR UPLOAD GALERI 1 HP */
-    #scannerModal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    /* FORM STYLES */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 11px; font-weight: bold; color: #2f6f4e; margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 12px; outline: none; }
+    .form-control:focus { border-color: #2f6f4e; }
+    .btn-submit-form { width: 100%; background: #2f6f4e; color: white; border: none; padding: 10px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; margin-top: 5px; }
+    .btn-submit-form:hover { background: #24583e; }
+
+    /* MODALS SYSTEM */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .modal-card { background: white; border-radius: 16px; padding: 20px; max-width: 420px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
     #reader { width: 100%; max-width: 320px; border-radius: 16px; overflow: hidden; border: 2px solid #4caf7a; }
 
     .upload-gallery-box { margin-top: 15px; text-align: center; }
@@ -102,6 +122,10 @@
     }
     .btn-upload-gallery:hover { background: #24583e; }
 
+    .tab-container { display: flex; border-bottom: 1px solid #e0e8e3; margin-bottom: 15px; }
+    .tab-btn { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: bold; color: #6f7f76; border: none; background: transparent; cursor: pointer; }
+    .tab-btn.active { color: #2f6f4e; border-bottom: 2px solid #2f6f4e; }
+
     @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
   </style>
 </head>
@@ -116,9 +140,15 @@
           <div style="font-size: 10px; color:#6f7f76; font-weight: normal;">QR-Only Matrix Network</div>
         </div>
       </a>
-      <button class="btn-login-qr" onclick="triggerQRLogin()">
-        <span>📷</span> Login Scan QR ID
-      </button>
+      
+      <div class="header-actions" id="headerAuthBox">
+        <button class="btn-outline-action" onclick="openAuthModal('register')">
+          <span>✨</span> Daftar Akun
+        </button>
+        <button class="btn-login-qr" onclick="openAuthModal('login')">
+          <span>🔑</span> Login / Scan QR
+        </button>
+      </div>
     </header>
 
     <div class="pwa-banner" id="pwaBanner">
@@ -164,8 +194,82 @@
     </div>
   </div>
 
+  <!-- MODAL AUTHENTICATION (LOGIN & DAFTAR) -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="tab-container">
+        <button id="tabBtnLogin" class="tab-btn active" onclick="switchAuthTab('login')">🔑 Login</button>
+        <button id="tabBtnRegister" class="tab-btn" onclick="switchAuthTab('register')">✨ Daftar Akun Baru</button>
+      </div>
+
+      <!-- FORM LOGIN -->
+      <div id="authLoginForm">
+        <div class="form-group">
+          <label>Username / Wallet Address (ID):</label>
+          <input type="text" id="loginIdentifier" class="form-control" placeholder="Contoh: budi01 atau A3Z4...">
+        </div>
+        <div class="form-group">
+          <label>PIN 6-Digit:</label>
+          <input type="password" id="loginPin" class="form-control" maxlength="6" placeholder="******">
+        </div>
+        <button class="btn-submit-form" onclick="submitLoginManual()">Masuk Akun</button>
+        
+        <div style="text-align: center; margin: 12px 0; font-size: 11px; color: #888;">— ATAU —</div>
+        
+        <button class="btn-outline-action" style="width:100%; justify-content:center;" onclick="triggerScanForLogin()">
+          <span>📷</span> Scan Kartu QR ID untuk Login
+        </button>
+      </div>
+
+      <!-- FORM REGISTER -->
+      <div id="authRegisterForm" style="display: none;">
+        <div class="form-group">
+          <label>Username Baru:</label>
+          <input type="text" id="regUsername" class="form-control" placeholder="Contoh: petani_menoreh">
+        </div>
+        <div class="form-group">
+          <label>Buat PIN 6-Digit Transaksi:</label>
+          <input type="password" id="regPin" class="form-control" maxlength="6" placeholder="******">
+        </div>
+        <div style="background:#fef3c7; border-left:3px solid #f59e0b; padding:8px; border-radius:6px; font-size:10px; color:#92400e; margin-bottom:12px;">
+          💡 Wallet Algorand $TOF akan otomatis dibuatkan. PIN Anda digunakan untuk mengunci rahasia dompet.
+        </div>
+        <button class="btn-submit-form" onclick="submitRegister()">Buat Wallet & Akun Baru</button>
+      </div>
+
+      <button style="margin-top: 15px; width: 100%; padding: 8px; background: #f3f4f6; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px;" onclick="closeAuthModal()">Batal</button>
+    </div>
+  </div>
+
+  <!-- MODAL MNEMONIC (DITAMPILKAN SETELAH REGISTER / UPGRADE) -->
+  <div id="mnemonicModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="margin-top:0; color:#2f6f4e; font-size:15px;">🎉 Akun & Wallet $TOF Berhasil Dibuat!</h3>
+      <p style="font-size:11px; color:#4b5563; margin-top:5px;">
+        Kartu Anggota (QR Code) Anda telah otomatis diunduh. Di bawah ini adalah <b>25 Kata Rahasia Wallet Algorand</b> Anda:
+      </p>
+      
+      <div style="background:#f3f4f6; border:1px solid #d1d5db; padding:10px; border-radius:8px; font-size:11px; font-family:monospace; word-break:break-all; max-height:100px; overflow-y:auto; margin:10px 0;" id="mnemonicDisplayBox">
+        <!-- 25 kata rahasia -->
+      </div>
+
+      <div style="background:#fef3c7; border-left:3px solid #f59e0b; padding:8px; margin-bottom:12px; font-size:10px; color:#92400e;">
+        ⚠️ <b>Sistem telah membantu mem-backup kunci ini ke dalam Kartu QR & Database (terkunci PIN Anda).</b>
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button id="btnCopyMnemonic" style="flex:1; background:#2563eb; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;">
+          📋 Salin Frasa
+        </button>
+        <button style="flex:1; background:#2f6f4e; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="closeMnemonicModal()">
+          Masuk Matriks 🚀
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL SCANNER DENGAN OPSI UPLOAD GALERI DARI 1 HP -->
-  <div id="scannerModal">
+  <div id="scannerModal" class="modal-overlay">
     <h4 id="scannerModalTitle" style="color: white; margin-bottom: 12px; font-size: 13px; text-align: center;">Arahkan Kamera ke Kode QR...</h4>
     
     <div id="reader"></div>
@@ -187,20 +291,272 @@
     const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
     
-    // Instance bernama supabaseClient untuk menghindari SyntaxError
     const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
     let html5QrcodeScanner = null;
     let deferredPrompt = null;
     let currentScanMode = 'general';
     let feedData = [];
+    let currentUserSession = null;
 
     window.onload = () => {
+      checkExistingSession();
       fetchFeedFromSupabase();
       subscribeRealtime();
     };
 
-    // 1. AMBIL DATA DARI SUPABASE
+    // ----------------------------------------------------
+    // HELPER: HASHING PIN & DEKRIPSI
+    // ----------------------------------------------------
+    async function hashPIN(pin) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(pin);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function encryptTextSimple(text, pin) {
+      return btoa(text.split('').map((char, i) => 
+        String.fromCharCode(char.charCodeAt(0) ^ pin.charCodeAt(i % pin.length))
+      ).join(''));
+    }
+
+    function decryptTextSimple(cipherText, pin) {
+      try {
+        const decoded = atob(cipherText);
+        return decoded.split('').map((char, i) => 
+          String.fromCharCode(char.charCodeAt(0) ^ pin.charCodeAt(i % pin.length))
+        ).join('');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // ----------------------------------------------------
+    // MANAJEMEN SESI USER LOGGED IN
+    // ----------------------------------------------------
+    function checkExistingSession() {
+      const stored = localStorage.getItem('tof_user_session');
+      if (stored) {
+        try {
+          currentUserSession = JSON.parse(stored);
+          renderHeaderProfile();
+        } catch(e) {
+          localStorage.removeItem('tof_user_session');
+        }
+      }
+    }
+
+    function renderHeaderProfile() {
+      const authBox = document.getElementById('headerAuthBox');
+      if (currentUserSession) {
+        authBox.innerHTML = `
+          <div class="user-profile-badge">
+            <div class="user-avatar">${currentUserSession.username.charAt(0).toUpperCase()}</div>
+            <div class="user-info-text">
+              <b>${currentUserSession.username}</b>
+              <div style="font-size:9px; color:#6f7f76;">${currentUserSession.id.substring(0,6)}...${currentUserSession.id.substring(currentUserSession.id.length-4)}</div>
+            </div>
+            <button class="btn-logout" onclick="logoutUser()">[Keluar]</button>
+          </div>
+        `;
+      } else {
+        authBox.innerHTML = `
+          <button class="btn-outline-action" onclick="openAuthModal('register')">
+            <span>✨</span> Daftar Akun
+          </button>
+          <button class="btn-login-qr" onclick="openAuthModal('login')">
+            <span>🔑</span> Login / Scan QR
+          </button>
+        `;
+      }
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('tof_user_session');
+      currentUserSession = null;
+      renderHeaderProfile();
+      alert("Anda telah keluar dari akun.");
+    }
+
+    // ----------------------------------------------------
+    // ALUR REGISTRASI & LOGIN
+    // ----------------------------------------------------
+    async function submitRegister() {
+      const username = document.getElementById('regUsername').value.trim();
+      const pin = document.getElementById('regPin').value.trim();
+
+      if (!username || pin.length !== 6) {
+        alert("Username dan 6-Digit PIN wajib diisi dengan benar!");
+        return;
+      }
+
+      try {
+        // 1. Generate Wallet Algorand Baru
+        const account = algosdk.generateAccount();
+        const walletAddress = account.addr; // Menjadi 'id' Primary Key di DB
+        const secretMnemonic = algosdk.secretKeyToMnemonic(account.sk);
+
+        // 2. Hash PIN & Encrypt Seed
+        const pinHash = await hashPIN(pin);
+        const encryptedSeed = encryptTextSimple(secretMnemonic, pin);
+
+        // 3. Insert ke DB Supabase
+        const { error } = await supabaseClient.from('profiles').insert([{
+          id: walletAddress,
+          username: username,
+          pin_hash: pinHash,
+          saldo_tof: 0,
+          xp: 0,
+          level: 1,
+          rank: 'GROWER',
+          role: 'user',
+          water_stock: 10
+        }]);
+
+        if (error) {
+          if (error.code === '23505') throw new Error("Username sudah terpakai. Pilih username lain!");
+          throw error;
+        }
+
+        // 4. Unduh Kartu QR Anggota
+        const qrPayload = JSON.stringify({ u: username, w: walletAddress, s: encryptedSeed });
+        downloadQRCardImage(qrPayload, username);
+
+        // 5. Simpan Sesi
+        currentUserSession = { id: walletAddress, username: username };
+        localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+        renderHeaderProfile();
+
+        closeAuthModal();
+        
+        // 6. Tampilkan Mnemonic Modal
+        document.getElementById('mnemonicDisplayBox').innerText = secretMnemonic;
+        document.getElementById('mnemonicModal').style.display = 'flex';
+
+        // Bind copy button
+        document.getElementById('btnCopyMnemonic').onclick = () => {
+          navigator.clipboard.writeText(secretMnemonic).then(() => {
+            const btn = document.getElementById('btnCopyMnemonic');
+            btn.innerText = '✓ Tersalin!';
+            setTimeout(() => btn.innerText = '📋 Salin Frasa', 2000);
+          });
+        };
+
+      } catch (err) {
+        alert("Gagal Mendaftar: " + err.message);
+      }
+    }
+
+    async function submitLoginManual() {
+      const identifier = document.getElementById('loginIdentifier').value.trim();
+      const pin = document.getElementById('loginPin').value.trim();
+
+      if (!identifier || !pin) {
+        alert("Username/Address dan PIN wajib diisi!");
+        return;
+      }
+
+      try {
+        const pinHash = await hashPIN(pin);
+
+        // Query berdasarkan Username ATAU Wallet Address (id)
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .select('*')
+          .or(`username.eq.${identifier},id.eq.${identifier}`)
+          .single();
+
+        if (error || !data) {
+          alert("Akun atau Wallet ID tidak ditemukan!");
+          return;
+        }
+
+        if (data.pin_hash && data.pin_hash !== pinHash) {
+          alert("PIN yang Anda masukkan salah!");
+          return;
+        }
+
+        // Simpan Sesi
+        currentUserSession = { id: data.id, username: data.username };
+        localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+        renderHeaderProfile();
+
+        closeAuthModal();
+        playBeepSound('success_chime');
+        alert(`Selamat datang kembali, ${data.username}!`);
+
+      } catch (err) {
+        alert("Login Gagal: " + err.message);
+      }
+    }
+
+    function triggerScanForLogin() {
+      closeAuthModal();
+      openScanner('login');
+    }
+
+    function downloadQRCardImage(payloadText, username) {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.display = 'none';
+      document.body.appendChild(tempDiv);
+
+      new QRCode(tempDiv, {
+        text: payloadText,
+        width: 250,
+        height: 250
+      });
+
+      setTimeout(() => {
+        const canvas = tempDiv.querySelector('canvas');
+        if (canvas) {
+          const downloadLink = document.createElement("a");
+          downloadLink.href = canvas.toDataURL("image/png");
+          downloadLink.download = `Kartu_ToFarmer_${username}.png`;
+          downloadLink.click();
+        }
+        document.body.removeChild(tempDiv);
+      }, 100);
+    }
+
+    // ----------------------------------------------------
+    // MODAL CONTROL & TABS
+    // ----------------------------------------------------
+    function openAuthModal(defaultTab = 'login') {
+      switchAuthTab(defaultTab);
+      document.getElementById('authModal').style.display = 'flex';
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').style.display = 'none';
+    }
+
+    function closeMnemonicModal() {
+      document.getElementById('mnemonicModal').style.display = 'none';
+    }
+
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('authLoginForm');
+      const regForm = document.getElementById('authRegisterForm');
+      const tabLogin = document.getElementById('tabBtnLogin');
+      const tabReg = document.getElementById('tabBtnRegister');
+
+      if (tab === 'login') {
+        loginForm.style.display = 'block';
+        regForm.style.display = 'none';
+        tabLogin.classList.add('active');
+        tabReg.classList.remove('active');
+      } else {
+        loginForm.style.display = 'none';
+        regForm.style.display = 'block';
+        tabLogin.classList.remove('active');
+        tabReg.classList.add('active');
+      }
+    }
+
+    // ----------------------------------------------------
+    // SUPABASE FEED & REALTIME
+    // ----------------------------------------------------
     async function fetchFeedFromSupabase() {
       if (!supabaseClient) return;
 
@@ -218,7 +574,6 @@
       renderQRFeed();
     }
 
-    // 2. LISTEN TRANSAKSI REALTIME DARI SUPABASE
     function subscribeRealtime() {
       if (!supabaseClient) return;
 
@@ -230,7 +585,6 @@
         .subscribe();
     }
 
-    // 3. RENDER FEED KE HALAMAN
     function renderQRFeed() {
       const grid = document.getElementById("qrFeedGrid");
       grid.innerHTML = "";
@@ -292,7 +646,6 @@
       });
     }
 
-    // 4. UNDUH QR CODE MENJADI FILE PNG (OPSI 1 HP)
     function downloadQRCode(containerId, title) {
       const container = document.getElementById(containerId);
       if (!container) return;
@@ -320,7 +673,6 @@
       document.body.removeChild(downloadLink);
     }
 
-    // 5. UPDATE STATUS SCANNED KE SUPABASE
     async function revealQRItem(id) {
       playBeepSound('success_chime');
       if (!supabaseClient) return;
@@ -335,7 +687,6 @@
       }
     }
 
-    // 6. INPUT TEKS -> SIMPAN KE SUPABASE
     async function handleKeyPress(e) {
       if (e.key === "Enter") {
         const input = document.getElementById("qrTextInput");
@@ -354,7 +705,7 @@
           .from('qr_logs')
           .insert([
             {
-              title: "Input Teks Baru",
+              title: currentUserSession ? `Input oleh ${currentUserSession.username}` : "Input Teks Baru",
               text: val,
               tag: "Custom QR",
               scanned: false
@@ -367,7 +718,9 @@
       }
     }
 
-    // 7. SUARA DOPAMIN
+    // ----------------------------------------------------
+    // AUDIO FEEDBACK & SCANNER
+    // ----------------------------------------------------
     function playBeepSound(type = 'mining') {
       try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -397,14 +750,13 @@
       } catch(e) {}
     }
 
-    // 8. BUKA MODAL SCANNER (KAMERA & GALERI)
     function openScanner(mode = 'general') {
       currentScanMode = mode;
       document.getElementById("scannerModal").style.display = "flex";
       
       const titleElem = document.getElementById("scannerModalTitle");
       if (titleElem) {
-        titleElem.innerText = mode === 'login' ? "Scan QR ID untuk Login (Kamera / Galeri)" : "Arahkan Kamera / Upload QR dari Galeri...";
+        titleElem.innerText = mode === 'login' ? "Scan QR ID / Kartu Anggota untuk Login" : "Arahkan Kamera / Upload QR dari Galeri...";
       }
 
       html5QrcodeScanner = new Html5Qrcode("reader");
@@ -417,7 +769,6 @@
       });
     }
 
-    // 9. PEMINDAIAN GAMBAR DARI GALERI (SKENARIO 1 HP)
     async function scanQRFromImageFile(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -430,17 +781,31 @@
       } catch (err) {
         alert("Gagal membaca QR Code dari gambar. Pastikan gambar QR terlihat jelas dan tidak buram!");
       } finally {
-        event.target.value = ""; // Reset file input
+        event.target.value = "";
       }
     }
 
-    // 10. CALLBACK SAAT SCAN BERHASIL (KAMERA ATAU GALERI)
     async function onScanSuccess(decodedText) {
       closeScanner();
 
       if (currentScanMode === 'login') {
         playBeepSound('success_chime');
-        alert(`LOGIN BERHASIL VIA QR ID!\nID Terverifikasi: ${decodedText}`);
+        try {
+          const parsed = JSON.parse(decodedText);
+          if (parsed.u && parsed.w) {
+            currentUserSession = { id: parsed.w, username: parsed.u };
+            localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+            renderHeaderProfile();
+            alert(`LOGIN BERHASIL!\nSelamat datang, ${parsed.u}`);
+            return;
+          }
+        } catch(e) {
+          // Jika teks biasa (bukan JSON), kita coba anggap sebagai Wallet Address (id)
+          currentUserSession = { id: decodedText, username: decodedText.substring(0,8) };
+          localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+          renderHeaderProfile();
+          alert(`LOGIN BERHASIL VIA WALLET ADDRESS!\nID: ${decodedText}`);
+        }
       } else {
         playBeepSound('success_chime');
 
@@ -450,7 +815,7 @@
           .from('qr_logs')
           .insert([
             {
-              title: "Hasil Scan Kamera/Galeri",
+              title: currentUserSession ? `Scan oleh ${currentUserSession.username}` : "Hasil Scan Kamera/Galeri",
               text: decodedText,
               tag: "Scanned QR",
               scanned: true
@@ -471,11 +836,9 @@
       }
     }
 
-    function triggerQRLogin() {
-      openScanner('login');
-    }
-
-    // 11. PWA INSTALL TRIGGER
+    // ----------------------------------------------------
+    // PWA INSTALL TRIGGER
+    // ----------------------------------------------------
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
