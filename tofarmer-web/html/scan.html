@@ -157,6 +157,13 @@
     .btn-mini.danger { color: #dc2626; border-color: #dc2626; background: #fff5f5; }
     .btn-mini.danger:hover { background: #dc2626; color: #fff; }
 
+    /* [V3] modal frasa: grid 25 kata bernomor + tombol nonaktif sampai verifikasi */
+    .mn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; border-radius: 8px; margin: 10px 0; }
+    .mn-word { font-family: monospace; font-size: 11px; background: #fff; border-radius: 6px; padding: 4px 6px; display: flex; gap: 4px; align-items: center; word-break: break-all; }
+    .mn-word i { font-style: normal; color: #9ca3af; font-size: 9px; min-width: 14px; }
+    .btn-submit-form:disabled { background: #9db8a9; cursor: not-allowed; }
+    .scan-badge { font-size: 11px; font-weight: bold; color: #92400e; background: #fef3c7; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; display: inline-block; }
+
     @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
   </style>
 </head>
@@ -215,9 +222,10 @@
         <div class="card">
           <h3>🟩 Feed Aktivitas Matriks (Supabase Live)</h3>
           <p style="font-size: 11px; color: #6f7f76; margin-bottom: 12px;">
-            Unduh gambar QR jika menggunakan 1 HP, atau ketuk/scan langsung untuk konversi ke log teks. Status baca hanya berlaku untukmu, dan tulisan milikmu bisa diedit atau dihapus.
+            Isi kartu hanya terbuka kalau QR-nya benar-benar kamu scan (ketuk kartu untuk membuka pemindai). Pakai 1 HP? Unduh gambar QR lalu upload dari galeri. Status buka hanya berlaku untukmu, dan tulisan milikmu bisa diedit atau dihapus.
           </p>
           
+          <div class="scan-badge" id="scanBadge"></div>
           <div class="qr-grid-feed" id="qrFeedGrid">
             <!-- Data di-render otomatis -->
           </div>
@@ -275,28 +283,47 @@
 
   <!-- MODAL MNEMONIC (DITAMPILKAN SETELAH REGISTER / UPGRADE) -->
   <div id="mnemonicModal" class="modal-overlay">
-    <div class="modal-card">
+    <div class="modal-card" style="max-height: 92vh; overflow-y: auto;">
       <h3 style="margin-top:0; color:#2f6f4e; font-size:15px;">🎉 Akun & Wallet $TOF Berhasil Dibuat!</h3>
       <p style="font-size:11px; color:#4b5563; margin-top:5px;">
         Kartu Anggota (QR Code) Anda telah otomatis diunduh. Di bawah ini adalah <b>25 Kata Rahasia Wallet Algorand</b> Anda:
       </p>
-      
-      <div style="background:#f3f4f6; border:1px solid #d1d5db; padding:10px; border-radius:8px; font-size:11px; font-family:monospace; word-break:break-all; max-height:100px; overflow-y:auto; margin:10px 0;" id="mnemonicDisplayBox">
+
+      <div class="mn-grid" id="mnemonicDisplayBox">
         <!-- 25 kata rahasia -->
       </div>
 
-      <!-- [FIX] teks lama menyebut seed di-backup ke kartu QR & database; itu tidak lagi benar -->
-      <div style="background:#fef3c7; border-left:3px solid #f59e0b; padding:8px; margin-bottom:12px; font-size:10px; color:#92400e;">
-        ⚠️ <b>Tulis & simpan 25 kata ini sendiri.</b> Frasa TIDAK disimpan di Kartu QR maupun Database, dan tidak bisa dipulihkan jika hilang. Jangan bagikan ke siapa pun.
-      </div>
-
-      <div style="display:flex; gap:8px;">
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
         <button id="btnCopyMnemonic" style="flex:1; background:#2563eb; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;">
           📋 Salin Frasa
         </button>
-        <button style="flex:1; background:#2f6f4e; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="closeMnemonicModal()">
-          Masuk Matriks 🚀
+        <button id="btnDownloadMnemonic" style="flex:1; background:#7c3aed; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="downloadMnemonicFile()">
+          💾 Unduh Backup (.txt)
         </button>
+      </div>
+
+      <!-- [V3] peringatan diperjelas: frasa hanya tampil sekali -->
+      <div style="background:#fef3c7; border-left:3px solid #f59e0b; padding:8px; margin-bottom:12px; font-size:10px; color:#92400e;">
+        ⚠️ <b>Frasa ini hanya ditampilkan SEKALI</b> dan tidak bisa dilihat lagi. Simpan sekarang: salin ke tempat aman, unduh file backup, atau tulis di kertas. Frasa TIDAK disimpan di Kartu QR maupun Database. Siapa pun yang memegangnya menguasai wallet Anda, jadi jangan dibagikan.
+      </div>
+
+      <div style="background:#f8fcf9; border:1px solid #cfe5d8; border-radius:10px; padding:10px; margin-bottom:12px;">
+        <div style="font-size:11px; font-weight:bold; color:#2f6f4e; margin-bottom:6px;">✅ Bukti sudah tersimpan: ketik ulang 2 kata dari frasa di atas</div>
+        <div style="display:flex; gap:8px;">
+          <div style="flex:1;">
+            <label id="mnVerifyLabel1" style="display:block; font-size:10px; color:#6f7f76; margin-bottom:3px;"></label>
+            <input type="text" id="mnVerify1" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="checkMnemonicVerify()">
+          </div>
+          <div style="flex:1;">
+            <label id="mnVerifyLabel2" style="display:block; font-size:10px; color:#6f7f76; margin-bottom:3px;"></label>
+            <input type="text" id="mnVerify2" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="checkMnemonicVerify()">
+          </div>
+        </div>
+      </div>
+
+      <button id="btnEnterMatrix" class="btn-submit-form" onclick="closeMnemonicModal()" disabled>Masuk Matriks 🚀</button>
+      <div style="text-align:center; margin-top:8px;">
+        <a href="#" onclick="skipMnemonicVerify(); return false;" style="font-size:10px; color:#999;">Lewati (saya paham risikonya)</a>
       </div>
     </div>
   </div>
@@ -611,8 +638,7 @@
         closeAuthModal();
         
         // 6. Tampilkan Mnemonic Modal
-        document.getElementById('mnemonicDisplayBox').innerText = secretMnemonic;
-        document.getElementById('mnemonicModal').style.display = 'flex';
+        openMnemonicModal(secretMnemonic, walletAddress, username); // [V3]
 
         // Bind copy button
         document.getElementById('btnCopyMnemonic').onclick = () => {
@@ -715,9 +741,77 @@
       document.getElementById('authModal').style.display = 'none';
     }
 
+    // [V3] Frasa hanya ada di memori selama modal terbuka. Pengguna harus membuktikan sudah menyimpannya
+    // dengan mengetik ulang 2 kata acak (posisi berbeda tiap pendaftaran).
+    let mnemonicBackup = null;
+    let mnemonicCheckIdx = [0, 1];
+
+    function openMnemonicModal(mnemonic, address, username) {
+      const words = mnemonic.trim().split(/\s+/);
+      mnemonicBackup = { words: words, address: address, username: username };
+
+      document.getElementById('mnemonicDisplayBox').innerHTML = words.map((w, i) =>
+        `<span class="mn-word"><i>${i + 1}</i>${escapeHtml(w)}</span>`).join('');
+
+      const rnd = new Uint32Array(2);
+      crypto.getRandomValues(rnd);
+      const a = rnd[0] % words.length;
+      let b = rnd[1] % words.length;
+      if (b === a) b = (a + 7) % words.length;
+      mnemonicCheckIdx = [a, b].sort((x, y) => x - y);
+
+      document.getElementById('mnVerifyLabel1').innerText = `Kata ke-${mnemonicCheckIdx[0] + 1}`;
+      document.getElementById('mnVerifyLabel2').innerText = `Kata ke-${mnemonicCheckIdx[1] + 1}`;
+      document.getElementById('mnVerify1').value = '';
+      document.getElementById('mnVerify2').value = '';
+      document.getElementById('btnEnterMatrix').disabled = true;
+      document.getElementById('mnemonicModal').style.display = 'flex';
+    }
+
+    function checkMnemonicVerify() {
+      if (!mnemonicBackup) return;
+      const w = mnemonicBackup.words;
+      const ok1 = document.getElementById('mnVerify1').value.trim().toLowerCase() === w[mnemonicCheckIdx[0]];
+      const ok2 = document.getElementById('mnVerify2').value.trim().toLowerCase() === w[mnemonicCheckIdx[1]];
+      document.getElementById('btnEnterMatrix').disabled = !(ok1 && ok2);
+    }
+
+    function downloadMnemonicFile() {
+      if (!mnemonicBackup) return;
+      const lines = [
+        'ToFarmer - Backup Wallet Algorand',
+        'Username     : ' + mnemonicBackup.username,
+        'Alamat Wallet: ' + mnemonicBackup.address,
+        '',
+        '25 KATA RAHASIA (urutan penting):',
+        ...mnemonicBackup.words.map((w, i) => `${i + 1}. ${w}`),
+        '',
+        'PERINGATAN: siapa pun yang memegang file ini menguasai wallet Anda.',
+        'Simpan di tempat aman (flashdisk / password manager), lalu hapus dari folder Download.'
+      ];
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Backup_Wallet_ToFarmer_${mnemonicBackup.username}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function skipMnemonicVerify() {
+      if (confirm("Yakin lewati? Frasa ini TIDAK bisa ditampilkan lagi. Jika hilang, wallet on-chain tidak bisa dipulihkan.")) {
+        closeMnemonicModal();
+      }
+    }
+
     function closeMnemonicModal() {
       document.getElementById('mnemonicModal').style.display = 'none';
-      document.getElementById('mnemonicDisplayBox').innerText = ''; // [FIX] hapus frasa dari DOM setelah ditutup
+      document.getElementById('mnemonicDisplayBox').innerHTML = ''; // [FIX] hapus frasa dari DOM setelah ditutup
+      document.getElementById('mnVerify1').value = '';
+      document.getElementById('mnVerify2').value = '';
+      mnemonicBackup = null;
     }
 
     function switchAuthTab(tab) {
@@ -797,6 +891,13 @@
       const me = currentUserSession ? currentUserSession.id : null;
       const revealed = getRevealed();
 
+      // [V3] lencana Maniak Scan
+      const badge = document.getElementById('scanBadge');
+      if (badge) {
+        const opened = items.filter(i => revealed.has(String(i.id)) && i.owner_id !== me).length;
+        badge.innerText = me ? `🏅 Maniak Scan: ${opened} QR berhasil kamu buka` : '🔒 Login lalu scan QR di feed untuk membuka isinya';
+      }
+
       items.forEach((item) => {
         const card = document.createElement("div");
         const qrContainerId = `qr-target-${String(item.id).replace(/[^\w-]/g, '')}`;
@@ -842,7 +943,7 @@
             <div style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${safeTitle}</div>
             <div class="qr-holder" id="${qrContainerId}"></div>
             <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${safeTag}</span>
-            <div class="scan-prompt">Ketuk / Scan untuk baca isi</div>
+            <div class="scan-prompt">Scan QR ini untuk membuka isinya</div>
           </div>
           <button class="btn-download-qr">
             <span>📥</span> Download QR Code
@@ -898,11 +999,15 @@
       document.body.removeChild(downloadLink);
     }
 
-    // [V2] "Terbaca" hanya untuk pengguna yang mengetuk, tanpa mengubah data di database
+    // [V3] MANIAK SCAN: mengetuk kartu TIDAK membuka isinya. Ketukan hanya membuka pemindai;
+    // kartu terbuka setelah QR-nya benar-benar dipindai (lihat onScanSuccess).
     function revealQRItem(id) {
-      playBeepSound('success_chime');
-      markRevealed(id);
-      renderQRFeed();
+      if (!currentUserSession) {
+        alert("Login dulu untuk ikut memindai & membuka isi QR.");
+        openAuthModal('login');
+        return;
+      }
+      openScanner('general');
     }
 
     // ----------------------------------------------------
@@ -1135,6 +1240,17 @@
         // [V2] tanpa login: hasil hanya ditampilkan, tidak disimpan ke feed publik
         if (!currentUserSession) {
           alert("Hasil scan:\n\n" + text.slice(0, 500) + "\n\nLogin terlebih dahulu jika ingin menyimpannya ke feed.");
+          return;
+        }
+
+        // [V3] Jika QR yang dipindai adalah isi kartu di feed, kartu itu terbuka (khusus untukmu), tidak dibuat ulang
+        const matches = feedData.filter(i => String(i.text).trim() === text);
+        if (matches.length) {
+          matches.forEach(m => markRevealed(m.id));
+          playBeepSound('success_chime');
+          renderQRFeed();
+          const opened = matches.filter(m => m.owner_id !== currentUserSession.id).length;
+          alert(opened ? `🎉 Berhasil! ${opened} kartu terbuka.` : "Ini QR tulisanmu sendiri, isinya memang sudah terbuka untukmu.");
           return;
         }
 
