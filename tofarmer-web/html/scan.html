@@ -164,6 +164,10 @@
     .btn-submit-form:disabled { background: #9db8a9; cursor: not-allowed; }
     .scan-badge { font-size: 11px; font-weight: bold; color: #92400e; background: #fef3c7; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; display: inline-block; }
 
+    /* [V4] baris tombol kartu terkunci */
+    .btn-row { display: flex; gap: 6px; margin-top: 10px; }
+    .btn-row .btn-download-qr { margin-top: 0; flex: 1; width: auto; }
+
     @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
   </style>
 </head>
@@ -213,16 +217,23 @@
           <div class="form-group">
             <textarea id="qrTextInput" class="form-control" rows="4" maxlength="500" placeholder="Ketik teks / catatan setoran... (Enter = baris baru)" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){submitQRText();}"></textarea>
           </div>
-          <button class="btn-submit-form" onclick="submitQRText()">⚡ Buat QR & Terbitkan ke Feed</button>
-          <span style="display:block; margin-top:8px; font-size: 10px; color: #888;">Enter untuk baris baru. Klik tombol (atau <b>Ctrl+Enter</b>) untuk simpan ke Supabase & Feed. Perlu login.</span>
+          <div class="form-group">
+            <label>Siapa yang bisa melihat kartunya di feed?</label>
+            <select id="qrVisibility" class="form-control">
+              <option value="public">🌍 Publik: muncul di feed semua orang (isi tetap terkunci sampai di-scan)</option>
+              <option value="private">🔒 Privat: TIDAK muncul di feed; hanya terbuka lewat QR/kode-nya (cocok untuk QR fisik)</option>
+            </select>
+          </div>
+          <button class="btn-submit-form" onclick="submitQRText()">⚡ Buat QR</button>
+          <span style="display:block; margin-top:8px; font-size: 10px; color: #888;">Enter untuk baris baru. Klik tombol (atau <b>Ctrl+Enter</b>) untuk menerbitkan. Isi tersimpan terkunci di server dan hanya terbuka bagi yang memindai QR-nya. Perlu login.</span>
         </div>
       </div>
 
       <div class="right">
         <div class="card">
-          <h3>🟩 Feed Aktivitas Matriks (Supabase Live)</h3>
+          <h3>🟩 Aktivitas </h3>
           <p style="font-size: 11px; color: #6f7f76; margin-bottom: 12px;">
-            Isi kartu hanya terbuka kalau QR-nya benar-benar kamu scan (ketuk kartu untuk membuka pemindai). Pakai 1 HP? Unduh gambar QR lalu upload dari galeri. Status buka hanya berlaku untukmu, dan tulisan milikmu bisa diedit atau dihapus.
+            Isi kartu terkunci di server dan baru terbuka kalau QR-nya benar-benar kamu scan: arahkan kamera ke layar perangkat lain (tombol 🔍 Perbesar), ke QR cetakan fisik, atau upload gambar QR / ketik kodenya. Kartu yang berhasil dibuka masuk koleksimu (tersimpan di akun). QR Privat tidak muncul di feed.
           </p>
           
           <div class="scan-badge" id="scanBadge"></div>
@@ -328,6 +339,16 @@
     </div>
   </div>
 
+  <!-- [V4] MODAL QR BESAR (untuk di-scan dari perangkat lain) -->
+  <div id="qrViewModal" class="modal-overlay" onclick="closeQRView()">
+    <div class="modal-card" style="text-align:center;" onclick="event.stopPropagation()">
+      <h3 id="qrViewTitle" style="margin-top:0; color:#2f6f4e; font-size:14px; word-break:break-word;"></h3>
+      <div id="qrViewBox" style="display:flex; justify-content:center; background:#fff; padding:12px; border-radius:12px; margin:12px 0;"></div>
+      <p style="font-size:10px; color:#6f7f76; margin-bottom:12px;">Arahkan kamera perangkat lain ke QR ini (naikkan kecerahan layar).</p>
+      <button style="width:100%; padding:8px; background:#f3f4f6; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px;" onclick="closeQRView()">Tutup</button>
+    </div>
+  </div>
+
   <!-- [V2] MODAL KONFIRMASI PIN (untuk menerbitkan / mengedit / menghapus) -->
   <div id="pinModal" class="modal-overlay">
     <div class="modal-card">
@@ -354,6 +375,12 @@
       <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRFromImageFile(event)">
     </div>
 
+    <!-- [V4] kamera bermasalah / kode dibagikan lewat chat? ketik kodenya -->
+    <div id="manualCodeBox" style="display:flex; gap:6px; margin-top:12px; width:100%; max-width:320px;">
+      <input type="text" id="manualCodeInput" class="form-control" style="flex:1;" placeholder="Atau ketik kode QR (16 karakter)" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter'){submitManualCode();}">
+      <button style="padding:8px 14px; background:#4caf7a; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:11px;" onclick="submitManualCode()">Buka</button>
+    </div>
+
     <button style="margin-top: 15px; padding: 8px 20px; background: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="closeScanner()">Tutup</button>
   </div>
 
@@ -375,6 +402,7 @@
     let sessionPinHash = null; // [V2] hash PIN hanya di memori (tidak disimpan), dipakai untuk konfirmasi tulis/edit/hapus
     let pinResolver = null;
     let feedLoaded = false;
+    let myItems = [];          // [V4] koleksi saya: tulisan sendiri (termasuk privat) + kartu yang sudah di-scan (lengkap dengan isi)
     let editingId = null;      // [V2] jangan render ulang feed saat penulis sedang mengedit
 
     window.onload = () => {
@@ -509,6 +537,7 @@
         try {
           currentUserSession = JSON.parse(stored);
           if (!currentUserSession.id || !currentUserSession.username) throw new Error('sesi tidak valid');
+          loadMyItemsCache(); // [V4]
           renderHeaderProfile();
 
           // [FIX] segarkan dari database: foto, level, dst. Sesi palsu (akun tidak ada) dibuang.
@@ -580,6 +609,7 @@
       localStorage.removeItem('tof_xp');
       currentUserSession = null;
       sessionPinHash = null;
+      myItems = [];
       renderHeaderProfile();
       if (!silent) alert("Anda telah keluar dari akun.");
     }
@@ -696,6 +726,9 @@
 
         closeAuthModal();
         document.getElementById('loginPin').value = '';
+        loadMyItemsCache();   // [V4] tampilkan cache dulu, lalu sinkron dari server (lintas perangkat)
+        if (feedLoaded) renderQRFeed();
+        syncMyItems();
         playBeepSound('success_chime');
 
         // Tawaran Otomatis Cetak/Unduh QR ID untuk User Lama
@@ -841,7 +874,8 @@
 
       const { data, error } = await supabaseClient
         .from('qr_logs')
-        .select('*')
+        .select('id,title,tag,owner_id,visibility,code,created_at')
+        .eq('visibility', 'public')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -865,47 +899,66 @@
         .subscribe();
     }
 
-    // [V2] Status "terbaca" kini per-pengguna (disimpan di browser masing-masing), bukan global di database
-    function revealKey() { return 'tof_revealed_' + (currentUserSession ? currentUserSession.id : 'guest'); }
-    function getRevealed() {
-      try { return new Set(JSON.parse(localStorage.getItem(revealKey()) || '[]')); } catch (e) { return new Set(); }
+    // ----------------------------------------------------
+    // [V4] MODEL DATA
+    // qr_logs (publik) hanya berisi metadata + kode. ISI tersimpan di server dan hanya keluar lewat
+    // pemindaian (RPC qr_claim). Koleksi pengguna (tulisan sendiri + kartu yang sudah di-scan, termasuk
+    // kartu PRIVAT) diambil lewat RPC qr_my_items dan cache-nya disimpan di browser.
+    // ----------------------------------------------------
+    function qrPayload(code) { return 'TOFQR:' + (code || ''); }
+    function myCacheKey() { return 'tof_mine_' + (currentUserSession ? currentUserSession.id : 'guest'); }
+
+    function loadMyItemsCache() {
+      try { myItems = JSON.parse(localStorage.getItem(myCacheKey()) || '[]'); } catch (e) { myItems = []; }
+      if (!Array.isArray(myItems)) myItems = [];
     }
-    function markRevealed(id) {
-      const set = getRevealed();
-      set.add(String(id));
-      localStorage.setItem(revealKey(), JSON.stringify(Array.from(set).slice(-500)));
+    function saveMyItemsCache() {
+      try { localStorage.setItem(myCacheKey(), JSON.stringify(myItems)); } catch (e) {}
+    }
+    async function syncMyItems() {
+      if (!currentUserSession || !sessionPinHash || !supabaseClient) return;
+      const { data, error } = await supabaseClient.rpc('qr_my_items', { p_id: currentUserSession.id, p_pin_hash: sessionPinHash });
+      if (error) { console.error("Gagal sinkron koleksi:", error); return; }
+      myItems = Array.isArray(data) ? data : [];
+      saveMyItemsCache();
+      if (!editingId) renderQRFeed();
     }
 
     function renderQRFeed() {
       const grid = document.getElementById("qrFeedGrid");
       grid.innerHTML = "";
 
-      // [FIX] sembunyikan kartu anggota / wallet address yang sudah terlanjur masuk feed
-      const items = feedData.filter(item => !isSensitivePayload(item.text));
-
-      if (items.length === 0) {
-        grid.innerHTML = `<div style="font-size:12px; color:#888; grid-column:1/-1; text-align:center; padding:20px;">Belum ada QR Code tersimpan di Supabase.</div>`;
-        return;
-      }
-
       const me = currentUserSession ? currentUserSession.id : null;
-      const revealed = getRevealed();
+
+      // feed publik + koleksi pribadi (isi terbuka), plus kartu privat milik/hasil scan yang tidak ada di feed publik
+      const mine = new Map(myItems.map(i => [String(i.id), i]));
+      const list = feedData.map(f => Object.assign({}, f, mine.get(String(f.id)) || {}));
+      myItems.forEach(m => { if (!feedData.some(f => String(f.id) === String(m.id))) list.push(m); });
+      list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
       // [V3] lencana Maniak Scan
       const badge = document.getElementById('scanBadge');
       if (badge) {
-        const opened = items.filter(i => revealed.has(String(i.id)) && i.owner_id !== me).length;
-        badge.innerText = me ? `🏅 Scan Mania: ${opened} QR berhasil kamu buka` : '🔒 Login lalu scan QR di feed untuk membuka isinya';
+        const opened = list.filter(i => typeof i.text === 'string' && i.owner_id !== me).length;
+        badge.innerText = me ? `🏅 Maniak Scan: ${opened} QR berhasil kamu buka` : '🔒 Login lalu scan QR di feed untuk membuka isinya';
       }
 
-      items.forEach((item) => {
+      if (list.length === 0) {
+        grid.innerHTML = `<div style="font-size:12px; color:#888; grid-column:1/-1; text-align:center; padding:20px;">Belum ada QR Code tersimpan di Supabase.</div>`;
+        return;
+      }
+
+      list.forEach((item) => {
         const card = document.createElement("div");
         const qrContainerId = `qr-target-${String(item.id).replace(/[^\w-]/g, '')}`;
         const safeTitle = escapeHtml(item.title);           // [FIX] anti-XSS
         const safeTag = escapeHtml(item.tag || 'Custom QR'); // [FIX] anti-XSS
-        const isOwner = !!me && item.owner_id === me;       // [V2] penulis asli
+        const isOwner = !!me && item.owner_id === me;
+        const isOpen = typeof item.text === 'string';       // isi hanya ada kalau milikmu / sudah kamu scan
+        const isPrivate = item.visibility === 'private';
+        const visBadge = isPrivate ? '🔒 Privat' : '🌍 Publik';
 
-        if (isOwner || revealed.has(String(item.id))) {
+        if (isOpen) {
           card.className = "qr-card-item revealed";
           card.innerHTML = `
             <div>
@@ -916,10 +969,13 @@
               <div class="revealed-content">LOG: ${escapeHtml(item.text)}</div>
             </div>
             <div>
-              <div style="font-size: 9px; color: #c9a227; margin-top: 8px; font-weight: bold;">${isOwner ? '✍️ Tulisan kamu' : '✓ Terdekodekan & Terverifikasi'}</div>
+              <div style="font-size: 9px; color: #c9a227; margin-top: 8px; font-weight: bold;">${isOwner ? '✍️ Tulisan kamu · ' + visBadge : '🗝️ Terbuka lewat scan · koleksimu'}</div>
               ${isOwner ? `<div class="owner-actions">
                 <button class="btn-mini act-edit">✏️ Edit</button>
-                <button class="btn-mini act-dl">📥 QR</button>
+                <button class="btn-mini act-big">🔍 QR</button>
+                <button class="btn-mini act-dl">📥 Unduh</button>
+                <button class="btn-mini act-code">📋 Kode</button>
+                <button class="btn-mini act-vis">${isPrivate ? '🌍 Jadikan Publik' : '🔒 Jadikan Privat'}</button>
                 <button class="btn-mini danger act-del">🗑️ Hapus</button>
               </div>` : ''}
             </div>
@@ -928,13 +984,23 @@
 
           if (isOwner) {
             card.querySelector('.act-edit').addEventListener('click', () => startEditItem(card, item));
+            card.querySelector('.act-big').addEventListener('click', () => openQRView(item));
             card.querySelector('.act-dl').addEventListener('click', () =>
-              downloadQRCardImage(item.text, String(item.id).replace(/[^\w-]/g, ''), 'ToFarmer_QR'));
+              downloadQRCardImage(qrPayload(item.code), String(item.id).replace(/[^\w-]/g, ''), 'ToFarmer_QR'));
+            card.querySelector('.act-code').addEventListener('click', (ev) => {
+              const btn = ev.currentTarget;
+              navigator.clipboard.writeText(qrPayload(item.code)).then(() => {
+                btn.innerText = '✓ Tersalin';
+                setTimeout(() => btn.innerText = '📋 Kode', 1500);
+              });
+            });
+            card.querySelector('.act-vis').addEventListener('click', () => toggleVisibility(item));
             card.querySelector('.act-del').addEventListener('click', () => deleteQRItem(item));
           }
           return;
         }
 
+        // kartu terkunci (publik, belum di-scan)
         card.className = "qr-card-item";
 
         // [FIX] tanpa onclick inline berisi data mentah; event dipasang lewat addEventListener
@@ -945,22 +1011,25 @@
             <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${safeTag}</span>
             <div class="scan-prompt">Scan QR ini untuk membuka isinya</div>
           </div>
-          <button class="btn-download-qr">
-            <span>📥</span> Download QR Code
-          </button>
+          <div class="btn-row">
+            <button class="btn-download-qr act-big"><span>🔍</span> Perbesar</button>
+            <button class="btn-download-qr act-dl"><span>📥</span> Unduh</button>
+          </div>
         `;
 
         grid.appendChild(card);
 
         card.querySelector('.qr-holder').addEventListener('click', () => revealQRItem(item.id));
         card.querySelector('.scan-prompt').addEventListener('click', () => revealQRItem(item.id));
-        card.querySelector('.btn-download-qr').addEventListener('click', () => downloadQRCode(qrContainerId, item.title));
+        card.querySelector('.act-big').addEventListener('click', () => openQRView(item));
+        card.querySelector('.act-dl').addEventListener('click', () =>
+          downloadQRCardImage(qrPayload(item.code), String(item.id).replace(/[^\w-]/g, ''), 'ToFarmer_QR'));
 
         setTimeout(() => {
           const container = document.getElementById(qrContainerId);
           if (container) {
             new QRCode(container, {
-              text: item.text,
+              text: qrPayload(item.code),   // [V4] QR hanya berisi kode, bukan isi tulisan
               width: 110,
               height: 110,
               colorDark : "#1c2b22",
@@ -1063,6 +1132,7 @@
     async function submitQRText() {
       const input = document.getElementById("qrTextInput");
       const val = input.value.trim().slice(0, 500);
+      const visibility = document.getElementById('qrVisibility').value; // [V4] 'public' | 'private'
       if (!val) return;
 
       if (!currentUserSession) {
@@ -1073,21 +1143,87 @@
 
       // [FIX] jangan izinkan kartu ID / wallet address dijadikan QR publik
       if (isSensitivePayload(val)) {
-        alert("Kartu ID / alamat dompet tidak boleh dibuat menjadi QR publik.");
+        alert("Kartu ID / alamat dompet tidak boleh dibuat menjadi QR.");
         return;
       }
 
       const { error, cancelled } = await callAuthedRpc('qr_create', {
         p_title: `Input oleh ${currentUserSession.username}`,
         p_text: val,
-        p_tag: 'Custom QR'
-      }, 'Konfirmasi PIN untuk menerbitkan QR ke feed.');
+        p_tag: 'Custom QR',
+        p_visibility: visibility
+      }, 'Konfirmasi PIN untuk membuat QR.');
 
       if (cancelled) return;
       if (error) { alert("Gagal menyimpan ke Supabase: " + error.message); return; }
 
       playBeepSound('mining');
       input.value = "";
+      await syncMyItems();
+      fetchFeedFromSupabase();
+
+      if (visibility === 'private') {
+        alert("🔒 QR privat dibuat. Kartunya tidak muncul di feed orang lain.\n\nDi kartu milikmu: tekan 🔍 QR untuk menampilkannya ke HP lain, 📥 Unduh untuk dicetak, atau 📋 Kode untuk dibagikan lewat chat.");
+      }
+    }
+
+    // ----------------------------------------------------
+    // [V4] QR BESAR, SCAN KARTU, KODE MANUAL, VISIBILITAS
+    // ----------------------------------------------------
+    // Kamera tidak bisa memindai layarnya sendiri, jadi QR besar ini ditujukan untuk di-scan dari perangkat lain.
+    function openQRView(item) {
+      document.getElementById('qrViewTitle').innerText = item.title;
+      const box = document.getElementById('qrViewBox');
+      box.innerHTML = '';
+      new QRCode(box, { text: qrPayload(item.code), width: 260, height: 260, correctLevel: QRCode.CorrectLevel.M });
+      document.getElementById('qrViewModal').style.display = 'flex';
+    }
+    function closeQRView() {
+      document.getElementById('qrViewModal').style.display = 'none';
+      document.getElementById('qrViewBox').innerHTML = '';
+    }
+
+    // Membuka kartu lewat kode hasil scan: isi dikirim server, kartu masuk koleksi akun ini
+    async function claimQRCode(code) {
+      if (!/^[a-f0-9]{16}$/i.test(code)) { alert("Kode QR tidak valid."); return; }
+
+      const { data, error, cancelled } = await callAuthedRpc('qr_claim', { p_code: code.toLowerCase() },
+        'Konfirmasi PIN untuk membuka QR ini.');
+      if (cancelled) return;
+      if (error) { alert("Gagal membuka QR: " + error.message); return; }
+
+      playBeepSound('success_chime');
+      await syncMyItems();
+      fetchFeedFromSupabase();
+
+      const head = data.own ? "✍️ Ini QR buatanmu sendiri."
+        : (data.first_time ? "🎉 Berhasil! Kartu baru masuk koleksimu." : "✓ Kartu ini sudah ada di koleksimu.");
+      alert(`${head}\n\n${data.title}${data.visibility === 'private' ? ' (Privat)' : ''}\n\n${data.text}`);
+    }
+
+    function submitManualCode() {
+      const box = document.getElementById('manualCodeInput');
+      const raw = box.value.trim();
+      if (!raw) return;
+      box.value = '';
+      onScanSuccess('TOFQR:' + raw.replace(/^TOFQR:/i, ''));
+    }
+
+    async function toggleVisibility(item) {
+      const target = item.visibility === 'private' ? 'public' : 'private';
+      const msg = target === 'private'
+        ? "Jadikan PRIVAT? Kartu hilang dari feed publik dan hanya bisa dibuka lewat QR/kodenya."
+        : "Jadikan PUBLIK? Kartu muncul di feed semua orang (isinya tetap terkunci sampai di-scan).";
+      if (!confirm(msg)) return;
+
+      const { error, cancelled } = await callAuthedRpc('qr_set_visibility', {
+        p_log_id: String(item.id),
+        p_visibility: target
+      }, 'Konfirmasi PIN untuk mengubah visibilitas.');
+
+      if (cancelled) return;
+      if (error) { alert("Gagal mengubah visibilitas: " + error.message); return; }
+      await syncMyItems();
       fetchFeedFromSupabase();
     }
 
@@ -1122,6 +1258,7 @@
         if (cancelled) return;
         if (error) { alert("Gagal mengubah: " + error.message); return; }
         editingId = null;
+        await syncMyItems();
         fetchFeedFromSupabase();
       });
     }
@@ -1135,6 +1272,7 @@
 
       if (cancelled) return;
       if (error) { alert("Gagal menghapus: " + error.message); return; }
+      await syncMyItems();
       fetchFeedFromSupabase();
     }
 
@@ -1173,6 +1311,7 @@
     function openScanner(mode = 'general') {
       currentScanMode = mode;
       scanHandled = false;
+      document.getElementById('manualCodeBox').style.display = mode === 'login' ? 'none' : 'flex'; // [V4]
       document.getElementById("scannerModal").style.display = "flex";
       
       const titleElem = document.getElementById("scannerModalTitle");
@@ -1237,33 +1376,37 @@
           return;
         }
 
+        const isTofQr = text.startsWith('TOFQR:');
+
         // [V2] tanpa login: hasil hanya ditampilkan, tidak disimpan ke feed publik
         if (!currentUserSession) {
-          alert("Hasil scan:\n\n" + text.slice(0, 500) + "\n\nLogin terlebih dahulu jika ingin menyimpannya ke feed.");
+          if (isTofQr) {
+            alert("QR ToFarmer terdeteksi! Login dulu supaya isinya bisa dibuka dan masuk koleksimu.");
+            openAuthModal('login');
+          } else {
+            alert("Hasil scan:\n\n" + text.slice(0, 500) + "\n\nLogin terlebih dahulu jika ingin menyimpannya ke feed.");
+          }
           return;
         }
 
-        // [V3] Jika QR yang dipindai adalah isi kartu di feed, kartu itu terbuka (khusus untukmu), tidak dibuat ulang
-        const matches = feedData.filter(i => String(i.text).trim() === text);
-        if (matches.length) {
-          matches.forEach(m => markRevealed(m.id));
-          playBeepSound('success_chime');
-          renderQRFeed();
-          const opened = matches.filter(m => m.owner_id !== currentUserSession.id).length;
-          alert(opened ? `🎉 Berhasil! ${opened} kartu terbuka.` : "Ini QR tulisanmu sendiri, isinya memang sudah terbuka untukmu.");
+        // [V4] QR ToFarmer (dari feed, cetakan fisik, atau HP lain): buka kartunya lewat server & masukkan ke koleksi
+        if (isTofQr) {
+          await claimQRCode(text.slice(6).trim());
           return;
         }
 
+        // QR umum dari luar: disimpan sebagai kartu publik atas namamu
         playBeepSound('success_chime');
 
         const { error, cancelled } = await callAuthedRpc('qr_create', {
           p_title: `Scan oleh ${currentUserSession.username}`,
           p_text: text.slice(0, 500),
-          p_tag: 'Scanned QR'
+          p_tag: 'Scanned QR',
+          p_visibility: 'public'
         }, 'Konfirmasi PIN untuk menyimpan hasil scan ke feed.');
 
         if (error && !cancelled) alert("Gagal menyimpan hasil scan: " + error.message);
-        else if (!error) fetchFeedFromSupabase();
+        else if (!error) { await syncMyItems(); fetchFeedFromSupabase(); }
       }
     }
 
