@@ -148,6 +148,15 @@
     .tab-btn { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: bold; color: #6f7f76; border: none; background: transparent; cursor: pointer; }
     .tab-btn.active { color: #2f6f4e; border-bottom: 2px solid #2f6f4e; }
 
+    /* [V2] textarea multi-baris, teks feed menghormati baris baru, tombol aksi penulis */
+    textarea.form-control { resize: vertical; font-family: inherit; line-height: 1.4; }
+    .revealed-content { white-space: pre-wrap; }
+    .owner-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .btn-mini { background: #f0f7f3; color: #2f6f4e; border: 1px solid #2f6f4e; border-radius: 8px; padding: 5px 9px; font-size: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .btn-mini:hover { background: #2f6f4e; color: #fff; }
+    .btn-mini.danger { color: #dc2626; border-color: #dc2626; background: #fff5f5; }
+    .btn-mini.danger:hover { background: #dc2626; color: #fff; }
+
     @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
   </style>
 </head>
@@ -194,10 +203,11 @@
 
         <div class="card">
           <h3>⚡ Cetak QR Baru Instan</h3>
-          <div class="qr-input-box">
-            <input type="text" id="qrTextInput" maxlength="500" placeholder="Ketik teks/transaksi lalu Enter..." onkeydown="handleKeyPress(event)">
+          <div class="form-group">
+            <textarea id="qrTextInput" class="form-control" rows="4" maxlength="500" placeholder="Ketik teks / catatan setoran... (Enter = baris baru)" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){submitQRText();}"></textarea>
           </div>
-          <span style="font-size: 10px; color: #888;">Ketik pesan/setoran lalu tekan <b>Enter</b> untuk simpan ke Supabase & Feed.</span>
+          <button class="btn-submit-form" onclick="submitQRText()">⚡ Buat QR & Terbitkan ke Feed</button>
+          <span style="display:block; margin-top:8px; font-size: 10px; color: #888;">Enter untuk baris baru. Klik tombol (atau <b>Ctrl+Enter</b>) untuk simpan ke Supabase & Feed. Perlu login.</span>
         </div>
       </div>
 
@@ -205,7 +215,7 @@
         <div class="card">
           <h3>🟩 Feed Aktivitas Matriks (Supabase Live)</h3>
           <p style="font-size: 11px; color: #6f7f76; margin-bottom: 12px;">
-            Unduh gambar QR jika menggunakan 1 HP, atau ketuk/scan langsung untuk konversi ke log teks.
+            Unduh gambar QR jika menggunakan 1 HP, atau ketuk/scan langsung untuk konversi ke log teks. Status baca hanya berlaku untukmu, dan tulisan milikmu bisa diedit atau dihapus.
           </p>
           
           <div class="qr-grid-feed" id="qrFeedGrid">
@@ -291,6 +301,19 @@
     </div>
   </div>
 
+  <!-- [V2] MODAL KONFIRMASI PIN (untuk menerbitkan / mengedit / menghapus) -->
+  <div id="pinModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="margin-top:0; color:#2f6f4e; font-size:15px;">🔐 Konfirmasi PIN</h3>
+      <p id="pinModalDesc" style="font-size:11px; color:#4b5563; margin:5px 0 12px;"></p>
+      <input type="password" id="pinConfirmInput" class="form-control" maxlength="6" inputmode="numeric" placeholder="******" onkeydown="if(event.key==='Enter'){submitPinConfirm();}">
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button style="flex:1; background:#f3f4f6; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="cancelPinConfirm()">Batal</button>
+        <button style="flex:1; background:#2f6f4e; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="submitPinConfirm()">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL SCANNER DENGAN OPSI UPLOAD GALERI DARI 1 HP -->
   <div id="scannerModal" class="modal-overlay">
     <h4 id="scannerModalTitle" style="color: white; margin-bottom: 12px; font-size: 13px; text-align: center;">Arahkan Kamera ke Kode QR...</h4>
@@ -322,6 +345,10 @@
     let feedData = [];
     let currentUserSession = null;
     let scanHandled = false; // [FIX] cegah callback scan terpanggil berkali-kali
+    let sessionPinHash = null; // [V2] hash PIN hanya di memori (tidak disimpan), dipakai untuk konfirmasi tulis/edit/hapus
+    let pinResolver = null;
+    let feedLoaded = false;
+    let editingId = null;      // [V2] jangan render ulang feed saat penulis sedang mengedit
 
     window.onload = () => {
       checkExistingSession();
@@ -409,15 +436,16 @@
       downloadQRCardImage(qrPayload, user.username);
     }
 
-    function downloadQRCardImage(payloadText, username) {
+    function downloadQRCardImage(payloadText, username, prefix = 'Kartu_ToFarmer') {
       const tempDiv = document.createElement('div');
       tempDiv.style.display = 'none';
       document.body.appendChild(tempDiv);
 
       new QRCode(tempDiv, {
         text: payloadText,
-        width: 250,
-        height: 250
+        width: payloadText.length > 200 ? 500 : 250,   // [V2] teks panjang butuh QR lebih besar agar terbaca
+        height: payloadText.length > 200 ? 500 : 250,
+        correctLevel: QRCode.CorrectLevel.M
       });
 
       setTimeout(() => {
@@ -434,7 +462,7 @@
         if (imageSrc) {
           const downloadLink = document.createElement("a");
           downloadLink.href = imageSrc;
-          downloadLink.download = `Kartu_ToFarmer_${username}.png`;
+          downloadLink.download = `${prefix}_${username}.png`;
           document.body.appendChild(downloadLink);
           downloadLink.click();
           document.body.removeChild(downloadLink);
@@ -505,6 +533,7 @@
           </button>
         `;
       }
+      if (feedLoaded) renderQRFeed(); // [V2] tombol edit/hapus & status baca mengikuti siapa yang login
     }
 
     function triggerDownloadCurrentSessionQR() {
@@ -523,6 +552,7 @@
       localStorage.removeItem('tof_rank');
       localStorage.removeItem('tof_xp');
       currentUserSession = null;
+      sessionPinHash = null;
       renderHeaderProfile();
       if (!silent) alert("Anda telah keluar dari akun.");
     }
@@ -571,6 +601,8 @@
         // [FIX] seed terenkripsi (s) dihapus dari kartu: XOR dengan PIN 6 digit bisa ditembus seketika
         const qrPayload = JSON.stringify({ u: username, w: walletAddress, type: 'TOF_MEMBER_CARD' });
         downloadQRCardImage(qrPayload, username);
+
+        sessionPinHash = pinHash;
 
         // 5. Simpan Sesi Global & Local
         saveGlobalSession({ id: walletAddress, username: username, xp: 0, saldo_tof: 0, rank: 'GROWER', level: 1 });
@@ -630,6 +662,7 @@
         }
 
         delete data.pin_hash;
+        sessionPinHash = pinHash; // [V2]
 
         // Simpan Sesi Global & Local
         saveGlobalSession(data);
@@ -723,7 +756,8 @@
       }
 
       feedData = data || [];
-      renderQRFeed();
+      feedLoaded = true;
+      if (!editingId) renderQRFeed();
     }
 
     function subscribeRealtime() {
@@ -735,6 +769,17 @@
           fetchFeedFromSupabase();
         })
         .subscribe();
+    }
+
+    // [V2] Status "terbaca" kini per-pengguna (disimpan di browser masing-masing), bukan global di database
+    function revealKey() { return 'tof_revealed_' + (currentUserSession ? currentUserSession.id : 'guest'); }
+    function getRevealed() {
+      try { return new Set(JSON.parse(localStorage.getItem(revealKey()) || '[]')); } catch (e) { return new Set(); }
+    }
+    function markRevealed(id) {
+      const set = getRevealed();
+      set.add(String(id));
+      localStorage.setItem(revealKey(), JSON.stringify(Array.from(set).slice(-500)));
     }
 
     function renderQRFeed() {
@@ -749,13 +794,17 @@
         return;
       }
 
+      const me = currentUserSession ? currentUserSession.id : null;
+      const revealed = getRevealed();
+
       items.forEach((item) => {
         const card = document.createElement("div");
         const qrContainerId = `qr-target-${String(item.id).replace(/[^\w-]/g, '')}`;
         const safeTitle = escapeHtml(item.title);           // [FIX] anti-XSS
         const safeTag = escapeHtml(item.tag || 'Custom QR'); // [FIX] anti-XSS
+        const isOwner = !!me && item.owner_id === me;       // [V2] penulis asli
 
-        if (item.scanned) {
+        if (isOwner || revealed.has(String(item.id))) {
           card.className = "qr-card-item revealed";
           card.innerHTML = `
             <div>
@@ -765,46 +814,60 @@
               </div>
               <div class="revealed-content">LOG: ${escapeHtml(item.text)}</div>
             </div>
-            <div style="font-size: 9px; color: #c9a227; margin-top: 8px; font-weight: bold;">✓ Terdekodekan & Terverifikasi</div>
-          `;
-        } else {
-          card.className = "qr-card-item";
-          
-          // [FIX] tanpa onclick inline berisi data mentah; event dipasang lewat addEventListener
-          card.innerHTML = `
             <div>
-              <div style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${safeTitle}</div>
-              <div class="qr-holder" id="${qrContainerId}"></div>
-              <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${safeTag}</span>
-              <div class="scan-prompt">Ketuk / Scan untuk baca isi</div>
+              <div style="font-size: 9px; color: #c9a227; margin-top: 8px; font-weight: bold;">${isOwner ? '✍️ Tulisan kamu' : '✓ Terdekodekan & Terverifikasi'}</div>
+              ${isOwner ? `<div class="owner-actions">
+                <button class="btn-mini act-edit">✏️ Edit</button>
+                <button class="btn-mini act-dl">📥 QR</button>
+                <button class="btn-mini danger act-del">🗑️ Hapus</button>
+              </div>` : ''}
             </div>
-            <button class="btn-download-qr">
-              <span>📥</span> Download QR Code
-            </button>
           `;
-
           grid.appendChild(card);
 
-          card.querySelector('.qr-holder').addEventListener('click', () => revealQRItem(item.id));
-          card.querySelector('.scan-prompt').addEventListener('click', () => revealQRItem(item.id));
-          card.querySelector('.btn-download-qr').addEventListener('click', () => downloadQRCode(qrContainerId, item.title));
-
-          setTimeout(() => {
-            const container = document.getElementById(qrContainerId);
-            if (container) {
-              new QRCode(container, {
-                text: item.text,
-                width: 110,
-                height: 110,
-                colorDark : "#1c2b22",
-                colorLight : "#ffffff"
-              });
-            }
-          }, 50);
+          if (isOwner) {
+            card.querySelector('.act-edit').addEventListener('click', () => startEditItem(card, item));
+            card.querySelector('.act-dl').addEventListener('click', () =>
+              downloadQRCardImage(item.text, String(item.id).replace(/[^\w-]/g, ''), 'ToFarmer_QR'));
+            card.querySelector('.act-del').addEventListener('click', () => deleteQRItem(item));
+          }
           return;
         }
 
+        card.className = "qr-card-item";
+
+        // [FIX] tanpa onclick inline berisi data mentah; event dipasang lewat addEventListener
+        card.innerHTML = `
+          <div>
+            <div style="font-size: 11px; font-weight: bold; color: #2f6f4e;">${safeTitle}</div>
+            <div class="qr-holder" id="${qrContainerId}"></div>
+            <span style="font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 2px 6px; border-radius: 4px; font-weight: bold;">${safeTag}</span>
+            <div class="scan-prompt">Ketuk / Scan untuk baca isi</div>
+          </div>
+          <button class="btn-download-qr">
+            <span>📥</span> Download QR Code
+          </button>
+        `;
+
         grid.appendChild(card);
+
+        card.querySelector('.qr-holder').addEventListener('click', () => revealQRItem(item.id));
+        card.querySelector('.scan-prompt').addEventListener('click', () => revealQRItem(item.id));
+        card.querySelector('.btn-download-qr').addEventListener('click', () => downloadQRCode(qrContainerId, item.title));
+
+        setTimeout(() => {
+          const container = document.getElementById(qrContainerId);
+          if (container) {
+            new QRCode(container, {
+              text: item.text,
+              width: 110,
+              height: 110,
+              colorDark : "#1c2b22",
+              colorLight : "#ffffff",
+              correctLevel: QRCode.CorrectLevel.M
+            });
+          }
+        }, 50);
       });
     }
 
@@ -835,55 +898,139 @@
       document.body.removeChild(downloadLink);
     }
 
-    async function revealQRItem(id) {
+    // [V2] "Terbaca" hanya untuk pengguna yang mengetuk, tanpa mengubah data di database
+    function revealQRItem(id) {
       playBeepSound('success_chime');
-      if (!supabaseClient) return;
-
-      const { error } = await supabaseClient
-        .from('qr_logs')
-        .update({ scanned: true })
-        .eq('id', id);
-
-      if (error) {
-        console.error("Gagal update status scanned:", error);
-      }
+      markRevealed(id);
+      renderQRFeed();
     }
 
-    async function handleKeyPress(e) {
-      if (e.key === "Enter") {
-        const input = document.getElementById("qrTextInput");
-        const val = input.value.trim().slice(0, 500);
-        if (!val) return;
+    // ----------------------------------------------------
+    // [V2] KONFIRMASI PIN & PANGGILAN RPC (tulis / edit / hapus)
+    // ----------------------------------------------------
+    function requirePinHash(desc) {
+      if (sessionPinHash) return Promise.resolve(sessionPinHash);
+      return new Promise(resolve => {
+        pinResolver = resolve;
+        document.getElementById('pinModalDesc').innerText = desc || 'Masukkan PIN 6 digit Anda.';
+        document.getElementById('pinConfirmInput').value = '';
+        document.getElementById('pinModal').style.display = 'flex';
+        document.getElementById('pinConfirmInput').focus();
+      });
+    }
 
-        // [FIX] jangan izinkan kartu ID / wallet address dijadikan QR publik
-        if (isSensitivePayload(val)) {
-          alert("Kartu ID / alamat dompet tidak boleh dibuat menjadi QR publik.");
-          return;
-        }
+    async function submitPinConfirm() {
+      const pin = document.getElementById('pinConfirmInput').value.trim();
+      if (!/^\d{6}$/.test(pin)) { alert("PIN harus 6 digit angka!"); return; }
+      const hash = await hashPIN(pin);
+      document.getElementById('pinModal').style.display = 'none';
+      const r = pinResolver; pinResolver = null;
+      if (r) r(hash);
+    }
 
-        playBeepSound('mining');
-        input.value = "";
+    function cancelPinConfirm() {
+      document.getElementById('pinModal').style.display = 'none';
+      const r = pinResolver; pinResolver = null;
+      if (r) r(null);
+    }
 
-        if (!supabaseClient) {
-          alert("Supabase client belum dikonfigurasi.");
-          return;
-        }
-
-        const { error } = await supabaseClient
-          .from('qr_logs')
-          .insert([
-            {
-              title: currentUserSession ? `Input oleh ${currentUserSession.username}` : "Input Teks Baru",
-              text: val,
-              tag: "Custom QR",
-              scanned: false
-            }
-          ]);
-
-        if (error) {
-          alert("Gagal menyimpan ke Supabase: " + error.message);
-        }
+    // Semua penulisan ke qr_logs lewat fungsi RPC di Supabase yang memverifikasi PIN & kepemilikan
+    async function callAuthedRpc(fn, params, desc) {
+      if (!supabaseClient) return { error: { message: 'Supabase client belum dikonfigurasi.' } };
+      if (!currentUserSession) {
+        alert("Silakan login terlebih dahulu!");
+        openAuthModal('login');
+        return { error: { message: 'belum login' }, cancelled: true };
       }
+      const hash = await requirePinHash(desc);
+      if (!hash) return { error: { message: 'dibatalkan' }, cancelled: true };
+
+      const res = await supabaseClient.rpc(fn, { p_id: currentUserSession.id, p_pin_hash: hash, ...params });
+      if (res.error) {
+        if (/PIN salah/i.test(res.error.message)) sessionPinHash = null; // paksa input ulang
+      } else {
+        sessionPinHash = hash; // PIN terbukti benar -> cukup diminta sekali per sesi halaman
+      }
+      return res;
+    }
+
+    // Tombol "Buat QR" (Enter di textarea = baris baru)
+    async function submitQRText() {
+      const input = document.getElementById("qrTextInput");
+      const val = input.value.trim().slice(0, 500);
+      if (!val) return;
+
+      if (!currentUserSession) {
+        alert("Silakan login terlebih dahulu untuk menerbitkan QR.");
+        openAuthModal('login');
+        return;
+      }
+
+      // [FIX] jangan izinkan kartu ID / wallet address dijadikan QR publik
+      if (isSensitivePayload(val)) {
+        alert("Kartu ID / alamat dompet tidak boleh dibuat menjadi QR publik.");
+        return;
+      }
+
+      const { error, cancelled } = await callAuthedRpc('qr_create', {
+        p_title: `Input oleh ${currentUserSession.username}`,
+        p_text: val,
+        p_tag: 'Custom QR'
+      }, 'Konfirmasi PIN untuk menerbitkan QR ke feed.');
+
+      if (cancelled) return;
+      if (error) { alert("Gagal menyimpan ke Supabase: " + error.message); return; }
+
+      playBeepSound('mining');
+      input.value = "";
+      fetchFeedFromSupabase();
+    }
+
+    function startEditItem(card, item) {
+      editingId = item.id;
+      card.className = "qr-card-item revealed";
+      card.innerHTML = `
+        <div>
+          <div style="font-size: 11px; font-weight: bold; color: #2f6f4e; margin-bottom: 6px;">✏️ Edit tulisan</div>
+          <textarea class="form-control edit-area" rows="5" maxlength="500"></textarea>
+        </div>
+        <div class="owner-actions">
+          <button class="btn-mini act-save">💾 Simpan</button>
+          <button class="btn-mini act-cancel">Batal</button>
+        </div>
+      `;
+      const ta = card.querySelector('.edit-area');
+      ta.value = item.text;
+      ta.focus();
+
+      card.querySelector('.act-cancel').addEventListener('click', () => { editingId = null; renderQRFeed(); });
+      card.querySelector('.act-save').addEventListener('click', async () => {
+        const val = ta.value.trim().slice(0, 500);
+        if (!val) { alert("Tulisan tidak boleh kosong."); return; }
+        if (isSensitivePayload(val)) { alert("Kartu ID / alamat dompet tidak boleh dijadikan QR publik."); return; }
+
+        const { error, cancelled } = await callAuthedRpc('qr_update', {
+          p_log_id: String(item.id),
+          p_text: val
+        }, 'Konfirmasi PIN untuk mengubah tulisan.');
+
+        if (cancelled) return;
+        if (error) { alert("Gagal mengubah: " + error.message); return; }
+        editingId = null;
+        fetchFeedFromSupabase();
+      });
+    }
+
+    async function deleteQRItem(item) {
+      if (!confirm("Hapus tulisan ini? Tindakan tidak bisa dibatalkan.")) return;
+
+      const { error, cancelled } = await callAuthedRpc('qr_delete', {
+        p_log_id: String(item.id)
+      }, 'Konfirmasi PIN untuk menghapus tulisan.');
+
+      if (cancelled) return;
+      if (error) { alert("Gagal menghapus: " + error.message); return; }
+      fetchFeedFromSupabase();
     }
 
     // ----------------------------------------------------
@@ -985,20 +1132,22 @@
           return;
         }
 
+        // [V2] tanpa login: hasil hanya ditampilkan, tidak disimpan ke feed publik
+        if (!currentUserSession) {
+          alert("Hasil scan:\n\n" + text.slice(0, 500) + "\n\nLogin terlebih dahulu jika ingin menyimpannya ke feed.");
+          return;
+        }
+
         playBeepSound('success_chime');
 
-        if (!supabaseClient) return;
+        const { error, cancelled } = await callAuthedRpc('qr_create', {
+          p_title: `Scan oleh ${currentUserSession.username}`,
+          p_text: text.slice(0, 500),
+          p_tag: 'Scanned QR'
+        }, 'Konfirmasi PIN untuk menyimpan hasil scan ke feed.');
 
-        await supabaseClient
-          .from('qr_logs')
-          .insert([
-            {
-              title: currentUserSession ? `Scan oleh ${currentUserSession.username}` : "Hasil Scan Kamera/Galeri",
-              text: text.slice(0, 500),
-              tag: "Scanned QR",
-              scanned: true
-            }
-          ]);
+        if (error && !cancelled) alert("Gagal menyimpan hasil scan: " + error.message);
+        else if (!error) fetchFeedFromSupabase();
       }
     }
 
