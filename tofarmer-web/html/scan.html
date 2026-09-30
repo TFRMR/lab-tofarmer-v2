@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ToFarmer - QR Centric App (Supabase Connected)</title>
   
-  <!-- MANIFEST INLINE UNTUK SENSASI INSTAL MURNI -->
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22ToFarmer%20QR%22%2C%22short_name%22%3A%22ToFarmer%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f7f5%22%2C%22theme_color%22%3A%22%232f6f4e%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20viewBox%3D'0%200%20100%20100'%3E%3Ccircle%20cx%3D'50'%20cy%3D'50'%20r%3D'46'%20fill%3D'%23ffffff'%20stroke%3D'%232f6f4e'%20stroke-width%3D'6'%2F%3E%3Ctext%20x%3D'50'%20y%3D'58'%20font-size%3D'28'%20font-weight%3D'900'%20text-anchor%3D'middle'%20fill%3D'%232f6f4e'%3ETOF%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+  <!-- MANIFEST INLINE VALID -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"ToFarmer QR","short_name":"ToFarmer","start_url":".","display":"standalone","background_color":"#f4f7f5","theme_color":"#2f6f4e","icons":[{"src":"data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"46\" fill=\"%23ffffff\" stroke=\"%232f6f4e\" stroke-width=\"6\"/><text x=\"50\" y=\"58\" font-size=\"28\" font-weight=\"900\" text-anchor=\"middle\" fill=\"%232f6f4e\">TOF</text></svg>","sizes":"192x192","type":"image/svg+xml"}]}'>
 
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
+  <!-- FAVICON SVG VALID -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
   
   <!-- ENGINE QR CODE GENERATOR & SCANNER -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -58,7 +59,6 @@
     .revealed-content { margin-top: 8px; font-size: 13px; color: #1c2b22; font-weight: 500; line-height: 1.4; word-break: break-word; }
     .scan-prompt { font-size: 10px; color: #888; margin-top: 4px; font-style: italic; cursor: pointer; }
 
-    /* TOMBOL DOWNLOAD QR */
     .btn-download-qr {
       background: #f0f7f3;
       color: #2f6f4e;
@@ -139,7 +139,7 @@
           </p>
           
           <div class="qr-grid-feed" id="qrFeedGrid">
-            <!-- Data dari Supabase di-render di sini -->
+            <!-- Data di-render otomatis -->
           </div>
         </div>
       </div>
@@ -154,12 +154,13 @@
 
   <script>
     // ----------------------------------------------------
-    // KONFIGURASI SUPABASE (GANTI SESUAI PROJECT ANDA)
+    // KONFIGURASI SUPABASE (Satu variabel instance terpisah)
     // ----------------------------------------------------
-    const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+    const SUPABASE_URL = "https://YOUR_SUPABASE_URL.supabase.co";
+    const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Nama variabel diubah menjadi supabaseClient untuk mencegah collision/SyntaxError
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
     let html5QrcodeScanner = null;
     let deferredPrompt = null;
@@ -173,7 +174,9 @@
 
     // 1. AMBIL DATA DARI SUPABASE
     async function fetchFeedFromSupabase() {
-      const { data, error } = await supabase
+      if (!supabaseClient) return;
+
+      const { data, error } = await supabaseClient
         .from('qr_logs')
         .select('*')
         .order('created_at', { ascending: false });
@@ -183,13 +186,15 @@
         return;
       }
 
-      feedData = data;
+      feedData = data || [];
       renderQRFeed();
     }
 
     // 2. LISTEN TRANSAKSI REALTIME DARI SUPABASE
     function subscribeRealtime() {
-      supabase
+      if (!supabaseClient) return;
+
+      supabaseClient
         .channel('public:qr_logs')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'qr_logs' }, () => {
           fetchFeedFromSupabase();
@@ -259,7 +264,7 @@
       });
     }
 
-    // 4. UNDUH QR CODE MENJADI FILE PNG (OPSI 1 HAPE)
+    // 4. UNDUH QR CODE MENJADI FILE PNG
     function downloadQRCode(containerId, title) {
       const container = document.getElementById(containerId);
       if (!container) return;
@@ -287,11 +292,12 @@
       document.body.removeChild(downloadLink);
     }
 
-    // 5. UPDATE STATUS SCANNED KE SUPABASE (SAAT KETUK KARTU/QR)
+    // 5. UPDATE STATUS SCANNED KE SUPABASE
     async function revealQRItem(id) {
       playBeepSound('success_chime');
+      if (!supabaseClient) return;
 
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('qr_logs')
         .update({ scanned: true })
         .eq('id', id);
@@ -311,7 +317,12 @@
         playBeepSound('mining');
         input.value = "";
 
-        const { error } = await supabase
+        if (!supabaseClient) {
+          alert("Supabase client belum dikonfigurasi.");
+          return;
+        }
+
+        const { error } = await supabaseClient
           .from('qr_logs')
           .insert([
             {
@@ -358,7 +369,7 @@
       } catch(e) {}
     }
 
-    // 8. PEMINDAI KAMERA AUTO SIMPAN KE SUPABASE
+    // 8. PEMINDAI KAMERA
     function openScanner(mode = 'general') {
       currentScanMode = mode;
       document.getElementById("scannerModal").style.display = "flex";
@@ -383,8 +394,9 @@
       } else {
         playBeepSound('success_chime');
 
-        // Simpan hasil scan kamera ke Supabase (langsung status scanned: true)
-        await supabase
+        if (!supabaseClient) return;
+
+        await supabaseClient
           .from('qr_logs')
           .insert([
             {
