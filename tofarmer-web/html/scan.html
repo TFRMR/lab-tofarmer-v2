@@ -195,7 +195,7 @@
 
     <div class="pwa-banner" id="pwaBanner">
       <div>
-        <h4 style="font-size: 12px; color:#2f6f4e;">Pasang Aplikasi ToFarmer Scan Mania</h4>
+        <h4 style="font-size: 12px; color:#2f6f4e;">Pasang Aplikasi ToFarmer</h4>
         <span style="font-size: 10px; color:#6f7f76;">Ketik langsung ke layar depan HP kamu</span>
       </div>
       <button class="pwa-btn" id="btnDirectInstall" onclick="executeInstall()">⚡ Instal 5 Detik</button>
@@ -231,7 +231,7 @@
 
       <div class="right">
         <div class="card">
-          <h3>🟩 Aktivitas </h3>
+          <h3>🟩 Feed Aktivitas Matriks (Supabase Live)</h3>
           <p style="font-size: 11px; color: #6f7f76; margin-bottom: 12px;">
             Isi kartu terkunci di server dan baru terbuka kalau QR-nya benar-benar kamu scan: arahkan kamera ke layar perangkat lain (tombol 🔍 Perbesar), ke QR cetakan fisik, atau upload gambar QR / ketik kodenya. Kartu yang berhasil dibuka masuk koleksimu (tersimpan di akun). QR Privat tidak muncul di feed.
           </p>
@@ -1308,7 +1308,8 @@
       } catch(e) {}
     }
 
-    function openScanner(mode = 'general') {
+    async function openScanner(mode = 'general') {
+      await safeStopScanner(); // [FIX] bersihkan instance lama sebelum membuka yang baru
       currentScanMode = mode;
       scanHandled = false;
       document.getElementById('manualCodeBox').style.display = mode === 'login' ? 'none' : 'flex'; // [V4]
@@ -1333,19 +1334,20 @@
       const file = event.target.files[0];
       if (!file) return;
 
+      let decodedText = null;
       try {
-        // [FIX] matikan kamera dulu supaya tidak bentrok dengan scanFile
-        if (html5QrcodeScanner) {
-          try { await html5QrcodeScanner.stop(); } catch (e) {}
-        }
+        // [FIX] matikan kamera dulu supaya tidak bentrok dengan scanFile (aman walau kamera tidak sedang jalan)
+        await safeStopScanner();
         const html5QrCode = new Html5Qrcode("reader");
-        const decodedText = await html5QrCode.scanFile(file, false);
-        onScanSuccess(decodedText);
+        decodedText = await html5QrCode.scanFile(file, false);
+        try { html5QrCode.clear(); } catch (e) {}
       } catch (err) {
         alert("Gagal membaca QR Code dari gambar. Pastikan gambar QR terlihat jelas dan tidak buram!");
       } finally {
         event.target.value = "";
       }
+
+      if (decodedText) onScanSuccess(decodedText);
     }
 
     async function onScanSuccess(decodedText) {
@@ -1410,15 +1412,20 @@
       }
     }
 
-    function closeScanner() {
-      const hide = () => { document.getElementById("scannerModal").style.display = "none"; };
+    // [FIX] html5-qrcode melempar error "Cannot stop, scanner is not running or paused" jika stop() dipanggil
+    // saat kamera tidak sedang berjalan (mis. sudah dihentikan sebelum scan dari galeri, atau kamera ditolak).
+    // Semua penghentian lewat fungsi ini supaya error tersebut tidak membatalkan proses hasil scan.
+    async function safeStopScanner() {
       const scanner = html5QrcodeScanner;
-      html5QrcodeScanner = null; // [FIX] reset supaya instance lama tidak dipakai ulang
-      if (scanner) {
-        scanner.stop().then(hide).catch(hide);
-      } else {
-        hide();
-      }
+      html5QrcodeScanner = null;
+      if (!scanner) return;
+      try { await scanner.stop(); } catch (e) {}
+      try { scanner.clear(); } catch (e) {}
+    }
+
+    function closeScanner() {
+      document.getElementById("scannerModal").style.display = "none";
+      safeStopScanner();
     }
 
     // ----------------------------------------------------
