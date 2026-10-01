@@ -164,6 +164,21 @@
     .btn-submit-form:disabled { background: #9db8a9; cursor: not-allowed; }
     .scan-badge { font-size: 11px; font-weight: bold; color: #92400e; background: #fef3c7; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; display: inline-block; }
 
+    /* [V5] dialog cantik (pengganti alert/confirm bawaan browser) */
+    .dlg-card { text-align: center; padding: 24px 20px 18px; border-top: 5px solid #4caf7a; animation: dlgPop 0.25s ease-out; }
+    @keyframes dlgPop { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .dlg-icon { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 28px; background: #eef7f1; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .dlg-title { font-size: 15px; color: #2f6f4e; margin-bottom: 4px; }
+    .dlg-sub { font-size: 11px; font-weight: bold; color: #6f7f76; margin-bottom: 8px; word-break: break-word; }
+    .dlg-msg { font-size: 12px; color: #4b5563; line-height: 1.55; white-space: pre-wrap; word-break: break-word; max-height: 45vh; overflow-y: auto; }
+    .dlg-quote { margin: 10px 0 2px; text-align: left; font-size: 13px; color: #1c2b22; background: #f8fcf9; border-left: 4px solid #4caf7a; border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; max-height: 40vh; overflow-y: auto; }
+    .dlg-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .dlg-btn { flex: 1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; }
+    .dlg-btn-ok { background: linear-gradient(90deg,#4caf7a,#2f6f4e); color: #fff; }
+    .dlg-btn-ok:hover { filter: brightness(1.06); }
+    .dlg-btn-ghost { background: #f3f4f6; color: #4b5563; }
+    .dlg-btn-ghost:hover { background: #e5e7eb; }
+
     /* [V4] baris tombol kartu terkunci */
     .btn-row { display: flex; gap: 6px; margin-top: 10px; }
     .btn-row .btn-download-qr { margin-top: 0; flex: 1; width: auto; }
@@ -339,6 +354,21 @@
     </div>
   </div>
 
+  <!-- [V5] DIALOG CANTIK (pengganti alert/confirm bawaan browser) -->
+  <div id="dialogModal" class="modal-overlay" style="z-index: 100000;" onclick="closeDialog(false)">
+    <div class="modal-card dlg-card" id="dlgCard" onclick="event.stopPropagation()">
+      <div class="dlg-icon" id="dlgIcon">🌱</div>
+      <h3 class="dlg-title" id="dlgTitle"></h3>
+      <div class="dlg-sub" id="dlgSub"></div>
+      <div class="dlg-msg" id="dlgMsg"></div>
+      <div class="dlg-quote" id="dlgQuote"></div>
+      <div class="dlg-actions">
+        <button class="dlg-btn dlg-btn-ghost" id="dlgCancel" onclick="closeDialog(false)">Batal</button>
+        <button class="dlg-btn dlg-btn-ok" id="dlgOk" onclick="closeDialog(true)">Oke</button>
+      </div>
+    </div>
+  </div>
+
   <!-- [V4] MODAL QR BESAR (untuk di-scan dari perangkat lain) -->
   <div id="qrViewModal" class="modal-overlay" onclick="closeQRView()">
     <div class="modal-card" style="text-align:center;" onclick="event.stopPropagation()">
@@ -404,6 +434,89 @@
     let feedLoaded = false;
     let myItems = [];          // [V4] koleksi saya: tulisan sendiri (termasuk privat) + kartu yang sudah di-scan (lengkap dengan isi)
     let editingId = null;      // [V2] jangan render ulang feed saat penulis sedang mengedit
+
+    // ----------------------------------------------------
+    // [V5] DIALOG CANTIK: pengganti alert()/confirm() bawaan browser supaya tampil ramah & seragam dengan halaman.
+    // alert() global dialihkan ke sini, jadi seluruh pesan lama otomatis ikut bertema.
+    // ----------------------------------------------------
+    const DLG_TONES = {
+      success: { icon: '🎉', title: 'Berhasil!',           bg: '#e9f4ee', line: '#4caf7a' },
+      info:    { icon: '🌱', title: 'Info',                bg: '#eef7f1', line: '#4caf7a' },
+      warn:    { icon: '🌾', title: 'Sebentar ya',         bg: '#fef3c7', line: '#f59e0b' },
+      error:   { icon: '🍂', title: 'Ups, belum berhasil', bg: '#fff1e6', line: '#f97316' },
+      ask:     { icon: '🤔', title: 'Konfirmasi',          bg: '#eef7f1', line: '#4caf7a' }
+    };
+    let dlgQueue = [];
+    let dlgOpen = false;
+    let dlgResolve = null;
+
+    // opts: { tone, icon, title, subtitle, message, quote, okText, cancelText }
+    function tofDialog(opts) {
+      return new Promise(resolve => {
+        dlgQueue.push({ opts: opts || {}, resolve: resolve });
+        if (!dlgOpen) showNextDialog();
+      });
+    }
+
+    function tofConfirm(message, opts) {
+      return tofDialog(Object.assign({ tone: 'ask', message: message, okText: 'Ya', cancelText: 'Batal' }, opts || {}));
+    }
+
+    function showNextDialog() {
+      const next = dlgQueue.shift();
+      if (!next) return;
+      dlgOpen = true;
+      dlgResolve = next.resolve;
+
+      const o = next.opts;
+      const t = DLG_TONES[o.tone] || DLG_TONES.info;
+      const setText = (id, val) => {
+        const el = document.getElementById(id);
+        el.innerText = val || '';
+        el.style.display = val ? 'block' : 'none';
+      };
+
+      const icon = document.getElementById('dlgIcon');
+      icon.innerText = o.icon || t.icon;
+      icon.style.background = t.bg;
+      document.getElementById('dlgCard').style.borderTopColor = t.line;
+
+      document.getElementById('dlgTitle').innerText = o.title || t.title;
+      setText('dlgSub', o.subtitle);
+      setText('dlgMsg', o.message);
+      setText('dlgQuote', o.quote);
+
+      const cancelBtn = document.getElementById('dlgCancel');
+      cancelBtn.innerText = o.cancelText || 'Batal';
+      cancelBtn.style.display = o.cancelText ? 'block' : 'none';
+      document.getElementById('dlgOk').innerText = o.okText || 'Oke';
+
+      document.getElementById('dialogModal').style.display = 'flex';
+      document.getElementById('dlgOk').focus();
+    }
+
+    function closeDialog(result) {
+      if (!dlgOpen) return;
+      const r = dlgResolve;
+      dlgResolve = null;
+      dlgOpen = false;
+      document.getElementById('dialogModal').style.display = 'none';
+      if (r) r(!!result);
+      if (dlgQueue.length) showNextDialog();
+    }
+
+    // Menebak nada pesan lama agar judul & ikonnya pas (tanpa mengubah teks aslinya)
+    function autoDialogOpts(text) {
+      if (/keluar dari akun/i.test(text)) return { tone: 'info', icon: '👋', title: 'Sampai jumpa!', message: text, okText: 'Oke' };
+      let tone = 'info';
+      if (/^(🎉|✓|🔓|✍️|🔒)/.test(text)) tone = 'success';
+      else if (/^(Gagal|Login Gagal)|salah|tidak valid|tidak ditemukan|bukan kartu|bukan pemilik/i.test(text)) tone = 'error';
+      else if (/login|wajib|harus|tidak boleh|kosong|isi /i.test(text)) tone = 'warn';
+      return { tone: tone, message: text, okText: 'Oke' };
+    }
+
+    window.alert = function (msg) { tofDialog(autoDialogOpts(String(msg == null ? '' : msg))); };
+    document.addEventListener('keydown', (e) => { if (dlgOpen && e.key === 'Escape') closeDialog(false); });
 
     window.onload = () => {
       checkExistingSession();
@@ -732,7 +845,10 @@
         playBeepSound('success_chime');
 
         // Tawaran Otomatis Cetak/Unduh QR ID untuk User Lama
-        const wantQR = confirm(`Login Berhasil! Selamat datang, ${data.username}.\n\nApakah Anda ingin mengunduh/menyimpan Kartu QR ID untuk akun Anda?`);
+        const wantQR = await tofConfirm(
+          "Kartu QR ID adalah kunci cepat masukmu: simpan di galeri atau cetak, lalu scan kapan saja untuk login (PIN tetap diperlukan).",
+          { tone: 'success', icon: '👋', title: `Selamat datang, ${data.username}!`, okText: '📥 Unduh Kartu', cancelText: 'Nanti saja' }
+        );
         if (wantQR) {
           await generateAndDownloadQRForLegacyUser(data);
         }
@@ -833,10 +949,12 @@
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    function skipMnemonicVerify() {
-      if (confirm("Yakin lewati? Frasa ini TIDAK bisa ditampilkan lagi. Jika hilang, wallet on-chain tidak bisa dipulihkan.")) {
-        closeMnemonicModal();
-      }
+    async function skipMnemonicVerify() {
+      const ok = await tofConfirm(
+        "Frasa ini tidak bisa ditampilkan lagi. Kalau hilang, wallet on-chain tidak bisa dipulihkan. Lanjut tanpa verifikasi?",
+        { tone: 'warn', icon: '🔑', title: 'Lewati verifikasi?', okText: 'Lanjut', cancelText: 'Kembali' }
+      );
+      if (ok) closeMnemonicModal();
     }
 
     function closeMnemonicModal() {
@@ -1196,9 +1314,14 @@
       await syncMyItems();
       fetchFeedFromSupabase();
 
-      const head = data.own ? "✍️ Ini QR buatanmu sendiri."
-        : (data.first_time ? "🎉 Berhasil! Kartu baru masuk koleksimu." : "✓ Kartu ini sudah ada di koleksimu.");
-      alert(`${head}\n\n${data.title}${data.visibility === 'private' ? ' (Privat)' : ''}\n\n${data.text}`);
+      tofDialog({
+        tone: 'success',
+        icon: data.own ? '✍️' : (data.first_time ? '🎉' : '🗝️'),
+        title: data.own ? 'Ini QR buatanmu' : (data.first_time ? 'Kartu baru masuk koleksimu!' : 'Sudah ada di koleksimu'),
+        subtitle: data.title + (data.visibility === 'private' ? ' · 🔒 Privat' : ''),
+        quote: data.text,
+        okText: 'Mantap!'
+      });
     }
 
     function submitManualCode() {
@@ -1212,9 +1335,14 @@
     async function toggleVisibility(item) {
       const target = item.visibility === 'private' ? 'public' : 'private';
       const msg = target === 'private'
-        ? "Jadikan PRIVAT? Kartu hilang dari feed publik dan hanya bisa dibuka lewat QR/kodenya."
-        : "Jadikan PUBLIK? Kartu muncul di feed semua orang (isinya tetap terkunci sampai di-scan).";
-      if (!confirm(msg)) return;
+        ? "Kartu akan hilang dari feed publik dan hanya bisa dibuka lewat QR/kodenya."
+        : "Kartu akan muncul di feed semua orang (isinya tetap terkunci sampai di-scan).";
+      const okVis = await tofConfirm(msg, {
+        icon: target === 'private' ? '🔒' : '🌍',
+        title: target === 'private' ? 'Jadikan Privat?' : 'Jadikan Publik?',
+        okText: 'Ya, ubah', cancelText: 'Batal'
+      });
+      if (!okVis) return;
 
       const { error, cancelled } = await callAuthedRpc('qr_set_visibility', {
         p_log_id: String(item.id),
@@ -1264,7 +1392,10 @@
     }
 
     async function deleteQRItem(item) {
-      if (!confirm("Hapus tulisan ini? Tindakan tidak bisa dibatalkan.")) return;
+      const okDel = await tofConfirm("Tulisan beserta QR-nya akan dihapus dan tidak bisa dikembalikan.", {
+        tone: 'warn', icon: '🗑️', title: 'Hapus tulisan ini?', okText: 'Ya, hapus', cancelText: 'Batal'
+      });
+      if (!okDel) return;
 
       const { error, cancelled } = await callAuthedRpc('qr_delete', {
         p_log_id: String(item.id)
@@ -1386,7 +1517,12 @@
             alert("QR ToFarmer terdeteksi! Login dulu supaya isinya bisa dibuka dan masuk koleksimu.");
             openAuthModal('login');
           } else {
-            alert("Hasil scan:\n\n" + text.slice(0, 500) + "\n\nLogin terlebih dahulu jika ingin menyimpannya ke feed.");
+            tofDialog({
+              tone: 'info', icon: '🔍', title: 'Hasil scan',
+              quote: text.slice(0, 500),
+              message: 'Login dulu kalau kamu ingin menyimpannya ke feed.',
+              okText: 'Oke'
+            });
           }
           return;
         }
@@ -1447,7 +1583,11 @@
           deferredPrompt = null;
         });
       } else {
-        alert("Aplikasi ToFarmer sedang disematkan ke layar utama HP kamu!");
+        tofDialog({
+          tone: 'info', icon: '📲', title: 'Pasang ke layar utama',
+          message: 'Buka menu browser (titik tiga atau tombol Bagikan), lalu pilih “Tambahkan ke Layar Utama”.',
+          okText: 'Siap'
+        });
       }
     }
   </script>
