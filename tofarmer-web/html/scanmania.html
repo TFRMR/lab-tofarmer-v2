@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToFarmer - Scan-Scanan (Versi Simpel)</title>
+  
+  <!-- MANIFEST INLINE VALID -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22ToFarmer%20QR%22%2C%22short_name%22%3A%22ToFarmer%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f7f5%22%2C%22theme_color%22%3A%22%232f6f4e%22%7D">
+
+  <!-- FAVICON SVG VALID -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
+  
+  <!-- ENGINE QR CODE GENERATOR & SCANNER -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- ALGORAND SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
+
+  <!-- SUPABASE JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+    body { background: #f4f7f5; color: #1c2b22; padding-bottom: 80px; }
+    .container { max-width:1100px; margin:auto; padding:1rem; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; padding:1rem 0; border-bottom: 1px solid #e0e8e3; margin-bottom: 15px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#2f6f4e; font-weight:bold; }
+    .logo-icon { width:42px; height:42px; border-radius:50%; background: #fff; border:2px solid #2f6f4e; display:flex; align-items:center; justify-content:center; font-weight:900; color:#2f6f4e; }
+    
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-login-qr { background: #2f6f4e; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-login-qr:hover { background: #24583e; }
+    .btn-outline-action { background: #ffffff; color: #2f6f4e; border: 1px solid #2f6f4e; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-outline-action:hover { background: #e9f4ee; }
+
+    .user-profile-badge { display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid #e0e8e3; padding: 6px 12px; border-radius: 12px; }
+    /* [FIX] avatar: mendukung foto dari profiles.avatar_url, huruf inisial jadi cadangan */
+    .user-avatar { position: relative; overflow: hidden; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: #2f6f4e; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+    .user-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .user-info-text { font-size: 11px; }
+    .btn-logout { background: transparent; border: none; color: #dc2626; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: 5px; }
+
+    .btn-download-myqr {
+      background: #e9f4ee;
+      color: #2f6f4e;
+      border: 1px solid #2f6f4e;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-download-myqr:hover {
+      background: #2f6f4e;
+      color: #ffffff;
+    }
+
+    .pwa-banner { background: #ffffff; border: 1px solid rgba(76,175,122,0.3); border-radius: 16px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .pwa-btn { background: linear-gradient(90deg,#4caf7a,#c9a227); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+
+    .layout { display:flex; gap:20px; }
+    .left { width:340px; }
+    .right { flex:1; }
+
+    .card { background:#ffffff; border-radius:16px; padding:18px; margin-bottom:15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.05); }
+    .card h3 { font-size: 14px; color: #2f6f4e; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+    .qr-input-box { display: flex; gap: 8px; margin-bottom: 12px; }
+    .qr-input-box input { flex: 1; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 12px; outline: none; }
+    .qr-input-box input:focus { border-color: #2f6f4e; }
+    
+    .qr-trigger-box { border: 2px dashed #4caf7a; background: #f8fcf9; border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; }
+    .qr-trigger-box:hover { background: #e9f4ee; transform: scale(1.01); }
+
+    .qr-grid-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; max-height: 520px; overflow-y: auto; padding-right: 5px; }
+    
+    .qr-card-item { background: #fff; border: 1px solid #e0e8e3; border-radius: 14px; padding: 14px; text-align: center; transition: all 0.3s ease; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+    .qr-card-item:hover { border-color: #2f6f4e; box-shadow: 0 6px 16px rgba(47,111,78,0.12); }
+    .qr-card-item .qr-holder { margin: 10px auto; display: flex; justify-content: center; cursor: pointer; }
+    
+    .qr-card-item.revealed { text-align: left; background: #fdfdfd; border-left: 4px solid #2f6f4e; animation: revealAnim 0.4s ease-out; }
+    @keyframes revealAnim { from { opacity: 0.4; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+    
+    .revealed-content { margin-top: 8px; font-size: 13px; color: #1c2b22; font-weight: 500; line-height: 1.4; word-break: break-word; }
+    .scan-prompt { font-size: 10px; color: #888; margin-top: 4px; font-style: italic; cursor: pointer; }
+
+    .btn-download-qr {
+      background: #f0f7f3;
+      color: #2f6f4e;
+      border: 1px solid #2f6f4e;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-download-qr:hover {
+      background: #2f6f4e;
+      color: #ffffff;
+    }
+
+    /* FORM STYLES */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 11px; font-weight: bold; color: #2f6f4e; margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 12px; outline: none; }
+    .form-control:focus { border-color: #2f6f4e; }
+    .btn-submit-form { width: 100%; background: #2f6f4e; color: white; border: none; padding: 10px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; margin-top: 5px; }
+    .btn-submit-form:hover { background: #24583e; }
+
+    /* MODALS SYSTEM */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .modal-card { background: white; border-radius: 16px; padding: 20px; max-width: 420px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    #reader { width: 100%; max-width: 320px; border-radius: 16px; overflow: hidden; border: 2px solid #4caf7a; }
+
+    .upload-gallery-box { margin-top: 15px; text-align: center; }
+    .btn-upload-gallery {
+      background: #2f6f4e;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #4caf7a;
+      transition: 0.2s;
+    }
+    .btn-upload-gallery:hover { background: #24583e; }
+
+    .tab-container { display: flex; border-bottom: 1px solid #e0e8e3; margin-bottom: 15px; }
+    .tab-btn { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: bold; color: #6f7f76; border: none; background: transparent; cursor: pointer; }
+    .tab-btn.active { color: #2f6f4e; border-bottom: 2px solid #2f6f4e; }
+
+    /* [V2] textarea multi-baris, teks feed menghormati baris baru, tombol aksi penulis */
+    textarea.form-control { resize: vertical; font-family: inherit; line-height: 1.4; }
+    .revealed-content { white-space: pre-wrap; }
+    .owner-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .btn-mini { background: #f0f7f3; color: #2f6f4e; border: 1px solid #2f6f4e; border-radius: 8px; padding: 5px 9px; font-size: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .btn-mini:hover { background: #2f6f4e; color: #fff; }
+    .btn-mini.danger { color: #dc2626; border-color: #dc2626; background: #fff5f5; }
+    .btn-mini.danger:hover { background: #dc2626; color: #fff; }
+
+    /* [V3] modal frasa: grid 25 kata bernomor + tombol nonaktif sampai verifikasi */
+    .mn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; border-radius: 8px; margin: 10px 0; }
+    .mn-word { font-family: monospace; font-size: 11px; background: #fff; border-radius: 6px; padding: 4px 6px; display: flex; gap: 4px; align-items: center; word-break: break-all; }
+    .mn-word i { font-style: normal; color: #9ca3af; font-size: 9px; min-width: 14px; }
+    .btn-submit-form:disabled { background: #9db8a9; cursor: not-allowed; }
+    .scan-badge { font-size: 11px; font-weight: bold; color: #92400e; background: #fef3c7; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; display: inline-block; }
+
+    /* [V5] dialog cantik (pengganti alert/confirm bawaan browser) */
+    .dlg-card { text-align: center; padding: 24px 20px 18px; border-top: 5px solid #4caf7a; animation: dlgPop 0.25s ease-out; }
+    @keyframes dlgPop { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .dlg-icon { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 28px; background: #eef7f1; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .dlg-title { font-size: 15px; color: #2f6f4e; margin-bottom: 4px; }
+    .dlg-sub { font-size: 11px; font-weight: bold; color: #6f7f76; margin-bottom: 8px; word-break: break-word; }
+    .dlg-msg { font-size: 12px; color: #4b5563; line-height: 1.55; white-space: pre-wrap; word-break: break-word; max-height: 45vh; overflow-y: auto; }
+    .dlg-quote { margin: 10px 0 2px; text-align: left; font-size: 13px; color: #1c2b22; background: #f8fcf9; border-left: 4px solid #4caf7a; border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; max-height: 40vh; overflow-y: auto; }
+    .dlg-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .dlg-btn { flex: 1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; }
+    .dlg-btn-ok { background: linear-gradient(90deg,#4caf7a,#2f6f4e); color: #fff; }
+    .dlg-btn-ok:hover { filter: brightness(1.06); }
+    .dlg-btn-ghost { background: #f3f4f6; color: #4b5563; }
+    .dlg-btn-ghost:hover { background: #e5e7eb; }
+
+    /* [V4] baris tombol kartu terkunci */
+    .btn-row { display: flex; gap: 6px; margin-top: 10px; }
+    .btn-row .btn-download-qr { margin-top: 0; flex: 1; width: auto; }
+
+    @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <a href="#" class="brand">
+        <div class="logo-icon">TOF</div>
+        <div>
+          <div style="font-size: 16px;">ToFarmer</div>
+          <div style="font-size: 10px; color:#6f7f76; font-weight: normal;">Scan-Scanan · Versi Simpel</div>
+        </div>
+      </a>
+      
+      <div class="header-actions" id="headerAuthBox">
+        <button class="btn-outline-action" onclick="openAuthModal('register')">
+          <span>✨</span> Daftar Akun
+        </button>
+        <button class="btn-login-qr" onclick="openAuthModal('login')">
+          <span>🔑</span> Login / Scan QR
+        </button>
+      </div>
+    </header>
+
+    <div class="pwa-banner" id="pwaBanner">
+      <div>
+        <h4 style="font-size: 12px; color:#2f6f4e;">Pasang Aplikasi ToFarmer</h4>
+        <span style="font-size: 10px; color:#6f7f76;">Ketik langsung ke layar depan HP kamu</span>
+      </div>
+      <button class="pwa-btn" id="btnDirectInstall" onclick="executeInstall()">⚡ Instal 5 Detik</button>
+    </div>
+
+    <div class="layout">
+      <div class="left">
+        <div class="card">
+          <h3>🔍 Scan-Scanan</h3>
+          <div class="qr-trigger-box" onclick="openScanner('general')">
+            <div style="font-size: 32px; margin-bottom: 6px;">📷</div>
+            <h4 style="font-size: 13px; color: #2f6f4e;">Buka Kamera / Pilih Galeri</h4>
+            <span style="font-size: 10px; color: #6f7f76;">Arahkan ke QR temanmu atau QR harta karun yang kamu temukan. Bisa juga upload gambar QR / ketik kodenya.</span>
+          </div>
+          <div class="scan-badge" id="scanBadge" style="margin-top: 12px; margin-bottom: 0;"></div>
+        </div>
+
+        <div class="card">
+          <h3>✍️ Buat QR Rahasia</h3>
+          <div class="form-group">
+            <label>Judul / petunjuk (opsional)</label>
+            <input type="text" id="qrTitleInput" class="form-control" maxlength="60" placeholder="Contoh: Petunjuk #1 - cari di bawah pohon">
+          </div>
+          <div class="form-group">
+            <label>Pesan rahasia</label>
+            <textarea id="qrTextInput" class="form-control" rows="4" maxlength="500" placeholder="Tulis pesanmu... (Enter = baris baru)" onkeydown="if((event.ctrlKey||event.metaKey)&&event.key==='Enter'){submitQRText();}"></textarea>
+          </div>
+          <button class="btn-submit-form" onclick="submitQRText()">⚡ Buat QR</button>
+          <span style="display:block; margin-top:8px; font-size: 10px; color: #888;">Pesanmu tersimpan terkunci. Hanya yang memindai QR-nya yang bisa membacanya. Simpan atau cetak QR-nya untuk game harta karun! (Ctrl+Enter untuk cepat)</span>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="card">
+          <div class="tab-container">
+            <button id="tabMine" class="tab-btn active" onclick="switchListTab('mine')">📦 QR Buatanku <span id="countMine"></span></button>
+            <button id="tabFound" class="tab-btn" onclick="switchListTab('found')">🗝️ Hasil Scanku <span id="countFound"></span></button>
+          </div>
+          <div id="mineToolbar" style="display: none; justify-content: flex-end; margin-bottom: 10px;">
+            <button class="btn-mini" onclick="printAllMine()">🖨️ Cetak semua QR-ku</button>
+          </div>
+          <div class="qr-grid-feed" id="qrFeedGrid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL AUTHENTICATION (LOGIN & DAFTAR) -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="tab-container">
+        <button id="tabBtnLogin" class="tab-btn active" onclick="switchAuthTab('login')">🔑 Login</button>
+        <button id="tabBtnRegister" class="tab-btn" onclick="switchAuthTab('register')">✨ Daftar Akun Baru</button>
+      </div>
+
+      <!-- FORM LOGIN -->
+      <div id="authLoginForm">
+        <div class="form-group">
+          <label>Username / Wallet Address (ID):</label>
+          <input type="text" id="loginIdentifier" class="form-control" placeholder="Contoh: budi01 atau A3Z4...">
+        </div>
+        <div class="form-group">
+          <label>PIN 6-Digit:</label>
+          <input type="password" id="loginPin" class="form-control" maxlength="6" inputmode="numeric" placeholder="******">
+        </div>
+        <button class="btn-submit-form" onclick="submitLoginManual()">Masuk Akun</button>
+        
+        <div style="text-align: center; margin: 12px 0; font-size: 11px; color: #888;">— ATAU —</div>
+        
+        <button class="btn-outline-action" style="width:100%; justify-content:center;" onclick="triggerScanForLogin()">
+          <span>📷</span> Scan Kartu QR ID untuk Login (tetap perlu PIN)
+        </button>
+      </div>
+
+      <!-- FORM REGISTER -->
+      <div id="authRegisterForm" style="display: none;">
+        <div class="form-group">
+          <label>Username Baru:</label>
+          <input type="text" id="regUsername" class="form-control" maxlength="20" placeholder="Contoh: petani_menoreh">
+        </div>
+        <div class="form-group">
+          <label>Buat PIN 6-Digit Transaksi:</label>
+          <input type="password" id="regPin" class="form-control" maxlength="6" inputmode="numeric" placeholder="******">
+        </div>
+        <div style="background:#fef3c7; border-left:3px solid #f59e0b; padding:8px; border-radius:6px; font-size:10px; color:#92400e; margin-bottom:12px;">
+          💡 Wallet Algorand $TOF akan otomatis dibuatkan. PIN Anda dipakai untuk login dan transaksi.
+        </div>
+        <button class="btn-submit-form" onclick="submitRegister()">Buat Wallet & Akun Baru</button>
+      </div>
+
+      <button style="margin-top: 15px; width: 100%; padding: 8px; background: #f3f4f6; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px;" onclick="closeAuthModal()">Batal</button>
+    </div>
+  </div>
+
+  <!-- MODAL MNEMONIC (DITAMPILKAN SETELAH REGISTER / UPGRADE) -->
+  <div id="mnemonicModal" class="modal-overlay">
+    <div class="modal-card" style="max-height: 92vh; overflow-y: auto;">
+      <h3 style="margin-top:0; color:#2f6f4e; font-size:15px;">🎉 Akun & Wallet $TOF Berhasil Dibuat!</h3>
+      <p style="font-size:11px; color:#4b5563; margin-top:5px;">
+        Kartu Anggota (QR Code) Anda telah otomatis diunduh. Di bawah ini adalah <b>25 Kata Rahasia Wallet Algorand</b> Anda:
+      </p>
+
+      <div class="mn-grid" id="mnemonicDisplayBox">
+        <!-- 25 kata rahasia -->
+      </div>
+
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button id="btnCopyMnemonic" style="flex:1; background:#2563eb; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;">
+          📋 Salin Frasa
+        </button>
+        <button id="btnDownloadMnemonic" style="flex:1; background:#7c3aed; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="downloadMnemonicFile()">
+          💾 Unduh Backup (.txt)
+        </button>
+      </div>
+
+      <!-- [V3] peringatan diperjelas: frasa hanya tampil sekali -->
+      <div style="background:#fef3c7; border-left:3px solid #f59e0b; padding:8px; margin-bottom:12px; font-size:10px; color:#92400e;">
+        ⚠️ <b>Frasa ini hanya ditampilkan SEKALI</b> dan tidak bisa dilihat lagi. Simpan sekarang: salin ke tempat aman, unduh file backup, atau tulis di kertas. Frasa TIDAK disimpan di Kartu QR maupun Database. Siapa pun yang memegangnya menguasai wallet Anda, jadi jangan dibagikan.
+      </div>
+
+      <div style="background:#f8fcf9; border:1px solid #cfe5d8; border-radius:10px; padding:10px; margin-bottom:12px;">
+        <div style="font-size:11px; font-weight:bold; color:#2f6f4e; margin-bottom:6px;">✅ Bukti sudah tersimpan: ketik ulang 2 kata dari frasa di atas</div>
+        <div style="display:flex; gap:8px;">
+          <div style="flex:1;">
+            <label id="mnVerifyLabel1" style="display:block; font-size:10px; color:#6f7f76; margin-bottom:3px;"></label>
+            <input type="text" id="mnVerify1" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="checkMnemonicVerify()">
+          </div>
+          <div style="flex:1;">
+            <label id="mnVerifyLabel2" style="display:block; font-size:10px; color:#6f7f76; margin-bottom:3px;"></label>
+            <input type="text" id="mnVerify2" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="checkMnemonicVerify()">
+          </div>
+        </div>
+      </div>
+
+      <button id="btnEnterMatrix" class="btn-submit-form" onclick="closeMnemonicModal()" disabled>Masuk Matriks 🚀</button>
+      <div style="text-align:center; margin-top:8px;">
+        <a href="#" onclick="skipMnemonicVerify(); return false;" style="font-size:10px; color:#999;">Lewati (saya paham risikonya)</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- [V5] DIALOG CANTIK (pengganti alert/confirm bawaan browser) -->
+  <div id="dialogModal" class="modal-overlay" style="z-index: 100000;" onclick="closeDialog(false)">
+    <div class="modal-card dlg-card" id="dlgCard" onclick="event.stopPropagation()">
+      <div class="dlg-icon" id="dlgIcon">🌱</div>
+      <h3 class="dlg-title" id="dlgTitle"></h3>
+      <div class="dlg-sub" id="dlgSub"></div>
+      <div class="dlg-msg" id="dlgMsg"></div>
+      <div class="dlg-quote" id="dlgQuote"></div>
+      <div class="dlg-actions">
+        <button class="dlg-btn dlg-btn-ghost" id="dlgCancel" onclick="closeDialog(false)">Batal</button>
+        <button class="dlg-btn dlg-btn-ok" id="dlgOk" onclick="closeDialog(true)">Oke</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [V4] MODAL QR BESAR (untuk di-scan dari perangkat lain) -->
+  <div id="qrViewModal" class="modal-overlay" onclick="closeQRView()">
+    <div class="modal-card" style="text-align:center;" onclick="event.stopPropagation()">
+      <h3 id="qrViewTitle" style="margin-top:0; color:#2f6f4e; font-size:14px; word-break:break-word;"></h3>
+      <div id="qrViewBox" style="display:flex; justify-content:center; background:#fff; padding:12px; border-radius:12px; margin:12px 0;"></div>
+      <p style="font-size:10px; color:#6f7f76; margin-bottom:12px;">Arahkan kamera perangkat lain ke QR ini (naikkan kecerahan layar).</p>
+      <button style="width:100%; padding:8px; background:#f3f4f6; border:none; border-radius:8px; font-weight:bold; cursor:pointer; font-size:11px;" onclick="closeQRView()">Tutup</button>
+    </div>
+  </div>
+
+  <!-- [V2] MODAL KONFIRMASI PIN (untuk menerbitkan / mengedit / menghapus) -->
+  <div id="pinModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="margin-top:0; color:#2f6f4e; font-size:15px;">🔐 Konfirmasi PIN</h3>
+      <p id="pinModalDesc" style="font-size:11px; color:#4b5563; margin:5px 0 12px;"></p>
+      <input type="password" id="pinConfirmInput" class="form-control" maxlength="6" inputmode="numeric" placeholder="******" onkeydown="if(event.key==='Enter'){submitPinConfirm();}">
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button style="flex:1; background:#f3f4f6; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="cancelPinConfirm()">Batal</button>
+        <button style="flex:1; background:#2f6f4e; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="submitPinConfirm()">Konfirmasi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SCANNER DENGAN OPSI UPLOAD GALERI DARI 1 HP -->
+  <div id="scannerModal" class="modal-overlay">
+    <h4 id="scannerModalTitle" style="color: white; margin-bottom: 12px; font-size: 13px; text-align: center;">Arahkan Kamera ke Kode QR...</h4>
+    
+    <div id="reader"></div>
+
+    <div class="upload-gallery-box">
+      <label for="qrFileInput" class="btn-upload-gallery">
+        <span>📁</span> Scan / Upload QR dari Galeri (1 HP)
+      </label>
+      <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRFromImageFile(event)">
+    </div>
+
+    <!-- [V4] kamera bermasalah / kode dibagikan lewat chat? ketik kodenya -->
+    <div id="manualCodeBox" style="display:flex; gap:6px; margin-top:12px; width:100%; max-width:320px;">
+      <input type="text" id="manualCodeInput" class="form-control" style="flex:1;" placeholder="Atau ketik kode QR (16 karakter)" autocomplete="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter'){submitManualCode();}">
+      <button style="padding:8px 14px; background:#4caf7a; color:#fff; border:none; border-radius:10px; font-weight:bold; cursor:pointer; font-size:11px;" onclick="submitManualCode()">Buka</button>
+    </div>
+
+    <button style="margin-top: 15px; padding: 8px 20px; background: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="closeScanner()">Tutup</button>
+  </div>
+
+  <script>
+    // ----------------------------------------------------
+    // KONFIGURASI SUPABASE
+    // ----------------------------------------------------
+    const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+    
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    let html5QrcodeScanner = null;
+    let deferredPrompt = null;
+    let currentScanMode = 'general';
+    let currentUserSession = null;
+    let scanHandled = false; // [FIX] cegah callback scan terpanggil berkali-kali
+    let sessionPinHash = null; // [V2] hash PIN hanya di memori (tidak disimpan), dipakai untuk konfirmasi tulis/edit/hapus
+    let pinResolver = null;
+    let myItems = [];          // [V4] koleksi saya: tulisan sendiri (termasuk privat) + kartu yang sudah di-scan (lengkap dengan isi)
+    let editingId = null;      // [V2] jangan render ulang feed saat penulis sedang mengedit
+
+    // ----------------------------------------------------
+    // [V5] DIALOG CANTIK: pengganti alert()/confirm() bawaan browser supaya tampil ramah & seragam dengan halaman.
+    // alert() global dialihkan ke sini, jadi seluruh pesan lama otomatis ikut bertema.
+    // ----------------------------------------------------
+    const DLG_TONES = {
+      success: { icon: '🎉', title: 'Berhasil!',           bg: '#e9f4ee', line: '#4caf7a' },
+      info:    { icon: '🌱', title: 'Info',                bg: '#eef7f1', line: '#4caf7a' },
+      warn:    { icon: '🌾', title: 'Sebentar ya',         bg: '#fef3c7', line: '#f59e0b' },
+      error:   { icon: '🍂', title: 'Ups, belum berhasil', bg: '#fff1e6', line: '#f97316' },
+      ask:     { icon: '🤔', title: 'Konfirmasi',          bg: '#eef7f1', line: '#4caf7a' }
+    };
+    let dlgQueue = [];
+    let dlgOpen = false;
+    let dlgResolve = null;
+
+    // opts: { tone, icon, title, subtitle, message, quote, okText, cancelText }
+    function tofDialog(opts) {
+      return new Promise(resolve => {
+        dlgQueue.push({ opts: opts || {}, resolve: resolve });
+        if (!dlgOpen) showNextDialog();
+      });
+    }
+
+    function tofConfirm(message, opts) {
+      return tofDialog(Object.assign({ tone: 'ask', message: message, okText: 'Ya', cancelText: 'Batal' }, opts || {}));
+    }
+
+    function showNextDialog() {
+      const next = dlgQueue.shift();
+      if (!next) return;
+      dlgOpen = true;
+      dlgResolve = next.resolve;
+
+      const o = next.opts;
+      const t = DLG_TONES[o.tone] || DLG_TONES.info;
+      const setText = (id, val) => {
+        const el = document.getElementById(id);
+        el.innerText = val || '';
+        el.style.display = val ? 'block' : 'none';
+      };
+
+      const icon = document.getElementById('dlgIcon');
+      icon.innerText = o.icon || t.icon;
+      icon.style.background = t.bg;
+      document.getElementById('dlgCard').style.borderTopColor = t.line;
+
+      document.getElementById('dlgTitle').innerText = o.title || t.title;
+      setText('dlgSub', o.subtitle);
+      setText('dlgMsg', o.message);
+      setText('dlgQuote', o.quote);
+
+      const cancelBtn = document.getElementById('dlgCancel');
+      cancelBtn.innerText = o.cancelText || 'Batal';
+      cancelBtn.style.display = o.cancelText ? 'block' : 'none';
+      document.getElementById('dlgOk').innerText = o.okText || 'Oke';
+
+      document.getElementById('dialogModal').style.display = 'flex';
+      document.getElementById('dlgOk').focus();
+    }
+
+    function closeDialog(result) {
+      if (!dlgOpen) return;
+      const r = dlgResolve;
+      dlgResolve = null;
+      dlgOpen = false;
+      document.getElementById('dialogModal').style.display = 'none';
+      if (r) r(!!result);
+      if (dlgQueue.length) showNextDialog();
+    }
+
+    // Menebak nada pesan lama agar judul & ikonnya pas (tanpa mengubah teks aslinya)
+    function autoDialogOpts(text) {
+      if (/keluar dari akun/i.test(text)) return { tone: 'info', icon: '👋', title: 'Sampai jumpa!', message: text, okText: 'Oke' };
+      let tone = 'info';
+      if (/^(🎉|✓|🔓|✍️|🔒)/.test(text)) tone = 'success';
+      else if (/^(Gagal|Login Gagal)|salah|tidak valid|tidak ditemukan|bukan kartu|bukan pemilik/i.test(text)) tone = 'error';
+      else if (/login|wajib|harus|tidak boleh|kosong|isi /i.test(text)) tone = 'warn';
+      return { tone: tone, message: text, okText: 'Oke' };
+    }
+
+    window.alert = function (msg) { tofDialog(autoDialogOpts(String(msg == null ? '' : msg))); };
+    document.addEventListener('keydown', (e) => { if (dlgOpen && e.key === 'Escape') closeDialog(false); });
+
+    window.onload = () => {
+      checkExistingSession();
+      renderQRFeed();
+    };
+
+    // ----------------------------------------------------
+    // HELPER: HASHING PIN & DEKRIPSI
+    // ----------------------------------------------------
+    async function hashPIN(pin) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(pin);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Catatan: dua fungsi ini dipertahankan, tapi TIDAK lagi dipakai untuk kartu QR
+    // (XOR dengan PIN 6 digit terlalu lemah untuk melindungi seed).
+    function encryptTextSimple(text, pin) {
+      return btoa(text.split('').map((char, i) => 
+        String.fromCharCode(char.charCodeAt(0) ^ pin.charCodeAt(i % pin.length))
+      ).join(''));
+    }
+
+    function decryptTextSimple(cipherText, pin) {
+      try {
+        const decoded = atob(cipherText);
+        return decoded.split('').map((char, i) => 
+          String.fromCharCode(char.charCodeAt(0) ^ pin.charCodeAt(i % pin.length))
+        ).join('');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // ----------------------------------------------------
+    // [FIX] HELPER KEAMANAN
+    // ----------------------------------------------------
+    // Mencegah XSS: semua teks dari database/user di-escape sebelum masuk innerHTML
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    // Hanya izinkan URL foto https://
+    function safeImgUrl(u) {
+      try { const x = new URL(u); return x.protocol === 'https:' ? x.href : ''; } catch (e) { return ''; }
+    }
+
+    // Deteksi payload Kartu Anggota ToFarmer
+    function parseMemberCard(text) {
+      try {
+        const p = JSON.parse(text);
+        return (p && p.type === 'TOF_MEMBER_CARD') ? p : null;
+      } catch (e) { return null; }
+    }
+
+    // Kartu anggota / wallet address TIDAK boleh masuk feed publik
+    function isSensitivePayload(text) {
+      const t = String(text || '').trim();
+      return !!parseMemberCard(t) || algosdk.isValidAddress(t);
+    }
+
+    // Ambil profil dengan kolom eksplisit (TANPA pin_hash)
+    async function fetchProfileSafe(id) {
+      if (!supabaseClient) return { data: null, error: new Error('no client') };
+      return await supabaseClient
+        .from('profiles')
+        .select('id,username,xp,saldo_tof,rank,level,avatar_url')
+        .eq('id', id)
+        .maybeSingle();
+    }
+
+    // ----------------------------------------------------
+    // GENERATE & UNDUH KARTU QR UNTUK USER LAMA/BARU
+    // ----------------------------------------------------
+    async function generateAndDownloadQRForLegacyUser(user) {
+      // [FIX] kartu hanya berisi identitas publik, tanpa seed
+      const qrPayload = JSON.stringify({
+        u: user.username,
+        w: user.id || user.wallet_address, // 'id' di tabel profiles adalah Wallet Address Algorand
+        type: 'TOF_MEMBER_CARD'
+      });
+
+      downloadQRCardImage(qrPayload, user.username);
+    }
+
+    function downloadQRCardImage(payloadText, username, prefix = 'Kartu_ToFarmer') {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.display = 'none';
+      document.body.appendChild(tempDiv);
+
+      new QRCode(tempDiv, {
+        text: payloadText,
+        width: payloadText.length > 200 ? 500 : 250,   // [V2] teks panjang butuh QR lebih besar agar terbaca
+        height: payloadText.length > 200 ? 500 : 250,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      setTimeout(() => {
+        const canvas = tempDiv.querySelector('canvas');
+        const img = tempDiv.querySelector('img');
+        let imageSrc = "";
+
+        if (canvas) {
+          imageSrc = canvas.toDataURL("image/png");
+        } else if (img && img.src) {
+          imageSrc = img.src;
+        }
+
+        if (imageSrc) {
+          const downloadLink = document.createElement("a");
+          downloadLink.href = imageSrc;
+          downloadLink.download = `${prefix}_${username}.png`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        } else {
+          alert("Gagal memproses Kartu QR. Silakan coba kembali.");
+        }
+        document.body.removeChild(tempDiv);
+      }, 150);
+    }
+
+    // ----------------------------------------------------
+    // MANAJEMEN SESI USER LOGGED IN
+    // ----------------------------------------------------
+    function checkExistingSession() {
+      const stored = localStorage.getItem('tof_user_session');
+      if (stored) {
+        try {
+          currentUserSession = JSON.parse(stored);
+          if (!currentUserSession.id || !currentUserSession.username) throw new Error('sesi tidak valid');
+          loadMyItemsCache(); // [V4]
+          renderHeaderProfile();
+
+          // [FIX] segarkan dari database: foto, level, dst. Sesi palsu (akun tidak ada) dibuang.
+          fetchProfileSafe(currentUserSession.id).then(({ data, error }) => {
+            if (data) {
+              saveGlobalSession(data);
+              renderHeaderProfile();
+            } else if (!error) {
+              logoutUser(true);
+            }
+          });
+        } catch(e) {
+          localStorage.removeItem('tof_user_session');
+          currentUserSession = null;
+        }
+      }
+    }
+
+    function renderHeaderProfile() {
+      const authBox = document.getElementById('headerAuthBox');
+      if (currentUserSession) {
+        // [FIX] escape semua teks + tampilkan foto dari avatar_url (inisial jadi cadangan)
+        const imgUrl = safeImgUrl(currentUserSession.avatar_url);
+        const avatarImg = imgUrl
+          ? `<img src="${escapeHtml(imgUrl)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`
+          : '';
+        const id = currentUserSession.id;
+
+        authBox.innerHTML = `
+          <div class="user-profile-badge">
+            <div class="user-avatar">${escapeHtml(currentUserSession.username.charAt(0).toUpperCase())}${avatarImg}</div>
+            <div class="user-info-text">
+              <b>${escapeHtml(currentUserSession.username)}</b>
+              <div style="font-size:9px; color:#6f7f76;">${escapeHtml(id.substring(0,6))}...${escapeHtml(id.substring(id.length-4))}</div>
+            </div>
+            <button class="btn-download-myqr" onclick="triggerDownloadCurrentSessionQR()">
+              💳 Unduh QR ID
+            </button>
+            <button class="btn-logout" onclick="logoutUser()">[Keluar]</button>
+          </div>
+        `;
+      } else {
+        authBox.innerHTML = `
+          <button class="btn-outline-action" onclick="openAuthModal('register')">
+            <span>✨</span> Daftar Akun
+          </button>
+          <button class="btn-login-qr" onclick="openAuthModal('login')">
+            <span>🔑</span> Login / Scan QR
+          </button>
+        `;
+      }
+      renderQRFeed(); // [V2] tombol edit/hapus & status baca mengikuti siapa yang login
+    }
+
+    function triggerDownloadCurrentSessionQR() {
+      if (currentUserSession) {
+        generateAndDownloadQRForLegacyUser(currentUserSession);
+      } else {
+        alert("Silakan login terlebih dahulu!");
+      }
+    }
+
+    function logoutUser(silent = false) {
+      localStorage.removeItem('tof_user_session');
+      localStorage.removeItem('tof_wallet');
+      localStorage.removeItem('tof_login_username');
+      localStorage.removeItem('tof_level');
+      localStorage.removeItem('tof_rank');
+      localStorage.removeItem('tof_xp');
+      currentUserSession = null;
+      sessionPinHash = null;
+      myItems = [];
+      renderHeaderProfile();
+      if (!silent) alert("Anda telah keluar dari akun.");
+    }
+
+    // ----------------------------------------------------
+    // ALUR REGISTRASI & LOGIN
+    // ----------------------------------------------------
+    async function submitRegister() {
+      const username = document.getElementById('regUsername').value.trim();
+      const pin = document.getElementById('regPin').value.trim();
+
+      // [FIX] validasi format username & PIN hanya angka
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username) || !/^\d{6}$/.test(pin)) {
+        alert("Username 3-20 karakter (huruf/angka/_) dan PIN harus 6 digit angka!");
+        return;
+      }
+
+      try {
+        // 1. Generate Wallet Algorand Baru
+        const account = algosdk.generateAccount();
+        const walletAddress = account.addr; // Menjadi 'id' Primary Key di DB
+        const secretMnemonic = algosdk.secretKeyToMnemonic(account.sk);
+
+        // 2. Hash PIN
+        const pinHash = await hashPIN(pin);
+
+        // 3. Insert ke DB Supabase
+        const { error } = await supabaseClient.from('profiles').insert([{
+          id: walletAddress,
+          username: username,
+          pin_hash: pinHash,
+          saldo_tof: 0,
+          xp: 0,
+          level: 1,
+          rank: 'GROWER',
+          role: 'user',
+          water_stock: 10
+        }]);
+
+        if (error) {
+          if (error.code === '23505') throw new Error("Username sudah terpakai. Pilih username lain!");
+          throw error;
+        }
+
+        // 4. Unduh Kartu QR Anggota
+        // [FIX] seed terenkripsi (s) dihapus dari kartu: XOR dengan PIN 6 digit bisa ditembus seketika
+        const qrPayload = JSON.stringify({ u: username, w: walletAddress, type: 'TOF_MEMBER_CARD' });
+        downloadQRCardImage(qrPayload, username);
+
+        sessionPinHash = pinHash;
+
+        // 5. Simpan Sesi Global & Local
+        saveGlobalSession({ id: walletAddress, username: username, xp: 0, saldo_tof: 0, rank: 'GROWER', level: 1 });
+        renderHeaderProfile();
+
+        closeAuthModal();
+        
+        // 6. Tampilkan Mnemonic Modal
+        openMnemonicModal(secretMnemonic, walletAddress, username); // [V3]
+
+        // Bind copy button
+        document.getElementById('btnCopyMnemonic').onclick = () => {
+          navigator.clipboard.writeText(secretMnemonic).then(() => {
+            const btn = document.getElementById('btnCopyMnemonic');
+            btn.innerText = '✓ Tersalin!';
+            setTimeout(() => btn.innerText = '📋 Salin Frasa', 2000);
+          });
+        };
+
+      } catch (err) {
+        alert("Gagal Mendaftar: " + err.message);
+      }
+    }
+
+    async function submitLoginManual() {
+      const identifier = document.getElementById('loginIdentifier').value.trim();
+      const pin = document.getElementById('loginPin').value.trim();
+
+      if (!identifier || !/^\d{6}$/.test(pin)) {
+        alert("Username/Address dan PIN 6 digit angka wajib diisi!");
+        return;
+      }
+
+      try {
+        const pinHash = await hashPIN(pin);
+
+        // [FIX] pilih kolom berdasarkan format input (bukan .or() dengan string mentah yang bisa diinjeksi),
+        // dan ambil kolom eksplisit termasuk avatar_url
+        const col = algosdk.isValidAddress(identifier) ? 'id' : 'username';
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .select('id,username,pin_hash,xp,saldo_tof,rank,level,avatar_url')
+          .eq(col, identifier)
+          .maybeSingle();
+
+        // [FIX] akun lama tanpa PIN TIDAK lagi bisa "diklaim" oleh siapa pun yang mengetik usernamenya
+        if (data && !data.pin_hash) {
+          alert("Akun lama ini belum punya PIN. Hubungi admin untuk aktivasi.");
+          return;
+        }
+
+        // [FIX] pesan sama untuk "tidak ada" dan "PIN salah"
+        if (error || !data || data.pin_hash !== pinHash) {
+          alert("Akun tidak ditemukan atau PIN salah!");
+          return;
+        }
+
+        delete data.pin_hash;
+        sessionPinHash = pinHash; // [V2]
+
+        // Simpan Sesi Global & Local
+        saveGlobalSession(data);
+        renderHeaderProfile();
+
+        closeAuthModal();
+        document.getElementById('loginPin').value = '';
+        loadMyItemsCache();   // [V4] tampilkan cache dulu, lalu sinkron dari server (lintas perangkat)
+        renderQRFeed();
+        syncMyItems();
+        playBeepSound('success_chime');
+
+        // Tawaran Otomatis Cetak/Unduh QR ID untuk User Lama
+        const wantQR = await tofConfirm(
+          "Kartu QR ID adalah kunci cepat masukmu: simpan di galeri atau cetak, lalu scan kapan saja untuk login (PIN tetap diperlukan).",
+          { tone: 'success', icon: '👋', title: `Selamat datang, ${data.username}!`, okText: '📥 Unduh Kartu', cancelText: 'Nanti saja' }
+        );
+        if (wantQR) {
+          await generateAndDownloadQRForLegacyUser(data);
+        }
+
+      } catch (err) {
+        alert("Login Gagal: " + err.message);
+      }
+    }
+
+    function saveGlobalSession(userData) {
+      // [FIX] avatar_url ikut disimpan di sesi supaya foto tampil setelah login
+      currentUserSession = { id: userData.id, username: userData.username, avatar_url: userData.avatar_url || '' };
+      localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+
+      const effectiveXp = (userData.xp || 0) + (userData.saldo_tof || 0) * 1000;
+      const computedLevel = Math.floor(Math.sqrt(effectiveXp / 100)) + 1;
+
+      localStorage.setItem('tof_wallet', userData.id);
+      localStorage.setItem('tof_login_username', userData.username);
+      localStorage.setItem('tof_level', userData.level || computedLevel);
+      localStorage.setItem('tof_rank', userData.rank || 'GROWER');
+      localStorage.setItem('tof_xp', userData.xp || 0);
+    }
+
+    function triggerScanForLogin() {
+      closeAuthModal();
+      openScanner('login');
+    }
+
+    // ----------------------------------------------------
+    // MODAL CONTROL & TABS
+    // ----------------------------------------------------
+    function openAuthModal(defaultTab = 'login') {
+      switchAuthTab(defaultTab);
+      document.getElementById('authModal').style.display = 'flex';
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').style.display = 'none';
+    }
+
+    // [V3] Frasa hanya ada di memori selama modal terbuka. Pengguna harus membuktikan sudah menyimpannya
+    // dengan mengetik ulang 2 kata acak (posisi berbeda tiap pendaftaran).
+    let mnemonicBackup = null;
+    let mnemonicCheckIdx = [0, 1];
+
+    function openMnemonicModal(mnemonic, address, username) {
+      const words = mnemonic.trim().split(/\s+/);
+      mnemonicBackup = { words: words, address: address, username: username };
+
+      document.getElementById('mnemonicDisplayBox').innerHTML = words.map((w, i) =>
+        `<span class="mn-word"><i>${i + 1}</i>${escapeHtml(w)}</span>`).join('');
+
+      const rnd = new Uint32Array(2);
+      crypto.getRandomValues(rnd);
+      const a = rnd[0] % words.length;
+      let b = rnd[1] % words.length;
+      if (b === a) b = (a + 7) % words.length;
+      mnemonicCheckIdx = [a, b].sort((x, y) => x - y);
+
+      document.getElementById('mnVerifyLabel1').innerText = `Kata ke-${mnemonicCheckIdx[0] + 1}`;
+      document.getElementById('mnVerifyLabel2').innerText = `Kata ke-${mnemonicCheckIdx[1] + 1}`;
+      document.getElementById('mnVerify1').value = '';
+      document.getElementById('mnVerify2').value = '';
+      document.getElementById('btnEnterMatrix').disabled = true;
+      document.getElementById('mnemonicModal').style.display = 'flex';
+    }
+
+    function checkMnemonicVerify() {
+      if (!mnemonicBackup) return;
+      const w = mnemonicBackup.words;
+      const ok1 = document.getElementById('mnVerify1').value.trim().toLowerCase() === w[mnemonicCheckIdx[0]];
+      const ok2 = document.getElementById('mnVerify2').value.trim().toLowerCase() === w[mnemonicCheckIdx[1]];
+      document.getElementById('btnEnterMatrix').disabled = !(ok1 && ok2);
+    }
+
+    function downloadMnemonicFile() {
+      if (!mnemonicBackup) return;
+      const lines = [
+        'ToFarmer - Backup Wallet Algorand',
+        'Username     : ' + mnemonicBackup.username,
+        'Alamat Wallet: ' + mnemonicBackup.address,
+        '',
+        '25 KATA RAHASIA (urutan penting):',
+        ...mnemonicBackup.words.map((w, i) => `${i + 1}. ${w}`),
+        '',
+        'PERINGATAN: siapa pun yang memegang file ini menguasai wallet Anda.',
+        'Simpan di tempat aman (flashdisk / password manager), lalu hapus dari folder Download.'
+      ];
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Backup_Wallet_ToFarmer_${mnemonicBackup.username}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function skipMnemonicVerify() {
+      const ok = await tofConfirm(
+        "Frasa ini tidak bisa ditampilkan lagi. Kalau hilang, wallet on-chain tidak bisa dipulihkan. Lanjut tanpa verifikasi?",
+        { tone: 'warn', icon: '🔑', title: 'Lewati verifikasi?', okText: 'Lanjut', cancelText: 'Kembali' }
+      );
+      if (ok) closeMnemonicModal();
+    }
+
+    function closeMnemonicModal() {
+      document.getElementById('mnemonicModal').style.display = 'none';
+      document.getElementById('mnemonicDisplayBox').innerHTML = ''; // [FIX] hapus frasa dari DOM setelah ditutup
+      document.getElementById('mnVerify1').value = '';
+      document.getElementById('mnVerify2').value = '';
+      mnemonicBackup = null;
+    }
+
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('authLoginForm');
+      const regForm = document.getElementById('authRegisterForm');
+      const tabLogin = document.getElementById('tabBtnLogin');
+      const tabReg = document.getElementById('tabBtnRegister');
+
+      if (tab === 'login') {
+        loginForm.style.display = 'block';
+        regForm.style.display = 'none';
+        tabLogin.classList.add('active');
+        tabReg.classList.remove('active');
+      } else {
+        loginForm.style.display = 'none';
+        regForm.style.display = 'block';
+        tabLogin.classList.remove('active');
+        tabReg.classList.add('active');
+      }
+    }
+
+    // ----------------------------------------------------
+    // KOLEKSI SAYA (tanpa feed publik)
+    // Isi pesan tersimpan terkunci di server dan hanya terbuka lewat pemindaian (RPC qr_claim).
+    // Koleksi = QR buatan sendiri + pesan yang sudah berhasil di-scan (RPC qr_my_items, cache di browser).
+    // ----------------------------------------------------
+    let listTab = 'mine';
+
+    function qrPayload(code) { return 'TOFQR:' + (code || ''); }
+    function myCacheKey() { return 'tof_mine_' + (currentUserSession ? currentUserSession.id : 'guest'); }
+
+    function loadMyItemsCache() {
+      try { myItems = JSON.parse(localStorage.getItem(myCacheKey()) || '[]'); } catch (e) { myItems = []; }
+      if (!Array.isArray(myItems)) myItems = [];
+    }
+    function saveMyItemsCache() {
+      try { localStorage.setItem(myCacheKey(), JSON.stringify(myItems)); } catch (e) {}
+    }
+    async function syncMyItems() {
+      if (!currentUserSession || !sessionPinHash || !supabaseClient) return;
+      const { data, error } = await supabaseClient.rpc('qr_my_items', { p_id: currentUserSession.id, p_pin_hash: sessionPinHash });
+      if (error) { console.error("Gagal sinkron koleksi:", error); return; }
+      myItems = Array.isArray(data) ? data : [];
+      saveMyItemsCache();
+      if (!editingId) renderQRFeed();
+    }
+
+    function switchListTab(tab) {
+      listTab = tab;
+      editingId = null;
+      renderQRFeed();
+    }
+
+    function renderQRFeed() {
+      const grid = document.getElementById("qrFeedGrid");
+      grid.innerHTML = "";
+
+      const me = currentUserSession ? currentUserSession.id : null;
+      const mine = myItems.filter(i => me && i.owner_id === me);
+      const found = myItems.filter(i => me && i.owner_id !== me);
+
+      document.getElementById('tabMine').classList.toggle('active', listTab === 'mine');
+      document.getElementById('tabFound').classList.toggle('active', listTab === 'found');
+      document.getElementById('countMine').innerText = mine.length ? `(${mine.length})` : '';
+      document.getElementById('countFound').innerText = found.length ? `(${found.length})` : '';
+      document.getElementById('mineToolbar').style.display = (listTab === 'mine' && mine.length) ? 'flex' : 'none';
+      document.getElementById('scanBadge').innerText = me
+        ? `🏅 Maniak Scan: ${found.length} pesan berhasil kamu temukan`
+        : '🔒 Login dulu untuk membuat & menyimpan QR-mu';
+
+      const emptyBox = (html) => {
+        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:24px 10px; color:#6f7f76; font-size:12px; line-height:1.6;">${html}</div>`;
+      };
+
+      if (!me) {
+        emptyBox(`🌱 Selamat datang di Scan-Scanan!<br>Login dulu untuk membuat QR rahasia dan menyimpan pesan yang kamu temukan.<br><br>
+          <button class="btn-login-qr" style="margin:auto;" onclick="openAuthModal('login')"><span>🔑</span> Login / Daftar</button>`);
+        return;
+      }
+
+      const list = listTab === 'mine' ? mine : found;
+      if (!list.length) {
+        emptyBox(listTab === 'mine'
+          ? '📦 Belum ada QR buatanmu.<br>Tulis pesan di kotak <b>Buat QR Rahasia</b>, lalu simpan atau cetak QR-nya!'
+          : '🗝️ Belum ada pesan yang kamu temukan.<br>Pindai QR temanmu atau QR harta karun untuk membukanya.');
+        return;
+      }
+
+      list.forEach((item) => {
+        const card = document.createElement("div");
+        const safeTitle = escapeHtml(item.title);   // [FIX] anti-XSS
+        card.className = "qr-card-item revealed";
+
+        if (listTab === 'mine') {
+          card.innerHTML = `
+            <div>
+              <div style="font-size: 11px; font-weight: bold; color: #2f6f4e; word-break: break-word;">${safeTitle}</div>
+              <div class="revealed-content">${escapeHtml(item.text)}</div>
+            </div>
+            <div>
+              <div style="font-size: 9px; color: #c9a227; margin-top: 8px; font-weight: bold;">✍️ QR buatanmu</div>
+              <div class="owner-actions">
+                <button class="btn-mini act-edit">✏️ Edit</button>
+                <button class="btn-mini act-big">🔍 Besar</button>
+                <button class="btn-mini act-dl">📥 Poster</button>
+                <button class="btn-mini act-print">🖨️ Cetak</button>
+                <button class="btn-mini act-code">📋 Kode</button>
+                <button class="btn-mini danger act-del">🗑️ Hapus</button>
+              </div>
+            </div>`;
+          grid.appendChild(card);
+
+          card.querySelector('.act-edit').addEventListener('click', () => startEditItem(card, item));
+          card.querySelector('.act-big').addEventListener('click', () => openQRView(item));
+          card.querySelector('.act-dl').addEventListener('click', () => downloadPoster(item));
+          card.querySelector('.act-print').addEventListener('click', () => printPosters([item]));
+          card.querySelector('.act-code').addEventListener('click', (ev) => {
+            const btn = ev.currentTarget;
+            navigator.clipboard.writeText(qrPayload(item.code)).then(() => {
+              btn.innerText = '✓ Tersalin';
+              setTimeout(() => btn.innerText = '📋 Kode', 1500);
+            });
+          });
+          card.querySelector('.act-del').addEventListener('click', () => deleteQRItem(item));
+        } else {
+          card.innerHTML = `
+            <div>
+              <div style="font-size: 11px; font-weight: bold; color: #2f6f4e; word-break: break-word;">${safeTitle}</div>
+              <div class="revealed-content">${escapeHtml(item.text)}</div>
+            </div>
+            <div style="font-size: 9px; color: #c9a227; margin-top: 8px; font-weight: bold;">🗝️ Ditemukan lewat scan</div>`;
+          grid.appendChild(card);
+        }
+      });
+    }
+
+    // ----------------------------------------------------
+    // [V2] KONFIRMASI PIN & PANGGILAN RPC (tulis / edit / hapus)
+    // ----------------------------------------------------
+    function requirePinHash(desc) {
+      if (sessionPinHash) return Promise.resolve(sessionPinHash);
+      return new Promise(resolve => {
+        pinResolver = resolve;
+        document.getElementById('pinModalDesc').innerText = desc || 'Masukkan PIN 6 digit Anda.';
+        document.getElementById('pinConfirmInput').value = '';
+        document.getElementById('pinModal').style.display = 'flex';
+        document.getElementById('pinConfirmInput').focus();
+      });
+    }
+
+    async function submitPinConfirm() {
+      const pin = document.getElementById('pinConfirmInput').value.trim();
+      if (!/^\d{6}$/.test(pin)) { alert("PIN harus 6 digit angka!"); return; }
+      const hash = await hashPIN(pin);
+      document.getElementById('pinModal').style.display = 'none';
+      const r = pinResolver; pinResolver = null;
+      if (r) r(hash);
+    }
+
+    function cancelPinConfirm() {
+      document.getElementById('pinModal').style.display = 'none';
+      const r = pinResolver; pinResolver = null;
+      if (r) r(null);
+    }
+
+    // Semua penulisan ke qr_logs lewat fungsi RPC di Supabase yang memverifikasi PIN & kepemilikan
+    async function callAuthedRpc(fn, params, desc) {
+      if (!supabaseClient) return { error: { message: 'Supabase client belum dikonfigurasi.' } };
+      if (!currentUserSession) {
+        alert("Silakan login terlebih dahulu!");
+        openAuthModal('login');
+        return { error: { message: 'belum login' }, cancelled: true };
+      }
+      const hash = await requirePinHash(desc);
+      if (!hash) return { error: { message: 'dibatalkan' }, cancelled: true };
+
+      const res = await supabaseClient.rpc(fn, { p_id: currentUserSession.id, p_pin_hash: hash, ...params });
+      if (res.error) {
+        if (/PIN salah/i.test(res.error.message)) sessionPinHash = null; // paksa input ulang
+      } else {
+        sessionPinHash = hash; // PIN terbukti benar -> cukup diminta sekali per sesi halaman
+      }
+      return res;
+    }
+
+    // Tombol "Buat QR" (Enter di textarea = baris baru). Semua QR di versi simpel bersifat privat (tidak ada feed).
+    async function submitQRText() {
+      const input = document.getElementById("qrTextInput");
+      const titleInput = document.getElementById("qrTitleInput");
+      const val = input.value.trim().slice(0, 500);
+      let title = titleInput.value.trim().slice(0, 60);
+
+      if (!val) { alert("Tulis dulu pesan rahasianya ya."); return; }
+
+      if (!currentUserSession) {
+        alert("Silakan login terlebih dahulu untuk membuat QR.");
+        openAuthModal('login');
+        return;
+      }
+
+      // [FIX] jangan izinkan kartu ID / wallet address dijadikan QR
+      if (isSensitivePayload(val)) {
+        alert("Kartu ID / alamat dompet tidak boleh dibuat menjadi QR.");
+        return;
+      }
+
+      if (!title) title = `Pesan dari ${currentUserSession.username}`;
+
+      const { error, cancelled } = await callAuthedRpc('qr_create', {
+        p_title: title,
+        p_text: val,
+        p_tag: 'Scan-Scanan',
+        p_visibility: 'private'
+      }, 'Konfirmasi PIN untuk membuat QR.');
+
+      if (cancelled) return;
+      if (error) { alert("Gagal membuat QR: " + error.message); return; }
+
+      playBeepSound('mining');
+      input.value = "";
+      titleInput.value = "";
+      await syncMyItems();
+      listTab = 'mine';
+      renderQRFeed();
+
+      tofDialog({
+        tone: 'success', icon: '🎉', title: 'QR-mu sudah jadi!',
+        message: 'Simpan atau cetak QR-nya di daftar "QR Buatanku", lalu tempel di mana saja atau kirim ke teman. Siapa pun yang memindainya bisa membaca pesanmu.',
+        okText: 'Siap'
+      });
+    }
+
+    // ----------------------------------------------------
+    // QR BESAR, POSTER UNTUK DICETAK, KLAIM SCAN, KODE MANUAL
+    // ----------------------------------------------------
+    // Kamera tidak bisa memindai layarnya sendiri, jadi QR besar ini ditujukan untuk di-scan dari perangkat lain.
+    function openQRView(item) {
+      document.getElementById('qrViewTitle').innerText = item.title;
+      const box = document.getElementById('qrViewBox');
+      box.innerHTML = '';
+      new QRCode(box, { text: qrPayload(item.code), width: 260, height: 260, correctLevel: QRCode.CorrectLevel.M });
+      document.getElementById('qrViewModal').style.display = 'flex';
+    }
+    function closeQRView() {
+      document.getElementById('qrViewModal').style.display = 'none';
+      document.getElementById('qrViewBox').innerHTML = '';
+    }
+
+    // potong teks agar muat di lebar tertentu (maks beberapa baris, diakhiri "…" bila terpotong)
+    function wrapCanvasText(ctx, text, maxWidth, maxLines) {
+      const words = String(text).split(/\s+/).filter(Boolean);
+      const lines = [];
+      let line = '';
+      for (const w of words) {
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxWidth && line) { lines.push(line); line = w; }
+        else line = test;
+      }
+      if (line) lines.push(line);
+      const out = lines.slice(0, maxLines);
+      if (lines.length > maxLines) out[maxLines - 1] += '…';
+      return out.map(l => {
+        while (ctx.measureText(l).width > maxWidth && l.length > 1) l = l.slice(0, -2) + '…';
+        return l;
+      });
+    }
+
+    // Poster siap cetak: bingkai tema ToFarmer + judul/petunjuk + QR besar
+    function makePosterDataUrl(item) {
+      return new Promise((resolve) => {
+        const tmp = document.createElement('div');
+        tmp.style.cssText = 'position:fixed;left:-9999px;top:0;';
+        document.body.appendChild(tmp);
+        new QRCode(tmp, { text: qrPayload(item.code), width: 340, height: 340, correctLevel: QRCode.CorrectLevel.M });
+
+        setTimeout(() => {
+          const src = tmp.querySelector('canvas') || tmp.querySelector('img');
+          const W = 460, H = 580;
+          const c = document.createElement('canvas');
+          c.width = W; c.height = H;
+          const ctx = c.getContext('2d');
+
+          ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+          ctx.strokeStyle = '#2f6f4e'; ctx.lineWidth = 6; ctx.strokeRect(10, 10, W - 20, H - 20);
+          ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 2; ctx.strokeRect(20, 20, W - 40, H - 40);
+
+          ctx.textAlign = 'center';
+          ctx.fillStyle = '#2f6f4e'; ctx.font = 'bold 20px sans-serif';
+          ctx.fillText('🌾 ToFarmer · Scan-Scanan', W / 2, 64);
+
+          ctx.fillStyle = '#1c2b22'; ctx.font = 'bold 22px sans-serif';
+          wrapCanvasText(ctx, item.title || 'Pesan rahasia', W - 90, 2).forEach((ln, i) => ctx.fillText(ln, W / 2, 104 + i * 28));
+
+          if (src) ctx.drawImage(src, (W - 340) / 2, 160, 340, 340);
+
+          ctx.fillStyle = '#6f7f76'; ctx.font = '13px sans-serif';
+          ctx.fillText('Scan QR ini di halaman ToFarmer', W / 2, 530);
+          ctx.fillText('untuk membuka pesan rahasianya', W / 2, 550);
+
+          document.body.removeChild(tmp);
+          resolve(c.toDataURL('image/png'));
+        }, 150);
+      });
+    }
+
+    async function downloadPoster(item) {
+      const url = await makePosterDataUrl(item);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ToFarmer_QR_${String(item.title || 'qr').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 30)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // Cetak satu atau banyak poster sekaligus (2 per baris)
+    async function printPosters(items) {
+      if (!items.length) return;
+      const w = window.open('', '_blank'); // dibuka langsung dari klik agar tidak diblokir browser
+      if (!w) {
+        alert("Pop-up diblokir browser. Izinkan pop-up untuk mencetak, atau gunakan tombol Poster untuk mengunduh gambarnya.");
+        return;
+      }
+      w.document.write('<html><head><title>Cetak QR ToFarmer</title></head><body style="font-family:sans-serif;text-align:center;padding:30px;color:#2f6f4e">🌾 Menyiapkan QR...</body></html>');
+
+      const urls = [];
+      for (const it of items) urls.push(await makePosterDataUrl(it));
+
+      const width = items.length === 1 ? '60%' : '46%';
+      const imgs = urls.map(u => `<img src="${u}" style="width:${width};margin:1.5%;page-break-inside:avoid;">`).join('');
+      w.document.open();
+      w.document.write(`<html><head><title>Cetak QR ToFarmer</title><style>@page{margin:10mm} body{margin:0;text-align:center}</style></head><body>${imgs}</body></html>`);
+      w.document.close();
+      setTimeout(() => { w.focus(); w.print(); }, 600);
+    }
+
+    function printAllMine() {
+      const me = currentUserSession ? currentUserSession.id : null;
+      printPosters(myItems.filter(i => me && i.owner_id === me));
+    }
+
+    // Membuka pesan lewat kode hasil scan: isi dikirim server, pesan masuk koleksi akun ini
+    async function claimQRCode(code) {
+      if (!/^[a-f0-9]{16}$/i.test(code)) { alert("Kode QR tidak valid."); return; }
+
+      const { data, error, cancelled } = await callAuthedRpc('qr_claim', { p_code: code.toLowerCase() },
+        'Konfirmasi PIN untuk membuka QR ini.');
+      if (cancelled) return;
+      if (error) { alert("Gagal membuka QR: " + error.message); return; }
+
+      playBeepSound('success_chime');
+      await syncMyItems();
+      if (!data.own) { listTab = 'found'; renderQRFeed(); }
+
+      tofDialog({
+        tone: 'success',
+        icon: data.own ? '✍️' : (data.first_time ? '🎉' : '🗝️'),
+        title: data.own ? 'Ini QR buatanmu' : (data.first_time ? 'Pesan baru masuk koleksimu!' : 'Sudah ada di koleksimu'),
+        subtitle: data.title,
+        quote: data.text,
+        okText: 'Mantap!'
+      });
+    }
+
+    function submitManualCode() {
+      const box = document.getElementById('manualCodeInput');
+      const raw = box.value.trim();
+      if (!raw) return;
+      box.value = '';
+      onScanSuccess('TOFQR:' + raw.replace(/^TOFQR:/i, ''));
+    }
+
+    function startEditItem(card, item) {
+      editingId = item.id;
+      card.className = "qr-card-item revealed";
+      card.innerHTML = `
+        <div>
+          <div style="font-size: 11px; font-weight: bold; color: #2f6f4e; margin-bottom: 6px;">✏️ Edit tulisan</div>
+          <textarea class="form-control edit-area" rows="5" maxlength="500"></textarea>
+        </div>
+        <div class="owner-actions">
+          <button class="btn-mini act-save">💾 Simpan</button>
+          <button class="btn-mini act-cancel">Batal</button>
+        </div>
+      `;
+      const ta = card.querySelector('.edit-area');
+      ta.value = item.text;
+      ta.focus();
+
+      card.querySelector('.act-cancel').addEventListener('click', () => { editingId = null; renderQRFeed(); });
+      card.querySelector('.act-save').addEventListener('click', async () => {
+        const val = ta.value.trim().slice(0, 500);
+        if (!val) { alert("Tulisan tidak boleh kosong."); return; }
+        if (isSensitivePayload(val)) { alert("Kartu ID / alamat dompet tidak boleh dijadikan QR publik."); return; }
+
+        const { error, cancelled } = await callAuthedRpc('qr_update', {
+          p_log_id: String(item.id),
+          p_text: val
+        }, 'Konfirmasi PIN untuk mengubah tulisan.');
+
+        if (cancelled) return;
+        if (error) { alert("Gagal mengubah: " + error.message); return; }
+        editingId = null;
+        await syncMyItems();
+      });
+    }
+
+    async function deleteQRItem(item) {
+      const okDel = await tofConfirm("Tulisan beserta QR-nya akan dihapus dan tidak bisa dikembalikan.", {
+        tone: 'warn', icon: '🗑️', title: 'Hapus tulisan ini?', okText: 'Ya, hapus', cancelText: 'Batal'
+      });
+      if (!okDel) return;
+
+      const { error, cancelled } = await callAuthedRpc('qr_delete', {
+        p_log_id: String(item.id)
+      }, 'Konfirmasi PIN untuk menghapus tulisan.');
+
+      if (cancelled) return;
+      if (error) { alert("Gagal menghapus: " + error.message); return; }
+      await syncMyItems();
+    }
+
+    // ----------------------------------------------------
+    // AUDIO FEEDBACK & SCANNER
+    // ----------------------------------------------------
+    function playBeepSound(type = 'mining') {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+
+        if (type === 'mining') {
+          oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+          oscillator.frequency.setValueAtTime(1760, audioCtx.currentTime + 0.08);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.start();
+          oscillator.stop(audioCtx.currentTime + 0.18);
+        } else if (type === 'success_chime') {
+          const now = audioCtx.currentTime;
+          oscillator.frequency.setValueAtTime(523.25, now);
+          oscillator.frequency.setValueAtTime(659.25, now + 0.08);
+          oscillator.frequency.setValueAtTime(783.99, now + 0.16);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.start();
+          oscillator.stop(now + 0.3);
+        }
+      } catch(e) {}
+    }
+
+    async function openScanner(mode = 'general') {
+      await safeStopScanner(); // [FIX] bersihkan instance lama sebelum membuka yang baru
+      currentScanMode = mode;
+      scanHandled = false;
+      document.getElementById('manualCodeBox').style.display = mode === 'login' ? 'none' : 'flex'; // [V4]
+      document.getElementById("scannerModal").style.display = "flex";
+      
+      const titleElem = document.getElementById("scannerModalTitle");
+      if (titleElem) {
+        titleElem.innerText = mode === 'login' ? "Scan Kartu QR ID (tetap perlu PIN)" : "Arahkan Kamera / Upload QR dari Galeri...";
+      }
+
+      html5QrcodeScanner = new Html5Qrcode("reader");
+      html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 15, qrbox: 200 },
+        onScanSuccess
+      ).catch((err) => {
+        console.warn("Kamera tidak dapat diakses atau ditolak. Pengguna masih bisa menggunakan opsi Upload Galeri.", err);
+      });
+    }
+
+    async function scanQRFromImageFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      let decodedText = null;
+      try {
+        // [FIX] matikan kamera dulu supaya tidak bentrok dengan scanFile (aman walau kamera tidak sedang jalan)
+        await safeStopScanner();
+        const html5QrCode = new Html5Qrcode("reader");
+        decodedText = await html5QrCode.scanFile(file, false);
+        try { html5QrCode.clear(); } catch (e) {}
+      } catch (err) {
+        alert("Gagal membaca QR Code dari gambar. Pastikan gambar QR terlihat jelas dan tidak buram!");
+      } finally {
+        event.target.value = "";
+      }
+
+      if (decodedText) onScanSuccess(decodedText);
+    }
+
+    async function onScanSuccess(decodedText) {
+      // [FIX] callback kamera bisa terpanggil berkali-kali sebelum stop() selesai -> log dobel
+      if (scanHandled) return;
+      scanHandled = true;
+      closeScanner();
+
+      const text = String(decodedText || '').trim();
+      const card = parseMemberCard(text);
+
+      if (currentScanMode === 'login') {
+        // [FIX] QR TIDAK lagi langsung login. Hanya mengisi identitas, PIN tetap wajib.
+        // Teks biasa / wallet address polos tidak diterima lagi sebagai bukti login.
+        if (!card || !card.w || !algosdk.isValidAddress(card.w)) {
+          alert("Ini bukan Kartu QR ID ToFarmer yang valid.");
+          return;
+        }
+        playBeepSound('success_chime');
+        openAuthModal('login');
+        document.getElementById('loginIdentifier').value = card.w;
+        document.getElementById('loginPin').value = '';
+        document.getElementById('loginPin').focus();
+      } else {
+        // [FIX] kartu anggota / wallet address tidak boleh bocor ke feed publik
+        if (isSensitivePayload(text)) {
+          tofDialog({
+          tone: 'info', icon: '🪪', title: 'Ini kartu identitas',
+          message: 'QR ini berisi identitas akun / alamat dompet, jadi tidak ditampilkan. Untuk masuk, pakai tombol Login lalu Scan Kartu QR ID.',
+          okText: 'Mengerti'
+        });
+          return;
+        }
+
+        const isTofQr = text.startsWith('TOFQR:');
+
+        // QR biasa (bukan buatan ToFarmer): cukup tampilkan isinya
+        if (!isTofQr) {
+          tofDialog({
+            tone: 'info', icon: '🔍', title: 'QR biasa terdeteksi',
+            quote: text.slice(0, 500),
+            message: 'Ini bukan QR scan-scanan ToFarmer, jadi hanya ditampilkan di sini.',
+            okText: 'Oke'
+          });
+          return;
+        }
+
+        // QR ToFarmer: perlu login agar pesan bisa dibuka & masuk koleksi
+        if (!currentUserSession) {
+          const goLogin = await tofConfirm(
+            "Login dulu supaya pesan rahasianya bisa dibuka dan tersimpan di koleksimu.",
+            { tone: 'info', icon: '🗝️', title: 'QR ToFarmer terdeteksi!', okText: 'Login sekarang', cancelText: 'Nanti' }
+          );
+          if (goLogin) openAuthModal('login');
+          return;
+        }
+
+        await claimQRCode(text.slice(6).trim());
+      }
+    }
+
+    // [FIX] html5-qrcode melempar error "Cannot stop, scanner is not running or paused" jika stop() dipanggil
+    // saat kamera tidak sedang berjalan (mis. sudah dihentikan sebelum scan dari galeri, atau kamera ditolak).
+    // Semua penghentian lewat fungsi ini supaya error tersebut tidak membatalkan proses hasil scan.
+    async function safeStopScanner() {
+      const scanner = html5QrcodeScanner;
+      html5QrcodeScanner = null;
+      if (!scanner) return;
+      try { await scanner.stop(); } catch (e) {}
+      try { scanner.clear(); } catch (e) {}
+    }
+
+    function closeScanner() {
+      document.getElementById("scannerModal").style.display = "none";
+      safeStopScanner();
+    }
+
+    // ----------------------------------------------------
+    // PWA INSTALL TRIGGER
+    // ----------------------------------------------------
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('pwaBanner').style.display = 'flex';
+    });
+
+    function executeInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            document.getElementById('pwaBanner').style.display = 'none';
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        tofDialog({
+          tone: 'info', icon: '📲', title: 'Pasang ke layar utama',
+          message: 'Buka menu browser (titik tiga atau tombol Bagikan), lalu pilih “Tambahkan ke Layar Utama”.',
+          okText: 'Siap'
+        });
+      }
+    }
+  </script>
+</body>
+</html>
