@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jurnal Olahrasa & Sasmita - Tracking Sensor Tubuh & Intuisi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mystic: {
+                            base: '#0f1117',
+                            card: '#161922',
+                            border: '#2a2e3d',
+                            accent: '#8b5cf6', // Violet
+                            sage: '#10b981',   // Sage green
+                            amber: '#f59e0b',  // Warm amber
+                            cyan: '#06b6d4'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        title: ['Cinzel', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0c0e14;
+            color: #e2e8f0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.04) 0%, transparent 40%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #11131a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #2a2e3d;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-mystic-accent selection:text-white">
+
+    <header class="border-b border-mystic-border bg-mystic-base/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-mystic-accent via-mystic-sage to-mystic-amber flex items-center justify-center text-white shadow-lg shadow-mystic-accent/20">
+                    <i class="fa-solid fa-eye text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-title font-bold text-lg text-slate-100 tracking-wide">OLAHRASA & SASMITA</h1>
+                    <p class="text-xs text-slate-400">Jurnal Sensor Tubuh & Intuisi Personal</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Sync Status Pill -->
+                <div id="syncStatus" class="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-mystic-card border border-mystic-border text-slate-400">
+                    <span id="syncDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                    <span id="syncText">Offline Mode</span>
+                </div>
+
+                <button onclick="triggerSync()" class="p-2 rounded-lg bg-mystic-card border border-mystic-border hover:border-mystic-accent text-slate-300 hover:text-white transition" title="Sinkronkan Sekarang">
+                    <i class="fa-solid fa-rotate text-sm"></i>
+                </button>
+                <button onclick="toggleModal('configModal')" class="p-2 rounded-lg bg-mystic-card border border-mystic-border hover:border-mystic-accent text-slate-300 hover:text-white transition" title="Pengaturan Supabase">
+                    <i class="fa-solid fa-sliders text-sm"></i>
+                </button>
+                <button onclick="toggleModal('guideModal')" class="p-2 rounded-lg bg-mystic-card border border-mystic-border hover:border-mystic-sage text-mystic-sage transition" title="Panduan & Reset Saraf">
+                    <i class="fa-solid fa-book-bookmark text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT: Form Input (7 cols) -->
+        <section class="lg:col-span-7 flex flex-col gap-5">
+            <div class="bg-mystic-card border border-mystic-border rounded-2xl p-5 shadow-xl relative overflow-hidden">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-mystic-border">
+                    <h2 class="font-title text-md font-semibold text-purple-300 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-nib text-sm"></i> Catat Jurnal Olahrasa
+                    </h2>
+                    <span class="text-xs text-slate-400" id="currentDateTime"></span>
+                </div>
+
+                <form id="journalForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                    
+                    <!-- Location Name & Category -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Nama Lokasi / Konteks *</label>
+                            <input type="text" id="locationName" required placeholder="Contoh: Sendang Menoreh / Ruang Meditasi" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Kategori Sinyal *</label>
+                            <select id="category" required class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent">
+                                <option value="Sinyal Alam/Geologi">Sinyal Alam / Geologi (Air, Tanah)</option>
+                                <option value="Genius Loci/Energi Tempat">Genius Loci / Energi Tempat</option>
+                                <option value="Resonansi Luhur/Doa">Resonansi Luhur / Doa / Pusaka</option>
+                                <option value="Residu/Peringatan">Residu / Alert / Peringatan</option>
+                                <option value="Intuisi Umum">Intuisi / Olahrasa Umum</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Sensor Selection -->
+                    <div>
+                        <label class="block text-xs font-medium text-slate-300 mb-2">Pilih Sensor Tubuh yang Aktif *</label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="sensorGrid">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Sensations & Directions -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Sensasi yang Dirasakan</label>
+                            <input type="text" id="sensationsInput" placeholder="Contoh: Kebat-kebit, Hangat, Merinding (Pisahkan koma)" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent transition">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Arah Spasial Vektor</label>
+                            <input type="text" id="sensorDirectionsInput" placeholder="Contoh: Kanan Atas, Depan, Belakang Kuduk" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent transition">
+                        </div>
+                    </div>
+
+                    <!-- Intensity Slider & Pure Sasmita Checkbox -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-mystic-base/50 p-3 rounded-xl border border-mystic-border/50 items-center">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-medium text-slate-300">Skala Intensitas</label>
+                                <span id="intensityVal" class="text-xs font-bold text-mystic-amber">5 / 10</span>
+                            </div>
+                            <input type="range" id="intensity" min="1" max="10" value="5" oninput="document.getElementById('intensityVal').innerText = this.value + ' / 10'" class="w-full accent-mystic-amber cursor-pointer">
+                        </div>
+                        <div class="flex items-center gap-2 pt-2 sm:pt-0">
+                            <input type="checkbox" id="isPureSasmita" class="w-4 h-4 rounded border-mystic-border bg-mystic-base text-mystic-accent focus:ring-mystic-accent accent-mystic-accent cursor-pointer">
+                            <label for="isPureSasmita" class="text-xs font-medium text-amber-300 cursor-pointer">
+                                Sasmita Murni (3-Detik Pertama)
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Intuition & Analysis -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs font-semibold text-mystic-amber flex items-center gap-1.5 mb-1">
+                                <i class="fa-solid fa-bolt text-xs"></i> Impresi Murni / Raw Sasmita *
+                            </label>
+                            <textarea id="rawSasmita" required rows="2" placeholder="Pesan, gambaran, atau suara batin pertama tanpa filter logika..." class="w-full bg-mystic-base border border-mystic-amber/40 focus:border-mystic-amber rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none transition"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-slate-300 mb-1">Analisis Logis & Uraian Detail</label>
+                            <textarea id="logicalAnalysis" rows="2" placeholder="Uraian perdebatan pikiran rasional vs kompas olahrasa..." class="w-full bg-mystic-base border border-mystic-border rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent transition"></textarea>
+                        </div>
+
+                        <!-- Real Validation & Grounding -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Validasi Realita</label>
+                                <input type="text" id="realValidation" placeholder="Bukti/fakta di lapangan..." class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-mystic-sage">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-300 mb-1">Catatan Grounding / Reset</label>
+                                <input type="text" id="groundingNote" placeholder="Tindakan menetralkan saraf..." class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-mystic-cyan">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 flex items-center justify-between">
+                        <button type="button" onclick="resetForm()" class="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition">
+                            Reset Form
+                        </button>
+                        <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-mystic-accent to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-medium text-xs shadow-lg shadow-mystic-accent/25 transition flex items-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan Catatan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- RIGHT: Log History & Filter (5 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+            <div class="bg-mystic-card border border-mystic-border rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-mystic-border">
+                    <h2 class="font-title text-md font-semibold text-emerald-400 flex items-center gap-2">
+                        <i class="fa-solid fa-clock-rotate-left text-sm"></i> Riwayat Olahrasa
+                    </h2>
+                    <span id="logCountBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-mystic-border text-slate-300 font-mono">0 Log</span>
+                </div>
+
+                <!-- Search & Filter Controls -->
+                <div class="space-y-2 mb-4">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
+                        <input type="text" id="searchInput" oninput="renderLogs()" placeholder="Cari sasmita, lokasi, atau kata kunci..." class="w-full bg-mystic-base border border-mystic-border rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-mystic-sage">
+                    </div>
+                    <div class="flex gap-2">
+                        <select id="filterCategory" onchange="renderLogs()" class="flex-1 bg-mystic-base border border-mystic-border rounded-xl px-2.5 py-1.5 text-[11px] text-slate-300 focus:outline-none">
+                            <option value="ALL">Semua Kategori</option>
+                            <option value="Sinyal Alam/Geologi">Alam / Geologi</option>
+                            <option value="Genius Loci/Energi Tempat">Energi Tempat</option>
+                            <option value="Resonansi Luhur/Doa">Resonansi Luhur</option>
+                            <option value="Residu/Peringatan">Residu / Alert</option>
+                            <option value="Intuisi Umum">Intuisi Umum</option>
+                        </select>
+                        <select id="filterSensor" onchange="renderLogs()" class="flex-1 bg-mystic-base border border-mystic-border rounded-xl px-2.5 py-1.5 text-[11px] text-slate-300 focus:outline-none">
+                            <option value="ALL">Semua Sensor</option>
+                            <option value="Perut">Perut (Solar Plexus)</option>
+                            <option value="Dada">Dada (Heart)</option>
+                            <option value="Kening">Kening (Ajna)</option>
+                            <option value="Ubun-ubun">Ubun-ubun (Crown)</option>
+                            <option value="Atas Kepala">Atas Kepala</option>
+                            <option value="Tengkuk">Tengkuk / Kuduk</option>
+                            <option value="Telapak">Telapak Tangan/Kaki</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Logs Stream -->
+                <div id="logsContainer" class="flex-1 space-y-3 overflow-y-auto max-h-[580px] pr-1 custom-scrollbar">
+                    <!-- Logs generated dynamically -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL 1: Supabase Config -->
+    <div id="configModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-mystic-card border border-mystic-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
+            <button onclick="toggleModal('configModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <div class="flex items-center gap-3 border-b border-mystic-border pb-3">
+                <i class="fa-solid fa-cloud-arrow-up text-mystic-accent text-xl"></i>
+                <div>
+                    <h3 class="font-title font-semibold text-slate-100">Pengaturan Supabase Cloud</h3>
+                    <p class="text-xs text-slate-400">Menghubungkan ke tabel olahrasa_logs</p>
+                </div>
+            </div>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">Supabase Project URL</label>
+                    <input type="text" id="supabaseUrl" placeholder="https://afpzddwuikvwsedzgsee.supabase.co" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-2 text-xs text-slate-200">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-300 mb-1">Supabase Anon Key</label>
+                    <input type="password" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-2 text-xs text-slate-200">
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed bg-mystic-base p-2.5 rounded-lg border border-mystic-border">
+                    <i class="fa-solid fa-circle-info text-mystic-amber"></i> Data tersimpan di IndexedDB lokal terlebih dahulu. Saat terhubung, data akan disinkronkan secara 2 arah ke Supabase.
+                </p>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="saveSupabaseConfig()" class="px-4 py-2 rounded-xl bg-mystic-accent hover:bg-purple-600 text-white text-xs font-medium transition">
+                    Simpan & Tes Koneksi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Panduan & Reset Saraf Reference -->
+    <div id="guideModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-mystic-card border border-mystic-border rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl relative max-h-[85vh] overflow-y-auto custom-scrollbar">
+            <button onclick="toggleModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            
+            <div class="flex items-center gap-3 border-b border-mystic-border pb-3">
+                <i class="fa-solid fa-brain text-mystic-sage text-xl"></i>
+                <div>
+                    <h3 class="font-title font-semibold text-slate-100">Panduan Olahrasa & Netralisasi Saraf</h3>
+                    <p class="text-xs text-slate-400">Ringkasan Teknik Reset & Kompas Personal</p>
+                </div>
+            </div>
+
+            <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
+                <!-- Section 1 -->
+                <div class="bg-mystic-base p-3.5 rounded-xl border border-mystic-border space-y-1.5">
+                    <h4 class="font-bold text-mystic-amber text-sm"><i class="fa-solid fa-eye-slash"></i> Cara Menetralkan Sensor Kening (Third Eye)</h4>
+                    <p>Karena kening terhubung dengan kognisi (*lobus frontalis*), makin dipikirkan justru makin nyut-nyut. Lakukan:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-400 pl-1">
+                        <li><b>Teknik Eye Roll Downward:</b> Tutup mata, putar bola mata menghadap ke bawah/ujung hidung. Ini merilekskan *nervus oculomotorius*.</li>
+                        <li><b>Sentuh Belakang Telinga:</b> Usap lembut tulang di belakang daun telinga turun ke leher untuk menstimulasi *nervus vagus*.</li>
+                        <li><b>Pindahkan Indra Fisik:</b> Minum air dingin atau fokus ke rasa makanan tajam (pedas/pahit).</li>
+                    </ul>
+                </div>
+
+                <!-- Section 2 -->
+                <div class="bg-mystic-base p-3.5 rounded-xl border border-mystic-border space-y-1.5">
+                    <h4 class="font-bold text-mystic-accent text-sm"><i class="fa-solid fa-crown"></i> Mengelola Sensor Atas Kepala & Tubuh Bergetar</h4>
+                    <p>Saat sensor transpersonal aktif penuh dan tubuh bergetar hebat:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-400 pl-1">
+                        <li><b>Visualisasi Kunci:</b> Bayangkan pintu/katup di atas kepala perlahan menutup rapat.</li>
+                        <li><b>Niat Pendaratan:</b> Ucapkan batin dengan tegas: <i>"Selesai. Kembali penuh ke raga fisik."</i></li>
+                        <li><b>Grounding Fisik:</b> Injakkan telapak kaki telanjang langsung ke tanah/lantai, biarkan kelebihan energi terserap bumi (*pertiwi*).</li>
+                    </ul>
+                </div>
+
+                <!-- Section 3 -->
+                <div class="bg-mystic-base p-3.5 rounded-xl border border-mystic-border space-y-1.5">
+                    <h4 class="font-bold text-mystic-sage text-sm"><i class="fa-solid fa-scale-balanced"></i> Rumus Pembeda: Sasmita vs Pikiran Biasa</h4>
+                    <div class="grid grid-cols-2 gap-2 mt-2 text-[11px]">
+                        <div class="bg-mystic-card p-2 rounded border border-mystic-border">
+                            <span class="text-emerald-400 font-bold block mb-1">Sasmita / Intuisi Murni</span>
+                            Mendadak (3 detik pertama), netral, dibarengi sensor fisik, tidak berbelit-belit.
+                        </div>
+                        <div class="bg-mystic-card p-2 rounded border border-mystic-border">
+                            <span class="text-rose-400 font-bold block mb-1">Pikiran / Bunga Lamunan</span>
+                            Muncul dari analisis panjang, berbelit-belit, penuh keraguan atau ketakutan/ambisi.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sensor definitions
+        const SENSORS = [
+            { id: 'Perut', name: 'Perut (Solar Plexus)', icon: 'fa-dharmachakra', color: 'text-amber-400', desc: 'Gut feeling, mual, kebat-kebit' },
+            { id: 'Dada', name: 'Dada (Heart)', icon: 'fa-heart-pulse', color: 'text-emerald-400', desc: 'Tekanan, sesak, longgar, empati' },
+            { id: 'Kening', name: 'Kening (Third Eye)', icon: 'fa-eye', color: 'text-indigo-400', desc: 'Nyut-nyut, hangat, tegang' },
+            { id: 'Ubun-ubun', name: 'Ubun-ubun (Crown)', icon: 'fa-bolt', color: 'text-purple-400', desc: 'Kesemutan halus, merinding' },
+            { id: 'Atas Kepala', name: 'Atas/Luar Kepala', icon: 'fa-sun', color: 'text-fuchsia-400', desc: 'Halo, piringan hangat, transpersonal' },
+            { id: 'Tengkuk', name: 'Tengkuk / Kuduk', icon: 'fa-wind', color: 'text-cyan-400', desc: 'Piloereksi, hawa dingin mendadak' },
+            { id: 'Telapak', name: 'Telapak Tangan/Kaki', icon: 'fa-hand-dots', color: 'text-orange-400', desc: 'Gatal, hangat, grounding' }
+        ];
+
+        // App State
+        let selectedSensors = [];
+        let journalEntries = [];
+        let db = null;
+        let supabaseClient = null;
+
+        // Initialize App
+        window.addEventListener('DOMContentLoaded', async () => {
+            updateDateTime();
+            setInterval(updateDateTime, 30000);
+
+            renderSensorGrid();
+            await initIndexedDB();
+            await loadLocalLogs();
+            loadSupabaseConfig();
+        });
+
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            document.getElementById('currentDateTime').innerText = now.toLocaleDateString('id-ID', options);
+        }
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('OlahrasaJournalDB', 2);
+                request.onupgradeneeded = (e) => {
+                    db = e.target.result;
+                    if (!db.objectStoreNames.contains('olahrasa_logs')) {
+                        db.createObjectStore('olahrasa_logs', { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = (e) => {
+                    db = e.target.result;
+                    resolve();
+                };
+                request.onerror = (e) => reject(e);
+            });
+        }
+
+        function renderSensorGrid() {
+            const grid = document.getElementById('sensorGrid');
+            grid.innerHTML = SENSORS.map(s => `
+                <button type="button" onclick="toggleSensor('${s.id}')" id="sensor-btn-${s.id}" class="flex flex-col p-2 rounded-xl border border-mystic-border bg-mystic-base text-left hover:border-mystic-border/80 transition relative overflow-hidden group">
+                    <div class="flex items-center gap-1.5 mb-0.5">
+                        <i class="fa-solid ${s.icon} ${s.color} text-[11px]"></i>
+                        <span class="text-[11px] font-semibold text-slate-200">${s.id}</span>
+                    </div>
+                    <span class="text-[9px] text-slate-400 leading-tight">${s.desc}</span>
+                </button>
+            `).join('');
+        }
+
+        function toggleSensor(id) {
+            const index = selectedSensors.indexOf(id);
+            const btn = document.getElementById(`sensor-btn-${id}`);
+            
+            if (index === -1) {
+                selectedSensors.push(id);
+                btn.classList.add('border-mystic-accent', 'bg-mystic-accent/10', 'ring-1', 'ring-mystic-accent');
+            } else {
+                selectedSensors.splice(index, 1);
+                btn.classList.remove('border-mystic-accent', 'bg-mystic-accent/10', 'ring-1', 'ring-mystic-accent');
+            }
+        }
+
+        /* Form Submission Handler */
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (selectedSensors.length === 0) {
+                alert('Pilihlah minimal satu sensor tubuh yang merespon!');
+                return;
+            }
+
+            const parseArrayInput = (str) => {
+                if (!str) return [];
+                return str.split(',').map(s => s.trim()).filter(Boolean);
+            };
+
+            const entry = {
+                id: crypto.randomUUID ? crypto.randomUUID() : 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                location_name: document.getElementById('locationName').value.trim(),
+                category: document.getElementById('category').value,
+                sensors: [...selectedSensors],
+                sensations: parseArrayInput(document.getElementById('sensationsInput').value),
+                sensor_directions: parseArrayInput(document.getElementById('sensorDirectionsInput').value),
+                intensity: parseInt(document.getElementById('intensity').value),
+                is_pure_sasmita: document.getElementById('isPureSasmita').checked,
+                raw_sasmita: document.getElementById('rawSasmita').value.trim(),
+                logical_analysis: document.getElementById('logicalAnalysis').value.trim() || null,
+                real_validation: document.getElementById('realValidation').value.trim() || null,
+                grounding_note: document.getElementById('groundingNote').value.trim() || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            // Save locally
+            await saveLogToIndexedDB(entry);
+            journalEntries.unshift(entry);
+            renderLogs();
+            resetForm();
+
+            // Background sync
+            syncSingleToSupabase(entry);
+        }
+
+        function resetForm() {
+            document.getElementById('journalForm').reset();
+            selectedSensors = [];
+            SENSORS.forEach(s => {
+                const btn = document.getElementById(`sensor-btn-${s.id}`);
+                if (btn) btn.classList.remove('border-mystic-accent', 'bg-mystic-accent/10', 'ring-1', 'ring-mystic-accent');
+            });
+            document.getElementById('intensityVal').innerText = '5 / 10';
+        }
+
+        function saveLogToIndexedDB(entry) {
+            return new Promise((resolve) => {
+                const tx = db.transaction('olahrasa_logs', 'readwrite');
+                const store = tx.objectStore('olahrasa_logs');
+                store.put(entry);
+                tx.oncomplete = () => resolve();
+            });
+        }
+
+        function loadLocalLogs() {
+            return new Promise((resolve) => {
+                if (!db) return resolve();
+                const tx = db.transaction('olahrasa_logs', 'readonly');
+                const store = tx.objectStore('olahrasa_logs');
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    journalEntries = (request.result || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    renderLogs();
+                    resolve();
+                };
+            });
+        }
+
+        async function deleteEntry(id) {
+            if (!confirm('Hapus catatan olahrasa ini?')) return;
+            
+            const tx = db.transaction('olahrasa_logs', 'readwrite');
+            tx.objectStore('olahrasa_logs').delete(id);
+            tx.oncomplete = () => {
+                journalEntries = journalEntries.filter(e => e.id !== id);
+                renderLogs();
+            };
+
+            if (supabaseClient) {
+                try {
+                    await supabaseClient.from('olahrasa_logs').delete().eq('id', id);
+                } catch(err) { console.warn('Supabase delete failed', err); }
+            }
+        }
+
+        function renderLogs() {
+            const container = document.getElementById('logsContainer');
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const catFilter = document.getElementById('filterCategory').value;
+            const sensorFilter = document.getElementById('filterSensor').value;
+
+            const filtered = journalEntries.filter(item => {
+                const raw = (item.raw_sasmita || '').toLowerCase();
+                const loc = (item.location_name || '').toLowerCase();
+                const analysis = (item.logical_analysis || '').toLowerCase();
+
+                const matchesSearch = raw.includes(searchQuery) || loc.includes(searchQuery) || analysis.includes(searchQuery);
+                const matchesCat = catFilter === 'ALL' || item.category === catFilter;
+                const matchesSensor = sensorFilter === 'ALL' || (item.sensors && item.sensors.includes(sensorFilter));
+                return matchesSearch && matchesCat && matchesSensor;
+            });
+
+            document.getElementById('logCountBadge').innerText = `${filtered.length} Log`;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-10 text-slate-500 space-y-2">
+                        <i class="fa-solid fa-feather-pointed text-2xl opacity-50"></i>
+                        <p class="text-xs">Belum ada catatan olahrasa yang cocok.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(item => {
+                const dateStr = new Date(item.created_at).toLocaleDateString('id-ID', {
+                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
+
+                return `
+                    <div class="bg-mystic-base/80 border border-mystic-border hover:border-mystic-border/90 rounded-xl p-3.5 space-y-2.5 transition relative group">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <span class="text-[10px] font-semibold text-mystic-amber uppercase tracking-wider">${escapeHtml(item.category)}</span>
+                                    ${item.is_pure_sasmita ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded">Sasmita Murni</span>' : ''}
+                                </div>
+                                <h3 class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-location-dot text-mystic-sage text-[11px]"></i> ${escapeHtml(item.location_name)}
+                                </h3>
+                                <p class="text-[10px] text-slate-400 mt-0.5">${dateStr}</p>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-mystic-card border border-mystic-border text-mystic-sage">
+                                    Intensitas: ${item.intensity}/10
+                                </span>
+                                <button onclick="deleteEntry('${item.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1 transition" title="Hapus">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Active Sensors & Directions -->
+                        <div class="flex flex-wrap gap-1 items-center">
+                            ${(item.sensors || []).map(s => `<span class="text-[9px] px-2 py-0.5 rounded-full bg-mystic-accent/15 border border-mystic-accent/30 text-purple-300">${escapeHtml(s)}</span>`).join('')}
+                            ${(item.sensor_directions || []).map(d => `<span class="text-[9px] px-1.5 py-0.5 rounded bg-mystic-card border border-mystic-border text-cyan-300"><i class="fa-solid fa-compass text-[8px] mr-1"></i>${escapeHtml(d)}</span>`).join('')}
+                        </div>
+
+                        <!-- Sensations -->
+                        ${(item.sensations && item.sensations.length > 0) ? `
+                            <div class="text-[10px] text-slate-400">
+                                <span class="text-slate-500">Sensasi:</span> ${item.sensations.map(s => escapeHtml(s)).join(', ')}
+                            </div>
+                        ` : ''}
+
+                        <!-- Raw Sasmita -->
+                        ${item.raw_sasmita ? `
+                            <div class="bg-mystic-card/60 p-2 rounded-lg border-l-2 border-mystic-amber text-[11px] text-amber-200/90 italic">
+                                "${escapeHtml(item.raw_sasmita)}"
+                            </div>
+                        ` : ''}
+
+                        <!-- Logical Analysis -->
+                        ${item.logical_analysis ? `
+                            <p class="text-[11px] text-slate-300 leading-relaxed">${escapeHtml(item.logical_analysis)}</p>
+                        ` : ''}
+
+                        <!-- Real Validation & Grounding -->
+                        <div class="space-y-1">
+                            ${item.real_validation ? `
+                                <div class="text-[10px] text-emerald-300 bg-emerald-950/20 border border-emerald-800/40 p-2 rounded-lg flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                                    <span><b>Validasi:</b> ${escapeHtml(item.real_validation)}</span>
+                                </div>
+                            ` : ''}
+                            ${item.grounding_note ? `
+                                <div class="text-[10px] text-cyan-300 bg-cyan-950/20 border border-cyan-800/40 p-1.5 rounded-lg flex items-center gap-1.5">
+                                    <i class="fa-solid fa-leaf text-cyan-400"></i>
+                                    <span><b>Grounding:</b> ${escapeHtml(item.grounding_note)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function loadSupabaseConfig() {
+            const url = localStorage.getItem('supabase_url') || '';
+            const key = localStorage.getItem('supabase_key') || '';
+            document.getElementById('supabaseUrl').value = url;
+            document.getElementById('supabaseKey').value = key;
+
+            if (url && key) {
+                try {
+                    supabaseClient = supabase.createClient(url, key);
+                    updateSyncUI('online', 'Terhubung Supabase');
+                    triggerSync();
+                } catch(e) {
+                    updateSyncUI('offline', 'Config Error');
+                }
+            } else {
+                updateSyncUI('offline', 'Offline Mode');
+            }
+        }
+
+        function saveSupabaseConfig() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+            
+            localStorage.setItem('supabase_url', url);
+            localStorage.setItem('supabase_key', key);
+
+            if (url && key) {
+                try {
+                    supabaseClient = supabase.createClient(url, key);
+                    updateSyncUI('online', 'Terhubung');
+                    triggerSync();
+                    toggleModal('configModal');
+                } catch(e) {
+                    alert('Gagal menghubungkan ke Supabase: ' + e.message);
+                }
+            } else {
+                supabaseClient = null;
+                updateSyncUI('offline', 'Offline Mode');
+                toggleModal('configModal');
+            }
+        }
+
+        async function triggerSync() {
+            if (!supabaseClient) {
+                alert('Konfigurasi Supabase belum diisi. Silakan isi URL & Key terlebih dahulu di menu Pengaturan.');
+                return;
+            }
+
+            updateSyncUI('syncing', 'Menyingkronkan...');
+            try {
+                // 1. Pull data terbaru dari Cloud Supabase
+                const { data: cloudLogs, error } = await supabaseClient
+                    .from('olahrasa_logs')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                // 2. Gabungkan data Cloud ke IndexedDB Lokal
+                if (cloudLogs && cloudLogs.length > 0) {
+                    for (const item of cloudLogs) {
+                        await saveLogToIndexedDB(item);
+                    }
+                }
+
+                // 3. Upsert data Lokal ke Cloud Supabase
+                for (const entry of journalEntries) {
+                    await supabaseClient.from('olahrasa_logs').upsert(entry);
+                }
+
+                // Reload local state
+                await loadLocalLogs();
+                updateSyncUI('online', 'Tersinkron');
+            } catch(e) {
+                console.error(e);
+                updateSyncUI('offline', 'Gagal Sync');
+            }
+        }
+
+        async function syncSingleToSupabase(entry) {
+            if (!supabaseClient) return;
+            try {
+                await supabaseClient.from('olahrasa_logs').upsert(entry);
+            } catch(e) {
+                console.warn('Background sync queued offline', e);
+            }
+        }
+
+        function updateSyncUI(state, text) {
+            const dot = document.getElementById('syncDot');
+            const txt = document.getElementById('syncText');
+            txt.innerText = text;
+
+            if (state === 'online') {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+            } else if (state === 'syncing') {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+            }
+        }
+
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            })[m]);
+        }
+    </script>
+</body>
+</html>
