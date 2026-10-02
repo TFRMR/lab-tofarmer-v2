@@ -1,726 +1,1736 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jurnal Olahrasa & Sasmita - Tracking Sensor Tubuh & Intuisi</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Supabase JS Client library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jurnal Olahrasa & Sasmita - Tracking Sensor Tubuh & Intuisi</title>
 
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        mystic: {
-                            base: '#0f1117',
-                            card: '#161922',
-                            border: '#2a2e3d',
-                            accent: '#8b5cf6', // Violet
-                            sage: '#10b981',   // Sage green
-                            amber: '#f59e0b',  // Warm amber
-                            cyan: '#06b6d4'
-                        }
-                    },
-                    fontFamily: {
-                        sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        title: ['Cinzel', 'serif']
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            background-color: #0c0e14;
-            color: #e2e8f0;
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-image: 
-                radial-gradient(circle at 15% 15%, rgba(139, 92, 246, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 85% 85%, rgba(16, 185, 129, 0.04) 0%, transparent 40%);
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #11131a;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #2a2e3d;
-            border-radius: 3px;
-        }
-    </style>
+  <!-- FAVICON SVG -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
+
+  <!-- QR CODE (kartu anggota) & SCANNER (masuk dengan Kartu QR) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <!-- ALGORAND SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
+
+  <!-- SUPABASE JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+    body { background: #f4f7f5; color: #1c2b22; padding-bottom: 80px; }
+    .container { max-width:1100px; margin:auto; padding:1rem; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; padding:1rem 0; border-bottom: 1px solid #e0e8e3; margin-bottom: 15px; }
+    .brand { display:flex; align-items:center; gap:10px; text-decoration:none; color:#2f6f4e; font-weight:bold; }
+    .logo-icon { width:42px; height:42px; border-radius:50%; background: #fff; border:2px solid #2f6f4e; display:flex; align-items:center; justify-content:center; font-weight:900; color:#2f6f4e; }
+    
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .btn-login-qr { background: #2f6f4e; color: white; border: none; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-login-qr:hover { background: #24583e; }
+    .btn-outline-action { background: #ffffff; color: #2f6f4e; border: 1px solid #2f6f4e; padding: 8px 14px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn-outline-action:hover { background: #e9f4ee; }
+
+    .user-profile-badge { display: flex; align-items: center; gap: 10px; background: #ffffff; border: 1px solid #e0e8e3; padding: 6px 12px; border-radius: 12px; }
+    /* [FIX] avatar: mendukung foto dari profiles.avatar_url, huruf inisial jadi cadangan */
+    .user-avatar { position: relative; overflow: hidden; flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: #2f6f4e; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; }
+    .user-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .user-info-text { font-size: 11px; }
+    .btn-logout { background: transparent; border: none; color: #dc2626; font-size: 11px; font-weight: bold; cursor: pointer; margin-left: 5px; }
+
+    .btn-download-myqr {
+      background: #e9f4ee;
+      color: #2f6f4e;
+      border: 1px solid #2f6f4e;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-left: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+    .btn-download-myqr:hover {
+      background: #2f6f4e;
+      color: #ffffff;
+    }
+
+    .pwa-banner { background: #ffffff; border: 1px solid rgba(76,175,122,0.3); border-radius: 16px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; }
+    .pwa-btn { background: linear-gradient(90deg,#4caf7a,#c9a227); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-size: 11px; font-weight: bold; cursor: pointer; }
+
+    .layout { display:flex; gap:20px; }
+    .left { width:340px; }
+    .right { flex:1; }
+
+    .card { background:#ffffff; border-radius:16px; padding:18px; margin-bottom:15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); border:1px solid rgba(0,0,0,0.05); }
+    .card h3 { font-size: 14px; color: #2f6f4e; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+    .qr-input-box { display: flex; gap: 8px; margin-bottom: 12px; }
+    .qr-input-box input { flex: 1; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 12px; outline: none; }
+    .qr-input-box input:focus { border-color: #2f6f4e; }
+    
+    .qr-trigger-box { border: 2px dashed #4caf7a; background: #f8fcf9; border-radius: 16px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; }
+    .qr-trigger-box:hover { background: #e9f4ee; transform: scale(1.01); }
+
+    .qr-grid-feed { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; max-height: 520px; overflow-y: auto; padding-right: 5px; }
+    
+    .qr-card-item { background: #fff; border: 1px solid #e0e8e3; border-radius: 14px; padding: 14px; text-align: center; transition: all 0.3s ease; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+    .qr-card-item:hover { border-color: #2f6f4e; box-shadow: 0 6px 16px rgba(47,111,78,0.12); }
+    .qr-card-item .qr-holder { margin: 10px auto; display: flex; justify-content: center; cursor: pointer; }
+    
+    .qr-card-item.revealed { text-align: left; background: #fdfdfd; border-left: 4px solid #2f6f4e; animation: revealAnim 0.4s ease-out; }
+    @keyframes revealAnim { from { opacity: 0.4; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+    
+    .revealed-content { margin-top: 8px; font-size: 13px; color: #1c2b22; font-weight: 500; line-height: 1.4; word-break: break-word; }
+    .scan-prompt { font-size: 10px; color: #888; margin-top: 4px; font-style: italic; cursor: pointer; }
+
+    .btn-download-qr {
+      background: #f0f7f3;
+      color: #2f6f4e;
+      border: 1px solid #2f6f4e;
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-download-qr:hover {
+      background: #2f6f4e;
+      color: #ffffff;
+    }
+
+    /* FORM STYLES */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 11px; font-weight: bold; color: #2f6f4e; margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 12px; outline: none; }
+    .form-control:focus { border-color: #2f6f4e; }
+    .btn-submit-form { width: 100%; background: #2f6f4e; color: white; border: none; padding: 10px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; margin-top: 5px; }
+    .btn-submit-form:hover { background: #24583e; }
+
+    /* MODALS SYSTEM */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99999; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+    .modal-card { background: white; border-radius: 16px; padding: 20px; max-width: 420px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+    #reader { width: 100%; max-width: 320px; border-radius: 16px; overflow: hidden; border: 2px solid #4caf7a; }
+
+    .upload-gallery-box { margin-top: 15px; text-align: center; }
+    .btn-upload-gallery {
+      background: #2f6f4e;
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid #4caf7a;
+      transition: 0.2s;
+    }
+    .btn-upload-gallery:hover { background: #24583e; }
+
+    .tab-container { display: flex; border-bottom: 1px solid #e0e8e3; margin-bottom: 15px; }
+    .tab-btn { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: bold; color: #6f7f76; border: none; background: transparent; cursor: pointer; }
+    .tab-btn.active { color: #2f6f4e; border-bottom: 2px solid #2f6f4e; }
+
+    /* [V2] textarea multi-baris, teks feed menghormati baris baru, tombol aksi penulis */
+    textarea.form-control { resize: vertical; font-family: inherit; line-height: 1.4; }
+    .revealed-content { white-space: pre-wrap; }
+    .owner-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .btn-mini { background: #f0f7f3; color: #2f6f4e; border: 1px solid #2f6f4e; border-radius: 8px; padding: 5px 9px; font-size: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .btn-mini:hover { background: #2f6f4e; color: #fff; }
+    .btn-mini.danger { color: #dc2626; border-color: #dc2626; background: #fff5f5; }
+    .btn-mini.danger:hover { background: #dc2626; color: #fff; }
+
+    /* [V3] modal frasa: grid 25 kata bernomor + tombol nonaktif sampai verifikasi */
+    .mn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px; border-radius: 8px; margin: 10px 0; }
+    .mn-word { font-family: monospace; font-size: 11px; background: #fff; border-radius: 6px; padding: 4px 6px; display: flex; gap: 4px; align-items: center; word-break: break-all; }
+    .mn-word i { font-style: normal; color: #9ca3af; font-size: 9px; min-width: 14px; }
+    .btn-submit-form:disabled { background: #9db8a9; cursor: not-allowed; }
+    .scan-badge { font-size: 11px; font-weight: bold; color: #92400e; background: #fef3c7; border-radius: 8px; padding: 6px 10px; margin-bottom: 12px; display: inline-block; }
+
+    /* menu kembali ke situs ToFarmer */
+    .top-nav { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+    .nav-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 13px; border-radius: 999px; background: #ffffff; border: 1px solid #cfe5d8; color: #2f6f4e; font-size: 11px; font-weight: bold; text-decoration: none; transition: 0.2s; }
+    .nav-pill:hover { background: #2f6f4e; color: #ffffff; border-color: #2f6f4e; }
+
+    /* pilihan jenis QR (Terbuka / Rahasia) */
+    .mode-caption { font-size: 11px; font-weight: bold; color: #2f6f4e; margin-bottom: 6px; }
+    .mode-opt { display: flex; gap: 8px; align-items: flex-start; border: 1px solid #d9e4dd; border-radius: 12px; padding: 10px; margin-bottom: 8px; cursor: pointer; background: #fff; transition: 0.2s; }
+    .mode-opt.selected { border-color: #2f6f4e; background: #f0f7f3; box-shadow: 0 0 0 2px rgba(47,111,78,0.12); }
+    .mode-opt input { margin-top: 3px; accent-color: #2f6f4e; }
+    .mode-opt b { display: block; font-size: 12px; color: #2f6f4e; margin-bottom: 2px; }
+    .mode-opt span { display: block; font-size: 10px; color: #6f7f76; line-height: 1.45; }
+
+    /* [V5] dialog cantik (pengganti alert/confirm bawaan browser) */
+    .dlg-card { text-align: center; padding: 24px 20px 18px; border-top: 5px solid #4caf7a; animation: dlgPop 0.25s ease-out; }
+    @keyframes dlgPop { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    .dlg-icon { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 28px; background: #eef7f1; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .dlg-title { font-size: 15px; color: #2f6f4e; margin-bottom: 4px; }
+    .dlg-sub { font-size: 11px; font-weight: bold; color: #6f7f76; margin-bottom: 8px; word-break: break-word; }
+    .dlg-msg { font-size: 12px; color: #4b5563; line-height: 1.55; white-space: pre-wrap; word-break: break-word; max-height: 45vh; overflow-y: auto; }
+    .dlg-quote { margin: 10px 0 2px; text-align: left; font-size: 13px; color: #1c2b22; background: #f8fcf9; border-left: 4px solid #4caf7a; border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; max-height: 40vh; overflow-y: auto; }
+    .dlg-actions { display: flex; gap: 8px; margin-top: 16px; }
+    .dlg-btn { flex: 1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: bold; cursor: pointer; border: none; }
+    .dlg-btn-ok { background: linear-gradient(90deg,#4caf7a,#2f6f4e); color: #fff; }
+    .dlg-btn-ok:hover { filter: brightness(1.06); }
+    .dlg-btn-ghost { background: #f3f4f6; color: #4b5563; }
+    .dlg-btn-ghost:hover { background: #e5e7eb; }
+
+    /* [V4] baris tombol kartu terkunci */
+    .btn-row { display: flex; gap: 6px; margin-top: 10px; }
+    .btn-row .btn-download-qr { margin-top: 0; flex: 1; width: auto; }
+
+    @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
+  
+    /* ===== Jurnal Olahrasa & Sasmita (tema ToFarmer) ===== */
+    .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .sync-pill { display: flex; align-items: center; gap: 6px; font-size: 11px; padding: 6px 12px; border-radius: 999px; background: #fff; border: 1px solid #e0e8e3; color: #6f7f76; }
+    .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; }
+    .sync-dot.online { background: #4caf7a; }
+    .sync-dot.pending { background: #c9a227; }
+    .sync-dot.syncing { background: #c9a227; animation: syncPulse 1s infinite; }
+    @keyframes syncPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .icon-btn { width: 34px; height: 34px; border-radius: 10px; background: #fff; border: 1px solid #cfe5d8; cursor: pointer; font-size: 15px; transition: 0.2s; }
+    .icon-btn:hover { background: #e9f4ee; border-color: #2f6f4e; }
+
+    .journal-layout { display: grid; grid-template-columns: 7fr 5fr; gap: 20px; align-items: start; }
+    @media (max-width: 900px) { .journal-layout { grid-template-columns: 1fr; } }
+    .card-title-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #e0e8e3; }
+    .card-title-row h2 { font-size: 14px; color: #2f6f4e; display: flex; align-items: center; gap: 6px; }
+    .muted-xs { font-size: 11px; color: #6f7f76; }
+    .count-badge { font-size: 11px; padding: 3px 10px; border-radius: 999px; background: #e9f4ee; color: #2f6f4e; font-weight: bold; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .sensor-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 600px) { .sensor-grid { grid-template-columns: repeat(2, 1fr); } }
+    .sensor-btn { text-align: left; border: 1px solid #d9e4dd; background: #fff; border-radius: 12px; padding: 8px 10px; cursor: pointer; transition: 0.2s; font-family: inherit; }
+    .sensor-btn:hover { border-color: #4caf7a; }
+    .sensor-btn.active { border-color: #2f6f4e; background: #e9f4ee; box-shadow: 0 0 0 2px rgba(47,111,78,0.15); }
+    .sensor-btn b { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #1c2b22; }
+    .sensor-btn span { display: block; font-size: 9px; color: #6f7f76; line-height: 1.35; margin-top: 2px; }
+
+    .intensity-box { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: center; background: #f8fcf9; border: 1px solid #e0e8e3; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    @media (max-width: 600px) { .intensity-box { grid-template-columns: 1fr; } }
+    .range { width: 100%; accent-color: #c9a227; cursor: pointer; }
+    .label-gold { color: #92700a !important; }
+    .raw-box { border-color: rgba(201,162,39,0.55); background: #fffdf5; }
+    .raw-box:focus { border-color: #c9a227; }
+    .form-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 6px; }
+    .btn-text { background: transparent; border: none; color: #6f7f76; font-size: 12px; font-weight: bold; cursor: pointer; padding: 8px 12px; }
+    .btn-text:hover { color: #1c2b22; }
+    .form-actions .btn-submit-form { width: auto; padding: 10px 22px; margin-top: 0; }
+
+    .filter-row { display: flex; gap: 8px; margin-top: 8px; }
+    .filter-row .form-control { flex: 1; font-size: 11px; }
+    .logs-stream { margin-top: 14px; display: flex; flex-direction: column; gap: 12px; max-height: 580px; overflow-y: auto; padding-right: 4px; }
+    .log-card { background: #f8fcf9; border: 1px solid #e0e8e3; border-radius: 14px; padding: 14px; }
+    .log-card:hover { border-color: #4caf7a; }
+    .log-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .log-cat { font-size: 10px; font-weight: bold; color: #92700a; text-transform: uppercase; letter-spacing: 0.5px; }
+    .log-pure { font-size: 9px; background: #fef3c7; color: #92400e; border: 1px solid #f3d98b; padding: 1px 6px; border-radius: 6px; margin-left: 6px; font-weight: bold; text-transform: none; letter-spacing: 0; }
+    .log-title { font-size: 13px; font-weight: bold; color: #1c2b22; margin: 3px 0 2px; word-break: break-word; }
+    .log-date { font-size: 10px; color: #6f7f76; }
+    .log-intensity { font-size: 10px; font-weight: bold; padding: 3px 8px; border-radius: 8px; background: #e9f4ee; color: #2f6f4e; white-space: nowrap; }
+    .log-del { background: transparent; border: none; cursor: pointer; font-size: 14px; padding: 2px 4px; opacity: 0.55; }
+    .log-del:hover { opacity: 1; }
+    .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+    .chip { font-size: 10px; padding: 2px 9px; border-radius: 999px; background: #e9f4ee; border: 1px solid #cfe5d8; color: #2f6f4e; font-weight: bold; }
+    .chip-dir { font-size: 10px; padding: 2px 8px; border-radius: 8px; background: #fff; border: 1px solid #d9e4dd; color: #0e7490; }
+    .log-sens { font-size: 11px; color: #6f7f76; margin-top: 8px; }
+    .quote-gold { margin-top: 10px; padding: 8px 10px; background: #fffaf0; border-left: 3px solid #c9a227; border-radius: 8px; font-size: 12px; color: #7a5b06; font-style: italic; white-space: pre-wrap; word-break: break-word; }
+    .log-analysis { margin-top: 10px; font-size: 12px; color: #3d5246; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+    .note-green, .note-teal { margin-top: 8px; font-size: 11px; padding: 7px 10px; border-radius: 8px; word-break: break-word; }
+    .note-green { background: #e9f4ee; border: 1px solid #cfe5d8; color: #24583e; }
+    .note-teal { background: #e6f6f8; border: 1px solid #bfe3e8; color: #0e5a66; }
+    .empty-box { text-align: center; padding: 28px 10px; color: #6f7f76; font-size: 12px; line-height: 1.7; }
+
+    .guide-card { max-width: 640px; max-height: 88vh; overflow-y: auto; position: relative; }
+    .guide-x { position: absolute; top: 12px; right: 14px; background: transparent; border: none; font-size: 18px; cursor: pointer; color: #6f7f76; }
+    .guide-sec { background: #f8fcf9; border: 1px solid #e0e8e3; border-radius: 12px; padding: 12px 14px; margin-top: 12px; font-size: 12px; color: #3d5246; line-height: 1.6; }
+    .guide-sec h4 { font-size: 13px; margin-bottom: 4px; }
+    .guide-sec ul { margin: 6px 0 0 18px; color: #4b5d52; }
+    .guide-sec li { margin-bottom: 4px; }
+    .guide-vs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; font-size: 11px; }
+    .guide-vs div { background: #fff; border: 1px solid #e0e8e3; border-radius: 10px; padding: 8px 10px; }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col antialiased selection:bg-mystic-accent selection:text-white">
+<body>
 
-    <header class="border-b border-mystic-border bg-mystic-base/80 backdrop-blur-md sticky top-0 z-40">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-mystic-accent via-mystic-sage to-mystic-amber flex items-center justify-center text-white shadow-lg shadow-mystic-accent/20">
-                    <i class="fa-solid fa-eye text-lg"></i>
-                </div>
-                <div>
-                    <h1 class="font-title font-bold text-lg text-slate-100 tracking-wide">OLAHRASA & SASMITA</h1>
-                    <p class="text-xs text-slate-400">Jurnal Sensor Tubuh & Intuisi Personal</p>
-                </div>
-            </div>
+  <div class="container">
+    <!-- MENU KEMBALI KE SITUS TOFARMER -->
+    <nav class="top-nav" aria-label="Menu ToFarmer">
+      <a class="nav-pill" href="https://www.tofarmer.xyz/">🏠 Beranda</a>
+      <a class="nav-pill" href="https://www.tofarmer.xyz/html/fitur-ilmu.html">📚 Fitur Ilmu</a>
+    </nav>
 
-            <div class="flex items-center gap-2">
-                <!-- Sync Status Pill -->
-                <div id="syncStatus" class="hidden sm:flex items-center gap-2 text-xs px-3 py-1.5 rounded-full bg-mystic-card border border-mystic-border text-slate-400">
-                    <span id="syncDot" class="w-2 h-2 rounded-full bg-slate-500"></span>
-                    <span id="syncText">Offline Mode</span>
-                </div>
-
-                <button onclick="triggerSync()" class="p-2 rounded-lg bg-mystic-card border border-mystic-border hover:border-mystic-accent text-slate-300 hover:text-white transition" title="Sinkronkan Sekarang">
-                    <i class="fa-solid fa-rotate text-sm"></i>
-                </button>
-                <button onclick="toggleModal('configModal')" class="p-2 rounded-lg bg-mystic-card border border-mystic-border hover:border-mystic-accent text-slate-300 hover:text-white transition" title="Pengaturan Supabase">
-                    <i class="fa-solid fa-sliders text-sm"></i>
-                </button>
-                <button onclick="toggleModal('guideModal')" class="p-2 rounded-lg bg-mystic-card border border-mystic-border hover:border-mystic-sage text-mystic-sage transition" title="Panduan & Reset Saraf">
-                    <i class="fa-solid fa-book-bookmark text-sm"></i>
-                </button>
-            </div>
+    <header>
+      <a href="#" class="brand">
+        <div class="logo-icon">👁️</div>
+        <div>
+          <div style="font-size: 16px; letter-spacing: 0.5px;">OLAHRASA & SASMITA</div>
+          <div style="font-size: 10px; color:#6f7f76; font-weight: normal;">Jurnal Sensor Tubuh & Intuisi Personal</div>
         </div>
+      </a>
+
+      <div class="header-right">
+        <div class="sync-pill" id="syncStatus"><span id="syncDot" class="sync-dot"></span><span id="syncText">Belum masuk</span></div>
+        <button class="icon-btn" onclick="triggerSync(true)" title="Sinkronkan Sekarang">🔄</button>
+        <button class="icon-btn" onclick="toggleModal('guideModal')" title="Panduan & Reset Saraf">📖</button>
+        <div class="header-actions" id="headerAuthBox">
+          <button class="btn-outline-action" onclick="openAuthModal('register')">
+            <span>✨</span> Daftar Akun
+          </button>
+          <button class="btn-login-qr" onclick="openAuthModal('login')">
+            <span>🔑</span> Masuk
+          </button>
+        </div>
+      </div>
     </header>
 
-    <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div class="journal-layout">
+
+      <!-- KIRI: Form Input -->
+      <section>
+        <div class="card">
+          <div class="card-title-row">
+            <h2>✍️ Catat Jurnal Olahrasa</h2>
+            <span class="muted-xs" id="currentDateTime"></span>
+          </div>
+
+          <form id="journalForm" onsubmit="handleFormSubmit(event)">
+
+            <!-- Lokasi & Kategori -->
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Nama Lokasi / Konteks *</label>
+                <input type="text" id="locationName" required placeholder="Contoh: Sendang Menoreh / Ruang Meditasi" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Kategori Sinyal *</label>
+                <select id="category" required class="form-control">
+                  <option value="Sinyal Alam/Geologi">Sinyal Alam / Geologi (Air, Tanah)</option>
+                  <option value="Genius Loci/Energi Tempat">Genius Loci / Energi Tempat</option>
+                  <option value="Resonansi Luhur/Doa">Resonansi Luhur / Doa / Pusaka</option>
+                  <option value="Residu/Peringatan">Residu / Alert / Peringatan</option>
+                  <option value="Intuisi Umum">Intuisi / Olahrasa Umum</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Pilihan Sensor -->
+            <div class="form-group">
+              <label>Pilih Sensor Tubuh yang Aktif *</label>
+              <div class="sensor-grid" id="sensorGrid">
+                <!-- Diisi otomatis lewat JS -->
+              </div>
+            </div>
+
+            <!-- Sensasi & Arah -->
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Sensasi yang Dirasakan</label>
+                <input type="text" id="sensationsInput" placeholder="Contoh: Kebat-kebit, Hangat, Merinding (Pisahkan koma)" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Arah Spasial Vektor</label>
+                <input type="text" id="sensorDirectionsInput" placeholder="Contoh: Kanan Atas, Depan, Belakang Kuduk" class="form-control">
+              </div>
+            </div>
+
+            <!-- Intensitas & Sasmita Murni -->
+            <div class="intensity-box">
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <span style="font-size:11px; font-weight:bold; color:#2f6f4e;">Skala Intensitas</span>
+                  <span id="intensityVal" style="font-size:12px; font-weight:bold; color:#92700a;">5 / 10</span>
+                </div>
+                <input type="range" id="intensity" min="1" max="10" value="5" oninput="document.getElementById('intensityVal').innerText = this.value + ' / 10'" class="range">
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <input type="checkbox" id="isPureSasmita" style="width:16px; height:16px; accent-color:#2f6f4e; cursor:pointer;">
+                <label for="isPureSasmita" style="font-size:12px; font-weight:bold; color:#92700a; cursor:pointer;">Sasmita Murni (3-Detik Pertama)</label>
+              </div>
+            </div>
+
+            <!-- Intuisi & Analisis -->
+            <div class="form-group">
+              <label class="label-gold">⚡ Impresi Murni / Raw Sasmita *</label>
+              <textarea id="rawSasmita" required rows="2" placeholder="Pesan, gambaran, atau suara batin pertama tanpa filter logika..." class="form-control raw-box"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Analisis Logis & Uraian Detail</label>
+              <textarea id="logicalAnalysis" rows="2" placeholder="Uraian perdebatan pikiran rasional vs kompas olahrasa..." class="form-control"></textarea>
+            </div>
+
+            <!-- Validasi Realita & Grounding -->
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Validasi Realita</label>
+                <input type="text" id="realValidation" placeholder="Bukti/fakta di lapangan..." class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Catatan Grounding / Reset</label>
+                <input type="text" id="groundingNote" placeholder="Tindakan menetralkan saraf..." class="form-control">
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" onclick="resetForm()" class="btn-text">Reset Form</button>
+              <button type="submit" class="btn-submit-form">💾 Simpan Catatan</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- KANAN: Riwayat & Filter -->
+      <section>
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-title-row">
+            <h2>🕰️ Riwayat Olahrasa</h2>
+            <span id="logCountBadge" class="count-badge">0 Log</span>
+          </div>
+
+          <!-- Pencarian & Filter -->
+          <input type="text" id="searchInput" oninput="renderLogs()" placeholder="🔍 Cari sasmita, lokasi, atau kata kunci..." class="form-control">
+          <div class="filter-row">
+            <select id="filterCategory" onchange="renderLogs()" class="form-control">
+              <option value="ALL">Semua Kategori</option>
+              <option value="Sinyal Alam/Geologi">Alam / Geologi</option>
+              <option value="Genius Loci/Energi Tempat">Energi Tempat</option>
+              <option value="Resonansi Luhur/Doa">Resonansi Luhur</option>
+              <option value="Residu/Peringatan">Residu / Alert</option>
+              <option value="Intuisi Umum">Intuisi Umum</option>
+            </select>
+            <select id="filterSensor" onchange="renderLogs()" class="form-control">
+              <option value="ALL">Semua Sensor</option>
+              <option value="Perut">Perut (Solar Plexus)</option>
+              <option value="Dada">Dada (Heart)</option>
+              <option value="Kening">Kening (Ajna)</option>
+              <option value="Ubun-ubun">Ubun-ubun (Crown)</option>
+              <option value="Atas Kepala">Atas Kepala</option>
+              <option value="Tengkuk">Tengkuk / Kuduk</option>
+              <option value="Telapak">Telapak Tangan/Kaki</option>
+            </select>
+          </div>
+
+          <!-- Daftar catatan -->
+          <div id="logsContainer" class="logs-stream">
+            <!-- Dibuat otomatis lewat JS -->
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- MODAL AUTHENTICATION (LOGIN & DAFTAR) -->
+  <div id="authModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="tab-container">
+        <button id="tabBtnLogin" class="tab-btn active" onclick="switchAuthTab('login')">🔑 Masuk</button>
+        <button id="tabBtnRegister" class="tab-btn" onclick="switchAuthTab('register')">✨ Daftar Baru</button>
+      </div>
+
+      <!-- FORM LOGIN -->
+      <div id="authLoginForm">
+        <div class="form-group">
+          <label>Nama pengguna:</label>
+          <input type="text" id="loginIdentifier" class="form-control" placeholder="Contoh: budi01">
+        </div>
+        <div class="form-group">
+          <label>PIN (6 angka):</label>
+          <input type="password" id="loginPin" class="form-control" maxlength="6" inputmode="numeric" placeholder="******">
+        </div>
+        <button class="btn-submit-form" onclick="submitLoginManual()">Masuk Akun</button>
         
-        <!-- LEFT: Form Input (7 cols) -->
-        <section class="lg:col-span-7 flex flex-col gap-5">
-            <div class="bg-mystic-card border border-mystic-border rounded-2xl p-5 shadow-xl relative overflow-hidden">
-                <div class="flex items-center justify-between mb-4 pb-3 border-b border-mystic-border">
-                    <h2 class="font-title text-md font-semibold text-purple-300 flex items-center gap-2">
-                        <i class="fa-solid fa-pen-nib text-sm"></i> Catat Jurnal Olahrasa
-                    </h2>
-                    <span class="text-xs text-slate-400" id="currentDateTime"></span>
-                </div>
+        <div style="text-align: center; margin: 12px 0; font-size: 11px; color: #888;">— atau —</div>
+        
+        <button class="btn-outline-action" style="width:100%; justify-content:center;" onclick="triggerScanForLogin()">
+          <span>📷</span> Masuk dengan Kartu QR (tetap perlu PIN)
+        </button>
+      </div>
 
-                <form id="journalForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
-                    
-                    <!-- Location Name & Category -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Nama Lokasi / Konteks *</label>
-                            <input type="text" id="locationName" required placeholder="Contoh: Sendang Menoreh / Ruang Meditasi" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Kategori Sinyal *</label>
-                            <select id="category" required class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent">
-                                <option value="Sinyal Alam/Geologi">Sinyal Alam / Geologi (Air, Tanah)</option>
-                                <option value="Genius Loci/Energi Tempat">Genius Loci / Energi Tempat</option>
-                                <option value="Resonansi Luhur/Doa">Resonansi Luhur / Doa / Pusaka</option>
-                                <option value="Residu/Peringatan">Residu / Alert / Peringatan</option>
-                                <option value="Intuisi Umum">Intuisi / Olahrasa Umum</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Sensor Selection -->
-                    <div>
-                        <label class="block text-xs font-medium text-slate-300 mb-2">Pilih Sensor Tubuh yang Aktif *</label>
-                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="sensorGrid">
-                            <!-- Populated dynamically via JS -->
-                        </div>
-                    </div>
-
-                    <!-- Sensations & Directions -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Sensasi yang Dirasakan</label>
-                            <input type="text" id="sensationsInput" placeholder="Contoh: Kebat-kebit, Hangat, Merinding (Pisahkan koma)" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Arah Spasial Vektor</label>
-                            <input type="text" id="sensorDirectionsInput" placeholder="Contoh: Kanan Atas, Depan, Belakang Kuduk" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent transition">
-                        </div>
-                    </div>
-
-                    <!-- Intensity Slider & Pure Sasmita Checkbox -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-mystic-base/50 p-3 rounded-xl border border-mystic-border/50 items-center">
-                        <div>
-                            <div class="flex justify-between items-center mb-1">
-                                <label class="text-xs font-medium text-slate-300">Skala Intensitas</label>
-                                <span id="intensityVal" class="text-xs font-bold text-mystic-amber">5 / 10</span>
-                            </div>
-                            <input type="range" id="intensity" min="1" max="10" value="5" oninput="document.getElementById('intensityVal').innerText = this.value + ' / 10'" class="w-full accent-mystic-amber cursor-pointer">
-                        </div>
-                        <div class="flex items-center gap-2 pt-2 sm:pt-0">
-                            <input type="checkbox" id="isPureSasmita" class="w-4 h-4 rounded border-mystic-border bg-mystic-base text-mystic-accent focus:ring-mystic-accent accent-mystic-accent cursor-pointer">
-                            <label for="isPureSasmita" class="text-xs font-medium text-amber-300 cursor-pointer">
-                                Sasmita Murni (3-Detik Pertama)
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Intuition & Analysis -->
-                    <div class="space-y-3">
-                        <div>
-                            <label class="text-xs font-semibold text-mystic-amber flex items-center gap-1.5 mb-1">
-                                <i class="fa-solid fa-bolt text-xs"></i> Impresi Murni / Raw Sasmita *
-                            </label>
-                            <textarea id="rawSasmita" required rows="2" placeholder="Pesan, gambaran, atau suara batin pertama tanpa filter logika..." class="w-full bg-mystic-base border border-mystic-amber/40 focus:border-mystic-amber rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none transition"></textarea>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-slate-300 mb-1">Analisis Logis & Uraian Detail</label>
-                            <textarea id="logicalAnalysis" rows="2" placeholder="Uraian perdebatan pikiran rasional vs kompas olahrasa..." class="w-full bg-mystic-base border border-mystic-border rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-mystic-accent transition"></textarea>
-                        </div>
-
-                        <!-- Real Validation & Grounding -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1">Validasi Realita</label>
-                                <input type="text" id="realValidation" placeholder="Bukti/fakta di lapangan..." class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-mystic-sage">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-slate-300 mb-1">Catatan Grounding / Reset</label>
-                                <input type="text" id="groundingNote" placeholder="Tindakan menetralkan saraf..." class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-mystic-cyan">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="pt-2 flex items-center justify-between">
-                        <button type="button" onclick="resetForm()" class="px-4 py-2 text-xs font-medium text-slate-400 hover:text-slate-200 transition">
-                            Reset Form
-                        </button>
-                        <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-mystic-accent to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-medium text-xs shadow-lg shadow-mystic-accent/25 transition flex items-center gap-2">
-                            <i class="fa-solid fa-floppy-disk"></i> Simpan Catatan
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </section>
-
-        <!-- RIGHT: Log History & Filter (5 cols) -->
-        <section class="lg:col-span-5 flex flex-col gap-5">
-            <div class="bg-mystic-card border border-mystic-border rounded-2xl p-5 shadow-xl flex-1 flex flex-col">
-                <div class="flex items-center justify-between mb-4 pb-3 border-b border-mystic-border">
-                    <h2 class="font-title text-md font-semibold text-emerald-400 flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-sm"></i> Riwayat Olahrasa
-                    </h2>
-                    <span id="logCountBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-mystic-border text-slate-300 font-mono">0 Log</span>
-                </div>
-
-                <!-- Search & Filter Controls -->
-                <div class="space-y-2 mb-4">
-                    <div class="relative">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-400"></i>
-                        <input type="text" id="searchInput" oninput="renderLogs()" placeholder="Cari sasmita, lokasi, atau kata kunci..." class="w-full bg-mystic-base border border-mystic-border rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-mystic-sage">
-                    </div>
-                    <div class="flex gap-2">
-                        <select id="filterCategory" onchange="renderLogs()" class="flex-1 bg-mystic-base border border-mystic-border rounded-xl px-2.5 py-1.5 text-[11px] text-slate-300 focus:outline-none">
-                            <option value="ALL">Semua Kategori</option>
-                            <option value="Sinyal Alam/Geologi">Alam / Geologi</option>
-                            <option value="Genius Loci/Energi Tempat">Energi Tempat</option>
-                            <option value="Resonansi Luhur/Doa">Resonansi Luhur</option>
-                            <option value="Residu/Peringatan">Residu / Alert</option>
-                            <option value="Intuisi Umum">Intuisi Umum</option>
-                        </select>
-                        <select id="filterSensor" onchange="renderLogs()" class="flex-1 bg-mystic-base border border-mystic-border rounded-xl px-2.5 py-1.5 text-[11px] text-slate-300 focus:outline-none">
-                            <option value="ALL">Semua Sensor</option>
-                            <option value="Perut">Perut (Solar Plexus)</option>
-                            <option value="Dada">Dada (Heart)</option>
-                            <option value="Kening">Kening (Ajna)</option>
-                            <option value="Ubun-ubun">Ubun-ubun (Crown)</option>
-                            <option value="Atas Kepala">Atas Kepala</option>
-                            <option value="Tengkuk">Tengkuk / Kuduk</option>
-                            <option value="Telapak">Telapak Tangan/Kaki</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Logs Stream -->
-                <div id="logsContainer" class="flex-1 space-y-3 overflow-y-auto max-h-[580px] pr-1 custom-scrollbar">
-                    <!-- Logs generated dynamically -->
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- MODAL 1: Supabase Config -->
-    <div id="configModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-mystic-card border border-mystic-border rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative">
-            <button onclick="toggleModal('configModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            <div class="flex items-center gap-3 border-b border-mystic-border pb-3">
-                <i class="fa-solid fa-cloud-arrow-up text-mystic-accent text-xl"></i>
-                <div>
-                    <h3 class="font-title font-semibold text-slate-100">Pengaturan Supabase Cloud</h3>
-                    <p class="text-xs text-slate-400">Menghubungkan ke tabel olahrasa_logs</p>
-                </div>
-            </div>
-            
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs text-slate-300 mb-1">Supabase Project URL</label>
-                    <input type="text" id="supabaseUrl" placeholder="https://afpzddwuikvwsedzgsee.supabase.co" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-2 text-xs text-slate-200">
-                </div>
-                <div>
-                    <label class="block text-xs text-slate-300 mb-1">Supabase Anon Key</label>
-                    <input type="password" id="supabaseKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY" class="w-full bg-mystic-base border border-mystic-border rounded-xl px-3 py-2 text-xs text-slate-200">
-                </div>
-                <p class="text-[11px] text-slate-400 leading-relaxed bg-mystic-base p-2.5 rounded-lg border border-mystic-border">
-                    <i class="fa-solid fa-circle-info text-mystic-amber"></i> Data tersimpan di IndexedDB lokal terlebih dahulu. Saat terhubung, data akan disinkronkan secara 2 arah ke Supabase.
-                </p>
-            </div>
-
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="saveSupabaseConfig()" class="px-4 py-2 rounded-xl bg-mystic-accent hover:bg-purple-600 text-white text-xs font-medium transition">
-                    Simpan & Tes Koneksi
-                </button>
-            </div>
+      <!-- FORM REGISTER -->
+      <div id="authRegisterForm" style="display: none;">
+        <div class="form-group">
+          <label>Nama pengguna baru (huruf/angka/_, tanpa spasi):</label>
+          <input type="text" id="regUsername" class="form-control" maxlength="20" placeholder="Contoh: petani_menoreh">
         </div>
+        <div class="form-group">
+          <label>Buat PIN (6 angka, hafalkan ya):</label>
+          <input type="password" id="regPin" class="form-control" maxlength="6" inputmode="numeric" placeholder="******">
+        </div>
+        <div style="background:#fef3c7; border-left:3px solid #f59e0b; padding:8px; border-radius:6px; font-size:10px; color:#92400e; margin-bottom:12px;">
+          💡 Dompet digital kamu akan dibuatkan otomatis. PIN dipakai setiap kali masuk dan membuat QR Rahasia.
+        </div>
+        <button class="btn-submit-form" onclick="submitRegister()">Buat Akun Saya</button>
+      </div>
+
+      <button style="margin-top: 15px; width: 100%; padding: 8px; background: #f3f4f6; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 11px;" onclick="closeAuthModal()">Batal</button>
+    </div>
+  </div>
+
+  <!-- MODAL MNEMONIC (DITAMPILKAN SETELAH REGISTER / UPGRADE) -->
+  <div id="mnemonicModal" class="modal-overlay">
+    <div class="modal-card" style="max-height: 92vh; overflow-y: auto;">
+      <h3 style="margin-top:0; color:#2f6f4e; font-size:15px;">🎉 Akun Kamu Sudah Jadi!</h3>
+      <p style="font-size:11px; color:#4b5563; margin-top:5px;">
+        Kartu Anggota (gambar QR) sudah otomatis tersimpan di HP kamu. Di bawah ini <b>25 kata kunci dompet digitalmu</b>:
+      </p>
+
+      <div class="mn-grid" id="mnemonicDisplayBox">
+        <!-- 25 kata rahasia -->
+      </div>
+
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button id="btnCopyMnemonic" style="flex:1; background:#2563eb; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;">
+          📋 Salin 25 Kata
+        </button>
+        <button id="btnDownloadMnemonic" style="flex:1; background:#7c3aed; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="downloadMnemonicFile()">
+          💾 Simpan sebagai File
+        </button>
+      </div>
+
+      <!-- [V3] peringatan diperjelas: frasa hanya tampil sekali -->
+      <div style="background:#fef3c7; border-left:3px solid #f59e0b; padding:8px; margin-bottom:12px; font-size:10px; color:#92400e;">
+        ⚠️ <b>Daftar kata ini hanya muncul SEKALI.</b> Simpan sekarang: salin, simpan sebagai file, atau tulis di kertas. Kalau hilang, tidak bisa dilihat lagi. Jangan dibagikan ke siapa pun, karena siapa pun yang punya kata-kata ini bisa menguasai dompetmu.
+      </div>
+
+      <div style="background:#f8fcf9; border:1px solid #cfe5d8; border-radius:10px; padding:10px; margin-bottom:12px;">
+        <div style="font-size:11px; font-weight:bold; color:#2f6f4e; margin-bottom:6px;">✅ Cek dulu: ketik ulang 2 kata dari daftar di atas</div>
+        <div style="display:flex; gap:8px;">
+          <div style="flex:1;">
+            <label id="mnVerifyLabel1" style="display:block; font-size:10px; color:#6f7f76; margin-bottom:3px;"></label>
+            <input type="text" id="mnVerify1" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="checkMnemonicVerify()">
+          </div>
+          <div style="flex:1;">
+            <label id="mnVerifyLabel2" style="display:block; font-size:10px; color:#6f7f76; margin-bottom:3px;"></label>
+            <input type="text" id="mnVerify2" class="form-control" autocomplete="off" autocapitalize="off" spellcheck="false" oninput="checkMnemonicVerify()">
+          </div>
+        </div>
+      </div>
+
+      <button id="btnEnterMatrix" class="btn-submit-form" onclick="closeMnemonicModal()" disabled>Lanjut 🚀</button>
+      <div style="text-align:center; margin-top:8px;">
+        <a href="#" onclick="skipMnemonicVerify(); return false;" style="font-size:10px; color:#999;">Lewati (saya paham risikonya)</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- [V5] DIALOG CANTIK (pengganti alert/confirm bawaan browser) -->
+  <div id="dialogModal" class="modal-overlay" style="z-index: 100000;" onclick="closeDialog(false)">
+    <div class="modal-card dlg-card" id="dlgCard" onclick="event.stopPropagation()">
+      <div class="dlg-icon" id="dlgIcon">🌱</div>
+      <h3 class="dlg-title" id="dlgTitle"></h3>
+      <div class="dlg-sub" id="dlgSub"></div>
+      <div class="dlg-msg" id="dlgMsg"></div>
+      <div class="dlg-quote" id="dlgQuote"></div>
+      <div class="dlg-actions">
+        <button class="dlg-btn dlg-btn-ghost" id="dlgCancel" onclick="closeDialog(false)">Batal</button>
+        <button class="dlg-btn dlg-btn-ok" id="dlgOk" onclick="closeDialog(true)">Oke</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- [V2] MODAL KONFIRMASI PIN (untuk menerbitkan / mengedit / menghapus) -->
+  <div id="pinModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3 style="margin-top:0; color:#2f6f4e; font-size:15px;">🔐 Masukkan PIN</h3>
+      <p id="pinModalDesc" style="font-size:11px; color:#4b5563; margin:5px 0 12px;"></p>
+      <input type="password" id="pinConfirmInput" class="form-control" maxlength="6" inputmode="numeric" placeholder="******" onkeydown="if(event.key==='Enter'){submitPinConfirm();}">
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button style="flex:1; background:#f3f4f6; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="cancelPinConfirm()">Batal</button>
+        <button style="flex:1; background:#2f6f4e; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:11px;" onclick="submitPinConfirm()">Lanjut</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL SCANNER DENGAN OPSI UPLOAD GALERI DARI 1 HP -->
+  <div id="scannerModal" class="modal-overlay">
+    <h4 id="scannerModalTitle" style="color: white; margin-bottom: 12px; font-size: 13px; text-align: center;">Arahkan Kamera ke Kode QR...</h4>
+    
+    <div id="reader"></div>
+
+    <div class="upload-gallery-box">
+      <label for="qrFileInput" class="btn-upload-gallery">
+        <span>📁</span> Pilih Foto QR dari Galeri
+      </label>
+      <input type="file" id="qrFileInput" accept="image/*" style="display: none;" onchange="scanQRFromImageFile(event)">
     </div>
 
-    <!-- MODAL 2: Panduan & Reset Saraf Reference -->
-    <div id="guideModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-mystic-card border border-mystic-border rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl relative max-h-[85vh] overflow-y-auto custom-scrollbar">
-            <button onclick="toggleModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-            
-            <div class="flex items-center gap-3 border-b border-mystic-border pb-3">
-                <i class="fa-solid fa-brain text-mystic-sage text-xl"></i>
-                <div>
-                    <h3 class="font-title font-semibold text-slate-100">Panduan Olahrasa & Netralisasi Saraf</h3>
-                    <p class="text-xs text-slate-400">Ringkasan Teknik Reset & Kompas Personal</p>
-                </div>
-            </div>
+    <button style="margin-top: 15px; padding: 8px 20px; background: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;" onclick="closeScanner()">Tutup</button>
+  </div>
 
-            <div class="space-y-4 text-xs text-slate-300 leading-relaxed">
-                <!-- Section 1 -->
-                <div class="bg-mystic-base p-3.5 rounded-xl border border-mystic-border space-y-1.5">
-                    <h4 class="font-bold text-mystic-amber text-sm"><i class="fa-solid fa-eye-slash"></i> Cara Menetralkan Sensor Kening (Third Eye)</h4>
-                    <p>Karena kening terhubung dengan kognisi (*lobus frontalis*), makin dipikirkan justru makin nyut-nyut. Lakukan:</p>
-                    <ul class="list-disc list-inside space-y-1 text-slate-400 pl-1">
-                        <li><b>Teknik Eye Roll Downward:</b> Tutup mata, putar bola mata menghadap ke bawah/ujung hidung. Ini merilekskan *nervus oculomotorius*.</li>
-                        <li><b>Sentuh Belakang Telinga:</b> Usap lembut tulang di belakang daun telinga turun ke leher untuk menstimulasi *nervus vagus*.</li>
-                        <li><b>Pindahkan Indra Fisik:</b> Minum air dingin atau fokus ke rasa makanan tajam (pedas/pahit).</li>
-                    </ul>
-                </div>
 
-                <!-- Section 2 -->
-                <div class="bg-mystic-base p-3.5 rounded-xl border border-mystic-border space-y-1.5">
-                    <h4 class="font-bold text-mystic-accent text-sm"><i class="fa-solid fa-crown"></i> Mengelola Sensor Atas Kepala & Tubuh Bergetar</h4>
-                    <p>Saat sensor transpersonal aktif penuh dan tubuh bergetar hebat:</p>
-                    <ul class="list-disc list-inside space-y-1 text-slate-400 pl-1">
-                        <li><b>Visualisasi Kunci:</b> Bayangkan pintu/katup di atas kepala perlahan menutup rapat.</li>
-                        <li><b>Niat Pendaratan:</b> Ucapkan batin dengan tegas: <i>"Selesai. Kembali penuh ke raga fisik."</i></li>
-                        <li><b>Grounding Fisik:</b> Injakkan telapak kaki telanjang langsung ke tanah/lantai, biarkan kelebihan energi terserap bumi (*pertiwi*).</li>
-                    </ul>
-                </div>
+  <!-- MODAL: Panduan & Reset Saraf -->
+  <div id="guideModal" class="modal-overlay" onclick="toggleModal('guideModal')">
+    <div class="modal-card guide-card" onclick="event.stopPropagation()">
+      <button class="guide-x" onclick="toggleModal('guideModal')" title="Tutup">✕</button>
 
-                <!-- Section 3 -->
-                <div class="bg-mystic-base p-3.5 rounded-xl border border-mystic-border space-y-1.5">
-                    <h4 class="font-bold text-mystic-sage text-sm"><i class="fa-solid fa-scale-balanced"></i> Rumus Pembeda: Sasmita vs Pikiran Biasa</h4>
-                    <div class="grid grid-cols-2 gap-2 mt-2 text-[11px]">
-                        <div class="bg-mystic-card p-2 rounded border border-mystic-border">
-                            <span class="text-emerald-400 font-bold block mb-1">Sasmita / Intuisi Murni</span>
-                            Mendadak (3 detik pertama), netral, dibarengi sensor fisik, tidak berbelit-belit.
-                        </div>
-                        <div class="bg-mystic-card p-2 rounded border border-mystic-border">
-                            <span class="text-rose-400 font-bold block mb-1">Pikiran / Bunga Lamunan</span>
-                            Muncul dari analisis panjang, berbelit-belit, penuh keraguan atau ketakutan/ambisi.
-                        </div>
-                    </div>
-                </div>
-            </div>
+      <div style="display:flex; align-items:center; gap:10px; padding-bottom:10px; border-bottom:1px solid #e0e8e3;">
+        <span style="font-size:24px;">🧠</span>
+        <div>
+          <h3 style="font-size:15px; color:#2f6f4e;">Panduan Olahrasa & Netralisasi Saraf</h3>
+          <p class="muted-xs">Ringkasan Teknik Reset & Kompas Personal</p>
         </div>
+      </div>
+
+      <div class="guide-sec">
+        <h4 style="color:#92700a;">🙈 Cara Menetralkan Sensor Kening (Third Eye)</h4>
+        <p>Karena kening terhubung dengan kognisi (<i>lobus frontalis</i>), makin dipikirkan justru makin nyut-nyut. Lakukan:</p>
+        <ul>
+          <li><b>Teknik Eye Roll Downward:</b> Tutup mata, putar bola mata menghadap ke bawah/ujung hidung. Ini merilekskan <i>nervus oculomotorius</i>.</li>
+          <li><b>Sentuh Belakang Telinga:</b> Usap lembut tulang di belakang daun telinga turun ke leher untuk menstimulasi <i>nervus vagus</i>.</li>
+          <li><b>Pindahkan Indra Fisik:</b> Minum air dingin atau fokus ke rasa makanan tajam (pedas/pahit).</li>
+        </ul>
+      </div>
+
+      <div class="guide-sec">
+        <h4 style="color:#2f6f4e;">👑 Mengelola Sensor Atas Kepala & Tubuh Bergetar</h4>
+        <p>Saat sensor transpersonal aktif penuh dan tubuh bergetar hebat:</p>
+        <ul>
+          <li><b>Visualisasi Kunci:</b> Bayangkan pintu/katup di atas kepala perlahan menutup rapat.</li>
+          <li><b>Niat Pendaratan:</b> Ucapkan batin dengan tegas: <i>"Selesai. Kembali penuh ke raga fisik."</i></li>
+          <li><b>Grounding Fisik:</b> Injakkan telapak kaki telanjang langsung ke tanah/lantai, biarkan kelebihan energi terserap bumi (<i>pertiwi</i>).</li>
+        </ul>
+      </div>
+
+      <div class="guide-sec">
+        <h4 style="color:#2f6f4e;">⚖️ Rumus Pembeda: Sasmita vs Pikiran Biasa</h4>
+        <div class="guide-vs">
+          <div>
+            <b style="color:#24583e; display:block; margin-bottom:4px;">Sasmita / Intuisi Murni</b>
+            Mendadak (3 detik pertama), netral, dibarengi sensor fisik, tidak berbelit-belit.
+          </div>
+          <div>
+            <b style="color:#b45309; display:block; margin-bottom:4px;">Pikiran / Bunga Lamunan</b>
+            Muncul dari analisis panjang, berbelit-belit, penuh keraguan atau ketakutan/ambisi.
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <script>
-        // Sensor definitions
-        const SENSORS = [
-            { id: 'Perut', name: 'Perut (Solar Plexus)', icon: 'fa-dharmachakra', color: 'text-amber-400', desc: 'Gut feeling, mual, kebat-kebit' },
-            { id: 'Dada', name: 'Dada (Heart)', icon: 'fa-heart-pulse', color: 'text-emerald-400', desc: 'Tekanan, sesak, longgar, empati' },
-            { id: 'Kening', name: 'Kening (Third Eye)', icon: 'fa-eye', color: 'text-indigo-400', desc: 'Nyut-nyut, hangat, tegang' },
-            { id: 'Ubun-ubun', name: 'Ubun-ubun (Crown)', icon: 'fa-bolt', color: 'text-purple-400', desc: 'Kesemutan halus, merinding' },
-            { id: 'Atas Kepala', name: 'Atas/Luar Kepala', icon: 'fa-sun', color: 'text-fuchsia-400', desc: 'Halo, piringan hangat, transpersonal' },
-            { id: 'Tengkuk', name: 'Tengkuk / Kuduk', icon: 'fa-wind', color: 'text-cyan-400', desc: 'Piloereksi, hawa dingin mendadak' },
-            { id: 'Telapak', name: 'Telapak Tangan/Kaki', icon: 'fa-hand-dots', color: 'text-orange-400', desc: 'Gatal, hangat, grounding' }
-        ];
+  <script>
+    // ----------------------------------------------------
+    // KONFIGURASI SUPABASE (permanen, sama seperti halaman ToFarmer lainnya)
+    // ----------------------------------------------------
+    const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-        // App State
-        let selectedSensors = [];
-        let journalEntries = [];
-        let db = null;
-        let supabaseClient = null;
+    // State: login & pemindai (untuk Masuk dengan Kartu QR)
+    let html5QrcodeScanner = null;
+    let currentScanMode = 'login';
+    let currentUserSession = null;
+    let scanHandled = false;
+    let sessionPinHash = null;   // hash PIN hanya di memori; dipakai untuk menyimpan/mengambil catatan milik akun ini
+    let pinResolver = null;
+    let mnemonicBackup = null;
+    let mnemonicCheckIdx = [0, 1];
 
-        // Initialize App
-        window.addEventListener('DOMContentLoaded', async () => {
-            updateDateTime();
-            setInterval(updateDateTime, 30000);
+    // State: jurnal
+    let selectedSensors = [];
+    let journalEntries = [];     // catatan milik akun yang sedang masuk
+    let db = null;               // IndexedDB: salinan lokal (tetap bisa dipakai saat sinyal buruk)
+    let syncing = false;
+    let legacyOffered = false;
 
-            renderSensorGrid();
-            await initIndexedDB();
-            await loadLocalLogs();
-            loadSupabaseConfig();
+    // ----------------------------------------------------
+    // [V5] DIALOG CANTIK: pengganti alert()/confirm() bawaan browser supaya tampil ramah & seragam dengan halaman.
+    // alert() global dialihkan ke sini, jadi seluruh pesan lama otomatis ikut bertema.
+    // ----------------------------------------------------
+    const DLG_TONES = {
+      success: { icon: '🎉', title: 'Berhasil!',           bg: '#e9f4ee', line: '#4caf7a' },
+      info:    { icon: '🌱', title: 'Info',                bg: '#eef7f1', line: '#4caf7a' },
+      warn:    { icon: '🌾', title: 'Sebentar ya',         bg: '#fef3c7', line: '#f59e0b' },
+      error:   { icon: '🍂', title: 'Ups, belum berhasil', bg: '#fff1e6', line: '#f97316' },
+      ask:     { icon: '🤔', title: 'Yakin?',          bg: '#eef7f1', line: '#4caf7a' }
+    };
+    let dlgQueue = [];
+    let dlgOpen = false;
+    let dlgResolve = null;
+
+    // opts: { tone, icon, title, subtitle, message, quote, okText, cancelText }
+    function tofDialog(opts) {
+      return new Promise(resolve => {
+        dlgQueue.push({ opts: opts || {}, resolve: resolve });
+        if (!dlgOpen) showNextDialog();
+      });
+    }
+
+    function tofConfirm(message, opts) {
+      return tofDialog(Object.assign({ tone: 'ask', message: message, okText: 'Ya', cancelText: 'Batal' }, opts || {}));
+    }
+
+    function showNextDialog() {
+      const next = dlgQueue.shift();
+      if (!next) return;
+      dlgOpen = true;
+      dlgResolve = next.resolve;
+
+      const o = next.opts;
+      const t = DLG_TONES[o.tone] || DLG_TONES.info;
+      const setText = (id, val) => {
+        const el = document.getElementById(id);
+        el.innerText = val || '';
+        el.style.display = val ? 'block' : 'none';
+      };
+
+      const icon = document.getElementById('dlgIcon');
+      icon.innerText = o.icon || t.icon;
+      icon.style.background = t.bg;
+      document.getElementById('dlgCard').style.borderTopColor = t.line;
+
+      document.getElementById('dlgTitle').innerText = o.title || t.title;
+      setText('dlgSub', o.subtitle);
+      setText('dlgMsg', o.message);
+      setText('dlgQuote', o.quote);
+
+      const cancelBtn = document.getElementById('dlgCancel');
+      cancelBtn.innerText = o.cancelText || 'Batal';
+      cancelBtn.style.display = o.cancelText ? 'block' : 'none';
+      document.getElementById('dlgOk').innerText = o.okText || 'Oke';
+
+      document.getElementById('dialogModal').style.display = 'flex';
+      document.getElementById('dlgOk').focus();
+    }
+
+    function closeDialog(result) {
+      if (!dlgOpen) return;
+      const r = dlgResolve;
+      dlgResolve = null;
+      dlgOpen = false;
+      document.getElementById('dialogModal').style.display = 'none';
+      if (r) r(!!result);
+      if (dlgQueue.length) showNextDialog();
+    }
+
+    // Menebak nada pesan lama agar judul & ikonnya pas (tanpa mengubah teks aslinya)
+    function autoDialogOpts(text) {
+      if (/sudah keluar/i.test(text)) return { tone: 'info', icon: '👋', title: 'Sampai jumpa!', message: text, okText: 'Oke' };
+      let tone = 'info';
+      if (/^(🎉|✓|🔓|✍️|🔒)/.test(text)) tone = 'success';
+      else if (/^(Gagal|Login Gagal)|belum (berhasil|bisa|terbaca|benar)|salah|tidak valid|tidak ditemukan|bukan kartu|bukan pemilik/i.test(text)) tone = 'error';
+      else if (/login|masuk dulu|wajib|harus|tidak boleh|kosong|isi |tulis dulu|diblokir|terlalu panjang/i.test(text)) tone = 'warn';
+      return { tone: tone, message: text, okText: 'Oke' };
+    }
+
+    window.alert = function (msg) { tofDialog(autoDialogOpts(String(msg == null ? '' : msg))); };
+    document.addEventListener('keydown', (e) => { if (dlgOpen && e.key === 'Escape') closeDialog(false); });
+
+
+    async function hashPIN(pin) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(pin);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function safeImgUrl(u) {
+      try { const x = new URL(u); return x.protocol === 'https:' ? x.href : ''; } catch (e) { return ''; }
+    }
+
+    function parseMemberCard(text) {
+      try {
+        const p = JSON.parse(text);
+        return (p && p.type === 'TOF_MEMBER_CARD') ? p : null;
+      } catch (e) { return null; }
+    }
+
+    async function generateAndDownloadQRForLegacyUser(user) {
+      // [FIX] kartu hanya berisi identitas publik, tanpa seed
+      const qrPayload = JSON.stringify({
+        u: user.username,
+        w: user.id || user.wallet_address, // 'id' di tabel profiles adalah Wallet Address Algorand
+        type: 'TOF_MEMBER_CARD'
+      });
+
+      downloadQRCardImage(qrPayload, user.username);
+    }
+
+    function downloadQRCardImage(payloadText, username, prefix = 'Kartu_ToFarmer') {
+      const tempDiv = document.createElement('div');
+      tempDiv.style.display = 'none';
+      document.body.appendChild(tempDiv);
+
+      new QRCode(tempDiv, {
+        text: payloadText,
+        width: payloadText.length > 200 ? 500 : 250,   // [V2] teks panjang butuh QR lebih besar agar terbaca
+        height: payloadText.length > 200 ? 500 : 250,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      setTimeout(() => {
+        const canvas = tempDiv.querySelector('canvas');
+        const img = tempDiv.querySelector('img');
+        let imageSrc = "";
+
+        if (canvas) {
+          imageSrc = canvas.toDataURL("image/png");
+        } else if (img && img.src) {
+          imageSrc = img.src;
+        }
+
+        if (imageSrc) {
+          const downloadLink = document.createElement("a");
+          downloadLink.href = imageSrc;
+          downloadLink.download = `${prefix}_${username}.png`;
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+        } else {
+          alert("Kartu QR belum berhasil dibuat. Coba lagi ya.");
+        }
+        document.body.removeChild(tempDiv);
+      }, 150);
+    }
+
+    function checkExistingSession() {
+      const stored = localStorage.getItem('tof_user_session');
+      if (stored) {
+        try {
+          currentUserSession = JSON.parse(stored);
+          if (!currentUserSession.id || !currentUserSession.username) throw new Error('sesi tidak valid');
+          renderHeaderProfile();
+
+          // [FIX] segarkan dari database: foto, level, dst. Sesi palsu (akun tidak ada) dibuang.
+          fetchProfileSafe(currentUserSession.id).then(({ data, error }) => {
+            if (data) {
+              saveGlobalSession(data);
+              renderHeaderProfile();
+            } else if (!error) {
+              logoutUser(true);
+            }
+          });
+        } catch(e) {
+          localStorage.removeItem('tof_user_session');
+          currentUserSession = null;
+        }
+      }
+    }
+
+    function renderHeaderProfile() {
+      const authBox = document.getElementById('headerAuthBox');
+      if (currentUserSession) {
+        // [FIX] escape semua teks + tampilkan foto dari avatar_url (inisial jadi cadangan)
+        const imgUrl = safeImgUrl(currentUserSession.avatar_url);
+        const avatarImg = imgUrl
+          ? `<img src="${escapeHtml(imgUrl)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`
+          : '';
+        const id = currentUserSession.id;
+
+        authBox.innerHTML = `
+          <div class="user-profile-badge">
+            <div class="user-avatar">${escapeHtml(currentUserSession.username.charAt(0).toUpperCase())}${avatarImg}</div>
+            <div class="user-info-text">
+              <b>${escapeHtml(currentUserSession.username)}</b>
+              <div style="font-size:9px; color:#6f7f76;">${escapeHtml(id.substring(0,6))}...${escapeHtml(id.substring(id.length-4))}</div>
+            </div>
+            <button class="btn-download-myqr" onclick="triggerDownloadCurrentSessionQR()">
+              💳 Kartu QR Saya
+            </button>
+            <button class="btn-logout" onclick="logoutUser()">[Keluar]</button>
+          </div>
+        `;
+      } else {
+        authBox.innerHTML = `
+          <button class="btn-outline-action" onclick="openAuthModal('register')">
+            <span>✨</span> Daftar Akun
+          </button>
+          <button class="btn-login-qr" onclick="openAuthModal('login')">
+            <span>🔑</span> Masuk
+          </button>
+        `;
+      }
+      refreshUI(); // catatan & status sinkron mengikuti siapa yang masuk
+    }
+
+    function triggerDownloadCurrentSessionQR() {
+      if (currentUserSession) {
+        generateAndDownloadQRForLegacyUser(currentUserSession);
+      } else {
+        alert("Masuk dulu ya.");
+      }
+    }
+
+    function logoutUser(silent = false) {
+      localStorage.removeItem('tof_user_session');
+      localStorage.removeItem('tof_wallet');
+      localStorage.removeItem('tof_login_username');
+      localStorage.removeItem('tof_level');
+      localStorage.removeItem('tof_rank');
+      localStorage.removeItem('tof_xp');
+      currentUserSession = null;
+      sessionPinHash = null;
+      journalEntries = [];
+      renderHeaderProfile();
+      if (!silent) alert("Kamu sudah keluar. Sampai jumpa lagi!");
+    }
+
+    async function submitRegister() {
+      const username = document.getElementById('regUsername').value.trim();
+      const pin = document.getElementById('regPin').value.trim();
+
+      // [FIX] validasi format username & PIN hanya angka
+      if (!/^[a-zA-Z0-9_]{3,20}$/.test(username) || !/^\d{6}$/.test(pin)) {
+        alert("Nama pengguna harus 3-20 huruf/angka/_ (tanpa spasi), dan PIN harus 6 angka ya.");
+        return;
+      }
+
+      try {
+        // 1. Generate Wallet Algorand Baru
+        const account = algosdk.generateAccount();
+        const walletAddress = account.addr; // Menjadi 'id' Primary Key di DB
+        const secretMnemonic = algosdk.secretKeyToMnemonic(account.sk);
+
+        // 2. Hash PIN
+        const pinHash = await hashPIN(pin);
+
+        // 3. Insert ke DB Supabase
+        const { error } = await supabaseClient.from('profiles').insert([{
+          id: walletAddress,
+          username: username,
+          pin_hash: pinHash,
+          saldo_tof: 0,
+          xp: 0,
+          level: 1,
+          rank: 'GROWER',
+          role: 'user',
+          water_stock: 10
+        }]);
+
+        if (error) {
+          if (error.code === '23505') throw new Error("Nama pengguna sudah dipakai orang lain. Coba nama lain ya!");
+          throw error;
+        }
+
+        // 4. Unduh Kartu QR Anggota
+        // [FIX] seed terenkripsi (s) dihapus dari kartu: XOR dengan PIN 6 digit bisa ditembus seketika
+        const qrPayload = JSON.stringify({ u: username, w: walletAddress, type: 'TOF_MEMBER_CARD' });
+        downloadQRCardImage(qrPayload, username);
+
+        sessionPinHash = pinHash;
+
+        // 5. Simpan Sesi Global & Local
+        saveGlobalSession({ id: walletAddress, username: username, xp: 0, saldo_tof: 0, rank: 'GROWER', level: 1 });
+        renderHeaderProfile();
+
+        closeAuthModal();
+        
+        // 6. Tampilkan Mnemonic Modal
+        openMnemonicModal(secretMnemonic, walletAddress, username); // [V3]
+
+        // Bind copy button
+        document.getElementById('btnCopyMnemonic').onclick = () => {
+          navigator.clipboard.writeText(secretMnemonic).then(() => {
+            const btn = document.getElementById('btnCopyMnemonic');
+            btn.innerText = '✓ Tersalin!';
+            setTimeout(() => btn.innerText = '📋 Salin 25 Kata', 2000);
+          });
+        };
+
+      } catch (err) {
+        alert("Pendaftaran belum berhasil: " + err.message);
+      }
+    }
+
+    async function submitLoginManual() {
+      const identifier = document.getElementById('loginIdentifier').value.trim();
+      const pin = document.getElementById('loginPin').value.trim();
+
+      if (!identifier || !/^\d{6}$/.test(pin)) {
+        alert("Isi nama pengguna dan PIN (6 angka) dulu ya.");
+        return;
+      }
+
+      try {
+        const pinHash = await hashPIN(pin);
+
+        // [FIX] pilih kolom berdasarkan format input (bukan .or() dengan string mentah yang bisa diinjeksi),
+        // dan ambil kolom eksplisit termasuk avatar_url
+        const col = algosdk.isValidAddress(identifier) ? 'id' : 'username';
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .select('id,username,pin_hash,xp,saldo_tof,rank,level,avatar_url')
+          .eq(col, identifier)
+          .maybeSingle();
+
+        // [FIX] akun lama tanpa PIN TIDAK lagi bisa "diklaim" oleh siapa pun yang mengetik usernamenya
+        if (data && !data.pin_hash) {
+          alert("Akun lama ini belum punya PIN. Hubungi pengelola ToFarmer ya.");
+          return;
+        }
+
+        // [FIX] pesan sama untuk "tidak ada" dan "PIN salah"
+        if (error || !data || data.pin_hash !== pinHash) {
+          alert("Nama pengguna tidak ditemukan atau PIN salah. Coba cek lagi ya.");
+          return;
+        }
+
+        delete data.pin_hash;
+        sessionPinHash = pinHash; // [V2]
+
+        // Simpan Sesi Global & Local
+        saveGlobalSession(data);
+        renderHeaderProfile();
+
+        closeAuthModal();
+        document.getElementById('loginPin').value = '';
+        onUserChanged(); // muat catatan akun ini & sinkron dari cloud
+        playBeepSound('success_chime');
+
+        // Tawaran Otomatis Cetak/Unduh QR ID untuk User Lama
+        const wantQR = await tofConfirm(
+          "Kartu QR ini bisa dipakai untuk masuk dengan cepat: simpan di galeri, lalu scan saat mau masuk (PIN tetap diperlukan).",
+          { tone: 'success', icon: '👋', title: `Selamat datang, ${data.username}!`, okText: '📥 Simpan Kartu', cancelText: 'Nanti saja' }
+        );
+        if (wantQR) {
+          await generateAndDownloadQRForLegacyUser(data);
+        }
+
+      } catch (err) {
+        alert("Belum bisa masuk: " + err.message);
+      }
+    }
+
+    function saveGlobalSession(userData) {
+      // [FIX] avatar_url ikut disimpan di sesi supaya foto tampil setelah login
+      currentUserSession = { id: userData.id, username: userData.username, avatar_url: userData.avatar_url || '' };
+      localStorage.setItem('tof_user_session', JSON.stringify(currentUserSession));
+
+      const effectiveXp = (userData.xp || 0) + (userData.saldo_tof || 0) * 1000;
+      const computedLevel = Math.floor(Math.sqrt(effectiveXp / 100)) + 1;
+
+      localStorage.setItem('tof_wallet', userData.id);
+      localStorage.setItem('tof_login_username', userData.username);
+      localStorage.setItem('tof_level', userData.level || computedLevel);
+      localStorage.setItem('tof_rank', userData.rank || 'GROWER');
+      localStorage.setItem('tof_xp', userData.xp || 0);
+    }
+
+    function triggerScanForLogin() {
+      closeAuthModal();
+      openScanner('login');
+    }
+
+    function openAuthModal(defaultTab = 'login') {
+      switchAuthTab(defaultTab);
+      document.getElementById('authModal').style.display = 'flex';
+    }
+
+    function closeAuthModal() {
+      document.getElementById('authModal').style.display = 'none';
+    }
+
+    function openMnemonicModal(mnemonic, address, username) {
+      const words = mnemonic.trim().split(/\s+/);
+      mnemonicBackup = { words: words, address: address, username: username };
+
+      document.getElementById('mnemonicDisplayBox').innerHTML = words.map((w, i) =>
+        `<span class="mn-word"><i>${i + 1}</i>${escapeHtml(w)}</span>`).join('');
+
+      const rnd = new Uint32Array(2);
+      crypto.getRandomValues(rnd);
+      const a = rnd[0] % words.length;
+      let b = rnd[1] % words.length;
+      if (b === a) b = (a + 7) % words.length;
+      mnemonicCheckIdx = [a, b].sort((x, y) => x - y);
+
+      document.getElementById('mnVerifyLabel1').innerText = `Kata ke-${mnemonicCheckIdx[0] + 1}`;
+      document.getElementById('mnVerifyLabel2').innerText = `Kata ke-${mnemonicCheckIdx[1] + 1}`;
+      document.getElementById('mnVerify1').value = '';
+      document.getElementById('mnVerify2').value = '';
+      document.getElementById('btnEnterMatrix').disabled = true;
+      document.getElementById('mnemonicModal').style.display = 'flex';
+    }
+
+    function checkMnemonicVerify() {
+      if (!mnemonicBackup) return;
+      const w = mnemonicBackup.words;
+      const ok1 = document.getElementById('mnVerify1').value.trim().toLowerCase() === w[mnemonicCheckIdx[0]];
+      const ok2 = document.getElementById('mnVerify2').value.trim().toLowerCase() === w[mnemonicCheckIdx[1]];
+      document.getElementById('btnEnterMatrix').disabled = !(ok1 && ok2);
+    }
+
+    function downloadMnemonicFile() {
+      if (!mnemonicBackup) return;
+      const lines = [
+        'ToFarmer - Cadangan Dompet Digital',
+        'Nama pengguna : ' + mnemonicBackup.username,
+        'Alamat dompet : ' + mnemonicBackup.address,
+        '',
+        '25 KATA KUNCI (urutannya penting):',
+        ...mnemonicBackup.words.map((w, i) => `${i + 1}. ${w}`),
+        '',
+        'PERINGATAN: siapa pun yang memegang file ini bisa menguasai dompet digitalmu. Jangan dibagikan.',
+        'Simpan di tempat aman (misalnya flashdisk), lalu hapus file ini dari folder Download.'
+      ];
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Cadangan_Dompet_ToFarmer_${mnemonicBackup.username}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function skipMnemonicVerify() {
+      const ok = await tofConfirm(
+        "25 kata ini tidak akan ditampilkan lagi. Kalau hilang, dompet digitalmu tidak bisa dipulihkan. Lanjut tanpa dicek?",
+        { tone: 'warn', icon: '🔑', title: 'Lewati pengecekan?', okText: 'Lanjut', cancelText: 'Kembali' }
+      );
+      if (ok) closeMnemonicModal();
+    }
+
+    function closeMnemonicModal() {
+      document.getElementById('mnemonicModal').style.display = 'none';
+      document.getElementById('mnemonicDisplayBox').innerHTML = ''; // [FIX] hapus frasa dari DOM setelah ditutup
+      document.getElementById('mnVerify1').value = '';
+      document.getElementById('mnVerify2').value = '';
+      mnemonicBackup = null;
+      setTimeout(() => onUserChanged(), 300); // muat catatan akun ini
+    }
+
+    function switchAuthTab(tab) {
+      const loginForm = document.getElementById('authLoginForm');
+      const regForm = document.getElementById('authRegisterForm');
+      const tabLogin = document.getElementById('tabBtnLogin');
+      const tabReg = document.getElementById('tabBtnRegister');
+
+      if (tab === 'login') {
+        loginForm.style.display = 'block';
+        regForm.style.display = 'none';
+        tabLogin.classList.add('active');
+        tabReg.classList.remove('active');
+      } else {
+        loginForm.style.display = 'none';
+        regForm.style.display = 'block';
+        tabLogin.classList.remove('active');
+        tabReg.classList.add('active');
+      }
+    }
+
+    async function fetchProfileSafe(id) {
+      if (!supabaseClient) return { data: null, error: new Error('no client') };
+      return await supabaseClient
+        .from('profiles')
+        .select('id,username,xp,saldo_tof,rank,level,avatar_url')
+        .eq('id', id)
+        .maybeSingle();
+    }
+
+    async function openScanner(mode = 'general') {
+      await safeStopScanner(); // [FIX] bersihkan instance lama sebelum membuka yang baru
+      currentScanMode = mode;
+      scanHandled = false;
+      document.getElementById("scannerModal").style.display = "flex";
+      
+      const titleElem = document.getElementById("scannerModalTitle");
+      if (titleElem) {
+        titleElem.innerText = mode === 'login' ? "Arahkan ke Kartu QR milikmu (tetap perlu PIN)" : "Arahkan kamera ke QR, atau pilih foto QR dari galeri";
+      }
+
+      html5QrcodeScanner = new Html5Qrcode("reader");
+      html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        { fps: 15, qrbox: 200 },
+        onScanSuccess
+      ).catch((err) => {
+        console.warn("Kamera tidak dapat diakses atau ditolak. Pengguna masih bisa menggunakan opsi Upload Galeri.", err);
+      });
+    }
+
+    async function scanQRFromImageFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      let decodedText = null;
+      try {
+        // [FIX] matikan kamera dulu supaya tidak bentrok dengan scanFile (aman walau kamera tidak sedang jalan)
+        await safeStopScanner();
+        const html5QrCode = new Html5Qrcode("reader");
+        decodedText = await html5QrCode.scanFile(file, false);
+        try { html5QrCode.clear(); } catch (e) {}
+      } catch (err) {
+        alert("QR di foto belum terbaca. Pastikan fotonya jelas, tidak buram, dan QR-nya terlihat utuh.");
+      } finally {
+        event.target.value = "";
+      }
+
+      if (decodedText) onScanSuccess(decodedText);
+    }
+
+    async function safeStopScanner() {
+      const scanner = html5QrcodeScanner;
+      html5QrcodeScanner = null;
+      if (!scanner) return;
+      try { await scanner.stop(); } catch (e) {}
+      try { scanner.clear(); } catch (e) {}
+    }
+
+    function closeScanner() {
+      document.getElementById("scannerModal").style.display = "none";
+      safeStopScanner();
+    }
+
+    function playBeepSound(type = 'mining') {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        oscillator.type = 'sine';
+        gainNode.gain.setValueAtTime(0.12, audioCtx.currentTime);
+
+        if (type === 'mining') {
+          oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+          oscillator.frequency.setValueAtTime(1760, audioCtx.currentTime + 0.08);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.start();
+          oscillator.stop(audioCtx.currentTime + 0.18);
+        } else if (type === 'success_chime') {
+          const now = audioCtx.currentTime;
+          oscillator.frequency.setValueAtTime(523.25, now);
+          oscillator.frequency.setValueAtTime(659.25, now + 0.08);
+          oscillator.frequency.setValueAtTime(783.99, now + 0.16);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscillator.start();
+          oscillator.stop(now + 0.3);
+        }
+      } catch(e) {}
+    }
+
+    function requirePinHash(desc) {
+      if (sessionPinHash) return Promise.resolve(sessionPinHash);
+      return new Promise(resolve => {
+        pinResolver = resolve;
+        document.getElementById('pinModalDesc').innerText = desc || 'Masukkan PIN (6 angka) kamu.';
+        document.getElementById('pinConfirmInput').value = '';
+        document.getElementById('pinModal').style.display = 'flex';
+        document.getElementById('pinConfirmInput').focus();
+      });
+    }
+
+    async function submitPinConfirm() {
+      const pin = document.getElementById('pinConfirmInput').value.trim();
+      if (!/^\d{6}$/.test(pin)) { alert("PIN harus 6 angka ya."); return; }
+      const hash = await hashPIN(pin);
+      document.getElementById('pinModal').style.display = 'none';
+      const r = pinResolver; pinResolver = null;
+      if (r) r(hash);
+    }
+
+    function cancelPinConfirm() {
+      document.getElementById('pinModal').style.display = 'none';
+      const r = pinResolver; pinResolver = null;
+      if (r) r(null);
+    }
+
+    async function callAuthedRpc(fn, params, desc) {
+      if (!supabaseClient) return { error: { message: 'Supabase client belum dikonfigurasi.' } };
+      if (!currentUserSession) {
+        alert("Masuk dulu ya.");
+        openAuthModal('login');
+        return { error: { message: 'belum login' }, cancelled: true };
+      }
+      const hash = await requirePinHash(desc);
+      if (!hash) return { error: { message: 'dibatalkan' }, cancelled: true };
+
+      const res = await supabaseClient.rpc(fn, { p_id: currentUserSession.id, p_pin_hash: hash, ...params });
+      if (res.error) {
+        if (/PIN salah/i.test(res.error.message)) sessionPinHash = null; // paksa input ulang
+      } else {
+        sessionPinHash = hash; // PIN terbukti benar -> cukup diminta sekali per sesi halaman
+      }
+      return res;
+    }
+
+    // ----------------------------------------------------
+    // MASUK DENGAN KARTU QR (hanya mengisi nama; PIN tetap wajib)
+    // ----------------------------------------------------
+    async function onScanSuccess(decodedText) {
+      if (scanHandled) return; // cegah callback ganda
+      scanHandled = true;
+      closeScanner();
+
+      const card = parseMemberCard(String(decodedText || '').trim());
+      if (!card || !card.w || !algosdk.isValidAddress(card.w)) {
+        alert("Ini bukan Kartu QR ToFarmer yang benar.");
+        return;
+      }
+      playBeepSound('success_chime');
+      openAuthModal('login');
+      document.getElementById('loginIdentifier').value = card.w;
+      document.getElementById('loginPin').value = '';
+      document.getElementById('loginPin').focus();
+    }
+
+    // ----------------------------------------------------
+    // DATA JURNAL
+    // ----------------------------------------------------
+    const SENSORS = [
+      { id: 'Perut', name: 'Perut (Solar Plexus)', icon: '☸️', desc: 'Gut feeling, mual, kebat-kebit' },
+      { id: 'Dada', name: 'Dada (Heart)', icon: '💓', desc: 'Tekanan, sesak, longgar, empati' },
+      { id: 'Kening', name: 'Kening (Third Eye)', icon: '👁️', desc: 'Nyut-nyut, hangat, tegang' },
+      { id: 'Ubun-ubun', name: 'Ubun-ubun (Crown)', icon: '⚡', desc: 'Kesemutan halus, merinding' },
+      { id: 'Atas Kepala', name: 'Atas/Luar Kepala', icon: '☀️', desc: 'Halo, piringan hangat, transpersonal' },
+      { id: 'Tengkuk', name: 'Tengkuk / Kuduk', icon: '🌬️', desc: 'Piloereksi, hawa dingin mendadak' },
+      { id: 'Telapak', name: 'Telapak Tangan/Kaki', icon: '🖐️', desc: 'Gatal, hangat, grounding' }
+    ];
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      updateDateTime();
+      setInterval(updateDateTime, 30000);
+      renderSensorGrid();
+
+      // hapus catatan lewat delegasi klik (tanpa onclick inline berisi data)
+      document.getElementById('logsContainer').addEventListener('click', (e) => {
+        const btn = e.target.closest('.log-del');
+        if (btn) deleteEntry(btn.dataset.id);
+      });
+
+      try { await initIndexedDB(); } catch (e) { console.warn('IndexedDB tidak tersedia', e); }
+      checkExistingSession();      // pulihkan sesi masuk (jika ada)
+      await loadLocalLogs();
+      refreshSyncStatus();
+      maybeOfferLegacy();
+    });
+
+    function updateDateTime() {
+      const now = new Date();
+      const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+      document.getElementById('currentDateTime').innerText = now.toLocaleDateString('id-ID', options);
+    }
+
+    function newUUID() {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+        return (c === 'x' ? r : ((r & 0x3) | 0x8)).toString(16);
+      });
+    }
+
+    function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('OlahrasaJournalDB', 2);
+        request.onupgradeneeded = (e) => {
+          db = e.target.result;
+          if (!db.objectStoreNames.contains('olahrasa_logs')) {
+            db.createObjectStore('olahrasa_logs', { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = (e) => {
+          db = e.target.result;
+          resolve();
+        };
+        request.onerror = (e) => reject(e);
+      });
+    }
+
+    function renderSensorGrid() {
+      const grid = document.getElementById('sensorGrid');
+      grid.innerHTML = SENSORS.map(s => `
+        <button type="button" onclick="toggleSensor('${s.id}')" id="sensor-btn-${s.id}" class="sensor-btn">
+          <b><span style="font-size:13px; margin:0;">${s.icon}</span> ${s.id}</b>
+          <span>${s.desc}</span>
+        </button>
+      `).join('');
+    }
+
+    function toggleSensor(id) {
+      const index = selectedSensors.indexOf(id);
+      const btn = document.getElementById(`sensor-btn-${id}`);
+
+      if (index === -1) {
+        selectedSensors.push(id);
+        btn.classList.add('active');
+      } else {
+        selectedSensors.splice(index, 1);
+        btn.classList.remove('active');
+      }
+    }
+
+    // Ajak masuk bila belum login (catatan dipisah per akun)
+    async function loginGate() {
+      const go = await tofConfirm(
+        "Catatan olahrasa disimpan per akun, jadi kamu perlu masuk dulu. Mau masuk sekarang?",
+        { tone: 'info', icon: '🔑', title: 'Masuk dulu ya', okText: 'Masuk sekarang', cancelText: 'Nanti' }
+      );
+      if (go) openAuthModal('login');
+    }
+
+    /* Form Submission Handler */
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      if (!currentUserSession) { loginGate(); return; }
+      if (selectedSensors.length === 0) {
+        alert('Pilihlah minimal satu sensor tubuh yang merespon!');
+        return;
+      }
+
+      const parseArrayInput = (str) => {
+        if (!str) return [];
+        return str.split(',').map(s => s.trim()).filter(Boolean);
+      };
+
+      const entry = {
+        id: newUUID(),
+        owner_id: currentUserSession.id,
+        synced: false,           // hanya penanda lokal, tidak dikirim ke cloud
+        location_name: document.getElementById('locationName').value.trim(),
+        category: document.getElementById('category').value,
+        sensors: [...selectedSensors],
+        sensations: parseArrayInput(document.getElementById('sensationsInput').value),
+        sensor_directions: parseArrayInput(document.getElementById('sensorDirectionsInput').value),
+        intensity: parseInt(document.getElementById('intensity').value),
+        is_pure_sasmita: document.getElementById('isPureSasmita').checked,
+        raw_sasmita: document.getElementById('rawSasmita').value.trim(),
+        logical_analysis: document.getElementById('logicalAnalysis').value.trim() || null,
+        real_validation: document.getElementById('realValidation').value.trim() || null,
+        grounding_note: document.getElementById('groundingNote').value.trim() || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Simpan lokal dulu (aman walau sinyal buruk), lalu kirim ke Supabase
+      await saveLogToIndexedDB(entry);
+      journalEntries.unshift(entry);
+      renderLogs();
+      resetForm();
+      refreshSyncStatus();
+
+      triggerSync(true);
+    }
+
+    function resetForm() {
+      document.getElementById('journalForm').reset();
+      selectedSensors = [];
+      SENSORS.forEach(s => {
+        const btn = document.getElementById(`sensor-btn-${s.id}`);
+        if (btn) btn.classList.remove('active');
+      });
+      document.getElementById('intensityVal').innerText = '5 / 10';
+    }
+
+    // ----------------------------------------------------
+    // PENYIMPANAN LOKAL (IndexedDB)
+    // ----------------------------------------------------
+    function saveLogToIndexedDB(entry) {
+      return new Promise((resolve) => {
+        if (!db) return resolve();
+        const tx = db.transaction('olahrasa_logs', 'readwrite');
+        tx.objectStore('olahrasa_logs').put(entry);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+    }
+
+    function deleteLocalById(id) {
+      return new Promise((resolve) => {
+        if (!db) return resolve();
+        const tx = db.transaction('olahrasa_logs', 'readwrite');
+        tx.objectStore('olahrasa_logs').delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+    }
+
+    function getAllLocal() {
+      return new Promise((resolve) => {
+        if (!db) return resolve([]);
+        const req = db.transaction('olahrasa_logs', 'readonly').objectStore('olahrasa_logs').getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      });
+    }
+
+    // Hanya memuat catatan milik akun yang sedang masuk (pemisahan per pengguna)
+    async function loadLocalLogs() {
+      const all = await getAllLocal();
+      const me = currentUserSession ? currentUserSession.id : null;
+      journalEntries = all
+        .filter(e => me && e.owner_id === me)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      renderLogs();
+    }
+
+    async function deleteEntry(id) {
+      const ok = await tofConfirm('Catatan ini akan dihapus dan tidak bisa dikembalikan.', {
+        tone: 'warn', icon: '🗑️', title: 'Hapus catatan olahrasa ini?', okText: 'Ya, hapus', cancelText: 'Batal'
+      });
+      if (!ok) return;
+
+      const entry = journalEntries.find(e => e.id === id);
+      await deleteLocalById(id);
+      journalEntries = journalEntries.filter(e => e.id !== id);
+      renderLogs();
+
+      // Jika sudah pernah masuk ke cloud, hapus juga di sana (diantre bila belum bisa)
+      if (entry && entry.synced) {
+        addPendingDelete(id);
+        refreshSyncStatus();
+        triggerSync(true);
+      }
+    }
+
+    function renderLogs() {
+      const container = document.getElementById('logsContainer');
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+      const catFilter = document.getElementById('filterCategory').value;
+      const sensorFilter = document.getElementById('filterSensor').value;
+
+      if (!currentUserSession) {
+        document.getElementById('logCountBadge').innerText = '0 Log';
+        container.innerHTML = `
+          <div class="empty-box">
+            🔒 Catatan olahrasa disimpan per akun.<br>Masuk dulu untuk mulai mencatat dan melihat riwayatmu.<br><br>
+            <button class="btn-login-qr" style="margin:auto;" onclick="openAuthModal('login')"><span>🔑</span> Masuk / Daftar</button>
+          </div>`;
+        return;
+      }
+
+      const filtered = journalEntries.filter(item => {
+        const raw = (item.raw_sasmita || '').toLowerCase();
+        const loc = (item.location_name || '').toLowerCase();
+        const analysis = (item.logical_analysis || '').toLowerCase();
+
+        const matchesSearch = raw.includes(searchQuery) || loc.includes(searchQuery) || analysis.includes(searchQuery);
+        const matchesCat = catFilter === 'ALL' || item.category === catFilter;
+        const matchesSensor = sensorFilter === 'ALL' || (item.sensors && item.sensors.includes(sensorFilter));
+        return matchesSearch && matchesCat && matchesSensor;
+      });
+
+      document.getElementById('logCountBadge').innerText = `${filtered.length} Log`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-box">
+            <div style="font-size:26px; opacity:0.6;">🪶</div>
+            <p>Belum ada catatan olahrasa yang cocok.</p>
+          </div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(item => {
+        const dateStr = new Date(item.created_at).toLocaleDateString('id-ID', {
+          day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
         });
 
-        function updateDateTime() {
-            const now = new Date();
-            const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' };
-            document.getElementById('currentDateTime').innerText = now.toLocaleDateString('id-ID', options);
+        return `
+          <div class="log-card">
+            <div class="log-head">
+              <div>
+                <div>
+                  <span class="log-cat">${escapeHtml(item.category)}</span>
+                  ${item.is_pure_sasmita ? '<span class="log-pure">Sasmita Murni</span>' : ''}
+                </div>
+                <h3 class="log-title">📍 ${escapeHtml(item.location_name)}</h3>
+                <p class="log-date">${dateStr}${item.synced ? '' : ' · ⏳ belum tersinkron'}</p>
+              </div>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <span class="log-intensity">Intensitas: ${Number(item.intensity) || 0}/10</span>
+                <button class="log-del" data-id="${escapeHtml(item.id)}" title="Hapus">🗑️</button>
+              </div>
+            </div>
+
+            <!-- Sensor Aktif & Arah -->
+            <div class="chips">
+              ${(item.sensors || []).map(s => `<span class="chip">${escapeHtml(s)}</span>`).join('')}
+              ${(item.sensor_directions || []).map(d => `<span class="chip-dir">🧭 ${escapeHtml(d)}</span>`).join('')}
+            </div>
+
+            <!-- Sensasi -->
+            ${(item.sensations && item.sensations.length > 0) ? `
+              <div class="log-sens"><b>Sensasi:</b> ${item.sensations.map(s => escapeHtml(s)).join(', ')}</div>
+            ` : ''}
+
+            <!-- Raw Sasmita -->
+            ${item.raw_sasmita ? `
+              <div class="quote-gold">"${escapeHtml(item.raw_sasmita)}"</div>
+            ` : ''}
+
+            <!-- Analisis Logis -->
+            ${item.logical_analysis ? `
+              <p class="log-analysis">${escapeHtml(item.logical_analysis)}</p>
+            ` : ''}
+
+            <!-- Validasi Realita & Grounding -->
+            ${item.real_validation ? `
+              <div class="note-green">✅ <b>Validasi:</b> ${escapeHtml(item.real_validation)}</div>
+            ` : ''}
+            ${item.grounding_note ? `
+              <div class="note-teal">🌿 <b>Grounding:</b> ${escapeHtml(item.grounding_note)}</div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ----------------------------------------------------
+    // CATATAN LAMA (sebelum ada akun) -> masuk ke akun ini
+    // ----------------------------------------------------
+    async function maybeOfferLegacy() {
+      if (!currentUserSession || legacyOffered || !db) return;
+      if (document.getElementById('mnemonicModal').style.display === 'flex') return;
+
+      const legacy = (await getAllLocal()).filter(e => !e.owner_id);
+      if (!legacy.length) return;
+      legacyOffered = true;
+
+      const ok = await tofConfirm(
+        `Ada ${legacy.length} catatan lama di perangkat ini yang belum punya pemilik. Masukkan ke akun "${currentUserSession.username}"?`,
+        { tone: 'info', icon: '📔', title: 'Catatan lama ditemukan', okText: 'Ya, masukkan', cancelText: 'Nanti' }
+      );
+      if (!ok) return;
+
+      for (const e of legacy) {
+        // id lama yang bukan UUID diganti agar cocok dengan tabel di cloud
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(e.id))) {
+          await deleteLocalById(e.id);
+          e.id = newUUID();
+        }
+        e.owner_id = currentUserSession.id;
+        e.synced = false;
+        await saveLogToIndexedDB(e);
+      }
+      await loadLocalLogs();
+      refreshSyncStatus();
+      triggerSync(true);
+    }
+
+    // ----------------------------------------------------
+    // SINKRONISASI KE SUPABASE (permanen, per akun)
+    // Semua lewat fungsi server yang memeriksa PIN, jadi catatan satu akun tidak bisa dibaca akun lain.
+    // ----------------------------------------------------
+    function pendingKey() { return 'olahrasa_pending_delete_' + (currentUserSession ? currentUserSession.id : 'guest'); }
+    function getPendingDeletes() {
+      try { return JSON.parse(localStorage.getItem(pendingKey()) || '[]'); } catch (e) { return []; }
+    }
+    function addPendingDelete(id) {
+      const list = getPendingDeletes();
+      if (!list.includes(id)) list.push(id);
+      try { localStorage.setItem(pendingKey(), JSON.stringify(list)); } catch (e) {}
+    }
+    function removePendingDelete(id) {
+      const list = getPendingDeletes().filter(x => x !== id);
+      try { localStorage.setItem(pendingKey(), JSON.stringify(list)); } catch (e) {}
+    }
+    function toCloud(entry) {
+      const o = Object.assign({}, entry);
+      delete o.synced;
+      delete o.owner_id; // pemilik ditentukan server dari akun yang masuk
+      return o;
+    }
+
+    async function onUserChanged() {
+      await loadLocalLogs();
+      refreshSyncStatus();
+      if (currentUserSession && sessionPinHash) await triggerSync(false); // baru masuk: PIN sudah ada, tarik catatan dari cloud
+      maybeOfferLegacy();
+    }
+
+    function refreshUI() {
+      renderLogs();
+      refreshSyncStatus();
+    }
+
+    function refreshSyncStatus(okText) {
+      if (!currentUserSession) { updateSyncUI('offline', 'Belum masuk'); return; }
+      const n = journalEntries.filter(e => !e.synced).length + getPendingDeletes().length;
+      if (n > 0) updateSyncUI('pending', `${n} belum tersinkron`);
+      else if (sessionPinHash) updateSyncUI('online', okText || 'Tersinkron');
+      else updateSyncUI('pending', 'Ketuk 🔄 untuk sinkron');
+    }
+
+    async function triggerSync(interactive = true) {
+      if (!currentUserSession) { if (interactive) loginGate(); return; }
+      if (syncing) return;
+      if (!sessionPinHash && !interactive) { refreshSyncStatus(); return; }
+
+      syncing = true;
+      updateSyncUI('syncing', 'Menyinkronkan...');
+      try {
+        // 1) kirim catatan yang belum tersimpan di cloud
+        for (const entry of journalEntries.filter(e => !e.synced)) {
+          const res = await callAuthedRpc('olahrasa_save', { p_entry: toCloud(entry) },
+            'Masukkan PIN untuk menyimpan catatan ke cloud.');
+          if (res.cancelled) { refreshSyncStatus(); return; }
+          if (res.error) throw res.error;
+          entry.synced = true;
+          await saveLogToIndexedDB(entry);
         }
 
-        function initIndexedDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('OlahrasaJournalDB', 2);
-                request.onupgradeneeded = (e) => {
-                    db = e.target.result;
-                    if (!db.objectStoreNames.contains('olahrasa_logs')) {
-                        db.createObjectStore('olahrasa_logs', { keyPath: 'id' });
-                    }
-                };
-                request.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve();
-                };
-                request.onerror = (e) => reject(e);
-            });
+        // 2) hapus di cloud catatan yang sudah dihapus di perangkat ini
+        for (const id of getPendingDeletes()) {
+          const res = await callAuthedRpc('olahrasa_delete', { p_log_id: String(id) },
+            'Masukkan PIN untuk menghapus catatan di cloud.');
+          if (res.cancelled) { refreshSyncStatus(); return; }
+          if (res.error) throw res.error;
+          removePendingDelete(id);
         }
 
-        function renderSensorGrid() {
-            const grid = document.getElementById('sensorGrid');
-            grid.innerHTML = SENSORS.map(s => `
-                <button type="button" onclick="toggleSensor('${s.id}')" id="sensor-btn-${s.id}" class="flex flex-col p-2 rounded-xl border border-mystic-border bg-mystic-base text-left hover:border-mystic-border/80 transition relative overflow-hidden group">
-                    <div class="flex items-center gap-1.5 mb-0.5">
-                        <i class="fa-solid ${s.icon} ${s.color} text-[11px]"></i>
-                        <span class="text-[11px] font-semibold text-slate-200">${s.id}</span>
-                    </div>
-                    <span class="text-[9px] text-slate-400 leading-tight">${s.desc}</span>
-                </button>
-            `).join('');
+        // 3) tarik catatan terbaru dari cloud (termasuk dari perangkat lain)
+        const res = await callAuthedRpc('olahrasa_list', {}, 'Masukkan PIN untuk mengambil catatan dari cloud.');
+        if (res.cancelled) { refreshSyncStatus(); return; }
+        if (res.error) throw res.error;
+
+        const cloud = Array.isArray(res.data) ? res.data : [];
+        const cloudIds = new Set(cloud.map(c => String(c.id)));
+        for (const item of cloud) {
+          await saveLogToIndexedDB(Object.assign({}, item, { synced: true }));
+        }
+        // catatan yang sudah pernah tersinkron tapi hilang di cloud = dihapus dari perangkat lain
+        for (const e of journalEntries.filter(e => e.synced && !cloudIds.has(String(e.id)))) {
+          await deleteLocalById(e.id);
         }
 
-        function toggleSensor(id) {
-            const index = selectedSensors.indexOf(id);
-            const btn = document.getElementById(`sensor-btn-${id}`);
-            
-            if (index === -1) {
-                selectedSensors.push(id);
-                btn.classList.add('border-mystic-accent', 'bg-mystic-accent/10', 'ring-1', 'ring-mystic-accent');
-            } else {
-                selectedSensors.splice(index, 1);
-                btn.classList.remove('border-mystic-accent', 'bg-mystic-accent/10', 'ring-1', 'ring-mystic-accent');
-            }
-        }
+        await loadLocalLogs();
+        refreshSyncStatus('Tersinkron');
 
-        /* Form Submission Handler */
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            if (selectedSensors.length === 0) {
-                alert('Pilihlah minimal satu sensor tubuh yang merespon!');
-                return;
-            }
+        // ada catatan baru yang masuk saat sinkron berjalan -> kirim juga
+        if (journalEntries.some(e => !e.synced)) setTimeout(() => triggerSync(false), 300);
+      } catch (e) {
+        console.error(e);
+        updateSyncUI('offline', 'Gagal sync');
+        if (interactive) alert('Belum bisa tersinkron: ' + ((e && e.message) || e) + '. Catatanmu tetap aman di perangkat ini.');
+      } finally {
+        syncing = false;
+      }
+    }
 
-            const parseArrayInput = (str) => {
-                if (!str) return [];
-                return str.split(',').map(s => s.trim()).filter(Boolean);
-            };
+    function updateSyncUI(state, text) {
+      const dot = document.getElementById('syncDot');
+      document.getElementById('syncText').innerText = text;
+      dot.className = 'sync-dot ' + (state === 'online' ? 'online' : (state === 'syncing' ? 'syncing' : (state === 'pending' ? 'pending' : '')));
+    }
 
-            const entry = {
-                id: crypto.randomUUID ? crypto.randomUUID() : 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-                location_name: document.getElementById('locationName').value.trim(),
-                category: document.getElementById('category').value,
-                sensors: [...selectedSensors],
-                sensations: parseArrayInput(document.getElementById('sensationsInput').value),
-                sensor_directions: parseArrayInput(document.getElementById('sensorDirectionsInput').value),
-                intensity: parseInt(document.getElementById('intensity').value),
-                is_pure_sasmita: document.getElementById('isPureSasmita').checked,
-                raw_sasmita: document.getElementById('rawSasmita').value.trim(),
-                logical_analysis: document.getElementById('logicalAnalysis').value.trim() || null,
-                real_validation: document.getElementById('realValidation').value.trim() || null,
-                grounding_note: document.getElementById('groundingNote').value.trim() || null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
-
-            // Save locally
-            await saveLogToIndexedDB(entry);
-            journalEntries.unshift(entry);
-            renderLogs();
-            resetForm();
-
-            // Background sync
-            syncSingleToSupabase(entry);
-        }
-
-        function resetForm() {
-            document.getElementById('journalForm').reset();
-            selectedSensors = [];
-            SENSORS.forEach(s => {
-                const btn = document.getElementById(`sensor-btn-${s.id}`);
-                if (btn) btn.classList.remove('border-mystic-accent', 'bg-mystic-accent/10', 'ring-1', 'ring-mystic-accent');
-            });
-            document.getElementById('intensityVal').innerText = '5 / 10';
-        }
-
-        function saveLogToIndexedDB(entry) {
-            return new Promise((resolve) => {
-                const tx = db.transaction('olahrasa_logs', 'readwrite');
-                const store = tx.objectStore('olahrasa_logs');
-                store.put(entry);
-                tx.oncomplete = () => resolve();
-            });
-        }
-
-        function loadLocalLogs() {
-            return new Promise((resolve) => {
-                if (!db) return resolve();
-                const tx = db.transaction('olahrasa_logs', 'readonly');
-                const store = tx.objectStore('olahrasa_logs');
-                const request = store.getAll();
-                request.onsuccess = () => {
-                    journalEntries = (request.result || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-                    renderLogs();
-                    resolve();
-                };
-            });
-        }
-
-        async function deleteEntry(id) {
-            if (!confirm('Hapus catatan olahrasa ini?')) return;
-            
-            const tx = db.transaction('olahrasa_logs', 'readwrite');
-            tx.objectStore('olahrasa_logs').delete(id);
-            tx.oncomplete = () => {
-                journalEntries = journalEntries.filter(e => e.id !== id);
-                renderLogs();
-            };
-
-            if (supabaseClient) {
-                try {
-                    await supabaseClient.from('olahrasa_logs').delete().eq('id', id);
-                } catch(err) { console.warn('Supabase delete failed', err); }
-            }
-        }
-
-        function renderLogs() {
-            const container = document.getElementById('logsContainer');
-            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
-            const catFilter = document.getElementById('filterCategory').value;
-            const sensorFilter = document.getElementById('filterSensor').value;
-
-            const filtered = journalEntries.filter(item => {
-                const raw = (item.raw_sasmita || '').toLowerCase();
-                const loc = (item.location_name || '').toLowerCase();
-                const analysis = (item.logical_analysis || '').toLowerCase();
-
-                const matchesSearch = raw.includes(searchQuery) || loc.includes(searchQuery) || analysis.includes(searchQuery);
-                const matchesCat = catFilter === 'ALL' || item.category === catFilter;
-                const matchesSensor = sensorFilter === 'ALL' || (item.sensors && item.sensors.includes(sensorFilter));
-                return matchesSearch && matchesCat && matchesSensor;
-            });
-
-            document.getElementById('logCountBadge').innerText = `${filtered.length} Log`;
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-10 text-slate-500 space-y-2">
-                        <i class="fa-solid fa-feather-pointed text-2xl opacity-50"></i>
-                        <p class="text-xs">Belum ada catatan olahrasa yang cocok.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = filtered.map(item => {
-                const dateStr = new Date(item.created_at).toLocaleDateString('id-ID', {
-                    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-                });
-
-                return `
-                    <div class="bg-mystic-base/80 border border-mystic-border hover:border-mystic-border/90 rounded-xl p-3.5 space-y-2.5 transition relative group">
-                        <div class="flex items-start justify-between gap-2">
-                            <div>
-                                <div class="flex items-center gap-2 mb-0.5">
-                                    <span class="text-[10px] font-semibold text-mystic-amber uppercase tracking-wider">${escapeHtml(item.category)}</span>
-                                    ${item.is_pure_sasmita ? '<span class="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1.5 py-0.2 rounded">Sasmita Murni</span>' : ''}
-                                </div>
-                                <h3 class="text-xs font-bold text-slate-100 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-location-dot text-mystic-sage text-[11px]"></i> ${escapeHtml(item.location_name)}
-                                </h3>
-                                <p class="text-[10px] text-slate-400 mt-0.5">${dateStr}</p>
-                            </div>
-                            <div class="flex items-center gap-1.5">
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-mystic-card border border-mystic-border text-mystic-sage">
-                                    Intensitas: ${item.intensity}/10
-                                </span>
-                                <button onclick="deleteEntry('${item.id}')" class="text-slate-500 hover:text-rose-400 text-xs p-1 transition" title="Hapus">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Active Sensors & Directions -->
-                        <div class="flex flex-wrap gap-1 items-center">
-                            ${(item.sensors || []).map(s => `<span class="text-[9px] px-2 py-0.5 rounded-full bg-mystic-accent/15 border border-mystic-accent/30 text-purple-300">${escapeHtml(s)}</span>`).join('')}
-                            ${(item.sensor_directions || []).map(d => `<span class="text-[9px] px-1.5 py-0.5 rounded bg-mystic-card border border-mystic-border text-cyan-300"><i class="fa-solid fa-compass text-[8px] mr-1"></i>${escapeHtml(d)}</span>`).join('')}
-                        </div>
-
-                        <!-- Sensations -->
-                        ${(item.sensations && item.sensations.length > 0) ? `
-                            <div class="text-[10px] text-slate-400">
-                                <span class="text-slate-500">Sensasi:</span> ${item.sensations.map(s => escapeHtml(s)).join(', ')}
-                            </div>
-                        ` : ''}
-
-                        <!-- Raw Sasmita -->
-                        ${item.raw_sasmita ? `
-                            <div class="bg-mystic-card/60 p-2 rounded-lg border-l-2 border-mystic-amber text-[11px] text-amber-200/90 italic">
-                                "${escapeHtml(item.raw_sasmita)}"
-                            </div>
-                        ` : ''}
-
-                        <!-- Logical Analysis -->
-                        ${item.logical_analysis ? `
-                            <p class="text-[11px] text-slate-300 leading-relaxed">${escapeHtml(item.logical_analysis)}</p>
-                        ` : ''}
-
-                        <!-- Real Validation & Grounding -->
-                        <div class="space-y-1">
-                            ${item.real_validation ? `
-                                <div class="text-[10px] text-emerald-300 bg-emerald-950/20 border border-emerald-800/40 p-2 rounded-lg flex items-center gap-1.5">
-                                    <i class="fa-solid fa-circle-check text-emerald-400"></i>
-                                    <span><b>Validasi:</b> ${escapeHtml(item.real_validation)}</span>
-                                </div>
-                            ` : ''}
-                            ${item.grounding_note ? `
-                                <div class="text-[10px] text-cyan-300 bg-cyan-950/20 border border-cyan-800/40 p-1.5 rounded-lg flex items-center gap-1.5">
-                                    <i class="fa-solid fa-leaf text-cyan-400"></i>
-                                    <span><b>Grounding:</b> ${escapeHtml(item.grounding_note)}</span>
-                                </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function loadSupabaseConfig() {
-            const url = localStorage.getItem('supabase_url') || '';
-            const key = localStorage.getItem('supabase_key') || '';
-            document.getElementById('supabaseUrl').value = url;
-            document.getElementById('supabaseKey').value = key;
-
-            if (url && key) {
-                try {
-                    supabaseClient = supabase.createClient(url, key);
-                    updateSyncUI('online', 'Terhubung Supabase');
-                    triggerSync();
-                } catch(e) {
-                    updateSyncUI('offline', 'Config Error');
-                }
-            } else {
-                updateSyncUI('offline', 'Offline Mode');
-            }
-        }
-
-        function saveSupabaseConfig() {
-            const url = document.getElementById('supabaseUrl').value.trim();
-            const key = document.getElementById('supabaseKey').value.trim();
-            
-            localStorage.setItem('supabase_url', url);
-            localStorage.setItem('supabase_key', key);
-
-            if (url && key) {
-                try {
-                    supabaseClient = supabase.createClient(url, key);
-                    updateSyncUI('online', 'Terhubung');
-                    triggerSync();
-                    toggleModal('configModal');
-                } catch(e) {
-                    alert('Gagal menghubungkan ke Supabase: ' + e.message);
-                }
-            } else {
-                supabaseClient = null;
-                updateSyncUI('offline', 'Offline Mode');
-                toggleModal('configModal');
-            }
-        }
-
-        async function triggerSync() {
-            if (!supabaseClient) {
-                alert('Konfigurasi Supabase belum diisi. Silakan isi URL & Key terlebih dahulu di menu Pengaturan.');
-                return;
-            }
-
-            updateSyncUI('syncing', 'Menyingkronkan...');
-            try {
-                // 1. Pull data terbaru dari Cloud Supabase
-                const { data: cloudLogs, error } = await supabaseClient
-                    .from('olahrasa_logs')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-
-                // 2. Gabungkan data Cloud ke IndexedDB Lokal
-                if (cloudLogs && cloudLogs.length > 0) {
-                    for (const item of cloudLogs) {
-                        await saveLogToIndexedDB(item);
-                    }
-                }
-
-                // 3. Upsert data Lokal ke Cloud Supabase
-                for (const entry of journalEntries) {
-                    await supabaseClient.from('olahrasa_logs').upsert(entry);
-                }
-
-                // Reload local state
-                await loadLocalLogs();
-                updateSyncUI('online', 'Tersinkron');
-            } catch(e) {
-                console.error(e);
-                updateSyncUI('offline', 'Gagal Sync');
-            }
-        }
-
-        async function syncSingleToSupabase(entry) {
-            if (!supabaseClient) return;
-            try {
-                await supabaseClient.from('olahrasa_logs').upsert(entry);
-            } catch(e) {
-                console.warn('Background sync queued offline', e);
-            }
-        }
-
-        function updateSyncUI(state, text) {
-            const dot = document.getElementById('syncDot');
-            const txt = document.getElementById('syncText');
-            txt.innerText = text;
-
-            if (state === 'online') {
-                dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
-            } else if (state === 'syncing') {
-                dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
-            } else {
-                dot.className = 'w-2 h-2 rounded-full bg-slate-500';
-            }
-        }
-
-        function toggleModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.toggle('hidden');
-        }
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>"']/g, m => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-            })[m]);
-        }
-    </script>
+    function toggleModal(modalId) {
+      const modal = document.getElementById(modalId);
+      modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+    }
+  </script>
 </body>
 </html>
