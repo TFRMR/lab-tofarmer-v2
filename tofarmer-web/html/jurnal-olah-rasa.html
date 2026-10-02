@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jurnal Olahrasa & Sasmita - Tracking Sensor Tubuh & Intuisi</title>
+  <meta name="theme-color" content="#2f6f4e">
+
+  <!-- MANIFEST INLINE (untuk Instal 5 Detik) -->
+  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Jurnal%20Olahrasa%20%26%20Sasmita%22%2C%22short_name%22%3A%22Olahrasa%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f7f5%22%2C%22theme_color%22%3A%22%232f6f4e%22%7D">
 
   <!-- FAVICON SVG -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
@@ -258,6 +262,57 @@
     .note-teal { background: #e6f6f8; border: 1px solid #bfe3e8; color: #0e5a66; }
     .empty-box { text-align: center; padding: 28px 10px; color: #6f7f76; font-size: 12px; line-height: 1.7; }
 
+    /* ===== Tambahan: indra persepsi, konteks, prediksi, verifikasi, pola ===== */
+    .pick-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .pick { border: 1px solid #d9e4dd; background: #fff; border-radius: 999px; padding: 5px 11px; font-size: 11px; font-weight: bold; color: #3d5246; cursor: pointer; font-family: inherit; transition: 0.2s; }
+    .pick:hover { border-color: #4caf7a; }
+    .pick.active { background: #2f6f4e; color: #fff; border-color: #2f6f4e; }
+    .hint { font-size: 10px; color: #6f7f76; line-height: 1.5; margin-top: 6px; }
+    .perc-row { display: grid; grid-template-columns: 1fr 160px; gap: 8px; margin-top: 8px; align-items: start; }
+    .perc-row > label { grid-column: 1 / -1; margin-bottom: -4px; }
+    @media (max-width: 600px) { .perc-row { grid-template-columns: 1fr; } }
+    .auto-ctx { background: #f8fcf9; border: 1px dashed #cfe5d8; border-radius: 10px; padding: 7px 10px; font-size: 11px; color: #3d5246; margin: -4px 0 12px; }
+    .sec-box { background: #f8fcf9; border: 1px solid #e0e8e3; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+    .sec-box > summary { cursor: pointer; font-size: 12px; font-weight: bold; color: #2f6f4e; list-style: none; }
+    .sec-box > summary::-webkit-details-marker { display: none; }
+    .sec-title { font-size: 12px; font-weight: bold; color: #2f6f4e; margin-bottom: 8px; }
+    .sub-label { display: block; font-size: 10px; font-weight: bold; color: #6f7f76; margin: 10px 0 4px; }
+    .purity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+    @media (max-width: 600px) { .purity-grid { grid-template-columns: 1fr; } }
+    .purity-grid label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #3d5246; font-weight: normal; margin: 0; cursor: pointer; }
+    .purity-grid input { accent-color: #2f6f4e; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    @media (max-width: 600px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+    .view-scroll { max-height: 640px; overflow-y: auto; padding-right: 4px; }
+    .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-box { background: #f8fcf9; border: 1px solid #e0e8e3; border-radius: 12px; padding: 10px; text-align: center; }
+    .stat-box b { display: block; font-size: 18px; color: #2f6f4e; }
+    .stat-box span { font-size: 10px; color: #6f7f76; }
+    .pat-sec { margin-top: 18px; }
+    .pat-sec h4 { font-size: 12px; color: #2f6f4e; margin-bottom: 6px; }
+    .bar-row { display: grid; grid-template-columns: 120px 1fr 78px; gap: 8px; align-items: center; font-size: 11px; margin: 5px 0; }
+    .bar-label { color: #3d5246; word-break: break-word; }
+    .bar-track { height: 10px; background: #e9f4ee; border-radius: 6px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, #4caf7a, #2f6f4e); }
+    .bar-fill.low { background: #cbd5d0; }
+    .bar-fill.gold { background: linear-gradient(90deg, #e2c35a, #c9a227); }
+    .bar-val { text-align: right; color: #6f7f76; font-size: 10px; }
+    .spark { display: flex; align-items: flex-end; gap: 3px; height: 44px; }
+    .spark i { flex: 1; background: #4caf7a; border-radius: 3px 3px 0 0; min-height: 2px; display: block; }
+    .badge-out { font-size: 10px; font-weight: bold; padding: 2px 8px; border-radius: 8px; }
+    .badge-out.hit { background: #e9f4ee; color: #24583e; }
+    .badge-out.part { background: #fef3c7; color: #92400e; }
+    .badge-out.miss { background: #fff1e6; color: #b45309; }
+    .badge-out.na { background: #f3f4f6; color: #6b7280; }
+    .badge-out.wait { background: #eef7f1; color: #2f6f4e; }
+    .pred-box { margin-top: 10px; padding: 8px 10px; background: #f1f8f4; border-left: 3px solid #2f6f4e; border-radius: 8px; font-size: 12px; color: #24583e; word-break: break-word; }
+    .ctx-line { font-size: 10px; color: #6f7f76; margin-top: 6px; line-height: 1.55; word-break: break-word; }
+    .chip-perc { font-size: 10px; padding: 3px 9px; border-radius: 8px; background: #fff; border: 1px solid #d9e4dd; color: #3d5246; word-break: break-word; }
+    .kind-badge { font-size: 9px; background: #e9f4ee; color: #2f6f4e; padding: 1px 7px; border-radius: 6px; margin-left: 6px; font-weight: bold; text-transform: none; letter-spacing: 0; }
+    .log-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+    .pend-card { background: #f8fcf9; border: 1px solid #e0e8e3; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+    .overdue { color: #b45309; font-weight: bold; }
+
     .guide-card { max-width: 640px; max-height: 88vh; overflow-y: auto; position: relative; }
     .guide-x { position: absolute; top: 12px; right: 14px; background: transparent; border: none; font-size: 18px; cursor: pointer; color: #6f7f76; }
     .guide-sec { background: #f8fcf9; border: 1px solid #e0e8e3; border-radius: 12px; padding: 12px 14px; margin-top: 12px; font-size: 12px; color: #3d5246; line-height: 1.6; }
@@ -301,6 +356,15 @@
       </div>
     </header>
 
+    <!-- PASANG APLIKASI -->
+    <div class="pwa-banner" id="pwaBanner">
+      <div>
+        <h4 style="font-size: 12px; color:#2f6f4e;">Pasang Aplikasi Jurnal Olahrasa</h4>
+        <span style="font-size: 10px; color:#6f7f76;">Taruh di layar depan HP supaya mudah dibuka, dan tetap bisa mencatat saat sinyal lemah</span>
+      </div>
+      <button class="pwa-btn" id="btnDirectInstall" onclick="executeInstall()">⚡ Instal 5 Detik</button>
+    </div>
+
     <div class="journal-layout">
 
       <!-- KIRI: Form Input -->
@@ -331,12 +395,41 @@
               </div>
             </div>
 
+            <!-- Jenis & Waktu Kejadian -->
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Jenis Kejadian</label>
+                <select id="kind" class="form-control">
+                  <option value="Olahrasa">Olahrasa / Intuisi</option>
+                  <option value="Firasat">Firasat / Prediksi</option>
+                  <option value="Mimpi">Mimpi</option>
+                  <option value="Sinkronisitas">Sinkronisitas (kebetulan bermakna)</option>
+                  <option value="Fisik">Pengamatan Fisik (terukur)</option>
+                  <option value="Tempat">Pengalaman Tempat / Pusaka</option>
+                  <option value="Lainnya">Lainnya</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Waktu Kejadian</label>
+                <input type="datetime-local" id="eventAt" class="form-control" onchange="eventAtTouched = true; updateAutoContext()">
+              </div>
+            </div>
+            <div class="auto-ctx" id="autoContext"></div>
+
             <!-- Pilihan Sensor -->
             <div class="form-group">
               <label>Pilih Sensor Tubuh yang Aktif *</label>
               <div class="sensor-grid" id="sensorGrid">
                 <!-- Diisi otomatis lewat JS -->
               </div>
+            </div>
+
+            <!-- Indra Persepsi -->
+            <div class="form-group">
+              <label>Indra Persepsi (boleh imajiner)</label>
+              <div class="pick-row" id="perceptionPicks"></div>
+              <div id="perceptionRows"></div>
+              <p class="hint">Pilih indra yang ikut aktif, lalu tandai: ada sumber nyata di luar (mis. memang ada dupa terbakar) atau murni batin/imajiner. Dua-duanya berharga sebagai data; tandanya yang membuat polanya bisa dipercaya.</p>
             </div>
 
             <!-- Sensasi & Arah -->
@@ -366,6 +459,19 @@
               </div>
             </div>
 
+            <!-- Uji Kemurnian Sasmita -->
+            <div class="sec-box">
+              <div class="sec-title">🧪 Uji Kemurnian Sasmita <span id="purityScore" class="muted-xs">· skor 0/4</span></div>
+              <div class="purity-grid">
+                <label><input type="checkbox" id="puritySudden" onchange="updatePurityScore()"> Muncul mendadak (±3 detik pertama)</label>
+                <label><input type="checkbox" id="purityNeutral" onchange="updatePurityScore()"> Terasa netral, tanpa dorongan emosi</label>
+                <label><input type="checkbox" id="purityBodily" onchange="updatePurityScore()"> Dibarengi sensor / indra fisik</label>
+                <label><input type="checkbox" id="puritySimple" onchange="updatePurityScore()"> Sederhana, tidak berbelit</label>
+                <label style="grid-column: 1 / -1; color: #b45309;"><input type="checkbox" id="purityBias" onchange="updatePurityScore()"> Saat itu ada harapan / ketakutan / ambisi soal hasilnya (bias)</label>
+              </div>
+              <p class="hint">Mengikuti rumus pembeda di panduan 📖. Skornya dipakai di tab 📊 Pola untuk menjawab: apakah sasmita yang lebih murni memang lebih akurat?</p>
+            </div>
+
             <!-- Intuisi & Analisis -->
             <div class="form-group">
               <label class="label-gold">⚡ Impresi Murni / Raw Sasmita *</label>
@@ -389,8 +495,59 @@
               </div>
             </div>
 
+            <!-- Interpretasi & Prediksi -->
+            <div class="sec-box">
+              <div class="sec-title">🔮 Interpretasi & Prediksi (opsional)</div>
+              <textarea id="predictionText" rows="2" class="form-control" placeholder="Menurutmu ini pertanda apa / akan terjadi apa? Tulis sekarang, sebelum hasilnya diketahui."></textarea>
+              <div class="grid-2" style="margin-top: 10px;">
+                <div>
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <span style="font-size:11px; font-weight:bold; color:#2f6f4e;">Seberapa yakin?</span>
+                    <span id="confVal" style="font-size:12px; font-weight:bold; color:#92700a;">50%</span>
+                  </div>
+                  <input type="range" id="confidence" min="0" max="100" step="5" value="50" oninput="document.getElementById('confVal').innerText = this.value + '%'" class="range">
+                </div>
+                <div>
+                  <span class="sub-label" style="margin-top:0;">Cek kembali pada (opsional)</span>
+                  <input type="date" id="verifyBy" class="form-control">
+                </div>
+              </div>
+              <p class="hint">Catatan aslimu tidak diubah setelah disimpan. Hasilnya nanti ditambahkan lewat tombol 🔎 Verifikasi, jadi latihan tetap jujur dari bias "sudah kuduga".</p>
+            </div>
+
+            <!-- Konteks & Kondisi -->
+            <details class="sec-box">
+              <summary>🧭 Konteks & kondisi (opsional, membantu mencari pola)</summary>
+              <span class="sub-label">Kondisi tubuh saat itu</span>
+              <div class="pick-row" id="statePicks"></div>
+              <span class="sub-label">Suasana batin saat itu</span>
+              <div class="pick-row" id="moodPicks"></div>
+              <div class="grid-3" style="margin-top: 6px;">
+                <div><span class="sub-label">Tidur semalam (jam)</span><input type="number" id="sleepHours" min="0" max="24" step="0.5" class="form-control" placeholder="mis. 6.5"></div>
+                <div><span class="sub-label">Cuaca</span>
+                  <select id="weather" class="form-control"><option value="">-</option><option>Cerah</option><option>Berawan</option><option>Mendung</option><option>Hujan</option><option>Kabut</option><option>Angin kencang</option><option>Petir</option></select></div>
+                <div><span class="sub-label">Tempat</span>
+                  <select id="placeType" class="form-control"><option value="">-</option><option>Di dalam ruangan</option><option>Di luar ruangan</option><option>Dalam perjalanan</option></select></div>
+                <div><span class="sub-label">Keramaian</span>
+                  <select id="crowd" class="form-control"><option value="">-</option><option>Sepi</option><option>Sedang</option><option>Ramai</option></select></div>
+                <div><span class="sub-label">Cahaya</span>
+                  <select id="light" class="form-control"><option value="">-</option><option>Terang</option><option>Redup</option><option>Gelap</option></select></div>
+                <div><span class="sub-label">Durasi pengalaman</span>
+                  <select id="duration" class="form-control"><option value="">-</option><option>Kurang dari 10 detik</option><option>10-60 detik</option><option>1-10 menit</option><option>Lebih dari 10 menit</option><option>Berjam-jam</option></select></div>
+                <div><span class="sub-label">Cara muncul</span>
+                  <select id="onset" class="form-control"><option value="">-</option><option>Mendadak</option><option>Bertahap</option><option>Berulang-ulang</option></select></div>
+                <div><span class="sub-label">Pemicu</span>
+                  <select id="trigger" class="form-control"><option value="">-</option><option>Tempat</option><option>Orang</option><option>Benda / pusaka</option><option>Doa / ritual</option><option>Mimpi</option><option>Tanpa pemicu jelas</option></select></div>
+                <div><span class="sub-label">Titik lokasi</span>
+                  <button type="button" class="btn-outline-action" id="geoBtn" onclick="captureGeo()">📍 Ambil lokasi</button>
+                  <div class="hint" id="geoInfo"></div></div>
+              </div>
+              <span class="sub-label">Tag (pisahkan koma)</span>
+              <input type="text" id="tagsInput" class="form-control" placeholder="Contoh: sendang, pusaka, sebelum-hujan">
+            </details>
+
             <div class="form-actions">
-              <button type="button" onclick="resetForm()" class="btn-text">Reset Form</button>
+              <button type="button" onclick="resetForm()\" class="btn-text">Reset Form</button>
               <button type="submit" class="btn-submit-form">💾 Simpan Catatan</button>
             </div>
           </form>
@@ -405,33 +562,56 @@
             <span id="logCountBadge" class="count-badge">0 Log</span>
           </div>
 
-          <!-- Pencarian & Filter -->
-          <input type="text" id="searchInput" oninput="renderLogs()" placeholder="🔍 Cari sasmita, lokasi, atau kata kunci..." class="form-control">
-          <div class="filter-row">
-            <select id="filterCategory" onchange="renderLogs()" class="form-control">
-              <option value="ALL">Semua Kategori</option>
-              <option value="Sinyal Alam/Geologi">Alam / Geologi</option>
-              <option value="Genius Loci/Energi Tempat">Energi Tempat</option>
-              <option value="Resonansi Luhur/Doa">Resonansi Luhur</option>
-              <option value="Residu/Peringatan">Residu / Alert</option>
-              <option value="Intuisi Umum">Intuisi Umum</option>
-            </select>
-            <select id="filterSensor" onchange="renderLogs()" class="form-control">
-              <option value="ALL">Semua Sensor</option>
-              <option value="Perut">Perut (Solar Plexus)</option>
-              <option value="Dada">Dada (Heart)</option>
-              <option value="Kening">Kening (Ajna)</option>
-              <option value="Ubun-ubun">Ubun-ubun (Crown)</option>
-              <option value="Atas Kepala">Atas Kepala</option>
-              <option value="Tengkuk">Tengkuk / Kuduk</option>
-              <option value="Telapak">Telapak Tangan/Kaki</option>
-            </select>
+          <!-- Tab tampilan -->
+          <div class="tab-container" style="margin-bottom: 12px;">
+            <button id="rtabLog" class="tab-btn active" onclick="switchRightTab('log')">🕰️ Riwayat</button>
+            <button id="rtabPattern" class="tab-btn" onclick="switchRightTab('pattern')">📊 Pola</button>
+            <button id="rtabPending" class="tab-btn" onclick="switchRightTab('pending')">⏳ Verifikasi <span id="pendingCount"></span></button>
           </div>
 
-          <!-- Daftar catatan -->
-          <div id="logsContainer" class="logs-stream">
-            <!-- Dibuat otomatis lewat JS -->
+          <div id="viewLog">
+            <!-- Pencarian & Filter -->
+            <input type="text" id="searchInput" oninput="renderLogs()" placeholder="🔍 Cari sasmita, lokasi, tag, atau kata kunci..." class="form-control">
+            <div class="filter-row">
+              <select id="filterCategory" onchange="renderLogs()" class="form-control">
+                <option value="ALL">Semua Kategori</option>
+                <option value="Sinyal Alam/Geologi">Alam / Geologi</option>
+                <option value="Genius Loci/Energi Tempat">Energi Tempat</option>
+                <option value="Resonansi Luhur/Doa">Resonansi Luhur</option>
+                <option value="Residu/Peringatan">Residu / Alert</option>
+                <option value="Intuisi Umum">Intuisi Umum</option>
+              </select>
+              <select id="filterSensor" onchange="renderLogs()" class="form-control">
+                <option value="ALL">Semua Sensor</option>
+                <option value="Perut">Perut (Solar Plexus)</option>
+                <option value="Dada">Dada (Heart)</option>
+                <option value="Kening">Kening (Ajna)</option>
+                <option value="Ubun-ubun">Ubun-ubun (Crown)</option>
+                <option value="Atas Kepala">Atas Kepala</option>
+                <option value="Tengkuk">Tengkuk / Kuduk</option>
+                <option value="Telapak">Telapak Tangan/Kaki</option>
+              </select>
+            </div>
+            <div class="filter-row">
+              <select id="filterStatus" onchange="renderLogs()" class="form-control">
+                <option value="ALL">Semua Status Verifikasi</option>
+                <option value="WAIT">⏳ Menunggu verifikasi</option>
+                <option value="terbukti">✅ Terbukti</option>
+                <option value="sebagian">◐ Sebagian</option>
+                <option value="meleset">❌ Tidak terbukti</option>
+                <option value="tak_terverifikasi">❓ Tidak bisa diverifikasi</option>
+                <option value="NOPRED">Tanpa prediksi</option>
+              </select>
+            </div>
+
+            <!-- Daftar catatan -->
+            <div id="logsContainer" class="logs-stream">
+              <!-- Dibuat otomatis lewat JS -->
+            </div>
           </div>
+
+          <div id="viewPattern" class="view-scroll" style="display: none;"></div>
+          <div id="viewPending" class="view-scroll" style="display: none;"></div>
         </div>
       </section>
     </div>
@@ -576,6 +756,38 @@
   </div>
 
 
+  <!-- MODAL: Verifikasi Hasil -->
+  <div id="verifyModal" class="modal-overlay" onclick="closeVerify()">
+    <div class="modal-card guide-card" onclick="event.stopPropagation()">
+      <button class="guide-x" onclick="closeVerify()" title="Tutup">✕</button>
+      <h3 style="font-size:15px; color:#2f6f4e;">🔎 Verifikasi Hasil</h3>
+      <div id="verifyOrig" class="guide-sec" style="margin-top:10px;"></div>
+
+      <div class="form-group" style="margin-top:12px;">
+        <label>Apa yang sebenarnya terjadi?</label>
+        <div class="pick-row" id="verifyStatusPicks"></div>
+      </div>
+      <div class="form-group">
+        <label>Seberapa kuat buktinya?</label>
+        <select id="verifyEvidence" class="form-control">
+          <option value="terukur">Terukur (alat / data)</option>
+          <option value="diamati">Diamati langsung</option>
+          <option value="kesaksian">Kesaksian orang lain</option>
+          <option value="perasaan">Hanya perasaan / ingatan</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Catatan hasil (apa yang terjadi / ditemukan)</label>
+        <textarea id="verifyNote" rows="3" class="form-control" placeholder="Tulis kejadian sebenarnya, apa adanya..."></textarea>
+      </div>
+      <p class="hint">Catatan asli dan prediksimu tidak diubah. Hasil ditambahkan terpisah beserta waktunya; kalau nanti kamu ubah, versi lamanya tetap tersimpan.</p>
+      <div class="form-actions">
+        <button type="button" onclick="closeVerify()" class="btn-text">Batal</button>
+        <button type="button" onclick="saveVerify()" class="btn-submit-form">💾 Simpan Hasil</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: Panduan & Reset Saraf -->
   <div id="guideModal" class="modal-overlay" onclick="toggleModal('guideModal')">
     <div class="modal-card guide-card" onclick="event.stopPropagation()">
@@ -622,6 +834,17 @@
           </div>
         </div>
       </div>
+
+      <div class="guide-sec">
+        <h4 style="color:#2f6f4e;">🔁 Siklus Latihan Intuisi (supaya makin objektif)</h4>
+        <ul>
+          <li><b>Catat dulu, analisis kemudian:</b> tulis impresi murni sebelum berpikir panjang.</li>
+          <li><b>Tulis prediksi + keyakinan (%) + tanggal cek:</b> sebelum hasilnya diketahui.</li>
+          <li><b>Verifikasi tanpa mengubah catatan asli:</b> tombol 🔎 hanya menambahkan hasil.</li>
+          <li><b>Baca tab 📊 Pola:</b> apakah sasmita murni lebih akurat? apakah keyakinanmu sesuai kenyataan? waktu/tempat/kondisi mana yang paling jernih?</li>
+          <li><b>Percayai pola yang berulang:</b> pola dari beberapa catatan saja bisa kebetulan; uji lagi sebelum dijadikan pegangan.</li>
+        </ul>
+      </div>
     </div>
   </div>
 
@@ -649,6 +872,7 @@
     let db = null;               // IndexedDB: salinan lokal (tetap bisa dipakai saat sinyal buruk)
     let syncing = false;
     let legacyOffered = false;
+    let extWarned = false;
 
     // ----------------------------------------------------
     // [V5] DIALOG CANTIK: pengganti alert()/confirm() bawaan browser supaya tampil ramah & seragam dengan halaman.
@@ -1305,14 +1529,38 @@
       updateDateTime();
       setInterval(updateDateTime, 30000);
       renderSensorGrid();
+      renderPerceptionPicks();
+      renderStatePicks();
+      setDefaultEventAt();
+      updateAutoContext();
+      updatePurityScore();
 
-      // hapus catatan lewat delegasi klik (tanpa onclick inline berisi data)
+      // tombol di daftar catatan lewat delegasi klik (tanpa onclick inline berisi data)
       document.getElementById('logsContainer').addEventListener('click', (e) => {
-        const btn = e.target.closest('.log-del');
-        if (btn) deleteEntry(btn.dataset.id);
+        const del = e.target.closest('.log-del');
+        if (del) { deleteEntry(del.dataset.id); return; }
+        const ver = e.target.closest('.log-verify');
+        if (ver) openVerify(ver.dataset.id);
+      });
+      document.getElementById('viewPending').addEventListener('click', (e) => {
+        const ver = e.target.closest('.log-verify');
+        if (ver) openVerify(ver.dataset.id);
+      });
+      document.getElementById('statePicks').addEventListener('click', (e) => {
+        const b = e.target.closest('.pick'); if (!b) return;
+        toggleInList(selfStates, b.dataset.v); b.classList.toggle('active');
+      });
+      document.getElementById('moodPicks').addEventListener('click', (e) => {
+        const b = e.target.closest('.pick'); if (!b) return;
+        toggleInList(moodStates, b.dataset.v); b.classList.toggle('active');
+      });
+      document.getElementById('verifyStatusPicks').addEventListener('click', (e) => {
+        const b = e.target.closest('.pick'); if (!b) return;
+        verifyStatus = b.dataset.v;
+        document.querySelectorAll('#verifyStatusPicks .pick').forEach(x => x.classList.toggle('active', x === b));
       });
 
-      try { await initIndexedDB(); } catch (e) { console.warn('IndexedDB tidak tersedia', e); }
+            try { await initIndexedDB(); } catch (e) { console.warn('IndexedDB tidak tersedia', e); }
       checkExistingSession();      // pulihkan sesi masuk (jika ada)
       await loadLocalLogs();
       refreshSyncStatus();
@@ -1412,7 +1660,8 @@
         real_validation: document.getElementById('realValidation').value.trim() || null,
         grounding_note: document.getElementById('groundingNote').value.trim() || null,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        ext: buildExt()          // data tambahan: indra persepsi, konteks, prediksi, dst.
       };
 
       // Simpan lokal dulu (aman walau sinyal buruk), lalu kirim ke Supabase
@@ -1433,6 +1682,7 @@
         if (btn) btn.classList.remove('active');
       });
       document.getElementById('intensityVal').innerText = '5 / 10';
+      resetExtendedForm();
     }
 
     // ----------------------------------------------------
@@ -1496,31 +1746,400 @@
       }
     }
 
+    // ----------------------------------------------------
+    // PERLUASAN DATA: indra persepsi, konteks, prediksi, verifikasi, dan analisis pola
+    // Semua data tambahan disimpan dalam SATU kolom `ext` (jsonb) agar struktur tabel tidak perlu diubah-ubah lagi.
+    // ----------------------------------------------------
+    const PERCEPTION = [
+      { id: 'visual',  icon: '👁️', name: 'Penglihatan',        ph: 'Cahaya, warna, bayangan, gambaran / visi batin...' },
+      { id: 'audio',   icon: '👂', name: 'Pendengaran',        ph: 'Dengung, bisikan, nada, suara batin...' },
+      { id: 'smell',   icon: '👃', name: 'Penciuman',          ph: 'Wangi bunga / dupa, anyir, gosong, tanpa sumber...' },
+      { id: 'taste',   icon: '👅', name: 'Pengecapan',         ph: 'Rasa logam, manis, pahit tiba-tiba...' },
+      { id: 'touch',   icon: '🤲', name: 'Rabaan / Suhu',      ph: 'Sentuhan, hembusan, hawa panas / dingin...' },
+      { id: 'knowing', icon: '💡', name: 'Tahu Langsung',      ph: 'Tahu begitu saja tanpa tahu sebabnya...' },
+      { id: 'emotion', icon: '🎭', name: 'Rasa / Emosi Bawaan', ph: 'Emosi yang terasa bukan berasal dari diri sendiri...' },
+      { id: 'motion',  icon: '🌀', name: 'Gerak / Keseimbangan', ph: 'Pusing, tertarik ke satu arah, terasa melayang...' }
+    ];
+    const SOURCES = { imajiner: '🔸 Imajiner / batin', fisik: '🔹 Ada sumber nyata', ragu: '❔ Tidak yakin' };
+    const SELF_STATES = ['Lapar', 'Kenyang', 'Kurang tidur', 'Kafein', 'Puasa', 'Sakit', 'Lelah', 'Habis olahraga', 'Habis doa / meditasi'];
+    const MOODS = ['Tenang', 'Cemas', 'Bersemangat', 'Sedih', 'Fokus', 'Mengantuk', 'Marah', 'Bahagia', 'Bingung'];
+    const KIND_LABEL = { Olahrasa: 'Olahrasa', Firasat: 'Firasat / Prediksi', Mimpi: 'Mimpi', Sinkronisitas: 'Sinkronisitas', Fisik: 'Pengamatan Fisik', Tempat: 'Pengalaman Tempat', Lainnya: 'Lainnya' };
+    const OUTCOME = {
+      terbukti:          { label: 'Terbukti',                icon: '✅', score: 1,    cls: 'hit' },
+      sebagian:          { label: 'Sebagian',                icon: '◐',  score: 0.5,  cls: 'part' },
+      meleset:           { label: 'Tidak terbukti',          icon: '❌', score: 0,    cls: 'miss' },
+      tak_terverifikasi: { label: 'Tidak bisa diverifikasi', icon: '❓', score: null, cls: 'na' }
+    };
+    const EVIDENCE = { terukur: 'Terukur (alat / data)', diamati: 'Diamati langsung', kesaksian: 'Kesaksian orang lain', perasaan: 'Hanya perasaan / ingatan' };
+    const MIN_N = 5; // di bawah ini dianggap "data sedikit"
+
+    let perceptionState = {};
+    let selfStates = [];
+    let moodStates = [];
+    let geo = null;
+    let eventAtTouched = false;
+    let rightTab = 'log';
+    let verifyTargetId = null;
+    let verifyStatus = null;
+    let patternFactorKey = 'sasmita';
+
+    function toggleInList(arr, v) {
+      const i = arr.indexOf(v);
+      if (i === -1) arr.push(v); else arr.splice(i, 1);
+    }
+
+    // ---------- Konteks otomatis: hari, pasaran (weton), fase bulan, waktu ----------
+    const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const PASARAN = ['Legi', 'Pahing', 'Pon', 'Wage', 'Kliwon'];
+    const FASE = [
+      { n: 'Bulan Baru', e: '🌑' }, { n: 'Sabit Awal', e: '🌒' }, { n: 'Perempat Awal', e: '🌓' }, { n: 'Cembung Awal', e: '🌔' },
+      { n: 'Purnama', e: '🌕' }, { n: 'Cembung Akhir', e: '🌖' }, { n: 'Perempat Akhir', e: '🌗' }, { n: 'Sabit Akhir', e: '🌘' }
+    ];
+    // Pasaran dihitung dari tanggal kalender lokal. Acuan: 1 Jan 1970 = Kamis Wage
+    function pasaranOf(date) {
+      const days = Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+      return PASARAN[(((days + 3) % 5) + 5) % 5];
+    }
+    // Fase bulan perkiraan (siklus rata-rata 29,53 hari, acuan bulan baru 6 Jan 2000 18:14 UTC; selisih bisa ±0,5 hari)
+    function moonOf(date) {
+      const SYN = 29.530588853;
+      let age = ((date.getTime() - Date.UTC(2000, 0, 6, 18, 14)) / 86400000) % SYN;
+      if (age < 0) age += SYN;
+      const f = FASE[Math.floor((age / SYN) * 8 + 0.5) % 8];
+      return { fase: f.n, fase_emoji: f.e, usia_bulan: Math.round(age * 10) / 10 };
+    }
+    function timeBucket(date) {
+      const h = date.getHours() + date.getMinutes() / 60;
+      if (h < 3) return 'Tengah malam';
+      if (h < 5) return 'Dini hari';
+      if (h < 10) return 'Pagi';
+      if (h < 15) return 'Siang';
+      if (h < 17) return 'Sore';
+      if (h < 19) return 'Surup';
+      return 'Malam';
+    }
+    function autoContextFor(date) {
+      const m = moonOf(date);
+      const hari = HARI[date.getDay()];
+      const pasaran = pasaranOf(date);
+      return { hari: hari, pasaran: pasaran, weton: hari + ' ' + pasaran, fase: m.fase, fase_emoji: m.fase_emoji, usia_bulan: m.usia_bulan, waktu: timeBucket(date) };
+    }
+    function toLocalInputValue(d) {
+      const p = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+    }
+    function localDayKey(d) {
+      const p = n => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    }
+    function setDefaultEventAt() {
+      eventAtTouched = false;
+      document.getElementById('eventAt').value = toLocalInputValue(new Date());
+    }
+    function currentEventDate() {
+      const v = document.getElementById('eventAt').value;
+      return (eventAtTouched && v) ? new Date(v) : new Date();
+    }
+    function updateAutoContext() {
+      const d = currentEventDate();
+      const a = autoContextFor(d);
+      document.getElementById('autoContext').innerText =
+        `📅 ${a.weton} · ${a.fase_emoji} ${a.fase} (hari ke-${Math.floor(a.usia_bulan) + 1}) · 🕒 ${a.waktu} (tercatat otomatis)`;
+    }
+    function autoOf(e) { return (e.ext && e.ext.auto) || autoContextFor(new Date((e.ext && e.ext.event_at) || e.created_at)); }
+    function eventDateOf(e) { return new Date((e.ext && e.ext.event_at) || e.created_at); }
+
+    // ---------- Indra persepsi, kondisi, kemurnian, lokasi ----------
+    function renderPerceptionPicks() {
+      document.getElementById('perceptionPicks').innerHTML = PERCEPTION.map(p =>
+        `<button type="button" class="pick" id="perc-${p.id}" onclick="togglePerception('${p.id}')">${p.icon} ${p.name}</button>`).join('');
+    }
+    function togglePerception(id) {
+      if (perceptionState[id]) delete perceptionState[id];
+      else perceptionState[id] = { note: '', source: 'imajiner' };
+      document.getElementById('perc-' + id).classList.toggle('active', !!perceptionState[id]);
+      renderPerceptionRows();
+    }
+    function renderPerceptionRows() {
+      document.getElementById('perceptionRows').innerHTML = PERCEPTION.filter(p => perceptionState[p.id]).map(p => `
+        <div class="perc-row">
+          <label>${p.icon} ${p.name}</label>
+          <input type="text" class="form-control" id="percNote-${p.id}" placeholder="${p.ph}" value="${escapeHtml(perceptionState[p.id].note)}" oninput="perceptionState['${p.id}'].note = this.value">
+          <select class="form-control" id="percSrc-${p.id}" onchange="perceptionState['${p.id}'].source = this.value">
+            ${Object.keys(SOURCES).map(k => `<option value="${k}" ${perceptionState[p.id].source === k ? 'selected' : ''}>${SOURCES[k]}</option>`).join('')}
+          </select>
+        </div>`).join('');
+    }
+    function renderStatePicks() {
+      const mk = (list) => list.map(s => `<button type="button" class="pick" data-v="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('');
+      document.getElementById('statePicks').innerHTML = mk(SELF_STATES);
+      document.getElementById('moodPicks').innerHTML = mk(MOODS);
+    }
+    function purityScore(pu) { return ['sudden', 'neutral', 'bodily', 'simple'].filter(k => pu && pu[k]).length; }
+    function updatePurityScore() {
+      const n = ['puritySudden', 'purityNeutral', 'purityBodily', 'puritySimple'].filter(id => document.getElementById(id).checked).length;
+      document.getElementById('purityScore').innerText = `· skor ${n}/4`;
+    }
+    function captureGeo() {
+      const info = document.getElementById('geoInfo');
+      const btn = document.getElementById('geoBtn');
+      if (geo) { geo = null; info.innerText = ''; btn.innerText = '📍 Ambil lokasi'; return; }
+      if (!navigator.geolocation) { alert('Peramban ini belum mendukung lokasi.'); return; }
+      info.innerText = 'Mencari lokasi...';
+      navigator.geolocation.getCurrentPosition((pos) => {
+        geo = {
+          lat: +pos.coords.latitude.toFixed(5), lon: +pos.coords.longitude.toFixed(5),
+          acc: Math.round(pos.coords.accuracy), alt: pos.coords.altitude != null ? Math.round(pos.coords.altitude) : null
+        };
+        info.innerText = `${geo.lat}, ${geo.lon} (±${geo.acc} m)`;
+        btn.innerText = '✖ Hapus lokasi';
+      }, () => { info.innerText = 'Lokasi tidak bisa diambil (izin ditolak atau sinyal GPS lemah).'; }, { enableHighAccuracy: true, timeout: 10000 });
+    }
+    function parseTags(str) {
+      return (str || '').split(',').map(t => t.trim().replace(/^#/, '').toLowerCase()).filter(Boolean).slice(0, 12);
+    }
+
+    // Menyusun data tambahan untuk satu catatan
+    function buildExt() {
+      const v = (id) => document.getElementById(id).value;
+      const chk = (id) => document.getElementById(id).checked;
+      const when = currentEventDate();
+      const predText = v('predictionText').trim();
+      const ctx = {
+        states: selfStates.slice(), moods: moodStates.slice(),
+        sleep_hours: v('sleepHours') !== '' ? parseFloat(v('sleepHours')) : null,
+        weather: v('weather') || null, place_type: v('placeType') || null, crowd: v('crowd') || null, light: v('light') || null,
+        duration: v('duration') || null, onset: v('onset') || null, trigger: v('trigger') || null
+      };
+      return {
+        v: 2,
+        kind: v('kind'),
+        event_at: when.toISOString(),
+        auto: autoContextFor(when),
+        perception: PERCEPTION.filter(p => perceptionState[p.id]).map(p => ({ ch: p.id, note: (perceptionState[p.id].note || '').trim(), source: perceptionState[p.id].source })),
+        purity: { sudden: chk('puritySudden'), neutral: chk('purityNeutral'), bodily: chk('purityBodily'), simple: chk('puritySimple'), bias: chk('purityBias') },
+        prediction: predText ? { text: predText, confidence: parseInt(v('confidence')), verify_by: v('verifyBy') || null } : null,
+        context: ctx,
+        geo: geo ? Object.assign({}, geo) : null,
+        tags: parseTags(v('tagsInput'))
+      };
+    }
+
+    function resetExtendedForm() {
+      perceptionState = {}; selfStates = []; moodStates = []; geo = null;
+      document.querySelectorAll('#perceptionPicks .pick, #statePicks .pick, #moodPicks .pick').forEach(b => b.classList.remove('active'));
+      renderPerceptionRows();
+      document.getElementById('geoInfo').innerText = '';
+      document.getElementById('geoBtn').innerText = '📍 Ambil lokasi';
+      document.getElementById('confVal').innerText = '50%';
+      setDefaultEventAt();
+      updateAutoContext();
+      updatePurityScore();
+    }
+
+    // ---------- Verifikasi hasil (hanya menambah, tidak mengubah catatan asli) ----------
+    function openVerify(id) {
+      const e = journalEntries.find(x => x.id === id);
+      if (!e) return;
+      verifyTargetId = id;
+      const x = e.ext || {};
+      const o = x.outcome || null;
+      verifyStatus = o ? o.status : null;
+      document.getElementById('verifyOrig').innerHTML =
+        `<b>📍 ${escapeHtml(e.location_name)}</b><br><i>"${escapeHtml(e.raw_sasmita)}"</i>` +
+        (x.prediction && x.prediction.text ? `<br>🔮 ${escapeHtml(x.prediction.text)} <span class="muted-xs">(yakin ${Number(x.prediction.confidence) || 0}%)</span>` : '');
+      document.getElementById('verifyStatusPicks').innerHTML = Object.keys(OUTCOME).map(k =>
+        `<button type="button" class="pick ${verifyStatus === k ? 'active' : ''}" data-v="${k}">${OUTCOME[k].icon} ${OUTCOME[k].label}</button>`).join('');
+      document.getElementById('verifyEvidence').value = o && o.evidence ? o.evidence : 'diamati';
+      document.getElementById('verifyNote').value = o && o.note ? o.note : '';
+      document.getElementById('verifyModal').style.display = 'flex';
+    }
+    function closeVerify() {
+      document.getElementById('verifyModal').style.display = 'none';
+      verifyTargetId = null;
+    }
+    async function saveVerify() {
+      const e = journalEntries.find(x => x.id === verifyTargetId);
+      if (!e) { closeVerify(); return; }
+      if (!verifyStatus) { alert('Pilih dulu apa yang sebenarnya terjadi ya.'); return; }
+
+      const ext = Object.assign({}, e.ext || {});
+      const prev = ext.outcome;
+      const outcome = {
+        status: verifyStatus,
+        evidence: document.getElementById('verifyEvidence').value,
+        note: document.getElementById('verifyNote').value.trim(),
+        at: new Date().toISOString()
+      };
+      if (prev) outcome.history = (prev.history || []).concat([{ status: prev.status, evidence: prev.evidence, note: prev.note, at: prev.at }]);
+      ext.outcome = outcome;
+
+      e.ext = ext;
+      e.updated_at = new Date().toISOString();
+      e.synced = false;
+      await saveLogToIndexedDB(e);
+      closeVerify();
+      renderLogs();
+      refreshSyncStatus();
+      triggerSync(true);
+    }
+
+    // ---------- Tampilan riwayat ----------
+    function hasPrediction(e) { return !!(e.ext && e.ext.prediction && e.ext.prediction.text); }
+    function outcomeScore(e) {
+      const o = e.ext && e.ext.outcome;
+      if (!o || !OUTCOME[o.status]) return null;
+      return OUTCOME[o.status].score;
+    }
+    function matchesStatus(e, st) {
+      if (st === 'ALL') return true;
+      const o = e.ext && e.ext.outcome;
+      if (st === 'WAIT') return !o && hasPrediction(e);
+      if (st === 'NOPRED') return !o && !hasPrediction(e);
+      return !!o && o.status === st;
+    }
+    function searchBlob(e) {
+      const x = e.ext || {};
+      return [e.raw_sasmita, e.location_name, e.logical_analysis, e.real_validation, e.grounding_note,
+        (e.sensations || []).join(' '), (x.tags || []).join(' '), x.prediction && x.prediction.text,
+        (x.perception || []).map(p => p.note).join(' '), x.outcome && x.outcome.note].filter(Boolean).join(' ').toLowerCase();
+    }
+    function fmtDate(d, withTime) {
+      const o = { day: 'numeric', month: 'short', year: 'numeric' };
+      if (withTime) { o.hour = '2-digit'; o.minute = '2-digit'; }
+      return d.toLocaleDateString('id-ID', o);
+    }
+    function outcomeBadge(o) {
+      const m = o && OUTCOME[o.status];
+      return m ? `<span class="badge-out ${m.cls}">${m.icon} ${m.label}</span>` : '';
+    }
+    function lockedBoxHTML() {
+      return `<div class="empty-box">🔒 Catatan olahrasa disimpan per akun.<br>Masuk dulu untuk mulai mencatat dan melihat riwayatmu.<br><br>
+        <button class="btn-login-qr" style="margin:auto;" onclick="openAuthModal('login')"><span>🔑</span> Masuk / Daftar</button></div>`;
+    }
+
+    function logCardHTML(item) {
+      const x = item.ext || {};
+      const a = x.auto || null;
+      const when = eventDateOf(item);
+      const o = x.outcome || null;
+      const kind = x.kind && KIND_LABEL[x.kind] && x.kind !== 'Olahrasa' ? `<span class="kind-badge">${escapeHtml(KIND_LABEL[x.kind])}</span>` : '';
+      const autoLine = a && a.weton ? `<div class="ctx-line">📅 ${escapeHtml(a.weton)} · ${escapeHtml(a.fase_emoji || '')} ${escapeHtml(a.fase || '')} · 🕒 ${escapeHtml(a.waktu || '')}</div>` : '';
+      const perc = (x.perception || []).map(p => {
+        const def = PERCEPTION.find(q => q.id === p.ch);
+        return `<span class="chip-perc">${def ? def.icon : ''} ${escapeHtml(def ? def.name : p.ch)} · ${escapeHtml(SOURCES[p.source] || '')}${p.note ? ': ' + escapeHtml(p.note) : ''}</span>`;
+      }).join('');
+      const purity = x.purity ? `<span class="chip">🧪 ${purityScore(x.purity)}/4</span>${x.purity.bias ? '<span class="chip" style="color:#b45309;">⚠ bias</span>' : ''}` : '';
+      const c = x.context || {};
+      const ctxBits = [
+        (c.states && c.states.length) ? 'Kondisi: ' + c.states.join(', ') : '',
+        (c.moods && c.moods.length) ? 'Suasana: ' + c.moods.join(', ') : '',
+        c.sleep_hours != null ? 'Tidur ' + c.sleep_hours + ' jam' : '',
+        c.weather ? 'Cuaca: ' + c.weather : '', c.place_type || '', c.crowd ? c.crowd : '', c.light ? 'Cahaya ' + c.light.toLowerCase() : '',
+        c.duration ? 'Durasi: ' + c.duration : '', c.onset ? 'Muncul: ' + c.onset.toLowerCase() : '', c.trigger ? 'Pemicu: ' + c.trigger : '',
+        x.geo ? `📍 ${x.geo.lat}, ${x.geo.lon}` : ''
+      ].filter(Boolean);
+      const pred = x.prediction && x.prediction.text ? `
+        <div class="pred-box">🔮 <b>Prediksi:</b> ${escapeHtml(x.prediction.text)}
+          <div class="ctx-line">Yakin ${Number(x.prediction.confidence) || 0}%${x.prediction.verify_by ? ' · cek sebelum ' + escapeHtml(x.prediction.verify_by) : ''}</div>
+        </div>` : '';
+      const outcome = o ? `
+        <div class="note-green">${outcomeBadge(o)} <span class="muted-xs">bukti: ${escapeHtml(EVIDENCE[o.evidence] || '-')} · ${escapeHtml(fmtDate(new Date(o.at)))}</span>
+          ${o.note ? `<div style="margin-top:4px;">${escapeHtml(o.note)}</div>` : ''}
+        </div>` : (hasPrediction(item) ? '<div class="ctx-line">⏳ Menunggu verifikasi</div>' : '');
+
+      return `
+        <div class="log-card">
+          <div class="log-head">
+            <div>
+              <div>
+                <span class="log-cat">${escapeHtml(item.category)}</span>${kind}
+                ${item.is_pure_sasmita ? '<span class="log-pure">Sasmita Murni</span>' : ''}
+              </div>
+              <h3 class="log-title">📍 ${escapeHtml(item.location_name)}</h3>
+              <p class="log-date">${escapeHtml(fmtDate(when, true))}${item.synced ? '' : ' · ⏳ belum tersinkron'}</p>
+              ${autoLine}
+            </div>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <span class="log-intensity">Intensitas: ${Number(item.intensity) || 0}/10</span>
+              <button class="log-del" data-id="${escapeHtml(item.id)}" title="Hapus">🗑️</button>
+            </div>
+          </div>
+
+          <!-- Sensor Aktif & Arah -->
+          <div class="chips">
+            ${(item.sensors || []).map(s => `<span class="chip">${escapeHtml(s)}</span>`).join('')}
+            ${(item.sensor_directions || []).map(d => `<span class="chip-dir">🧭 ${escapeHtml(d)}</span>`).join('')}
+            ${purity}
+          </div>
+          ${perc ? `<div class="chips">${perc}</div>` : ''}
+
+          <!-- Sensasi -->
+          ${(item.sensations && item.sensations.length > 0) ? `
+            <div class="log-sens"><b>Sensasi:</b> ${item.sensations.map(s => escapeHtml(s)).join(', ')}</div>
+          ` : ''}
+
+          <!-- Raw Sasmita -->
+          ${item.raw_sasmita ? `
+            <div class="quote-gold">"${escapeHtml(item.raw_sasmita)}"</div>
+          ` : ''}
+
+          <!-- Analisis Logis -->
+          ${item.logical_analysis ? `
+            <p class="log-analysis">${escapeHtml(item.logical_analysis)}</p>
+          ` : ''}
+
+          ${pred}
+
+          <!-- Validasi Realita & Grounding -->
+          ${item.real_validation ? `
+            <div class="note-green">✅ <b>Validasi:</b> ${escapeHtml(item.real_validation)}</div>
+          ` : ''}
+          ${item.grounding_note ? `
+            <div class="note-teal">🌿 <b>Grounding:</b> ${escapeHtml(item.grounding_note)}</div>
+          ` : ''}
+
+          ${outcome}
+          ${ctxBits.length ? `<div class="ctx-line">${ctxBits.map(escapeHtml).join(' · ')}</div>` : ''}
+          ${(x.tags && x.tags.length) ? `<div class="ctx-line">${x.tags.map(t => '#' + escapeHtml(t)).join(' ')}</div>` : ''}
+          <div class="log-actions"><button class="btn-mini log-verify" data-id="${escapeHtml(item.id)}">🔎 ${o ? 'Lihat / ubah hasil' : 'Verifikasi'}</button></div>
+        </div>
+      `;
+    }
+
+    function switchRightTab(tab) {
+      rightTab = tab;
+      document.getElementById('viewLog').style.display = tab === 'log' ? 'block' : 'none';
+      document.getElementById('viewPattern').style.display = tab === 'pattern' ? 'block' : 'none';
+      document.getElementById('viewPending').style.display = tab === 'pending' ? 'block' : 'none';
+      document.getElementById('rtabLog').classList.toggle('active', tab === 'log');
+      document.getElementById('rtabPattern').classList.toggle('active', tab === 'pattern');
+      document.getElementById('rtabPending').classList.toggle('active', tab === 'pending');
+      renderLogs();
+    }
+
     function renderLogs() {
       const container = document.getElementById('logsContainer');
       const searchQuery = document.getElementById('searchInput').value.toLowerCase();
       const catFilter = document.getElementById('filterCategory').value;
       const sensorFilter = document.getElementById('filterSensor').value;
+      const statusFilter = document.getElementById('filterStatus').value;
+
+      updatePendingBadge();
+      if (rightTab === 'pattern') renderPatterns();
+      if (rightTab === 'pending') renderPending();
 
       if (!currentUserSession) {
         document.getElementById('logCountBadge').innerText = '0 Log';
-        container.innerHTML = `
-          <div class="empty-box">
-            🔒 Catatan olahrasa disimpan per akun.<br>Masuk dulu untuk mulai mencatat dan melihat riwayatmu.<br><br>
-            <button class="btn-login-qr" style="margin:auto;" onclick="openAuthModal('login')"><span>🔑</span> Masuk / Daftar</button>
-          </div>`;
+        container.innerHTML = lockedBoxHTML();
         return;
       }
 
       const filtered = journalEntries.filter(item => {
-        const raw = (item.raw_sasmita || '').toLowerCase();
-        const loc = (item.location_name || '').toLowerCase();
-        const analysis = (item.logical_analysis || '').toLowerCase();
-
-        const matchesSearch = raw.includes(searchQuery) || loc.includes(searchQuery) || analysis.includes(searchQuery);
+        const matchesSearch = searchBlob(item).includes(searchQuery);
         const matchesCat = catFilter === 'ALL' || item.category === catFilter;
         const matchesSensor = sensorFilter === 'ALL' || (item.sensors && item.sensors.includes(sensorFilter));
-        return matchesSearch && matchesCat && matchesSensor;
+        return matchesSearch && matchesCat && matchesSensor && matchesStatus(item, statusFilter);
       });
 
       document.getElementById('logCountBadge').innerText = `${filtered.length} Log`;
@@ -1534,59 +2153,286 @@
         return;
       }
 
-      container.innerHTML = filtered.map(item => {
-        const dateStr = new Date(item.created_at).toLocaleDateString('id-ID', {
-          day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      container.innerHTML = filtered.map(logCardHTML).join('');
+    }
+
+    // ---------- Tab Verifikasi ----------
+    function pendingList() {
+      return journalEntries
+        .filter(e => !(e.ext && e.ext.outcome) && hasPrediction(e))
+        .sort((a, b) => {
+          const da = a.ext.prediction.verify_by || '9999-12-31';
+          const db_ = b.ext.prediction.verify_by || '9999-12-31';
+          return da < db_ ? -1 : (da > db_ ? 1 : 0);
         });
-
-        return `
-          <div class="log-card">
-            <div class="log-head">
-              <div>
-                <div>
-                  <span class="log-cat">${escapeHtml(item.category)}</span>
-                  ${item.is_pure_sasmita ? '<span class="log-pure">Sasmita Murni</span>' : ''}
-                </div>
-                <h3 class="log-title">📍 ${escapeHtml(item.location_name)}</h3>
-                <p class="log-date">${dateStr}${item.synced ? '' : ' · ⏳ belum tersinkron'}</p>
-              </div>
-              <div style="display:flex; align-items:center; gap:4px;">
-                <span class="log-intensity">Intensitas: ${Number(item.intensity) || 0}/10</span>
-                <button class="log-del" data-id="${escapeHtml(item.id)}" title="Hapus">🗑️</button>
-              </div>
-            </div>
-
-            <!-- Sensor Aktif & Arah -->
-            <div class="chips">
-              ${(item.sensors || []).map(s => `<span class="chip">${escapeHtml(s)}</span>`).join('')}
-              ${(item.sensor_directions || []).map(d => `<span class="chip-dir">🧭 ${escapeHtml(d)}</span>`).join('')}
-            </div>
-
-            <!-- Sensasi -->
-            ${(item.sensations && item.sensations.length > 0) ? `
-              <div class="log-sens"><b>Sensasi:</b> ${item.sensations.map(s => escapeHtml(s)).join(', ')}</div>
-            ` : ''}
-
-            <!-- Raw Sasmita -->
-            ${item.raw_sasmita ? `
-              <div class="quote-gold">"${escapeHtml(item.raw_sasmita)}"</div>
-            ` : ''}
-
-            <!-- Analisis Logis -->
-            ${item.logical_analysis ? `
-              <p class="log-analysis">${escapeHtml(item.logical_analysis)}</p>
-            ` : ''}
-
-            <!-- Validasi Realita & Grounding -->
-            ${item.real_validation ? `
-              <div class="note-green">✅ <b>Validasi:</b> ${escapeHtml(item.real_validation)}</div>
-            ` : ''}
-            ${item.grounding_note ? `
-              <div class="note-teal">🌿 <b>Grounding:</b> ${escapeHtml(item.grounding_note)}</div>
-            ` : ''}
-          </div>
-        `;
+    }
+    function updatePendingBadge() {
+      const n = currentUserSession ? pendingList().length : 0;
+      document.getElementById('pendingCount').innerText = n ? `(${n})` : '';
+    }
+    function renderPending() {
+      const box = document.getElementById('viewPending');
+      if (!currentUserSession) { box.innerHTML = lockedBoxHTML(); return; }
+      const list = pendingList();
+      if (!list.length) {
+        box.innerHTML = `<div class="empty-box"><div style="font-size:26px; opacity:0.6;">🎯</div>
+          <p>Tidak ada prediksi yang menunggu hasil.<br>Isi kolom <b>🔮 Interpretasi & Prediksi</b> saat mencatat, lalu verifikasi di sini.</p></div>`;
+        return;
+      }
+      const today = localDayKey(new Date());
+      box.innerHTML = list.map(e => {
+        const p = e.ext.prediction;
+        let due = '<span class="muted-xs">tanpa batas waktu</span>';
+        if (p.verify_by) {
+          const diff = Math.round((new Date(p.verify_by + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+          due = diff < 0 ? `<span class="overdue">terlambat ${-diff} hari</span>` : (diff === 0 ? '<b>hari ini</b>' : `<span class="muted-xs">${diff} hari lagi</span>`);
+        }
+        return `<div class="pend-card">
+          <div style="font-size:11px; font-weight:bold; color:#2f6f4e;">📍 ${escapeHtml(e.location_name)} <span class="muted-xs">· ${escapeHtml(fmtDate(eventDateOf(e)))}</span></div>
+          <div class="quote-gold">"${escapeHtml(e.raw_sasmita)}"</div>
+          <div class="pred-box">🔮 ${escapeHtml(p.text)}<div class="ctx-line">Yakin ${Number(p.confidence) || 0}% · ${due}</div></div>
+          <div class="log-actions"><button class="btn-mini log-verify" data-id="${escapeHtml(e.id)}">🔎 Verifikasi</button></div>
+        </div>`;
       }).join('');
+    }
+
+    // ---------- Analisis pola ----------
+    const STOPWORDS = new Set(['yang', 'dengan', 'dari', 'untuk', 'pada', 'saya', 'aku', 'itu', 'ini', 'tidak', 'bisa', 'juga', 'akan', 'ada', 'dalam', 'seperti', 'karena', 'sudah', 'lebih', 'hanya', 'tetapi', 'namun', 'saat', 'ketika', 'setelah', 'sebelum', 'atau', 'agar', 'lalu', 'kemudian', 'sangat', 'sedikit', 'banyak', 'seperti', 'terasa', 'merasa', 'rasa', 'seolah', 'sekali', 'masih', 'belum', 'mereka', 'kami', 'kita', 'dia', 'nya', 'tanpa', 'ke', 'di']);
+    function percName(id) { const d = PERCEPTION.find(p => p.id === id); return d ? d.name : id; }
+    function confBin(e) {
+      const p = e.ext && e.ext.prediction;
+      if (!p || p.confidence == null) return null;
+      const c = p.confidence;
+      return c <= 20 ? '0-20%' : (c <= 40 ? '21-40%' : (c <= 60 ? '41-60%' : (c <= 80 ? '61-80%' : '81-100%')));
+    }
+    const ctxOf = (e) => (e.ext && e.ext.context) || {};
+    const FACTORS = {
+      sasmita:  { label: 'Sasmita Murni vs biasa',            keys: e => e.is_pure_sasmita ? 'Sasmita Murni' : 'Bukan sasmita murni' },
+      purity:   { label: 'Skor kemurnian (0-4)',              keys: e => (e.ext && e.ext.purity) ? 'Skor ' + purityScore(e.ext.purity) : null },
+      bias:     { label: 'Ada bias (harap / takut / ambisi)', keys: e => (e.ext && e.ext.purity) ? (e.ext.purity.bias ? 'Ada bias' : 'Tanpa bias') : null },
+      yakin:    { label: 'Tingkat keyakinan',                 keys: confBin, order: ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'] },
+      sensor:   { label: 'Sensor tubuh',                      keys: e => e.sensors || [] },
+      indra:    { label: 'Indra persepsi',                    keys: e => ((e.ext && e.ext.perception) || []).map(p => percName(p.ch)) },
+      sumber:   { label: 'Indra + sumber (imajiner / nyata)', keys: e => ((e.ext && e.ext.perception) || []).map(p => percName(p.ch) + ' - ' + ((SOURCES[p.source] || '').replace(/^\S+\s/, ''))) },
+      kategori: { label: 'Kategori sinyal',                   keys: e => e.category },
+      jenis:    { label: 'Jenis kejadian',                    keys: e => e.ext && KIND_LABEL[e.ext.kind] },
+      waktu:    { label: 'Waktu dalam sehari',                keys: e => autoOf(e).waktu, order: ['Tengah malam', 'Dini hari', 'Pagi', 'Siang', 'Sore', 'Surup', 'Malam'] },
+      hari:     { label: 'Hari',                              keys: e => autoOf(e).hari, order: HARI },
+      pasaran:  { label: 'Pasaran Jawa',                      keys: e => autoOf(e).pasaran, order: PASARAN },
+      weton:    { label: 'Weton',                             keys: e => autoOf(e).weton },
+      fase:     { label: 'Fase bulan',                        keys: e => autoOf(e).fase, order: FASE.map(f => f.n) },
+      kondisi:  { label: 'Kondisi tubuh',                     keys: e => ctxOf(e).states || [] },
+      mood:     { label: 'Suasana batin',                     keys: e => ctxOf(e).moods || [] },
+      cuaca:    { label: 'Cuaca',                             keys: e => ctxOf(e).weather },
+      tempat:   { label: 'Tempat (dalam / luar ruangan)',     keys: e => ctxOf(e).place_type },
+      durasi:   { label: 'Durasi pengalaman',                 keys: e => ctxOf(e).duration },
+      onset:    { label: 'Cara muncul',                       keys: e => ctxOf(e).onset },
+      pemicu:   { label: 'Pemicu',                            keys: e => ctxOf(e).trigger },
+      lokasi:   { label: 'Lokasi',                            keys: e => (e.location_name || '').trim().toLowerCase() || null },
+      tag:      { label: 'Tag',                               keys: e => (e.ext && e.ext.tags) || [] }
+    };
+
+    function groupBy(entries, keyFn) {
+      const m = new Map();
+      entries.forEach(e => {
+        let keys = keyFn(e);
+        if (!Array.isArray(keys)) keys = [keys];
+        Array.from(new Set(keys)).filter(k => k !== null && k !== undefined && k !== '').forEach(k => {
+          if (!m.has(k)) m.set(k, []);
+          m.get(k).push(e);
+        });
+      });
+      return m;
+    }
+    function summarize(list) {
+      const sc = list.map(outcomeScore).filter(x => x !== null);
+      return { n: list.length, ns: sc.length, hit: sc.length ? sc.reduce((a, b) => a + b, 0) / sc.length : null };
+    }
+    function factorRows(key, entries) {
+      const f = FACTORS[key];
+      const rows = Array.from(groupBy(entries, f.keys).entries()).map(([label, list]) => Object.assign({ label: String(label) }, summarize(list)));
+      if (f.order) rows.sort((a, b) => f.order.indexOf(a.label) - f.order.indexOf(b.label));
+      else rows.sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
+      return rows.slice(0, 14);
+    }
+    // Skor Brier: rata-rata (keyakinan - hasil)^2. Makin kecil makin baik; 0,25 setara menebak 50:50
+    function brierScore(entries) {
+      const pts = entries.filter(e => outcomeScore(e) !== null && e.ext && e.ext.prediction && e.ext.prediction.confidence != null);
+      if (!pts.length) return null;
+      const v = pts.reduce((s, e) => s + Math.pow(e.ext.prediction.confidence / 100 - outcomeScore(e), 2), 0) / pts.length;
+      return { n: pts.length, value: v };
+    }
+    function calibrationBins(entries) {
+      const pts = entries.filter(e => outcomeScore(e) !== null && e.ext && e.ext.prediction && e.ext.prediction.confidence != null);
+      return ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'].map(label => {
+        const list = pts.filter(e => confBin(e) === label);
+        return {
+          label: label, n: list.length,
+          conf: list.length ? list.reduce((s, e) => s + e.ext.prediction.confidence / 100, 0) / list.length : null,
+          obs: list.length ? list.reduce((s, e) => s + outcomeScore(e), 0) / list.length : null
+        };
+      });
+    }
+    function calibrationVerdict(entries) {
+      const pts = entries.filter(e => outcomeScore(e) !== null && e.ext && e.ext.prediction && e.ext.prediction.confidence != null);
+      if (pts.length < MIN_N) return `Belum cukup data (butuh minimal ${MIN_N} prediksi yang sudah diverifikasi, sekarang ${pts.length}).`;
+      const conf = pts.reduce((s, e) => s + e.ext.prediction.confidence / 100, 0) / pts.length;
+      const obs = pts.reduce((s, e) => s + outcomeScore(e), 0) / pts.length;
+      const gap = conf - obs;
+      if (gap > 0.1) return `Cenderung terlalu yakin (rata-rata yakin ${Math.round(conf * 100)}%, terbukti ${Math.round(obs * 100)}%).`;
+      if (gap < -0.1) return `Cenderung kurang percaya diri (rata-rata yakin ${Math.round(conf * 100)}%, terbukti ${Math.round(obs * 100)}%).`;
+      return `Cukup terkalibrasi (rata-rata yakin ${Math.round(conf * 100)}%, terbukti ${Math.round(obs * 100)}%).`;
+    }
+    function topKeywords(entries) {
+      const count = new Map();
+      entries.forEach(e => {
+        const x = e.ext || {};
+        const text = [e.raw_sasmita, (e.sensations || []).join(' '), (x.perception || []).map(p => p.note).join(' '), (x.tags || []).join(' ')].join(' ').toLowerCase();
+        new Set(text.match(/[a-z\u00c0-\u024f]{4,}/g) || []).forEach(w => { if (!STOPWORDS.has(w)) count.set(w, (count.get(w) || 0) + 1); });
+      });
+      return Array.from(count.entries()).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    }
+    function sensorPairs(entries) {
+      const count = new Map();
+      entries.forEach(e => {
+        const s = Array.from(new Set(e.sensors || [])).sort();
+        for (let i = 0; i < s.length; i++) for (let j = i + 1; j < s.length; j++) { const k = s[i] + ' + ' + s[j]; count.set(k, (count.get(k) || 0) + 1); }
+      });
+      return Array.from(count.entries()).filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    }
+    function activityLast(entries, days) {
+      const now = new Date();
+      const keys = [];
+      for (let i = days - 1; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i); keys.push(localDayKey(d)); }
+      const counts = keys.map(() => 0);
+      entries.forEach(e => { const i = keys.indexOf(localDayKey(eventDateOf(e))); if (i !== -1) counts[i]++; });
+      return counts;
+    }
+    function barRow(label, n, ns, hit) {
+      const low = ns < MIN_N;
+      const width = hit === null ? 0 : Math.round(hit * 100);
+      const val = hit === null ? `n=${n}` : `${Math.round(hit * 100)}% (${ns}/${n})${low ? ' ⚠' : ''}`;
+      return `<div class="bar-row"><span class="bar-label">${escapeHtml(label)}</span><div class="bar-track"><div class="bar-fill ${low ? 'low' : ''}" style="width:${width}%"></div></div><span class="bar-val">${val}</span></div>`;
+    }
+
+    function renderPatterns() {
+      const box = document.getElementById('viewPattern');
+      if (!currentUserSession) { box.innerHTML = lockedBoxHTML(); return; }
+      const E = journalEntries;
+      if (!E.length) {
+        box.innerHTML = `<div class="empty-box"><div style="font-size:26px; opacity:0.6;">📊</div><p>Belum ada data untuk dianalisis.<br>Pola mulai terlihat setelah beberapa catatan terkumpul.</p></div>`;
+        return;
+      }
+
+      const sum = summarize(E);
+      const withPred = E.filter(hasPrediction).length;
+      const br = brierScore(E);
+      const cal = calibrationBins(E);
+      const act = activityLast(E, 14);
+      const maxAct = Math.max.apply(null, act.concat([1]));
+      const rows = factorRows(patternFactorKey, E);
+      const kw = topKeywords(E);
+      const pairs = sensorPairs(E);
+
+      box.innerHTML = `
+        <div class="stat-grid">
+          <div class="stat-box"><b>${E.length}</b><span>catatan</span></div>
+          <div class="stat-box"><b>${withPred}</b><span>dengan prediksi</span></div>
+          <div class="stat-box"><b>${sum.ns}</b><span>sudah diverifikasi</span></div>
+          <div class="stat-box"><b>${sum.hit === null ? '-' : Math.round(sum.hit * 100) + '%'}</b><span>akurasi (sebagian = ½)</span></div>
+        </div>
+
+        <div class="pat-sec">
+          <h4>🎯 Kalibrasi keyakinan</h4>
+          <p class="hint" style="margin:0 0 6px;">${escapeHtml(calibrationVerdict(E))}${br ? ` Skor Brier ${br.value.toFixed(2)} (makin kecil makin baik, 0,25 = setara menebak).` : ''}</p>
+          ${cal.map(c => `<div class="bar-row"><span class="bar-label">Yakin ${c.label}</span>
+            <div class="bar-track"><div class="bar-fill ${c.n < MIN_N ? 'low' : 'gold'}" style="width:${c.obs === null ? 0 : Math.round(c.obs * 100)}%"></div></div>
+            <span class="bar-val">${c.obs === null ? 'n=0' : Math.round(c.obs * 100) + '% terbukti (n=' + c.n + ')'}</span></div>`).join('')}
+        </div>
+
+        <div class="pat-sec">
+          <h4>🔬 Akurasi menurut faktor</h4>
+          <select id="patternFactor" class="form-control" onchange="patternFactorKey = this.value; renderPatterns()">
+            ${Object.keys(FACTORS).map(k => `<option value="${k}" ${k === patternFactorKey ? 'selected' : ''}>${escapeHtml(FACTORS[k].label)}</option>`).join('')}
+          </select>
+          <div style="margin-top:8px;">${rows.length ? rows.map(r => barRow(r.label, r.n, r.ns, r.hit)).join('') : '<p class="hint">Belum ada data untuk faktor ini.</p>'}</div>
+          <p class="hint">Batang pucat / tanda ⚠ = data terverifikasi kurang dari ${MIN_N}. Pola dari data sedikit bisa kebetulan, jadi anggap sebagai petunjuk untuk diuji ulang.</p>
+        </div>
+
+        <div class="pat-sec">
+          <h4>📅 Aktivitas 14 hari terakhir</h4>
+          <div class="spark">${act.map(c => `<i style="height:${Math.round((c / maxAct) * 100)}%" title="${c} catatan"></i>`).join('')}</div>
+        </div>
+
+        <div class="pat-sec">
+          <h4>🔤 Kata yang sering muncul</h4>
+          ${kw.length ? `<div class="chips" style="margin-top:0;">${kw.map(([w, c]) => `<span class="chip">${escapeHtml(w)} ×${c}</span>`).join('')}</div>` : '<p class="hint">Belum ada kata yang muncul di lebih dari satu catatan.</p>'}
+          ${pairs.length ? `<h4 style="margin-top:12px;">🔗 Sensor yang sering aktif bersamaan</h4>${pairs.map(([k, c]) => `<div class="bar-row" style="grid-template-columns:1fr 60px;"><span class="bar-label">${escapeHtml(k)}</span><span class="bar-val">${c}×</span></div>`).join('')}` : ''}
+        </div>
+
+        <div class="pat-sec">
+          <h4>⬇️ Ekspor data</h4>
+          <div class="log-actions">
+            <button class="btn-mini" onclick="exportCSV()">Ekspor CSV (untuk spreadsheet)</button>
+            <button class="btn-mini" onclick="exportJSON()">Ekspor JSON (data lengkap)</button>
+          </div>
+        </div>`;
+    }
+
+    // ---------- Ekspor ----------
+    function downloadFile(name, mime, content) {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    function exportName(ext) {
+      return `olahrasa_${currentUserSession ? currentUserSession.username : 'data'}_${localDayKey(new Date())}.${ext}`;
+    }
+    function exportJSON() {
+      if (!journalEntries.length) { alert('Belum ada catatan untuk diekspor.'); return; }
+      const rows = journalEntries.map(e => { const o = Object.assign({}, e); delete o.synced; delete o.owner_id; return o; });
+      downloadFile(exportName('json'), 'application/json', JSON.stringify({ aplikasi: 'Jurnal Olahrasa & Sasmita', versi: 2, diekspor: new Date().toISOString(), catatan: rows }, null, 2));
+    }
+    function flattenEntry(e) {
+      const x = e.ext || {}, a = autoOf(e), c = x.context || {}, g = x.geo || {}, p = x.prediction || {}, o = x.outcome || {}, pu = x.purity || {};
+      const per = (id) => (x.perception || []).find(q => q.ch === id) || {};
+      const row = {
+        id: e.id, dicatat: e.created_at, waktu_kejadian: x.event_at || e.created_at,
+        hari: a.hari, pasaran: a.pasaran, weton: a.weton, fase_bulan: a.fase, usia_bulan: a.usia_bulan, waktu_hari: a.waktu,
+        lokasi: e.location_name, lat: g.lat, lon: g.lon, akurasi_m: g.acc, ketinggian_m: g.alt,
+        kategori: e.category, jenis: x.kind ? KIND_LABEL[x.kind] : '',
+        sensor: (e.sensors || []).join(';'), sensasi: (e.sensations || []).join(';'), arah: (e.sensor_directions || []).join(';'),
+        intensitas: e.intensity, sasmita_murni: e.is_pure_sasmita ? 1 : 0,
+        skor_kemurnian: x.purity ? purityScore(pu) : '', bias: x.purity ? (pu.bias ? 1 : 0) : ''
+      };
+      PERCEPTION.forEach(pc => { row['indra_' + pc.id] = per(pc.id).note !== undefined ? (per(pc.id).note || 'ya') : ''; row['sumber_' + pc.id] = per(pc.id).source || ''; });
+      Object.assign(row, {
+        impresi: e.raw_sasmita, analisis: e.logical_analysis, validasi_realita: e.real_validation, grounding: e.grounding_note,
+        prediksi: p.text, keyakinan_persen: p.confidence, cek_sebelum: p.verify_by,
+        hasil: o.status ? OUTCOME[o.status].label : '', skor_hasil: o.status && OUTCOME[o.status].score !== null ? OUTCOME[o.status].score : '',
+        bukti: o.evidence ? EVIDENCE[o.evidence] : '', catatan_hasil: o.note, tanggal_hasil: o.at,
+        kondisi_tubuh: (c.states || []).join(';'), suasana_batin: (c.moods || []).join(';'), tidur_jam: c.sleep_hours,
+        cuaca: c.weather, tempat: c.place_type, keramaian: c.crowd, cahaya: c.light, durasi: c.duration, cara_muncul: c.onset, pemicu: c.trigger,
+        tag: (x.tags || []).join(';')
+      });
+      return row;
+    }
+    function exportCSV() {
+      if (!journalEntries.length) { alert('Belum ada catatan untuk diekspor.'); return; }
+      const rows = journalEntries.map(flattenEntry);
+      const headers = Object.keys(rows[0]);
+      const q = (v) => {
+        if (v === null || v === undefined) return '';
+        if (typeof v === 'number') return String(v);
+        let s = String(v);
+        if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;           // cegah rumus tersisip saat dibuka di spreadsheet
+        return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      };
+      const csv = '\ufeff' + [headers.join(',')].concat(rows.map(r => headers.map(h => q(r[h])).join(','))).join('\r\n');
+      downloadFile(exportName('csv'), 'text/csv;charset=utf-8', csv);
     }
 
     // ----------------------------------------------------
@@ -1699,8 +2545,21 @@
 
         const cloud = Array.isArray(res.data) ? res.data : [];
         const cloudIds = new Set(cloud.map(c => String(c.id)));
+        let serverMissingExt = false;
         for (const item of cloud) {
-          await saveLogToIndexedDB(Object.assign({}, item, { synced: true }));
+          const local = journalEntries.find(e => String(e.id) === String(item.id));
+          const merged = Object.assign({}, item, { synced: true });
+          // server lama (belum punya kolom ext): jangan timpa data tambahan yang ada di perangkat ini
+          if (!('ext' in item) && local && local.ext) { merged.ext = local.ext; serverMissingExt = true; }
+          await saveLogToIndexedDB(merged);
+        }
+        if (serverMissingExt && !extWarned) {
+          extWarned = true;
+          tofDialog({
+            tone: 'warn', icon: '🛠️', title: 'Server belum diperbarui',
+            message: 'Data tambahan (indra, konteks, prediksi, hasil) belum bisa disimpan di Supabase karena kolom "ext" belum ada. Jalankan supabase-olahrasa.sql terbaru di SQL Editor. Sementara ini datanya tetap aman di perangkat ini.',
+            okText: 'Mengerti'
+          });
         }
         // catatan yang sudah pernah tersinkron tapi hilang di cloud = dihapus dari perangkat lain
         for (const e of journalEntries.filter(e => e.synced && !cloudIds.has(String(e.id)))) {
@@ -1730,6 +2589,46 @@
     function toggleModal(modalId) {
       const modal = document.getElementById(modalId);
       modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+    }
+
+    // ----------------------------------------------------
+    // PWA INSTALL TRIGGER ("Instal 5 Detik")
+    // ----------------------------------------------------
+    let deferredPrompt = null;
+
+    // Sudah dibuka sebagai aplikasi terpasang? Tombol pasang tidak perlu ditampilkan.
+    (function hideBannerIfInstalled() {
+      const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+      if (standalone) document.getElementById('pwaBanner').style.display = 'none';
+    })();
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('pwaBanner').style.display = 'flex';
+    });
+
+    window.addEventListener('appinstalled', () => {
+      document.getElementById('pwaBanner').style.display = 'none';
+      deferredPrompt = null;
+    });
+
+    function executeInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            document.getElementById('pwaBanner').style.display = 'none';
+          }
+          deferredPrompt = null;
+        });
+      } else {
+        tofDialog({
+          tone: 'info', icon: '📲', title: 'Pasang ke layar utama',
+          message: 'Buka menu browser (titik tiga atau tombol Bagikan), lalu pilih “Tambahkan ke Layar Utama”.',
+          okText: 'Siap'
+        });
+      }
     }
   </script>
 </body>
