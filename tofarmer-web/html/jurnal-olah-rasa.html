@@ -7,7 +7,10 @@
   <meta name="theme-color" content="#2f6f4e">
 
   <!-- MANIFEST INLINE (untuk Instal 5 Detik) -->
-  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Jurnal%20Olahrasa%20%26%20Sasmita%22%2C%22short_name%22%3A%22Olahrasa%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f7f5%22%2C%22theme_color%22%3A%22%232f6f4e%22%7D">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
 
   <!-- FAVICON SVG -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
@@ -321,6 +324,12 @@
     .guide-sec li { margin-bottom: 4px; }
     .guide-vs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; font-size: 11px; }
     .guide-vs div { background: #fff; border: 1px solid #e0e8e3; border-radius: 10px; padding: 8px 10px; }
+    /* ===== Offline-first ===== */
+    .offline-bar { display: none; align-items: center; gap: 10px; background: #fef3c7; border: 1px solid #f59e0b; color: #7a4b00; border-radius: 14px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; line-height: 1.5; }
+    .offline-bar.show { display: flex; }
+    .offline-bar .ob-ico { font-size: 20px; }
+    .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: #1f2d26; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 12px; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: .25s; z-index: 100000; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
@@ -355,6 +364,12 @@
         </div>
       </div>
     </header>
+
+    <!-- STATUS OFFLINE -->
+    <div class="offline-bar" id="offlineBar" role="status" aria-live="polite">
+      <span class="ob-ico">📴</span>
+      <div><b>Mode offline</b><br><span id="offlineBarText"></span></div>
+    </div>
 
     <!-- PASANG APLIKASI -->
     <div class="pwa-banner" id="pwaBanner">
@@ -992,6 +1007,7 @@
     }
 
     function downloadQRCardImage(payloadText, username, prefix = 'Kartu_ToFarmer') {
+      if (typeof QRCode === 'undefined') { alert('Kartu QR belum berhasil dibuat. Pustaka QR belum termuat, coba lagi saat ada sinyal.'); return; }
       const tempDiv = document.createElement('div');
       tempDiv.style.display = 'none';
       document.body.appendChild(tempDiv);
@@ -1034,17 +1050,18 @@
         try {
           currentUserSession = JSON.parse(stored);
           if (!currentUserSession.id || !currentUserSession.username) throw new Error('sesi tidak valid');
+          sessionPinHash = getRememberedPin(currentUserSession.id);
           renderHeaderProfile();
 
           // [FIX] segarkan dari database: foto, level, dst. Sesi palsu (akun tidak ada) dibuang.
-          fetchProfileSafe(currentUserSession.id).then(({ data, error }) => {
+          (isOnline() ? fetchProfileSafe(currentUserSession.id) : Promise.resolve({ data: null, error: new Error('offline') })).then(({ data, error }) => {
             if (data) {
               saveGlobalSession(data);
               renderHeaderProfile();
             } else if (!error) {
               logoutUser(true);
             }
-          });
+          }).catch(() => {});
         } catch(e) {
           localStorage.removeItem('tof_user_session');
           currentUserSession = null;
@@ -1097,6 +1114,7 @@
     }
 
     function logoutUser(silent = false) {
+      if (currentUserSession) forgetPin(currentUserSession.id);
       localStorage.removeItem('tof_user_session');
       localStorage.removeItem('tof_wallet');
       localStorage.removeItem('tof_login_username');
@@ -1120,6 +1138,10 @@
         return;
       }
 
+      if (!isOnline() || !supabaseClient || typeof algosdk === 'undefined') {
+        alert('Pendaftaran akun butuh internet. Daftar dulu saat ada sinyal ya. Setelah itu aplikasi bisa dipakai offline.');
+        return;
+      }
       try {
         // 1. Generate Wallet Algorand Baru
         const account = algosdk.generateAccount();
@@ -1191,6 +1213,10 @@
 
         // [FIX] pilih kolom berdasarkan format input (bukan .or() dengan string mentah yang bisa diinjeksi),
         // dan ambil kolom eksplisit termasuk avatar_url
+        if (!isOnline() || !supabaseClient || typeof algosdk === 'undefined') {
+          alert('Belum bisa masuk: tidak ada koneksi internet. Masuk pertama kali di perangkat ini butuh sinyal. Setelah itu aplikasi bisa dipakai offline.');
+          return;
+        }
         const col = algosdk.isValidAddress(identifier) ? 'id' : 'username';
         const { data, error } = await supabaseClient
           .from('profiles')
@@ -1205,6 +1231,10 @@
         }
 
         // [FIX] pesan sama untuk "tidak ada" dan "PIN salah"
+        if (error && isNetErr(error)) {
+          alert('Belum bisa masuk: koneksi terputus atau sinyal terlalu lemah. Coba lagi ya.');
+          return;
+        }
         if (error || !data || data.pin_hash !== pinHash) {
           alert("Nama pengguna tidak ditemukan atau PIN salah. Coba cek lagi ya.");
           return;
@@ -1221,6 +1251,8 @@
         document.getElementById('loginPin').value = '';
         onUserChanged(); // muat catatan akun ini & sinkron dari cloud
         playBeepSound('success_chime');
+
+        await offerAutoSync();
 
         // Tawaran Otomatis Cetak/Unduh QR ID untuk User Lama
         const wantQR = await tofConfirm(
@@ -1333,7 +1365,7 @@
       document.getElementById('mnVerify1').value = '';
       document.getElementById('mnVerify2').value = '';
       mnemonicBackup = null;
-      setTimeout(() => onUserChanged(), 300); // muat catatan akun ini
+      setTimeout(() => { onUserChanged(); offerAutoSync(); }, 300); // muat catatan akun ini
     }
 
     function switchAuthTab(tab) {
@@ -1365,6 +1397,7 @@
     }
 
     async function openScanner(mode = 'general') {
+      if (typeof Html5Qrcode === 'undefined') { alert('Pemindai QR belum termuat. Buka aplikasi sekali saat ada sinyal, atau masuk dengan mengetik nama pengguna.'); return; }
       await safeStopScanner(); // [FIX] bersihkan instance lama sebelum membuka yang baru
       currentScanMode = mode;
       scanHandled = false;
@@ -1473,21 +1506,69 @@
       if (r) r(null);
     }
 
+    // ----------------------------------------------------
+    // OFFLINE-FIRST: deteksi koneksi, timeout, PIN tersimpan (opsional), toast
+    // ----------------------------------------------------
+    function isOnline() { return navigator.onLine !== false; }
+    function isNetErr(e) {
+      return !!e && (e.network === true || /failed to fetch|networkerror|network request|load failed|timeout|koneksi|connection|offline|fetch/i.test(String(e.message || e)));
+    }
+    function withTimeout(p, ms) {
+      return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('Koneksi lambat atau terputus (timeout)')), ms))]);
+    }
+    function pinKey(id) { return 'olahrasa_pinh_' + id; }
+    function autosyncKey(id) { return 'olahrasa_autosync_' + id; }
+    function getRememberedPin(id) {
+      try { return localStorage.getItem(autosyncKey(id)) === '1' ? (localStorage.getItem(pinKey(id)) || null) : null; } catch (e) { return null; }
+    }
+    function rememberPinIfAllowed(hash) {
+      if (!currentUserSession) return;
+      try { if (localStorage.getItem(autosyncKey(currentUserSession.id)) === '1') localStorage.setItem(pinKey(currentUserSession.id), hash); } catch (e) {}
+    }
+    function forgetPin(id) { if (!id) return; try { localStorage.removeItem(pinKey(id)); } catch (e) {} }
+    async function offerAutoSync() {
+      if (!currentUserSession || !sessionPinHash) return;
+      const id = currentUserSession.id;
+      let v = null; try { v = localStorage.getItem(autosyncKey(id)); } catch (e) {}
+      if (v !== null) { if (v === '1') rememberPinIfAllowed(sessionPinHash); return; }
+      const ok = await tofConfirm(
+        'Supaya catatan yang kamu tulis tanpa sinyal (hutan, gunung, dll.) terkirim sendiri saat sinyal kembali tanpa minta PIN lagi, PIN-mu disimpan di perangkat ini. Aktifkan hanya di HP pribadi. Data PIN dihapus dari perangkat saat kamu menekan Keluar.',
+        { tone: 'info', icon: '📡', title: 'Sinkron otomatis?', okText: 'Aktifkan', cancelText: 'Tanya PIN saja' }
+      );
+      try { localStorage.setItem(autosyncKey(id), ok ? '1' : '0'); } catch (e) {}
+      if (ok) rememberPinIfAllowed(sessionPinHash);
+    }
+    let toastTimer = null;
+    function showToast(msg) {
+      let t = document.getElementById('toast');
+      if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; document.body.appendChild(t); }
+      t.innerText = msg; t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
     async function callAuthedRpc(fn, params, desc) {
-      if (!supabaseClient) return { error: { message: 'Supabase client belum dikonfigurasi.' } };
       if (!currentUserSession) {
         alert("Masuk dulu ya.");
         openAuthModal('login');
         return { error: { message: 'belum login' }, cancelled: true };
       }
+      // tanpa sinyal: jangan minta PIN, langsung antre
+      if (!supabaseClient || !isOnline()) return { error: { message: 'Tidak ada koneksi internet', network: true } };
       const hash = await requirePinHash(desc);
       if (!hash) return { error: { message: 'dibatalkan' }, cancelled: true };
 
-      const res = await supabaseClient.rpc(fn, { p_id: currentUserSession.id, p_pin_hash: hash, ...params });
+      let res;
+      try {
+        res = await withTimeout(supabaseClient.rpc(fn, { p_id: currentUserSession.id, p_pin_hash: hash, ...params }), 20000);
+      } catch (e) {
+        return { error: { message: (e && e.message) || 'Koneksi terputus', network: true } };
+      }
       if (res.error) {
-        if (/PIN salah/i.test(res.error.message)) sessionPinHash = null; // paksa input ulang
+        if (/PIN salah/i.test(res.error.message)) { sessionPinHash = null; forgetPin(currentUserSession.id); } // paksa input ulang
       } else {
-        sessionPinHash = hash; // PIN terbukti benar -> cukup diminta sekali per sesi halaman
+        sessionPinHash = hash; // PIN terbukti benar
+        rememberPinIfAllowed(hash);
       }
       return res;
     }
@@ -1565,6 +1646,7 @@
       await loadLocalLogs();
       refreshSyncStatus();
       maybeOfferLegacy();
+      setupOffline();
     });
 
     function updateDateTime() {
@@ -1671,7 +1753,7 @@
       resetForm();
       refreshSyncStatus();
 
-      triggerSync(true);
+      queueSync(true);
     }
 
     function resetForm() {
@@ -1742,7 +1824,7 @@
       if (entry && entry.synced) {
         addPendingDelete(id);
         refreshSyncStatus();
-        triggerSync(true);
+        queueSync(false);
       }
     }
 
@@ -2503,17 +2585,46 @@
       refreshSyncStatus();
     }
 
+    function pendingCount() {
+      return currentUserSession ? journalEntries.filter(e => !e.synced).length + getPendingDeletes().length : 0;
+    }
+    function updateOfflineBar() {
+      const bar = document.getElementById('offlineBar');
+      if (!bar) return;
+      bar.classList.toggle('show', !isOnline());
+      const n = pendingCount();
+      document.getElementById('offlineBarText').innerText = n > 0
+        ? `Kamu tetap bisa mencatat. ${n} catatan antre dan akan terkirim otomatis saat ada sinyal.`
+        : 'Kamu tetap bisa mencatat. Semua tersimpan di perangkat dan akan terkirim otomatis saat ada sinyal.';
+    }
     function refreshSyncStatus(okText) {
-      if (!currentUserSession) { updateSyncUI('offline', 'Belum masuk'); return; }
-      const n = journalEntries.filter(e => !e.synced).length + getPendingDeletes().length;
+      updateOfflineBar();
+      if (!currentUserSession) { updateSyncUI('offline', isOnline() ? 'Belum masuk' : 'Offline'); return; }
+      const n = pendingCount();
+      if (!isOnline()) { updateSyncUI('offline', n > 0 ? `Offline · ${n} antre` : 'Offline'); return; }
       if (n > 0) updateSyncUI('pending', `${n} belum tersinkron`);
       else if (sessionPinHash) updateSyncUI('online', okText || 'Tersinkron');
       else updateSyncUI('pending', 'Ketuk 🔄 untuk sinkron');
     }
 
+    // Simpan dulu, kirim kemudian: offline = antre tanpa gangguan
+    function queueSync(isNew) {
+      if (!isOnline()) {
+        if (isNew) showToast('📴 Tersimpan di perangkat. Akan terkirim otomatis saat ada sinyal.');
+        refreshSyncStatus();
+        return;
+      }
+      triggerSync(true);
+    }
+
     async function triggerSync(interactive = true) {
       if (!currentUserSession) { if (interactive) loginGate(); return; }
       if (syncing) return;
+      if (!isOnline()) {
+        refreshSyncStatus();
+        if (interactive) tofDialog({ tone: 'info', icon: '📴', title: 'Belum ada sinyal', message: 'Catatanmu aman di perangkat dan masuk antrean. Begitu ada sinyal, akan terkirim otomatis.', okText: 'Oke' });
+        return;
+      }
       if (!sessionPinHash && !interactive) { refreshSyncStatus(); return; }
 
       syncing = true;
@@ -2572,9 +2683,14 @@
         // ada catatan baru yang masuk saat sinkron berjalan -> kirim juga
         if (journalEntries.some(e => !e.synced)) setTimeout(() => triggerSync(false), 300);
       } catch (e) {
-        console.error(e);
-        updateSyncUI('offline', 'Gagal sync');
-        if (interactive) alert('Belum bisa tersinkron: ' + ((e && e.message) || e) + '. Catatanmu tetap aman di perangkat ini.');
+        if (isNetErr(e)) {
+          refreshSyncStatus();
+          if (interactive) showToast('📶 Sinyal belum cukup. Catatanmu aman & antre, akan dicoba lagi otomatis.');
+        } else {
+          console.error(e);
+          updateSyncUI('offline', 'Gagal sync');
+          if (interactive) alert('Belum bisa tersinkron: ' + ((e && e.message) || e) + '. Catatanmu tetap aman di perangkat ini.');
+        }
       } finally {
         syncing = false;
       }
@@ -2584,6 +2700,38 @@
       const dot = document.getElementById('syncDot');
       document.getElementById('syncText').innerText = text;
       dot.className = 'sync-dot ' + (state === 'online' ? 'online' : (state === 'syncing' ? 'syncing' : (state === 'pending' ? 'pending' : '')));
+    }
+
+    // ----------------------------------------------------
+    // AUTO-SINKRON saat sinyal kembali + SERVICE WORKER (aplikasi tetap terbuka tanpa sinyal)
+    // ----------------------------------------------------
+    function autoSyncTick() {
+      if (isOnline() && currentUserSession && sessionPinHash && !syncing && pendingCount() > 0) triggerSync(false);
+    }
+    function setupOffline() {
+      window.addEventListener('online', () => {
+        refreshSyncStatus();
+        if (pendingCount() > 0) {
+          if (sessionPinHash) setTimeout(autoSyncTick, 1200);
+          else showToast('📶 Sinyal kembali. Ketuk 🔄 untuk mengirim catatan (perlu PIN).');
+        }
+      });
+      window.addEventListener('offline', () => {
+        refreshSyncStatus();
+        showToast('📴 Tidak ada sinyal. Kamu tetap bisa mencatat, nanti tersinkron otomatis.');
+      });
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) autoSyncTick(); });
+      setInterval(autoSyncTick, 45000);   // sinyal lemah/captive: coba lagi berkala
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); // cegah data lokal dihapus browser
+      registerSW();
+      autoSyncTick();
+    }
+    function registerSW() {
+      if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => navigator.serviceWorker.ready)
+        .then((reg) => { if (reg.active) reg.active.postMessage({ type: 'CACHE_PAGE', url: location.href.split('#')[0] }); })
+        .catch((e) => console.warn('Service worker gagal didaftarkan', e));
     }
 
     function toggleModal(modalId) {
