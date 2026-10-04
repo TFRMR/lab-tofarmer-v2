@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Target 1 Miliar Tracker (586 Hari)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            900: '#14532d',
+                            accent: '#06b6d4',
+                            dark: '#0f172a',
+                            card: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SUPABASE JS SDK v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- ALGORAND SDK (untuk dompet saat Daftar Baru, sama seperti halaman ToFarmer lain) -->
+    <script src="https://cdn.jsdelivr.net/npm/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f4f7f5;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #b9cfc2;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4caf7a;
+        }
+
+        /* ==========================================================
+           TEMA TOFARMER (terang): #f4f7f5 / #2f6f4e / #4caf7a / #c9a227
+           Menimpa warna kelas Tailwind gelap tanpa mengubah markup.
+           ========================================================== */
+        body { font-family: Inter, sans-serif !important; background: #f4f7f5 !important; color: #1c2b22 !important; }
+        .bg-slate-950 { background-color: #f8fcf9 !important; }
+        body.bg-slate-950 { background-color: #f4f7f5 !important; }
+        .bg-slate-900 { background-color: #ffffff !important; }
+        .bg-slate-900\/80 { background-color: rgba(255,255,255,0.92) !important; }
+        .bg-slate-950\/60 { background-color: #f8fcf9 !important; }
+        .bg-slate-950\/80 { background-color: rgba(0,0,0,0.6) !important; }
+        .bg-slate-800 { background-color: #e9f4ee !important; }
+        .hover\:bg-slate-800:hover { background-color: #e9f4ee !important; }
+        .hover\:bg-slate-700:hover { background-color: #d3e8dc !important; }
+        .border-slate-800, .border-slate-800\/60 { border-color: #e0e8e3 !important; }
+        .border-slate-700 { border-color: #cfdad3 !important; }
+        .divide-slate-800\/60 > :not([hidden]) ~ :not([hidden]) { border-color: #e0e8e3 !important; }
+        .text-slate-100, .text-slate-200 { color: #1c2b22 !important; }
+        .text-slate-300 { color: #2f4a3a !important; }
+        .text-slate-400 { color: #5f7568 !important; }
+        .text-slate-500 { color: #7d9186 !important; }
+        .text-slate-600 { color: #9aaba1 !important; }
+        #statCurrentBalance, #statProgressPct, #statPacing { color: #1c2b22 !important; }
+        .text-emerald-400 { color: #2f6f4e !important; }
+        .text-cyan-400 { color: #2f6f4e !important; }
+        .text-indigo-400 { color: #2f6f4e !important; }
+        .text-amber-400 { color: #a8861a !important; }
+        .text-rose-400 { color: #dc2626 !important; }
+        .bg-emerald-950\/20 { background-color: rgba(76,175,122,0.10) !important; }
+        .hover\:bg-emerald-900\/30:hover { background-color: rgba(76,175,122,0.18) !important; }
+        .bg-cyan-950\/40 { background-color: rgba(201,162,39,0.14) !important; }
+        .border-l-cyan-400 { border-left-color: #c9a227 !important; }
+        .hover\:bg-slate-800\/40:hover { background-color: #f0f7f3 !important; }
+        .from-emerald-500.to-teal-600 { background-image: none !important; background-color: #2f6f4e !important; }
+        .hover\:from-emerald-600:hover.hover\:to-teal-700:hover { background-color: #24583e !important; }
+        .from-emerald-400.to-cyan-400 { background-image: linear-gradient(90deg, #4caf7a, #c9a227) !important; }
+        .bg-gradient-to-r.from-emerald-500.to-cyan-500 { background-image: linear-gradient(90deg, #4caf7a, #c9a227) !important; }
+        .bg-cyan-500\/20 { background-color: rgba(201,162,39,0.18) !important; }
+        .border-cyan-500\/30 { border-color: rgba(201,162,39,0.45) !important; }
+        .shadow-2xl, .shadow-xl { box-shadow: 0 10px 25px rgba(0,0,0,0.25) !important; }
+
+        /* Layar Masuk / Daftar & modal dompet (gaya halaman scan ToFarmer) */
+        .tof-overlay { position: fixed; inset: 0; z-index: 99999; background: rgba(244,247,245,0.97); display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+        .tof-overlay.hidden-ov { display: none; }
+        .tof-card { background: #fff; border-radius: 16px; padding: 22px; max-width: 420px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.12); border: 1px solid #e0e8e3; }
+        .tof-brand { display: flex; align-items: center; gap: 10px; color: #2f6f4e; font-weight: bold; margin-bottom: 16px; }
+        .tof-logo { width: 42px; height: 42px; border-radius: 50%; background: #fff; border: 2px solid #2f6f4e; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #2f6f4e; font-size: 12px; }
+        .tof-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+        .tof-tab { flex: 1; padding: 9px; border: 1px solid #e0e8e3; background: #f8fcf9; border-radius: 10px; font-size: 12px; font-weight: bold; color: #5f7568; cursor: pointer; }
+        .tof-tab.active { background: #2f6f4e; color: #fff; border-color: #2f6f4e; }
+        .tof-group { margin-bottom: 12px; }
+        .tof-group label { display: block; font-size: 11px; font-weight: bold; color: #2f6f4e; margin-bottom: 4px; }
+        .tof-input { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 10px; font-size: 13px; outline: none; background: #fff; color: #1c2b22; }
+        .tof-input:focus { border-color: #2f6f4e; }
+        .tof-btn { width: 100%; background: #2f6f4e; color: #fff; border: none; padding: 11px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 12px; margin-top: 4px; }
+        .tof-btn:hover { background: #24583e; }
+        .tof-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tof-btn-light { width: 100%; background: #fff; color: #2f6f4e; border: 1px solid #2f6f4e; padding: 9px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 11px; margin-top: 8px; }
+        .tof-btn-light:hover { background: #e9f4ee; }
+        .tof-error { display: none; font-size: 11px; color: #b91c1c; background: #fef2f2; border-left: 3px solid #dc2626; padding: 8px; border-radius: 6px; margin-bottom: 10px; }
+        .tof-note { background: #fef3c7; border-left: 3px solid #f59e0b; padding: 8px; border-radius: 6px; font-size: 10px; color: #92400e; margin-bottom: 12px; line-height: 1.5; }
+        .mn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 12px 0; }
+        .mn-word { background: #f8fcf9; border: 1px solid #e0e8e3; border-radius: 8px; padding: 6px 8px; font-size: 12px; font-weight: bold; color: #1c2b22; }
+        .mn-word i { font-style: normal; color: #9aaba1; font-size: 9px; margin-right: 4px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400">
+                    <i class="fa-solid me-1 fa-chart-line text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                        1 Billion Goal Tracker
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Program Compound Trading 586 Hari ($163 → $55,000)</p>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Badge pengguna & tombol keluar (muncul setelah login) -->
+                <span id="userBadge" class="hidden px-3 py-1.5 text-xs font-medium bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/30 items-center gap-1.5">
+                    <i class="fa-solid fa-user"></i> <span id="userBadgeName">-</span>
+                </span>
+                <button id="btnLogout" onclick="logoutUser()" class="hidden px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition items-center gap-1.5">
+                    <i class="fa-solid fa-right-from-bracket"></i> <span class="hidden sm:inline">Keluar</span>
+                </button>
+                <button onclick="exportData()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Ekspor</span>
+                </button>
+                <button onclick="document.getElementById('importFile').click()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-upload"></i> <span class="hidden sm:inline">Impor</span>
+                </button>
+                <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
+                <button onclick="confirmReset()" class="px-3 py-1.5 text-xs font-medium bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-lg border border-rose-500/30 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i> <span class="hidden sm:inline">Reset</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex flex-col gap-6">
+
+        <!-- Top Overview Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Card 1: Saldo Saat Ini -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 relative overflow-hidden group hover:border-emerald-500/40 transition">
+                <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                    <span>SALDO REALISASI AKTUAL</span>
+                    <i class="fa-solid fa-wallet text-emerald-400"></i>
+                </div>
+                <div class="text-2xl font-black text-white" id="statCurrentBalance">$ 0.00</div>
+                <div class="text-xs text-slate-400 mt-1" id="statCurrentBalanceIDR">≈ Rp 0</div>
+                <div class="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-cyan-500"></div>
+            </div>
+
+            <!-- Card 2: Posisi Milestone & Efisiensi -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 relative overflow-hidden group hover:border-cyan-500/40 transition">
+                <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                    <span>EVALUASI TEMPO & EFEKTIVITAS</span>
+                    <i class="fa-solid fa-stopwatch text-cyan-400"></i>
+                </div>
+                <div class="text-lg font-bold text-white flex items-center gap-2" id="statPacing">
+                    -
+                </div>
+                <div class="text-xs text-slate-400 mt-1" id="statMilestonePos">
+                    Posisi Milestone: Hari ke-0
+                </div>
+            </div>
+
+            <!-- Card 3: Progres Capaian Rp 1 Miliar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 relative overflow-hidden group hover:border-indigo-500/40 transition">
+                <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                    <span>PROGRESS MENUJU TARGET ($55K)</span>
+                    <i class="fa-solid fa-bullseye text-indigo-400"></i>
+                </div>
+                <div class="text-2xl font-black text-white" id="statProgressPct">0.0%</div>
+                <!-- Progress Bar -->
+                <div class="w-full bg-slate-800 h-2 rounded-full mt-2 overflow-hidden">
+                    <div id="statProgressBar" class="bg-gradient-to-r from-emerald-400 to-cyan-400 h-full w-0 transition-all duration-500"></div>
+                </div>
+            </div>
+
+            <!-- Card 4: Target Ideal Hari Ini -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 relative overflow-hidden group hover:border-amber-500/40 transition">
+                <div class="flex items-center justify-between text-slate-400 text-xs mb-2">
+                    <span>PROYEKSI HARI INI (KALENDER)</span>
+                    <i class="fa-solid fa-calendar-day text-amber-400"></i>
+                </div>
+                <div class="text-2xl font-black text-amber-400" id="statCalendarTarget">$ 163.62</div>
+                <div class="text-xs text-slate-400 mt-1" id="statCalendarDay">Hari Kalender ke-1</div>
+            </div>
+
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left 2 Cols: Main Chart -->
+            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-area text-emerald-400"></i>
+                        Grafik Perbandingan: Proyeksi vs Realisasi
+                    </h2>
+                    <span class="text-xs text-slate-400">Skala Logaritmik/Linear Auto</span>
+                </div>
+                <div class="flex-1 min-h-[260px] relative">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Right 1 Col: Input Saldo Harian Quick Panel -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between">
+                <div>
+                    <h2 class="text-sm font-bold text-slate-200 mb-1 flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square text-cyan-400"></i>
+                        Input Realisasi Trading
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4">
+                        Masukkan saldo terkini Anda. Sistem akan menyesuaikan level milestone Anda secara otomatis.
+                    </p>
+
+                    <form id="quickUpdateForm" onsubmit="handleQuickUpdate(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Pilih Hari Eksekusi Kalender</label>
+                            <select id="inputDaySelect" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+                                <!-- Dynamically filled -->
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Total Saldo Terkini ($ USD)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-slate-500 text-sm">$</span>
+                                <input type="number" id="inputActualBalance" step="0.01" min="0" placeholder="0.00" required
+                                       class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Catatan Trade / Jurnal Singkat</label>
+                            <textarea id="inputTradeNotes" rows="2" placeholder="Contoh: Profit XAUUSD 30 pips, or Cutloss..."
+                                      class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 transition"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold text-xs rounded-lg shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-floppy-disk"></i> Simpan & Rekalkulasi Log
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Info Box -->
+                <div class="mt-4 p-3 bg-slate-950/60 border border-slate-800 rounded-lg text-xs text-slate-400 flex gap-2.5 items-start">
+                    <i class="fa-solid fa-circle-info text-cyan-400 text-sm mt-0.5"></i>
+                    <div>
+                        <strong class="text-slate-300">Cara Kerja Auto-Checklist:</strong>
+                        <p class="mt-0.5 leading-relaxed">Jika saldo melebihi target hari ini, status checklist Anda akan <span class="text-emerald-400">meloncat maju</span>. Sebaliknya jika minus, posisi milestone akan <span class="text-amber-400">mundur</span> menyesuaikan modal aktual.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Checklist Table & Log Harian -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4">
+            
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                <div>
+                    <h2 class="text-base font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-emerald-400"></i>
+                        Daftar Milestone Proyeksi 586 Hari
+                    </h2>
+                    <p class="text-xs text-slate-400">Target harian compound pertumbuhan saldo trading</p>
+                </div>
+
+                <!-- Filter Options -->
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <div class="relative flex-1 sm:w-48">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="text" id="searchInput" oninput="renderTable()" placeholder="Cari Hari / Saldo..."
+                               class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                    </div>
+                    
+                    <select id="filterStatus" onchange="renderTable()" class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500">
+                        <option value="ALL">Semua Hari (1-586)</option>
+                        <option value="CURRENT_NEAR">30 Hari Terdekat Posisi Saat Ini</option>
+                        <option value="FILLED">Hanya Yang Diisi Saldo Realisasi</option>
+                        <option value="REACHED">Status Milestone Reached</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto rounded-lg border border-slate-800 max-h-[500px] overflow-y-auto relative">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="bg-slate-950 text-slate-400 uppercase font-semibold sticky top-0 z-10 border-b border-slate-800">
+                        <tr>
+                            <th class="py-3 px-4 w-20">Hari</th>
+                            <th class="py-3 px-4">Target Proyeksi ($)</th>
+                            <th class="py-3 px-4">Target Proyeksi (IDR)</th>
+                            <th class="py-3 px-4">Saldo Aktual USD</th>
+                            <th class="py-3 px-4">Status & Posisi</th>
+                            <th class="py-3 px-4">Catatan Jurnal</th>
+                            <th class="py-3 px-4 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="milestoneTableBody" class="divide-y divide-slate-800/60 bg-slate-900">
+                        <!-- Rows rendered dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Layar Masuk / Daftar (alur sama seperti halaman scan ToFarmer: nama pengguna + PIN 6 angka) -->
+    <div id="authModal" class="tof-overlay hidden-ov">
+        <div class="tof-card">
+            <div class="tof-brand">
+                <div class="tof-logo">TOF</div>
+                <div>
+                    <div style="font-size:15px;">1 Billion Goal Tracker</div>
+                    <div style="font-size:10px; color:#5f7568; font-weight:normal;">Masuk dengan akun ToFarmer agar data trading Anda tersimpan pribadi</div>
+                </div>
+            </div>
+
+            <div class="tof-tabs">
+                <button id="tabBtnLogin" class="tof-tab active" onclick="switchAuthTab('login')">🔑 Masuk</button>
+                <button id="tabBtnRegister" class="tof-tab" onclick="switchAuthTab('register')">✨ Daftar Baru</button>
+            </div>
+
+            <div id="authError" class="tof-error"></div>
+
+            <!-- FORM LOGIN -->
+            <div id="authLoginForm">
+                <div class="tof-group">
+                    <label>Nama pengguna:</label>
+                    <input type="text" id="loginIdentifier" class="tof-input" placeholder="Contoh: budi01" autocomplete="username">
+                </div>
+                <div class="tof-group">
+                    <label>PIN (6 angka):</label>
+                    <input type="password" id="loginPin" class="tof-input" maxlength="6" inputmode="numeric" placeholder="******" autocomplete="current-password" onkeydown="if(event.key==='Enter') submitLoginManual()">
+                </div>
+                <button id="btnLogin" class="tof-btn" onclick="submitLoginManual()">Masuk Akun</button>
+            </div>
+
+            <!-- FORM REGISTER -->
+            <div id="authRegisterForm" style="display:none;">
+                <div class="tof-group">
+                    <label>Nama pengguna baru (huruf/angka/_, tanpa spasi):</label>
+                    <input type="text" id="regUsername" class="tof-input" maxlength="20" placeholder="Contoh: petani_menoreh" autocomplete="username">
+                </div>
+                <div class="tof-group">
+                    <label>Buat PIN (6 angka, hafalkan ya):</label>
+                    <input type="password" id="regPin" class="tof-input" maxlength="6" inputmode="numeric" placeholder="******" autocomplete="new-password" onkeydown="if(event.key==='Enter') submitRegister()">
+                </div>
+                <div class="tof-note">💡 Akun ini sama dengan akun ToFarmer lainnya. Dompet digital kamu dibuatkan otomatis, dan PIN dipakai setiap kali masuk.</div>
+                <button id="btnRegister" class="tof-btn" onclick="submitRegister()">Buat Akun Saya</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 25 kata dompet (tampil sekali setelah Daftar Baru) -->
+    <div id="mnemonicModal" class="tof-overlay hidden-ov">
+        <div class="tof-card" style="max-height:92vh; overflow-y:auto;">
+            <h3 style="color:#2f6f4e; font-size:15px; font-weight:bold;">🎉 Akun Kamu Sudah Jadi!</h3>
+            <p style="font-size:11px; color:#4b5563; margin-top:5px;">Di bawah ini <b>25 kata kunci dompet digitalmu</b>. Ditampilkan sekali saja. Salin dan simpan di tempat aman, jangan bagikan ke siapa pun.</p>
+            <div class="mn-grid" id="mnemonicDisplayBox"></div>
+            <button id="btnCopyMnemonic" class="tof-btn-light">📋 Salin 25 Kata</button>
+            <label style="display:flex; gap:8px; align-items:flex-start; font-size:11px; color:#1c2b22; margin:12px 0 4px; cursor:pointer;">
+                <input type="checkbox" id="mnConfirm" onchange="document.getElementById('btnEnterTracker').disabled = !this.checked" style="margin-top:2px;">
+                <span>Saya sudah menyimpan 25 kata ini di tempat aman.</span>
+            </label>
+            <button id="btnEnterTracker" class="tof-btn" disabled onclick="closeMnemonicModal()">Masuk ke Tracker</button>
+        </div>
+    </div>
+
+    <!-- Custom Modal Message -->
+    <div id="customModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <h3 id="modalTitle" class="text-base font-bold text-slate-100">Konfirmasi</h3>
+            <p id="modalMessage" class="text-xs text-slate-300 leading-relaxed"></p>
+            <div class="flex justify-end gap-2 pt-2" id="modalActions">
+                <button onclick="closeModal()" class="px-4 py-2 text-xs bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-emerald-600 text-white px-4 py-3 rounded-lg shadow-xl text-xs font-semibold flex items-center gap-2 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <i class="fa-solid fa-circle-check text-base"></i>
+        <span id="toastMsg">Pesan Toast</span>
+    </div>
+
+    <script>
+        // --- 1. PROJECTION DATASET (586 DAYS) ---
+        const RAW_DATASET = [
+            163.62, 165.26, 166.91, 168.58, 170.26, 171.97, 173.69, 175.42, 177.18, 178.95,
+            180.74, 182.55, 184.37, 186.21, 188.08, 189.96, 191.86, 193.78, 195.71, 197.67,
+            199.65, 201.64, 203.66, 205.70, 207.75, 209.83, 211.93, 214.05, 216.19, 218.35,
+            220.54, 222.74, 224.97, 227.22, 229.49, 231.78, 234.10, 236.44, 238.81, 241.20,
+            243.61, 246.04, 248.50, 250.99, 253.50, 256.03, 258.59, 261.18, 263.79, 266.43,
+            269.09, 271.79, 274.50, 277.25, 280.02, 282.82, 285.65, 288.51, 291.39, 294.30,
+            297.25, 300.22, 303.22, 306.25, 309.32, 312.41, 315.53, 318.69, 321.88, 325.10,
+            328.35, 331.63, 334.95, 338.30, 341.68, 345.10, 348.55, 352.03, 355.55, 359.11,
+            362.70, 366.33, 369.99, 373.69, 377.43, 381.20, 385.01, 388.86, 392.75, 396.68,
+            400.65, 404.65, 408.70, 412.79, 416.91, 421.08, 425.29, 429.55, 433.84, 438.18,
+            442.56, 446.99, 451.46, 455.97, 460.53, 465.14, 469.79, 474.49, 479.23, 484.02,
+            488.86, 493.75, 498.69, 503.68, 508.71, 513.80, 518.94, 524.13, 529.37, 534.66,
+            540.01, 545.41, 550.86, 556.37, 561.94, 567.56, 573.23, 578.96, 584.75, 590.60,
+            596.51, 602.47, 608.50, 614.58, 620.73, 626.93, 633.20, 639.54, 645.93, 652.39,
+            658.91, 665.50, 672.16, 678.88, 685.67, 692.53, 699.45, 706.44, 713.51, 720.64,
+            727.85, 735.13, 742.48, 749.91, 757.40, 764.98, 772.63, 780.35, 788.16, 796.04,
+            804.00, 812.04, 820.16, 828.36, 836.65, 845.01, 853.46, 862.00, 870.62, 879.32,
+            888.12, 897.00, 905.97, 915.03, 924.18, 933.42, 942.75, 952.18, 961.70, 971.32,
+            981.03, 990.84, 1000.75, 1010.76, 1020.87, 1031.08, 1041.39, 1051.80, 1062.32, 1072.94,
+            1083.67, 1094.51, 1105.45, 1116.51, 1127.67, 1138.95, 1150.34, 1161.84, 1173.46, 1185.19,
+            1197.05, 1209.02, 1221.11, 1233.32, 1245.65, 1258.11, 1270.69, 1283.40, 1296.23, 1309.19,
+            1322.28, 1335.51, 1348.86, 1362.35, 1375.97, 1389.73, 1403.63, 1417.67, 1431.84, 1446.16,
+            1460.62, 1475.23, 1489.98, 1504.88, 1519.93, 1535.13, 1550.48, 1565.99, 1581.65, 1597.46,
+            1613.44, 1629.57, 1645.87, 1662.33, 1678.95, 1695.74, 1712.70, 1729.82, 1747.12, 1764.59,
+            1782.24, 1800.06, 1818.06, 1836.24, 1854.61, 1873.15, 1891.88, 1910.80, 1929.91, 1949.21,
+            1968.70, 1988.39, 2008.27, 2028.35, 2048.64, 2069.12, 2089.82, 2110.71, 2131.82, 2153.14,
+            2174.67, 2196.42, 2218.38, 2240.57, 2262.97, 2285.60, 2308.46, 2331.54, 2354.86, 2378.41,
+            2402.19, 2426.21, 2450.47, 2474.98, 2499.73, 2524.73, 2549.97, 2575.47, 2601.23, 2627.24,
+            2653.51, 2680.05, 2706.85, 2733.92, 2761.26, 2788.87, 2816.76, 2844.92, 2873.37, 2902.11,
+            2931.13, 2960.44, 2990.04, 3019.94, 3050.14, 3080.64, 3111.45, 3142.57, 3173.99, 3205.73,
+            3237.79, 3270.17, 3302.87, 3335.90, 3369.26, 3402.95, 3436.98, 3471.35, 3506.06, 3541.12,
+            3576.53, 3612.30, 3648.42, 3684.91, 3721.75, 3758.97, 3796.56, 3834.53, 3872.87, 3911.60,
+            3950.72, 3990.22, 4030.13, 4070.43, 4111.13, 4152.24, 4193.77, 4235.70, 4278.06, 4320.84,
+            4364.05, 4407.69, 4451.77, 4496.29, 4541.25, 4586.66, 4632.53, 4678.85, 4725.64, 4772.90,
+            4820.63, 4868.83, 4917.52, 4966.70, 5016.36, 5066.53, 5117.19, 5168.36, 5220.05, 5272.25,
+            5324.97, 5378.22, 5432.00, 5486.32, 5541.19, 5596.60, 5652.56, 5709.09, 5766.18, 5823.84,
+            5882.08, 5940.90, 6000.31, 6060.31, 6120.92, 6182.13, 6243.95, 6306.39, 6369.45, 6433.14,
+            6497.48, 6562.45, 6628.08, 6694.36, 6761.30, 6828.91, 6897.20, 6966.17, 7035.84, 7106.19,
+            7177.26, 7249.03, 7321.52, 7394.73, 7468.68, 7543.37, 7618.80, 7694.99, 7771.94, 7849.66,
+            7928.16, 8007.44, 8087.51, 8168.39, 8250.07, 8332.57, 8415.90, 8500.06, 8585.06, 8670.91,
+            8757.62, 8845.19, 8933.64, 9022.98, 9113.21, 9204.34, 9296.39, 9389.35, 9483.24, 9578.08,
+            9673.86, 9770.60, 9868.30, 9966.98, 10066.65, 10167.32, 10268.99, 10371.68, 10475.40, 10580.15,
+            10685.96, 10792.82, 10900.74, 11009.75, 11119.85, 11231.05, 11343.36, 11456.79, 11571.36, 11687.07,
+            11803.94, 11921.98, 12041.20, 12161.61, 12283.23, 12406.06, 12530.12, 12655.42, 12781.98, 12909.80,
+            13038.90, 13169.29, 13300.98, 13433.99, 13568.33, 13704.01, 13841.05, 13979.46, 14119.26, 14260.45,
+            14403.05, 14547.08, 14692.56, 14839.48, 14987.88, 15137.75, 15289.13, 15442.02, 15596.44, 15752.41,
+            15909.93, 16069.03, 16229.72, 16392.02, 16555.94, 16721.50, 16888.71, 17057.60, 17228.18, 17400.46,
+            17574.46, 17750.21, 17927.71, 18106.99, 18288.06, 18470.94, 18655.65, 18842.20, 19030.63, 19220.93,
+            19413.14, 19607.27, 19803.34, 20001.38, 20201.39, 20403.41, 20607.44, 20813.51, 21021.65, 21231.87,
+            21444.18, 21658.63, 21875.21, 22093.97, 22314.90, 22538.05, 22763.43, 22991.07, 23220.98, 23453.19,
+            23687.72, 23924.60, 24163.84, 24405.48, 24649.54, 24896.03, 25144.99, 25396.44, 25650.41, 25906.91,
+            26165.98, 26427.64, 26691.92, 26958.84, 27228.42, 27500.71, 27757.72, 28053.47, 28334.01, 28617.35,
+            28903.52, 29192.56, 29484.48, 29779.33, 30077.12, 30377.89, 30681.67, 30988.49, 31298.37, 31611.36,
+            31927.47, 32246.74, 32569.21, 32894.90, 33223.85, 33556.09, 33891.65, 34230.57, 34572.87, 34918.60,
+            35267.79, 35620.47, 35976.67, 36336.44, 36699.80, 37066.80, 37437.47, 37811.84, 38189.96, 38571.86,
+            38957.58, 39347.16, 39740.63, 40138.03, 40539.41, 40944.81, 41354.26, 41767.80, 42185.48, 42607.33,
+            43033.40, 43463.74, 43898.38, 44337.36, 44780.73, 45228.54, 45680.83, 46137.63, 46599.01, 47065.00,
+            47535.65, 48011.01, 48491.12, 48976.03, 49465.79, 49960.45, 50460.05, 50964.65, 51474.30, 51989.04,
+            52508.93, 53034.02, 53564.36, 54100.00, 54641.00, 55000.00
+        ];
+
+        const USD_TO_IDR = 16000; // Standar konversi Rp 16.000 per USD
+
+        // --- KONFIGURASI SUPABASE (sama dengan halaman scan ToFarmer) ---
+        const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+        const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+        const SESSION_KEY = 'tof_tracker_session'; // hanya menyimpan sesi login, BUKAN data trading
+
+        // State Global
+        let userLogs = {}; // Key: day (1..586), Value: { actual: number, note: string, updatedAt: string }
+        let chartInstance = null;
+        let currentUser = null; // { id, username, pin_hash } user yang sedang login
+
+        // --- 2. INITIALIZATION & UTILS ---
+        window.onload = async function() {
+            populateDaySelector();
+            initChart();
+            updateDashboard();
+
+            // Pulihkan sesi login jika ada, kalau tidak tampilkan layar Masuk
+            let restored = false;
+            try {
+                const stored = localStorage.getItem(SESSION_KEY);
+                if (stored) {
+                    const s = JSON.parse(stored);
+                    if (s && s.id && s.username && s.pin_hash) {
+                        currentUser = s;
+                        restored = true;
+                    }
+                }
+            } catch (e) {
+                localStorage.removeItem(SESSION_KEY);
+            }
+
+            if (restored) {
+                renderUserBadge();
+                const ok = await loadFromStorage();
+                if (ok) {
+                    updateDashboard();
+                } else {
+                    logoutUser(true); // sesi tidak valid lagi (akun/PIN berubah)
+                }
+            } else {
+                openAuthModal('login');
+            }
+        };
+
+        function formatUSD(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(val || 0);
+        }
+
+        function formatIDR(valUSD) {
+            const idr = (valUSD || 0) * USD_TO_IDR;
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(idr);
+        }
+
+        function escapeHtml(s) {
+            return String(s == null ? '' : s)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        async function hashPIN(pin) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(pin);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // --- DATA DI SUPABASE (menggantikan LocalStorage) ---
+        // Semua akses lewat fungsi RPC yang memeriksa PIN, jadi tiap akun hanya bisa baca/tulis datanya sendiri.
+        async function loadFromStorage() {
+            if (!supabaseClient || !currentUser) return false;
+            try {
+                const { data, error } = await supabaseClient.rpc('tracker_load', {
+                    p_user_id: currentUser.id,
+                    p_pin_hash: currentUser.pin_hash
+                });
+                if (error) throw error;
+                userLogs = {};
+                (data || []).forEach(r => {
+                    userLogs[r.day] = { actual: Number(r.actual), note: r.note || '', updatedAt: r.updated_at };
+                });
+                return true;
+            } catch (e) {
+                console.error("Gagal membaca data Supabase:", e);
+                userLogs = {};
+                return false;
+            }
+        }
+
+        // Simpan satu/banyak hari (upsert). days = array nomor hari
+        async function saveLogsToCloud(days) {
+            if (!supabaseClient || !currentUser) return false;
+            const rows = [];
+            days.forEach(d => {
+                const day = parseInt(d);
+                const l = userLogs[day];
+                if (day >= 1 && day <= RAW_DATASET.length && l && !isNaN(parseFloat(l.actual)) && parseFloat(l.actual) >= 0) {
+                    rows.push({
+                        day: day,
+                        actual: parseFloat(l.actual),
+                        note: l.note || '',
+                        updated_at: l.updatedAt || new Date().toISOString()
+                    });
+                }
+            });
+            if (rows.length === 0) return true;
+            try {
+                const { error } = await supabaseClient.rpc('tracker_save', {
+                    p_user_id: currentUser.id,
+                    p_pin_hash: currentUser.pin_hash,
+                    p_rows: rows
+                });
+                if (error) throw error;
+                return true;
+            } catch (e) {
+                console.error("Gagal menyimpan ke Supabase:", e);
+                showModal("Gagal Menyimpan", "Data tidak tersimpan ke server: " + (e.message || e));
+                return false;
+            }
+        }
+
+        async function clearCloudLogs() {
+            if (!supabaseClient || !currentUser) return false;
+            try {
+                const { error } = await supabaseClient.rpc('tracker_clear', {
+                    p_user_id: currentUser.id,
+                    p_pin_hash: currentUser.pin_hash
+                });
+                if (error) throw error;
+                return true;
+            } catch (e) {
+                console.error("Gagal reset di Supabase:", e);
+                showModal("Gagal Reset", "Data tidak terhapus di server: " + (e.message || e));
+                return false;
+            }
+        }
+
+        // --- MASUK / DAFTAR / KELUAR (alur sama seperti halaman scan ToFarmer) ---
+        function openAuthModal(tab = 'login') {
+            switchAuthTab(tab);
+            document.getElementById('authModal').classList.remove('hidden-ov');
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden-ov');
+        }
+
+        function switchAuthTab(tab) {
+            const isLogin = tab === 'login';
+            document.getElementById('authLoginForm').style.display = isLogin ? 'block' : 'none';
+            document.getElementById('authRegisterForm').style.display = isLogin ? 'none' : 'block';
+            document.getElementById('tabBtnLogin').classList.toggle('active', isLogin);
+            document.getElementById('tabBtnRegister').classList.toggle('active', !isLogin);
+            showAuthError('');
+        }
+
+        function showAuthError(msg) {
+            const el = document.getElementById('authError');
+            el.textContent = msg;
+            el.style.display = msg ? 'block' : 'none';
+        }
+
+        function renderUserBadge() {
+            const badge = document.getElementById('userBadge');
+            const btn = document.getElementById('btnLogout');
+            if (currentUser) {
+                document.getElementById('userBadgeName').textContent = currentUser.username;
+                badge.classList.remove('hidden'); badge.classList.add('flex');
+                btn.classList.remove('hidden'); btn.classList.add('flex');
+            } else {
+                badge.classList.add('hidden'); badge.classList.remove('flex');
+                btn.classList.add('hidden'); btn.classList.remove('flex');
+            }
+        }
+
+        function startSession(user) {
+            currentUser = { id: user.id, username: user.username, pin_hash: user.pin_hash };
+            localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+            renderUserBadge();
+        }
+
+        async function submitLoginManual() {
+            showAuthError('');
+            const username = document.getElementById('loginIdentifier').value.trim();
+            const pin = document.getElementById('loginPin').value.trim();
+
+            if (!username || !/^\d{6}$/.test(pin)) {
+                showAuthError("Isi nama pengguna dan PIN (6 angka) dulu ya.");
+                return;
+            }
+            if (!supabaseClient) { showAuthError("Koneksi Supabase belum siap. Muat ulang halaman."); return; }
+
+            const btn = document.getElementById('btnLogin');
+            btn.disabled = true;
+            try {
+                const pinHash = await hashPIN(pin);
+                const { data, error } = await supabaseClient.rpc('tracker_login', {
+                    p_username: username,
+                    p_pin_hash: pinHash
+                });
+                if (error) throw error;
+
+                // pesan sama untuk "tidak ada" dan "PIN salah"
+                if (!data || data.length === 0) {
+                    showAuthError("Nama pengguna tidak ditemukan atau PIN salah. Coba cek lagi ya.");
+                    return;
+                }
+
+                startSession({ id: data[0].id, username: data[0].username, pin_hash: pinHash });
+                document.getElementById('loginPin').value = '';
+                closeAuthModal();
+                await loadFromStorage();
+                updateDashboard();
+                showToast(`Selamat datang, ${currentUser.username}!`);
+            } catch (err) {
+                showAuthError("Belum bisa masuk: " + (err.message || err));
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function submitRegister() {
+            showAuthError('');
+            const username = document.getElementById('regUsername').value.trim();
+            const pin = document.getElementById('regPin').value.trim();
+
+            if (!/^[a-zA-Z0-9_]{3,20}$/.test(username) || !/^\d{6}$/.test(pin)) {
+                showAuthError("Nama pengguna harus 3-20 huruf/angka/_ (tanpa spasi), dan PIN harus 6 angka ya.");
+                return;
+            }
+            if (!supabaseClient || !window.algosdk) { showAuthError("Koneksi belum siap. Muat ulang halaman."); return; }
+
+            const btn = document.getElementById('btnRegister');
+            btn.disabled = true;
+            try {
+                // 1. Dompet Algorand baru (id akun = alamat dompet, sama seperti halaman ToFarmer lain)
+                const account = algosdk.generateAccount();
+                const walletAddress = account.addr;
+                const secretMnemonic = algosdk.secretKeyToMnemonic(account.sk);
+
+                // 2. Hash PIN & simpan profil
+                const pinHash = await hashPIN(pin);
+                const { error } = await supabaseClient.from('profiles').insert([{
+                    id: walletAddress,
+                    username: username,
+                    pin_hash: pinHash,
+                    saldo_tof: 0,
+                    xp: 0,
+                    level: 1,
+                    rank: 'GROWER',
+                    role: 'user',
+                    water_stock: 10
+                }]);
+
+                if (error) {
+                    if (error.code === '23505') throw new Error("Nama pengguna sudah dipakai orang lain. Coba nama lain ya!");
+                    throw error;
+                }
+
+                // 3. Sesi + tampilkan 25 kata dompet
+                startSession({ id: walletAddress, username: username, pin_hash: pinHash });
+                document.getElementById('regPin').value = '';
+                closeAuthModal();
+                openMnemonicModal(secretMnemonic);
+                userLogs = {};
+                updateDashboard();
+            } catch (err) {
+                showAuthError("Pendaftaran belum berhasil: " + (err.message || err));
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function openMnemonicModal(mnemonic) {
+            const words = mnemonic.trim().split(/\s+/);
+            document.getElementById('mnemonicDisplayBox').innerHTML = words.map((w, i) =>
+                `<span class="mn-word"><i>${i + 1}</i>${escapeHtml(w)}</span>`).join('');
+            document.getElementById('mnConfirm').checked = false;
+            document.getElementById('btnEnterTracker').disabled = true;
+            const copyBtn = document.getElementById('btnCopyMnemonic');
+            copyBtn.innerText = '📋 Salin 25 Kata';
+            copyBtn.onclick = () => {
+                navigator.clipboard.writeText(mnemonic).then(() => {
+                    copyBtn.innerText = '✓ Tersalin!';
+                    setTimeout(() => copyBtn.innerText = '📋 Salin 25 Kata', 2000);
+                });
+            };
+            document.getElementById('mnemonicModal').classList.remove('hidden-ov');
+        }
+
+        function closeMnemonicModal() {
+            document.getElementById('mnemonicDisplayBox').innerHTML = ''; // frasa tidak disimpan di halaman
+            document.getElementById('mnemonicModal').classList.add('hidden-ov');
+            showToast(`Selamat datang, ${currentUser ? currentUser.username : ''}!`);
+        }
+
+        function logoutUser(silent = false) {
+            localStorage.removeItem(SESSION_KEY);
+            currentUser = null;
+            userLogs = {};
+            renderUserBadge();
+            updateDashboard();
+            openAuthModal('login');
+            if (!silent) showToast("Kamu sudah keluar. Sampai jumpa lagi!");
+        }
+
+        function populateDaySelector() {
+            const select = document.getElementById('inputDaySelect');
+            select.innerHTML = '';
+            for (let i = 1; i <= RAW_DATASET.length; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `Hari ${i} (Target: ${formatUSD(RAW_DATASET[i-1])})`;
+                select.appendChild(opt);
+            }
+        }
+
+        // --- 3. DYNAMIC MATCHING ENGINE & METRICS CALCULATIONS ---
+        
+        /**
+         * Mencari Milestone Level terdekat berdasarkan saldo USD aktual.
+         * Jika saldo = $200 -> cocok ke Hari ke-21 ($199.65) / Hari ke-22 ($201.64)
+         */
+        function getMilestoneForBalance(balance) {
+            if (!balance || balance <= 0) return 0;
+            
+            // Loop dari belakang untuk mencari target terbesar yang sudah terlampaui
+            for (let i = RAW_DATASET.length - 1; i >= 0; i--) {
+                if (balance >= RAW_DATASET[i]) {
+                    return i + 1; // Return Day Number (1-indexed)
+                }
+            }
+            return 1; // Jika di bawah $163.62, posisi tetap Hari 1
+        }
+
+        /**
+         * Mengembalikan statistik rangkuman utama
+         */
+        function calculateMetrics() {
+            // Find latest calendar entry filled by user
+            let latestCalendarDay = 0;
+            let latestActualBalance = 0;
+
+            const filledDays = Object.keys(userLogs).map(Number).sort((a,b) => a - b);
+            
+            if (filledDays.length > 0) {
+                latestCalendarDay = filledDays[filledDays.length - 1];
+                latestActualBalance = userLogs[latestCalendarDay].actual;
+            }
+
+            // Milestone day equivalent
+            const equivalentMilestoneDay = getMilestoneForBalance(latestActualBalance);
+
+            // Calculate pacing delta (+/- days ahead or behind)
+            // Delta = Equivalent Milestone Day - Calendar Day
+            let dayDelta = 0;
+            if (latestCalendarDay > 0) {
+                dayDelta = equivalentMilestoneDay - latestCalendarDay;
+            }
+
+            // Progress percentage vs Final Target ($55,000)
+            const targetMax = RAW_DATASET[RAW_DATASET.length - 1];
+            const pct = Math.min(100, (latestActualBalance / targetMax) * 100);
+
+            return {
+                latestCalendarDay,
+                latestActualBalance,
+                equivalentMilestoneDay,
+                dayDelta,
+                pct
+            };
+        }
+
+        // --- 4. RENDER UI & DASHBOARD UPDATE ---
+        function updateDashboard() {
+            const metrics = calculateMetrics();
+
+            // 1. Saldo Realisasi Card
+            document.getElementById('statCurrentBalance').textContent = formatUSD(metrics.latestActualBalance);
+            document.getElementById('statCurrentBalanceIDR').textContent = `≈ ${formatIDR(metrics.latestActualBalance)}`;
+
+            // 2. Evaluasi Tempo Card
+            const statPacingEl = document.getElementById('statPacing');
+            const statMilestonePosEl = document.getElementById('statMilestonePos');
+
+            if (metrics.latestCalendarDay === 0) {
+                statPacingEl.innerHTML = `<span class="text-slate-400">Belum Ada Input</span>`;
+                statMilestonePosEl.textContent = `Posisi Milestone: Hari ke-0`;
+            } else if (metrics.dayDelta > 0) {
+                statPacingEl.innerHTML = `<span class="text-emerald-400 flex items-center gap-1.5"><i class="fa-solid fa-bolt"></i> +${metrics.dayDelta} Hari Lebih Cepat</span>`;
+                statMilestonePosEl.textContent = `Setara Target Hari ke-${metrics.equivalentMilestoneDay} (Kalender Hari ${metrics.latestCalendarDay})`;
+            } else if (metrics.dayDelta < 0) {
+                statPacingEl.innerHTML = `<span class="text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i> ${Math.abs(metrics.dayDelta)} Hari Lebih Lambat</span>`;
+                statMilestonePosEl.textContent = `Setara Target Hari ke-${metrics.equivalentMilestoneDay} (Kalender Hari ${metrics.latestCalendarDay})`;
+            } else {
+                statPacingEl.innerHTML = `<span class="text-cyan-400 flex items-center gap-1.5"><i class="fa-solid fa-check"></i> On Target (Tepat Waktu)</span>`;
+                statMilestonePosEl.textContent = `Sesuai Target Hari ke-${metrics.equivalentMilestoneDay}`;
+            }
+
+            // 3. Progress Percent Card
+            document.getElementById('statProgressPct').textContent = metrics.pct.toFixed(2) + '%';
+            document.getElementById('statProgressBar').style.width = metrics.pct + '%';
+
+            // 4. Proyeksi Ideal Hari Ini Card
+            const currentCalendarTargetDay = metrics.latestCalendarDay > 0 ? metrics.latestCalendarDay : 1;
+            const currentCalendarTargetVal = RAW_DATASET[currentCalendarTargetDay - 1];
+            document.getElementById('statCalendarTarget').textContent = formatUSD(currentCalendarTargetVal);
+            document.getElementById('statCalendarDay').textContent = `Hari Kalender ke-${currentCalendarTargetDay}`;
+
+            // Sync Table & Chart
+            renderTable();
+            updateChart();
+        }
+
+        // --- 5. RENDER TABLE & AUTO CHECKLIST ---
+        function renderTable() {
+            const tbody = document.getElementById('milestoneTableBody');
+            tbody.innerHTML = '';
+
+            const metrics = calculateMetrics();
+            const currentEquivalentDay = metrics.equivalentMilestoneDay;
+
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const filterStatus = document.getElementById('filterStatus').value;
+
+            for (let i = 0; i < RAW_DATASET.length; i++) {
+                const day = i + 1;
+                const targetUSD = RAW_DATASET[i];
+                const log = userLogs[day];
+                const actualUSD = log ? log.actual : null;
+
+                // Determine Status
+                let isReached = false;
+                let isCurrentPos = false;
+
+                if (currentEquivalentDay > 0) {
+                    if (day < currentEquivalentDay) {
+                        isReached = true;
+                    } else if (day === currentEquivalentDay) {
+                        isCurrentPos = true;
+                    }
+                }
+
+                // Filter Logic
+                if (filterStatus === 'FILLED' && !log) continue;
+                if (filterStatus === 'REACHED' && !isReached && !isCurrentPos) continue;
+                if (filterStatus === 'CURRENT_NEAR') {
+                    const center = currentEquivalentDay || 1;
+                    if (day < center - 15 || day > center + 15) continue;
+                }
+
+                // Search Logic
+                if (searchQuery) {
+                    const matchDay = day.toString().includes(searchQuery);
+                    const matchUSD = targetUSD.toString().includes(searchQuery);
+                    const matchNotes = log && log.note && log.note.toLowerCase().includes(searchQuery);
+                    if (!matchDay && !matchUSD && !matchNotes) continue;
+                }
+
+                // Build Table Row
+                const tr = document.createElement('tr');
+                
+                // Row highlight logic
+                if (isCurrentPos) {
+                    tr.className = "bg-cyan-950/40 border-l-4 border-l-cyan-400 font-semibold";
+                } else if (isReached) {
+                    tr.className = "bg-emerald-950/20 hover:bg-emerald-900/30 transition";
+                } else {
+                    tr.className = "hover:bg-slate-800/40 transition";
+                }
+
+                // Status Badge UI
+                let statusBadge = '';
+                if (isCurrentPos) {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                        <i class="fa-solid fa-location-dot animate-pulse"></i> Posisi Saat Ini
+                    </span>`;
+                } else if (isReached) {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <i class="fa-solid fa-check"></i> Milestone Reached
+                    </span>`;
+                } else {
+                    statusBadge = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-400">
+                        Pending
+                    </span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-mono font-bold ${isCurrentPos ? 'text-cyan-400' : 'text-slate-300'}">
+                        HAR ${String(day).padStart(3, '0')}
+                    </td>
+                    <td class="py-3 px-4 font-medium text-slate-200">
+                        ${formatUSD(targetUSD)}
+                    </td>
+                    <td class="py-3 px-4 text-slate-400">
+                        ${formatIDR(targetUSD)}
+                    </td>
+                    <td class="py-3 px-4">
+                        ${actualUSD !== null ? `<span class="font-bold text-emerald-400">${formatUSD(actualUSD)}</span>` : '<span class="text-slate-600">-</span>'}
+                    </td>
+                    <td class="py-3 px-4">
+                        ${statusBadge}
+                    </td>
+                    <td class="py-3 px-4 text-slate-400 max-w-xs truncate">
+                        ${log && log.note ? escapeHtml(log.note) : '<span class="text-slate-600 italic">Tidak ada catatan</span>'}
+                    </td>
+                    <td class="py-3 px-4 text-center">
+                        <button onclick="openEditRow(${day})" class="px-2 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 transition" title="Edit Saldo Hari Ini">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            }
+        }
+
+        // --- 6. CHART.JS INTEGRATION ---
+        function initChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            
+            const labels = RAW_DATASET.map((_, i) => `H${i+1}`);
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Proyeksi Ideal ($)',
+                            data: RAW_DATASET,
+                            borderColor: '#c9a227',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Realisasi Saldo ($)',
+                            data: Array(RAW_DATASET.length).fill(null),
+                            borderColor: '#2f6f4e',
+                            backgroundColor: 'rgba(76, 175, 122, 0.18)',
+                            borderWidth: 3,
+                            pointRadius: 3,
+                            pointBackgroundColor: '#2f6f4e',
+                            fill: true,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'logarithmic',
+                            grid: { color: 'rgba(0,0,0,0.06)' },
+                            ticks: {
+                                color: '#5f7568',
+                                callback: function(value) {
+                                    if ([200, 500, 1000, 5000, 10000, 25000, 55000].includes(value)) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#5f7568',
+                                maxTicksLimit: 15
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: { color: '#1c2b22', font: { size: 11 } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: $${context.raw ? context.raw.toLocaleString() : 0}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!chartInstance) return;
+
+            // Map actual user logs onto chart array
+            const actualData = RAW_DATASET.map((_, idx) => {
+                const day = idx + 1;
+                return userLogs[day] ? userLogs[day].actual : null;
+            });
+
+            chartInstance.data.datasets[1].data = actualData;
+            chartInstance.update();
+        }
+
+        // --- 7. EVENT HANDLERS & USER ACTIONS ---
+        async function handleQuickUpdate(e) {
+            e.preventDefault();
+            if (!currentUser) { openAuthModal('login'); return; }
+
+            const day = parseInt(document.getElementById('inputDaySelect').value);
+            const actualVal = parseFloat(document.getElementById('inputActualBalance').value);
+            const note = document.getElementById('inputTradeNotes').value.trim();
+
+            if (isNaN(actualVal)) return;
+
+            const previous = userLogs[day]; // untuk dikembalikan jika gagal simpan
+            userLogs[day] = {
+                actual: actualVal,
+                note: note,
+                updatedAt: new Date().toISOString()
+            };
+
+            const ok = await saveLogsToCloud([day]);
+            if (!ok) {
+                if (previous) userLogs[day] = previous; else delete userLogs[day];
+                updateDashboard();
+                return;
+            }
+
+            updateDashboard();
+            showToast(`Data Hari ${day} berhasil diperbarui!`);
+
+            // Reset Input Notes
+            document.getElementById('inputTradeNotes').value = '';
+        }
+
+        function openEditRow(day) {
+            document.getElementById('inputDaySelect').value = day;
+            const log = userLogs[day];
+            document.getElementById('inputActualBalance').value = log ? log.actual : RAW_DATASET[day - 1];
+            document.getElementById('inputTradeNotes').value = log ? log.note : '';
+            
+            // Scroll to form on mobile
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- 8. IMPORT / EXPORT & RESET ---
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(userLogs, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `trading_1b_tracker_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchorElem);
+            dlAnchorElem.click();
+            dlAnchorElem.remove();
+            showToast("Backup data JSON berhasil diunduh.");
+        }
+
+        function importData(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = async function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                        if (!currentUser) { openAuthModal('login'); return; }
+                        const previous = userLogs;
+                        userLogs = parsed;
+                        const ok = await saveLogsToCloud(Object.keys(parsed));
+                        if (!ok) {
+                            userLogs = previous;
+                            updateDashboard();
+                            return;
+                        }
+                        await loadFromStorage(); // muat ulang dari server agar tampilan = data tersimpan
+                        updateDashboard();
+                        showToast("Data log trading berhasil diimpor!");
+                    } else {
+                        throw new Error("Format JSON tidak valid.");
+                    }
+                } catch (err) {
+                    showModal("Gagal Mengimpor", "File JSON tidak valid atau rusak.");
+                }
+            };
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0]);
+            }
+            event.target.value = ''; // izinkan impor file yang sama lagi
+        }
+
+        function confirmReset() {
+            showModal(
+                "Konfirmasi Reset Data", 
+                "Apakah Anda yakin ingin menghapus semua log catatan saldo? Tindakan ini tidak dapat dibatalkan.",
+                true,
+                async function() {
+                    const ok = await clearCloudLogs();
+                    if (!ok) return;
+                    userLogs = {};
+                    updateDashboard();
+                    showToast("Semua data berhasil direset.");
+                }
+            );
+        }
+
+        // UI Toast & Modal Helpers
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function showModal(title, msg, isConfirm = false, onConfirm = null) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = msg;
+            
+            const actions = document.getElementById('modalActions');
+            actions.innerHTML = '<button onclick="closeModal()" class="px-4 py-2 text-xs bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700">Tutup</button>';
+
+            if (isConfirm && onConfirm) {
+                const btnYes = document.createElement('button');
+                btnYes.className = 'px-4 py-2 text-xs bg-rose-600 text-white font-semibold rounded-lg hover:bg-rose-700 transition';
+                btnYes.textContent = 'Ya, Hapus Semua';
+                btnYes.onclick = function() {
+                    onConfirm();
+                    closeModal();
+                };
+                actions.appendChild(btnYes);
+            }
+
+            document.getElementById('customModal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
