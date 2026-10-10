@@ -195,6 +195,12 @@ function safeProfile(p: Profile): Profile {
   return copy;
 }
 
+// Akun lama yang hash PIN-nya masih ada di kolom profiles.pin_hash (bisa dibaca publik, dan PIN 6 digit
+// mudah ditebak dari hash itu). Untuk akun seperti ini brankas frasa belum boleh dipakai.
+function hasPublicPinHash(p: Profile): boolean {
+  return typeof p.pin_hash === "string" && p.pin_hash !== "";
+}
+
 function pickProfile(rows: Profile[], username: string): Profile | null | "ambiguous" {
   const exact = rows.find((r) => r.username === username);
   if (exact) return exact;
@@ -351,6 +357,7 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
     case "deposit": {
       const r = await resolveProfile(body, d, true);
       if ("error" in r) return fail(r.error);
+      if (hasPublicPinHash(r.profile)) return fail("pin_publik");
       const v = await verifyPinFor(r.profile, body.pin, d);
       if (!v.ok) return v;
 
@@ -375,6 +382,7 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
     case "reveal": {
       const r = await resolveProfile(body, d, true);
       if ("error" in r) return fail(r.error);
+      if (hasPublicPinHash(r.profile)) return fail("pin_publik");
       const v = await verifyPinFor(r.profile, body.pin, d);
       if (!v.ok) return v;
 
@@ -389,6 +397,15 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
         await d.repo.log(r.profile.id, "reveal", false);
         return fail("server_error");
       }
+    }
+
+    // ---- Status brankas (tanpa PIN): dipakai halaman Dompet untuk menampilkan tombol yang sesuai ----
+    case "vault_status": {
+      const r = await resolveProfile(body, d, true);
+      if ("error" in r) return fail(r.error);
+      const vault = await d.repo.getVault(r.profile.id);
+      const pin = await d.repo.getPin(r.profile.id);
+      return ok({ has_vault: !!vault, has_pin: !!pin, pin_publik: hasPublicPinHash(r.profile) });
     }
 
     default:

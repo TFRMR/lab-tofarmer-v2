@@ -945,32 +945,30 @@ function showPilihDompetModal(username) {
   });
 }
 
-// Modal: tampilkan frasa 25 kata (wajib dikonfirmasi tersimpan)
+// Modal: tampilkan frasa 25 kata (wajib dikonfirmasi tersimpan) — tampilan ringkas.
+// Pengelolaan frasa selanjutnya ada di halaman Dompet (👛 di profil).
 function showFrasaModal(mnemonic, wallet) {
   return new Promise((resolve) => {
     const modal = document.createElement("div");
 
     modal.innerHTML = `
-    <div style="position:fixed;inset:0;background:rgba(16,25,20,.7);backdrop-filter:blur(12px);display:flex;justify-content:center;align-items:center;z-index:99999;padding:16px;">
-      <div style="width:100%;max-width:440px;max-height:92vh;overflow:auto;background:#fff;border-radius:28px;padding:22px;box-sizing:border-box;">
-        <div style="text-align:center;">
-          <div style="font-size:44px;">🔑</div>
-          <h2 style="color:#2f6f4e;margin:6px 0;">Simpan Frasa Dompetmu</h2>
-          <p style="font-size:12px;color:#666;">Ini 25 kata kunci dompet Algorand-mu. Catat di kertas atau simpan di tempat aman. <b>Jangan dibagikan ke siapa pun</b>, termasuk admin.</p>
+    <div style="position:fixed;inset:0;background:rgba(16,25,20,.45);display:flex;justify-content:center;align-items:center;z-index:99999;padding:14px;">
+      <div style="width:100%;max-width:340px;max-height:92vh;overflow:auto;background:#fff;border-radius:18px;padding:16px;box-sizing:border-box;box-shadow:0 12px 32px rgba(0,0,0,.2);font-family:Inter,sans-serif;">
+        <div style="font-size:15px;font-weight:700;color:#2f6f4e;">Simpan frasa dompetmu</div>
+        <div style="font-size:11px;color:#777;margin-top:3px;line-height:1.4;">25 kata ini adalah kunci dompetmu. Catat di tempat aman, jangan dibagikan ke siapa pun.</div>
+        <div id="frasaGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:10px;"></div>
+        <div id="frasaAddr" style="font-size:9px;word-break:break-all;color:#aaa;margin-top:8px;"></div>
+        <div style="display:flex;gap:6px;margin-top:10px;">
+          <button id="frasaSalin" style="flex:1;padding:7px;border:1px solid #d5e6db;border-radius:9px;background:#fff;color:#2f6f4e;font-size:11px;font-weight:600;cursor:pointer;">Salin</button>
+          <button id="frasaUnduh" style="flex:1;padding:7px;border:1px solid #d5e6db;border-radius:9px;background:#fff;color:#2f6f4e;font-size:11px;font-weight:600;cursor:pointer;">Unduh</button>
         </div>
-        <div id="frasaGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px;"></div>
-        <div id="frasaAddr" style="font-size:10px;word-break:break-all;color:#888;margin-top:10px;"></div>
-        <div style="display:flex;gap:8px;margin-top:12px;">
-          <button id="frasaSalin" style="flex:1;padding:10px;border:1px solid #4caf7a;border-radius:12px;background:#fff;color:#2f6f4e;font-weight:600;cursor:pointer;">📋 Salin</button>
-          <button id="frasaUnduh" style="flex:1;padding:10px;border:1px solid #4caf7a;border-radius:12px;background:#fff;color:#2f6f4e;font-weight:600;cursor:pointer;">⬇️ Unduh</button>
-        </div>
-        <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:12px;color:#333;cursor:pointer;">
-          <input type="checkbox" id="frasaCek" style="margin-top:2px;" />
-          <span>Saya sudah menyimpan frasa ini di tempat yang aman</span>
+        <label style="display:flex;gap:7px;align-items:flex-start;margin-top:11px;font-size:11px;color:#444;cursor:pointer;">
+          <input type="checkbox" id="frasaCek" style="margin-top:1px;" />
+          <span>Sudah saya simpan di tempat yang aman</span>
         </label>
-        <button id="frasaLanjut" disabled style="width:100%;margin-top:12px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:700;cursor:pointer;opacity:.5;">Lanjut Daftar 🚀</button>
-        <button id="frasaBatal" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
-        <p style="font-size:11px;color:#999;margin-top:10px;text-align:center;">Frasa juga dititipkan terenkripsi di server ToFarmer sebagai cadangan, dan hanya bisa dibuka dengan PIN-mu.</p>
+        <button id="frasaLanjut" disabled style="width:100%;margin-top:10px;padding:10px;border:none;border-radius:11px;background:#4caf7a;color:white;font-size:13px;font-weight:700;cursor:pointer;opacity:.45;">Lanjut daftar</button>
+        <button id="frasaBatal" style="width:100%;margin-top:4px;padding:7px;border:none;background:none;color:#999;font-size:11px;cursor:pointer;">Batal</button>
+        <div style="font-size:10px;color:#aaa;margin-top:4px;text-align:center;line-height:1.4;">Cadangan terenkripsi juga disimpan di server. Kelola di menu Dompet 👛 pada profilmu.</div>
       </div>
     </div>
     `;
@@ -980,29 +978,29 @@ function showFrasaModal(mnemonic, wallet) {
     const grid = modal.querySelector("#frasaGrid");
     mnemonic.split(" ").forEach((kata, i) => {
       const sel = document.createElement("div");
-      sel.style.cssText = "background:#f3f8f4;border-radius:10px;padding:7px 8px;font-size:12px;color:#1c2b22;";
+      sel.style.cssText = "background:#f4f8f5;border-radius:7px;padding:5px 6px;font-size:11px;color:#1c2b22;white-space:nowrap;";
       const no = document.createElement("span");
-      no.style.cssText = "color:#999;font-size:10px;margin-right:4px;";
-      no.textContent = (i + 1) + ".";
+      no.style.cssText = "color:#aab;font-size:9px;margin-right:3px;";
+      no.textContent = (i + 1);
       sel.appendChild(no);
       sel.appendChild(document.createTextNode(kata));
       grid.appendChild(sel);
     });
-    modal.querySelector("#frasaAddr").textContent = "Alamat dompet: " + wallet;
+    modal.querySelector("#frasaAddr").textContent = wallet;
 
     const cek = modal.querySelector("#frasaCek");
     const lanjut = modal.querySelector("#frasaLanjut");
     cek.onchange = () => {
       lanjut.disabled = !cek.checked;
-      lanjut.style.opacity = cek.checked ? "1" : ".5";
+      lanjut.style.opacity = cek.checked ? "1" : ".45";
     };
 
     modal.querySelector("#frasaSalin").onclick = async () => {
       try {
         await navigator.clipboard.writeText(mnemonic);
-        alert("Frasa disalin 📋 Simpan di tempat aman, lalu hapus dari clipboard/chat ya.");
+        alert("Frasa disalin. Simpan di tempat aman, lalu hapus dari clipboard/chat ya.");
       } catch {
-        alert("Gagal menyalin, catat manual saja ya 🌱");
+        alert("Gagal menyalin, catat manual saja ya.");
       }
     };
 

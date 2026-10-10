@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dompet | ToFarmer</title>
+  <link rel="icon" type="image/png" href="../aset/favicon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --hijau: #2f6f4e;
+      --hijau2: #3f8a63;
+      --emas: #c9a227;
+      --bg: #f4f7f5;
+      --teks: #1c2b22;
+      --abu: #6f7f76;
+      --garis: rgba(0,0,0,.07);
+      --merah: #c0392b;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--teks);
+      font-family: Inter, system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wrap { max-width: 520px; margin: 0 auto; padding: 14px 14px 40px; }
+
+    /* ---- bar atas ---- */
+    .topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .back {
+      text-decoration: none; color: var(--hijau); background: #fff; border: 1px solid var(--garis);
+      border-radius: 12px; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 700;
+    }
+    .title { font-size: 18px; font-weight: 700; color: var(--hijau); }
+    .net { margin-left: auto; font-size: 10px; color: var(--abu); background: #fff; border: 1px solid var(--garis); padding: 4px 8px; border-radius: 20px; }
+
+    /* ---- kartu saldo ---- */
+    .saldo-card {
+      background: linear-gradient(135deg, var(--hijau), var(--hijau2));
+      color: #fff; border-radius: 20px; padding: 18px; box-shadow: 0 10px 26px rgba(47,111,78,.25);
+    }
+    .saldo-card .user { font-size: 12px; opacity: .85; min-height: 16px; }
+    .saldo-card .alamat { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; opacity: .95; }
+    .saldo-card .alamat button {
+      background: rgba(255,255,255,.18); color: #fff; border: none; border-radius: 8px; padding: 4px 9px; font-size: 11px; cursor: pointer;
+    }
+    .saldo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .saldo-grid .lbl { font-size: 11px; opacity: .8; letter-spacing: .4px; }
+    .saldo-grid .val { font-size: 22px; font-weight: 700; margin-top: 2px; word-break: break-all; }
+    .saldo-grid .sub { font-size: 10px; margin-top: 2px; color: #ffe9a8; min-height: 12px; }
+    .saldo-card .min { font-size: 10px; opacity: .75; margin-top: 12px; }
+
+    .banner {
+      margin-top: 12px; background: #fff8e1; border: 1px solid #f0dc9a; color: #6b5a14;
+      border-radius: 12px; padding: 10px 12px; font-size: 12px; line-height: 1.45;
+    }
+
+    /* ---- tombol aksi ---- */
+    .aksi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 14px; }
+    .aksi button {
+      background: #fff; border: 1px solid var(--garis); border-radius: 14px; padding: 12px 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;
+      font-size: 18px; color: var(--hijau); font-family: inherit;
+    }
+    .aksi button span { font-size: 11px; font-weight: 600; color: var(--teks); }
+    .aksi button:active { background: #eef7f1; }
+
+    .card { background: #fff; border: 1px solid var(--garis); border-radius: 18px; padding: 14px; margin-top: 14px; }
+    .card h3 { margin: 0 0 8px; font-size: 14px; color: var(--hijau); }
+
+    /* ---- riwayat ---- */
+    .riwayat-baris { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid var(--garis); }
+    .riwayat-baris:first-child { border-top: none; }
+    .ikon-r { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; background: #eef2ef; color: var(--abu); flex: none; }
+    .ikon-r.masuk { background: #e3f4ea; color: #1f8a4c; }
+    .ikon-r.keluar { background: #fdeceb; color: var(--merah); }
+    .ikon-r.optin { background: #fff4d6; color: #a07a00; }
+    .riwayat-baris .isi { flex: 1; min-width: 0; }
+    .riwayat-baris .judul { font-size: 13px; font-weight: 600; }
+    .riwayat-baris .sub { font-size: 11px; color: var(--abu); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .riwayat-baris .jumlah { font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .jumlah.masuk { color: #1f8a4c; } .jumlah.keluar { color: var(--merah); }
+    .kosong { font-size: 12px; color: var(--abu); padding: 8px 0; text-align: center; }
+
+    /* ---- pesan belum login ---- */
+    #pesanLogin { text-align: center; background: #fff; border: 1px solid var(--garis); border-radius: 18px; padding: 28px 18px; }
+    #pesanLogin a { display: inline-block; margin-top: 12px; text-decoration: none; background: var(--hijau); color: #fff; padding: 10px 18px; border-radius: 12px; font-weight: 600; font-size: 13px; }
+
+    /* ---- panel bawah ---- */
+    .overlay { position: fixed; inset: 0; background: rgba(16,25,20,.45); display: flex; align-items: flex-end; justify-content: center; z-index: 1000; }
+    .sheet { width: 100%; max-width: 520px; max-height: 92vh; overflow: auto; background: #fff; border-radius: 22px 22px 0 0; padding: 16px 16px 24px; animation: naik .22s ease; }
+    @keyframes naik { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+    .sheet-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .sheet-title { font-size: 16px; font-weight: 700; color: var(--hijau); }
+    .x { background: #f0f3f1; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; color: var(--abu); font-size: 13px; }
+    .sheet-body { display: flex; flex-direction: column; gap: 4px; }
+    .lbl { font-size: 12px; font-weight: 600; color: var(--teks); margin-top: 8px; }
+    .inp {
+      width: 100%; padding: 12px; border: 1px solid #d9e2dc; border-radius: 12px; font-size: 14px; font-family: inherit; background: #fff; color: var(--teks);
+    }
+    .inp:focus { outline: none; border-color: var(--hijau2); box-shadow: 0 0 0 3px rgba(63,138,99,.15); }
+    textarea.inp { resize: none; }
+    .baris-input { display: flex; gap: 8px; }
+    .mini { background: #eef7f1; color: var(--hijau); border: 1px solid #d5e6db; border-radius: 12px; padding: 0 14px; font-weight: 600; font-size: 12px; cursor: pointer; }
+    .btn { width: 100%; margin-top: 10px; padding: 13px; border: none; border-radius: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn.utama { background: linear-gradient(90deg, #4caf7a, var(--emas)); color: #fff; }
+    .btn.sekunder { background: #eef7f1; color: var(--hijau); }
+    .btn.teks { background: none; color: var(--abu); font-weight: 600; margin-top: 2px; }
+    .btn:disabled { opacity: .55; cursor: default; }
+    .kecil { font-size: 11px; line-height: 1.45; } .abu { color: var(--abu); }
+    .galat { color: var(--merah); font-size: 12px; min-height: 0; margin-top: 4px; line-height: 1.4; }
+    .info { background: #f1f6f3; border-radius: 12px; padding: 10px 12px; font-size: 12px; color: #445; line-height: 1.5; margin-top: 8px; }
+    .mono { font-family: ui-monospace, Menlo, monospace; word-break: break-all; }
+    .tengah { display: flex; justify-content: center; padding: 6px 0 2px; }
+    .qr { padding: 10px; background: #fff; border: 1px solid var(--garis); border-radius: 14px; min-height: 40px; }
+    .alamat-penuh { font-size: 12px; background: #f1f6f3; border-radius: 12px; padding: 10px; line-height: 1.5; }
+    .ringkas { background: #f7faf8; border: 1px solid var(--garis); border-radius: 14px; padding: 4px 12px; }
+    .ringkas .baris { display: flex; gap: 12px; justify-content: space-between; padding: 9px 0; border-top: 1px solid var(--garis); font-size: 13px; }
+    .ringkas .baris:first-child { border-top: none; }
+    .ringkas .k { color: var(--abu); flex: none; } .ringkas .v { text-align: right; font-weight: 600; min-width: 0; }
+    .ringkas .v.mono { font-size: 11px; font-weight: 500; }
+    .sukses { text-align: center; padding: 8px 0; }
+    .sukses .ikon { width: 52px; height: 52px; border-radius: 50%; background: #e3f4ea; color: #1f8a4c; font-size: 26px; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; }
+    .sukses .judul { font-size: 16px; font-weight: 700; }
+    .sukses .sub { font-size: 12px; color: var(--abu); margin: 4px 0 8px; }
+    .sukses .kecil { font-size: 10px; color: var(--abu); }
+    .tautan { display: inline-block; margin-top: 6px; font-size: 12px; color: var(--hijau); }
+    .status { font-size: 13px; font-weight: 600; padding: 10px 12px; border-radius: 12px; }
+    .status.ok { background: #e3f4ea; color: #1f6b3d; } .status.belum { background: #fff4d6; color: #7a5d00; }
+    .grid-frasa { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin: 8px 0 4px; }
+    .kata { background: #f4f8f5; border-radius: 8px; padding: 6px 7px; font-size: 12px; white-space: nowrap; }
+    .kata .no { color: #aab; font-size: 9px; margin-right: 4px; }
+    .toast {
+      position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); background: #1c2b22; color: #fff; padding: 10px 16px;
+      border-radius: 22px; font-size: 12px; opacity: 0; pointer-events: none; transition: .25s; z-index: 2000; max-width: 88vw; text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    [hidden] { display: none !important; }
+  </style>
+
+  <!-- SUPABASE & ALGORAND -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="topbar">
+      <a class="back" href="../profile.html" aria-label="Kembali">←</a>
+      <div class="title">👛 Dompet</div>
+      <div class="net">Algorand Mainnet</div>
+    </div>
+
+    <!-- belum login -->
+    <div id="pesanLogin" hidden>
+      <div style="font-size:34px;">🌿</div>
+      <div style="font-weight:700;margin-top:6px;">Masuk dulu ya</div>
+      <div style="font-size:12px;color:var(--abu);margin-top:4px;">Dompet hanya bisa dibuka setelah kamu login.</div>
+      <a href="login.html">Masuk</a>
+    </div>
+
+    <div id="konten" hidden>
+      <section class="saldo-card">
+        <div class="user" id="namaUser"></div>
+        <div class="alamat"><span id="alamatTeks"></span><button id="btnSalinAlamat" type="button">Salin</button></div>
+        <div class="saldo-grid">
+          <div>
+            <div class="lbl">ALGO</div>
+            <div class="val" id="saldoAlgo">…</div>
+          </div>
+          <div>
+            <div class="lbl">TOF</div>
+            <div class="val" id="saldoTof">…</div>
+            <div class="sub" id="infoOptin"></div>
+          </div>
+        </div>
+        <div class="min" id="infoMin"></div>
+      </section>
+
+      <div id="banner" class="banner" hidden></div>
+
+      <section class="aksi">
+        <button type="button" data-aksi="terima">⬇️<span>Terima</span></button>
+        <button type="button" data-aksi="kirim">⬆️<span>Kirim</span></button>
+        <button type="button" data-aksi="optin">➕<span>Opt-in</span></button>
+        <button type="button" data-aksi="frasa">🔑<span>Frasa</span></button>
+      </section>
+
+      <section class="card">
+        <h3>Riwayat</h3>
+        <div id="riwayat"><div class="kosong">Memuat…</div></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="sheetRoot"></div>
+
+  <script src="../supabase.js"></script>
+  <script src="../js/dompet.js"></script>
+</body>
+</html>
