@@ -570,22 +570,30 @@ async function connectWallet() {
 
       const { username, password } = credentials;
       
-      // Validasi wallet address
-      try {
-        const decoded = algosdk.decodeAddress(password);
-        if (!decoded) throw new Error("Wallet tidak valid");
-      } catch {
-        alert("Password (Alamat Wallet) tidak valid / bukan Algorand 😄");
-        resolve(null);
-        return;
+      // Validasi wallet address (hanya jika diisi — login biasa cukup username + PIN)
+      if (password) {
+        try {
+          const decoded = algosdk.decodeAddress(password);
+          if (!decoded) throw new Error("Wallet tidak valid");
+        } catch {
+          alert("Password (Alamat Wallet) tidak valid / bukan Algorand 😄");
+          resolve(null);
+          return;
+        }
       }
 
       // STEP 2: Cek user di database (username + password/id cocok)
-      const { data: existingUser, error: queryError } = await supabaseClient
+      // Username tidak peka huruf besar/kecil (karakter \, % dan _ di-escape agar bukan wildcard)
+      const { data: existingRows, error: queryError } = await supabaseClient
         .from("profiles")
         .select("*")
-        .eq("username", username)
-        .maybeSingle();
+        .ilike("username", username.replace(/[\\%_]/g, '\\$&'))
+        .limit(2);
+
+      // Kalau ada 2 username yang beda huruf besar/kecil, utamakan yang persis sama
+      const existingUser = existingRows
+        ? (existingRows.find(r => r.username === username) || (existingRows.length === 1 ? existingRows[0] : null))
+        : null;
 
       if (queryError) {
         alert("Error verifikasi: " + queryError.message);
@@ -593,11 +601,23 @@ async function connectWallet() {
         return;
       }
 
+      // Username ambigu (ada beberapa yang hanya beda huruf besar/kecil & tidak ada yang persis sama)
+      if (!existingUser && existingRows && existingRows.length > 1) {
+        alert("Username ambigu, tulis persis sama dengan saat daftar 🌱");
+        resolve(null);
+        return;
+      }
+
       // CASE 1: User sudah terdaftar
       if (existingUser) {
         // Verifikasi password (id) cocok
-        if (existingUser.id !== password) {
-          alert("Username atau Password salah ❌");
+        // Wallet hanya WAJIB untuk akun yang belum punya PIN (migrasi). Kalau sudah punya PIN,
+        // cukup username + PIN. Kalau wallet diisi tapi salah, tetap ditolak.
+        const belumPunyaPin = !existingUser.pin_hash || existingUser.pin_hash === '';
+        if ((belumPunyaPin || password) && existingUser.id !== password) {
+          alert(belumPunyaPin && !password
+            ? "Akun ini belum punya PIN. Isi Password (Alamat Wallet) sekali untuk membuat PIN pertama 🌱"
+            : "Username atau Password salah ❌");
           resolve(null);
           return;
         }
@@ -657,6 +677,8 @@ async function connectWallet() {
         // Login berhasil
         currentWallet = existingUser.id;
         localStorage.setItem("tof_wallet", existingUser.id);
+        // Simpan username versi database (huruf besar/kecil sesuai aslinya)
+        localStorage.setItem("tof_login_username", existingUser.username);
 
         await syncProfile(existingUser.id);
         updateWalletUI();
@@ -668,6 +690,12 @@ async function connectWallet() {
       }
 
       // CASE 2: User belum terdaftar - register baru
+      // Daftar baru WAJIB mengisi wallet (jadi ID akun)
+      if (!password) {
+        alert("Username belum terdaftar. Untuk daftar baru, isi juga Password (Alamat Wallet) 🌱");
+        resolve(null);
+        return;
+      }
       const pinSetupResult = await showPinSetupModal(username, password);
       if (!pinSetupResult) {
         resolve(null);
@@ -746,15 +774,15 @@ function showLoginModal() {
           <div style="font-size:50px;">🌿</div>
           <h2 style="color:#2f6f4e;">Login/Daftar ToFarmer</h2>
           <p style="font-size:12px;color:#666;margin-top:8px;">
-            Username + Password (Alamat Wallet)
+            Masuk cukup dengan Username + PIN (huruf besar/kecil bebas)
           </p>
           <p style="font-size:11px;color:#999;margin-top:4px;">
-            Bikin dompet dulu di Pera Wallet/Defly
+            Alamat Wallet hanya diisi saat daftar baru / akun lama yang belum punya PIN. Bikin dompet dulu di Pera Wallet/Defly
           </p>
         </div>
 
         <input id="loginUsername" placeholder="Username" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" />
-        <input id="loginPassword" placeholder="Password (Alamat Wallet Algorand)" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" type="password" />
+        <input id="loginPassword" placeholder="Password (Alamat Wallet) - hanya untuk daftar baru / akun tanpa PIN" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" type="password" />
         
         <button id="loginBtn" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:600;cursor:pointer;">Masuk ke Ladang 🚀</button>
         <button id="cancelBtn" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
@@ -773,10 +801,11 @@ function showLoginModal() {
         return;
       }
 
-      if (!password) {
-        alert("Password (Wallet Address) wajib diisi 🌱");
-        return;
-      }
+      // Password (Wallet Address) tidak lagi wajib di sini — dicek di connectWallet() sesuai kasusnya
+      // if (!password) {
+      //   alert("Password (Wallet Address) wajib diisi 🌱");
+      //   return;
+      // }
 
       // Simpan username untuk forgot PIN modal nanti
       localStorage.setItem("tof_login_username", username);
