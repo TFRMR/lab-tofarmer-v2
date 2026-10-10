@@ -559,7 +559,9 @@ function showPinVerifyModal() {
 }
 
 // ===================== WALLET =====================
-async function connectWallet() {
+// [TIDAK DIPAKAI LAGI] Alur lama: PIN dicocokkan di browser memakai pin_hash dari tabel profiles.
+// Dipertahankan hanya sebagai arsip; alur baru ada di connectWallet() di bawah (PIN dicek di server).
+async function connectWalletLama() {
   return new Promise((resolve) => {
     // STEP 1: Login Modal (Username + Password)
     showLoginModal().then(async (credentials) => {
@@ -748,6 +750,292 @@ async function connectWallet() {
   });
 }
 
+// ===================== WALLET (alur baru: PIN diverifikasi di SERVER) =====================
+// Semua pengecekan PIN, pendaftaran, dan brankas frasa lewat Edge Function "tof-vault".
+async function callTofVault(action, body = {}) {
+  try {
+    const { data, error } = await supabaseClient.functions.invoke("tof-vault", {
+      body: { action, ...body }
+    });
+    if (error) {
+      console.log(error);
+      return { ok: false, error: "network" };
+    }
+    return data || { ok: false, error: "empty" };
+  } catch (e) {
+    console.log(e);
+    return { ok: false, error: "network" };
+  }
+}
+
+function pesanVault(res) {
+  switch (res.error) {
+    case "not_found": return "Username belum terdaftar. Tekan 'Daftar Baru' ya 🌱";
+    case "bad_pin": return "PIN salah ❌ (sisa percobaan: " + (res.left ?? "?") + ")";
+    case "bad_pin_format": return "PIN harus 6 digit angka 🌱";
+    case "locked": return "Terlalu banyak salah PIN 🔒 Coba lagi " + (res.retry_min || 15) + " menit lagi.";
+    case "username_taken": return "Username sudah dipakai, pilih yang lain 🌱";
+    case "bad_username": return "Username 3–30 karakter: huruf, angka, atau garis bawah (_) saja 🌱";
+    case "wallet_taken": return "Alamat wallet ini sudah terdaftar ❌";
+    case "bad_wallet": return "Alamat Wallet tidak valid / bukan Algorand 😄";
+    case "bad_mnemonic": return "Frasa tidak valid (harus 25 kata yang benar) 😄";
+    case "ambiguous": return "Username ambigu, tulis persis sama dengan saat daftar 🌱";
+    case "reset_required": return "Akun ini punya brankas frasa, PIN-nya harus direset admin dulu 🔒";
+    case "wallet_mismatch": return "Username atau Password salah ❌";
+    case "already_has_pin": return "Akun ini sudah punya PIN, silakan login biasa 🌱";
+    case "network": return "Koneksi bermasalah, coba lagi ya 🌱";
+    default: return "Gagal: " + (res.error || "tidak diketahui");
+  }
+}
+
+// Dipakai setelah login / daftar berhasil
+async function selesaiLoginWallet(profile) {
+  currentWallet = profile.id;
+  localStorage.setItem("tof_wallet", profile.id);
+  // Simpan username versi database (huruf besar/kecil sesuai aslinya)
+  localStorage.setItem("tof_login_username", profile.username);
+
+  await syncProfile(profile.id);
+  updateWalletUI();
+  renderProfile();
+
+  showWelcomePopup();
+}
+
+async function connectWallet() {
+  const credentials = await showLoginModal();
+  if (!credentials) return null;
+
+  const { username, mode } = credentials;
+
+  const cek = await callTofVault("check", { username });
+  if (!cek.ok) {
+    alert(pesanVault(cek));
+    return null;
+  }
+
+  // ---------- DAFTAR BARU ----------
+  if (mode === "register") {
+    if (cek.exists) {
+      alert(pesanVault({ error: "username_taken" }));
+      return null;
+    }
+    return await daftarBaru(username);
+  }
+
+  // ---------- MASUK ----------
+  if (!cek.exists) {
+    alert(pesanVault({ error: "not_found" }));
+    return null;
+  }
+
+  const namaAsli = cek.username;
+  localStorage.setItem("tof_login_username", namaAsli); // untuk modal lupa PIN
+
+  // Akun lama yang belum punya PIN: wallet diminta sekali, lalu buat PIN
+  if (!cek.has_pin) {
+    const wallet = await askWalletAddress(
+      namaAsli,
+      "Akun ini belum punya PIN. Masukkan Alamat Wallet-mu sekali untuk membuat PIN pertama."
+    );
+    if (!wallet) return null;
+
+    const setup = await showPinSetupModal(namaAsli, wallet);
+    if (!setup) return null;
+
+    const res = await callTofVault("set_pin", { username: namaAsli, wallet, pin: setup.pin });
+    if (!res.ok) {
+      alert(pesanVault(res));
+      return null;
+    }
+
+    await selesaiLoginWallet(res.profile);
+    return res.profile.id;
+  }
+
+  // Akun yang sudah punya PIN: cukup username + PIN
+  const pinResult = await showPinVerifyModal();
+  if (!pinResult) return null;
+
+  const res = await callTofVault("login", { username: namaAsli, pin: pinResult.pin });
+  if (!res.ok) {
+    alert(pesanVault(res));
+    return null;
+  }
+
+  await selesaiLoginWallet(res.profile);
+  return res.profile.id;
+}
+
+// Pendaftaran: dompet otomatis (frasa ditampilkan dulu, lalu dititipkan terenkripsi di server)
+// atau dompet sendiri (Pera/Defly)
+async function daftarBaru(username) {
+  const pilihan = await showPilihDompetModal(username);
+  if (!pilihan) return null;
+
+  let wallet = null;
+  let mnemonic = null;
+
+  if (pilihan === "sendiri") {
+    wallet = await askWalletAddress(username, "Masukkan Alamat Wallet Algorand-mu (jadi ID akunmu).");
+    if (!wallet) return null;
+  } else {
+    const akun = algosdk.generateAccount();
+    wallet = String(akun.addr);
+    mnemonic = algosdk.secretKeyToMnemonic(akun.sk);
+  }
+
+  const setup = await showPinSetupModal(username, wallet);
+  if (!setup) return null;
+
+  // Dompet otomatis: frasa WAJIB ditampilkan & dikonfirmasi sebelum akun dibuat
+  if (mnemonic) {
+    const lanjut = await showFrasaModal(mnemonic, wallet);
+    if (!lanjut) return null; // batal → tidak ada akun yang dibuat
+  }
+
+  const res = await callTofVault("register", {
+    username,
+    pin: setup.pin,
+    ...(mnemonic ? { mnemonic } : { wallet })
+  });
+  mnemonic = null;
+
+  if (!res.ok) {
+    alert(pesanVault(res));
+    return null;
+  }
+
+  await selesaiLoginWallet(res.profile);
+  return res.profile.id;
+}
+
+// Modal: pilih dompet otomatis atau dompet sendiri
+function showPilihDompetModal(username) {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
+
+    modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(16,25,20,.65);backdrop-filter:blur(12px);display:flex;justify-content:center;align-items:center;z-index:99999;padding:20px;">
+      <div style="width:100%;max-width:420px;background:#fff;border-radius:28px;padding:24px;">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">🌱</div>
+          <h2 style="color:#2f6f4e;">Daftar Warga Baru</h2>
+          <p id="pilihDompetMsg" style="font-size:12px;color:#666;margin-top:8px;"></p>
+        </div>
+        <button id="dompetOtomatis" style="width:100%;margin-top:20px;padding:14px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:700;cursor:pointer;">✨ Buatkan dompet otomatis</button>
+        <p style="font-size:11px;color:#999;margin:6px 4px 0;text-align:center;">Disarankan untuk pemula. Frasa 25 kata ditampilkan sekali, dan dititipkan terenkripsi di server ToFarmer.</p>
+        <button id="dompetSendiri" style="width:100%;margin-top:14px;padding:12px;border:2px solid #4caf7a;border-radius:14px;background:#fff;color:#2f6f4e;font-weight:700;cursor:pointer;">Saya sudah punya dompet (Pera/Defly)</button>
+        <button id="dompetBatal" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
+      </div>
+    </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.querySelector("#pilihDompetMsg").textContent = "Halo @" + username + "! Pilih cara punya dompet:";
+
+    const tutup = (hasil) => {
+      document.body.removeChild(modal);
+      resolve(hasil);
+    };
+
+    modal.querySelector("#dompetOtomatis").onclick = () => tutup("otomatis");
+    modal.querySelector("#dompetSendiri").onclick = () => tutup("sendiri");
+    modal.querySelector("#dompetBatal").onclick = () => tutup(null);
+  });
+}
+
+// Modal: tampilkan frasa 25 kata (wajib dikonfirmasi tersimpan)
+function showFrasaModal(mnemonic, wallet) {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
+
+    modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(16,25,20,.7);backdrop-filter:blur(12px);display:flex;justify-content:center;align-items:center;z-index:99999;padding:16px;">
+      <div style="width:100%;max-width:440px;max-height:92vh;overflow:auto;background:#fff;border-radius:28px;padding:22px;box-sizing:border-box;">
+        <div style="text-align:center;">
+          <div style="font-size:44px;">🔑</div>
+          <h2 style="color:#2f6f4e;margin:6px 0;">Simpan Frasa Dompetmu</h2>
+          <p style="font-size:12px;color:#666;">Ini 25 kata kunci dompet Algorand-mu. Catat di kertas atau simpan di tempat aman. <b>Jangan dibagikan ke siapa pun</b>, termasuk admin.</p>
+        </div>
+        <div id="frasaGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px;"></div>
+        <div id="frasaAddr" style="font-size:10px;word-break:break-all;color:#888;margin-top:10px;"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button id="frasaSalin" style="flex:1;padding:10px;border:1px solid #4caf7a;border-radius:12px;background:#fff;color:#2f6f4e;font-weight:600;cursor:pointer;">📋 Salin</button>
+          <button id="frasaUnduh" style="flex:1;padding:10px;border:1px solid #4caf7a;border-radius:12px;background:#fff;color:#2f6f4e;font-weight:600;cursor:pointer;">⬇️ Unduh</button>
+        </div>
+        <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:12px;color:#333;cursor:pointer;">
+          <input type="checkbox" id="frasaCek" style="margin-top:2px;" />
+          <span>Saya sudah menyimpan frasa ini di tempat yang aman</span>
+        </label>
+        <button id="frasaLanjut" disabled style="width:100%;margin-top:12px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:700;cursor:pointer;opacity:.5;">Lanjut Daftar 🚀</button>
+        <button id="frasaBatal" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
+        <p style="font-size:11px;color:#999;margin-top:10px;text-align:center;">Frasa juga dititipkan terenkripsi di server ToFarmer sebagai cadangan, dan hanya bisa dibuka dengan PIN-mu.</p>
+      </div>
+    </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const grid = modal.querySelector("#frasaGrid");
+    mnemonic.split(" ").forEach((kata, i) => {
+      const sel = document.createElement("div");
+      sel.style.cssText = "background:#f3f8f4;border-radius:10px;padding:7px 8px;font-size:12px;color:#1c2b22;";
+      const no = document.createElement("span");
+      no.style.cssText = "color:#999;font-size:10px;margin-right:4px;";
+      no.textContent = (i + 1) + ".";
+      sel.appendChild(no);
+      sel.appendChild(document.createTextNode(kata));
+      grid.appendChild(sel);
+    });
+    modal.querySelector("#frasaAddr").textContent = "Alamat dompet: " + wallet;
+
+    const cek = modal.querySelector("#frasaCek");
+    const lanjut = modal.querySelector("#frasaLanjut");
+    cek.onchange = () => {
+      lanjut.disabled = !cek.checked;
+      lanjut.style.opacity = cek.checked ? "1" : ".5";
+    };
+
+    modal.querySelector("#frasaSalin").onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(mnemonic);
+        alert("Frasa disalin 📋 Simpan di tempat aman, lalu hapus dari clipboard/chat ya.");
+      } catch {
+        alert("Gagal menyalin, catat manual saja ya 🌱");
+      }
+    };
+
+    modal.querySelector("#frasaUnduh").onclick = () => {
+      const teks = "ToFarmer - Frasa Dompet Algorand\nAlamat: " + wallet + "\nFrasa (25 kata):\n" + mnemonic + "\n\nJANGAN DIBAGIKAN KE SIAPA PUN.\n";
+      const url = URL.createObjectURL(new Blob([teks], { type: "text/plain" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tofarmer-frasa-dompet.txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    const tutup = (hasil) => {
+      grid.innerHTML = "";
+      document.body.removeChild(modal);
+      resolve(hasil);
+    };
+
+    lanjut.onclick = () => {
+      if (cek.checked) tutup(true);
+    };
+
+    modal.querySelector("#frasaBatal").onclick = () => {
+      if (confirm("Batal daftar? Dompet ini tidak akan disimpan dan frasanya tidak berlaku.")) {
+        tutup(null);
+      }
+    };
+  });
+}
+
 // Modal Alamat Wallet — hanya muncul saat membuat PIN (daftar baru / akun lama tanpa PIN)
 function askWalletAddress(username, pesan) {
   return new Promise((resolve) => {
@@ -832,13 +1120,14 @@ function showLoginModal() {
             Masuk cukup dengan Username + PIN (huruf besar/kecil bebas)
           </p>
           <p style="font-size:11px;color:#999;margin-top:4px;">
-            Alamat Wallet hanya diminta saat membuat PIN (daftar baru / akun lama). Siapkan dompet di Pera Wallet/Defly
+            Belum punya akun? Ketik username pilihanmu, lalu tekan Daftar Baru — dompet Algorand dibuatkan otomatis 🌱
           </p>
         </div>
 
         <input id="loginUsername" placeholder="Username" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" />
         
         <button id="loginBtn" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:600;cursor:pointer;">Masuk ke Ladang 🚀</button>
+        <button id="registerBtn" style="width:100%;margin-top:10px;padding:12px;border:2px solid #4caf7a;border-radius:14px;background:#fff;color:#2f6f4e;font-weight:700;cursor:pointer;">🌱 Daftar Baru</button>
         <button id="cancelBtn" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
       </div>
     </div>
@@ -858,7 +1147,24 @@ function showLoginModal() {
       localStorage.setItem("tof_login_username", username);
       
       document.body.removeChild(modal);
-      resolve({ username });
+      resolve({ username, mode: "login" });
+    };
+
+    modal.querySelector("#registerBtn").onclick = () => {
+      const username = document.getElementById("loginUsername").value.trim();
+
+      if (!username) {
+        alert("Ketik dulu username pilihanmu 🌱");
+        return;
+      }
+
+      if (!/^[A-Za-z0-9_]{3,30}$/.test(username)) {
+        alert("Username 3–30 karakter: huruf, angka, atau garis bawah (_) saja 🌱");
+        return;
+      }
+
+      document.body.removeChild(modal);
+      resolve({ username, mode: "register" });
     };
 
     modal.querySelector("#cancelBtn").onclick = () => {

@@ -550,6 +550,18 @@ function renderWorkspace() {
       <button class="btn-glow" onclick="sendProfilePost()">🌱 TANAM KARYA</button>
     </div>
   `
+
+  // Brankas frasa dompet (hanya tampil di profil sendiri)
+  box.insertAdjacentHTML("beforeend", `
+    <div class="card" id="brankasFrasaCard" style="margin-top:14px;">
+      <div style="font-weight:700;color:#2f6f4e;margin-bottom:5px;">🔐 Brankas Frasa Dompet</div>
+      <div style="font-size:12px;color:#6f7f76;margin-bottom:12px;">Titipkan 25 kata frasa dompet Algorand-mu di brankas terenkripsi ToFarmer supaya tidak hilang. Hanya bisa dibuka dengan PIN-mu.</div>
+      <div class="workspace-actions" style="margin-bottom:0;">
+        <button class="btn-glow" onclick="titipFrasaPopup()" style="padding:10px;font-size:11px;margin:0;">📥 Titip Frasa</button>
+        <button class="btn-glow" onclick="lihatFrasaPopup()" style="padding:10px;font-size:11px;margin:0;">👁️ Lihat Frasa</button>
+      </div>
+    </div>
+  `)
 }
 
 // ==========================================================================
@@ -2479,3 +2491,199 @@ setTimeout(() => {
     inisialisasiKomponenPesan();
   }
 }, 1000);
+
+
+// ===================== BRANKAS FRASA DOMPET =====================
+// Frasa dienkripsi di server (Edge Function "tof-vault"); PIN diverifikasi di server.
+async function panggilBrankas(action, body = {}) {
+  try {
+    const { data, error } = await supabaseClient.functions.invoke("tof-vault", {
+      body: { action, ...body }
+    })
+    if (error) {
+      console.log(error)
+      return { ok: false, error: "network" }
+    }
+    return data || { ok: false, error: "empty" }
+  } catch (e) {
+    console.log(e)
+    return { ok: false, error: "network" }
+  }
+}
+
+function pesanBrankas(res) {
+  switch (res.error) {
+    case "bad_pin": return "PIN salah ❌ (sisa percobaan: " + (res.left ?? "?") + ")"
+    case "bad_pin_format": return "PIN harus 6 digit angka 🌱"
+    case "locked": return "Terlalu banyak salah PIN 🔒 Coba lagi " + (res.retry_min || 15) + " menit lagi."
+    case "no_pin": return "Akun ini belum punya PIN. Login dulu lewat halaman utama untuk membuat PIN 🌱"
+    case "bad_mnemonic": return "Frasa tidak valid (harus 25 kata yang benar) 😄"
+    case "mnemonic_mismatch": return "Frasa ini bukan milik dompet akunmu ❌"
+    case "no_vault": return "Belum ada frasa yang dititipkan. Pakai tombol Titip Frasa dulu 🌱"
+    case "network": return "Koneksi bermasalah, coba lagi ya 🌱"
+    default: return "Gagal: " + (res.error || "tidak diketahui")
+  }
+}
+
+function bukaModalBrankas(htmlIsi) {
+  const overlay = document.createElement("div")
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(16,25,20,.65);backdrop-filter:blur(10px);display:flex;justify-content:center;align-items:center;z-index:99999;padding:16px;"
+  overlay.innerHTML = `<div style="width:100%;max-width:420px;max-height:92vh;overflow:auto;background:#fff;border-radius:24px;padding:22px;box-sizing:border-box;">${htmlIsi}</div>`
+  document.body.appendChild(overlay)
+  return overlay
+}
+
+const BRANKAS_INPUT_STYLE = "width:100%;margin-top:12px;padding:12px;border-radius:12px;border:1px solid #ddd;box-sizing:border-box;font-size:14px;"
+const BRANKAS_BTN_STYLE = "width:100%;margin:10px 0 0 0;"
+
+function titipFrasaPopup() {
+  if (!currentWallet) {
+    alert("Login dulu ya 🌱")
+    return
+  }
+
+  const m = bukaModalBrankas(`
+    <div style="text-align:center;">
+      <div style="font-size:42px;">📥</div>
+      <h3 style="color:#2f6f4e;margin:6px 0;">Titip Frasa Dompet</h3>
+      <p style="font-size:12px;color:#666;">Tempel 25 kata frasa dompetmu. Disimpan terenkripsi, hanya bisa dibuka dengan PIN-mu.</p>
+    </div>
+    <textarea id="brankasFrasaInput" rows="4" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="kata1 kata2 kata3 ... (25 kata)" style="${BRANKAS_INPUT_STYLE}"></textarea>
+    <input id="brankasPinInput" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN 6 digit" style="${BRANKAS_INPUT_STYLE}" />
+    <button id="brankasSimpan" class="btn-glow" style="${BRANKAS_BTN_STYLE}">Simpan di Brankas 🔐</button>
+    <button id="brankasBatal" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">Batal</button>
+  `)
+
+  const frasaEl = m.querySelector("#brankasFrasaInput")
+  const pinEl = m.querySelector("#brankasPinInput")
+  const simpan = m.querySelector("#brankasSimpan")
+
+  const tutup = () => {
+    frasaEl.value = ""
+    pinEl.value = ""
+    document.body.removeChild(m)
+  }
+
+  m.querySelector("#brankasBatal").onclick = tutup
+
+  simpan.onclick = async () => {
+    const frasa = frasaEl.value.trim()
+    const pin = pinEl.value.trim()
+
+    if (!frasa) { alert("Tempel frasa 25 kata dulu 🌱"); return }
+    if (!/^\d{6}$/.test(pin)) { alert("PIN harus 6 digit angka 🌱"); return }
+
+    simpan.disabled = true
+    simpan.textContent = "Menyimpan..."
+
+    const res = await panggilBrankas("deposit", { profile_id: currentWallet, pin, mnemonic: frasa })
+
+    if (!res.ok) {
+      simpan.disabled = false
+      simpan.textContent = "Simpan di Brankas 🔐"
+      pinEl.value = ""
+      alert(pesanBrankas(res))
+      return
+    }
+
+    tutup()
+    alert("✓ Frasa tersimpan di brankas terenkripsi 🔐")
+  }
+}
+
+function lihatFrasaPopup() {
+  if (!currentWallet) {
+    alert("Login dulu ya 🌱")
+    return
+  }
+
+  const m = bukaModalBrankas(`
+    <div id="lihatFrasaIsi">
+      <div style="text-align:center;">
+        <div style="font-size:42px;">👁️</div>
+        <h3 style="color:#2f6f4e;margin:6px 0;">Lihat Frasa Dompet</h3>
+        <p style="font-size:12px;color:#666;">Masukkan PIN untuk membuka brankas. Pastikan tidak ada yang mengintip layarmu.</p>
+      </div>
+      <input id="brankasPinLihat" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN 6 digit" style="${BRANKAS_INPUT_STYLE}" />
+      <button id="brankasBuka" class="btn-glow" style="${BRANKAS_BTN_STYLE}">Buka Brankas 🔓</button>
+      <button id="brankasTutup" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">Batal</button>
+    </div>
+  `)
+
+  let timer = null
+  let frasaTampil = ""
+
+  const tutup = () => {
+    if (timer) clearInterval(timer)
+    frasaTampil = ""
+    m.querySelector("#lihatFrasaIsi").innerHTML = ""
+    document.body.removeChild(m)
+  }
+
+  m.querySelector("#brankasTutup").onclick = tutup
+
+  const buka = m.querySelector("#brankasBuka")
+  buka.onclick = async () => {
+    const pinEl = m.querySelector("#brankasPinLihat")
+    const pin = pinEl.value.trim()
+
+    if (!/^\d{6}$/.test(pin)) { alert("PIN harus 6 digit angka 🌱"); return }
+
+    buka.disabled = true
+    buka.textContent = "Membuka..."
+
+    const res = await panggilBrankas("reveal", { profile_id: currentWallet, pin })
+
+    if (!res.ok) {
+      buka.disabled = false
+      buka.textContent = "Buka Brankas 🔓"
+      pinEl.value = ""
+      alert(pesanBrankas(res))
+      return
+    }
+
+    frasaTampil = res.mnemonic
+
+    const isi = m.querySelector("#lihatFrasaIsi")
+    isi.innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-size:42px;">🔑</div>
+        <h3 style="color:#2f6f4e;margin:6px 0;">Frasa Dompetmu</h3>
+        <p style="font-size:12px;color:#666;">Jangan dibagikan ke siapa pun, termasuk admin. Tertutup otomatis dalam <b id="brankasHitung">60</b> detik.</p>
+      </div>
+      <div id="brankasGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px;"></div>
+      <button id="brankasSalin" class="btn-glow" style="${BRANKAS_BTN_STYLE}">📋 Salin</button>
+      <button id="brankasSelesai" style="width:100%;margin-top:8px;padding:10px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">Selesai</button>
+    `
+
+    const grid = m.querySelector("#brankasGrid")
+    frasaTampil.split(" ").forEach((kata, i) => {
+      const sel = document.createElement("div")
+      sel.style.cssText = "background:#f3f8f4;border-radius:10px;padding:7px 8px;font-size:12px;color:#1c2b22;"
+      const no = document.createElement("span")
+      no.style.cssText = "color:#999;font-size:10px;margin-right:4px;"
+      no.textContent = (i + 1) + "."
+      sel.appendChild(no)
+      sel.appendChild(document.createTextNode(kata))
+      grid.appendChild(sel)
+    })
+
+    m.querySelector("#brankasSalin").onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(frasaTampil)
+        alert("Frasa disalin 📋 Hapus dari clipboard/chat setelah disimpan ya.")
+      } catch {
+        alert("Gagal menyalin, catat manual saja ya 🌱")
+      }
+    }
+    m.querySelector("#brankasSelesai").onclick = tutup
+
+    let sisa = 60
+    timer = setInterval(() => {
+      sisa--
+      const el = m.querySelector("#brankasHitung")
+      if (el) el.textContent = sisa
+      if (sisa <= 0) tutup()
+    }, 1000)
+  }
+}

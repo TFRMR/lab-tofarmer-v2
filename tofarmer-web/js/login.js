@@ -1,240 +1,303 @@
-// ========================================
-// ToFarmer Login v2 - With PIN 2FA
-// ========================================
-// Features:
-// 1. Username + PIN (username tidak peka huruf besar/kecil). Kolom Wallet ID
-// tersembunyi dan baru muncul saat akun lama perlu membuat PIN (existing)
-// 2. PIN 6 digit (new) - hashed SHA256
-// 3. Auto-generate PIN untuk user lama
-// ========================================
-
-import { supabase } from './supabase-client.js';
-
-// SHA256 hashing (gunakan TweetNaCl atau crypto API)
-async function hashPIN(pin) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pin);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-}
-
-// Generate random PIN 6 digit
-function generateRandomPIN() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// Handle login form submission
-document.getElementById('login-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    await handleLogin(e);
-});
-
-async function handleLogin(event) {
-    if (event) event.preventDefault();
-    
-    const btn = document.getElementById('login-btn');
-    const usernameInput = document.getElementById('input-username').value.trim();
-    const walletInput = document.getElementById('input-wallet')?.value.trim() || ''; // wallet opsional
-    const pinInput = document.getElementById('input-pin').value.trim();
-    const errorMessage = document.getElementById('error-message');
-
-    // Validasi input
-    if (!usernameInput || !pinInput) {
-        showError('Harap isi Username dan PIN!');
-        return;
-    }
-
-    if (pinInput.length !== 6 || isNaN(pinInput)) {
-        showError('PIN harus 6 digit angka!');
-        return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="loading">⏳</span> Memeriksa...';
-
-    try {
-        // 1. Query profiles table (username tidak peka huruf besar/kecil)
-        // Karakter \, % dan _ di-escape supaya tidak dianggap wildcard oleh ilike
-        const { data: rows, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .ilike('username', usernameInput.replace(/[\\%_]/g, '\\$&'))
-            .limit(2);
-
-        // Kalau ada 2 username yang beda huruf besar/kecil, utamakan yang persis sama
-        const data = rows
-            ? (rows.find(r => r.username === usernameInput) || (rows.length === 1 ? rows[0] : null))
-            : null;
-
-        if (error || !data) {
-            showError('Username tidak ditemukan. Belum punya akun? Daftar dulu dari halaman utama.');
-            btn.disabled = false;
-            btn.innerHTML = 'Masuk Ladang';
-            return;
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masuk | ToFarmer</title>
+    <style>
+        :root {
+            --primary: #22c55e;
+            --secondary: #c9a227;
+            --bg-dark: #0b1220;
         }
 
-        // 2. Check jika user belum punya PIN (user lama)
-        if (!data.pin_hash || data.pin_hash === null || data.pin_hash === '') {
-            // GUARD: tanpa wallet, siapa pun bisa klaim akun yang belum punya PIN.
-            // Wallet baru diminta di sini (saat buat PIN) dan harus cocok dengan akun.
-            if (walletInput !== data.id) {
-                revealWalletField();
-                showError('Akun ini belum punya PIN. Isi Wallet untuk membuat PIN pertama.');
-                btn.disabled = false;
-                btn.innerHTML = 'Masuk Ladang';
-                return;
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: radial-gradient(circle at top left, #1a2e26, #0b1220);
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+
+        .login-container {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(15px);
+            padding: 40px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        h2 { 
+            margin-bottom: 10px; 
+            color: var(--primary); 
+            font-size: 24px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 20px;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: white;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        input::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(255,255,255,0.1);
+        }
+
+        input[type="password"]::placeholder {
+            color: rgba(255,255,255,0.4);
+        }
+
+        /* PIN input special styling */
+        #input-pin {
+            font-size: 20px;
+            letter-spacing: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-top: -10px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .loading {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Modal untuk PIN baru */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 50;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-backdrop.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 380px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
             }
-
-            // Auto-generate PIN baru
-            const newPIN = generateRandomPIN();
-            const pinHash = await hashPIN(newPIN);
-
-            // 2A. Update pin_hash di database
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({ pin_hash: pinHash })
-                .eq('id', walletInput);
-
-            if (updateError) {
-                showError('Gagal membuat PIN: ' + updateError.message);
-                btn.disabled = false;
-                btn.innerHTML = 'Masuk Ladang';
-                return;
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
-
-            // 2B. Show modal dengan PIN baru
-            showNewPINModal(newPIN);
-            btn.disabled = false;
-            btn.innerHTML = 'Masuk Ladang';
-            return;
         }
 
-        // 3. Verify PIN jika user sudah punya
-        const pinHash = await hashPIN(pinInput);
-
-        if (pinHash !== data.pin_hash) {
-            showError('PIN salah!');
-            btn.disabled = false;
-            btn.innerHTML = 'Masuk Ladang';
-            return;
+        .modal-content h3 {
+            color: var(--primary);
+            font-size: 18px;
+            margin-bottom: 15px;
         }
 
-        // 4. Login berhasil! Set localStorage (sesuai struktur app.js)
-        localStorage.setItem('tof_wallet', data.id);
-        localStorage.setItem('tof_login_username', data.username); // ← FIX: Use tof_login_username (sesuai app.js)
+        .modal-content p {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .pin-display {
+            background: rgba(34, 197, 94, 0.1);
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .pin-display .pin-number {
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: var(--primary);
+            font-family: 'Courier New', monospace;
+        }
+
+        .modal-content button {
+            margin-top: 10px;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .modal-content button:first-of-type {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .modal-content button:last-of-type {
+            margin-top: 5px;
+        }
+
+        .success-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            background: rgba(212, 175, 55, 0.1);
+            border-left: 3px solid var(--secondary);
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 12px;
+            text-align: left;
+            color: #ddd;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>🌿 Masuk ke ToFarmer</h2>
+        <p class="subtitle">Ladang Digital Menoreh</p>
         
-        // Level calculation (from index.html)
-        const effectiveXp = (data.xp || 0) + (data.saldo_tof || 0) * 1000;
-        const computedLevel = Math.floor(Math.sqrt(effectiveXp / 100)) + 1;
-        localStorage.setItem('tof_level', computedLevel);
-        localStorage.setItem('tof_rank', data.rank || 'Warga Mandiri');
-        localStorage.setItem('tof_xp', data.xp || 0);
-
-        showError(''); // Clear error
-        btn.innerHTML = '✓ Login Sukses! Mengarahkan...';
-
-        // FIX: Kalau tadinya dilempar ke sini dari halaman lain (misal desa-tof.html
-        // nyimpen 'redirect_to' sebelum ngirim ke login), balikin ke halaman asal itu.
-        // Kalau gak ada, baru default ke index.html.
-        const redirectTo = localStorage.getItem('redirect_to');
-        localStorage.removeItem('redirect_to');
-
-        // Redirect
-        setTimeout(() => {
-            window.location.href = redirectTo || '/';
-        }, 500);
-
-    } catch (err) {
-        console.error('Login error:', err);
-        showError('Kesalahan teknis: ' + err.message);
-        btn.disabled = false;
-        btn.innerHTML = 'Masuk Ladang';
-    }
-}
-
-// Kolom wallet (beserta labelnya) disembunyikan secara default
-function getWalletGroup() {
-    const el = document.getElementById('input-wallet');
-    if (!el) return null;
-    return document.getElementById('wallet-group') || el.closest('.form-group, .input-group, .field') || el;
-}
-
-function hideWalletField() {
-    const group = getWalletGroup();
-    if (group) group.style.display = 'none';
-}
-
-// Munculkan kolom wallet hanya untuk akun lama yang belum punya PIN
-function revealWalletField() {
-    const group = getWalletGroup();
-    if (!group) return;
-    group.style.display = '';
-    document.getElementById('input-wallet').focus();
-}
-
-function showError(message) {
-    const errorEl = document.getElementById('error-message');
-    if (message) {
-        errorEl.textContent = message;
-        errorEl.classList.add('show');
-    } else {
-        errorEl.textContent = '';
-        errorEl.classList.remove('show');
-    }
-}
-
-function showNewPINModal(newPIN) {
-    const modal = document.getElementById('pin-modal');
-    const display = document.getElementById('new-pin-display');
-    const copyBtn = document.getElementById('copy-pin-btn');
-    const confirmBtn = document.getElementById('confirm-pin-btn');
-
-    display.textContent = newPIN;
-
-    copyBtn.onclick = () => {
-        navigator.clipboard.writeText(newPIN).then(() => {
-            copyBtn.textContent = '✓ PIN Disalin!';
-            setTimeout(() => {
-                copyBtn.textContent = '📋 Salin PIN ke Clipboard';
-            }, 2000);
-        }).catch(err => {
-            alert('Gagal salin: ' + err);
-        });
-    };
-
-    confirmBtn.onclick = () => {
-        modal.classList.remove('show');
-        showError('PIN berhasil dibuat! Silakan login dengan PIN baru Anda.');
+        <div class="info-box">
+            📌 Login cukup: Username + PIN 6 digit (huruf besar/kecil username bebas)
+        </div>
         
-        // Clear form
-        document.getElementById('input-pin').value = '';
-        document.getElementById('input-pin').focus();
-    };
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <input 
+                type="text" 
+                id="input-username" 
+                placeholder="Nama Pengguna (Username)..." 
+                required
+                autocomplete="username"
+            >
+            
+            <input 
+                type="text" 
+                id="input-wallet" 
+                placeholder="Alamat Wallet (hanya jika diminta)..." 
+                autocomplete="off"
+            >
+            
+            <input 
+                type="password" 
+                id="input-pin" 
+                placeholder="PIN 6 Digit..." 
+                maxlength="6" 
+                inputmode="numeric" 
+                required
+                autocomplete="off"
+                pattern="[0-9]{6}"
+            >
+            
+            <div class="error-message" id="error-message"></div>
+            
+            <button id="login-btn" type="submit">Masuk Ladang</button>
+        </form>
+    </div>
 
-    modal.classList.add('show');
-}
+    <!-- Modal untuk PIN Baru -->
+    <div class="modal-backdrop" id="pin-modal">
+        <div class="modal-content">
+            <div class="success-icon">📌</div>
+            <h3>PIN Baru Dibuat</h3>
+            <p>Akun Anda belum punya PIN. Kami membuat PIN baru untuk keamanan:</p>
+            
+            <div class="pin-display">
+                <div class="pin-number" id="new-pin-display">000000</div>
+            </div>
+            
+            <p style="color: #ff9800; font-weight: bold;">⚠️ Simpan PIN ini dengan aman!</p>
+            <p>Gunakan PIN ini untuk login selanjutnya. Jangan bagikan ke siapa pun.</p>
+            
+            <button id="copy-pin-btn" type="button">📋 Salin PIN ke Clipboard</button>
+            <button id="confirm-pin-btn" type="button">✓ Mengerti, Lanjut</button>
+        </div>
+    </div>
 
-// Auto-focus PIN ke numeric input saja
-document.getElementById('input-pin').addEventListener('keypress', (e) => {
-    if (!/[0-9]/.test(e.key)) {
-        e.preventDefault();
-    }
-});
-
-// Auto-submit jika PIN sudah 6 digit
-document.getElementById('input-pin').addEventListener('input', (e) => {
-    if (e.target.value.length === 6) {
-        // Bisa auto-submit atau hanya hint
-        // Sekarang: just visual feedback
-        e.target.style.borderColor = '#22c55e';
-    } else {
-        e.target.style.borderColor = '';
-    }
-});
-
-// Login normal cukup Username + PIN: sembunyikan kolom wallet saat halaman dibuka
-hideWalletField();
-
-console.log('✓ ToFarmer Login v2 loaded (with PIN 2FA)');
+    <script type="module" src="../js/login.js"></script>
+    <!-- Cloudflare Web Analytics -->
+    <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
+</body>
+</html>
