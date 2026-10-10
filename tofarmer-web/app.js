@@ -304,7 +304,7 @@ function showForgotPinModal() {
         </p>
         <ol style="font-size:12px;color:#333;margin:8px 0 0 0;padding-left:20px;">
           <li style="margin:4px 0;">Admin akan bilang "sudah direset"</li>
-          <li style="margin:4px 0;">Kamu login lagi dengan username + password</li>
+          <li style="margin:4px 0;">Kamu login lagi dengan username, lalu isi Alamat Wallet saat diminta</li>
           <li style="margin:4px 0;">Buat PIN baru saat diminta</li>
           <li style="margin:4px 0;">Selesai! ✓</li>
         </ol>
@@ -568,19 +568,12 @@ async function connectWallet() {
         return;
       }
 
-      const { username, password } = credentials;
+      // Login normal cukup username + PIN. Wallet baru diminta nanti (askWalletAddress)
+      // hanya saat membuat PIN: daftar baru atau akun lama yang belum punya PIN.
+      const { username } = credentials;
+      let password = "";
       
-      // Validasi wallet address (hanya jika diisi — login biasa cukup username + PIN)
-      if (password) {
-        try {
-          const decoded = algosdk.decodeAddress(password);
-          if (!decoded) throw new Error("Wallet tidak valid");
-        } catch {
-          alert("Password (Alamat Wallet) tidak valid / bukan Algorand 😄");
-          resolve(null);
-          return;
-        }
-      }
+      // Validasi wallet address dipindah ke askWalletAddress() (hanya saat buat PIN)
 
       // STEP 2: Cek user di database (username + password/id cocok)
       // Username tidak peka huruf besar/kecil (karakter \, % dan _ di-escape agar bukan wildcard)
@@ -601,7 +594,7 @@ async function connectWallet() {
         return;
       }
 
-      // Username ambigu (ada beberapa yang hanya beda huruf besar/kecil & tidak ada yang persis sama)
+      // Username ambigu (beberapa username hanya beda huruf besar/kecil & tidak ada yang persis sama)
       if (!existingUser && existingRows && existingRows.length > 1) {
         alert("Username ambigu, tulis persis sama dengan saat daftar 🌱");
         resolve(null);
@@ -610,16 +603,22 @@ async function connectWallet() {
 
       // CASE 1: User sudah terdaftar
       if (existingUser) {
-        // Verifikasi password (id) cocok
-        // Wallet hanya WAJIB untuk akun yang belum punya PIN (migrasi). Kalau sudah punya PIN,
-        // cukup username + PIN. Kalau wallet diisi tapi salah, tetap ditolak.
-        const belumPunyaPin = !existingUser.pin_hash || existingUser.pin_hash === '';
-        if ((belumPunyaPin || password) && existingUser.id !== password) {
-          alert(belumPunyaPin && !password
-            ? "Akun ini belum punya PIN. Isi Password (Alamat Wallet) sekali untuk membuat PIN pertama 🌱"
-            : "Username atau Password salah ❌");
-          resolve(null);
-          return;
+        // Akun yang SUDAH punya PIN: cukup username + PIN (tanpa wallet).
+        // Akun lama yang BELUM punya PIN: wallet diminta sekali, harus cocok dengan akun.
+        if (!existingUser.pin_hash || existingUser.pin_hash === '') {
+          password = await askWalletAddress(
+            existingUser.username,
+            "Akun ini belum punya PIN. Masukkan Alamat Wallet-mu sekali untuk membuat PIN pertama."
+          );
+          if (!password) {
+            resolve(null);
+            return;
+          }
+          if (existingUser.id !== password) {
+            alert("Username atau Password salah ❌");
+            resolve(null);
+            return;
+          }
         }
 
         // STEP 3: Cek PIN hash
@@ -690,9 +689,12 @@ async function connectWallet() {
       }
 
       // CASE 2: User belum terdaftar - register baru
-      // Daftar baru WAJIB mengisi wallet (jadi ID akun)
+      // Wallet diminta di sini (saat buat PIN akun baru), jadi ID akun
+      password = await askWalletAddress(
+        username,
+        "Username belum terdaftar. Untuk daftar, masukkan Alamat Wallet Algorand-mu (jadi ID akunmu)."
+      );
       if (!password) {
-        alert("Username belum terdaftar. Untuk daftar baru, isi juga Password (Alamat Wallet) 🌱");
         resolve(null);
         return;
       }
@@ -746,7 +748,60 @@ async function connectWallet() {
   });
 }
 
-// Modal Login (Username + Password)
+// Modal Alamat Wallet — hanya muncul saat membuat PIN (daftar baru / akun lama tanpa PIN)
+function askWalletAddress(username, pesan) {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
+
+    modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(16,25,20,.65);backdrop-filter:blur(12px);display:flex;justify-content:center;align-items:center;z-index:99999;padding:20px;">
+      <div style="width:100%;max-width:420px;background:#fff;border-radius:28px;padding:24px;">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">🔑</div>
+          <h2 style="color:#2f6f4e;">Alamat Wallet</h2>
+          <p id="walletAskMsg" style="font-size:12px;color:#666;margin-top:8px;"></p>
+        </div>
+        <input id="walletAskInput" placeholder="Alamat Wallet Algorand" autocomplete="off" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" />
+        <button id="walletAskOk" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:600;cursor:pointer;">Lanjut Buat PIN 🚀</button>
+        <button id="walletAskCancel" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
+      </div>
+    </div>
+    `;
+
+    document.body.appendChild(modal);
+    modal.querySelector("#walletAskMsg").textContent = pesan || "";
+    modal.querySelector("#walletAskInput").focus();
+
+    const tutup = (hasil) => {
+      document.body.removeChild(modal);
+      resolve(hasil);
+    };
+
+    modal.querySelector("#walletAskOk").onclick = () => {
+      const address = modal.querySelector("#walletAskInput").value.trim();
+
+      if (!address) {
+        alert("Alamat Wallet wajib diisi 🌱");
+        return;
+      }
+
+      // Validasi wallet address
+      try {
+        const decoded = algosdk.decodeAddress(address);
+        if (!decoded) throw new Error("Wallet tidak valid");
+      } catch {
+        alert("Alamat Wallet tidak valid / bukan Algorand 😄");
+        return;
+      }
+
+      tutup(address);
+    };
+
+    modal.querySelector("#walletAskCancel").onclick = () => tutup(null);
+  });
+}
+
+// Modal Login (Username + PIN)
 function showLoginModal() {
   return new Promise((resolve) => {
     const modal = document.createElement("div");
@@ -777,12 +832,11 @@ function showLoginModal() {
             Masuk cukup dengan Username + PIN (huruf besar/kecil bebas)
           </p>
           <p style="font-size:11px;color:#999;margin-top:4px;">
-            Alamat Wallet hanya diisi saat daftar baru / akun lama yang belum punya PIN. Bikin dompet dulu di Pera Wallet/Defly
+            Alamat Wallet hanya diminta saat membuat PIN (daftar baru / akun lama). Siapkan dompet di Pera Wallet/Defly
           </p>
         </div>
 
         <input id="loginUsername" placeholder="Username" style="width:100%;margin-top:20px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" />
-        <input id="loginPassword" placeholder="Password (Alamat Wallet) - hanya untuk daftar baru / akun tanpa PIN" style="width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid #ddd;box-sizing:border-box;" type="password" />
         
         <button id="loginBtn" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:600;cursor:pointer;">Masuk ke Ladang 🚀</button>
         <button id="cancelBtn" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
@@ -794,24 +848,17 @@ function showLoginModal() {
 
     modal.querySelector("#loginBtn").onclick = () => {
       const username = document.getElementById("loginUsername").value.trim();
-      const password = document.getElementById("loginPassword").value.trim();
 
       if (!username) {
         alert("Username wajib diisi 🌱");
         return;
       }
 
-      // Password (Wallet Address) tidak lagi wajib di sini — dicek di connectWallet() sesuai kasusnya
-      // if (!password) {
-      //   alert("Password (Wallet Address) wajib diisi 🌱");
-      //   return;
-      // }
-
       // Simpan username untuk forgot PIN modal nanti
       localStorage.setItem("tof_login_username", username);
       
       document.body.removeChild(modal);
-      resolve({ username, password });
+      resolve({ username });
     };
 
     modal.querySelector("#cancelBtn").onclick = () => {

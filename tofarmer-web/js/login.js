@@ -2,7 +2,8 @@
 // ToFarmer Login v2 - With PIN 2FA
 // ========================================
 // Features:
-// 1. Username + Wallet ID (existing)
+// 1. Username + PIN (username tidak peka huruf besar/kecil). Kolom Wallet ID
+// tersembunyi dan baru muncul saat akun lama perlu membuat PIN (existing)
 // 2. PIN 6 digit (new) - hashed SHA256
 // 3. Auto-generate PIN untuk user lama
 // ========================================
@@ -35,13 +36,13 @@ async function handleLogin(event) {
     
     const btn = document.getElementById('login-btn');
     const usernameInput = document.getElementById('input-username').value.trim();
-    const walletInput = document.getElementById('input-wallet').value.trim();
+    const walletInput = document.getElementById('input-wallet')?.value.trim() || ''; // wallet opsional
     const pinInput = document.getElementById('input-pin').value.trim();
     const errorMessage = document.getElementById('error-message');
 
     // Validasi input
-    if (!usernameInput || !walletInput || !pinInput) {
-        showError('Harap isi Username, Wallet, dan PIN!');
+    if (!usernameInput || !pinInput) {
+        showError('Harap isi Username dan PIN!');
         return;
     }
 
@@ -54,16 +55,21 @@ async function handleLogin(event) {
     btn.innerHTML = '<span class="loading">⏳</span> Memeriksa...';
 
     try {
-        // 1. Query profiles table
-        const { data, error } = await supabase
+        // 1. Query profiles table (username tidak peka huruf besar/kecil)
+        // Karakter \, % dan _ di-escape supaya tidak dianggap wildcard oleh ilike
+        const { data: rows, error } = await supabase
             .from('profiles')
             .select('*')
-            .eq('username', usernameInput)
-            .eq('id', walletInput)
-            .single();
+            .ilike('username', usernameInput.replace(/[\\%_]/g, '\\$&'))
+            .limit(2);
+
+        // Kalau ada 2 username yang beda huruf besar/kecil, utamakan yang persis sama
+        const data = rows
+            ? (rows.find(r => r.username === usernameInput) || (rows.length === 1 ? rows[0] : null))
+            : null;
 
         if (error || !data) {
-            showError('Username atau Wallet tidak ditemukan.');
+            showError('Username tidak ditemukan. Belum punya akun? Daftar dulu dari halaman utama.');
             btn.disabled = false;
             btn.innerHTML = 'Masuk Ladang';
             return;
@@ -71,6 +77,16 @@ async function handleLogin(event) {
 
         // 2. Check jika user belum punya PIN (user lama)
         if (!data.pin_hash || data.pin_hash === null || data.pin_hash === '') {
+            // GUARD: tanpa wallet, siapa pun bisa klaim akun yang belum punya PIN.
+            // Wallet baru diminta di sini (saat buat PIN) dan harus cocok dengan akun.
+            if (walletInput !== data.id) {
+                revealWalletField();
+                showError('Akun ini belum punya PIN. Isi Wallet untuk membuat PIN pertama.');
+                btn.disabled = false;
+                btn.innerHTML = 'Masuk Ladang';
+                return;
+            }
+
             // Auto-generate PIN baru
             const newPIN = generateRandomPIN();
             const pinHash = await hashPIN(newPIN);
@@ -138,6 +154,26 @@ async function handleLogin(event) {
     }
 }
 
+// Kolom wallet (beserta labelnya) disembunyikan secara default
+function getWalletGroup() {
+    const el = document.getElementById('input-wallet');
+    if (!el) return null;
+    return document.getElementById('wallet-group') || el.closest('.form-group, .input-group, .field') || el;
+}
+
+function hideWalletField() {
+    const group = getWalletGroup();
+    if (group) group.style.display = 'none';
+}
+
+// Munculkan kolom wallet hanya untuk akun lama yang belum punya PIN
+function revealWalletField() {
+    const group = getWalletGroup();
+    if (!group) return;
+    group.style.display = '';
+    document.getElementById('input-wallet').focus();
+}
+
 function showError(message) {
     const errorEl = document.getElementById('error-message');
     if (message) {
@@ -197,5 +233,8 @@ document.getElementById('input-pin').addEventListener('input', (e) => {
         e.target.style.borderColor = '';
     }
 });
+
+// Login normal cukup Username + PIN: sembunyikan kolom wallet saat halaman dibuka
+hideWalletField();
 
 console.log('✓ ToFarmer Login v2 loaded (with PIN 2FA)');

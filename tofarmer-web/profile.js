@@ -359,12 +359,13 @@ async function loadProfile() {
   }
 
   // Cari data profil ke Supabase secara dinamis tanpa membocorkan data sensitif
-  const { data, error } =
-    await supabaseClient
-      .from("profiles")
-      .select("*")
-      .eq(queryField, queryValue)
-      .single()
+  // Username dicari tanpa peka huruf besar/kecil (?u=budi tetap membuka @Budi); id/wallet tetap persis
+  let profileQuery = supabaseClient.from("profiles").select("*")
+  profileQuery = queryField === "username"
+    ? profileQuery.ilike("username", String(queryValue).replace(/[\\%_]/g, '\\$&'))
+    : profileQuery.eq(queryField, queryValue)
+
+  const { data, error } = await profileQuery.limit(1).single()
 
   if (error || !data) {
     document.getElementById("profile").innerHTML = `
@@ -2371,7 +2372,7 @@ async function cariDanKirim() {
     const { data: user, error } = await supabaseClient
         .from('profiles') 
         .select('id, username')
-        .ilike('username', inputUsername) // ilike supaya tidak sensitif huruf besar/kecil
+        .ilike('username', inputUsername.replace(/[\\%_]/g, '\\$&')) // ilike supaya tidak sensitif huruf besar/kecil (wildcard di-escape)
         .single();
 
     if (error || !user) {
