@@ -1393,6 +1393,7 @@ async function sendPost() {
 // ===================== ECONOMY & ALGORAND INFRA =====================
 const TOF_ASSET_ID = 3558306283
 const ALGONODE_URL = "https://mainnet-api.algonode.cloud"
+const WALLET_DIKECUALIKAN_DARI_TOTAL = "R6QSHNSCY4HBQBH4UTSBJOJZTQTHCHW4IDQVXRVKR7EAQ2IDU7MSYCST5I" // tidak ikut dihitung di total aset
 
 async function getWalletTofBalance(wallet) {
   try {
@@ -1433,7 +1434,7 @@ async function loadEconomy() {
     // --- TETAP PERTAHANKAN BATCH PROMISE BLOCKCHAIN ALGORAND ---
     for (let i = 0; i < profiles.length; i += batchSize) {
       const batch = profiles.slice(i, i + batchSize)
-      const balances = await Promise.all(batch.map(user => getWalletTofBalance(user.id)))
+      const balances = await Promise.all(batch.map(user => user.id === WALLET_DIKECUALIKAN_DARI_TOTAL ? 0 : getWalletTofBalance(user.id)))
       total += balances.reduce((sum, bal) => sum + bal, 0)
     }
 
