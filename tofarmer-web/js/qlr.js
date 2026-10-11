@@ -1,5 +1,6 @@
 const TARGET_TOF = 100000;
 const RATE = 0.10;
+const WALLET_DIKECUALIKAN_DARI_RADAR = "R6QSHNSCY4HBQBH4UTSBJOJZTQTHCHW4IDQVXRVKR7EAQ2IDU7MSYCST5I"; // tidak ikut dihitung/ditampilkan di radar
 
 const container = document.getElementById("qlrContainer");
 
@@ -226,6 +227,7 @@ async function renderQLR() {
 
   // 1. Kumpulkan semua data saldo dari blockchain
   for (let u of users) {
+    if (u.id === WALLET_DIKECUALIKAN_DARI_RADAR) continue; // lewati dompet yang dikecualikan
     const balance = await getUserBalance(u.id);
     const months = calcMonths(balance);
     
