@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Pengurus · Nabung TOF | ToFarmer</title>
+  <link rel="icon" type="image/png" href="../aset/favicon.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root { --hijau:#2f6f4e; --hijau2:#3f8a63; --emas:#c9a227; --bg:#f4f7f5; --teks:#1c2b22; --abu:#6f7f76; --garis:rgba(0,0,0,.07); --merah:#c0392b; }
+    * { box-sizing: border-box; }
+    body { margin:0; background:var(--bg); color:var(--teks); font-family:Inter,system-ui,sans-serif; }
+    .wrap { max-width:640px; margin:0 auto; padding:14px 14px 40px; }
+    .topbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    .back { text-decoration:none; color:var(--hijau); background:#fff; border:1px solid var(--garis); border-radius:12px; width:38px; height:38px; display:flex; align-items:center; justify-content:center; font-weight:700; }
+    .title { font-size:17px; font-weight:700; color:var(--hijau); }
+    .card { background:#fff; border:1px solid var(--garis); border-radius:16px; padding:14px; margin-top:12px; }
+    .inp { width:100%; padding:11px; border:1px solid #d9e2dc; border-radius:12px; font-size:14px; font-family:inherit; }
+    textarea.inp { resize:vertical; min-height:80px; }
+    .lbl { display:block; font-size:12px; font-weight:600; margin:10px 0 4px; }
+    .btn { padding:11px 14px; border:none; border-radius:12px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+    .btn.utama { background:linear-gradient(90deg,#4caf7a,var(--emas)); color:#fff; width:100%; margin-top:10px; }
+    .btn.hijau { background:#e3f4ea; color:#1f6b3d; } .btn.merah { background:#fdeceb; color:var(--merah); } .btn.abu { background:#eef2ef; color:var(--abu); }
+    .btn:disabled { opacity:.55; }
+    .tabs { display:flex; gap:6px; flex-wrap:wrap; }
+    .tab { flex:1; min-width:110px; padding:10px 6px; border:1px solid var(--garis); background:#fff; border-radius:12px; font-size:12px; font-weight:600; cursor:pointer; color:var(--abu); }
+    .tab.aktif { background:var(--hijau); color:#fff; }
+    .total { font-size:22px; font-weight:800; color:var(--hijau); }
+    .kecil { font-size:11px; color:var(--abu); line-height:1.5; } .mono { font-family:ui-monospace,Menlo,monospace; word-break:break-all; }
+    .chip { display:inline-block; font-size:11px; font-weight:700; padding:3px 9px; border-radius:20px; background:#eef2ef; color:var(--abu); }
+    .chip.ok { background:#e3f4ea; color:#1f6b3d; } .chip.tunggu { background:#fff4d6; color:#7a5d00; } .chip.gagal { background:#fdeceb; color:var(--merah); }
+    .baris { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
+    .galat { color:var(--merah); font-size:12px; margin-top:6px; }
+    .aksi { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+    .qris-prev { max-width:200px; display:block; margin-top:8px; border-radius:10px; border:1px solid var(--garis); }
+    a.tautan { color:var(--hijau); font-size:12px; }
+    [hidden] { display:none !important; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="back" href="dompet.html" aria-label="Kembali">←</a>
+      <div class="title">Pengurus · Nabung TOF</div>
+    </div>
+
+    <div class="card" id="gerbang">
+      <div style="font-weight:700;">Masukkan PIN pengurus</div>
+      <div class="kecil">Halaman ini hanya untuk pengurus yang alamat dompetnya terdaftar. PIN hanya disimpan di memori selama halaman terbuka.</div>
+      <input class="inp" id="pinPengurus" type="password" inputmode="numeric" maxlength="6" placeholder="PIN 6 digit" autocomplete="off" style="margin-top:10px;" />
+      <div class="galat" id="galatGerbang"></div>
+      <button class="btn utama" id="btnBuka" type="button">Buka</button>
+    </div>
+
+    <div id="isi" hidden>
+      <div class="tabs">
+        <button class="tab aktif" data-tab="aktif" type="button">Perlu dicek</button>
+        <button class="tab" data-tab="perlu_kirim" type="button">Perlu kirim TOF</button>
+        <button class="tab" data-tab="riwayat" type="button">Riwayat</button>
+        <button class="tab" data-tab="pengaturan" type="button">Pengaturan</button>
+      </div>
+      <div id="konten"></div>
+    </div>
+  </div>
+  <div class="kecil" style="text-align:center;margin:14px;">Cocokkan dengan mutasi DANA, bukan tangkapan layar.</div>
+
+  <script src="../supabase.js"></script>
+  <script src="../js/admin-topup.js"></script>
+</body>
+</html>

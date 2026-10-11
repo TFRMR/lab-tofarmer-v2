@@ -159,6 +159,15 @@
       background: linear-gradient(90deg, #4caf7a, var(--emas)); color: #fff; border: none; padding: 10px 14px; border-radius: 10px;
       font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit;
     }
+    .qris { display: block; max-width: 240px; width: 100%; margin: 6px auto; border-radius: 12px; border: 1px solid var(--garis); background: #fff; }
+    .total-bayar { text-align: center; font-size: 26px; font-weight: 800; color: var(--hijau); margin-top: 6px; }
+    .chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: #eef2ef; color: var(--abu); }
+    .chip.ok { background: #e3f4ea; color: #1f6b3d; } .chip.tunggu { background: #fff4d6; color: #7a5d00; } .chip.gagal { background: #fdeceb; color: var(--merah); }
+    .grid-nominal { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .grid-nominal .mini { padding: 10px 0; }
+    .grid-nominal .mini.pilih { background: var(--hijau); color: #fff; }
+    .baris-nabung { display: flex; justify-content: space-between; gap: 10px; padding: 10px 0; border-top: 1px solid var(--garis); font-size: 13px; cursor: pointer; }
+    .baris-nabung:first-child { border-top: none; }
     .langkah { margin: 4px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--teks); }
     [hidden] { display: none !important; }
   </style>
@@ -218,6 +227,12 @@
         <button type="button" data-aksi="kirim">⬆️<span>Kirim</span></button>
         <button type="button" data-aksi="optin">➕<span>Opt-in</span></button>
         <button type="button" data-aksi="frasa">🔑<span>Frasa</span></button>
+      </section>
+
+      <section class="card" id="nabungCard" hidden>
+        <h3>Nabung bersama</h3>
+        <div class="kecil abu" id="nabungInfo">Setor receh ke kas bersama dan terima TOF di dompetmu.</div>
+        <button class="btn utama" id="btnNabung" type="button">Nabung TOF</button>
       </section>
 
       <section class="card">

@@ -6,6 +6,7 @@
 // Secrets yang harus di-set (supabase secrets set ...):
 //   VAULT_MASTER_KEY  = base64 dari 32 byte acak   (openssl rand -base64 32)
 //   PIN_PEPPER        = string acak panjang         (openssl rand -base64 24)
+//   ADMIN_IDS         = alamat dompet pengurus Nabung TOF, dipisah koma
 //   ALLOWED_ORIGINS   = (opsional) daftar origin dipisah koma
 // SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY sudah otomatis tersedia.
 // ============================================================
@@ -13,12 +14,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import algosdk from "npm:algosdk@2.4.0";
 import { escapeLike } from "./lib.ts";
 import { handle } from "./logic.ts";
-import type { Deps, PinRow, Profile, Repo, VaultRow } from "./logic.ts";
+import type { Deps, PinRow, Profile, Repo, TopupRow, VaultRow } from "./logic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MASTER_KEY = Deno.env.get("VAULT_MASTER_KEY") ?? "";
 const PEPPER = Deno.env.get("PIN_PEPPER") ?? "";
+const ADMIN_IDS = (Deno.env.get("ADMIN_IDS") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 const ALLOWED = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://www.tofarmer.xyz,https://tofarmer.xyz")
   .split(",").map((s) => s.trim()).filter(Boolean);
 
@@ -75,6 +77,58 @@ const repo: Repo = {
   async log(id, action, okFlag) {
     await db.from("vault_log").insert({ profile_id: id, action, ok: okFlag }); // best effort
   },
+
+  // ---------------- Nabung TOF ----------------
+  async getSettings() {
+    const rows = must(await db.from("app_settings").select("key,value")) as { key: string; value: unknown }[];
+    const out: Record<string, unknown> = {};
+    for (const r of rows || []) out[r.key] = r.value;
+    return out;
+  },
+  async saveSettings(values, by) {
+    const now = new Date().toISOString();
+    const rows = Object.entries(values).map(([key, value]) => ({ key, value, updated_at: now, updated_by: by }));
+    must(await db.from("app_settings").upsert(rows, { onConflict: "key" }));
+  },
+  async expireTopups(nowIso) {
+    must(await db.from("topup_requests").update({ status: "kedaluwarsa" })
+      .in("status", ["menunggu", "dibayar"]).lt("kedaluwarsa_pada", nowIso));
+  },
+  async insertTopup(row) {
+    const { data, error } = await db.from("topup_requests").insert(row).select().single();
+    if (!error) return { result: "ok", row: data as TopupRow };
+    if (error.code === "23505") return { result: "duplicate" }; // total_rp sudah dipakai tagihan aktif lain
+    console.error("insertTopup:", error.message);
+    return { result: "error" };
+  },
+  async getTopup(id) {
+    return must(await db.from("topup_requests").select("*").eq("id", id).maybeSingle()) as TopupRow | null;
+  },
+  async updateTopupIf(id, expect, patch) {
+    // compare-and-set: hanya berubah bila status masih sesuai (mencegah konfirmasi ganda)
+    return must(await db.from("topup_requests").update(patch).eq("id", id).in("status", expect).select().maybeSingle()) as TopupRow | null;
+  },
+  async listTopupByProfile(profileId, limit) {
+    return must(await db.from("topup_requests").select("*").eq("profile_id", profileId).order("dibuat", { ascending: false }).limit(limit)) as TopupRow[];
+  },
+  async listTopupByStatus(statuses, limit) {
+    return must(await db.from("topup_requests").select("*").in("status", statuses).order("dibuat", { ascending: false }).limit(limit)) as TopupRow[];
+  },
+  async countTopupActive(profileId) {
+    const { count, error } = await db.from("topup_requests").select("id", { count: "exact", head: true })
+      .eq("profile_id", profileId).in("status", ["menunggu", "dibayar"]);
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
+  async countTopupSince(profileId, sinceIso) {
+    const { count, error } = await db.from("topup_requests").select("id", { count: "exact", head: true })
+      .eq("profile_id", profileId).gte("dibuat", sinceIso);
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
+  async logTopup(requestId, profileId, aksi, oleh, detail) {
+    await db.from("topup_log").insert({ request_id: requestId, profile_id: profileId, aksi, oleh, detail }); // best effort
+  },
 };
 
 const deps: Deps = {
@@ -84,6 +138,7 @@ const deps: Deps = {
   addressFromMnemonic: (m) => String(algosdk.mnemonicToSecretKey(m).addr),
   isValidAddress: (a) => algosdk.isValidAddress(a),
   now: () => Date.now(),
+  adminIds: ADMIN_IDS,
 };
 
 function corsHeaders(req: Request): Record<string, string> {

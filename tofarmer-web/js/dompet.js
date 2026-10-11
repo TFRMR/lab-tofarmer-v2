@@ -28,7 +28,8 @@
     wallet: null,
     username: null,
     ringkas: null,   // { algo, minBal, tof, tofOptin }
-    status: null     // { has_vault, has_pin, pin_publik }
+    status: null,    // { has_vault, has_pin, pin_publik }
+    topup: null      // info Nabung dari server (kurs, QRIS, aturan)
   };
 
   // ---------------- util DOM ----------------
@@ -91,6 +92,10 @@
     const w = (u / SATU).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     const f = (u % SATU).toString().padStart(6, "0").replace(/0+$/, "");
     return (neg ? "-" : "") + (f ? w + "," + f : w);
+  }
+
+  function fmtRp(n) {
+    return String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   }
 
   function pendek(addr) {
@@ -179,7 +184,15 @@
       case "bad_pin_format": return "PIN harus 6 digit angka.";
       case "locked": return "Terlalu banyak salah PIN. Coba lagi " + (res.retry_min || 15) + " menit lagi.";
       case "no_pin": return "Akun ini belum punya PIN. Buat PIN dulu lewat halaman login.";
-      case "pin_publik": return "Akun lama: fitur ini aktif setelah pembaruan keamanan PIN selesai.";
+      case "pin_publik": return "PIN dompet masih sama dengan PIN lama yang terbuka di halaman lain. Buat PIN dompet baru di menu Frasa.";
+      case "topup_nonaktif": return "Nabung belum dibuka oleh pengurus.";
+      case "nominal_tidak_valid": return "Nominal harus bilangan bulat Rp " + fmtRp(res.min_rp || 0) + " sampai Rp " + fmtRp(res.maks_rp || 0) + ".";
+      case "masih_ada_tagihan": return "Kamu masih punya tagihan aktif. Buka Riwayat nabung untuk melanjutkannya.";
+      case "terlalu_sering": return "Batas 5 tagihan per 24 jam tercapai. Coba lagi besok.";
+      case "kode_unik_habis": return "Sedang ramai, coba lagi beberapa menit lagi.";
+      case "status_tidak_cocok": return "Status tagihan sudah berubah. Buka Riwayat nabung untuk melihat yang terbaru.";
+      case "pin_sama": return "PIN baru harus berbeda dari PIN lama.";
+      case "pin_baru_sama_publik": return "PIN baru tidak boleh sama dengan PIN di halaman lain (Jurnal, Scan, Tracker). Pilih PIN lain.";
       case "bad_mnemonic": return "Frasa tidak valid (harus 25 kata yang benar).";
       case "mnemonic_mismatch": return "Frasa ini bukan milik dompet akunmu.";
       case "no_vault": return "Belum ada frasa yang dititipkan.";
@@ -374,6 +387,7 @@
           : "Belum terkonfirmasi dalam batas waktu. Cek riwayatnya sebentar lagi." }),
         el("div", { class: "mono kecil", text: txId }),
         el("a", { class: "tautan", href: EXPLORER_TX + txId, target: "_blank", rel: "noopener", text: "Lihat di explorer" })),
+      el("button", { class: "btn sekunder", id: "btnSalinTx", text: "Salin ID transaksi", onclick: () => salin(txId, "ID transaksi disalin") }),
       el("button", { class: "btn utama", text: "Selesai", onclick: () => { sheet.tutup(); muatData(); } })
     );
   }
@@ -508,7 +522,8 @@
     const anak = [];
 
     if (st.pin_publik) {
-      anak.push(el("div", { class: "info", text: "Akun lama: titip dan lihat frasa aktif setelah pembaruan keamanan PIN selesai." }));
+      anak.push(el("div", { class: "info", text: "Akun lamamu perlu diamankan dulu. PIN lama masih tersimpan dalam bentuk yang bisa dibaca publik di halaman lain (Jurnal, Scan, Tracker), sehingga belum aman untuk melindungi frasa. Buat PIN dompet baru yang berbeda, lalu titip frasa." }));
+      anak.push(el("button", { class: "btn utama", id: "btnAmankan", text: "Buat PIN dompet baru", onclick: () => tampilAmankanPin(s) }));
     } else if (!st.has_pin) {
       anak.push(el("div", { class: "info", text: "Akun ini belum punya PIN. Buat PIN dulu lewat halaman login." }));
     } else {
@@ -520,6 +535,47 @@
     }
     anak.push(el("button", { class: "btn teks", text: "Tutup", onclick: s.tutup }));
     s.ganti(anak);
+  }
+
+  // Akun lama: PIN dompet dipisah dari PIN lama (yang hash-nya masih terbaca publik di halaman lain)
+  function tampilAmankanPin(s) {
+    s.setJudul("Buat PIN dompet baru");
+    const lama = pinInput("amanPinLama");
+    lama.placeholder = "PIN lama (6 digit)";
+    const baru = pinInput("amanPinBaru");
+    baru.placeholder = "PIN dompet baru (6 digit)";
+    const ulang = pinInput("amanPinUlang");
+    ulang.placeholder = "Ulangi PIN dompet baru";
+    const galat = el("div", { class: "galat", id: "galatAman" });
+    const btn = el("button", { class: "btn utama", id: "btnSimpanPinBaru", text: "Simpan PIN baru" });
+
+    s.ganti(
+      el("div", { class: "info", text: "PIN baru dipakai untuk login, Dompet, dan frasa. Halaman Jurnal, Scan, dan Tracker tetap memakai PIN lama sampai dipindah. Pilih PIN yang berbeda dari PIN lama, dan jangan sama dengan PIN di halaman lain." }),
+      el("label", { class: "lbl", for: "amanPinLama", text: "PIN lama" }), lama,
+      el("label", { class: "lbl", for: "amanPinBaru", text: "PIN dompet baru" }), baru,
+      el("label", { class: "lbl", for: "amanPinUlang", text: "Ulangi PIN dompet baru" }), ulang,
+      galat, btn,
+      el("button", { class: "btn teks", text: "Kembali", onclick: () => tampilMenuFrasa(s) })
+    );
+
+    btn.onclick = async () => {
+      galat.textContent = "";
+      const a = lama.value.trim(), b = baru.value.trim(), c = ulang.value.trim();
+      if (!/^\d{6}$/.test(a) || !/^\d{6}$/.test(b)) { galat.textContent = "PIN harus 6 digit angka."; return; }
+      if (b !== c) { galat.textContent = "PIN baru dan ulangannya tidak sama."; return; }
+      if (a === b) { galat.textContent = "PIN baru harus berbeda dari PIN lama."; return; }
+      btn.disabled = true;
+      btn.textContent = "Menyimpan…";
+      const res = await vault("ganti_pin", { profile_id: state.wallet, pin: a, pin_baru: b });
+      lama.value = ""; baru.value = ""; ulang.value = "";
+      btn.disabled = false;
+      btn.textContent = "Simpan PIN baru";
+      if (!res.ok) { galat.textContent = pesanVault(res); return; }
+      state.status = Object.assign({}, state.status, { pin_publik: false });
+      renderBanner();
+      toast("PIN dompet baru tersimpan. Sekarang titip frasa.");
+      tampilTitip(s);
+    };
   }
 
   function tampilTitip(s) {
@@ -623,7 +679,8 @@
   function bolehTandatangan() {
     const st = state.status || {};
     if (st.pin_publik) {
-      toast("Akun lama: Kirim & Opt-in aktif setelah pembaruan keamanan PIN.");
+      toast("Amankan akunmu dulu: buat PIN dompet baru di menu Frasa.");
+      panelFrasa();
       return false;
     }
     if (!st.has_pin) {
@@ -652,11 +709,170 @@
     const b = $("banner");
     const st = state.status || {};
     let teks = "";
-    if (st.pin_publik) teks = "Akun lama: Kirim, Opt-in, dan Frasa aktif setelah pembaruan keamanan PIN. Saldo dan Terima tetap bisa dipakai.";
+    if (st.pin_publik) teks = "Akun lama: buat PIN dompet baru di menu Frasa, lalu titip frasa, agar bisa Kirim dan Opt-in. Saldo dan Terima tetap bisa dipakai.";
     else if (st.has_pin && !st.has_vault) teks = "Titip frasa di menu Frasa agar bisa Kirim dan Opt-in.";
     else if (!st.has_pin) teks = "Akun ini belum punya PIN. Buat PIN lewat halaman login untuk memakai Kirim dan Frasa.";
     b.textContent = teks;
     b.hidden = !teks;
+  }
+
+  function renderNabung() {
+    const info = state.topup;
+    const kartu = $("nabungCard");
+    if (!kartu) return;
+    kartu.hidden = !(info && info.aktif);
+    if (info && info.aktif) {
+      $("nabungInfo").textContent = "Setor receh ke kas bersama dan terima TOF di dompetmu. 1 TOF = Rp " + fmtRp(info.kurs) + ".";
+    }
+    $("btnNabung").onclick = panelNabung;
+  }
+
+  // ---------------- Nabung TOF (top-up rupiah via QRIS, dikonfirmasi pengurus) ----------------
+  const STATUS_NABUNG = {
+    menunggu: ["Menunggu pembayaran", "tunggu"],
+    dibayar: ["Menunggu dicek pengurus", "tunggu"],
+    dikonfirmasi: ["Pembayaran dikonfirmasi, TOF disiapkan", "ok"],
+    selesai: ["TOF sudah terkirim", "ok"],
+    ditolak: ["Ditolak pengurus", "gagal"],
+    dibatalkan: ["Dibatalkan", "gagal"],
+    kedaluwarsa: ["Kedaluwarsa", "gagal"]
+  };
+
+  function chipStatus(status) {
+    const [teks, kelas] = STATUS_NABUNG[status] || [status, ""];
+    return el("span", { class: "chip " + kelas, text: teks });
+  }
+
+  function panelNabung() {
+    const info = state.topup;
+    if (!info || !info.aktif) { toast("Nabung belum dibuka oleh pengurus."); return; }
+    const s = bukaSheet("Nabung TOF");
+    const sesi = { pin: "" };
+    s.onTutup(() => { sesi.pin = ""; });
+    tampilFormNabung(s, info, sesi);
+  }
+
+  function tampilFormNabung(s, info, sesi) {
+    s.setJudul("Nabung TOF");
+    let nominal = 0;
+    const inputNominal = el("input", { class: "inp", id: "nabungNominal", inputmode: "numeric", placeholder: "Atau ketik nominal lain (Rp)", autocomplete: "off" });
+    const preview = el("div", { class: "kecil abu", id: "nabungPreview", text: "Pilih nominal untuk melihat TOF yang kamu terima." });
+    const pin = pinInput("nabungPin");
+    const galat = el("div", { class: "galat", id: "galatNabung" });
+    const btn = el("button", { class: "btn utama", id: "btnBuatTagihan", text: "Buat tagihan" });
+    const grid = el("div", { class: "grid-nominal" });
+
+    const hitung = () => {
+      if (!Number.isInteger(nominal) || nominal <= 0) { preview.textContent = "Pilih nominal untuk melihat TOF yang kamu terima."; return; }
+      const tof = (BigInt(nominal) * SATU) / BigInt(info.kurs);
+      preview.textContent = "Kamu menerima sekitar " + fmtUnits(tof) + " TOF (kode unik 1–99 rupiah ikut dikonversi).";
+    };
+    [5000, 10000, 25000, 50000, 100000].forEach((n) => {
+      const b = el("button", { class: "mini", type: "button", text: fmtRp(n), "data-nominal": String(n) });
+      b.onclick = () => {
+        nominal = n; inputNominal.value = "";
+        grid.querySelectorAll(".mini").forEach((x) => x.classList.remove("pilih"));
+        b.classList.add("pilih"); hitung();
+      };
+      grid.append(b);
+    });
+    inputNominal.oninput = () => {
+      grid.querySelectorAll(".mini").forEach((x) => x.classList.remove("pilih"));
+      nominal = /^\d+$/.test(inputNominal.value.trim()) ? Number(inputNominal.value.trim()) : 0;
+      hitung();
+    };
+
+    const peringatan = state.ringkas && !state.ringkas.tofOptin
+      ? el("div", { class: "info", id: "peringatanOptin" },
+          "Dompetmu belum opt-in TOF, jadi TOF belum bisa masuk. ",
+          el("button", { class: "mini", type: "button", id: "btnOptinDulu", text: "Opt-in dulu", onclick: () => { s.tutup(); panelOptin(); } }))
+      : null;
+
+    s.ganti(
+      info.aturan ? el("div", { class: "info", id: "nabungAturan", text: info.aturan }) : null,
+      el("div", { class: "kecil abu", text: "1 TOF = Rp " + fmtRp(info.kurs) + " · minimal Rp " + fmtRp(info.min_rp) + " · maksimal Rp " + fmtRp(info.maks_rp) }),
+      el("label", { class: "lbl", text: "Nominal" }), grid, inputNominal, preview,
+      peringatan,
+      el("label", { class: "lbl", for: "nabungPin", text: "PIN" }), pin, galat, btn,
+      el("button", { class: "btn teks", id: "btnRiwayatNabung", text: "Riwayat nabung", onclick: async () => {
+        const p = pin.value.trim();
+        galat.textContent = "";
+        if (!/^\d{6}$/.test(p)) { galat.textContent = "Isi PIN dulu untuk membuka riwayat."; return; }
+        const res = await vault("topup_saya", { profile_id: state.wallet, pin: p });
+        if (!res.ok) { galat.textContent = pesanVault(res); return; }
+        sesi.pin = p; pin.value = "";
+        tampilRiwayatNabung(s, info, sesi, res.daftar);
+      } })
+    );
+
+    btn.onclick = async () => {
+      galat.textContent = "";
+      const p = pin.value.trim();
+      if (!Number.isInteger(nominal) || nominal < info.min_rp || nominal > info.maks_rp) { galat.textContent = pesanVault({ error: "nominal_tidak_valid", min_rp: info.min_rp, maks_rp: info.maks_rp }); return; }
+      if (!/^\d{6}$/.test(p)) { galat.textContent = "PIN harus 6 digit angka."; return; }
+      btn.disabled = true; btn.textContent = "Membuat tagihan…";
+      const res = await vault("topup_buat", { profile_id: state.wallet, pin: p, nominal_rp: nominal });
+      pin.value = "";
+      btn.disabled = false; btn.textContent = "Buat tagihan";
+      if (!res.ok) { galat.textContent = pesanVault(res); return; }
+      sesi.pin = p;
+      tampilTagihan(s, info, sesi, res.topup);
+    };
+  }
+
+  function tampilTagihan(s, info, sesi, tp) {
+    s.setJudul("Tagihan nabung");
+    const aktif = tp.status === "menunggu" || tp.status === "dibayar";
+    const galat = el("div", { class: "galat", id: "galatTagihan" });
+    const ref = el("input", { class: "inp", id: "nabungRef", maxlength: "60", placeholder: "Nama pengirim di DANA/e-wallet (opsional)", autocomplete: "off" });
+    const anak = [
+      el("div", { class: "tengah" }, chipStatus(tp.status)),
+      aktif && info.qris ? el("img", { class: "qris", id: "gambarQris", src: info.qris, alt: "QRIS" }) : null,
+      aktif && info.nama_penerima ? el("div", { class: "kecil abu tengah", text: "Penerima: " + info.nama_penerima }) : null,
+      el("div", { class: "kecil abu tengah", text: aktif ? "Bayar PERSIS sejumlah:" : "Jumlah:" }),
+      el("div", { class: "total-bayar", id: "totalBayar", text: "Rp " + fmtRp(tp.total_rp) }),
+      aktif ? el("div", { class: "tengah" }, el("button", { class: "mini", type: "button", id: "btnSalinTotal", text: "Salin jumlah", onclick: () => salin(String(tp.total_rp), "Jumlah disalin") })) : null,
+      el("div", { class: "kecil abu tengah", text: "Kamu menerima " + fmtUnits(tp.tof_units) + " TOF" }),
+      tp.status === "menunggu" ? el("ol", { class: "langkah" },
+        el("li", { text: "Buka DANA, e-wallet, atau m-banking, lalu pilih Bayar/Scan QRIS." }),
+        el("li", { text: "Scan QRIS di atas dan bayar PERSIS Rp " + fmtRp(tp.total_rp) + " (termasuk 2 angka terakhir)." }),
+        el("li", { text: "Tekan “Saya sudah bayar”. Pengurus mencocokkan dengan mutasi, lalu TOF dikirim ke dompetmu." })) : null,
+      aktif ? el("div", { class: "kecil abu tengah", text: "Berlaku sampai " + new Date(tp.kedaluwarsa_pada).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) }) : null,
+      tp.status === "dibayar" ? el("div", { class: "info", text: "Terima kasih. Pengurus akan mencocokkan dengan mutasi, dan TOF dikirim setelah dikonfirmasi." }) : null,
+      tp.status === "ditolak" && tp.catatan_admin ? el("div", { class: "info", text: "Alasan: " + tp.catatan_admin }) : null,
+      tp.status === "selesai" && tp.tof_txid ? el("a", { class: "tautan", href: EXPLORER_TX + tp.tof_txid, target: "_blank", rel: "noopener", text: "Lihat transaksi TOF di explorer" }) : null,
+    ];
+    if (tp.status === "menunggu") {
+      anak.push(el("label", { class: "lbl", for: "nabungRef", text: "Catatan (opsional)" }), ref);
+      anak.push(galat);
+      anak.push(el("button", { class: "btn utama", id: "btnSudahBayar", text: "Saya sudah bayar", onclick: async function () {
+        this.disabled = true;
+        const res = await vault("topup_dibayar", { profile_id: state.wallet, pin: sesi.pin, id: tp.id, ref: ref.value.trim() });
+        this.disabled = false;
+        if (!res.ok) { galat.textContent = pesanVault(res); return; }
+        tampilTagihan(s, info, sesi, res.topup);
+      } }));
+      anak.push(el("button", { class: "btn teks", id: "btnBatalTagihan", text: "Batalkan tagihan", onclick: async () => {
+        if (!window.confirm("Batalkan tagihan ini? Jangan batalkan kalau kamu sudah membayar.")) return;
+        const res = await vault("topup_batal", { profile_id: state.wallet, pin: sesi.pin, id: tp.id });
+        if (!res.ok) { galat.textContent = pesanVault(res); return; }
+        tampilTagihan(s, info, sesi, res.topup);
+      } }));
+    } else {
+      anak.push(galat);
+    }
+    anak.push(el("button", { class: "btn " + (aktif && tp.status !== "menunggu" ? "utama" : "teks"), id: "btnTutupTagihan", text: aktif && tp.status !== "menunggu" ? "Selesai" : "Tutup", onclick: s.tutup }));
+    s.ganti(anak);
+  }
+
+  function tampilRiwayatNabung(s, info, sesi, daftar) {
+    s.setJudul("Riwayat nabung");
+    const baris = daftar.length
+      ? daftar.slice().reverse().map((r) => el("div", { class: "baris-nabung", "data-id": r.id, onclick: () => tampilTagihan(s, info, sesi, r) },
+          el("div", {}, el("div", { text: "Rp " + fmtRp(r.total_rp) }), el("div", { class: "kecil abu", text: new Date(r.dibuat).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) })),
+          el("div", { class: "tengah" }, chipStatus(r.status))))
+      : [el("div", { class: "kosong", text: "Belum ada riwayat nabung." })];
+    s.ganti(el("div", { id: "daftarNabung" }, baris), el("button", { class: "btn teks", text: "Kembali", onclick: () => tampilFormNabung(s, info, sesi) }));
   }
 
   const ikonRiwayat = { keluar: "↗", masuk: "↙", optin: "＋", lain: "•" };
@@ -718,6 +934,7 @@
         state.status = r.ok ? { has_vault: !!r.has_vault, has_pin: !!r.has_pin, pin_publik: !!r.pin_publik } : { has_vault: false, has_pin: false, pin_publik: false, galat: true };
         renderBanner();
       }),
+      vault("topup_info", {}).then((r) => { state.topup = r.ok ? r : null; renderNabung(); }),
       muatRiwayat()
     ];
     await Promise.all(tugas);
@@ -818,7 +1035,14 @@
         else if (a === "frasa") panelFrasa();
       };
     });
-    muatData();
+    muatData().then(() => {
+      const q = new URLSearchParams(window.location.search);
+      const ke = q.get("ke");
+      if (ke && bolehTandatangan()) {
+        const sk = bukaSheet("Kirim");
+        tampilFormKirim(sk, { aset: q.get("aset") === "ALGO" ? "ALGO" : "TOF", tujuan: ke, jumlah: q.get("jumlah") || "" });
+      }
+    });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mulai);
