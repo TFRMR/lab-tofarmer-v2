@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dompet | ToFarmer</title>
   <link rel="icon" type="image/png" href="../aset/favicon.png" />
+
+  <!-- PWA: bisa dipasang ke layar utama HP (tombol "Instal 5 Detik") -->
+  <meta name="theme-color" content="#2f6f4e" />
+  <link rel="manifest" href="./manifest-dompet.webmanifest" />
+  <link rel="apple-touch-icon" href="./icon-dompet-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Dompet" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
 
   <style>
@@ -139,6 +148,18 @@
       border-radius: 22px; font-size: 12px; opacity: 0; pointer-events: none; transition: .25s; z-index: 2000; max-width: 88vw; text-align: center;
     }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    /* ---- banner pasang aplikasi ---- */
+    .pwa-banner {
+      margin-top: 12px; background: #fff; border: 1px solid rgba(76,175,122,.3); border-radius: 16px; padding: 10px 12px;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .pwa-banner .t { font-size: 12px; font-weight: 700; color: var(--hijau); }
+    .pwa-banner .s { font-size: 10px; color: var(--abu); margin-top: 1px; }
+    .pwa-btn {
+      background: linear-gradient(90deg, #4caf7a, var(--emas)); color: #fff; border: none; padding: 10px 14px; border-radius: 10px;
+      font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit;
+    }
+    .langkah { margin: 4px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.7; color: var(--teks); }
     [hidden] { display: none !important; }
   </style>
 
@@ -152,7 +173,7 @@
 
     <div class="topbar">
       <a class="back" href="../profile.html" aria-label="Kembali">←</a>
-      <div class="title">👛 Dompet ToFarmer</div>
+      <div class="title">👛 Dompet</div>
       <div class="net">Algorand Mainnet</div>
     </div>
 
@@ -161,7 +182,7 @@
       <div style="font-size:34px;">🌿</div>
       <div style="font-weight:700;margin-top:6px;">Masuk dulu ya</div>
       <div style="font-size:12px;color:var(--abu);margin-top:4px;">Dompet hanya bisa dibuka setelah kamu login.</div>
-      <a href="login.html">Masuk</a>
+      <a id="linkMasuk" href="login.html">Masuk</a>
     </div>
 
     <div id="konten" hidden>
@@ -183,6 +204,14 @@
       </section>
 
       <div id="banner" class="banner" hidden></div>
+
+      <div class="pwa-banner" id="pwaBanner" hidden>
+        <div>
+          <div class="t">Pasang Dompet ToFarmer</div>
+          <div class="s">Taruh di layar depan HP, buka seperti aplikasi</div>
+        </div>
+        <button class="pwa-btn" id="btnInstal" type="button">⚡ Instal 5 Detik</button>
+      </div>
 
       <section class="aksi">
         <button type="button" data-aksi="terima">⬇️<span>Terima</span></button>

@@ -723,12 +723,79 @@
     await Promise.all(tugas);
   }
 
+  // Belum login → arahkan ke halaman login; setelah berhasil login, login.js membawa kembali ke sini.
   function tampilkanPesanLogin() {
     $("pesanLogin").hidden = false;
     $("konten").hidden = true;
+    const balik = window.location.pathname + window.location.search;
+    const tujuan = "login.html?next=" + encodeURIComponent(balik);
+    $("linkMasuk").setAttribute("href", tujuan);
+    try { localStorage.setItem("redirect_to", balik); } catch (e) { /* abaikan */ }
+    if (!CFG.tanpaRedirect) setTimeout(() => { window.location.href = tujuan; }, 900);
+  }
+
+  // ---------------- pasang ke layar utama (PWA) ----------------
+  let promptInstal = null;
+
+  function sudahTerpasang() {
+    return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) ||
+      window.navigator.standalone === true;
+  }
+
+  function siapkanInstal() {
+    const banner = $("pwaBanner");
+    if (!banner) return;
+    banner.hidden = sudahTerpasang();
+
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      promptInstal = e;
+      banner.hidden = sudahTerpasang();
+    });
+    window.addEventListener("appinstalled", () => {
+      banner.hidden = true;
+      promptInstal = null;
+      toast("Dompet terpasang di layar utama");
+    });
+    $("btnInstal").onclick = jalankanInstal;
+
+    // Service worker (syarat agar Chrome Android menawarkan "Instal")
+    if ("serviceWorker" in navigator && /^https?:$/.test(window.location.protocol) && !CFG.tanpaSW) {
+      navigator.serviceWorker.register("./sw-dompet.js", { scope: "./dompet.html" })
+        .catch((e) => console.warn("Service worker dompet gagal didaftarkan", e));
+    }
+  }
+
+  function jalankanInstal() {
+    if (promptInstal) {
+      promptInstal.prompt();
+      promptInstal.userChoice.then((pilihan) => {
+        if (pilihan.outcome === "accepted") $("pwaBanner").hidden = true;
+        promptInstal = null;
+      });
+      return;
+    }
+    // Belum ada prompt otomatis (iPhone/Safari atau browser lain): beri petunjuk manual
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent || "");
+    const s = bukaSheet("Pasang ke layar utama");
+    s.ganti(
+      el("div", { class: "kecil abu", text: ios
+        ? "Di iPhone/iPad, pasang lewat Safari:"
+        : "Di HP Android, pasang lewat Chrome:" }),
+      el("ol", { class: "langkah" }, ios
+        ? [el("li", { text: "Ketuk tombol Bagikan (kotak dengan panah ke atas)." }),
+           el("li", { text: "Pilih “Tambahkan ke Layar Utama”." }),
+           el("li", { text: "Ketuk Tambah. Ikon Dompet muncul di layar depan." })]
+        : [el("li", { text: "Ketuk menu titik tiga (⋮) di pojok browser." }),
+           el("li", { text: "Pilih “Instal aplikasi” atau “Tambahkan ke layar utama”." }),
+           el("li", { text: "Ketuk Instal. Ikon Dompet muncul di layar depan." })]),
+      el("div", { class: "info", text: "Setelah terpasang, Dompet terbuka layar penuh seperti aplikasi biasa. Kamu perlu login sekali di dalamnya." }),
+      el("button", { class: "btn utama", id: "btnSiap", text: "Siap", onclick: s.tutup })
+    );
   }
 
   function mulai() {
+    siapkanInstal();
     const wallet = localStorage.getItem("tof_wallet");
     if (!wallet || !algosdk.isValidAddress(wallet)) {
       tampilkanPesanLogin();

@@ -42,6 +42,48 @@ function pesanTofVault(res) {
     }
 }
 
+// ========================================
+// KEMBALI KE HALAMAN TUJUAN SETELAH LOGIN
+// Semua halaman memakai login yang sama, jadi setelah berhasil login pengunjung dibawa
+// kembali ke halaman yang tadi ingin dibuka (bukan selalu ke beranda).
+// Urutan sumber tujuan:
+//   1. ?next=/html/dompet.html  (dikirim halaman yang mengarahkan ke login)
+//   2. localStorage 'redirect_to' (cara lama, mis. desa-tof.html)
+//   3. sessionStorage (supaya tujuan tidak hilang kalau halaman login dimuat ulang)
+//   4. halaman sebelumnya (document.referrer) jika masih satu situs
+// Hanya alamat satu situs yang diterima (mencegah dialihkan ke situs lain).
+// ========================================
+function amankanTujuan(raw) {
+    if (!raw) return null;
+    try {
+        const u = new URL(raw, window.location.origin);
+        if (u.origin !== window.location.origin) return null;
+        if (/login\.html$/i.test(u.pathname)) return null; // jangan balik ke halaman login
+        return u.pathname + u.search + u.hash;
+    } catch (e) {
+        return null;
+    }
+}
+
+function tentukanTujuan() {
+    const dariUrl = amankanTujuan(new URLSearchParams(window.location.search).get('next'));
+    if (dariUrl) return dariUrl;
+
+    let dariStorage = null, dariSesi = null;
+    try { dariStorage = amankanTujuan(localStorage.getItem('redirect_to')); } catch (e) {}
+    if (dariStorage) return dariStorage;
+    try { dariSesi = amankanTujuan(sessionStorage.getItem('tof_login_next')); } catch (e) {}
+    if (dariSesi) return dariSesi;
+
+    return amankanTujuan(document.referrer);
+}
+
+// Dihitung sekali saat halaman login dibuka (sebelum apa pun berubah)
+const tujuanSetelahLogin = tentukanTujuan();
+try {
+    if (tujuanSetelahLogin) sessionStorage.setItem('tof_login_next', tujuanSetelahLogin);
+} catch (e) {}
+
 // SHA256 hashing (gunakan TweetNaCl atau crypto API)
 async function hashPIN(pin) {
     const encoder = new TextEncoder();
@@ -154,9 +196,12 @@ async function handleLogin(event) {
         const redirectTo = localStorage.getItem('redirect_to');
         localStorage.removeItem('redirect_to');
 
-        // Redirect
+        // Redirect: ke halaman yang tadi ingin dibuka; kalau tidak ada baru ke beranda
+        const tujuan = tujuanSetelahLogin || amankanTujuan(redirectTo) || '/';
+        try { sessionStorage.removeItem('tof_login_next'); } catch (e) {}
+
         setTimeout(() => {
-            window.location.href = redirectTo || '/';
+            window.location.href = tujuan;
         }, 500);
 
     } catch (err) {
