@@ -98,7 +98,7 @@ export default {
 
       const auth = await authenticate();
       if (auth.response) return auth.response;
-      const body = await request.json();
+      const body = await readJson(request, 20_000);
       if (body.user_id !== auth.user.id) return jsonError({ message: "user_id does not match authenticated user" }, corsHeaders, 403);
       if (typeof body.title !== "string" || !body.title.trim() || body.title.length > 200 ||
           typeof body.content !== "string" || !body.content.trim() || body.content.length > 10000) {
@@ -129,7 +129,7 @@ export default {
 
       const auth = await authenticate();
       if (auth.response) return auth.response;
-      const body = await request.json();
+      const body = await readJson(request, 20_000);
       if (body.user_id !== auth.user.id || !body.post_id) return jsonError({ message: "Invalid user_id or post_id" }, corsHeaders, 403);
 
       const { data, error } = await supabase
@@ -153,7 +153,7 @@ export default {
 
       const auth = await authenticate();
       if (auth.response) return auth.response;
-      const body = await request.json();
+      const body = await readJson(request, 20_000);
       if (body.user_id !== auth.user.id || !body.post_id ||
           typeof body.comment !== "string" || !body.comment.trim() || body.comment.length > 2000) {
         return jsonError({ message: "Invalid user_id, post_id, or comment" }, corsHeaders, 400);
@@ -180,7 +180,7 @@ export default {
 if (url.pathname === "/refresh-profil" && request.method === "POST") {
     const auth = await authenticate();
     if (auth.response) return auth.response;
-    const { user_id } = await request.json();
+    const { user_id } = await readJson(request, 20_000);
     if (user_id !== auth.user.id) return jsonError({ message: "Forbidden" }, corsHeaders, 403);
     if (!user_id) return jsonError({ message: "user_id is required" }, corsHeaders, 400);
     
@@ -205,7 +205,12 @@ if (url.pathname === "/refresh-profil" && request.method === "POST") {
 // =====================================================
 // TEST AGREEMENT VISION
 // =====================================================
-if (url.pathname === "/agree-vision") {
+if (url.pathname === "/agree-vision" && request.method === "POST") {
+  const expectedSecret = env.INTERNAL_WEBHOOK_SECRET;
+  const suppliedSecret = request.headers.get("X-Internal-Webhook-Secret");
+  if (!expectedSecret || !suppliedSecret || suppliedSecret !== expectedSecret) {
+    return jsonError({ message: "Forbidden" }, corsHeaders, 403);
+  }
 
   const response = await env.AI.run(
     "@cf/meta/llama-3.2-11b-vision-instruct", // ← Vision model, jangan diganti
@@ -224,7 +229,7 @@ if (url.pathname === "/ai-gambar" && request.method === "POST") {
     if (Number(request.headers.get("Content-Length") || 0) > 5_500_000) {
       return jsonError({ message: "Image request exceeds 5 MB limit" }, corsHeaders, 413);
     }
-    const body = await request.json();
+    const body = await readJson(request, 5_500_000);
     
     if (!body.image || !Array.isArray(body.image) || body.image.length === 0 || body.image.length > 5_000_000 ||
         !body.image.every(byte => Number.isInteger(byte) && byte >= 0 && byte <= 255)) {
@@ -262,7 +267,7 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
     if (Number(request.headers.get("Content-Length") || 0) > 20_000) {
       return jsonError({ message: "AI request exceeds 20 KB limit" }, corsHeaders, 413);
     }
-    const body = await request.json();
+    const body = await readJson(request, 20_000);
     const textToProcess = body.teks || JSON.stringify(body.data);
     if (typeof textToProcess !== "string" || !textToProcess.trim() || textToProcess.length > 12_000) {
       return jsonError({ message: "teks must be a non-empty string of at most 12000 characters" }, corsHeaders, 400);
@@ -496,7 +501,7 @@ if (url.pathname === "/trigger-sync" && request.method === "POST") {
   if (!expectedSecret || !suppliedSecret || suppliedSecret !== expectedSecret) {
     return jsonError({ message: "Forbidden" }, corsHeaders, 403);
   }
-  const body = await request.json();
+  const body = await readJson(request, 20_000);
   const record = body.record;
 
   if (record && record.id && record.message) {
@@ -519,6 +524,22 @@ if (url.pathname === "/trigger-sync" && request.method === "POST") {
 // =========================
 // HELPERS
 // =========================
+async function readJson(request, maxBytes) {
+  const text = await request.text();
+  if (new TextEncoder().encode(text).byteLength > maxBytes) {
+    const error = new Error("Request body too large");
+    error.status = 413;
+    throw error;
+  }
+  try {
+    return JSON.parse(text);
+  } catch {
+    const error = new Error("Invalid JSON body");
+    error.status = 400;
+    throw error;
+  }
+}
+
 function json(data, headers) {
   return new Response(JSON.stringify(data), {
     headers: { ...headers, "Content-Type": "application/json" }
