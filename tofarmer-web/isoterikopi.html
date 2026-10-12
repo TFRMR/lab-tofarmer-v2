@@ -12,7 +12,6 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="icon" type="image/png" href="aset/favicon.png">
   <style>
-  /* Fix Viewport Height HP */
   html, body {
     height: 100%;
     height: 100dvh;
@@ -20,13 +19,10 @@
     padding: 0;
     overflow: hidden;
   }
-
-  /* 1. Custom Scrollbar Warm Forest */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: #070e0a; }
   ::-webkit-scrollbar-thumb { background: #183323; border-radius: 2px; }
 
-  /* 2. Background Utama Hutan Menoreh Kelam */
   body {
     font-family: 'Plus Jakarta Sans', sans-serif;
     background:
@@ -35,7 +31,6 @@
       linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
   }
 
-  /* 3. Kabut Lembuat Pegunungan Menoreh */
   body::before {
     content: "";
     position: fixed;
@@ -52,7 +47,6 @@
     100% { transform: translateX(-3%); }
   }
 
-  /* 4. Glass Panel Khas Hutan & Kedai Kopi */
   .glass-panel {
     background: rgba(14, 28, 19, 0.85);
     backdrop-filter: blur(16px);
@@ -60,13 +54,11 @@
     border: 1px solid rgba(74, 222, 128, 0.12);
   }
 
-  /* Modal Backdrop */
   .modal-backdrop {
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
   }
 
-  /* Emoji Picker Styles */
   .emoji-picker-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -91,23 +83,15 @@
     border-color: rgba(234, 179, 8, 0.3);
   }
 
-  /* Animation untuk new message */
   @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(8px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .message-new {
     animation: slideUp 0.3s ease-out;
   }
 
-  /* Link styling */
   a.chat-link {
     color: #eab308;
     text-decoration: underline;
@@ -119,7 +103,6 @@
     color: #facc15;
   }
 
-  /* Loading skeleton */
   @keyframes shimmer {
     0% { background-position: -1000px 0; }
     100% { background-position: 1000px 0; }
@@ -129,33 +112,6 @@
     background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.15), rgba(255,255,255,0.05));
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
-  }
-
-  /* Tooltip */
-  .tooltip {
-    position: relative;
-  }
-
-  .tooltip::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.9);
-    color: #eab308;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 10px;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-    margin-bottom: 4px;
-  }
-
-  .tooltip:hover::after {
-    opacity: 1;
   }
 </style>
 </head>
@@ -178,7 +134,12 @@
 
     <!-- Right Controls -->
     <div class="flex items-center space-x-2">
-      <button id="user-menu-btn" onclick="toggleUserMenu()" class="px-3 py-1.5 text-xs font-medium bg-stone-900 hover:bg-stone-800 text-amber-400 rounded-lg transition-all flex items-center gap-1.5 border border-stone-700 tooltip" data-tooltip="Menu profil">
+      <!-- TOMBOL BUAT MEJA BARU DIPINDAH KE HEADER UTAMA AGAR AMAN DARI TAMPILAN -->
+      <button id="create-room-btn" onclick="showCreateRoomModal()" class="px-2.5 py-1.5 rounded-lg bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 font-medium transition text-xs flex items-center gap-1">
+        ➕ <span class="hidden sm:inline">Buat Meja</span>
+      </button>
+
+      <button id="user-menu-btn" onclick="toggleUserMenu()" class="px-3 py-1.5 text-xs font-medium bg-stone-900 hover:bg-stone-800 text-amber-400 rounded-lg transition-all flex items-center gap-1.5 border border-stone-700">
         👤 <span id="user-label" class="hidden sm:inline">Anonym</span>
       </button>
       <a id="login-btn-header" href="./beranda.html" class="px-3 py-1.5 text-xs font-medium bg-amber-600 hover:bg-amber-500 text-stone-950 rounded-lg transition-all flex items-center gap-1.5 shadow-lg shadow-amber-900/20 font-semibold">
@@ -190,7 +151,7 @@
     </div>
   </header>
 
-  <!-- USER DROPDOWN MENU (MEMBER-ONLY) -->
+  <!-- USER DROPDOWN MENU -->
   <div id="user-menu-dropdown" class="hidden absolute top-14 right-4 bg-stone-900 border border-stone-800 rounded-xl shadow-2xl z-50 min-w-[200px] overflow-hidden glass-panel">
     <div class="p-3 border-b border-stone-800">
       <p class="text-xs text-stone-400">Status Pengguna</p>
@@ -210,15 +171,10 @@
     </div>
   </div>
 
- <!-- CHANNEL SELECTOR / ROOMS LIST -->
-  <div class="bg-stone-900/90 border-b border-stone-800/80 px-3 py-3 flex flex-col gap-2.5 text-xs shrink-0 mt-1">
-    <div class="flex items-center justify-between">
-      <span class="text-stone-500 text-[10px] font-mono uppercase tracking-wider pl-1">Pilih Meja Obrolan:</span>
-      <button id="create-room-btn" onclick="showCreateRoomModal()" class="px-3 py-1 rounded-full bg-green-500/10 text-green-400 border border-green-500/30 hover:bg-green-500/20 font-medium transition text-xs relative group" title="Buat meja baru (member)">
-        ➕ Buat Meja Baru
-      </button>
-    </div>
-    <div id="rooms-container" class="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar"></div>
+  <!-- CHANNEL SELECTOR / ROOMS LIST -->
+  <div class="bg-stone-900/90 border-b border-stone-800/80 px-3 py-2.5 flex items-center space-x-2 overflow-x-auto text-xs shrink-0 no-scrollbar">
+    <span class="text-stone-500 text-[10px] font-mono uppercase tracking-wider pl-1 pr-2 shrink-0">Meja Aktif:</span>
+    <div id="rooms-container" class="flex items-center space-x-2"></div>
   </div>
 
   <!-- MAIN STREAM AREA -->
@@ -272,10 +228,10 @@
       <button type="button" onclick="cancelPendingImage()" class="text-stone-400 hover:text-red-400 text-xs font-bold px-2" title="Batalkan gambar">✕</button>
     </div>
     <div class="flex items-end space-x-2 relative">
-      <button id="emoji-picker-btn" onclick="toggleEmojiPicker()" class="p-2.5 text-amber-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Emoji & stiker">
+      <button id="emoji-picker-btn" onclick="toggleEmojiPicker()" class="p-2.5 text-amber-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition" title="Emoji & stiker">
         😊
       </button>
-      <button type="button" onclick="document.getElementById('image-upload-input').click()" class="p-2.5 text-green-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition tooltip" data-tooltip="Kirim gambar">
+      <button type="button" onclick="document.getElementById('image-upload-input').click()" class="p-2.5 text-green-400 hover:bg-stone-800 rounded-lg border border-stone-700 transition" title="Kirim gambar">
         🖼️
       </button>
       <input id="image-upload-input" type="file" accept="image/*" class="hidden" onchange="previewPendingImage(event)">
@@ -298,8 +254,7 @@
         ></textarea>
         <button 
           type="submit" 
-          class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-stone-950 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center shadow-md shadow-amber-900/20 h-[52px] shrink-0 tooltip" 
-          data-tooltip="Kirim (Shift+Enter: baris baru)"
+          class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-stone-950 px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center justify-center shadow-md shadow-amber-900/20 h-[52px] shrink-0"
         >
           Kirim
         </button>
@@ -377,13 +332,11 @@
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
-    // CONFIG
     const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
     
     const DEFAULT_EMOJI_SET = ['😊', '😂', '🤣', '😍', '🥰', '😎', '🔥', '💯', '👍', '🙌', '💪', '✨', '🌟', '⭐', '💫', '🎉', '🎊', '🎈', '🎁', '💝', '☕', '🍵', '🌿', '🌱', '🌳', '🌲', '⛰️', '🏡', '🏘️', '🌍', '📚', '✍️', '📝', '🎓', '💡', '🔬', '🔭', '🎨', '🎭', '🎪', '🎯', '🎲', '🃏'];
 
-    // GLOBAL STATE
     let supabaseClient = null;
     let currentRoom = 'mejabar';
     let userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
@@ -395,7 +348,6 @@
     let rooms = [];
     let roomsLoaded = false;
 
-    // INIT
     function init() {
       if (typeof window.supabase !== 'undefined' && !SUPABASE_URL.includes("YOUR_SUPABASE")) {
         supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -464,18 +416,18 @@
       const memberHint = document.getElementById('member-hint');
 
       if (isLoggedIn) {
-        loginBtn.classList.add('hidden');
-        logoutBtn.classList.remove('hidden');
-        createRoomBtn.classList.remove('hidden');
-        userStatus.innerHTML = `Member: <b class="text-green-400">@${userUsername}</b>`;
-        memberBadge.classList.remove('hidden');
-        memberHint.classList.add('hidden');
+        if (loginBtn) loginBtn.classList.add('hidden');
+        if (logoutBtn) logoutBtn.classList.remove('hidden');
+        if (createRoomBtn) createRoomBtn.classList.remove('hidden');
+        if (userStatus) userStatus.innerHTML = `Member: <b class="text-green-400">@${userUsername}</b>`;
+        if (memberBadge) memberBadge.classList.remove('hidden');
+        if (memberHint) memberHint.classList.add('hidden');
       } else {
-        loginBtn.classList.remove('hidden');
-        logoutBtn.classList.add('hidden');
-        userStatus.innerHTML = `Pengunjung: <b class="text-amber-400">${userAlias}</b>`;
-        memberBadge.classList.add('hidden');
-        memberHint.classList.remove('hidden');
+        if (loginBtn) loginBtn.classList.remove('hidden');
+        if (logoutBtn) logoutBtn.classList.add('hidden');
+        if (userStatus) userStatus.innerHTML = `Pengunjung: <b class="text-amber-400">${userAlias}</b>`;
+        if (memberBadge) memberBadge.classList.add('hidden');
+        if (memberHint) memberHint.classList.remove('hidden');
       }
     }
 
@@ -486,7 +438,6 @@
       return `${adjectives[Math.floor(Math.random() * adjectives.length)]}${animals[Math.floor(Math.random() * animals.length)]}#${num}`;
     }
 
-    // ROOMS MANAGEMENT
     async function loadRooms() {
       if (!supabaseClient) {
         renderDefaultRooms();
@@ -630,18 +581,8 @@
       closeCreateRoomModal();
       document.getElementById('room-name').value = '';
       document.getElementById('room-desc').value = '';
-
-      const notification = document.createElement('div');
-      notification.className = 'fixed top-4 left-4 right-4 sm:left-auto sm:max-w-xs glass-panel p-3 rounded-lg border border-green-500/50 z-50';
-      notification.innerHTML = `
-        <p class="text-xs font-bold text-green-400">✓ Meja "${name}" berhasil dibuat!</p>
-        <p class="text-[10px] text-stone-400 mt-1">Mulai obrolan bersama di meja baru 👇</p>
-      `;
-      document.body.appendChild(notification);
-      setTimeout(() => notification.remove(), 3000);
     }
 
-    // EMOJI PICKER
     function setupEmojiPicker() {
       const grid = document.getElementById('emoji-grid');
       DEFAULT_EMOJI_SET.forEach(emoji => {
@@ -664,7 +605,6 @@
       toggleEmojiPicker();
     }
 
-    // MESSAGES
     async function loadMessages() {
       const container = document.getElementById('message-list');
       container.innerHTML = `<div class="text-center py-8 skeleton h-12 rounded-lg"></div>`;
@@ -943,7 +883,6 @@
       stream.scrollTop = stream.scrollHeight;
     }
 
-    // LOGIN & USER MANAGEMENT
     function logout() {
       localStorage.removeItem('tof_wallet');
       localStorage.removeItem('tof_login_username');
@@ -1070,10 +1009,8 @@
       document.getElementById('online-counter').innerText = "🟢 Kedai Buka • Terhubung";
     }
 
-    // STARTUP
     init();
 
-    // VIDEO UTILS
     const videoHosts = ['youtube.com', 'youtu.be', 'vimeo.com', 'tiktok.com', 'instagram.com'];
 
     window.isVideoUrl = function(url) {
@@ -1092,7 +1029,6 @@
     };
   </script>
 
-  <!-- Cloudflare Web Analytics -->
   <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script>
 </body>
 </html>
