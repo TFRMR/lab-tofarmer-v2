@@ -825,7 +825,7 @@
     s.setJudul("Tagihan nabung");
     const aktif = tp.status === "menunggu" || tp.status === "dibayar";
     const galat = el("div", { class: "galat", id: "galatTagihan" });
-    const ref = el("input", { class: "inp", id: "nabungRef", maxlength: "60", placeholder: "Nama pengirim di DANA/e-wallet (opsional)", autocomplete: "off" });
+    const ref = el("input", { class: "inp", id: "nabungRef", maxlength: "60", placeholder: "Nama pengirim di e-wallet/bank (opsional)", autocomplete: "off" });
     const anak = [
       el("div", { class: "tengah" }, chipStatus(tp.status)),
       aktif && info.qris ? el("img", { class: "qris", id: "gambarQris", src: info.qris, alt: "QRIS" }) : null,
@@ -835,7 +835,7 @@
       aktif ? el("div", { class: "tengah" }, el("button", { class: "mini", type: "button", id: "btnSalinTotal", text: "Salin jumlah", onclick: () => salin(String(tp.total_rp), "Jumlah disalin") })) : null,
       el("div", { class: "kecil abu tengah", text: "Kamu menerima " + fmtUnits(tp.tof_units) + " TOF" }),
       tp.status === "menunggu" ? el("ol", { class: "langkah" },
-        el("li", { text: "Buka DANA, e-wallet, atau m-banking, lalu pilih Bayar/Scan QRIS." }),
+        el("li", { text: "Buka aplikasi e-wallet atau m-banking (DANA, GoPay, OVO, bank, dll.), lalu pilih Bayar/Scan QRIS." }),
         el("li", { text: "Scan QRIS di atas dan bayar PERSIS Rp " + fmtRp(tp.total_rp) + " (termasuk 2 angka terakhir)." }),
         el("li", { text: "Tekan “Saya sudah bayar”. Pengurus mencocokkan dengan mutasi, lalu TOF dikirim ke dompetmu." })) : null,
       aktif ? el("div", { class: "kecil abu tengah", text: "Berlaku sampai " + new Date(tp.kedaluwarsa_pada).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) }) : null,

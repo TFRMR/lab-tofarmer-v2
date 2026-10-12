@@ -1,6 +1,6 @@
 // ============================================================
 // Halaman pengurus — Nabung TOF
-// Alur: anggota membayar ke QRIS → pengurus mencocokkan dengan MUTASI DANA → Konfirmasi
+// Alur: anggota membayar ke QRIS → pengurus mencocokkan dengan MUTASI e-wallet/rekening kas → Konfirmasi
 //       → pengurus mengirim TOF dari dompet kas → mencatat ID transaksi → Selesai.
 // Semua perintah lewat Edge Function "tof-vault" (PIN pengurus diperiksa di server).
 // ============================================================
@@ -107,8 +107,8 @@
 
     if (tab === "aktif") {
       aksi.append(
-        el("button", { class: "btn hijau", "data-aksi": "konfirmasi", type: "button", text: "✓ Sudah masuk di DANA", onclick: function () {
-          if (!window.confirm("Pastikan mutasi DANA menunjukkan uang masuk Rp " + fmtRp(r.total_rp) + " PERSIS. Konfirmasi?")) return;
+        el("button", { class: "btn hijau", "data-aksi": "konfirmasi", type: "button", text: "✓ Sudah masuk di kas", onclick: function () {
+          if (!window.confirm("Pastikan mutasi/riwayat penerimaan e-wallet kas menunjukkan uang masuk Rp " + fmtRp(r.total_rp) + " PERSIS. Konfirmasi?")) return;
           jalan(this, "admin_topup_konfirmasi", { id: r.id });
         } }),
         el("button", { class: "btn merah", "data-aksi": "tolak", type: "button", text: "Tolak", onclick: function () {
@@ -205,7 +205,7 @@
       kurs: el("input", { class: "inp", id: "setKurs", inputmode: "numeric", value: String(p.kurs) }),
       min: el("input", { class: "inp", id: "setMin", inputmode: "numeric", value: String(p.min_rp) }),
       maks: el("input", { class: "inp", id: "setMaks", inputmode: "numeric", value: String(p.maks_rp) }),
-      nama: el("input", { class: "inp", id: "setNama", maxlength: "80", value: p.nama_penerima || "", placeholder: "Nama yang tampil di QRIS/DANA" }),
+      nama: el("input", { class: "inp", id: "setNama", maxlength: "80", value: p.nama_penerima || "", placeholder: "Nama yang tampil saat QRIS dipindai" }),
       aturan: el("textarea", { class: "inp", id: "setAturan", maxlength: "1500", placeholder: "Aturan singkat: arti 1 TOF, bagi hasil, cara keluar anggota" }),
       aktif: el("input", { type: "checkbox", id: "setAktif" }),
       auto: el("input", { type: "checkbox", id: "setAuto" }),
@@ -247,8 +247,9 @@
       el("label", { class: "lbl", for: "setMin", text: "Minimal sekali nabung (Rp)" }), f.min,
       el("label", { class: "lbl", for: "setMaks", text: "Maksimal sekali nabung (Rp)" }), f.maks,
       el("label", { class: "lbl", for: "setNama", text: "Nama penerima" }), f.nama,
+      el("div", { class: "kecil", text: "Samakan dengan nama merchant yang muncul saat QRIS dipindai, supaya anggota bisa memastikan tujuan bayarnya benar." }),
       el("label", { class: "lbl", for: "setAturan", text: "Aturan yang tampil ke anggota" }), f.aturan,
-      el("label", { class: "lbl", for: "setQris", text: "Gambar QRIS (DANA / kas bersama)" }), f.file, prev,
+      el("label", { class: "lbl", for: "setQris", text: "Gambar QRIS kas bersama (DANA, GoPay, atau lainnya)" }), f.file, prev,
       el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.aktif, "Nabung dibuka untuk anggota"),
       el("div", { class: "kecil", style: "margin-top:16px;font-weight:700;color:#1c2b22;", text: "Kirim TOF otomatis" }),
       el("div", { class: "kecil", id: "infoKas", text: !kas
