@@ -131,16 +131,6 @@
     animation: shimmer 2s infinite;
   }
 
-  /* Glow effect untuk unread badge */
-  @keyframes glow {
-    0%, 100% { box-shadow: 0 0 8px rgba(234, 179, 8, 0.3); }
-    50% { box-shadow: 0 0 16px rgba(234, 179, 8, 0.6); }
-  }
-
-  .glow-badge {
-    animation: glow 2s infinite;
-  }
-
   /* Tooltip */
   .tooltip {
     position: relative;
@@ -167,27 +157,6 @@
   .tooltip:hover::after {
     opacity: 1;
   }
-  
-/* WhatsApp Media Extension */
-.media-preview {
-  max-width: 260px;
-  border-radius: 14px;
-  overflow: hidden;
-  cursor: pointer;
-  border: 1px solid rgba(74,222,128,.15);
-}
-.sticker-item {
-  cursor:pointer;
-  font-size:48px;
-  padding:10px;
-  border-radius:12px;
-  text-align:center;
-  transition:.2s;
-}
-.sticker-item:hover {
-  background:rgba(234,179,8,.15);
-  transform:scale(1.1);
-}
 </style>
 </head>
 <body class="bg-stone-950 text-stone-100 font-sans h-dvh flex flex-col overflow-hidden selection:bg-amber-600 selection:text-stone-950 relative">
@@ -209,9 +178,6 @@
 
     <!-- Right Controls -->
     <div class="flex items-center space-x-2">
-      <button id="sound-toggle" onclick="toggleSound()" class="p-2 text-stone-400 hover:text-stone-200 bg-stone-900 rounded-lg border border-stone-800 text-xs flex items-center gap-1 tooltip" data-tooltip="Toggle suara">
-        🔊 <span class="hidden sm:inline">Suara</span>
-      </button>
       <button id="user-menu-btn" onclick="toggleUserMenu()" class="px-3 py-1.5 text-xs font-medium bg-stone-900 hover:bg-stone-800 text-amber-400 rounded-lg transition-all flex items-center gap-1.5 border border-stone-700 tooltip" data-tooltip="Menu profil">
         👤 <span id="user-label" class="hidden sm:inline">Anonym</span>
       </button>
@@ -255,7 +221,6 @@
 
   <!-- MAIN STREAM AREA -->
   <main class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3 relative" id="chat-stream">
-    <!-- Welcome Card -->
     <div class="p-4 rounded-xl bg-gradient-to-r from-stone-900 via-stone-900 to-amber-950/40 border border-stone-800 mb-4 shadow-inner">
       <div class="flex items-start justify-between">
         <div>
@@ -275,7 +240,6 @@
       </div>
     </div>
 
-    <!-- Messages Container -->
     <div id="message-list" class="space-y-3"></div>
   </main>
 
@@ -295,7 +259,7 @@
     </div>
   </div>
 
-  <!-- INPUT CONTROLLER WITH EMOJI PICKER -->
+  <!-- INPUT CONTROLLER -->
   <footer class="p-3 bg-stone-900/95 border-t border-stone-800 glass-panel shrink-0 z-40">
     <div id="image-preview-wrap" class="hidden mb-2 flex items-center space-x-2 bg-stone-950 border border-stone-800 rounded-lg p-2 w-fit max-w-full">
       <img id="image-preview-thumb" src="" class="h-14 w-14 object-cover rounded-lg border border-stone-700" />
@@ -421,7 +385,6 @@
     let supabaseClient = null;
     let currentRoom = 'mejabar';
     let userAlias = localStorage.getItem('tofarmer_alias') || generateRandomAlias();
-    let soundEnabled = true;
     let isLoggedIn = false;
     let wasLoggedIn = false;
     let userWallet = null;
@@ -429,7 +392,6 @@
     let isMember = false;
     let rooms = [];
     let roomsLoaded = false;
-    let sharedAudioCtx = null; // Singleton AudioContext agar suara tidak menumpuk & merusak audio sistem
 
     // INIT
     function init() {
@@ -723,11 +685,11 @@
       }
 
       container.innerHTML = "";
-      (data || []).forEach(msg => appendMessageUI(msg, false));
+      (data || []).forEach(msg => appendMessageUI(msg));
       scrollToBottom();
     }
 
-    function appendMessageUI(msg, triggerSound = true) {
+    function appendMessageUI(msg) {
       const container = document.getElementById('message-list');
       const isBot = msg.is_bot;
       const isMe = msg.sender === userAlias;
@@ -794,7 +756,6 @@
         }
       });
 
-      if (triggerSound) playPopSound();
       scrollToBottom();
     }
 
@@ -883,7 +844,7 @@
           cancelPendingImage();
 
           if (!supabaseClient) {
-            appendMessageUI(imgMsg, true);
+            appendMessageUI(imgMsg);
             return;
           }
 
@@ -907,7 +868,7 @@
       };
 
       if (!supabaseClient) {
-        appendMessageUI(newMsg, true);
+        appendMessageUI(newMsg);
         triggerRandomBotResponse(content);
         return;
       }
@@ -962,7 +923,7 @@
             is_bot: true,
             created_at: new Date().toISOString()
           };
-          appendMessageUI(botMsg, true);
+          appendMessageUI(botMsg);
         }, 1200);
       }
     }
@@ -972,7 +933,7 @@
         { sender: 'PenikmatKopi#102', content: 'Kopi lereng Menoreh sore gini emang gak ada tandingannya wkwk', channel: 'mejabar', created_at: new Date().toISOString() },
         { sender: 'PengulikKebun#882', content: 'Sambil ngopi enaknya bahas sensor tanah open-source nih.', channel: 'mejabar', created_at: new Date().toISOString() },
       ];
-      demoData.forEach(msg => appendMessageUI(msg, false));
+      demoData.forEach(msg => appendMessageUI(msg));
     }
 
     function scrollToBottom() {
@@ -1037,7 +998,6 @@
       if (userLabel) userLabel.innerText = newAlias;
       
       closeAliasModal();
-      playPopSound();
       alert(`✓ Nama berubah menjadi: ${newAlias}`);
     }
 
@@ -1062,40 +1022,6 @@
         }
       }
     });
-
-    // OPTIMIZED SOUND SYSTEM (SINGLETON)
-    function playPopSound() {
-      if (!soundEnabled) return;
-      try {
-        if (!sharedAudioCtx) {
-          sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (sharedAudioCtx.state === 'suspended') {
-          sharedAudioCtx.resume();
-        }
-        
-        const osc = sharedAudioCtx.createOscillator();
-        const gain = sharedAudioCtx.createGain();
-        osc.frequency.value = 800;
-        osc.type = 'sine';
-        
-        gain.gain.setValueAtTime(0.04, sharedAudioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, sharedAudioCtx.currentTime + 0.03);
-        
-        osc.connect(gain);
-        gain.connect(sharedAudioCtx.destination);
-        
-        osc.start();
-        osc.stop(sharedAudioCtx.currentTime + 0.03);
-      } catch(e) {
-        console.warn('Audio playback suppressed:', e);
-      }
-    }
-
-    function toggleSound() {
-      soundEnabled = !soundEnabled;
-      document.getElementById('sound-toggle').innerText = soundEnabled ? '🔊 Suara' : '🔇 Mute';
-    }
 
     function showCtaToast() {
       const toast = document.getElementById('cta-toast');
@@ -1134,7 +1060,7 @@
         .channel('public:lounge_messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'lounge_messages' }, payload => {
           if (payload.new.channel === currentRoom) {
-            appendMessageUI(payload.new, true);
+            appendMessageUI(payload.new);
           }
         })
         .subscribe();
