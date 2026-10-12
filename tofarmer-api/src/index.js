@@ -16,8 +16,21 @@ export default {
     const LLM_MODEL = env.CF_AI_MODEL || "@cf/meta/llama-4-scout-17b-16e-instruct";
 
     const url = new URL(request.url);
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY || !env.SUPABASE_SERVICE_ROLE_KEY) {
+      return jsonError({ message: "API configuration is incomplete" }, corsHeaders, 503);
+    }
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
     const adminSupabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    const authenticate = async () => {
+      const authorization = request.headers.get("Authorization") || "";
+      const match = authorization.match(/^Bearer\s+(.+)$/i);
+      if (!match) return { user: null, response: jsonError({ message: "Authentication required" }, corsHeaders, 401) };
+      const { data, error } = await supabase.auth.getUser(match[1]);
+      if (error || !data?.user?.id) {
+        return { user: null, response: jsonError({ message: "Invalid or expired session" }, corsHeaders, 401) };
+      }
+      return { user: data.user, response: null };
+    };
     // =====================================================
     // ROUTE: PROFILES (LEGACY USER DATA)
     // =====================================================
@@ -83,7 +96,14 @@ export default {
     // =====================================================
     if (url.pathname === "/post" && request.method === "POST") {
 
+      const auth = await authenticate();
+      if (auth.response) return auth.response;
       const body = await request.json();
+      if (body.user_id !== auth.user.id) return jsonError({ message: "user_id does not match authenticated user" }, corsHeaders, 403);
+      if (typeof body.title !== "string" || !body.title.trim() || body.title.length > 200 ||
+          typeof body.content !== "string" || !body.content.trim() || body.content.length > 10000) {
+        return jsonError({ message: "Invalid title or content" }, corsHeaders, 400);
+      }
 
       const { data, error } = await supabase
         .from("contributions")
@@ -107,7 +127,10 @@ export default {
     // =====================================================
     if (url.pathname === "/like" && request.method === "POST") {
 
+      const auth = await authenticate();
+      if (auth.response) return auth.response;
       const body = await request.json();
+      if (body.user_id !== auth.user.id || !body.post_id) return jsonError({ message: "Invalid user_id or post_id" }, corsHeaders, 403);
 
       const { data, error } = await supabase
         .from("likes")
@@ -128,7 +151,13 @@ export default {
     // =====================================================
     if (url.pathname === "/comment" && request.method === "POST") {
 
+      const auth = await authenticate();
+      if (auth.response) return auth.response;
       const body = await request.json();
+      if (body.user_id !== auth.user.id || !body.post_id ||
+          typeof body.comment !== "string" || !body.comment.trim() || body.comment.length > 2000) {
+        return jsonError({ message: "Invalid user_id, post_id, or comment" }, corsHeaders, 400);
+      }
 
       const { data, error } = await supabase
         .from("comments")
@@ -149,7 +178,11 @@ export default {
 // ROUTE: REFRESH PROFIL (COGNITIVE MAP)
 // =====================================================
 if (url.pathname === "/refresh-profil" && request.method === "POST") {
-    const { user_id } = await request.json(); 
+    const auth = await authenticate();
+    if (auth.response) return auth.response;
+    const { user_id } = await request.json();
+    if (user_id !== auth.user.id) return jsonError({ message: "Forbidden" }, corsHeaders, 403);
+    if (!user_id) return jsonError({ message: "user_id is required" }, corsHeaders, 400);
     
     const [contrib, comments, reactions] = await Promise.all([
         adminSupabase.from('contributions').select('*').eq('user_id', user_id),
@@ -188,9 +221,13 @@ if (url.pathname === "/agree-vision") {
 // =====================================================
 if (url.pathname === "/ai-gambar" && request.method === "POST") {
   try {
+    if (Number(request.headers.get("Content-Length") || 0) > 5_500_000) {
+      return jsonError({ message: "Image request exceeds 5 MB limit" }, corsHeaders, 413);
+    }
     const body = await request.json();
     
-    if (!body.image || !Array.isArray(body.image)) {
+    if (!body.image || !Array.isArray(body.image) || body.image.length === 0 || body.image.length > 5_000_000 ||
+        !body.image.every(byte => Number.isInteger(byte) && byte >= 0 && byte <= 255)) {
       return jsonError({ message: "Payload 'image' wajib berupa array byte data." }, corsHeaders);
     }
 
@@ -222,8 +259,16 @@ if (url.pathname === "/ai-gambar" && request.method === "POST") {
 // ROUTE: AI ASSISTANT (RAG - SEMANTIC SEARCH)
 // =====================================================
 if (url.pathname === "/ai-saran" && request.method === "POST") {
+    if (Number(request.headers.get("Content-Length") || 0) > 20_000) {
+      return jsonError({ message: "AI request exceeds 20 KB limit" }, corsHeaders, 413);
+    }
     const body = await request.json();
     const textToProcess = body.teks || JSON.stringify(body.data);
+    if (typeof textToProcess !== "string" || !textToProcess.trim() || textToProcess.length > 12_000) {
+      return jsonError({ message: "teks must be a non-empty string of at most 12000 characters" }, corsHeaders, 400);
+    }
+    const auth = await authenticate();
+    const authenticatedUserId = auth.user?.id || null;
 
     // 1. ANALISIS KOGNITIF (Profiling)
     // ✅ PAKAI LLM_MODEL (titik kontrol terpusat)
@@ -242,7 +287,7 @@ if (url.pathname === "/ai-saran" && request.method === "POST") {
         const match = profileDataRaw.match(/\{.*\}/s);
         const profileData = JSON.parse(match ? match[0] : profileDataRaw);
         
-        const targetUserId = body.user_id || "guest_user"; 
+        const targetUserId = authenticatedUserId || "guest_user"; 
 
         const payload = {
             user_id: targetUserId,
@@ -445,7 +490,12 @@ ATURAN WAJIB:
       }, corsHeaders);
     }
 
-if (url.pathname === "/trigger-sync") {
+if (url.pathname === "/trigger-sync" && request.method === "POST") {
+  const expectedSecret = env.INTERNAL_WEBHOOK_SECRET;
+  const suppliedSecret = request.headers.get("X-Internal-Webhook-Secret");
+  if (!expectedSecret || !suppliedSecret || suppliedSecret !== expectedSecret) {
+    return jsonError({ message: "Forbidden" }, corsHeaders, 403);
+  }
   const body = await request.json();
   const record = body.record;
 
@@ -475,9 +525,10 @@ function json(data, headers) {
   });
 }
 
-function jsonError(error, headers) {
-  return new Response(JSON.stringify({ error: true, detail: error }), {
-    status: 500,
+function jsonError(error, headers, status = 500) {
+  const safeMessage = typeof error?.message === "string" ? error.message : "Request failed";
+  return new Response(JSON.stringify({ error: true, detail: safeMessage }), {
+    status,
     headers: { ...headers, "Content-Type": "application/json" }
   });
 }
