@@ -2348,7 +2348,7 @@ function inisialisasiKomponenDompet() {
     const btnDompet = document.createElement("button");
     btnDompet.id = "btn-dompet-tof";
     btnDompet.title = "Dompet";
-    btnDompet.innerHTML = "👛";
+    btnDompet.innerHTML = "💰";
     btnDompet.style.cssText = `
         background: #c9a227;
         border-radius: 50%;
