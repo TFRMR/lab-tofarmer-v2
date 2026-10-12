@@ -1042,6 +1042,10 @@
       if (ke && bolehTandatangan()) {
         const sk = bukaSheet("Kirim");
         tampilFormKirim(sk, { aset: q.get("aset") === "ALGO" ? "ALGO" : "TOF", tujuan: ke, jumlah: q.get("jumlah") || "", catatan: q.get("catatan") || "" });
+      } else if (!ke && q.get("nabung") === "1") {
+        // Datang dari tombol "Nabung Ladang" di profil: langsung buka panel Nabung
+        panelNabung();
+        try { window.history.replaceState(null, "", window.location.pathname); } catch (e) { /* abaikan */ }
       }
     });
   }

@@ -1402,6 +1402,11 @@ setInterval(async () => {
 // =====================
 
 function openQrisPopup() {
+  // Nabung kini lewat Dompet (QRIS dikelola pengurus, tagihan dengan kode unik, TOF dikirim otomatis).
+  // Kode popup lama di bawah dibiarkan utuh namun tidak lagi dijalankan.
+  window.location.href = "html/dompet.html?nabung=1"
+  return
+
   const modal = document.createElement("div")
   modal.innerHTML = `
   <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;justify-content:center;align-items:center;z-index:99999;">
@@ -2354,7 +2359,7 @@ function inisialisasiKomponenDompet() {
     const btnDompet = document.createElement("button");
     btnDompet.id = "btn-dompet-tof";
     btnDompet.title = "Dompet";
-    btnDompet.innerHTML = "💰";
+    btnDompet.innerHTML = "👛";
     btnDompet.style.cssText = `
         background: #c9a227;
         border-radius: 50%;
