@@ -7,6 +7,7 @@
 //   VAULT_MASTER_KEY  = base64 dari 32 byte acak   (openssl rand -base64 32)
 //   PIN_PEPPER        = string acak panjang         (openssl rand -base64 24)
 //   ADMIN_IDS         = alamat dompet pengurus Nabung TOF, dipisah koma
+//   PAYOUT_MNEMONIC   = 25 kata dompet PEMBAYAR khusus (opsional; untuk kirim TOF otomatis)
 //   ALLOWED_ORIGINS   = (opsional) daftar origin dipisah koma
 // SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY sudah otomatis tersedia.
 // ============================================================
@@ -14,12 +15,15 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import algosdk from "npm:algosdk@2.4.0";
 import { escapeLike } from "./lib.ts";
 import { handle } from "./logic.ts";
-import type { Deps, PinRow, Profile, Repo, TopupRow, VaultRow } from "./logic.ts";
+import type { Chain, Deps, PinRow, Profile, Repo, TopupRow, VaultRow } from "./logic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MASTER_KEY = Deno.env.get("VAULT_MASTER_KEY") ?? "";
 const PEPPER = Deno.env.get("PIN_PEPPER") ?? "";
+const ALGOD = Deno.env.get("ALGOD_URL") ?? "https://mainnet-api.algonode.cloud";
+const TOF_ASSET_ID = Number(Deno.env.get("TOF_ASSET_ID") ?? "3558306283");
+const PAYOUT_MNEMONIC = (Deno.env.get("PAYOUT_MNEMONIC") ?? "").trim();
 const ADMIN_IDS = (Deno.env.get("ADMIN_IDS") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 const ALLOWED = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://www.tofarmer.xyz,https://tofarmer.xyz")
   .split(",").map((s) => s.trim()).filter(Boolean);
@@ -126,8 +130,78 @@ const repo: Repo = {
     if (error) throw new Error(error.message);
     return count ?? 0;
   },
+  async sumTofAutoSince(sinceIso) {
+    const rows = must(await db.from("topup_requests").select("tof_units")
+      .in("status", ["mengirim", "selesai"]).gte("auto_kirim_pada", sinceIso)) as { tof_units: number }[];
+    return (rows || []).reduce((n, r) => n + Number(r.tof_units), 0);
+  },
   async logTopup(requestId, profileId, aksi, oleh, detail) {
     await db.from("topup_log").insert({ request_id: requestId, profile_id: profileId, aksi, oleh, detail }); // best effort
+  },
+};
+
+// ---------------- Dompet pembayar (pengiriman TOF otomatis) ----------------
+// Kunci hanya ada di secret PAYOUT_MNEMONIC (tidak pernah disimpan di database dan tidak dikirim ke browser).
+let payout: { addr: string; sk: Uint8Array } | null = null;
+try {
+  if (PAYOUT_MNEMONIC) {
+    const a = algosdk.mnemonicToSecretKey(PAYOUT_MNEMONIC);
+    payout = { addr: String(a.addr), sk: a.sk };
+  }
+} catch (e) {
+  console.error("PAYOUT_MNEMONIC tidak valid:", e);
+}
+
+async function algodGet(path: string) {
+  const r = await fetch(ALGOD + path);
+  if (!r.ok) throw Object.assign(new Error("algod " + r.status), { status: r.status });
+  return await r.json();
+}
+
+const chain: Chain = {
+  payoutAddress: () => (payout ? payout.addr : null),
+  async getAccount(addr) {
+    const j = await algodGet("/v2/accounts/" + addr);
+    const aset = (j.assets || []).find((x: Record<string, unknown>) => Number(x["asset-id"]) === TOF_ASSET_ID);
+    return { algo: BigInt(j.amount || 0), minBal: BigInt(j["min-balance"] || 0), tof: aset ? BigInt(aset.amount || 0) : 0n, tofOptin: !!aset };
+  },
+  async sendTof({ to, amount, note, leaseKey }) {
+    if (!payout) throw { kind: "ditolak", message: "dompet pembayar belum diatur" };
+    let blob: Uint8Array, txId: string;
+    try {
+      const p = await algodGet("/v2/transactions/params");
+      const lease = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("topup:" + leaseKey)));
+      const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        from: payout.addr, to, amount, assetIndex: TOF_ASSET_ID, note: new TextEncoder().encode(note),
+        suggestedParams: { flatFee: true, fee: 1000, firstRound: p["last-round"], lastRound: p["last-round"] + 1000, genesisID: p["genesis-id"], genesisHash: p["genesis-hash"] },
+      });
+      // Lease: jaringan menolak transaksi kedua dengan pengirim+lease yang sama selama masa berlaku,
+      // jadi percobaan ulang untuk tagihan yang sama tidak bisa terkirim dua kali.
+      // (Helper make...FromObject mengabaikan opsi lease, jadi dipasang lewat addLease.)
+      txn.addLease(lease);
+      blob = txn.signTxn(payout.sk);
+      txId = txn.txID();
+    } catch (e) {
+      throw { kind: "ditolak", message: "gagal menyiapkan transaksi: " + (e instanceof Error ? e.message : String(e)) }; // belum dikirim
+    }
+    let res: Response;
+    try {
+      res = await fetch(ALGOD + "/v2/transactions", { method: "POST", headers: { "Content-Type": "application/x-binary" }, body: blob });
+    } catch (e) {
+      throw { kind: "ambigu", message: "jaringan putus saat mengirim" }; // mungkin sudah diterima node
+    }
+    if (res.ok) return { txId };
+    const teks = await res.text().catch(() => "");
+    throw { kind: res.status >= 400 && res.status < 500 ? "ditolak" : "ambigu", message: teks || "HTTP " + res.status };
+  },
+  async status(txId) {
+    try {
+      const j = await algodGet("/v2/transactions/pending/" + txId);
+      if (j["pool-error"]) return "rejected";
+      return j["confirmed-round"] > 0 ? "confirmed" : "pending";
+    } catch (e) {
+      return (e as { status?: number })?.status === 404 ? "unknown" : "pending";
+    }
   },
 };
 
@@ -139,6 +213,7 @@ const deps: Deps = {
   isValidAddress: (a) => algosdk.isValidAddress(a),
   now: () => Date.now(),
   adminIds: ADMIN_IDS,
+  chain,
 };
 
 function corsHeaders(req: Request): Record<string, string> {

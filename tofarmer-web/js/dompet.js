@@ -262,7 +262,7 @@
     if (!algosdk.isValidAddress(tujuan)) return "Alamat tujuan tidak valid.";
     if (tujuan === state.wallet) return "Tidak bisa mengirim ke alamat dompet sendiri.";
     if (jumlahU == null || jumlahU <= 0n) return "Isi jumlah dengan angka lebih dari 0 (maksimal 6 desimal).";
-    if (catatan && new TextEncoder().encode(catatan).length > 100) return "Catatan terlalu panjang (maksimal 100 karakter).";
+    if (catatan && new TextEncoder().encode(catatan).length > 200) return "Catatan terlalu panjang (maksimal 200 karakter).";
 
     let me, dia;
     try {
@@ -423,7 +423,7 @@
     aset.value = isi.aset || "ALGO";
     const tujuan = el("input", { class: "inp", id: "kirimTujuan", placeholder: "Alamat tujuan (58 karakter)", autocomplete: "off", spellcheck: "false", value: isi.tujuan || "" });
     const jumlah = el("input", { class: "inp", id: "kirimJumlah", placeholder: "Jumlah, contoh 1,5", inputmode: "decimal", autocomplete: "off", value: isi.jumlah || "" });
-    const catatan = el("input", { class: "inp", id: "kirimCatatan", placeholder: "Catatan (opsional)", maxlength: "100", autocomplete: "off", value: isi.catatan || "" });
+    const catatan = el("input", { class: "inp", id: "kirimCatatan", placeholder: "Catatan (opsional)", maxlength: "200", autocomplete: "off", value: isi.catatan || "" });
     const galat = el("div", { class: "galat", id: "galatKirim" });
     const btnMaks = el("button", { class: "mini", id: "btnMaks", type: "button", text: "Maks" });
     const btn = el("button", { class: "btn utama", id: "btnLanjutKirim", text: "Lanjut" });
@@ -732,6 +732,7 @@
     menunggu: ["Menunggu pembayaran", "tunggu"],
     dibayar: ["Menunggu dicek pengurus", "tunggu"],
     dikonfirmasi: ["Pembayaran dikonfirmasi, TOF disiapkan", "ok"],
+    mengirim: ["TOF sedang dikirim", "tunggu"],
     selesai: ["TOF sudah terkirim", "ok"],
     ditolak: ["Ditolak pengurus", "gagal"],
     dibatalkan: ["Dibatalkan", "gagal"],
@@ -1040,7 +1041,7 @@
       const ke = q.get("ke");
       if (ke && bolehTandatangan()) {
         const sk = bukaSheet("Kirim");
-        tampilFormKirim(sk, { aset: q.get("aset") === "ALGO" ? "ALGO" : "TOF", tujuan: ke, jumlah: q.get("jumlah") || "" });
+        tampilFormKirim(sk, { aset: q.get("aset") === "ALGO" ? "ALGO" : "TOF", tujuan: ke, jumlah: q.get("jumlah") || "", catatan: q.get("catatan") || "" });
       }
     });
   }

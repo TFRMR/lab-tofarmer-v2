@@ -183,6 +183,7 @@ export interface Repo {
   listTopupByStatus(statuses: string[], limit: number): Promise<TopupRow[]>;
   countTopupActive(profileId: string): Promise<number>;
   countTopupSince(profileId: string, sinceIso: string): Promise<number>;
+  sumTofAutoSince(sinceIso: string): Promise<number>; // total unit TOF yang dikirim otomatis sejak waktu tsb
   logTopup(requestId: string | null, profileId: string, aksi: string, oleh: string, detail: Record<string, unknown>): Promise<void>;
 }
 
@@ -191,6 +192,17 @@ export interface TopupRow {
   kurs_rp_per_tof: number; tof_units: number; status: string; ref_user: string | null; catatan_admin: string | null;
   dibuat: string; kedaluwarsa_pada: string; dikonfirmasi_oleh: string | null; dikonfirmasi_pada: string | null;
   tof_txid: string | null; selesai_pada: string | null; selesai_oleh: string | null;
+  auto_kirim_pada?: string | null; kirim_catatan?: string | null;
+}
+
+// Jembatan ke jaringan Algorand untuk pengiriman TOF otomatis dari dompet pembayar khusus
+export interface Chain {
+  payoutAddress(): string | null;
+  getAccount(addr: string): Promise<{ algo: bigint; minBal: bigint; tof: bigint; tofOptin: boolean }>;
+  // Membuat, menandatangani, dan mengirim transaksi TOF. Melempar { kind: "ditolak" | "ambigu", message }:
+  //   ditolak = pasti tidak terkirim; ambigu = hasil tidak pasti (mis. jaringan putus setelah kirim).
+  sendTof(a: { to: string; amount: bigint; note: string; leaseKey: string }): Promise<{ txId: string }>;
+  status(txId: string): Promise<"confirmed" | "pending" | "rejected" | "unknown">;
 }
 
 export interface Deps {
@@ -201,6 +213,8 @@ export interface Deps {
   isValidAddress(address: string): boolean;
   now(): number;
   adminIds?: string[]; // alamat dompet pengurus (secret ADMIN_IDS)
+  chain?: Chain;       // pengiriman TOF otomatis (opsional)
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export const MAX_FAILS = 5;
@@ -487,7 +501,14 @@ async function ambilPengaturan(d: Deps) {
     nama_penerima: teks(s.nama_penerima, 80),
     aturan: teks(s.aturan, 1500),
     qris: typeof s.qris === "string" && QRIS_RE.test(s.qris) ? s.qris : null,
+    auto_kirim: s.auto_kirim === true,
+    batas_harian_tof: angka(s.batas_harian_tof, 100),     // dalam TOF
+    batas_transaksi_tof: angka(s.batas_transaksi_tof, 50), // dalam TOF
   };
+}
+
+function tampilAdmin(r: TopupRow) {
+  return { ...tampilTopup(r), kirim_catatan: r.kirim_catatan ?? null, auto_kirim_pada: r.auto_kirim_pada ?? null };
 }
 
 function tampilTopup(r: TopupRow) {
@@ -496,6 +517,12 @@ function tampilTopup(r: TopupRow) {
     status: r.status, ref_user: r.ref_user, catatan_admin: r.catatan_admin, dibuat: r.dibuat,
     kedaluwarsa_pada: r.kedaluwarsa_pada, tof_txid: r.tof_txid,
   };
+}
+
+// Catatan (note) yang menempel pada tiap transaksi TOF hasil nabung, mis.:
+//   CYBER_FARMER # J36JCUNG3IVLVWQ6VZO56T5E2RF3THZAH6235O2YIJZ75UAI57JUAGPYSQ # nabung receh
+export function catatanNabung(username: string, address: string): string {
+  return (username || "-") + " # " + address + " # nabung receh";
 }
 
 type Gagal = { gagal: Res };
@@ -530,6 +557,93 @@ function acakKode(): number[] {
     [k[i], k[j]] = [k[j], k[i]];
   }
   return k;
+}
+
+// ---------------- pengiriman TOF otomatis ----------------
+// Dijalankan setelah pengurus mengonfirmasi pembayaran. Pengamannya berlapis:
+//  1) hanya jika diaktifkan pengurus, dengan batas per transaksi dan batas harian,
+//  2) klaim atomik (status 'mengirim') supaya satu tagihan tidak pernah dikirim dua kali,
+//  3) 'lease' Algorand dari ID tagihan: jaringan menolak transaksi ganda dengan lease sama,
+//  4) pemeriksaan penerima (opt-in) dan saldo dompet pembayar sebelum mengirim.
+type Payout = { status: "selesai" | "mengirim" | "tertunda"; alasan?: string; txid?: string };
+const FEE_UNITS = 1000n;
+const tidur = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
+
+async function kembalikanKeDikonfirmasi(d: Deps, id: string, alasan: string) {
+  await d.repo.updateTopupIf(id, ["mengirim"], { status: "dikonfirmasi", kirim_catatan: alasan, tof_txid: null, auto_kirim_pada: null });
+}
+
+async function tungguKonfirmasi(txId: string, d: Deps): Promise<"confirmed" | "pending" | "rejected"> {
+  for (let i = 0; i < 8; i++) {
+    const st = await d.chain!.status(txId);
+    if (st === "confirmed" || st === "rejected") return st;
+    await (d.sleep ?? tidur)(2500);
+  }
+  return "pending";
+}
+
+async function jalankanPayout(row: TopupRow, oleh: string, d: Deps): Promise<Payout> {
+  const chain = d.chain;
+  const s = await ambilPengaturan(d);
+  const tunda = async (alasan: string): Promise<Payout> => {
+    await d.repo.updateTopupIf(row.id, ["dikonfirmasi"], { kirim_catatan: alasan });
+    return { status: "tertunda", alasan };
+  };
+  if (!s.auto_kirim) return { status: "tertunda", alasan: "Kirim otomatis nonaktif." };
+  if (!chain || !chain.payoutAddress()) return tunda("Dompet pembayar belum diatur (secret PAYOUT_MNEMONIC).");
+
+  const units = BigInt(row.tof_units);
+  if (units > BigInt(s.batas_transaksi_tof) * 1000000n) return tunda("Melebihi batas per transaksi kirim otomatis. Kirim manual.");
+  const terpakai = BigInt(await d.repo.sumTofAutoSince(iso(d.now() - 24 * 3600 * 1000)));
+  if (terpakai + units > BigInt(s.batas_harian_tof) * 1000000n) return tunda("Melebihi batas harian kirim otomatis. Kirim manual atau tunggu.");
+
+  const klaim = await d.repo.updateTopupIf(row.id, ["dikonfirmasi"], { status: "mengirim", auto_kirim_pada: iso(d.now()), kirim_catatan: null });
+  if (!klaim) return { status: "tertunda", alasan: "Status tagihan sudah berubah." };
+
+  try {
+    const [kas, tujuan] = await Promise.all([chain.getAccount(chain.payoutAddress()!), chain.getAccount(row.profile_id)]);
+    const gagal = !tujuan.tofOptin ? "Penerima belum opt-in TOF. Minta anggota opt-in, lalu kirim ulang."
+      : kas.tof < units ? "Saldo TOF dompet pembayar kurang. Isi ulang dompet pembayar."
+      : kas.algo - kas.minBal < FEE_UNITS ? "Saldo ALGO dompet pembayar kurang untuk biaya. Isi ulang dompet pembayar."
+      : "";
+    if (gagal) { await kembalikanKeDikonfirmasi(d, row.id, gagal); return { status: "tertunda", alasan: gagal }; }
+  } catch (e) {
+    console.error("pra-cek payout:", e);
+    await kembalikanKeDikonfirmasi(d, row.id, "Gagal membaca jaringan Algorand. Coba kirim ulang.");
+    return { status: "tertunda", alasan: "Gagal membaca jaringan Algorand. Coba kirim ulang." };
+  }
+
+  let txId = "";
+  const profilPenerima = await d.repo.findProfileById(row.profile_id);
+  const catatan = catatanNabung(profilPenerima?.username || "", row.profile_id);
+  try {
+    ({ txId } = await chain.sendTof({ to: row.profile_id, amount: units, note: catatan, leaseKey: row.id }));
+  } catch (e) {
+    const kind = (e as { kind?: string })?.kind;
+    const pesan = String((e as { message?: string })?.message || "").slice(0, 150);
+    await d.repo.logTopup(row.id, row.profile_id, "kirim_gagal", oleh, { kind, pesan });
+    if (kind === "ditolak") {
+      await kembalikanKeDikonfirmasi(d, row.id, "Ditolak jaringan: " + pesan);
+      return { status: "tertunda", alasan: "Ditolak jaringan: " + pesan };
+    }
+    const cat = "Hasil pengiriman tidak pasti. Periksa dompet pembayar di explorer sebelum mengirim ulang.";
+    await d.repo.updateTopupIf(row.id, ["mengirim"], { kirim_catatan: cat });
+    return { status: "mengirim", alasan: cat };
+  }
+
+  await d.repo.updateTopupIf(row.id, ["mengirim"], { tof_txid: txId });
+  await d.repo.logTopup(row.id, row.profile_id, "kirim_otomatis", oleh, { txid: txId, tof_units: row.tof_units });
+  const hasil = await tungguKonfirmasi(txId, d);
+  if (hasil === "confirmed") {
+    await d.repo.updateTopupIf(row.id, ["mengirim"], { status: "selesai", selesai_pada: iso(d.now()), selesai_oleh: "otomatis:" + oleh });
+    await d.repo.logTopup(row.id, row.profile_id, "selesai_otomatis", oleh, { txid: txId });
+    return { status: "selesai", txid: txId };
+  }
+  if (hasil === "rejected") {
+    await kembalikanKeDikonfirmasi(d, row.id, "Transaksi ditolak jaringan setelah dikirim. Coba kirim ulang.");
+    return { status: "tertunda", alasan: "Transaksi ditolak jaringan setelah dikirim." };
+  }
+  return { status: "mengirim", txid: txId, alasan: "Menunggu konfirmasi jaringan. Tekan Periksa status beberapa saat lagi." };
 }
 
 async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
@@ -609,7 +723,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       const a = await authAdmin(body, d);
       if ("gagal" in a) return a.gagal;
       await d.repo.expireTopups(iso(d.now()));
-      const tampil = body.tampil === "perlu_kirim" ? ["dikonfirmasi"]
+      const tampil = body.tampil === "perlu_kirim" ? ["dikonfirmasi", "mengirim"]
         : body.tampil === "riwayat" ? ["selesai", "ditolak", "dibatalkan", "kedaluwarsa"]
         : ["menunggu", "dibayar"];
       const rows = await d.repo.listTopupByStatus(tampil, 100);
@@ -617,7 +731,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       for (const r of rows) {
         if (!nama.has(r.profile_id)) nama.set(r.profile_id, (await d.repo.findProfileById(r.profile_id))?.username || "");
       }
-      return ok({ daftar: rows.map((r) => ({ ...tampilTopup(r), profile_id: r.profile_id, username: nama.get(r.profile_id) || "", dikonfirmasi_oleh: r.dikonfirmasi_oleh })) });
+      return ok({ daftar: rows.map((r) => ({ ...tampilAdmin(r), profile_id: r.profile_id, username: nama.get(r.profile_id) || "", catatan_transaksi: catatanNabung(nama.get(r.profile_id) || "", r.profile_id), dikonfirmasi_oleh: r.dikonfirmasi_oleh })) });
     }
 
     case "admin_topup_konfirmasi": {
@@ -634,7 +748,9 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       });
       if (!baru) return fail("status_tidak_cocok");
       await d.repo.logTopup(row.id, row.profile_id, "konfirmasi", a.profile.id, { total_rp: row.total_rp });
-      return ok({ topup: tampilTopup(baru) });
+      const payout = await jalankanPayout(baru, a.profile.id, d);
+      const terbaru = (await d.repo.getTopup(row.id)) || baru;
+      return ok({ topup: tampilAdmin(terbaru), payout });
     }
 
     case "admin_topup_tolak": {
@@ -659,17 +775,74 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       const row = typeof body.id === "string" ? await d.repo.getTopup(body.id) : null;
       if (!row) return fail("not_found");
       if ((await d.repo.listTopupByStatus(["selesai"], 1000)).some((r) => r.tof_txid === txid)) return fail("txid_sudah_dipakai");
-      const baru = await d.repo.updateTopupIf(row.id, ["dikonfirmasi"], { status: "selesai", tof_txid: txid, selesai_pada: iso(d.now()), selesai_oleh: a.profile.id });
+      const baru = await d.repo.updateTopupIf(row.id, ["dikonfirmasi", "mengirim"], { status: "selesai", tof_txid: txid, selesai_pada: iso(d.now()), selesai_oleh: a.profile.id });
       if (!baru) return fail("status_tidak_cocok");
       await d.repo.logTopup(row.id, row.profile_id, "selesai", a.profile.id, { txid, tof_units: row.tof_units });
       return ok({ topup: tampilTopup(baru) });
+    }
+
+    // Coba kirim ulang otomatis (mis. setelah penerima opt-in atau dompet pembayar diisi ulang)
+    case "admin_topup_kirim_ulang": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getTopup(body.id) : null;
+      if (!row) return fail("not_found");
+      if (row.status !== "dikonfirmasi") return fail("status_tidak_cocok");
+      const payout = await jalankanPayout(row, a.profile.id, d);
+      return ok({ payout, topup: tampilAdmin((await d.repo.getTopup(row.id)) || row) });
+    }
+
+    // Periksa status transaksi yang masih 'mengirim'
+    case "admin_topup_periksa": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getTopup(body.id) : null;
+      if (!row) return fail("not_found");
+      if (row.status !== "mengirim") return fail("status_tidak_cocok");
+      if (!row.tof_txid) return fail("txid_belum_ada");
+      if (!d.chain) return fail("kas_belum_diatur");
+      const st = await d.chain.status(row.tof_txid);
+      if (st === "confirmed") {
+        await d.repo.updateTopupIf(row.id, ["mengirim"], { status: "selesai", selesai_pada: iso(d.now()), selesai_oleh: "otomatis:" + a.profile.id });
+        await d.repo.logTopup(row.id, row.profile_id, "selesai_otomatis", a.profile.id, { txid: row.tof_txid });
+      } else if (st === "rejected") {
+        await kembalikanKeDikonfirmasi(d, row.id, "Transaksi ditolak jaringan. Coba kirim ulang.");
+      }
+      return ok({ hasil: st, topup: tampilAdmin((await d.repo.getTopup(row.id)) || row) });
+    }
+
+    // Pengurus memutuskan sendiri mengembalikan tagihan dari 'mengirim' ke 'dikonfirmasi' (setelah memeriksa explorer)
+    case "admin_topup_reset_kirim": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      if (body.yakin !== true) return fail("konfirmasi_wajib");
+      const row = typeof body.id === "string" ? await d.repo.getTopup(body.id) : null;
+      if (!row) return fail("not_found");
+      const baru = await d.repo.updateTopupIf(row.id, ["mengirim"], { status: "dikonfirmasi", kirim_catatan: "Dikembalikan manual oleh pengurus untuk dikirim ulang.", tof_txid: null, auto_kirim_pada: null });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "reset_kirim", a.profile.id, { txid_sebelumnya: row.tof_txid });
+      return ok({ topup: tampilAdmin(baru) });
     }
 
     case "admin_pengaturan_ambil": {
       const a = await authAdmin(body, d);
       if ("gagal" in a) return a.gagal;
       const s = await ambilPengaturan(d);
-      return ok({ pengaturan: { kurs: s.kurs, min_rp: s.min_rp, maks_rp: s.maks_rp, aktif: s.aktif, nama_penerima: s.nama_penerima, aturan: s.aturan, qris: s.qris } });
+      let kas: Record<string, unknown> | null = null;
+      const alamat = d.chain?.payoutAddress() ?? null;
+      if (d.chain && alamat) {
+        kas = { alamat };
+        try {
+          const ac = await d.chain.getAccount(alamat);
+          kas = { alamat, algo: Number(ac.algo), min_saldo: Number(ac.minBal), tof: Number(ac.tof), tof_optin: ac.tofOptin };
+        } catch (e) { console.error("saldo kas:", e); kas = { alamat, galat: true }; }
+      }
+      const terpakai = await d.repo.sumTofAutoSince(iso(d.now() - 24 * 3600 * 1000));
+      return ok({
+        pengaturan: { kurs: s.kurs, min_rp: s.min_rp, maks_rp: s.maks_rp, aktif: s.aktif, nama_penerima: s.nama_penerima, aturan: s.aturan, qris: s.qris,
+          auto_kirim: s.auto_kirim, batas_harian_tof: s.batas_harian_tof, batas_transaksi_tof: s.batas_transaksi_tof, terpakai_24j: terpakai },
+        kas,
+      });
     }
 
     case "admin_pengaturan_simpan": {
@@ -682,6 +855,13 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       if ("maks_rp" in body) { const n = bil(body.maks_rp, 1000000000); if (n === null) return fail("batas_tidak_valid"); nilai.maks_rp = n; }
       const cur = await ambilPengaturan(d);
       if ((nilai.maks_rp ?? cur.maks_rp) < (nilai.min_rp ?? cur.min_rp)) return fail("batas_tidak_valid");
+      if ("batas_harian_tof" in body) { const n = bil(body.batas_harian_tof, 1000000000); if (n === null) return fail("batas_kirim_tidak_valid"); nilai.batas_harian_tof = n; }
+      if ("batas_transaksi_tof" in body) { const n = bil(body.batas_transaksi_tof, 1000000000); if (n === null) return fail("batas_kirim_tidak_valid"); nilai.batas_transaksi_tof = n; }
+      if (((nilai.batas_transaksi_tof as number | undefined) ?? cur.batas_transaksi_tof) > ((nilai.batas_harian_tof as number | undefined) ?? cur.batas_harian_tof)) return fail("batas_kirim_tidak_valid");
+      if ("auto_kirim" in body) {
+        if (body.auto_kirim === true && !(d.chain && d.chain.payoutAddress())) return fail("kas_belum_diatur");
+        nilai.auto_kirim = body.auto_kirim === true;
+      }
       if ("aktif" in body) nilai.aktif = body.aktif === true;
       if ("nama_penerima" in body) nilai.nama_penerima = teks(body.nama_penerima, 80);
       if ("aturan" in body) nilai.aturan = teks(body.aturan, 1500);
@@ -710,6 +890,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
 //   VAULT_MASTER_KEY  = base64 dari 32 byte acak   (openssl rand -base64 32)
 //   PIN_PEPPER        = string acak panjang         (openssl rand -base64 24)
 //   ADMIN_IDS         = alamat dompet pengurus Nabung TOF, dipisah koma
+//   PAYOUT_MNEMONIC   = 25 kata dompet PEMBAYAR khusus (opsional; untuk kirim TOF otomatis)
 //   ALLOWED_ORIGINS   = (opsional) daftar origin dipisah koma
 // SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY sudah otomatis tersedia.
 // ============================================================
@@ -718,6 +899,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MASTER_KEY = Deno.env.get("VAULT_MASTER_KEY") ?? "";
 const PEPPER = Deno.env.get("PIN_PEPPER") ?? "";
+const ALGOD = Deno.env.get("ALGOD_URL") ?? "https://mainnet-api.algonode.cloud";
+const TOF_ASSET_ID = Number(Deno.env.get("TOF_ASSET_ID") ?? "3558306283");
+const PAYOUT_MNEMONIC = (Deno.env.get("PAYOUT_MNEMONIC") ?? "").trim();
 const ADMIN_IDS = (Deno.env.get("ADMIN_IDS") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 const ALLOWED = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://www.tofarmer.xyz,https://tofarmer.xyz")
   .split(",").map((s) => s.trim()).filter(Boolean);
@@ -824,8 +1008,78 @@ const repo: Repo = {
     if (error) throw new Error(error.message);
     return count ?? 0;
   },
+  async sumTofAutoSince(sinceIso) {
+    const rows = must(await db.from("topup_requests").select("tof_units")
+      .in("status", ["mengirim", "selesai"]).gte("auto_kirim_pada", sinceIso)) as { tof_units: number }[];
+    return (rows || []).reduce((n, r) => n + Number(r.tof_units), 0);
+  },
   async logTopup(requestId, profileId, aksi, oleh, detail) {
     await db.from("topup_log").insert({ request_id: requestId, profile_id: profileId, aksi, oleh, detail }); // best effort
+  },
+};
+
+// ---------------- Dompet pembayar (pengiriman TOF otomatis) ----------------
+// Kunci hanya ada di secret PAYOUT_MNEMONIC (tidak pernah disimpan di database dan tidak dikirim ke browser).
+let payout: { addr: string; sk: Uint8Array } | null = null;
+try {
+  if (PAYOUT_MNEMONIC) {
+    const a = algosdk.mnemonicToSecretKey(PAYOUT_MNEMONIC);
+    payout = { addr: String(a.addr), sk: a.sk };
+  }
+} catch (e) {
+  console.error("PAYOUT_MNEMONIC tidak valid:", e);
+}
+
+async function algodGet(path: string) {
+  const r = await fetch(ALGOD + path);
+  if (!r.ok) throw Object.assign(new Error("algod " + r.status), { status: r.status });
+  return await r.json();
+}
+
+const chain: Chain = {
+  payoutAddress: () => (payout ? payout.addr : null),
+  async getAccount(addr) {
+    const j = await algodGet("/v2/accounts/" + addr);
+    const aset = (j.assets || []).find((x: Record<string, unknown>) => Number(x["asset-id"]) === TOF_ASSET_ID);
+    return { algo: BigInt(j.amount || 0), minBal: BigInt(j["min-balance"] || 0), tof: aset ? BigInt(aset.amount || 0) : 0n, tofOptin: !!aset };
+  },
+  async sendTof({ to, amount, note, leaseKey }) {
+    if (!payout) throw { kind: "ditolak", message: "dompet pembayar belum diatur" };
+    let blob: Uint8Array, txId: string;
+    try {
+      const p = await algodGet("/v2/transactions/params");
+      const lease = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("topup:" + leaseKey)));
+      const txn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        from: payout.addr, to, amount, assetIndex: TOF_ASSET_ID, note: new TextEncoder().encode(note),
+        suggestedParams: { flatFee: true, fee: 1000, firstRound: p["last-round"], lastRound: p["last-round"] + 1000, genesisID: p["genesis-id"], genesisHash: p["genesis-hash"] },
+      });
+      // Lease: jaringan menolak transaksi kedua dengan pengirim+lease yang sama selama masa berlaku,
+      // jadi percobaan ulang untuk tagihan yang sama tidak bisa terkirim dua kali.
+      // (Helper make...FromObject mengabaikan opsi lease, jadi dipasang lewat addLease.)
+      txn.addLease(lease);
+      blob = txn.signTxn(payout.sk);
+      txId = txn.txID();
+    } catch (e) {
+      throw { kind: "ditolak", message: "gagal menyiapkan transaksi: " + (e instanceof Error ? e.message : String(e)) }; // belum dikirim
+    }
+    let res: Response;
+    try {
+      res = await fetch(ALGOD + "/v2/transactions", { method: "POST", headers: { "Content-Type": "application/x-binary" }, body: blob });
+    } catch (e) {
+      throw { kind: "ambigu", message: "jaringan putus saat mengirim" }; // mungkin sudah diterima node
+    }
+    if (res.ok) return { txId };
+    const teks = await res.text().catch(() => "");
+    throw { kind: res.status >= 400 && res.status < 500 ? "ditolak" : "ambigu", message: teks || "HTTP " + res.status };
+  },
+  async status(txId) {
+    try {
+      const j = await algodGet("/v2/transactions/pending/" + txId);
+      if (j["pool-error"]) return "rejected";
+      return j["confirmed-round"] > 0 ? "confirmed" : "pending";
+    } catch (e) {
+      return (e as { status?: number })?.status === 404 ? "unknown" : "pending";
+    }
   },
 };
 
@@ -837,6 +1091,7 @@ const deps: Deps = {
   isValidAddress: (a) => algosdk.isValidAddress(a),
   now: () => Date.now(),
   adminIds: ADMIN_IDS,
+  chain,
 };
 
 function corsHeaders(req: Request): Record<string, string> {

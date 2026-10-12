@@ -9,7 +9,7 @@
   const CFG = window.ADMIN_CONFIG || {};
   const EXPLORER_TX = "https://allo.info/tx/";
   const $ = (id) => document.getElementById(id);
-  const state = { wallet: null, pin: "", tab: "aktif", qrisBaru: null };
+  const state = { wallet: null, pin: "", tab: "aktif", qrisBaru: null, pesanHasil: "" };
 
   function el(tag, props, ...anak) {
     const e = document.createElement(tag);
@@ -61,14 +61,27 @@
       case "kurs_tidak_valid": return "Kurs harus bilangan bulat rupiah per 1 TOF.";
       case "batas_tidak_valid": return "Batas minimal/maksimal tidak valid (minimal tidak boleh lebih besar dari maksimal).";
       case "qris_tidak_valid": return "Gambar QRIS tidak valid atau terlalu besar.";
+      case "kas_belum_diatur": return "Dompet pembayar belum diatur di server (secret PAYOUT_MNEMONIC).";
+      case "batas_kirim_tidak_valid": return "Batas kirim tidak valid (bilangan bulat TOF; batas per transaksi tidak boleh melebihi batas harian).";
+      case "konfirmasi_wajib": return "Perlu konfirmasi eksplisit.";
+      case "txid_belum_ada": return "Transaksi ini belum punya ID transaksi untuk diperiksa.";
       case "network": return "Koneksi bermasalah, coba lagi.";
       default: return "Gagal: " + (res.error || "tidak diketahui");
     }
   }
 
-  const STATUS = { menunggu: ["Menunggu pembayaran", "tunggu"], dibayar: ["Anggota bilang sudah bayar", "tunggu"], dikonfirmasi: ["Terkonfirmasi, TOF belum dikirim", "ok"],
+  const STATUS = { mengirim: ["TOF sedang dikirim / perlu dicek", "tunggu"], menunggu: ["Menunggu pembayaran", "tunggu"], dibayar: ["Anggota bilang sudah bayar", "tunggu"], dikonfirmasi: ["Terkonfirmasi, TOF belum dikirim", "ok"],
     selesai: ["Selesai", "ok"], ditolak: ["Ditolak", "gagal"], dibatalkan: ["Dibatalkan", "gagal"], kedaluwarsa: ["Kedaluwarsa", "gagal"] };
   const chip = (s) => { const [t, k] = STATUS[s] || [s, ""]; return el("span", { class: "chip " + k, text: t }); };
+
+  function ringkasHasil(res, r) {
+    const p = res && res.payout;
+    const nama = "@" + (r.username || "?");
+    if (!p) return "";
+    if (p.status === "selesai") return "Dikonfirmasi. TOF terkirim otomatis ke " + nama + " (ID transaksi: " + p.txid + ").";
+    if (p.status === "mengirim") return "Dikonfirmasi. TOF sedang dikirim ke " + nama + ". " + (p.alasan || "") + " Cek tab 'Perlu kirim TOF'.";
+    return "Dikonfirmasi, tetapi TOF belum terkirim otomatis ke " + nama + ": " + (p.alasan || "tidak diketahui") + " Lihat tab 'Perlu kirim TOF'.";
+  }
 
   // ---------------- daftar ----------------
   function kartu(r, tab) {
@@ -87,6 +100,8 @@
       const res = await adm(action, extra);
       tombol.disabled = false;
       if (!res.ok) { galat.textContent = pesan(res); return; }
+      if (res.payout) state.pesanHasil = ringkasHasil(res, r);
+      else if (res.hasil) state.pesanHasil = res.hasil === "confirmed" ? "TOF terkonfirmasi di jaringan. Selesai." : res.hasil === "rejected" ? "Transaksi ditolak jaringan. Coba kirim ulang." : "Belum terkonfirmasi di jaringan. Periksa lagi sebentar lagi.";
       muatTab(state.tab);
     };
 
@@ -102,12 +117,26 @@
           jalan(this, "admin_topup_tolak", { id: r.id, alasan });
         } }));
     } else if (tab === "perlu_kirim") {
-      const txid = el("input", { class: "inp", "data-txid": "1", placeholder: "ID transaksi pengiriman TOF (52 karakter)", autocomplete: "off", spellcheck: "false" });
-      const link = "dompet.html?aset=TOF&ke=" + encodeURIComponent(r.profile_id) + "&jumlah=" + encodeURIComponent(desimal(r.tof_units));
+      const txid = el("input", { class: "inp", "data-txid": "1", placeholder: "ID transaksi (bila sudah terkirim di luar sistem, 52 karakter)", autocomplete: "off", spellcheck: "false" });
+      const link = "dompet.html?aset=TOF&ke=" + encodeURIComponent(r.profile_id) + "&jumlah=" + encodeURIComponent(desimal(r.tof_units)) + "&catatan=" + encodeURIComponent(r.catatan_transaksi || "");
       k.insertBefore(el("div", { class: "kecil mono", text: "Kirim ke: " + r.profile_id }), aksi);
-      aksi.append(el("a", { class: "btn hijau", "data-aksi": "kirim", href: link, text: "Kirim TOF dari Dompet", style: "text-decoration:none;" }));
+      k.insertBefore(el("div", { class: "kecil mono", text: "Catatan transaksi: " + (r.catatan_transaksi || "") }), aksi);
+      if (r.kirim_catatan) k.insertBefore(el("div", { class: "galat", "data-catatan-kirim": "1", text: r.kirim_catatan }), aksi);
+      if (r.status === "mengirim") {
+        if (r.tof_txid) k.insertBefore(el("a", { class: "tautan", href: EXPLORER_TX + r.tof_txid, target: "_blank", rel: "noopener", text: "Lihat transaksi di explorer" }), aksi);
+        aksi.append(
+          el("button", { class: "btn hijau", "data-aksi": "periksa", type: "button", text: "Periksa status", onclick: function () { jalan(this, "admin_topup_periksa", { id: r.id }); } }),
+          el("button", { class: "btn merah", "data-aksi": "reset", type: "button", text: "Kembalikan untuk kirim ulang", onclick: function () {
+            if (!window.confirm("Pastikan di explorer TIDAK ADA transaksi TOF ke anggota ini untuk tagihan ini. Kalau ada, tekan Batal dan pakai 'Tandai selesai'. Lanjut mengembalikan?")) return;
+            jalan(this, "admin_topup_reset_kirim", { id: r.id, yakin: true });
+          } }));
+      } else {
+        aksi.append(
+          el("button", { class: "btn hijau", "data-aksi": "kirim-ulang", type: "button", text: "Kirim otomatis lagi", onclick: function () { jalan(this, "admin_topup_kirim_ulang", { id: r.id }); } }),
+          el("a", { class: "btn abu", "data-aksi": "kirim", href: link, text: "Kirim manual dari Dompet", style: "text-decoration:none;" }));
+      }
       k.insertBefore(txid, galat);
-      k.insertBefore(el("button", { class: "btn utama", "data-aksi": "selesai", type: "button", text: "Tandai selesai", onclick: function () {
+      k.insertBefore(el("button", { class: "btn abu", "data-aksi": "selesai", type: "button", style: "margin-top:8px;", text: "Tandai selesai (sudah terkirim)", onclick: function () {
         jalan(this, "admin_topup_selesai", { id: r.id, txid: txid.value.trim() });
       } }), galat);
     } else if (r.tof_txid) {
@@ -125,6 +154,10 @@
     const res = await adm("admin_topup_daftar", { tampil: tab });
     if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
     konten.replaceChildren(...(res.daftar.length ? res.daftar.map((r) => kartu(r, tab)) : [el("div", { class: "kecil", id: "kosong", style: "padding:14px;", text: "Tidak ada data." })]));
+    if (state.pesanHasil) {
+      konten.prepend(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil }));
+      state.pesanHasil = "";
+    }
   }
 
   // ---------------- pengaturan ----------------
@@ -166,6 +199,7 @@
     const konten = $("konten");
     if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
     const p = res.pengaturan;
+    const kas = res.kas;
     state.qrisBaru = null;
     const f = {
       kurs: el("input", { class: "inp", id: "setKurs", inputmode: "numeric", value: String(p.kurs) }),
@@ -174,10 +208,14 @@
       nama: el("input", { class: "inp", id: "setNama", maxlength: "80", value: p.nama_penerima || "", placeholder: "Nama yang tampil di QRIS/DANA" }),
       aturan: el("textarea", { class: "inp", id: "setAturan", maxlength: "1500", placeholder: "Aturan singkat: arti 1 TOF, bagi hasil, cara keluar anggota" }),
       aktif: el("input", { type: "checkbox", id: "setAktif" }),
+      auto: el("input", { type: "checkbox", id: "setAuto" }),
+      bHarian: el("input", { class: "inp", id: "setBatasHarian", inputmode: "numeric", value: String(p.batas_harian_tof) }),
+      bTx: el("input", { class: "inp", id: "setBatasTx", inputmode: "numeric", value: String(p.batas_transaksi_tof) }),
       file: el("input", { type: "file", id: "setQris", accept: "image/png,image/jpeg,image/webp" }),
     };
     f.aturan.value = p.aturan || "";
     f.aktif.checked = !!p.aktif;
+    f.auto.checked = !!p.auto_kirim;
     const prev = el("img", { class: "qris-prev", id: "prevQris", alt: "QRIS", hidden: !p.qris, src: p.qris || undefined });
     const galat = el("div", { class: "galat", id: "galatSet" });
     const ok = el("div", { class: "kecil", id: "okSet", style: "color:#1f6b3d;" });
@@ -193,6 +231,7 @@
       const body = {
         kurs_rp_per_tof: Number(f.kurs.value), min_rp: Number(f.min.value), maks_rp: Number(f.maks.value),
         nama_penerima: f.nama.value, aturan: f.aturan.value, aktif: f.aktif.checked,
+        auto_kirim: f.auto.checked, batas_harian_tof: Number(f.bHarian.value), batas_transaksi_tof: Number(f.bTx.value),
       };
       if (state.qrisBaru) body.qris = state.qrisBaru;
       simpan.disabled = true;
@@ -211,6 +250,14 @@
       el("label", { class: "lbl", for: "setAturan", text: "Aturan yang tampil ke anggota" }), f.aturan,
       el("label", { class: "lbl", for: "setQris", text: "Gambar QRIS (DANA / kas bersama)" }), f.file, prev,
       el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.aktif, "Nabung dibuka untuk anggota"),
+      el("div", { class: "kecil", style: "margin-top:16px;font-weight:700;color:#1c2b22;", text: "Kirim TOF otomatis" }),
+      el("div", { class: "kecil", id: "infoKas", text: !kas
+        ? "Dompet pembayar belum diatur di server (secret PAYOUT_MNEMONIC). Selama belum, TOF dikirim manual."
+        : "Dompet pembayar: " + kas.alamat + (kas.galat ? " (saldo gagal dibaca)" : " · ALGO " + (kas.algo / 1e6) + " · TOF " + (kas.tof / 1e6) + (kas.tof_optin ? "" : " · BELUM opt-in TOF")) + " · terkirim otomatis 24 jam terakhir: " + (p.terpakai_24j / 1e6) + " TOF" }),
+      el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.auto, "Kirim TOF otomatis setelah pengurus mengonfirmasi"),
+      el("label", { class: "lbl", for: "setBatasTx", text: "Batas per transaksi (TOF)" }), f.bTx,
+      el("label", { class: "lbl", for: "setBatasHarian", text: "Batas total per 24 jam (TOF)" }), f.bHarian,
+      el("div", { class: "kecil", text: "Isi dompet pembayar secukupnya saja. Kerugian terburuk bila ada penyalahgunaan dibatasi oleh isi dompet itu dan batas harian ini." }),
       galat, ok, simpan));
   }
 
