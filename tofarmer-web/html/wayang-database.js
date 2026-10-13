@@ -34,7 +34,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Penguasa Tertinggi Kahyangan Tri Lokana",
     minNeptu: 12, maxNeptu: 18,
     wukuSesuai: ["Wukir", "Sungsang", "Galungan"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/4/45/Batara_Guru_wayang.jpg",
+    gambar: "https://www.wayangstore.com/wp-content/uploads/2019/08/Instagram_ceritawayang_47586162_2244348402250515_421293131919831752_n.jpg",
     deskripsi: "Penguasa berkuasa penuh yang memiliki wibawa besar namun kadang diuji oleh kealpaan duniawi. Melambangkan kekuasaan, hukum kosmis, dan putusan tertinggi.",
     pedoman: "Kebijaksanaan tertinggi menuntut keseimbangan antara keadilan dan welas asih."
   },
@@ -44,7 +44,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Penasihat Agung Kahyangan & Pustaka Hidup Semesta",
     minNeptu: 10, maxNeptu: 16,
     wukuSesuai: ["Tolu", "Julungwangi", "Kulawu"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/a/ae/Batara_Narada.jpg",
+    gambar: "https://thumb.wikimedia.org/wikipedia/id/thumb/a/a3/Narada-Solo-05.jpg/250px-Narada-Solo-05.jpg?utm_source=id.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
     deskripsi: "Dewa berbadan pendek gempal namun memiliki ilmu seluas samudera, cerdas, kritis, dan menjadi jembatan penghubung antara para dewa dan manusia.",
     pedoman: "Kritik yang tajam berakar dari kepedulian yang mendalam."
   },
@@ -54,7 +54,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Maharesi Sepuh & Kesatria Sumpah Setia",
     minNeptu: 11, maxNeptu: 17,
     wukuSesuai: ["Wukir", "Kurantil", "Mandhasiya"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Bisma_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5CHo8je8zuxUpNtfsYIfv0N7dAL_72BMYJGy2y_BTjA&s",
     deskripsi: "Manusia berilmu tinggi dengan sumpah wadat (bujang seumur hidup) demi negara. Bijaksana, tak terkalahkan di medan perang, dan memegang teguh kehormatan.",
     pedoman: "Kehormatan dan sumpah adalah napas hidup seorang kesatria."
   },
@@ -64,7 +64,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Guru Besar Militer Dinasti Kurawa & Pandawa",
     minNeptu: 9, maxNeptu: 15,
     wukuSesuai: ["Wariga", "Warigagung", "Manahil"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/3/3d/Durna_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQB3gI26Tzf_uI0AiGUY-KQf0MshowMegiaS38tRyrvyQ&s=10",
     deskripsi: "Ahli strategi dan guru olah kanuragan paling ulung. Menguasai berbagai ilmu senjata tingkat tinggi, namun terkadang terikat oleh dilema loyalitas politik kekuasaan.",
     pedoman: "Ilmu tanpa landasan moral batin akan tersesat di ujung jalan."
   },
@@ -74,7 +74,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Maharesi Keturunan Agung & Penulis Epos Jati",
     minNeptu: 8, maxNeptu: 14,
     wukuSesuai: ["Marakeh", "Pahang", "Dukut"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Abiyasa_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTEf-INVkw9xFGpZBkQCUmqkSbA8AnTJheGj_hCApFg1fSpz_LtFb7l5Eo&s=10",
     deskripsi: "Sesepuh agung yang menjadi paku bumi spiritual Astina-Amarta. Tenang, penuh nubuat, penyabar, dan menjadi tempat meminta petuah di kala krisis.",
     pedoman: "Ketenangan batin adalah mercusuar di tengah badai perpecahan."
   },
@@ -88,7 +88,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Raja Darmawangsa & Lambang Kejujuran Suci",
     minNeptu: 7, maxNeptu: 13,
     wukuSesuai: ["Mandhasiya", "Julungpujut", "Pahang", "Marakeh"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/4/4b/Yudistira_wayang_kulit.jpg",
+    gambar: "https://blog.hadisukirno.co.id/wp-content/uploads/2014/06/Puntadewa.jpeg",
     deskripsi: "Sabar luar biasa, berdarah dingin dalam menghadapi ketidakadilan, memegang teguh moralitas, berdarah putih (suci), dan tidak pernah berdusta.",
     pedoman: "Kemenangan sejati adalah kemenangan yang berakar pada kesucian Dharma."
   },
@@ -108,7 +108,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Satria Madusatra & Penembah Kesucian Batin",
     minNeptu: 8, maxNeptu: 15,
     wukuSesuai: ["Kurantil", "Wariga", "Warigagung", "Manahil"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/5/5a/Arjuna_wayang_kulit.jpg",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVFOmQeHXoSkRpAGZV93KdCDqBpP5DJSOaFRWuYfOeMQ&s=10",
     deskripsi: "Berbudi halus, tampan rupawan, sangat tekun dalam pertapaan/fokus ilmu, penjelajah keindahan estetika, kesatria pemanah ulung dan olah batin tajam.",
     pedoman: "Fokuskan cipta, rasa, dan karsa pada kesucian tujuan."
   },
@@ -118,7 +118,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Pendekar Kembar Penguasa Medis & Ketelitian",
     minNeptu: 9, maxNeptu: 14,
     wukuSesuai: ["Tolu", "Gumbreg", "Langkir"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/8/8c/Nakula_Sadewa.jpg",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRQQNlaluFGSgqlR_Fwe7cNDKTONrYFKCLfsw-AyVFo8Q&s=10",
     deskripsi: "Teliti, menguasai ilmu pengobatan (ayurveda/husada), waspada, setia kawan, serta menjaga harmoni dan keseimbangan batin dalam kelompok.",
     pedoman: "Ketelitian dan welas asih adalah obat bagi segala kekacauan."
   },
@@ -138,7 +138,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Satria Otot Kawat Tulang Besi & Pahlawan Pringgandani",
     minNeptu: 13, maxNeptu: 18,
     wukuSesuai: ["Prangbakat", "Bala", "Wuyu"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/2/22/Gatotkaca_wayang_kulit.jpg",
+    gambar: "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Gatotkaca_Surakarta.JPG/250px-Gatotkaca_Surakarta.JPG?utm_source=id.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
     deskripsi: "Berani terbang tinggi melintasi batas, penuh daya juang, pelindung di udara, berjiwa patriotik yang siap gugur demi kehormatan negara.",
     pedoman: "Keberanian terbang menembus badai adalah takdir seorang pembela."
   },
