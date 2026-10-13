@@ -148,7 +148,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Satria Panatas Praja & Simbol Kesatria Muda Berbudi",
     minNeptu: 9, maxNeptu: 14,
     wukuSesuai: ["Sinta", "Landep", "Tambir"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/9/91/Abimanyu_wayang.JPG",
+    gambar: "https://pdwi.senawangi.org/wp-content/uploads/2025/03/WhatsApp-Image-2025-03-05-at-14.03.38.jpeg",
     deskripsi: "Berhati bersih, dicintai banyak pihak, pemberani walau berada di situasi paling terjepit, melambangkan generasi muda penuh idealisme.",
     pedoman: "Ketulusan niat melahirkan keberanian tanpa batas."
   },
@@ -158,7 +158,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Satria Pemberontak Suci & Penembus Batas Langit",
     minNeptu: 15, maxNeptu: 18,
     wukuSesuai: ["Sungsang", "Maktal", "Dukut"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/0/07/Wisanggeni_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTo5XN8czRl6c7p1e-OBRggIUlzycQmm1MttxAdC0jsfQ&s=10",
     deskripsi: "Berwatak blak-blakan, tidak mengenal tata krama feodal kahyangan jika itu tidak adil, sangat sakti mandraguna, pelindung kaum tertindas yang berjiwa bebas.",
     pedoman: "Kebenaran mutlak tidak boleh tunduk pada birokrasi kesombongan."
   },
@@ -172,7 +172,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Raja Sepuh Astina & Simbol Keterbatasan Keadilan",
     minNeptu: 8, maxNeptu: 13,
     wukuSesuai: ["Wuye", "Kulawu", "Pahang"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/5/58/Drestarasta_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTa47bjspPU-m6gJIDmCCcPT-IXM3I6mqqKtbAuxYjMPw&s=10",
     deskripsi: "Raja tuna netra fisik yang hatinya sering kali dibutakan oleh rasa sayang berlebihan kepada keturunannya. Melambangkan dilema objektivitas pemimpin.",
     pedoman: "Kepemimpinan yang adil menuntut mata hati yang terbuka melampaui ikatan darah."
   },
@@ -182,7 +182,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Raja Agung Ngastina & Simbol Ambisi Kekuasaan",
     minNeptu: 11, maxNeptu: 17,
     wukuSesuai: ["Maktal", "Prangbakat", "Wugu"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/9/94/Duryudana_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6NxrbmnV-nQdVdziu9bm5MwVvBxQNWaidA1msZEwnGw&s=10",
     deskripsi: "Tegas, gigih mempertahankan hak kekuasaan kerajaannya, setia kawan kepada sekutu (seperti Karna), namun dikuasai oleh ambisi dan rasa iri.",
     pedoman: "Kehormatan takhta harus dibela sampai titik darah penghabisan."
   },
@@ -192,7 +192,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Ahli Strategi Licik & Arsitek Intrik Politik",
     minNeptu: 10, maxNeptu: 16,
     wukuSesuai: ["Medangkungan", "Wayang", "Kulawu"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/3/36/Sengkuni_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTMkOCySTdjKfQjQBjnoQQ-qd_XhZ-sFV_vlz-8JJDUsA&s=10",
     deskripsi: "Cerdas luar biasa dalam merancang siasat, provokator ulung, menyimpan dendam masa lalu yang membara untuk meruntuhkan dinasti musuhnya.",
     pedoman: "Siasat dan kesabaran jangka panjang adalah senjata paling mematikan."
   },
@@ -202,7 +202,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Panglima Garang & Eksekutor Agresif Ngastina",
     minNeptu: 13, maxNeptu: 18,
     wukuSesuai: ["Bala", "Wugu", "Watugunung"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/6/67/Dursasana_wayang.JPG",
+    gambar: "https://thumb.wikimedia.org/wikipedia/id/thumb/f/fc/Dusasana-kl.jpg/250px-Dusasana-kl.jpg?utm_source=id.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
     deskripsi: "Garang, penurut mutlak kepada titah kakaknya, bertindak tanpa perhitungan panjang di medan laga, melambangkan watak otot tanpa olah rasa.",
     pedoman: "Loyalitas tanpa nalar kritis adalah jalan kehancuran."
   },
@@ -212,7 +212,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Satria Dermawan & Teladan Kesetiaan pada Janji",
     minNeptu: 11, maxNeptu: 17,
     wukuSesuai: ["Maktal", "Wuye", "Dukut"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/7/77/Karna_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSWqADScUtkqEpwCrtfpRu_310jalN3Zz31Kw4l6fesAg&s",
     deskripsi: "Sangat dermawan (tak pernah menolak peminta), memegang teguh janji kesetiaan kepada sahabat meski berada di pihak yang keliru, kesatria berhati agung.",
     pedoman: "Menepati janji dan darma bakti adalah harga diri kesatria."
   },
@@ -226,7 +226,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Awatar Strategi & Kebijaksanaan Makro",
     minNeptu: 10, maxNeptu: 18,
     wukuSesuai: ["Julungwangi", "Tolu", "Medangkungan", "Kulawu"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/d/d7/Kresna_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS5c5LK8OZw_dzNN6QcbP49IxtQw8klc4CnA4qfMk5GSERHUaxAn-rGitE&s=10",
     deskripsi: "Diplomat ulung, visioner, tenang di tengah krisis, penguasa Cakra, dan mampu melihat benang merah rumit dalam setiap permasalahan kolektif.",
     pedoman: "Kebijaksanaan adalah kemudi utama dalam merajut harmoni."
   },
@@ -236,7 +236,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Panglima Benteng Utama (Bima Kunthing)",
     minNeptu: 12, maxNeptu: 18,
     wukuSesuai: ["Galungan", "Kuningan", "Prangbakat", "Bala"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/5/59/Setyaka_Wayang.JPG",
+    gambar: "https://www.wayangstore.com/wp-content/uploads/2019/08/Instagram_ceritawayang_47691914_319238965590817_2183995381304944362_n.jpg",
     deskripsi: "Tegas, pemberani, lugas, pasang badan di garis depan, setia kawan, dan selalu tuntas menyelesaikan tugas (*ngrampunge gawe*).",
     pedoman: "Keberanian adalah perisai kebenaran yang pantang mundur."
   },
@@ -250,7 +250,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Ibu Agung Pandawa & Lambang Ketegaran Wanita Utama",
     minNeptu: 7, maxNeptu: 13,
     wukuSesuai: ["Sinta", "Mandhasiya", "Tambir"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/2/29/Kunti_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTPUax3jacQ1itY8Hki_NfH5d0Na-XzPZX8zKJbkeNcxJ_SKpzaxfMpR2o2&s=10",
     deskripsi: "Ibu yang tegar menghadapi cobaan hidup luar biasa, penuh kebijaksanaan batin, mendidik anak-anaknya menjadi pejuang kebenaran sejati.",
     pedoman: "Ketegaran seorang ibu adalah pelindung paling tangguh bagi masa depan anak."
   },
@@ -260,7 +260,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Permaisuri Agung Amarta & Simbol Harga Diri Wanita",
     minNeptu: 9, maxNeptu: 15,
     wukuSesuai: ["Kurantil", "Julungpujut", "Wuku"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/6/62/Drupadi_wayang.JPG",
+    gambar: "https://www.wayangstore.com/wp-content/uploads/2019/07/Instagram_ceritawayang_46849294_2204455393156585_6695576912766784514_n.jpg",
     deskripsi: "Wanita berpendirian baja, cerdas, tidak mudah tunduk pada penindasan, menjadi pemersatu spiritual para Pandawa di masa pembuangan dan perang.",
     pedoman: "Martabat kehormatan tidak boleh ditukar dengan ketakutan."
   },
@@ -270,7 +270,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Srikandi Perang & Panglima Wanita Tangguh",
     minNeptu: 10, maxNeptu: 16,
     wukuSesuai: ["Wariga", "Warigagung", "Manahil"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/1/1a/Srikandi_wayang.JPG",
+    gambar: "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Sikandi%2C_KITLV_36C99_%28cropped%29.tiff/lossy-page1-250px-Sikandi%2C_KITLV_36C99_%28cropped%29.tiff.jpg?utm_source=id.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
     deskripsi: "Pemberani, tangkas, mahir memanah, pelopor emansipasi ketegasan di medan laga, tidak kenal takut menghadapi musuh besar.",
     pedoman: "Ketegasan emansipasi dan keberanian membela kebenaran melampaui batasan apa pun."
   },
@@ -280,7 +280,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Permaisuri Arjuna & Lambang Kelembutan Paripurna",
     minNeptu: 7, maxNeptu: 12,
     wukuSesuai: ["Landep", "Tolu", "Gumbreg"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/8/82/Subadra_wayang.JPG",
+    gambar: "https://blog.hadisukirno.co.id/wp-content/uploads/2014/06/Subadra.jpeg",
     deskripsi: "Lemah lembut, sabar, menenangkan suasana rumah tangga yang bergejolak, memiliki ketajaman batin yang dihormati para kesatria besar.",
     pedoman: "Kelembutan yang tulus adalah penenang bagi amarah dunia."
   },
@@ -290,7 +290,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Bidadari Utama Kahyangan Indrapura",
     minNeptu: 11, maxNeptu: 16,
     wukuSesuai: ["Julungwangi", "Sungsang", "Galungan"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/5/5c/Bidadari_wayang.jpg",
+    gambar: "https://blog.hadisukirno.co.id/wp-content/uploads/2014/06/Supraba.jpeg",
     deskripsi: "Melambangkan keindahan estetika, pesona kebaikan, keteguhan menyusup ke sarang musuh demi misi penyelamatan semesta.",
     pedoman: "Keindahan sejati memancarkan daya ketahanan yang melumpuhkan kebatilan."
   },
@@ -304,7 +304,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Punakawan Cerdas & Filosof Jenaka",
     minNeptu: 7, maxNeptu: 12,
     wukuSesuai: ["Julungpujut", "Pahang", "Wugu"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Petruk_wayang_kulit.jpg",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRafgnenE67DqPz-bFhA8_Djwj24xIObCliAA9VVD0nKg&s=10",
     deskripsi: "Kritikus sosial yang cerdas, jenaka, berbadan tinggi panjang (filosofi memandang jauh ke depan), pembela kaum kecil lewat humor dan sindiran tajam.",
     pedoman: "Kebenaran sering kali disampaikan lewat senyuman dan kecerdasan."
   },
@@ -314,7 +314,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Punakawan Waspada & Penuh Kontemplasi",
     minNeptu: 8, maxNeptu: 13,
     wukuSesuai: ["Marakeh", "Medangkungan"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Gareng_wayang.JPG",
+    gambar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNj5R3R6eyV72zRlBXzgz6YE0KaO-kf3YQRtb4goOX1g&s=10",
     deskripsi: "Cacat fisik namun kaya batin (filosofi tangan cacat mengambil secukupnya, kaki pincang berhati-hati melangkah), sangat waspada dan jujur.",
     pedoman: "Keterbatasan fisik adalah pengingat untuk selalu berhati-hati melangkah."
   },
@@ -324,7 +324,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Punakawan Oposisi Nalar & Pembela Rakyat",
     minNeptu: 10, maxNeptu: 16,
     wukuSesuai: ["Sungsang", "Galungan"],
-    gambar: "https://upload.wikimedia.org/wikipedia/commons/b/b5/Bagong_wayang.JPG",
+    gambar: "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/36/Wayang_Bagong.jpg/250px-Wayang_Bagong.jpg?utm_source=id.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
     deskripsi: "Spontan, ceplas-ceplos, berani melawan kemapanan dan kesombongan para penguasa demi membela kebenaran wong cilik.",
     pedoman: "Kejujuran rakyat jelata adalah cermin paling jujur bagi para penguasa."
   }
