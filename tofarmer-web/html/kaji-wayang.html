@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kaji Diri & Arketipe Wayang - Twilight Menoreh Agrotech</title>
+  <meta name="theme-color" content="#0d1e14">
+
+  <!-- GOOGLE FONTS -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- SUPABASE JS SDK v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- KAMUS DATABASE WAYANG LENGKAP -->
+  <script src="./wayang-database.js"></script>
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      font-family:'Plus Jakarta Sans',sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+        radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+        linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+      min-height:100vh;
+      overflow-x:hidden;
+      color:#e2e8f0;
+      position:relative;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      background: linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+      pointer-events:none;
+      animation:fog 14s ease-in-out infinite;
+    }
+
+    @keyframes fog{
+      0%{transform:translateX(-3%)}
+      50%{transform:translateX(3%)}
+      100%{transform:translateX(-3%)}
+    }
+
+    .container{
+      width:100%;
+      max-width:1150px;
+      margin:auto;
+      padding:22px;
+    }
+
+    .hero{
+      position:relative;
+      padding:40px 20px 40px;
+      text-align:center;
+    }
+
+    .hero::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      bottom:10px;
+      transform:translateX(-50%);
+      width:180px;
+      height:1px;
+      background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.4), transparent);
+    }
+
+    .logo-wrap{
+      display:flex;
+      justify-content:center;
+      margin-bottom:18px;
+    }
+
+    .logo{
+      width:95px;
+      height:95px;
+      border-radius:50%;
+      padding:5px;
+      background:rgba(20, 38, 27, 0.6);
+      backdrop-filter:blur(12px);
+      -webkit-backdrop-filter:blur(12px);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      transition:.5s;
+    }
+
+    .logo:hover{
+      transform:rotate(8deg) scale(1.04);
+      border-color: #eab308;
+      box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+    }
+
+    .hero h1{
+      font-family: 'Playfair Display', serif;
+      font-size:2.6rem;
+      font-weight:800;
+      letter-spacing:-1px;
+      line-height:1.2;
+      background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+      -webkit-background-clip:text;
+      -webkit-text-fill-color:transparent;
+    }
+
+    .hero p{
+      margin-top:14px;
+      font-size:.95rem;
+      line-height:1.7;
+      color:#84a98c;
+      max-width:650px;
+      margin-inline:auto;
+    }
+
+    .top-nav{
+      display:flex;
+      justify-content:center;
+      margin-bottom:25px;
+    }
+
+    .top-btn{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:12px 24px;
+      border-radius:999px;
+      text-decoration:none;
+      font-size:.83rem;
+      font-weight:700;
+      letter-spacing:.5px;
+      background: rgba(20, 36, 26, 0.5);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color:#a7f3d0;
+      border:1px solid rgba(74, 222, 128, 0.2);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      transition:.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .top-btn:hover{
+      transform:translateY(-3px);
+      background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+      color:#050b07;
+      border-color: #4ade80;
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+    }
+
+    .main-box{
+      background: rgba(14, 28, 19, 0.55);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border:1px solid rgba(255, 255, 255, 0.08);
+      border-radius:34px;
+      padding:35px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      position:relative;
+      overflow:hidden;
+    }
+
+    h2 {
+      font-family: 'Playfair Display', serif;
+      color: #fde047;
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+    }
+
+    .mode-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .mode-btn {
+      background: rgba(7, 14, 10, 0.6);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+      border-radius: 12px;
+      padding: 12px;
+      color: #84a98c;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      transition: .3s;
+      text-align: center;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+      color: #050b07;
+      border-color: #4ade80;
+      box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      color: #84a98c;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 14px 16px;
+      background: rgba(7, 14, 10, 0.8);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+      border-radius: 12px;
+      font-size: 14px;
+      color: #f8fafc;
+      outline: none;
+      transition: .3s;
+    }
+
+    .form-control:focus {
+      border-color: #eab308;
+      box-shadow: 0 0 15px rgba(234, 179, 8, 0.2);
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+      color: #050b07;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      width: 100%;
+      transition: .3s;
+      box-shadow: 0 8px 20px rgba(34, 197, 94, 0.25);
+    }
+
+    .btn-submit:hover {
+      background: linear-gradient(135deg, #16a34a 0%, #166534 100%);
+      color: #fef08a;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid rgba(234, 179, 8, 0.5);
+      color: #fde047;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 12px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      width: 100%;
+      margin-top: 10px;
+      transition: .3s;
+    }
+    .btn-secondary:hover {
+      background: rgba(234, 179, 8, 0.1);
+      border-color: #eab308;
+    }
+
+    .step { display: none; }
+    .step.active { display: block; }
+
+    .rekomendasi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin: 18px 0;
+    }
+
+    .rekom-card {
+      background: rgba(18, 35, 24, 0.5);
+      border: 1px solid rgba(74, 222, 128, 0.15);
+      border-left: 3px solid #eab308;
+      border-radius: 16px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all .3s;
+      text-align: left;
+    }
+
+    .rekom-card:hover {
+      border-color: #4ade80;
+      background: rgba(22, 46, 31, 0.8);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .rekom-card h4 { color: #fde047; font-size: 15px; margin-bottom: 4px; font-family: 'Playfair Display', serif; }
+    .rekom-card p { font-size: 11px; color: #94a3b8; line-height: 1.5; }
+
+    .option-card {
+      background: rgba(18, 35, 24, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+      font-size: 13px;
+      color: #e2e8f0;
+    }
+
+    .option-card:hover {
+      border-color: #eab308;
+      background: rgba(22, 46, 31, 0.7);
+      color: #fde047;
+    }
+
+    .result-box {
+      text-align: center;
+      background: rgba(18, 35, 24, 0.6);
+      border: 2px solid rgba(234, 179, 8, 0.4);
+      border-radius: 20px;
+      padding: 28px;
+      margin-top: 15px;
+    }
+
+    .result-box img {
+      max-width: 210px;
+      height: auto;
+      border-radius: 14px;
+      border: 2px solid #eab308;
+      margin: 16px 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+
+    .info-wuku-box {
+      background: rgba(7, 14, 10, 0.6);
+      border-left: 4px solid #eab308;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 12.5px;
+      margin-bottom: 18px;
+      text-align: left;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+
+    .auth-warning {
+      background: rgba(69, 26, 3, 0.4);
+      border-left: 3px solid #f59e0b;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      color: #fde68a;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    .user-Bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      font-size: 12px;
+      color: #84a98c;
+    }
+
+    .logout-btn {
+      background: transparent;
+      border: none;
+      color: #f87171;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .logout-btn:hover { color: #ef4444; text-decoration: underline; }
+
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      font-size: 0.78rem;
+      color: #64748b;
+      letter-spacing: .5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header class="hero">
+      <div class="logo-wrap">
+        <div class="logo">🗿</div>
+      </div>
+      <h1>Kaji Diri & Arketipe Pewayangan</h1>
+      <p>Menjelajah Weton, Wuku, dan Watak Leluhur dalam Harmoni Twilight Menoreh Agrotech</p>
+    </header>
+
+    <div class="top-nav">
+      <a class="top-btn" href="https://www.tofarmer.xyz/">🏠 Beranda ToFarmer</a>
+    </div>
+
+    <div class="main-box">
+      <!-- GATE LOGIN -->
+      <div id="authGate" style="display: none;">
+        <div class="auth-warning">
+          ⚠️ Silakan masuk (tidak sensitif huruf besar/kecil). Sesi ini memastikan data tanggal lahir asli Anda tersimpan permanen di Supabase untuk pengembangan diri pribadi.
+        </div>
+        <div class="form-group">
+          <label>Nama Pengguna / Wallet ID:</label>
+          <input type="text" id="loginId" class="form-control" placeholder="Contoh: TaniMuda / tanimuda">
+        </div>
+        <div class="form-group">
+          <label>PIN (6 Angka):</label>
+          <input type="password" id="loginPin" class="form-control" maxlength="6" inputmode="numeric" placeholder="******">
+        </div>
+        <button class="btn-submit" onclick="doLoginSession()">Masuk Sesi Anggota</button>
+      </div>
+
+      <!-- KONTEN UTAMA -->
+      <div id="mainContent" style="display: none;">
+        <div class="user-Bar">
+          <span>Anggota Aktif: <b id="lblUser" style="color:#fde047;"></b></span>
+          <button class="logout-btn" onclick="doLogout()">[Keluar Sesi]</button>
+        </div>
+
+        <!-- TAHAP 1: PILIH MODE -->
+        <div id="step-1" class="step active">
+          <h2>Tahap 1: Pilih Mode Kaji Diri</h2>
+          <p style="font-size:12px; color:#84a98c; margin-bottom: 14px;">Bagi yang sudah pernah menyimpan data diri, Anda langsung dapat melihat arketipe wayang Anda, atau beralih ke mode eksplorasi untuk mengintip tanggal lahir teman.</p>
+          
+          <div class="mode-selector">
+            <div id="btnModePribadi" class="mode-btn active" onclick="setMode('pribadi')">👤 Profil Diri Sendiri</div>
+            <div id="btnModeEksplorasi" class="mode-btn" onclick="setMode('eksplorasi')">🔍 Eksplorasi / Teman</div>
+          </div>
+
+          <!-- Mode Pribadi -->
+          <div id="boxModePribadi">
+            <div class="form-group">
+              <label>Tanggal Lahir Pribadi (DD-MM-YYYY):</label>
+              <input type="text" id="tglLahirPribadiInput" class="form-control" placeholder="Contoh: 17-08-1945">
+              <p id="statusSupabaseInfo" style="font-size: 11px; color: #4ade80; margin-top: 6px;">*Jika sudah tersimpan, Anda bisa langsung klik tombol di bawah untuk melihat wayang diri Anda.</p>
+            </div>
+            <button class="btn-submit" onclick="hitungWukuDanRekomendasi()">Lihat Wayang Diri Sendiri →</button>
+          </div>
+
+          <!-- Mode Eksplorasi -->
+          <div id="boxModeEksplorasi" style="display: none;">
+            <div class="form-group">
+              <label>Masukkan Tanggal Lahir (DD-MM-YYYY):</label>
+              <input type="text" id="tglLahirInputBebas" class="form-control" placeholder="Contoh: 01-01-2000 atau 25/12/1990">
+              <p style="font-size: 11px; color: #eab308; margin-top: 6px;">*Mode eksplorasi aman untuk iseng mengecek tanggal lain tanpa mengubah data profil asli Anda.</p>
+            </div>
+            <button class="btn-submit" onclick="hitungWukuDanRekomendasi()">Hitung Wuku & Intip Wayang →</button>
+          </div>
+        </div>
+
+        <!-- TAHAP 2: KANDIDAT AWAL -->
+        <div id="step-2" class="step">
+          <h2>Tahap 2: Kandidat Awal Pawukon</h2>
+          <div id="infoHasilHitung" class="info-wuku-box"></div>
+          <p style="font-size:12px; color:#84a98c; margin-bottom: 14px;">Pilih salah satu kandidat di bawah ini atau ikuti uji introspeksi spesifik:</p>
+          
+          <div id="rekomendasiGrid" class="rekomendasi-grid"></div>
+          <button class="btn-submit" style="margin-top: 15px; background: transparent; border: 1px solid rgba(234,179,8,0.5); color: #fde047;" onclick="mulaiUjiPertanyaan()">Lanjutkan ke Uji Pertanyaan Spesifik →</button>
+          <button class="btn-secondary" onclick="kembaliKeTahap1()">← Kembali & Cek Tanggal Lain</button>
+        </div>
+
+        <!-- TAHAP 3: UJI INTROSPEKSI -->
+        <div id="step-3" class="step">
+          <h2>Tahap 3: Uji Introspeksi Batin</h2>
+          <p style="font-size:12px; color:#84a98c; margin-bottom: 18px;" id="soalTeks"></p>
+          <div id="pilihanSoalBox"></div>
+          <button class="btn-secondary" onclick="kembaliKeTahap1()" style="margin-top: 15px;">← Kembali & Cek Tanggal Lain</button>
+        </div>
+
+        <!-- TAHAP 4: HASIL FINAL & TOMBOL KEMBALI -->
+        <div id="step-4" class="step">
+          <h2>Role Model Wayang Definitif Anda</h2>
+          <div id="resultContainer"></div>
+          <button class="btn-secondary" onclick="kembaliKeTahap1()" style="margin-top: 20px;">← Kembali & Cek Tanggal Lain</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      ToFarmer Ecosystem • Menanam Pengetahuan, Menuai Kemandirian di Twilight Menoreh
+    </footer>
+  </div>
+
+  <script>
+    const NAMA_WUKU = [
+      "Sinta", "Landep", "Wukir", "Kurantil", "Tolu", "Gumbreg", "Wariga", "Warigagung", 
+      "Julungwangi", "Sungsang", "Galungan", "Kuningan", "Langkir", "Mandhasiya", "Julungpujut", 
+      "Pahang", "Kuruwelut", "Marakeh", "Tambir", "Medangkungan", "Maktal", "Wuye", "Manahil", 
+      "Prangbakat", "Bala", "Wugu", "Wayang", "Kulawu", "Dukut", "Watugunung"
+    ];
+    const HARI_ARR = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+    const PASARAN_ARR = ["Pahing", "Pon", "Wage", "Kliwon", "Legi"];
+    const NEPTU_H = { Minggu: 5, Senin: 4, Selasa: 3, Rabu: 7, Kamis: 8, Jumat: 6, Sabtu: 9 };
+    const NEPTU_P = { Pahing: 9, Pon: 7, Wage: 4, Kliwon: 8, Legi: 5 };
+
+    let currentWukuInfo = {};
+    let currentStepQ = 0;
+    let accumulatedScores = {};
+    let activeMode = 'pribadi';
+    let userProfileData = null;
+
+    function setMode(mode) {
+      activeMode = mode;
+      if (mode === 'pribadi') {
+        document.getElementById('btnModePribadi').classList.add('active');
+        document.getElementById('btnModeEksplorasi').classList.remove('active');
+        document.getElementById('boxModePribadi').style.display = 'block';
+        document.getElementById('boxModeEksplorasi').style.display = 'none';
+      } else {
+        document.getElementById('btnModeEksplorasi').classList.add('active');
+        document.getElementById('btnModePribadi').classList.remove('active');
+        document.getElementById('boxModeEksplorasi').style.display = 'block';
+        document.getElementById('boxModePribadi').style.display = 'none';
+      }
+    }
+
+    function kembaliKeTahap1() {
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('step-1').classList.add('active');
+    }
+
+    function parseTanggal(str) {
+      if (!str) return null;
+      const parts = str.trim().split(/[\/\-]/);
+      if (parts.length !== 3) return null;
+      const d = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      const y = parseInt(parts[2], 10);
+      if (isNaN(d) || isNaN(m) || isNaN(y)) return null;
+      const dateObj = new Date(y, m, d);
+      if (dateObj.getFullYear() === y && dateObj.getMonth() === m && dateObj.getDate() === d) {
+        return dateObj;
+      }
+      return null;
+    }
+
+    async function hitungWukuDanRekomendasi() {
+      let date = null;
+      let rawVal = "";
+
+      if (activeMode === 'pribadi') {
+        rawVal = document.getElementById('tglLahirPribadiInput').value;
+        date = parseTanggal(rawVal);
+        
+        if (!date) {
+          alert("Harap masukkan tanggal lahir pribadi Anda dengan format DD-MM-YYYY yang valid.");
+          return;
+        }
+
+        if (supabaseClient && sessionUser) {
+          try {
+            await supabaseClient
+              .from('profiles')
+              .update({ tanggal_lahir: rawVal.trim() })
+              .eq('id', sessionUser.id);
+            document.getElementById('statusSupabaseInfo').innerText = "✓ Tanggal lahir tersimpan permanen di Supabase.";
+          } catch(err) {
+            console.error("Gagal simpan tgl lahir:", err);
+          }
+        }
+      } else {
+        rawVal = document.getElementById('tglLahirInputBebas').value;
+        date = parseTanggal(rawVal);
+      }
+      
+      if (!date) {
+        alert("Format tanggal tidak valid. Gunakan format DD-MM-YYYY (Contoh: 17-08-1945).");
+        return;
+      }
+
+      const patokanDate = new Date(2000, 4, 21); // 21 Mei 2000
+      const diffTime = date.getTime() - patokanDate.getTime();
+      const diffDays = Math.floor(diffTime / 86400000);
+
+      const A = ((diffDays % 210) + 210) % 210;
+      const wukuIndex = Math.floor(A / 7);
+      const wuku = NAMA_WUKU[wukuIndex] || "Sinta";
+
+      const pasaranIndex = (((diffDays % 5) + 5) % 5);
+      const pasaran = PASARAN_ARR[pasaranIndex];
+      const namaHari = HARI_ARR[date.getDay()];
+      const neptu = (NEPTU_H[namaHari] || 5) + (NEPTU_P[pasaran] || 7);
+
+      const dd = String(date.getDate()).padStart(2, '0');
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const yyyy = date.getFullYear();
+      const tanggalFormatUmum = `${dd}/${mm}/${yyyy}`;
+
+      currentWukuInfo = { tanggalLahir: tanggalFormatUmum, hari: namaHari, pasaran, neptu, wuku };
+
+      const modeKet = activeMode === 'pribadi' ? 'Mode Profil Diri Sendiri' : 'Mode Eksplorasi / Teman';
+      document.getElementById('infoHasilHitung').innerHTML = `
+        <b>Hasil Perhitungan Pawukon (${modeKet}):</b><br>
+        • Tanggal: <b>${tanggalFormatUmum}</b><br>
+        • Weton: <b>${namaHari} ${pasaran}</b> (Neptu: <b>${neptu}</b>)<br>
+        • Wuku Binaan: <b>${wuku}</b><br>
+        • Vibrasi Alam: Selaras dengan siklus pawukon tradisional Menoreh.
+      `;
+
+      const keys = Object.keys(DATABASE_WAYANG_LENGKAP);
+      let matched = keys.filter(k => {
+        const item = DATABASE_WAYANG_LENGKAP[k];
+        return item.wukuSesuai.includes(wuku) || (neptu >= item.minNeptu && neptu <= item.maxNeptu);
+      });
+      if (matched.length === 0) matched = ["antaboga", "kresna", "bima", "yudistira"];
+
+      const grid = document.getElementById('rekomendasiGrid');
+      grid.innerHTML = matched.slice(0, 3).map(k => {
+        const w = DATABASE_WAYANG_LENGKAP[k];
+        return `
+          <div class="rekom-card" onclick="pilihFinalWayang('${k}')">
+            <h4>${w.nama}</h4>
+            <p><b>${w.gelar}</b></p>
+            <p style="margin-top:6px;">${w.deskripsi.substring(0, 85)}...</p>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('step-1').classList.remove('active');
+      document.getElementById('step-2').classList.add('active');
+    }
+
+    function mulaiUjiPertanyaan() {
+      currentStepQ = 0;
+      accumulatedScores = {};
+      document.getElementById('step-2').classList.remove('active');
+      document.getElementById('step-3').classList.add('active');
+      muatSoal();
+    }
+
+    function muatSoal() {
+      if (currentStepQ >= POHON_PERTANYAAN.length) {
+        let maxK = "antaboga", maxV = -1;
+        for(let k in accumulatedScores) {
+          if(accumulatedScores[k] > maxV) { maxV = accumulatedScores[k]; maxK = k; }
+        }
+        pilihFinalWayang(maxK);
+        return;
+      }
+      const q = POHON_PERTANYAAN[currentStepQ];
+      document.getElementById('soalTeks').innerText = `Pertanyaan ${currentStepQ + 1} dari ${POHON_PERTANYAAN.length}: ${q.soal}`;
+      document.getElementById('pilihanSoalBox').innerHTML = q.pilihan.map((p, idx) => `
+        <div class="option-card" onclick="jawabPohon('${p.arah.join()}')">
+          <b>Opsi ${idx + 1}:</b> ${p.teks}
+        </div>
+      `).join('');
+    }
+
+    function jawabPohon(arahListStr) {
+      const arr = arahListStr.split(',');
+      arr.forEach(k => { accumulatedScores[k] = (accumulatedScores[k] || 0) + 1; });
+      currentStepQ++;
+      muatSoal();
+    }
+
+    // Supabase & Sesi Login Handler (Case-Insensitive Username)
+    const SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+    const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+    let sessionUser = null;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      const stored = localStorage.getItem('tof_user_session');
+      if (stored) {
+        try {
+          sessionUser = JSON.parse(stored);
+          document.getElementById('lblUser').innerText = sessionUser.username;
+          
+          if (supabaseClient) {
+            const { data } = await supabaseClient
+              .from('profiles')
+              .select('*')
+              .eq('id', sessionUser.id)
+              .maybeSingle();
+            
+            if (data) {
+              userProfileData = data;
+              if (data.tanggal_lahir) {
+                document.getElementById('tglLahirPribadiInput').value = data.tanggal_lahir;
+                document.getElementById('statusSupabaseInfo').innerText = "✓ Tanggal lahir dimuat dari Supabase.";
+                
+                // Jika data diri sudah ada DAN sudah memiliki wayang tersimpan, langsung tampilkan hasil wayang diri mereka di awal!
+                if (data.wayang_archetype && DATABASE_WAYANG_LENGKAP[data.wayang_archetype]) {
+                  tampilkanWayangDiriSendiri(data.wayang_archetype, data.wuku_data);
+                }
+              }
+            }
+          }
+
+          document.getElementById('mainContent').style.display = 'block';
+        } catch(e) { doLogout(); }
+      } else {
+        document.getElementById('authGate').style.display = 'block';
+      }
+    });
+
+    function tampilkanWayangDiriSendiri(key, wukuInfo) {
+      const w = DATABASE_WAYANG_LENGKAP[key] || DATABASE_WAYANG_LENGKAP.antaboga;
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('step-4').classList.add('active');
+
+      document.getElementById('resultContainer').innerHTML = `
+        <div class="result-box" style="border-color: #4ade80;">
+          <div style="font-size:11px; background: rgba(34,197,94,0.2); color:#4ade80; padding:6px; border-radius:8px; margin-bottom:12px; font-weight:700;">
+            🌿 ARKETIPE WAYANG PRIBADI ANDA (Dimuat Otomatis dari Supabase)
+          </div>
+          <h3 style="color:#fde047; font-size:20px; margin-bottom:4px; font-family:'Playfair Display',serif;">✨ ${w.nama}</h3>
+          <p style="font-size:12px; font-weight:bold; color:#4ade80; letter-spacing:.5px;">${w.gelar}</p>
+          <img src="${w.gambar}" alt="${w.nama}">
+          <p style="font-size:13px; line-height:1.7; color:#e2e8f0; margin-bottom:14px;">${w.deskripsi}</p>
+          <p style="font-size:12px; font-style:italic; color:#fef08a;">"${w.pedoman}"</p>
+          <hr style="margin: 18px 0; border:0; border-top:1px solid rgba(234,179,8,0.3);">
+          <p style="font-size:11px; color:#4ade80; font-weight:bold;">✓ Tersimpan permanen untuk modul pengembangan diri Anda.</p>
+        </div>
+      `;
+    }
+
+    async function hashPIN(pin) {
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(pin));
+      return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function doLoginSession() {
+      const rawId = document.getElementById('loginId').value.trim();
+      const pin = document.getElementById('loginPin').value.trim();
+      if (!rawId || !pin) { alert("Isi nama pengguna dan PIN."); return; }
+
+      try {
+        const pinHash = await hashPIN(pin);
+        const { data, error } = await supabaseClient
+          .from('profiles')
+          .select('*');
+
+        if (error || !data) {
+          alert("Gagal terhubung ke database Supabase.");
+          return;
+        }
+
+        const matchedUser = data.find(u => u.username && u.username.toLowerCase() === rawId.toLowerCase());
+
+        if (!matchedUser || matchedUser.pin_hash !== pinHash) {
+          alert("Gagal masuk: Periksa kembali nama pengguna atau PIN Anda.");
+          return;
+        }
+
+        sessionUser = { id: matchedUser.id, username: matchedUser.username };
+        userProfileData = matchedUser;
+        localStorage.setItem('tof_user_session', JSON.stringify(sessionUser));
+        
+        document.getElementById('authGate').style.display = 'none';
+        document.getElementById('lblUser').innerText = sessionUser.username;
+        
+        if (matchedUser.tanggal_lahir) {
+          document.getElementById('tglLahirPribadiInput').value = matchedUser.tanggal_lahir;
+          document.getElementById('statusSupabaseInfo').innerText = "✓ Tanggal lahir dimuat dari Supabase.";
+          
+          if (matchedUser.wayang_archetype && DATABASE_WAYANG_LENGKAP[matchedUser.wayang_archetype]) {
+            tampilkanWayangDiriSendiri(matchedUser.wayang_archetype, matchedUser.wuku_data);
+          }
+        }
+        
+        document.getElementById('mainContent').style.display = 'block';
+      } catch(err) {
+        alert("Terjadi kesalahan: " + err.message);
+      }
+    }
+
+    function doLogout() { 
+      localStorage.removeItem('tof_user_session'); 
+      location.reload(); 
+    }
+
+    async function pilihFinalWayang(key) {
+      const w = DATABASE_WAYANG_LENGKAP[key] || DATABASE_WAYANG_LENGKAP.antaboga;
+      document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+      document.getElementById('step-4').classList.add('active');
+
+      let statusSimpanText = "Hasil eksplorasi (tidak mengubah data profil pribadi).";
+      
+      if (activeMode === 'pribadi' && supabaseClient && sessionUser) {
+        try {
+          await supabaseClient.from('profiles').update({ wayang_archetype: key, wuku_data: currentWukuInfo }).eq('id', sessionUser.id);
+          statusSimpanText = "✓ Hasil profil pribadi tersimpan permanen ke Supabase untuk upgrade pengembangan diri.";
+        } catch(e) {
+          statusSimpanText = "Tersimpan di sesi lokal perangkat.";
+        }
+      }
+
+      document.getElementById('resultContainer').innerHTML = `
+        <div class="result-box">
+          <h3 style="color:#fde047; font-size:20px; margin-bottom:4px; font-family:'Playfair Display',serif;">✨ ${w.nama}</h3>
+          <p style="font-size:12px; font-weight:bold; color:#4ade80; letter-spacing:.5px;">${w.gelar}</p>
+          <img src="${w.gambar}" alt="${w.nama}">
+          <p style="font-size:13px; line-height:1.7; color:#e2e8f0; margin-bottom:14px;">${w.deskripsi}</p>
+          <p style="font-size:12px; font-style:italic; color:#fef08a;">"${w.pedoman}"</p>
+          <hr style="margin: 18px 0; border:0; border-top:1px solid rgba(234,179,8,0.3);">
+          <p style="font-size:11px; color:#4ade80; font-weight:bold;">${statusSimpanText}</p>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
