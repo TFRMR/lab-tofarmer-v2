@@ -24,7 +24,7 @@ const DATABASE_WAYANG_LENGKAP = {
     gelar: "Pamomong Jagad & Guru Sejati Kemanusiaan",
     minNeptu: 7, maxNeptu: 18,
     wukuSesuai: ["Tambir", "Wuye", "Watugunung", "Sinta"],
-    gambar: "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/Wayang_Kulit_of_Semar_crop.jpg",
+    gambar: "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3c/Wayang_Kulit_of_Semar_crop.jpg/250px-Wayang_Kulit_of_Semar_crop.jpg?utm_source=id.wikipedia.org&utm_campaign=parser&utm_content=thumbnail",
     deskripsi: "Wujud dewa tertinggi yang merendah menjadi abdi. Bijaksana tanpa menggurui, momong dengan ketulusan mutlak, penuntun jiwa yang tersesat.",
     pedoman: "Mulyo tanpa puji, menang tanpa ngasorake (mulia tanpa dipuji, menang tanpa merendahkan)."
   },
