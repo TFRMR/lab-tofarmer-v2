@@ -72,7 +72,7 @@
             }
 
             // B. Ambil Riwayat Transaksi Masuk
-            const resTx = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${TOF_ASSET_ID}/transactions?address=${WALLET_TOPLES}&address-role=receiver&limit=10`);
+            const resTx = await fetch(`https://mainnet-idx.algonode.cloud/v2/assets/${TOF_ASSET_ID}/transactions?address=${WALLET_TOPLES}&address-role=receiver&limit=20`);
             if (resTx.ok) {
                 const txData = await resTx.json();
                 const transactions = txData.transactions || [];
@@ -149,7 +149,7 @@ if (!profileData && inputWallet) {
                 if (!transaksiDitemukan) {
                     contentLedger += "🏺 Belum ada dana yang ditransitkan...\n";
                 }
-                contentLedger += "\n===Hanya 10 transaksi Terbaru yang Tampil===";
+                contentLedger += "\n===Hanya 20 transaksi Terbaru yang Tampil===";
             }
         } catch (e) {
             console.error("Gagal memproses data ledger:", e);
