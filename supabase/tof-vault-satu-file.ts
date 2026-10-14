@@ -185,6 +185,21 @@ export interface Repo {
   countTopupSince(profileId: string, sinceIso: string): Promise<number>;
   sumTofAutoSince(sinceIso: string): Promise<number>; // total unit TOF yang dikirim otomatis sejak waktu tsb
   logTopup(requestId: string | null, profileId: string, aksi: string, oleh: string, detail: Record<string, unknown>): Promise<void>;
+  // ---- Penampungan & pembagian batch ----
+  listDitampung(): Promise<TopupRow[]>;                                   // semua baris berstatus 'ditampung'
+  getBatchTerbuka(): Promise<BatchRow | null>;                            // batch 'disiapkan' / 'siap_dibagikan'
+  getBatch(id: string): Promise<BatchRow | null>;
+  insertBatch(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: BatchRow }>;
+  updateBatchIf(id: string, expect: string[], patch: Record<string, unknown>): Promise<BatchRow | null>;
+  assignBatch(ids: string[], batchId: string): Promise<TopupRow[]>;      // hanya baris 'ditampung' yang belum punya batch
+  releaseBatch(batchId: string): Promise<void>;                           // lepaskan baris 'ditampung' dari batch
+  listTopupByBatch(batchId: string): Promise<TopupRow[]>;
+}
+
+export interface BatchRow {
+  id: string; nomor: number; status: string; total_tof_units: number; jumlah_item: number;
+  dibuat: string; dibuat_oleh: string | null; investasi_oleh: string | null; investasi_pada: string | null;
+  investasi_catatan: string | null; selesai_pada: string | null;
 }
 
 export interface TopupRow {
@@ -193,6 +208,8 @@ export interface TopupRow {
   dibuat: string; kedaluwarsa_pada: string; dikonfirmasi_oleh: string | null; dikonfirmasi_pada: string | null;
   tof_txid: string | null; selesai_pada: string | null; selesai_oleh: string | null;
   auto_kirim_pada?: string | null; kirim_catatan?: string | null;
+  jalur?: string | null; ditampung_pada?: string | null; batch_id?: string | null;
+  txid_distribusi?: string | null; distribusi_pada?: string | null;
 }
 
 // Jembatan ke jaringan Algorand untuk pengiriman TOF otomatis dari dompet pembayar khusus
@@ -504,6 +521,10 @@ async function ambilPengaturan(d: Deps) {
     auto_kirim: s.auto_kirim === true,
     batas_harian_tof: angka(s.batas_harian_tof, 100),     // dalam TOF
     batas_transaksi_tof: angka(s.batas_transaksi_tof, 50), // dalam TOF
+    // 'tampung' (bawaan): TOF dikirim ke dompet penampung dulu, dibagikan per batch. 'langsung': ke dompet anggota.
+    mode_kirim: s.mode_kirim === "langsung" ? "langsung" : "tampung",
+    alamat_penampung: typeof s.alamat_penampung === "string" && d.isValidAddress(s.alamat_penampung) ? s.alamat_penampung : "",
+    ambang_batch_tof: angka(s.ambang_batch_tof, 500),     // minimal TOF terkumpul sebelum dibagikan
   };
 }
 
@@ -515,7 +536,7 @@ function tampilTopup(r: TopupRow) {
   return {
     id: r.id, nominal_rp: r.nominal_rp, kode_unik: r.kode_unik, total_rp: r.total_rp, tof_units: r.tof_units,
     status: r.status, ref_user: r.ref_user, catatan_admin: r.catatan_admin, dibuat: r.dibuat,
-    kedaluwarsa_pada: r.kedaluwarsa_pada, tof_txid: r.tof_txid,
+    kedaluwarsa_pada: r.kedaluwarsa_pada, tof_txid: r.tof_txid, txid_distribusi: r.txid_distribusi ?? null,
   };
 }
 
@@ -565,7 +586,7 @@ function acakKode(): number[] {
 //  2) klaim atomik (status 'mengirim') supaya satu tagihan tidak pernah dikirim dua kali,
 //  3) 'lease' Algorand dari ID tagihan: jaringan menolak transaksi ganda dengan lease sama,
 //  4) pemeriksaan penerima (opt-in) dan saldo dompet pembayar sebelum mengirim.
-type Payout = { status: "selesai" | "mengirim" | "tertunda"; alasan?: string; txid?: string };
+type Payout = { status: "selesai" | "ditampung" | "mengirim" | "tertunda"; alasan?: string; txid?: string };
 const FEE_UNITS = 1000n;
 const tidur = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
 
@@ -582,6 +603,13 @@ async function tungguKonfirmasi(txId: string, d: Deps): Promise<"confirmed" | "p
   return "pending";
 }
 
+// Status setelah TOF terbukti sampai: 'ditampung' (jalur tampung) atau 'selesai' (jalur langsung)
+function patchSetelahTerkirim(jalur: string | null | undefined, oleh: string, d: Deps): Record<string, unknown> {
+  return jalur === "tampung"
+    ? { status: "ditampung", ditampung_pada: iso(d.now()) }
+    : { status: "selesai", selesai_pada: iso(d.now()), selesai_oleh: "otomatis:" + oleh };
+}
+
 async function jalankanPayout(row: TopupRow, oleh: string, d: Deps): Promise<Payout> {
   const chain = d.chain;
   const s = await ambilPengaturan(d);
@@ -591,18 +619,21 @@ async function jalankanPayout(row: TopupRow, oleh: string, d: Deps): Promise<Pay
   };
   if (!s.auto_kirim) return { status: "tertunda", alasan: "Kirim otomatis nonaktif." };
   if (!chain || !chain.payoutAddress()) return tunda("Dompet pembayar belum diatur (secret PAYOUT_MNEMONIC).");
+  const jalur = s.mode_kirim;
+  const tujuanAlamat = jalur === "tampung" ? s.alamat_penampung : row.profile_id;
+  if (!tujuanAlamat) return tunda("Alamat dompet penampung belum diatur (Pengaturan → Kirim TOF otomatis).");
 
   const units = BigInt(row.tof_units);
   if (units > BigInt(s.batas_transaksi_tof) * 1000000n) return tunda("Melebihi batas per transaksi kirim otomatis. Kirim manual.");
   const terpakai = BigInt(await d.repo.sumTofAutoSince(iso(d.now() - 24 * 3600 * 1000)));
   if (terpakai + units > BigInt(s.batas_harian_tof) * 1000000n) return tunda("Melebihi batas harian kirim otomatis. Kirim manual atau tunggu.");
 
-  const klaim = await d.repo.updateTopupIf(row.id, ["dikonfirmasi"], { status: "mengirim", auto_kirim_pada: iso(d.now()), kirim_catatan: null });
+  const klaim = await d.repo.updateTopupIf(row.id, ["dikonfirmasi"], { status: "mengirim", auto_kirim_pada: iso(d.now()), kirim_catatan: null, jalur });
   if (!klaim) return { status: "tertunda", alasan: "Status tagihan sudah berubah." };
 
   try {
-    const [kas, tujuan] = await Promise.all([chain.getAccount(chain.payoutAddress()!), chain.getAccount(row.profile_id)]);
-    const gagal = !tujuan.tofOptin ? "Penerima belum opt-in TOF. Minta anggota opt-in, lalu kirim ulang."
+    const [kas, tujuan] = await Promise.all([chain.getAccount(chain.payoutAddress()!), chain.getAccount(tujuanAlamat)]);
+    const gagal = !tujuan.tofOptin ? (jalur === "tampung" ? "Dompet penampung belum opt-in TOF. Opt-in dulu, lalu kirim ulang." : "Penerima belum opt-in TOF. Minta anggota opt-in, lalu kirim ulang.")
       : kas.tof < units ? "Saldo TOF dompet pembayar kurang. Isi ulang dompet pembayar."
       : kas.algo - kas.minBal < FEE_UNITS ? "Saldo ALGO dompet pembayar kurang untuk biaya. Isi ulang dompet pembayar."
       : "";
@@ -617,7 +648,7 @@ async function jalankanPayout(row: TopupRow, oleh: string, d: Deps): Promise<Pay
   const profilPenerima = await d.repo.findProfileById(row.profile_id);
   const catatan = catatanNabung(profilPenerima?.username || "", row.profile_id);
   try {
-    ({ txId } = await chain.sendTof({ to: row.profile_id, amount: units, note: catatan, leaseKey: row.id }));
+    ({ txId } = await chain.sendTof({ to: tujuanAlamat, amount: units, note: catatan, leaseKey: row.id }));
   } catch (e) {
     const kind = (e as { kind?: string })?.kind;
     const pesan = String((e as { message?: string })?.message || "").slice(0, 150);
@@ -635,9 +666,9 @@ async function jalankanPayout(row: TopupRow, oleh: string, d: Deps): Promise<Pay
   await d.repo.logTopup(row.id, row.profile_id, "kirim_otomatis", oleh, { txid: txId, tof_units: row.tof_units });
   const hasil = await tungguKonfirmasi(txId, d);
   if (hasil === "confirmed") {
-    await d.repo.updateTopupIf(row.id, ["mengirim"], { status: "selesai", selesai_pada: iso(d.now()), selesai_oleh: "otomatis:" + oleh });
-    await d.repo.logTopup(row.id, row.profile_id, "selesai_otomatis", oleh, { txid: txId });
-    return { status: "selesai", txid: txId };
+    await d.repo.updateTopupIf(row.id, ["mengirim"], patchSetelahTerkirim(jalur, oleh, d));
+    await d.repo.logTopup(row.id, row.profile_id, jalur === "tampung" ? "ditampung_otomatis" : "selesai_otomatis", oleh, { txid: txId });
+    return { status: jalur === "tampung" ? "ditampung" : "selesai", txid: txId };
   }
   if (hasil === "rejected") {
     await kembalikanKeDikonfirmasi(d, row.id, "Transaksi ditolak jaringan setelah dikirim. Coba kirim ulang.");
@@ -651,9 +682,11 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
     // ---- publik: info untuk menampilkan tombol & tagihan ----
     case "topup_info": {
       const s = await ambilPengaturan(d);
+      const pool = (await d.repo.listDitampung()).reduce((n, r) => n + Number(r.tof_units), 0);
       return ok({
         aktif: s.aktif && !!s.qris, kurs: s.kurs, min_rp: s.min_rp, maks_rp: s.maks_rp,
         nama_penerima: s.nama_penerima, aturan: s.aturan, qris: s.qris,
+        mode_kirim: s.mode_kirim, ambang_batch_tof: s.ambang_batch_tof, pool_tof_units: pool,
       });
     }
 
@@ -727,11 +760,12 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
         : body.tampil === "riwayat" ? ["selesai", "ditolak", "dibatalkan", "kedaluwarsa"]
         : ["menunggu", "dibayar"];
       const rows = await d.repo.listTopupByStatus(tampil, 100);
+      const setelan = await ambilPengaturan(d);
       const nama = new Map<string, string>();
       for (const r of rows) {
         if (!nama.has(r.profile_id)) nama.set(r.profile_id, (await d.repo.findProfileById(r.profile_id))?.username || "");
       }
-      return ok({ daftar: rows.map((r) => ({ ...tampilAdmin(r), profile_id: r.profile_id, username: nama.get(r.profile_id) || "", catatan_transaksi: catatanNabung(nama.get(r.profile_id) || "", r.profile_id), dikonfirmasi_oleh: r.dikonfirmasi_oleh })) });
+      return ok({ daftar: rows.map((r) => ({ ...tampilAdmin(r), profile_id: r.profile_id, username: nama.get(r.profile_id) || "", catatan_transaksi: catatanNabung(nama.get(r.profile_id) || "", r.profile_id), dikonfirmasi_oleh: r.dikonfirmasi_oleh })), mode_kirim: setelan.mode_kirim, alamat_penampung: setelan.alamat_penampung });
     }
 
     case "admin_topup_konfirmasi": {
@@ -774,8 +808,12 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (!TXID_RE.test(txid)) return fail("bad_txid");
       const row = typeof body.id === "string" ? await d.repo.getTopup(body.id) : null;
       if (!row) return fail("not_found");
-      if ((await d.repo.listTopupByStatus(["selesai"], 1000)).some((r) => r.tof_txid === txid)) return fail("txid_sudah_dipakai");
-      const baru = await d.repo.updateTopupIf(row.id, ["dikonfirmasi", "mengirim"], { status: "selesai", tof_txid: txid, selesai_pada: iso(d.now()), selesai_oleh: a.profile.id });
+      if ((await d.repo.listTopupByStatus(["selesai", "ditampung"], 1000)).some((r) => r.tof_txid === txid)) return fail("txid_sudah_dipakai");
+      // Mode tampung: pengiriman manual ke dompet penampung berarti 'ditampung'; mode langsung: 'selesai'
+      const modeManual = (await ambilPengaturan(d)).mode_kirim;
+      const baru = await d.repo.updateTopupIf(row.id, ["dikonfirmasi", "mengirim"], modeManual === "tampung"
+        ? { status: "ditampung", tof_txid: txid, ditampung_pada: iso(d.now()), jalur: "tampung" }
+        : { status: "selesai", tof_txid: txid, selesai_pada: iso(d.now()), selesai_oleh: a.profile.id });
       if (!baru) return fail("status_tidak_cocok");
       await d.repo.logTopup(row.id, row.profile_id, "selesai", a.profile.id, { txid, tof_units: row.tof_units });
       return ok({ topup: tampilTopup(baru) });
@@ -803,8 +841,8 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (!d.chain) return fail("kas_belum_diatur");
       const st = await d.chain.status(row.tof_txid);
       if (st === "confirmed") {
-        await d.repo.updateTopupIf(row.id, ["mengirim"], { status: "selesai", selesai_pada: iso(d.now()), selesai_oleh: "otomatis:" + a.profile.id });
-        await d.repo.logTopup(row.id, row.profile_id, "selesai_otomatis", a.profile.id, { txid: row.tof_txid });
+        await d.repo.updateTopupIf(row.id, ["mengirim"], patchSetelahTerkirim(row.jalur, a.profile.id, d));
+        await d.repo.logTopup(row.id, row.profile_id, row.jalur === "tampung" ? "ditampung_otomatis" : "selesai_otomatis", a.profile.id, { txid: row.tof_txid });
       } else if (st === "rejected") {
         await kembalikanKeDikonfirmasi(d, row.id, "Transaksi ditolak jaringan. Coba kirim ulang.");
       }
@@ -840,7 +878,8 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       const terpakai = await d.repo.sumTofAutoSince(iso(d.now() - 24 * 3600 * 1000));
       return ok({
         pengaturan: { kurs: s.kurs, min_rp: s.min_rp, maks_rp: s.maks_rp, aktif: s.aktif, nama_penerima: s.nama_penerima, aturan: s.aturan, qris: s.qris,
-          auto_kirim: s.auto_kirim, batas_harian_tof: s.batas_harian_tof, batas_transaksi_tof: s.batas_transaksi_tof, terpakai_24j: terpakai },
+          auto_kirim: s.auto_kirim, batas_harian_tof: s.batas_harian_tof, batas_transaksi_tof: s.batas_transaksi_tof, terpakai_24j: terpakai,
+          mode_kirim: s.mode_kirim, alamat_penampung: s.alamat_penampung, ambang_batch_tof: s.ambang_batch_tof },
         kas,
       });
     }
@@ -862,6 +901,22 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
         if (body.auto_kirim === true && !(d.chain && d.chain.payoutAddress())) return fail("kas_belum_diatur");
         nilai.auto_kirim = body.auto_kirim === true;
       }
+      if ("mode_kirim" in body) {
+        if (body.mode_kirim !== "tampung" && body.mode_kirim !== "langsung") return fail("mode_tidak_valid");
+        nilai.mode_kirim = body.mode_kirim;
+      }
+      if ("alamat_penampung" in body) {
+        const x = teks(body.alamat_penampung, 80);
+        if (x && !d.isValidAddress(x)) return fail("alamat_tidak_valid");
+        nilai.alamat_penampung = x;
+      }
+      if ("ambang_batch_tof" in body) { const n = bil(body.ambang_batch_tof, 1000000000); if (n === null) return fail("ambang_tidak_valid"); nilai.ambang_batch_tof = n; }
+      {
+        const modeAkhir = (nilai.mode_kirim as string | undefined) ?? cur.mode_kirim;
+        const penampungAkhir = "alamat_penampung" in nilai ? (nilai.alamat_penampung as string) : cur.alamat_penampung;
+        const autoAkhir = "auto_kirim" in nilai ? nilai.auto_kirim === true : cur.auto_kirim;
+        if (autoAkhir && modeAkhir === "tampung" && !penampungAkhir) return fail("penampung_belum_diatur");
+      }
       if ("aktif" in body) nilai.aktif = body.aktif === true;
       if ("nama_penerima" in body) nilai.nama_penerima = teks(body.nama_penerima, 80);
       if ("aturan" in body) nilai.aturan = teks(body.aturan, 1500);
@@ -875,9 +930,140 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       return ok();
     }
 
+    // ================= PENAMPUNGAN & PEMBAGIAN BATCH =================
+    // Ringkasan pool (TOF yang ditampung), setoran bebas, dan batch yang sedang terbuka
+    case "admin_batch_status": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const s = await ambilPengaturan(d);
+      const ditampung = await d.repo.listDitampung();
+      const bebas = ditampung.filter((r) => !r.batch_id);
+      const batch = await d.repo.getBatchTerbuka();
+      const rowsBatch = batch ? await d.repo.listTopupByBatch(batch.id) : [];
+      const nama = await namaProfil(d, [...bebas, ...rowsBatch].map((r) => r.profile_id));
+      const jml = (rs: TopupRow[]) => rs.reduce((n, r) => n + Number(r.tof_units), 0);
+      return ok({
+        ambang_tof: s.ambang_batch_tof, alamat_penampung: s.alamat_penampung, mode_kirim: s.mode_kirim,
+        pool_units: jml(ditampung), pool_bebas_units: jml(bebas), jumlah_bebas: bebas.length,
+        bebas: bebas.slice(0, 200).map((r) => ({ id: r.id, username: nama.get(r.profile_id) || "", tof_units: r.tof_units, total_rp: r.total_rp })),
+        batch: batch ? tampilBatch(batch) : null,
+        items: batch ? rowsBatch.map((r) => itemBatch(r, batch.nomor, nama)) : [],
+      });
+    }
+
+    // Kumpulkan semua setoran yang tertampung menjadi satu batch (hanya jika sudah mencapai ambang)
+    case "admin_batch_siapkan": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const s = await ambilPengaturan(d);
+      if (await d.repo.getBatchTerbuka()) return fail("batch_masih_terbuka");
+      const bebas = (await d.repo.listDitampung()).filter((r) => !r.batch_id);
+      const total = bebas.reduce((n, r) => n + Number(r.tof_units), 0);
+      if (total < s.ambang_batch_tof * 1000000) return fail("belum_cukup", { pool_units: total, ambang_tof: s.ambang_batch_tof });
+      const ins = await d.repo.insertBatch({ status: "disiapkan", dibuat_oleh: a.profile.id, dibuat: iso(d.now()) });
+      if (ins.result === "duplicate") return fail("batch_masih_terbuka");
+      if (ins.result !== "ok" || !ins.row) return fail("server_error");
+      const masuk = await d.repo.assignBatch(bebas.map((r) => r.id), ins.row.id);
+      if (masuk.length === 0) { await d.repo.updateBatchIf(ins.row.id, ["disiapkan"], { status: "dibatalkan" }); return fail("belum_cukup"); }
+      const batch = (await d.repo.updateBatchIf(ins.row.id, ["disiapkan"], { total_tof_units: masuk.reduce((n, r) => n + Number(r.tof_units), 0), jumlah_item: masuk.length })) || ins.row;
+      await d.repo.logTopup(null, a.profile.id, "batch_siapkan", a.profile.id, { batch: batch.nomor, jumlah: masuk.length, total_tof_units: batch.total_tof_units });
+      const nama = await namaProfil(d, masuk.map((r) => r.profile_id));
+      return ok({ batch: tampilBatch(batch), items: masuk.map((r) => itemBatch(r, batch.nomor, nama)) });
+    }
+
+    // Batalkan batch yang BELUM dinyatakan ditopup ke akun investasi (setoran kembali ke pool)
+    case "admin_batch_batalkan": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const batch = typeof body.batch_id === "string" ? await d.repo.getBatch(body.batch_id) : null;
+      if (!batch) return fail("not_found");
+      const baru = await d.repo.updateBatchIf(batch.id, ["disiapkan"], { status: "dibatalkan" });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.releaseBatch(batch.id);
+      await d.repo.logTopup(null, a.profile.id, "batch_batal", a.profile.id, { batch: batch.nomor });
+      return ok({ batch: tampilBatch(baru) });
+    }
+
+    // Pengurus menyatakan uang batch SUDAH ditopup ke akun investasi sungguhan → pembagian TOF boleh dimulai
+    case "admin_batch_topup_investasi": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const batch = typeof body.batch_id === "string" ? await d.repo.getBatch(body.batch_id) : null;
+      if (!batch) return fail("not_found");
+      const baru = await d.repo.updateBatchIf(batch.id, ["disiapkan"], { status: "siap_dibagikan", investasi_oleh: a.profile.id, investasi_pada: iso(d.now()), investasi_catatan: teks(body.catatan, 300) || null });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(null, a.profile.id, "batch_topup_investasi", a.profile.id, { batch: batch.nomor, catatan: baru.investasi_catatan });
+      return ok({ batch: tampilBatch(baru) });
+    }
+
+    // Daftar isi batch (untuk alat kirim massal di browser pengurus)
+    case "admin_batch_ambil": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const batch = typeof body.batch_id === "string" ? await d.repo.getBatch(body.batch_id) : null;
+      if (!batch) return fail("not_found");
+      const rows = await d.repo.listTopupByBatch(batch.id);
+      const nama = await namaProfil(d, rows.map((r) => r.profile_id));
+      return ok({ batch: tampilBatch(batch), items: rows.map((r) => itemBatch(r, batch.nomor, nama)), alamat_penampung: (await ambilPengaturan(d)).alamat_penampung });
+    }
+
+    // Mencatat hasil pembagian (ID transaksi per setoran). Server memastikan tiap transaksi benar-benar terkonfirmasi.
+    case "admin_batch_catat": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const batch = typeof body.batch_id === "string" ? await d.repo.getBatch(body.batch_id) : null;
+      if (!batch) return fail("not_found");
+      if (batch.status !== "siap_dibagikan") return fail("batch_belum_siap");
+      const hasil = Array.isArray(body.hasil) ? (body.hasil as unknown[]).slice(0, 50) : [];
+      if (hasil.length === 0) return fail("hasil_kosong");
+      const baris = new Map((await d.repo.listTopupByBatch(batch.id)).map((r) => [r.id, r]));
+      const tercatat: string[] = [];
+      const belum: { id: string; alasan: string }[] = [];
+      for (const h of hasil as { id?: unknown; txid?: unknown }[]) {
+        const id = typeof h?.id === "string" ? h.id : "";
+        const r = baris.get(id);
+        const txid = teks(h?.txid, 60).toUpperCase();
+        if (!r) { belum.push({ id, alasan: "bukan bagian batch ini" }); continue; }
+        if (r.status !== "ditampung") { belum.push({ id, alasan: "sudah tercatat" }); continue; }
+        if (!TXID_RE.test(txid)) { belum.push({ id, alasan: "ID transaksi tidak valid" }); continue; }
+        if (d.chain) {
+          const st = await d.chain.status(txid).catch(() => "unknown" as const);
+          if (st !== "confirmed") { belum.push({ id, alasan: "belum terkonfirmasi di jaringan" }); continue; }
+        }
+        const baru = await d.repo.updateTopupIf(id, ["ditampung"], { status: "selesai", txid_distribusi: txid, distribusi_pada: iso(d.now()), selesai_pada: iso(d.now()), selesai_oleh: a.profile.id });
+        if (!baru) { belum.push({ id, alasan: "status berubah" }); continue; }
+        await d.repo.logTopup(id, r.profile_id, "distribusi", a.profile.id, { batch: batch.nomor, txid, tof_units: r.tof_units });
+        tercatat.push(id);
+      }
+      const sisa = (await d.repo.listTopupByBatch(batch.id)).filter((r) => r.status === "ditampung");
+      let selesai = false;
+      if (sisa.length === 0) {
+        await d.repo.updateBatchIf(batch.id, ["siap_dibagikan"], { status: "selesai", selesai_pada: iso(d.now()) });
+        await d.repo.logTopup(null, a.profile.id, "batch_selesai", a.profile.id, { batch: batch.nomor });
+        selesai = true;
+      }
+      return ok({ tercatat, belum, batch_selesai: selesai });
+    }
+
     default:
       return fail("unknown_action");
   }
+}
+
+async function namaProfil(d: Deps, ids: string[]): Promise<Map<string, string>> {
+  const m = new Map<string, string>();
+  for (const id of new Set(ids)) m.set(id, (await d.repo.findProfileById(id))?.username || "");
+  return m;
+}
+
+function tampilBatch(b: BatchRow) {
+  return { id: b.id, nomor: b.nomor, status: b.status, total_tof_units: b.total_tof_units, jumlah_item: b.jumlah_item, dibuat: b.dibuat, investasi_pada: b.investasi_pada, investasi_catatan: b.investasi_catatan };
+}
+
+// Catatan transaksi pembagian: "USERNAME # ALAMAT # nabung receh # batch N"
+function itemBatch(r: TopupRow, nomor: number, nama: Map<string, string>) {
+  const u = nama.get(r.profile_id) || "";
+  return { id: r.id, profile_id: r.profile_id, username: u, tof_units: r.tof_units, total_rp: r.total_rp, status: r.status, txid_distribusi: r.txid_distribusi ?? null, catatan_distribusi: catatanNabung(u, r.profile_id) + " # batch " + nomor };
 }
 
 // ---------------- index.ts ----------------
@@ -1007,6 +1193,38 @@ const repo: Repo = {
       .eq("profile_id", profileId).gte("dibuat", sinceIso);
     if (error) throw new Error(error.message);
     return count ?? 0;
+  },
+  // ---------------- Penampungan & batch ----------------
+  async listDitampung() {
+    return must(await db.from("topup_requests").select("*").eq("status", "ditampung").order("dibuat", { ascending: true }).limit(2000)) as TopupRow[];
+  },
+  async getBatchTerbuka() {
+    return must(await db.from("topup_batch").select("*").in("status", ["disiapkan", "siap_dibagikan"]).limit(1).maybeSingle()) as BatchRow | null;
+  },
+  async getBatch(id) {
+    return must(await db.from("topup_batch").select("*").eq("id", id).maybeSingle()) as BatchRow | null;
+  },
+  async insertBatch(row) {
+    const { data, error } = await db.from("topup_batch").insert(row).select().single();
+    if (!error) return { result: "ok", row: data as BatchRow };
+    if (error.code === "23505") return { result: "duplicate" }; // sudah ada batch terbuka
+    console.error("insertBatch:", error.message);
+    return { result: "error" };
+  },
+  async updateBatchIf(id, expect, patch) {
+    return must(await db.from("topup_batch").update(patch).eq("id", id).in("status", expect).select().maybeSingle()) as BatchRow | null;
+  },
+  async assignBatch(ids, batchId) {
+    if (ids.length === 0) return [];
+    // hanya baris yang masih 'ditampung' dan belum punya batch (cegah satu setoran masuk dua batch)
+    return must(await db.from("topup_requests").update({ batch_id: batchId }).in("id", ids)
+      .eq("status", "ditampung").is("batch_id", null).select()) as TopupRow[];
+  },
+  async releaseBatch(batchId) {
+    must(await db.from("topup_requests").update({ batch_id: null }).eq("batch_id", batchId).eq("status", "ditampung"));
+  },
+  async listTopupByBatch(batchId) {
+    return must(await db.from("topup_requests").select("*").eq("batch_id", batchId).order("dibuat", { ascending: true }).limit(2000)) as TopupRow[];
   },
   async sumTofAutoSince(sinceIso) {
     const rows = must(await db.from("topup_requests").select("tof_units")

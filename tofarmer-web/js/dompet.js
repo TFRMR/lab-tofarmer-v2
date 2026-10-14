@@ -722,7 +722,8 @@
     if (!kartu) return;
     kartu.hidden = !(info && info.aktif);
     if (info && info.aktif) {
-      $("nabungInfo").textContent = "Setor receh ke kas bersama dan terima TOF di dompetmu. 1 TOF = Rp " + fmtRp(info.kurs) + ".";
+      $("nabungInfo").textContent = "Setor receh ke kas bersama dan terima TOF di dompetmu. 1 TOF = Rp " + fmtRp(info.kurs) + "."
+        + (info.mode_kirim === "tampung" ? " TOF ditampung dulu dan dibagikan setelah setoran bersama terkumpul minimal " + info.ambang_batch_tof + " TOF." : "");
     }
     $("btnNabung").onclick = panelNabung;
   }
@@ -733,6 +734,7 @@
     dibayar: ["Menunggu dicek pengurus", "tunggu"],
     dikonfirmasi: ["Pembayaran dikonfirmasi, TOF disiapkan", "ok"],
     mengirim: ["TOF sedang dikirim", "tunggu"],
+    ditampung: ["TOF ditampung, menunggu pembagian", "tunggu"],
     selesai: ["TOF sudah terkirim", "ok"],
     ditolak: ["Ditolak pengurus", "gagal"],
     dibatalkan: ["Dibatalkan", "gagal"],
@@ -840,8 +842,10 @@
         el("li", { text: "Tekan “Saya sudah bayar”. Pengurus mencocokkan dengan mutasi, lalu TOF dikirim ke dompetmu." })) : null,
       aktif ? el("div", { class: "kecil abu tengah", text: "Berlaku sampai " + new Date(tp.kedaluwarsa_pada).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) }) : null,
       tp.status === "dibayar" ? el("div", { class: "info", text: "Terima kasih. Pengurus akan mencocokkan dengan mutasi, dan TOF dikirim setelah dikonfirmasi." }) : null,
+      tp.status === "ditampung" ? el("div", { class: "info", id: "infoDitampung", text: "TOF-mu sudah tercatat di dompet penampung bersama. Dibagikan ke dompetmu setelah setoran bersama terkumpul minimal " + (info.ambang_batch_tof || 500) + " TOF dan ditopup ke akun investasi. Terkumpul sekarang: " + fmtUnits(info.pool_tof_units || 0) + " TOF." }) : null,
+      tp.status === "ditampung" && tp.tof_txid ? el("a", { class: "tautan", href: EXPLORER_TX + tp.tof_txid, target: "_blank", rel: "noopener", text: "Lihat transaksi penampungan di explorer" }) : null,
       tp.status === "ditolak" && tp.catatan_admin ? el("div", { class: "info", text: "Alasan: " + tp.catatan_admin }) : null,
-      tp.status === "selesai" && tp.tof_txid ? el("a", { class: "tautan", href: EXPLORER_TX + tp.tof_txid, target: "_blank", rel: "noopener", text: "Lihat transaksi TOF di explorer" }) : null,
+      tp.status === "selesai" && (tp.txid_distribusi || tp.tof_txid) ? el("a", { class: "tautan", href: EXPLORER_TX + (tp.txid_distribusi || tp.tof_txid), target: "_blank", rel: "noopener", text: "Lihat transaksi TOF di explorer" }) : null,
     ];
     if (tp.status === "menunggu") {
       anak.push(el("label", { class: "lbl", for: "nabungRef", text: "Catatan (opsional)" }), ref);

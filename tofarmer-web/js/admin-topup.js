@@ -9,7 +9,9 @@
   const CFG = window.ADMIN_CONFIG || {};
   const EXPLORER_TX = "https://allo.info/tx/";
   const $ = (id) => document.getElementById(id);
-  const state = { wallet: null, pin: "", tab: "aktif", qrisBaru: null, pesanHasil: "" };
+  const state = { wallet: null, pin: "", tab: "aktif", qrisBaru: null, pesanHasil: "", modeKirim: "tampung", alamatPenampung: "" };
+  const TOF_ASSET_ID = 3558306283;
+  const ALGOD = CFG.algod || "https://mainnet-api.algonode.cloud";
 
   function el(tag, props, ...anak) {
     const e = document.createElement(tag);
@@ -61,6 +63,14 @@
       case "kurs_tidak_valid": return "Kurs harus bilangan bulat rupiah per 1 TOF.";
       case "batas_tidak_valid": return "Batas minimal/maksimal tidak valid (minimal tidak boleh lebih besar dari maksimal).";
       case "qris_tidak_valid": return "Gambar QRIS tidak valid atau terlalu besar.";
+      case "penampung_belum_diatur": return "Isi alamat dompet penampung dulu (mode tampung).";
+      case "alamat_tidak_valid": return "Alamat dompet tidak valid.";
+      case "mode_tidak_valid": return "Mode kirim tidak dikenal.";
+      case "ambang_tidak_valid": return "Ambang minimal harus bilangan bulat TOF.";
+      case "belum_cukup": return "Setoran tertampung belum mencapai ambang minimal.";
+      case "batch_masih_terbuka": return "Masih ada batch yang terbuka. Selesaikan atau batalkan dulu.";
+      case "batch_belum_siap": return "Batch belum dinyatakan ditopup ke akun investasi.";
+      case "hasil_kosong": return "Tidak ada hasil untuk dicatat.";
       case "kas_belum_diatur": return "Dompet pembayar belum diatur di server (secret PAYOUT_MNEMONIC).";
       case "batas_kirim_tidak_valid": return "Batas kirim tidak valid (bilangan bulat TOF; batas per transaksi tidak boleh melebihi batas harian).";
       case "konfirmasi_wajib": return "Perlu konfirmasi eksplisit.";
@@ -70,7 +80,7 @@
     }
   }
 
-  const STATUS = { mengirim: ["TOF sedang dikirim / perlu dicek", "tunggu"], menunggu: ["Menunggu pembayaran", "tunggu"], dibayar: ["Anggota bilang sudah bayar", "tunggu"], dikonfirmasi: ["Terkonfirmasi, TOF belum dikirim", "ok"],
+  const STATUS = { ditampung: ["TOF ditampung (menunggu pembagian)", "ok"], mengirim: ["TOF sedang dikirim / perlu dicek", "tunggu"], menunggu: ["Menunggu pembayaran", "tunggu"], dibayar: ["Anggota bilang sudah bayar", "tunggu"], dikonfirmasi: ["Terkonfirmasi, TOF belum dikirim", "ok"],
     selesai: ["Selesai", "ok"], ditolak: ["Ditolak", "gagal"], dibatalkan: ["Dibatalkan", "gagal"], kedaluwarsa: ["Kedaluwarsa", "gagal"] };
   const chip = (s) => { const [t, k] = STATUS[s] || [s, ""]; return el("span", { class: "chip " + k, text: t }); };
 
@@ -118,8 +128,10 @@
         } }));
     } else if (tab === "perlu_kirim") {
       const txid = el("input", { class: "inp", "data-txid": "1", placeholder: "ID transaksi (bila sudah terkirim di luar sistem, 52 karakter)", autocomplete: "off", spellcheck: "false" });
-      const link = "dompet.html?aset=TOF&ke=" + encodeURIComponent(r.profile_id) + "&jumlah=" + encodeURIComponent(desimal(r.tof_units)) + "&catatan=" + encodeURIComponent(r.catatan_transaksi || "");
-      k.insertBefore(el("div", { class: "kecil mono", text: "Kirim ke: " + r.profile_id }), aksi);
+      const tampung = state.modeKirim === "tampung";
+      const tujuanManual = tampung ? state.alamatPenampung : r.profile_id;
+      const link = "dompet.html?aset=TOF&ke=" + encodeURIComponent(tujuanManual) + "&jumlah=" + encodeURIComponent(desimal(r.tof_units)) + "&catatan=" + encodeURIComponent(r.catatan_transaksi || "");
+      k.insertBefore(el("div", { class: "kecil mono", text: (tampung ? "Kirim ke DOMPET PENAMPUNG: " : "Kirim ke: ") + (tujuanManual || "(alamat penampung belum diatur)") }), aksi);
       k.insertBefore(el("div", { class: "kecil mono", text: "Catatan transaksi: " + (r.catatan_transaksi || "") }), aksi);
       if (r.kirim_catatan) k.insertBefore(el("div", { class: "galat", "data-catatan-kirim": "1", text: r.kirim_catatan }), aksi);
       if (r.status === "mengirim") {
@@ -136,7 +148,7 @@
           el("a", { class: "btn abu", "data-aksi": "kirim", href: link, text: "Kirim manual dari Dompet", style: "text-decoration:none;" }));
       }
       k.insertBefore(txid, galat);
-      k.insertBefore(el("button", { class: "btn abu", "data-aksi": "selesai", type: "button", style: "margin-top:8px;", text: "Tandai selesai (sudah terkirim)", onclick: function () {
+      k.insertBefore(el("button", { class: "btn abu", "data-aksi": "selesai", type: "button", style: "margin-top:8px;", text: tampung ? "Tandai sudah ditampung (sudah terkirim)" : "Tandai selesai (sudah terkirim)", onclick: function () {
         jalan(this, "admin_topup_selesai", { id: r.id, txid: txid.value.trim() });
       } }), galat);
     } else if (r.tof_txid) {
@@ -151,13 +163,203 @@
     const konten = $("konten");
     konten.replaceChildren(el("div", { class: "kecil", style: "padding:14px;", text: "Memuat…" }));
     if (tab === "pengaturan") return muatPengaturan();
+    if (tab === "pembagian") return muatPembagian();
     const res = await adm("admin_topup_daftar", { tampil: tab });
     if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
+    state.modeKirim = res.mode_kirim || "tampung";
+    state.alamatPenampung = res.alamat_penampung || "";
     konten.replaceChildren(...(res.daftar.length ? res.daftar.map((r) => kartu(r, tab)) : [el("div", { class: "kecil", id: "kosong", style: "padding:14px;", text: "Tidak ada data." })]));
     if (state.pesanHasil) {
       konten.prepend(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil }));
       state.pesanHasil = "";
     }
+  }
+
+  // ---------------- Pembagian TOF per batch ----------------
+  const desimalUnit = (u) => desimal(u);
+  const tidur = (ms) => new Promise((res) => setTimeout(res, ms));
+  const CEK_MS = CFG.jeda == null ? 1500 : CFG.jeda;
+
+  async function algodGet(path) {
+    const r = await fetch(ALGOD + path);
+    if (!r.ok) throw new Error("algod " + r.status);
+    return r.json();
+  }
+  async function ringkasAkun(addr) {
+    const j = await algodGet("/v2/accounts/" + addr);
+    const aset = (j.assets || []).find((a) => Number(a["asset-id"]) === TOF_ASSET_ID);
+    return { algo: BigInt(j.amount || 0), minBal: BigInt(j["min-balance"] || 0), tof: aset ? BigInt(aset.amount || 0) : 0n, tofOptin: !!aset };
+  }
+  async function ambilParams() {
+    const p = await algodGet("/v2/transactions/params");
+    return { flatFee: true, fee: 1000, firstRound: p["last-round"], lastRound: p["last-round"] + 1000, genesisID: p["genesis-id"], genesisHash: p["genesis-hash"] };
+  }
+  function gabung(blobs) {
+    const total = blobs.reduce((n, b) => n + b.length, 0);
+    const out = new Uint8Array(total);
+    let o = 0;
+    for (const b of blobs) { out.set(b, o); o += b.length; }
+    return out;
+  }
+  async function kirimGrup(bytes) {
+    let r;
+    try {
+      r = await fetch(ALGOD + "/v2/transactions", { method: "POST", headers: { "Content-Type": "application/x-binary" }, body: bytes });
+    } catch (e) {
+      throw new Error("Jaringan putus saat mengirim. Hasil tidak pasti: periksa dompet penampung di explorer sebelum mencoba lagi (mencoba lagi dalam ~45 menit aman karena transaksi memakai lease).");
+    }
+    if (!r.ok) throw new Error("Ditolak jaringan: " + ((await r.text().catch(() => "")) || "HTTP " + r.status));
+  }
+  async function tungguTx(txId) {
+    for (let i = 0; i < 30; i++) {
+      try {
+        const j = await algodGet("/v2/transactions/pending/" + txId);
+        if (j["pool-error"]) throw new Error(j["pool-error"]);
+        if (j["confirmed-round"] > 0) return true;
+      } catch (e) { if (!/algod 404/.test(String(e.message))) throw e; }
+      await tidur(CEK_MS);
+    }
+    return false;
+  }
+  async function lease(id) {
+    return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("distribusi:" + id)));
+  }
+
+  // Kirim TOF dari dompet penampung ke tiap anggota batch. Ditandatangani DI BROWSER pengurus pemilik dompet penampung:
+  // frasa dibuka sebentar dengan PIN, dipakai menandatangani, lalu dihapus dari memori.
+  async function bagikanBatch(batch, items, progres) {
+    const rv = await adm("reveal");
+    if (!rv.ok) throw new Error(pesan(rv));
+    let sk = null;
+    try {
+      const pulih = algosdk.mnemonicToSecretKey(rv.mnemonic);
+      if (String(pulih.addr) !== state.wallet) throw new Error("Frasa akun ini tidak cocok dengan alamat dompet.");
+      sk = pulih.sk;
+      progres("Memeriksa saldo dan opt-in anggota…");
+      const menunggu = items.filter((i) => i.status === "ditampung");
+      const kas = await ringkasAkun(state.wallet);
+      const siap = [], lewati = [];
+      for (const it of menunggu) { ((await ringkasAkun(it.profile_id)).tofOptin ? siap : lewati).push(it); }
+      const total = siap.reduce((n, i) => n + BigInt(i.tof_units), 0n);
+      if (kas.tof < total) throw new Error("Saldo TOF dompet penampung kurang: butuh " + desimal(total) + ", ada " + desimal(kas.tof) + ".");
+      if (kas.algo - kas.minBal < BigInt(siap.length) * 1000n) throw new Error("Saldo ALGO dompet penampung kurang untuk biaya transaksi.");
+      const tercatat = [], belum = [];
+      for (let i = 0; i < siap.length; i += 16) {
+        const grup = siap.slice(i, i + 16);
+        progres("Mengirim " + (i + 1) + "–" + (i + grup.length) + " dari " + siap.length + "…");
+        const sp = await ambilParams();
+        const txns = [];
+        for (const it of grup) {
+          const tx = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+            from: state.wallet, to: it.profile_id, amount: BigInt(it.tof_units), assetIndex: TOF_ASSET_ID,
+            note: new TextEncoder().encode(it.catatan_distribusi), suggestedParams: sp
+          });
+          tx.addLease(await lease(it.id)); // pencegah pengiriman ganda bila diulang
+          txns.push(tx);
+        }
+        algosdk.assignGroupID(txns); // satu kelompok atomik: semua masuk atau tidak sama sekali
+        const blobs = txns.map((t) => t.signTxn(sk));
+        await kirimGrup(gabung(blobs));
+        const hasil = grup.map((it, k) => ({ id: it.id, txid: txns[k].txID() }));
+        if (!(await tungguTx(hasil[0].txid))) { belum.push(...grup.map((g) => g.username + ": belum terkonfirmasi")); continue; }
+        const cat = await adm("admin_batch_catat", { batch_id: batch.id, hasil });
+        if (!cat.ok) { belum.push(...grup.map((g) => g.username + ": gagal dicatat (" + pesan(cat) + ")")); continue; }
+        tercatat.push(...cat.tercatat);
+        for (const b of cat.belum) belum.push(b.id + ": " + b.alasan);
+      }
+      return { tercatat, lewati, belum };
+    } finally {
+      rv.mnemonic = "";
+      if (sk) sk.fill(0);
+    }
+  }
+
+  async function muatPembagian() {
+    const konten = $("konten");
+    const res = await adm("admin_batch_status");
+    if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
+    state.modeKirim = res.mode_kirim;
+    state.alamatPenampung = res.alamat_penampung || "";
+    const ambangU = res.ambang_tof * 1000000;
+    const persen = Math.min(100, Math.round((res.pool_bebas_units / ambangU) * 100));
+    const galat = el("div", { class: "galat", id: "galatBagi" });
+    const anak = [];
+    if (state.pesanHasil) { anak.push(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil })); state.pesanHasil = ""; }
+
+    anak.push(el("div", { class: "card", id: "kartuPool" },
+      el("div", { style: "font-weight:700;", text: "TOF tertampung" }),
+      el("div", { class: "total", id: "teksPool", text: desimalUnit(res.pool_units) + " TOF" }),
+      el("div", { class: "kecil", text: res.jumlah_bebas + " setoran menunggu batch · minimal " + res.ambang_tof + " TOF sebelum dibagikan" }),
+      el("div", { class: "bar" }, el("div", { style: "width:" + persen + "%;" })),
+      el("div", { class: "kecil mono", text: res.alamat_penampung ? "Dompet penampung: " + res.alamat_penampung : "Alamat dompet penampung belum diatur (tab Pengaturan)." })));
+
+    const batch = res.batch;
+    if (!batch) {
+      const cukup = res.pool_bebas_units >= ambangU;
+      anak.push(el("div", { class: "card" },
+        cukup ? el("div", { class: "kecil", text: "Sudah mencapai minimal. Siapkan batch untuk membagikan semua setoran yang tertampung." }) : el("div", { class: "kecil", id: "belumCukup", text: "Belum mencapai minimal " + res.ambang_tof + " TOF. Setoran tetap ditampung sampai cukup." }),
+        el("button", { class: "btn utama", id: "btnSiapkanBatch", type: "button", disabled: !cukup, text: "Siapkan batch pembagian", onclick: async function () {
+          this.disabled = true;
+          const r = await adm("admin_batch_siapkan");
+          if (!r.ok) { galat.textContent = pesan(r); this.disabled = false; return; }
+          muatPembagian();
+        } }), galat));
+      if (res.bebas.length) anak.push(el("div", { class: "card" }, el("div", { class: "kecil", style: "font-weight:700;", text: "Setoran yang menunggu" }),
+        ...res.bebas.map((b) => el("div", { class: "baris kecil", style: "padding:4px 0;" }, el("span", { text: "@" + b.username }), el("span", { text: desimalUnit(b.tof_units) + " TOF" })))));
+    } else {
+      const totalRp = res.items.reduce((n, i) => n + Number(i.total_rp), 0);
+      const kartuBatch = el("div", { class: "card", id: "kartuBatch" },
+        el("div", { class: "baris" }, el("div", { style: "font-weight:700;", text: "Batch #" + batch.nomor }),
+          el("span", { class: "chip " + (batch.status === "siap_dibagikan" ? "ok" : "tunggu"), text: batch.status === "siap_dibagikan" ? "Siap dibagikan" : "Menunggu topup investasi" })),
+        el("div", { class: "total", text: desimalUnit(batch.total_tof_units) + " TOF" }),
+        el("div", { class: "kecil", text: batch.jumlah_item + " anggota · uang yang terkumpul di kas: Rp " + fmtRp(totalRp) }),
+        batch.investasi_catatan ? el("div", { class: "kecil", text: "Catatan topup: " + batch.investasi_catatan }) : null);
+      anak.push(kartuBatch);
+      if (batch.status === "disiapkan") {
+        kartuBatch.append(
+          el("div", { class: "kecil", style: "margin-top:8px;", text: "Langkah: topup akun investasi sungguhan dengan uang batch ini, lalu tekan tombol di bawah. TOF baru boleh dibagikan sesudah itu." }),
+          el("button", { class: "btn hijau", id: "btnSudahTopup", type: "button", style: "margin-top:8px;", text: "✓ Sudah ditopup ke akun investasi", onclick: async function () {
+            const cat = window.prompt("Catatan topup (mis. tanggal & jumlah, boleh kosong):", "");
+            if (cat === null) return;
+            this.disabled = true;
+            const r = await adm("admin_batch_topup_investasi", { batch_id: batch.id, catatan: cat });
+            if (!r.ok) { galat.textContent = pesan(r); this.disabled = false; return; }
+            muatPembagian();
+          } }),
+          el("button", { class: "btn merah", id: "btnBatalBatch", type: "button", style: "margin-left:8px;", text: "Batalkan batch", onclick: async function () {
+            if (!window.confirm("Batalkan batch ini? Semua setoran kembali ke daftar tunggu.")) return;
+            const r = await adm("admin_batch_batalkan", { batch_id: batch.id });
+            if (!r.ok) { galat.textContent = pesan(r); return; }
+            muatPembagian();
+          } }), galat);
+      } else if (batch.status === "siap_dibagikan") {
+        const akunPenampung = res.alamat_penampung && state.wallet === res.alamat_penampung;
+        const progres = el("div", { class: "kecil", id: "progresBagi" });
+        if (!akunPenampung) {
+          kartuBatch.append(el("div", { class: "galat", id: "bukanPenampung", text: "Pembagian harus dilakukan dari akun pemilik dompet penampung (" + (res.alamat_penampung || "belum diatur") + "). Masuk dengan akun itu untuk membagikan." }));
+        } else {
+          kartuBatch.append(
+            el("div", { class: "kecil", style: "margin-top:8px;", text: "Tiap anggota menerima TOF sesuai setorannya sendiri, dengan catatan 'USERNAME # ALAMAT # nabung receh # batch " + batch.nomor + "'. Anggota yang belum opt-in TOF dilewati." }),
+            el("button", { class: "btn utama", id: "btnBagikan", type: "button", text: "Bagikan TOF sekarang", onclick: async function () {
+              if (!window.confirm("Bagikan " + desimalUnit(batch.total_tof_units) + " TOF ke " + batch.jumlah_item + " anggota dari dompet penampung? Transaksi blockchain tidak bisa dibatalkan.")) return;
+              this.disabled = true; galat.textContent = "";
+              try {
+                const h = await bagikanBatch(batch, res.items, (t) => { progres.textContent = t; });
+                const ringkas = [h.tercatat.length + " anggota menerima TOF."];
+                if (h.lewati.length) ringkas.push("Dilewati (belum opt-in TOF): " + h.lewati.map((x) => "@" + x.username).join(", ") + ".");
+                if (h.belum.length) ringkas.push("Perlu dicek: " + h.belum.join("; ") + ".");
+                state.pesanHasil = ringkas.join(" ");
+                muatPembagian();
+              } catch (e) { galat.textContent = e.message; this.disabled = false; progres.textContent = ""; }
+            } }), progres, galat);
+        }
+      }
+      anak.push(el("div", { class: "card", id: "daftarBatch" }, el("div", { class: "kecil", style: "font-weight:700;", text: "Isi batch" }),
+        ...res.items.map((i) => el("div", { class: "baris kecil", "data-item": i.id, style: "padding:4px 0;" },
+          el("span", { text: "@" + i.username + " · " + desimalUnit(i.tof_units) + " TOF" }),
+          i.txid_distribusi ? el("a", { class: "tautan", href: EXPLORER_TX + i.txid_distribusi, target: "_blank", rel: "noopener", text: "terkirim ✓" }) : el("span", { class: "chip", text: "menunggu" })))));
+    }
+    konten.replaceChildren(...anak);
   }
 
   // ---------------- pengaturan ----------------
@@ -209,6 +411,9 @@
       aturan: el("textarea", { class: "inp", id: "setAturan", maxlength: "1500", placeholder: "Aturan singkat: arti 1 TOF, bagi hasil, cara keluar anggota" }),
       aktif: el("input", { type: "checkbox", id: "setAktif" }),
       auto: el("input", { type: "checkbox", id: "setAuto" }),
+      mode: el("select", { class: "inp", id: "setMode" }, el("option", { value: "tampung", text: "Tampung dulu, bagikan per batch (disarankan)" }), el("option", { value: "langsung", text: "Langsung ke dompet anggota" })),
+      penampung: el("input", { class: "inp", id: "setPenampung", value: p.alamat_penampung || "", placeholder: "Alamat dompet penampung (58 karakter)", autocomplete: "off", spellcheck: "false" }),
+      ambang: el("input", { class: "inp", id: "setAmbang", inputmode: "numeric", value: String(p.ambang_batch_tof) }),
       bHarian: el("input", { class: "inp", id: "setBatasHarian", inputmode: "numeric", value: String(p.batas_harian_tof) }),
       bTx: el("input", { class: "inp", id: "setBatasTx", inputmode: "numeric", value: String(p.batas_transaksi_tof) }),
       file: el("input", { type: "file", id: "setQris", accept: "image/png,image/jpeg,image/webp" }),
@@ -216,6 +421,7 @@
     f.aturan.value = p.aturan || "";
     f.aktif.checked = !!p.aktif;
     f.auto.checked = !!p.auto_kirim;
+    f.mode.value = p.mode_kirim || "tampung";
     const prev = el("img", { class: "qris-prev", id: "prevQris", alt: "QRIS", hidden: !p.qris, src: p.qris || undefined });
     const galat = el("div", { class: "galat", id: "galatSet" });
     const ok = el("div", { class: "kecil", id: "okSet", style: "color:#1f6b3d;" });
@@ -232,6 +438,7 @@
         kurs_rp_per_tof: Number(f.kurs.value), min_rp: Number(f.min.value), maks_rp: Number(f.maks.value),
         nama_penerima: f.nama.value, aturan: f.aturan.value, aktif: f.aktif.checked,
         auto_kirim: f.auto.checked, batas_harian_tof: Number(f.bHarian.value), batas_transaksi_tof: Number(f.bTx.value),
+        mode_kirim: f.mode.value, alamat_penampung: f.penampung.value.trim(), ambang_batch_tof: Number(f.ambang.value),
       };
       if (state.qrisBaru) body.qris = state.qrisBaru;
       simpan.disabled = true;
@@ -251,6 +458,11 @@
       el("label", { class: "lbl", for: "setAturan", text: "Aturan yang tampil ke anggota" }), f.aturan,
       el("label", { class: "lbl", for: "setQris", text: "Gambar QRIS kas bersama (DANA, GoPay, atau lainnya)" }), f.file, prev,
       el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.aktif, "Nabung dibuka untuk anggota"),
+      el("div", { class: "kecil", style: "margin-top:16px;font-weight:700;color:#1c2b22;", text: "Penampungan & pembagian" }),
+      el("label", { class: "lbl", for: "setMode", text: "Ke mana TOF dikirim setelah dikonfirmasi" }), f.mode,
+      el("label", { class: "lbl", for: "setPenampung", text: "Alamat dompet penampung" }), f.penampung,
+      el("div", { class: "kecil", text: "Dompet penampung harus sudah opt-in TOF. Pembagian dari dompet ini dilakukan pengurus pemilik dompet itu (kuncinya tidak di server)." }),
+      el("label", { class: "lbl", for: "setAmbang", text: "Minimal TOF terkumpul sebelum dibagikan" }), f.ambang,
       el("div", { class: "kecil", style: "margin-top:16px;font-weight:700;color:#1c2b22;", text: "Kirim TOF otomatis" }),
       el("div", { class: "kecil", id: "infoKas", text: !kas
         ? "Dompet pembayar belum diatur di server (secret PAYOUT_MNEMONIC). Selama belum, TOF dikirim manual."

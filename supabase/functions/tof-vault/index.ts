@@ -15,7 +15,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import algosdk from "npm:algosdk@2.4.0";
 import { escapeLike } from "./lib.ts";
 import { handle } from "./logic.ts";
-import type { Chain, Deps, PinRow, Profile, Repo, TopupRow, VaultRow } from "./logic.ts";
+import type { BatchRow, Chain, Deps, PinRow, Profile, Repo, TopupRow, VaultRow } from "./logic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -129,6 +129,38 @@ const repo: Repo = {
       .eq("profile_id", profileId).gte("dibuat", sinceIso);
     if (error) throw new Error(error.message);
     return count ?? 0;
+  },
+  // ---------------- Penampungan & batch ----------------
+  async listDitampung() {
+    return must(await db.from("topup_requests").select("*").eq("status", "ditampung").order("dibuat", { ascending: true }).limit(2000)) as TopupRow[];
+  },
+  async getBatchTerbuka() {
+    return must(await db.from("topup_batch").select("*").in("status", ["disiapkan", "siap_dibagikan"]).limit(1).maybeSingle()) as BatchRow | null;
+  },
+  async getBatch(id) {
+    return must(await db.from("topup_batch").select("*").eq("id", id).maybeSingle()) as BatchRow | null;
+  },
+  async insertBatch(row) {
+    const { data, error } = await db.from("topup_batch").insert(row).select().single();
+    if (!error) return { result: "ok", row: data as BatchRow };
+    if (error.code === "23505") return { result: "duplicate" }; // sudah ada batch terbuka
+    console.error("insertBatch:", error.message);
+    return { result: "error" };
+  },
+  async updateBatchIf(id, expect, patch) {
+    return must(await db.from("topup_batch").update(patch).eq("id", id).in("status", expect).select().maybeSingle()) as BatchRow | null;
+  },
+  async assignBatch(ids, batchId) {
+    if (ids.length === 0) return [];
+    // hanya baris yang masih 'ditampung' dan belum punya batch (cegah satu setoran masuk dua batch)
+    return must(await db.from("topup_requests").update({ batch_id: batchId }).in("id", ids)
+      .eq("status", "ditampung").is("batch_id", null).select()) as TopupRow[];
+  },
+  async releaseBatch(batchId) {
+    must(await db.from("topup_requests").update({ batch_id: null }).eq("batch_id", batchId).eq("status", "ditampung"));
+  },
+  async listTopupByBatch(batchId) {
+    return must(await db.from("topup_requests").select("*").eq("batch_id", batchId).order("dibuat", { ascending: true }).limit(2000)) as TopupRow[];
   },
   async sumTofAutoSince(sinceIso) {
     const rows = must(await db.from("topup_requests").select("tof_units")
