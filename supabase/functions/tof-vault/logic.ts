@@ -59,6 +59,23 @@ export interface Repo {
   assignBatch(ids: string[], batchId: string): Promise<TopupRow[]>;      // hanya baris 'ditampung' yang belum punya batch
   releaseBatch(batchId: string): Promise<void>;                           // lepaskan baris 'ditampung' dari batch
   listTopupByBatch(batchId: string): Promise<TopupRow[]>;
+  // ---- Tarik dana ----
+  insertTarik(row: Record<string, unknown>): Promise<{ result: "ok" | "error"; row?: TarikRow }>;
+  getTarik(id: string): Promise<TarikRow | null>;
+  updateTarikIf(id: string, expect: string[], patch: Record<string, unknown>): Promise<TarikRow | null>;
+  listTarikByProfile(profileId: string, limit: number): Promise<TarikRow[]>;
+  listTarikByStatus(statuses: string[], limit: number): Promise<TarikRow[]>;
+  countTarikActive(profileId: string): Promise<number>;
+  countTarikSince(profileId: string, sinceIso: string): Promise<number>;
+  expireTarik(nowIso: string): Promise<void>;
+  txidTarikSudahAda(txid: string, exceptId: string): Promise<boolean>;
+}
+
+export interface TarikRow {
+  id: string; profile_id: string; jumlah_tof_units: number; kurs_rp_per_tof: number; jumlah_rp: number;
+  tujuan_jenis: string; tujuan_nomor: string; tujuan_nama: string; alamat_tarik: string; status: string;
+  tof_txid: string | null; catatan_sistem: string | null; catatan_admin: string | null; ref_bayar: string | null;
+  dibuat: string; kedaluwarsa_pada: string; tof_diterima_pada: string | null; dibayar_oleh: string | null; dibayar_pada: string | null;
 }
 
 export interface BatchRow {
@@ -85,6 +102,8 @@ export interface Chain {
   //   ditolak = pasti tidak terkirim; ambigu = hasil tidak pasti (mis. jaringan putus setelah kirim).
   sendTof(a: { to: string; amount: bigint; note: string; leaseKey: string }): Promise<{ txId: string }>;
   status(txId: string): Promise<"confirmed" | "pending" | "rejected" | "unknown">;
+  // Rincian transfer TOF yang sudah terkonfirmasi (dipakai memverifikasi TOF yang dikirim anggota untuk penarikan)
+  getTransfer(txId: string): Promise<{ status: "confirmed" | "pending" | "not_found"; sender?: string; receiver?: string; isTof?: boolean; amount?: bigint }>;
 }
 
 export interface Deps {
@@ -390,6 +409,10 @@ async function ambilPengaturan(d: Deps) {
     mode_kirim: s.mode_kirim === "langsung" ? "langsung" : "tampung",
     alamat_penampung: typeof s.alamat_penampung === "string" && d.isValidAddress(s.alamat_penampung) ? s.alamat_penampung : "",
     ambang_batch_tof: angka(s.ambang_batch_tof, 500),     // minimal TOF terkumpul sebelum dibagikan
+    tarik_aktif: s.tarik_aktif === true,
+    alamat_tarik: typeof s.alamat_tarik === "string" && d.isValidAddress(s.alamat_tarik) ? s.alamat_tarik : "", // dompet pengurus penerima TOF penarikan
+    min_tarik_tof: angka(s.min_tarik_tof, 5),
+    maks_tarik_tof: angka(s.maks_tarik_tof, 500),
   };
 }
 
@@ -552,6 +575,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
         aktif: s.aktif && !!s.qris, kurs: s.kurs, min_rp: s.min_rp, maks_rp: s.maks_rp,
         nama_penerima: s.nama_penerima, aturan: s.aturan, qris: s.qris,
         mode_kirim: s.mode_kirim, ambang_batch_tof: s.ambang_batch_tof, pool_tof_units: pool,
+        tarik_aktif: s.tarik_aktif && !!s.alamat_tarik, alamat_tarik: s.alamat_tarik, min_tarik_tof: s.min_tarik_tof, maks_tarik_tof: s.maks_tarik_tof,
       });
     }
 
@@ -744,7 +768,8 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       return ok({
         pengaturan: { kurs: s.kurs, min_rp: s.min_rp, maks_rp: s.maks_rp, aktif: s.aktif, nama_penerima: s.nama_penerima, aturan: s.aturan, qris: s.qris,
           auto_kirim: s.auto_kirim, batas_harian_tof: s.batas_harian_tof, batas_transaksi_tof: s.batas_transaksi_tof, terpakai_24j: terpakai,
-          mode_kirim: s.mode_kirim, alamat_penampung: s.alamat_penampung, ambang_batch_tof: s.ambang_batch_tof },
+          mode_kirim: s.mode_kirim, alamat_penampung: s.alamat_penampung, ambang_batch_tof: s.ambang_batch_tof,
+          tarik_aktif: s.tarik_aktif, alamat_tarik: s.alamat_tarik, min_tarik_tof: s.min_tarik_tof, maks_tarik_tof: s.maks_tarik_tof },
         kas,
       });
     }
@@ -781,6 +806,19 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
         const penampungAkhir = "alamat_penampung" in nilai ? (nilai.alamat_penampung as string) : cur.alamat_penampung;
         const autoAkhir = "auto_kirim" in nilai ? nilai.auto_kirim === true : cur.auto_kirim;
         if (autoAkhir && modeAkhir === "tampung" && !penampungAkhir) return fail("penampung_belum_diatur");
+      }
+      if ("alamat_tarik" in body) {
+        const x = teks(body.alamat_tarik, 80);
+        if (x && !d.isValidAddress(x)) return fail("alamat_tidak_valid");
+        nilai.alamat_tarik = x;
+      }
+      if ("min_tarik_tof" in body) { const n = bil(body.min_tarik_tof, 1000000000); if (n === null) return fail("batas_tarik_tidak_valid"); nilai.min_tarik_tof = n; }
+      if ("maks_tarik_tof" in body) { const n = bil(body.maks_tarik_tof, 1000000000); if (n === null) return fail("batas_tarik_tidak_valid"); nilai.maks_tarik_tof = n; }
+      if (((nilai.maks_tarik_tof as number | undefined) ?? cur.maks_tarik_tof) < ((nilai.min_tarik_tof as number | undefined) ?? cur.min_tarik_tof)) return fail("batas_tarik_tidak_valid");
+      if ("tarik_aktif" in body) {
+        const alamatAkhir = "alamat_tarik" in nilai ? (nilai.alamat_tarik as string) : cur.alamat_tarik;
+        if (body.tarik_aktif === true && !alamatAkhir) return fail("alamat_tarik_belum_diatur");
+        nilai.tarik_aktif = body.tarik_aktif === true;
       }
       if ("aktif" in body) nilai.aktif = body.aktif === true;
       if ("nama_penerima" in body) nilai.nama_penerima = teks(body.nama_penerima, 80);
@@ -910,6 +948,140 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       return ok({ tercatat, belum, batch_selesai: selesai });
     }
 
+    // ================= TARIK DANA (WITHDRAW) =================
+    // Anggota mengirim TOF ke dompet pengurus; setelah terbukti di blockchain, pengurus mengirim uang ke e-wallet/rekening anggota.
+    case "tarik_buat": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const s = await ambilPengaturan(d);
+      if (!(s.tarik_aktif && s.alamat_tarik)) return fail("tarik_nonaktif");
+      if (a.profile.id === s.alamat_tarik) return fail("alamat_tarik_sama");
+      const units = Number(body.jumlah_units);
+      if (!Number.isSafeInteger(units) || units < s.min_tarik_tof * 1000000 || units > s.maks_tarik_tof * 1000000) {
+        return fail("jumlah_tidak_valid", { min_tarik_tof: s.min_tarik_tof, maks_tarik_tof: s.maks_tarik_tof });
+      }
+      const tujuan = cekTujuanTarik(body);
+      if ("error" in tujuan) return fail(tujuan.error);
+      const sekarang = d.now();
+      await d.repo.expireTarik(iso(sekarang));
+      if ((await d.repo.countTarikActive(a.profile.id)) > 0) return fail("masih_ada_penarikan");
+      if ((await d.repo.countTarikSince(a.profile.id, iso(sekarang - 24 * 3600 * 1000))) >= 5) return fail("terlalu_sering");
+      if (!d.chain) return fail("chain_tidak_tersedia");
+      let saldo;
+      try { saldo = await d.chain.getAccount(a.profile.id); } catch { return fail("gagal_baca_saldo"); }
+      if (!saldo.tofOptin || saldo.tof < BigInt(units)) return fail("saldo_tof_kurang", { saldo_units: Number(saldo.tof) });
+      const rp = Number((BigInt(units) * BigInt(s.kurs)) / 1000000n);
+      const ins = await d.repo.insertTarik({
+        profile_id: a.profile.id, jumlah_tof_units: units, kurs_rp_per_tof: s.kurs, jumlah_rp: rp,
+        tujuan_jenis: tujuan.jenis, tujuan_nomor: tujuan.nomor, tujuan_nama: tujuan.nama, alamat_tarik: s.alamat_tarik,
+        status: "menunggu_tof", dibuat: iso(sekarang), kedaluwarsa_pada: iso(sekarang + 6 * 3600 * 1000),
+      });
+      if (ins.result !== "ok" || !ins.row) return fail("server_error");
+      await d.repo.logTopup(ins.row.id, a.profile.id, "tarik_buat", a.profile.id, { tof_units: units, rp });
+      return ok({ tarik: tampilTarik(ins.row), alamat_tarik: s.alamat_tarik, catatan_transaksi: catatanTarik(a.profile.username, a.profile.id) });
+    }
+
+    // Anggota melaporkan ID transaksi TOF-nya; server memeriksa langsung di blockchain
+    case "tarik_tof_terkirim": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getTarik(body.id) : null;
+      if (!row || row.profile_id !== a.profile.id) return fail("not_found");
+      const txid = teks(body.txid, 60).toUpperCase();
+      if (!TXID_RE.test(txid)) return fail("bad_txid");
+      if (row.status !== "menunggu_tof" && row.status !== "tof_dikirim") return fail("status_tidak_cocok");
+      if (await d.repo.txidTarikSudahAda(txid, row.id)) return fail("txid_sudah_dipakai");
+      const baru = await verifikasiTarik(row, txid, d);
+      await d.repo.logTopup(row.id, a.profile.id, "tarik_tof_terkirim", a.profile.id, { txid, status: baru.status });
+      return ok({ tarik: tampilTarik(baru) });
+    }
+
+    // Anggota memeriksa ulang (mis. transaksi belum terindeks saat pertama dilaporkan)
+    case "tarik_periksa": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getTarik(body.id) : null;
+      if (!row || row.profile_id !== a.profile.id) return fail("not_found");
+      if (row.status !== "tof_dikirim" || !row.tof_txid) return fail("status_tidak_cocok");
+      return ok({ tarik: tampilTarik(await verifikasiTarik(row, row.tof_txid, d)) });
+    }
+
+    case "tarik_saya": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      await d.repo.expireTarik(iso(d.now()));
+      return ok({ daftar: (await d.repo.listTarikByProfile(a.profile.id, 20)).map(tampilTarik) });
+    }
+
+    // Batalkan selama TOF belum dikirim
+    case "tarik_batal": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getTarik(body.id) : null;
+      if (!row || row.profile_id !== a.profile.id) return fail("not_found");
+      const baru = await d.repo.updateTarikIf(row.id, ["menunggu_tof"], { status: "dibatalkan" });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, a.profile.id, "tarik_batal", a.profile.id, {});
+      return ok({ tarik: tampilTarik(baru) });
+    }
+
+    // ---- pengurus ----
+    case "admin_tarik_daftar": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      await d.repo.expireTarik(iso(d.now()));
+      const tampil = body.tampil === "perlu_dibayar" ? ["tof_diterima"]
+        : body.tampil === "riwayat" ? ["dibayar", "ditolak", "dibatalkan", "kedaluwarsa"]
+        : ["menunggu_tof", "tof_dikirim"];
+      const rows = await d.repo.listTarikByStatus(tampil, 100);
+      const nama = await namaProfil(d, rows.map((r) => r.profile_id));
+      return ok({ daftar: rows.map((r) => ({ ...tampilTarik(r), username: nama.get(r.profile_id) || "", catatan_admin: r.catatan_admin, dibayar_oleh: r.dibayar_oleh })) });
+    }
+
+    // Verifikasi ulang; pengurus boleh menambahkan ID transaksi bila anggota belum melaporkannya
+    case "admin_tarik_verifikasi": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getTarik(body.id) : null;
+      if (!row) return fail("not_found");
+      if (row.status !== "menunggu_tof" && row.status !== "tof_dikirim") return fail("status_tidak_cocok");
+      const txid = teks(body.txid, 60).toUpperCase() || row.tof_txid || "";
+      if (!TXID_RE.test(txid)) return fail(txid ? "bad_txid" : "txid_belum_ada");
+      if (await d.repo.txidTarikSudahAda(txid, row.id)) return fail("txid_sudah_dipakai");
+      const baru = await verifikasiTarik(row, txid, d);
+      await d.repo.logTopup(row.id, row.profile_id, "tarik_verifikasi", a.profile.id, { txid, status: baru.status });
+      return ok({ tarik: tampilTarik(baru) });
+    }
+
+    // Uang sudah dikirim pengurus (DANA/rekening) ke tujuan anggota
+    case "admin_tarik_dibayar": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const ref = teks(body.ref, 100);
+      if (!ref) return fail("ref_wajib");
+      const row = typeof body.id === "string" ? await d.repo.getTarik(body.id) : null;
+      if (!row) return fail("not_found");
+      if (row.profile_id === a.profile.id && (d.adminIds || []).length > 1) return fail("tidak_boleh_proses_sendiri");
+      const baru = await d.repo.updateTarikIf(row.id, ["tof_diterima"], { status: "dibayar", ref_bayar: ref, dibayar_oleh: a.profile.id, dibayar_pada: iso(d.now()) });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "tarik_dibayar", a.profile.id, { rp: row.jumlah_rp, ref });
+      return ok({ tarik: tampilTarik(baru) });
+    }
+
+    // Tolak. Bila TOF sudah diterima pengurus, TOF harus dikembalikan manual (lihat 'kembalikan_tof').
+    case "admin_tarik_tolak": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const alasan = teks(body.alasan, 200);
+      if (!alasan) return fail("alasan_wajib");
+      const row = typeof body.id === "string" ? await d.repo.getTarik(body.id) : null;
+      if (!row) return fail("not_found");
+      const baru = await d.repo.updateTarikIf(row.id, ["menunggu_tof", "tof_dikirim", "tof_diterima"], { status: "ditolak", catatan_admin: alasan });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "tarik_tolak", a.profile.id, { alasan, status_sebelumnya: row.status });
+      return ok({ tarik: tampilTarik(baru), kembalikan_tof: row.status === "tof_diterima" || (row.status === "tof_dikirim" && !!row.tof_txid) });
+    }
+
     default:
       return fail("unknown_action");
   }
@@ -919,6 +1091,51 @@ async function namaProfil(d: Deps, ids: string[]): Promise<Map<string, string>> 
   const m = new Map<string, string>();
   for (const id of new Set(ids)) m.set(id, (await d.repo.findProfileById(id))?.username || "");
   return m;
+}
+
+const TOF_TARIK_JENIS = ["DANA", "GoPay", "OVO", "ShopeePay", "LinkAja"];
+
+function catatanTarik(username: string, address: string): string {
+  return (username || "-") + " # " + address + " # tarik dana";
+}
+
+function tampilTarik(r: TarikRow) {
+  return {
+    id: r.id, jumlah_tof_units: r.jumlah_tof_units, jumlah_rp: r.jumlah_rp, kurs_rp_per_tof: r.kurs_rp_per_tof,
+    tujuan_jenis: r.tujuan_jenis, tujuan_nomor: r.tujuan_nomor, tujuan_nama: r.tujuan_nama, alamat_tarik: r.alamat_tarik,
+    status: r.status, tof_txid: r.tof_txid, catatan_sistem: r.catatan_sistem, catatan_admin: r.catatan_admin, ref_bayar: r.ref_bayar,
+    dibuat: r.dibuat, kedaluwarsa_pada: r.kedaluwarsa_pada, profile_id: r.profile_id,
+  };
+}
+
+function cekTujuanTarik(body: Row): { jenis: string; nomor: string; nama: string } | { error: string } {
+  const jenis = teks(body.jenis, 40);
+  const bank = /^Bank [A-Za-z0-9 .&-]{2,30}$/.test(jenis);
+  if (!bank && !TOF_TARIK_JENIS.includes(jenis)) return { error: "jenis_tidak_valid" };
+  const nomor = String(body.nomor ?? "").replace(/[\s-]/g, "");
+  if (!/^\d{5,25}$/.test(nomor)) return { error: "nomor_tidak_valid" };
+  const nama = teks(body.nama, 60);
+  if (!/^[A-Za-z0-9 .,'-]{2,60}$/.test(nama)) return { error: "nama_tidak_valid" };
+  return { jenis, nomor, nama };
+}
+
+// Memeriksa transfer TOF anggota ke dompet pengurus langsung di blockchain:
+// harus terkonfirmasi, dari akun anggota, ke dompet penarikan, aset TOF, dan jumlah PERSIS sama.
+async function verifikasiTarik(row: TarikRow, txid: string, d: Deps): Promise<TarikRow> {
+  const tersimpan = await d.repo.updateTarikIf(row.id, ["menunggu_tof", "tof_dikirim"], { status: "tof_dikirim", tof_txid: txid });
+  if (!tersimpan) return (await d.repo.getTarik(row.id)) || row;
+  if (!d.chain) return tersimpan;
+  let tr: Awaited<ReturnType<Chain["getTransfer"]>>;
+  try { tr = await d.chain.getTransfer(txid); } catch { tr = { status: "pending" }; }
+  const catat = async (teksCatatan: string | null) => (await d.repo.updateTarikIf(row.id, ["tof_dikirim"], { catatan_sistem: teksCatatan })) || tersimpan;
+  if (tr.status !== "confirmed") return await catat("Transaksi belum terkonfirmasi/terindeks di jaringan. Periksa lagi sebentar lagi.");
+  const salah: string[] = [];
+  if (tr.sender !== row.profile_id) salah.push("pengirim bukan pemilik akun");
+  if (tr.receiver !== row.alamat_tarik) salah.push("penerima bukan dompet penarikan");
+  if (!tr.isTof) salah.push("aset bukan TOF");
+  if (tr.amount !== BigInt(row.jumlah_tof_units)) salah.push("jumlah tidak sama dengan permintaan");
+  if (salah.length) return await catat("Tidak cocok: " + salah.join(", ") + ".");
+  return (await d.repo.updateTarikIf(row.id, ["tof_dikirim"], { status: "tof_diterima", tof_diterima_pada: iso(d.now()), catatan_sistem: null })) || tersimpan;
 }
 
 function tampilBatch(b: BatchRow) {

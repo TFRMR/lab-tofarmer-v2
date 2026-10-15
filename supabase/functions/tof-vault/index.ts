@@ -15,12 +15,13 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import algosdk from "npm:algosdk@2.4.0";
 import { escapeLike } from "./lib.ts";
 import { handle } from "./logic.ts";
-import type { BatchRow, Chain, Deps, PinRow, Profile, Repo, TopupRow, VaultRow } from "./logic.ts";
+import type { BatchRow, Chain, Deps, PinRow, Profile, Repo, TarikRow, TopupRow, VaultRow } from "./logic.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MASTER_KEY = Deno.env.get("VAULT_MASTER_KEY") ?? "";
 const PEPPER = Deno.env.get("PIN_PEPPER") ?? "";
+const INDEXER = Deno.env.get("INDEXER_URL") ?? "https://mainnet-idx.algonode.cloud";
 const ALGOD = Deno.env.get("ALGOD_URL") ?? "https://mainnet-api.algonode.cloud";
 const TOF_ASSET_ID = Number(Deno.env.get("TOF_ASSET_ID") ?? "3558306283");
 const PAYOUT_MNEMONIC = (Deno.env.get("PAYOUT_MNEMONIC") ?? "").trim();
@@ -130,6 +131,45 @@ const repo: Repo = {
     if (error) throw new Error(error.message);
     return count ?? 0;
   },
+  // ---------------- Tarik dana ----------------
+  async insertTarik(row) {
+    const { data, error } = await db.from("tarik_requests").insert(row).select().single();
+    if (error) { console.error("insertTarik:", error.message); return { result: "error" }; }
+    return { result: "ok", row: data as TarikRow };
+  },
+  async getTarik(id) {
+    return must(await db.from("tarik_requests").select("*").eq("id", id).maybeSingle()) as TarikRow | null;
+  },
+  async updateTarikIf(id, expect, patch) {
+    return must(await db.from("tarik_requests").update(patch).eq("id", id).in("status", expect).select().maybeSingle()) as TarikRow | null;
+  },
+  async listTarikByProfile(profileId, limit) {
+    return must(await db.from("tarik_requests").select("*").eq("profile_id", profileId).order("dibuat", { ascending: false }).limit(limit)) as TarikRow[];
+  },
+  async listTarikByStatus(statuses, limit) {
+    return must(await db.from("tarik_requests").select("*").in("status", statuses).order("dibuat", { ascending: true }).limit(limit)) as TarikRow[];
+  },
+  async countTarikActive(profileId) {
+    const { count, error } = await db.from("tarik_requests").select("id", { count: "exact", head: true })
+      .eq("profile_id", profileId).in("status", ["menunggu_tof", "tof_dikirim", "tof_diterima"]);
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
+  async countTarikSince(profileId, sinceIso) {
+    const { count, error } = await db.from("tarik_requests").select("id", { count: "exact", head: true })
+      .eq("profile_id", profileId).gte("dibuat", sinceIso);
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
+  async expireTarik(nowIso) {
+    must(await db.from("tarik_requests").update({ status: "kedaluwarsa" }).eq("status", "menunggu_tof").lt("kedaluwarsa_pada", nowIso));
+  },
+  async txidTarikSudahAda(txid, exceptId) {
+    const { count, error } = await db.from("tarik_requests").select("id", { count: "exact", head: true }).eq("tof_txid", txid).neq("id", exceptId);
+    if (error) throw new Error(error.message);
+    return (count ?? 0) > 0;
+  },
+
   // ---------------- Penampungan & batch ----------------
   async listDitampung() {
     return must(await db.from("topup_requests").select("*").eq("status", "ditampung").order("dibuat", { ascending: true }).limit(2000)) as TopupRow[];
@@ -225,6 +265,22 @@ const chain: Chain = {
     if (res.ok) return { txId };
     const teks = await res.text().catch(() => "");
     throw { kind: res.status >= 400 && res.status < 500 ? "ditolak" : "ambigu", message: teks || "HTTP " + res.status };
+  },
+  // Rincian transfer TOF terkonfirmasi lewat indexer (untuk verifikasi penarikan)
+  async getTransfer(txId) {
+    let r: Response;
+    try { r = await fetch(INDEXER + "/v2/transactions/" + txId); } catch { return { status: "pending" }; }
+    if (r.status === 404) return { status: "not_found" };
+    if (!r.ok) return { status: "pending" };
+    const j = await r.json();
+    const tx = j.transaction;
+    if (!tx || !(tx["confirmed-round"] > 0)) return { status: "pending" };
+    const ax = tx["asset-transfer-transaction"];
+    if (tx["tx-type"] !== "axfer" || !ax) return { status: "confirmed", isTof: false };
+    return {
+      status: "confirmed", sender: tx.sender, receiver: ax.receiver,
+      isTof: Number(ax["asset-id"]) === TOF_ASSET_ID, amount: BigInt(ax.amount || 0),
+    };
   },
   async status(txId) {
     try {

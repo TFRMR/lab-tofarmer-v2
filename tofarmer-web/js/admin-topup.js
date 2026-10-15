@@ -63,6 +63,10 @@
       case "kurs_tidak_valid": return "Kurs harus bilangan bulat rupiah per 1 TOF.";
       case "batas_tidak_valid": return "Batas minimal/maksimal tidak valid (minimal tidak boleh lebih besar dari maksimal).";
       case "qris_tidak_valid": return "Gambar QRIS tidak valid atau terlalu besar.";
+      case "alamat_tarik_belum_diatur": return "Isi alamat dompet pengurus penerima TOF penarikan dulu.";
+      case "batas_tarik_tidak_valid": return "Batas tarik tidak valid (bilangan bulat TOF; minimal tidak boleh lebih besar dari maksimal).";
+      case "ref_wajib": return "Isi referensi pembayaran (mis. ID transaksi DANA / waktu kirim).";
+      case "tidak_boleh_proses_sendiri": return "Penarikan sendiri harus diproses pengurus lain.";
       case "penampung_belum_diatur": return "Isi alamat dompet penampung dulu (mode tampung).";
       case "alamat_tidak_valid": return "Alamat dompet tidak valid.";
       case "mode_tidak_valid": return "Mode kirim tidak dikenal.";
@@ -82,6 +86,9 @@
 
   const STATUS = { ditampung: ["TOF ditampung (menunggu pembagian)", "ok"], mengirim: ["TOF sedang dikirim / perlu dicek", "tunggu"], menunggu: ["Menunggu pembayaran", "tunggu"], dibayar: ["Anggota bilang sudah bayar", "tunggu"], dikonfirmasi: ["Terkonfirmasi, TOF belum dikirim", "ok"],
     selesai: ["Selesai", "ok"], ditolak: ["Ditolak", "gagal"], dibatalkan: ["Dibatalkan", "gagal"], kedaluwarsa: ["Kedaluwarsa", "gagal"] };
+  const STATUS_TARIK = { menunggu_tof: ["Menunggu TOF dikirim anggota", "tunggu"], tof_dikirim: ["TOF dilaporkan, belum terverifikasi", "tunggu"], tof_diterima: ["TOF terverifikasi, uang belum dikirim", "ok"],
+    dibayar: ["Uang sudah dikirim", "ok"], ditolak: ["Ditolak", "gagal"], dibatalkan: ["Dibatalkan", "gagal"], kedaluwarsa: ["Kedaluwarsa", "gagal"] };
+  const chipTarik = (st) => { const [t, k] = STATUS_TARIK[st] || [st, ""]; return el("span", { class: "chip " + k, text: t }); };
   const chip = (s) => { const [t, k] = STATUS[s] || [s, ""]; return el("span", { class: "chip " + k, text: t }); };
 
   function ringkasHasil(res, r) {
@@ -164,6 +171,7 @@
     konten.replaceChildren(el("div", { class: "kecil", style: "padding:14px;", text: "Memuat…" }));
     if (tab === "pengaturan") return muatPengaturan();
     if (tab === "pembagian") return muatPembagian();
+    if (tab === "penarikan") return muatPenarikan();
     const res = await adm("admin_topup_daftar", { tampil: tab });
     if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
     state.modeKirim = res.mode_kirim || "tampung";
@@ -362,6 +370,82 @@
     konten.replaceChildren(...anak);
   }
 
+  // ---------------- Penarikan (TOF → uang) ----------------
+  function kartuTarik(r, bagian) {
+    const galat = el("div", { class: "galat" });
+    const aksi = el("div", { class: "aksi" });
+    const k = el("div", { class: "card", "data-id": r.id },
+      el("div", { class: "baris" }, el("div", { text: "@" + (r.username || "?") + " · " + tgl(r.dibuat) }), chipTarik(r.status)),
+      el("div", { class: "total", text: "Rp " + fmtRp(r.jumlah_rp) }),
+      el("div", { class: "kecil", text: desimal(r.jumlah_tof_units) + " TOF (kurs 1 TOF = Rp " + fmtRp(r.kurs_rp_per_tof) + ")" }),
+      el("div", { class: "kecil", style: "margin-top:6px;font-weight:700;color:#1c2b22;", "data-tujuan": "1", text: r.tujuan_jenis + " · " + r.tujuan_nomor + " · a.n. " + r.tujuan_nama }),
+      r.tof_txid ? el("a", { class: "tautan", href: EXPLORER_TX + r.tof_txid, target: "_blank", rel: "noopener", text: "Lihat transaksi TOF dari anggota" }) : null,
+      r.catatan_sistem ? el("div", { class: "galat", "data-catatan-sistem": "1", text: r.catatan_sistem }) : null,
+      r.ref_bayar ? el("div", { class: "kecil", text: "Referensi pembayaran: " + r.ref_bayar }) : null,
+      r.catatan_admin ? el("div", { class: "kecil", text: "Catatan pengurus: " + r.catatan_admin }) : null,
+      aksi, galat);
+
+    const jalan = async (tombol, action, extra, bacaHasil) => {
+      tombol.disabled = true; galat.textContent = "";
+      const res = await adm(action, Object.assign({ id: r.id }, extra || {}));
+      tombol.disabled = false;
+      if (!res.ok) { galat.textContent = pesan(res); return; }
+      state.pesanHasil = bacaHasil ? bacaHasil(res) : "";
+      muatPenarikan();
+    };
+    const tolak = (tombol) => {
+      const alasan = window.prompt("Alasan penolakan:");
+      if (!alasan) return;
+      jalan(tombol, "admin_tarik_tolak", { alasan }, (res) => res.kembalikan_tof
+        ? "Ditolak. TOF anggota sudah ada di dompet penerima: KEMBALIKAN TOF-nya secara manual ke @" + (r.username || "?") + "."
+        : "Ditolak.");
+    };
+
+    if (bagian === "perlu_dibayar") {
+      aksi.append(
+        el("button", { class: "btn hijau", "data-aksi": "salin-nomor", type: "button", text: "Salin nomor", onclick: () => navigator.clipboard && navigator.clipboard.writeText(r.tujuan_nomor).catch(() => {}) }),
+        el("button", { class: "btn hijau", "data-aksi": "salin-jumlah", type: "button", text: "Salin jumlah", onclick: () => navigator.clipboard && navigator.clipboard.writeText(String(r.jumlah_rp)).catch(() => {}) }),
+        el("button", { class: "btn utama", "data-aksi": "dibayar", type: "button", style: "margin-top:0;", text: "✓ Uang sudah saya kirim", onclick: function () {
+          if (!window.confirm("Pastikan Rp " + fmtRp(r.jumlah_rp) + " SUDAH terkirim ke " + r.tujuan_jenis + " " + r.tujuan_nomor + " a.n. " + r.tujuan_nama + ". Lanjut?")) return;
+          const ref = window.prompt("Referensi pembayaran (mis. ID transaksi DANA / waktu kirim):", "");
+          if (!ref) return;
+          jalan(this, "admin_tarik_dibayar", { ref }, () => "Tercatat: uang Rp " + fmtRp(r.jumlah_rp) + " sudah dikirim ke @" + (r.username || "?") + ".");
+        } }),
+        el("button", { class: "btn merah", "data-aksi": "tolak", type: "button", text: "Tolak", onclick: function () { tolak(this); } }));
+    } else if (bagian === "verifikasi") {
+      const txid = el("input", { class: "inp", "data-txid": "1", placeholder: "ID transaksi TOF dari explorer (bila anggota belum melapor)", autocomplete: "off", spellcheck: "false", value: r.tof_txid || "" });
+      k.insertBefore(txid, galat);
+      aksi.append(
+        el("button", { class: "btn hijau", "data-aksi": "verifikasi", type: "button", text: "Verifikasi di blockchain", onclick: function () {
+          jalan(this, "admin_tarik_verifikasi", { txid: txid.value.trim() }, (res) => res.tarik.status === "tof_diterima" ? "TOF terverifikasi. Siap dibayar: lihat bagian 'Perlu dibayar'." : "Belum terverifikasi: " + (res.tarik.catatan_sistem || "periksa lagi nanti."));
+        } }),
+        el("button", { class: "btn merah", "data-aksi": "tolak", type: "button", text: "Tolak", onclick: function () { tolak(this); } }));
+    }
+    return k;
+  }
+
+  async function muatPenarikan() {
+    const konten = $("konten");
+    const [perlu, cek, riwayat] = await Promise.all([
+      adm("admin_tarik_daftar", { tampil: "perlu_dibayar" }),
+      adm("admin_tarik_daftar", { tampil: "verifikasi" }),
+      adm("admin_tarik_daftar", { tampil: "riwayat" }),
+    ]);
+    const gagal = [perlu, cek, riwayat].find((x) => !x.ok);
+    if (gagal) { konten.replaceChildren(el("div", { class: "galat", text: pesan(gagal) })); return; }
+    const anak = [];
+    if (state.pesanHasil) { anak.push(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil })); state.pesanHasil = ""; }
+    const bagian = (judul, id, daftar, kunci, kosong) => {
+      anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", id, text: judul + " (" + daftar.length + ")" }));
+      if (daftar.length) anak.push(...daftar.map((r) => kartuTarik(r, kunci)));
+      else anak.push(el("div", { class: "kecil", style: "padding:8px 4px;", text: kosong }));
+    };
+    bagian("Perlu dibayar", "judulPerluDibayar", perlu.daftar, "perlu_dibayar", "Tidak ada penarikan yang menunggu pembayaran.");
+    bagian("Menunggu TOF / verifikasi", "judulVerifikasi", cek.daftar, "verifikasi", "Tidak ada.");
+    bagian("Riwayat", "judulRiwayatTarik", riwayat.daftar.slice(-20).reverse(), "riwayat", "Belum ada riwayat.");
+    konten.replaceChildren(...anak);
+  }
+
   // ---------------- pengaturan ----------------
   function bacaQris(file) {
     return new Promise((resolve, reject) => {
@@ -414,6 +498,10 @@
       mode: el("select", { class: "inp", id: "setMode" }, el("option", { value: "tampung", text: "Tampung dulu, bagikan per batch (disarankan)" }), el("option", { value: "langsung", text: "Langsung ke dompet anggota" })),
       penampung: el("input", { class: "inp", id: "setPenampung", value: p.alamat_penampung || "", placeholder: "Alamat dompet penampung (58 karakter)", autocomplete: "off", spellcheck: "false" }),
       ambang: el("input", { class: "inp", id: "setAmbang", inputmode: "numeric", value: String(p.ambang_batch_tof) }),
+      tarik: el("input", { type: "checkbox", id: "setTarik" }),
+      alamatTarik: el("input", { class: "inp", id: "setAlamatTarik", value: p.alamat_tarik || "", placeholder: "Alamat dompet pengurus penerima TOF (58 karakter)", autocomplete: "off", spellcheck: "false" }),
+      minTarik: el("input", { class: "inp", id: "setMinTarik", inputmode: "numeric", value: String(p.min_tarik_tof) }),
+      maksTarik: el("input", { class: "inp", id: "setMaksTarik", inputmode: "numeric", value: String(p.maks_tarik_tof) }),
       bHarian: el("input", { class: "inp", id: "setBatasHarian", inputmode: "numeric", value: String(p.batas_harian_tof) }),
       bTx: el("input", { class: "inp", id: "setBatasTx", inputmode: "numeric", value: String(p.batas_transaksi_tof) }),
       file: el("input", { type: "file", id: "setQris", accept: "image/png,image/jpeg,image/webp" }),
@@ -422,6 +510,7 @@
     f.aktif.checked = !!p.aktif;
     f.auto.checked = !!p.auto_kirim;
     f.mode.value = p.mode_kirim || "tampung";
+    f.tarik.checked = !!p.tarik_aktif;
     const prev = el("img", { class: "qris-prev", id: "prevQris", alt: "QRIS", hidden: !p.qris, src: p.qris || undefined });
     const galat = el("div", { class: "galat", id: "galatSet" });
     const ok = el("div", { class: "kecil", id: "okSet", style: "color:#1f6b3d;" });
@@ -439,6 +528,7 @@
         nama_penerima: f.nama.value, aturan: f.aturan.value, aktif: f.aktif.checked,
         auto_kirim: f.auto.checked, batas_harian_tof: Number(f.bHarian.value), batas_transaksi_tof: Number(f.bTx.value),
         mode_kirim: f.mode.value, alamat_penampung: f.penampung.value.trim(), ambang_batch_tof: Number(f.ambang.value),
+        tarik_aktif: f.tarik.checked, alamat_tarik: f.alamatTarik.value.trim(), min_tarik_tof: Number(f.minTarik.value), maks_tarik_tof: Number(f.maksTarik.value),
       };
       if (state.qrisBaru) body.qris = state.qrisBaru;
       simpan.disabled = true;
@@ -463,6 +553,12 @@
       el("label", { class: "lbl", for: "setPenampung", text: "Alamat dompet penampung" }), f.penampung,
       el("div", { class: "kecil", text: "Dompet penampung harus sudah opt-in TOF. Pembagian dari dompet ini dilakukan pengurus pemilik dompet itu (kuncinya tidak di server)." }),
       el("label", { class: "lbl", for: "setAmbang", text: "Minimal TOF terkumpul sebelum dibagikan" }), f.ambang,
+      el("div", { class: "kecil", style: "margin-top:16px;font-weight:700;color:#1c2b22;", text: "Tarik dana (TOF → uang)" }),
+      el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.tarik, "Penarikan dibuka untuk anggota"),
+      el("label", { class: "lbl", for: "setAlamatTarik", text: "Dompet pengurus penerima TOF penarikan" }), f.alamatTarik,
+      el("div", { class: "kecil", text: "Anggota mengirim TOF ke alamat ini; uang dikirim manual oleh pengurus. Pakai dompet milik pengurus yang memproses penarikan." }),
+      el("label", { class: "lbl", for: "setMinTarik", text: "Minimal sekali tarik (TOF)" }), f.minTarik,
+      el("label", { class: "lbl", for: "setMaksTarik", text: "Maksimal sekali tarik (TOF)" }), f.maksTarik,
       el("div", { class: "kecil", style: "margin-top:16px;font-weight:700;color:#1c2b22;", text: "Kirim TOF otomatis" }),
       el("div", { class: "kecil", id: "infoKas", text: !kas
         ? "Dompet pembayar belum diatur di server (secret PAYOUT_MNEMONIC). Selama belum, TOF dikirim manual."
