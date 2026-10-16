@@ -133,3 +133,10 @@ export async function decryptMnemonic(
   );
   return dec.decode(pt);
 }
+
+// HMAC-SHA256 (hex). Kunci diperlakukan sebagai teks UTF-8, sama dengan hmac(text, text, 'sha256') di pgcrypto.
+export async function hmacHex(key: string, msg: string): Promise<string> {
+  const enc = new TextEncoder();
+  const k = await crypto.subtle.importKey("raw", enc.encode(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return toHex(await crypto.subtle.sign("HMAC", k, enc.encode(msg)));
+}
