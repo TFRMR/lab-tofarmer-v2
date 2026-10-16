@@ -470,6 +470,8 @@ function renderProfileData(data) {
         @${data.username}
       </h2>
 
+      ${data.bio ? `<p style="margin:6px 0 0;font-size:13px;color:#4b5b52;line-height:1.5;">${escapeHtmlProfil(data.bio).replace(/\n/g, "<br>")}</p>` : ""}
+
       <div class="grid-stats">
         <div class="card" style="margin:0;padding:12px;">
           <div style="font-size:11px;color:#888;">XP</div>
@@ -2372,6 +2374,9 @@ function inisialisasiKomponenDompet() {
     };
 
     notifWrapper.appendChild(btnDompet);
+
+    // Tombol Pengaturan (⚙️) menyusul di bawah tombol Dompet
+    inisialisasiKomponenPengaturan();
 }
 // --- TARUH updateBadgePesan DI SINI ---
 async function updateBadgePesan() {
@@ -2517,3 +2522,361 @@ setTimeout(() => {
     inisialisasiKomponenPesan();
   }
 }, 1000);
+
+// ========================================================
+// ⚙️ PENGATURAN PROFIL
+// Semua perubahan data dan PIN lewat Edge Function "tof-vault"
+// (PIN diperiksa di server, percobaan salah dibatasi), sama seperti
+// login.js dan dompet.js. Tidak ada hash PIN di browser.
+// ========================================================
+
+function escapeHtmlProfil(teks) {
+  return String(teks == null ? "" : teks).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+async function panggilVaultProfil(action, body = {}) {
+  try {
+    const { data, error } = await supabaseClient.functions.invoke("tof-vault", {
+      body: Object.assign({ action }, body)
+    });
+    if (error) {
+      console.log(error);
+      return { ok: false, error: "network" };
+    }
+    return data || { ok: false, error: "empty" };
+  } catch (e) {
+    console.log(e);
+    return { ok: false, error: "network" };
+  }
+}
+
+function pesanVaultProfil(res) {
+  switch (res && res.error) {
+    case "bad_pin": return "PIN salah (sisa percobaan: " + (res.left == null ? "?" : res.left) + ")";
+    case "bad_pin_format": return "PIN harus 6 digit angka.";
+    case "locked": return "Terlalu banyak salah PIN. Coba lagi " + (res.retry_min || 15) + " menit lagi.";
+    case "no_pin": return "Akun ini belum punya PIN. Buat PIN dulu lewat halaman login.";
+    case "pin_publik": return "PIN lamamu masih terbaca publik di halaman lain. Ganti PIN dulu di bagian Keamanan.";
+    case "pin_sama": return "PIN baru harus berbeda dari PIN lama.";
+    case "pin_baru_sama_publik": return "PIN baru tidak boleh sama dengan PIN di halaman lain (Jurnal, Scan, Tracker). Pilih PIN lain.";
+    case "bad_username": return "Username 3–30 karakter: huruf, angka, atau garis bawah (_), tanpa spasi.";
+    case "username_taken": return "Username itu sudah dipakai warga lain.";
+    case "bad_real_name": return "Nama lengkap maksimal 60 karakter.";
+    case "bad_bio": return "Bio maksimal 300 karakter.";
+    case "bad_tanggal_lahir": return "Tanggal lahir tidak valid.";
+    case "not_found": return "Akun tidak ditemukan.";
+    case "ambiguous": return "Username ambigu, hubungi pengurus.";
+    case "network": return "Koneksi bermasalah, coba lagi.";
+    case "unknown_action": return "Server belum diperbarui (fungsi tof-vault perlu di-deploy ulang).";
+    default: return "Gagal: " + ((res && res.error) || "tidak diketahui");
+  }
+}
+
+// tanggal_lahir di database berformat DD-MM-YYYY (dibaca Kaji Wayang); <input type="date"> memakai YYYY-MM-DD
+function tglKeInput(str) {
+  if (!str) return "";
+  const parts = String(str).trim().split(/[\/\-]/);
+  if (parts.length !== 3) return "";
+  let d, m, y;
+  if (parts[0].length === 4) { y = parts[0]; m = parts[1]; d = parts[2]; }
+  else { d = parts[0]; m = parts[1]; y = parts[2]; }
+  if (!/^\d{1,2}$/.test(d) || !/^\d{1,2}$/.test(m) || !/^\d{4}$/.test(y)) return "";
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function tglDariInput(val) {
+  if (!val) return "";
+  const [y, m, d] = val.split("-");
+  return `${d}-${m}-${y}`;
+}
+
+// ---------- tombol ⚙️ (di bawah 💰 Dompet, satu kolom dengan 🔔 ✉️ 💰) ----------
+function inisialisasiKomponenPengaturan() {
+    if (!currentWallet) return;
+    if (currentWallet !== targetProfileId) return;
+
+    const notifWrapper = document.getElementById("tof-notif-wrapper");
+    if (!notifWrapper) return;
+
+    if (document.getElementById("btn-pengaturan-tof")) return;
+
+    const btnPengaturan = document.createElement("button");
+    btnPengaturan.id = "btn-pengaturan-tof";
+    btnPengaturan.title = "Pengaturan Profil";
+    btnPengaturan.innerHTML = "⚙️";
+    btnPengaturan.style.cssText = `
+        background: #64748b;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        border: 2px solid white;
+        cursor: pointer;
+        color: white;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        z-index: 9999;
+        -webkit-tap-highlight-color: transparent;
+    `;
+
+    btnPengaturan.onclick = bukaPengaturanProfil;
+
+    notifWrapper.appendChild(btnPengaturan);
+}
+
+// ---------- popup pengaturan ----------
+async function bukaPengaturanProfil() {
+  if (!currentWallet || currentWallet !== targetProfileId) return;
+  if (document.getElementById("overlay-pengaturan-tof")) return;
+
+  const [{ data: p, error }, st] = await Promise.all([
+    supabaseClient
+      .from("profiles")
+      .select("username, real_name, bio, tanggal_lahir")
+      .eq("id", currentWallet)
+      .single(),
+    panggilVaultProfil("vault_status", { profile_id: currentWallet })
+  ]);
+
+  if (error || !p) {
+    alert("Gagal memuat data profil. Coba lagi ya.");
+    return;
+  }
+  if (!st.ok) {
+    alert(pesanVaultProfil(st));
+    return;
+  }
+
+  const punyaPin = !!st.has_pin;
+  const pinPublik = !!st.pin_publik;
+  const bolehSimpan = punyaPin && !pinPublik;
+
+  const gayaLabel  = "display:block; font-size:12px; font-weight:600; color:#2f6f4e; margin:12px 0 4px;";
+  const gayaInput  = "width:100%; padding:10px; border-radius:10px; border:1px solid #cbd5e1; font-size:13px; font-family:inherit; box-sizing:border-box; outline:none; background:#fff; color:#1c2b22;";
+  const gayaTombol = "width:100%; margin-top:14px; padding:11px; border:none; border-radius:12px; background:linear-gradient(90deg,#4caf7a,#c9a227); color:white; font-weight:700; font-size:13px; cursor:pointer;";
+  const gayaGalat  = "font-size:12px; color:#dc2626; margin-top:8px; min-height:14px;";
+  const gayaBagian = "font-size:13px; font-weight:700; color:#2f6f4e; margin-bottom:2px;";
+  const gayaInfo   = "font-size:12px; color:#92400e; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:10px; margin-top:8px; line-height:1.5;";
+
+  const overlay = document.createElement("div");
+  overlay.id = "overlay-pengaturan-tof";
+  overlay.style.cssText = "position:fixed; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:2000000000; padding:16px; box-sizing:border-box;";
+
+  let infoStatus = "";
+  if (!punyaPin) {
+    infoStatus = `<div style="${gayaInfo}">Akun ini belum punya PIN. Buat PIN lewat halaman login, lalu kembali ke sini.</div>`;
+  } else if (pinPublik) {
+    infoStatus = `<div style="${gayaInfo}">PIN lamamu masih tersimpan dalam bentuk yang bisa dibaca publik di halaman lain. Ganti PIN dulu di bagian Keamanan di bawah, setelah itu data profil bisa diubah.</div>`;
+  }
+
+  const bagianData = `
+    <div style="${gayaBagian}">👤 Data Profil</div>
+    ${infoStatus}
+
+    <label style="${gayaLabel}" for="set-username">Username</label>
+    <input id="set-username" type="text" maxlength="30" autocomplete="off" autocapitalize="off" style="${gayaInput}">
+
+    <label style="${gayaLabel}" for="set-realname">Nama lengkap</label>
+    <input id="set-realname" type="text" maxlength="60" autocomplete="off" style="${gayaInput}">
+
+    <label style="${gayaLabel}" for="set-bio">Bio <span id="set-bio-hitung" style="font-weight:400; color:#94a3b8;"></span></label>
+    <textarea id="set-bio" maxlength="300" rows="4" placeholder="Ceritakan sedikit tentang dirimu dan ladangmu..." style="${gayaInput} resize:vertical;"></textarea>
+
+    <label style="${gayaLabel}" for="set-tgl">Tanggal lahir</label>
+    <input id="set-tgl" type="date" style="${gayaInput}">
+    <div style="font-size:11px; color:#6f7f76; margin-top:4px; line-height:1.4;">Mengubah tanggal lahir mengosongkan hasil Kaji Wayang; jalankan ulang di halaman Kaji Wayang.</div>
+
+    ${bolehSimpan ? `
+      <label style="${gayaLabel}" for="set-pin-konfirmasi">PIN untuk menyimpan</label>
+      <input id="set-pin-konfirmasi" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN 6 digit" style="${gayaInput}">
+      <div id="set-galat-profil" style="${gayaGalat}"></div>
+      <button id="set-btn-simpan" style="${gayaTombol}">💾 Simpan Perubahan</button>
+    ` : ``}
+  `;
+
+  const bagianPin = punyaPin
+    ? `
+      <label style="${gayaLabel}" for="set-pin-lama">PIN lama</label>
+      <input id="set-pin-lama" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 digit" style="${gayaInput}">
+      <label style="${gayaLabel}" for="set-pin-baru">PIN baru</label>
+      <input id="set-pin-baru" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 digit" style="${gayaInput}">
+      <label style="${gayaLabel}" for="set-pin-ulang">Ulangi PIN baru</label>
+      <input id="set-pin-ulang" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="6 digit" style="${gayaInput}">
+      <div id="set-galat-pin" style="${gayaGalat}"></div>
+      <button id="set-btn-pin" style="${gayaTombol}">🔑 Ganti PIN</button>
+    `
+    : ``;
+
+  overlay.innerHTML = `
+    <div style="background:#fff; border-radius:20px; width:100%; max-width:420px; max-height:90vh; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,.25); font-family:Inter,sans-serif; color:#1c2b22;">
+      <div style="background:#2f6f4e; color:white; padding:14px 18px; font-weight:700; display:flex; justify-content:space-between; align-items:center; border-radius:20px 20px 0 0; position:sticky; top:0;">
+        <span>⚙️ Pengaturan Profil</span>
+        <button id="set-btn-tutup" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+
+      <div style="padding:16px 18px 20px;">
+        ${bagianData}
+
+        ${punyaPin ? `
+          <div style="border-top:1px dashed #cbd5e1; margin:22px 0 6px;"></div>
+          <div style="${gayaBagian}">🔐 Keamanan</div>
+          <div style="font-size:11px; color:#6f7f76; line-height:1.5;">PIN dipakai untuk login, Dompet, dan frasa.</div>
+          ${bagianPin}
+        ` : ``}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Isi nilai lewat properti .value (aman dari karakter aneh di bio/nama)
+  document.getElementById("set-username").value = p.username || "";
+  document.getElementById("set-realname").value = p.real_name || "";
+  document.getElementById("set-bio").value = p.bio || "";
+  const elTgl = document.getElementById("set-tgl");
+  const tglAwal = tglKeInput(p.tanggal_lahir);
+  elTgl.value = tglAwal;
+  elTgl.max = new Date().toISOString().slice(0, 10);
+  elTgl.min = "1900-01-01";
+
+  if (!bolehSimpan) {
+    ["set-username", "set-realname", "set-bio", "set-tgl"].forEach(id => {
+      document.getElementById(id).disabled = true;
+    });
+  }
+
+  const elBio = document.getElementById("set-bio");
+  const elHitung = document.getElementById("set-bio-hitung");
+  const updateHitung = () => { elHitung.textContent = `(${elBio.value.length}/300)`; };
+  elBio.addEventListener("input", updateHitung);
+  updateHitung();
+
+  const tutup = () => overlay.remove();
+  document.getElementById("set-btn-tutup").onclick = tutup;
+  overlay.addEventListener("click", (e) => { if (e.target === overlay) tutup(); });
+
+  const hanyaAngka = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/\D/g, "").slice(0, 6);
+    });
+  };
+  ["set-pin-konfirmasi", "set-pin-lama", "set-pin-baru", "set-pin-ulang"].forEach(hanyaAngka);
+
+  if (bolehSimpan) {
+    document.getElementById("set-btn-simpan").onclick = () => simpanProfilPengaturan(p, tglAwal);
+  }
+  if (punyaPin) {
+    document.getElementById("set-btn-pin").onclick = gantiPinPengaturan;
+  }
+}
+
+// ---------- simpan username / nama / bio / tanggal lahir (PIN diperiksa server) ----------
+async function simpanProfilPengaturan(asli, tglAwal) {
+  const elGalat = document.getElementById("set-galat-profil");
+  const btn = document.getElementById("set-btn-simpan");
+  const iPin = document.getElementById("set-pin-konfirmasi");
+  elGalat.textContent = "";
+
+  const usernameBaru = document.getElementById("set-username").value.trim().replace(/^@/, "");
+  const realName = document.getElementById("set-realname").value.trim();
+  const bio = document.getElementById("set-bio").value.trim();
+  const tgl = document.getElementById("set-tgl").value; // "YYYY-MM-DD" atau ""
+  const pin = iPin.value.trim();
+
+  const usernameBerubah = usernameBaru !== asli.username;
+
+  // Format username hanya dicek jika diubah (akun lama dengan format lain tidak terblokir)
+  if (usernameBerubah && !/^[A-Za-z0-9_]{3,30}$/.test(usernameBaru)) {
+    elGalat.textContent = pesanVaultProfil({ error: "bad_username" });
+    return;
+  }
+  if (!usernameBaru) { elGalat.textContent = "Username tidak boleh kosong."; return; }
+  if (realName.length > 60) { elGalat.textContent = pesanVaultProfil({ error: "bad_real_name" }); return; }
+  if (bio.length > 300) { elGalat.textContent = pesanVaultProfil({ error: "bad_bio" }); return; }
+  if (tgl) {
+    const t = new Date(tgl + "T00:00:00");
+    if (isNaN(t.getTime()) || t > new Date() || t.getFullYear() < 1900) {
+      elGalat.textContent = pesanVaultProfil({ error: "bad_tanggal_lahir" });
+      return;
+    }
+  }
+  if (!/^\d{6}$/.test(pin)) { elGalat.textContent = "Isi PIN 6 digit untuk menyimpan."; return; }
+
+  btn.disabled = true;
+  const teksAsli = btn.textContent;
+  btn.textContent = "Menyimpan…";
+
+  const payload = {
+    profile_id: currentWallet,
+    pin: pin,
+    username: usernameBaru,
+    real_name: realName,
+    bio: bio
+  };
+  // Hanya dikirim bila diubah (supaya tanggal lama yang formatnya tak terbaca tidak terhapus tanpa sengaja)
+  if (tgl !== tglAwal) payload.tanggal_lahir = tglDariInput(tgl);
+
+  const res = await panggilVaultProfil("update_profil", payload);
+
+  iPin.value = "";
+  btn.disabled = false;
+  btn.textContent = teksAsli;
+
+  if (!res.ok) { elGalat.textContent = pesanVaultProfil(res); return; }
+
+  const usernameFinal = (res.profile && res.profile.username) || usernameBaru;
+
+  if (usernameFinal !== asli.username) {
+    try {
+      if (localStorage.getItem("tof_login_username") !== null) {
+        localStorage.setItem("tof_login_username", usernameFinal);
+      }
+      const alias = localStorage.getItem("tofarmer_alias");
+      if (alias && alias.toLowerCase() === String(asli.username).toLowerCase()) {
+        localStorage.setItem("tofarmer_alias", usernameFinal);
+      }
+    } catch (e) { /* localStorage diblokir: abaikan */ }
+  }
+
+  alert("Pengaturan profil tersimpan 🌿");
+  window.location.href = `${window.location.pathname}?u=${encodeURIComponent(usernameFinal)}`;
+}
+
+// ---------- ganti PIN (action "ganti_pin" di tof-vault, sama dengan Dompet) ----------
+async function gantiPinPengaturan() {
+  const elGalat = document.getElementById("set-galat-pin");
+  const btn = document.getElementById("set-btn-pin");
+  const iLama = document.getElementById("set-pin-lama");
+  const iBaru = document.getElementById("set-pin-baru");
+  const iUlang = document.getElementById("set-pin-ulang");
+  elGalat.textContent = "";
+
+  const a = iLama.value.trim(), b = iBaru.value.trim(), c = iUlang.value.trim();
+
+  if (!/^\d{6}$/.test(a) || !/^\d{6}$/.test(b)) { elGalat.textContent = "PIN harus 6 digit angka."; return; }
+  if (b !== c) { elGalat.textContent = "PIN baru dan ulangannya tidak sama."; return; }
+  if (a === b) { elGalat.textContent = "PIN baru harus berbeda dari PIN lama."; return; }
+
+  btn.disabled = true;
+  const teksAsli = btn.textContent;
+  btn.textContent = "Menyimpan…";
+
+  const res = await panggilVaultProfil("ganti_pin", { profile_id: currentWallet, pin: a, pin_baru: b });
+
+  iLama.value = ""; iBaru.value = ""; iUlang.value = "";
+  btn.disabled = false;
+  btn.textContent = teksAsli;
+
+  if (!res.ok) { elGalat.textContent = pesanVaultProfil(res); return; }
+
+  alert("PIN berhasil diganti 🔐");
+  const overlay = document.getElementById("overlay-pengaturan-tof");
+  if (overlay) overlay.remove();
+}

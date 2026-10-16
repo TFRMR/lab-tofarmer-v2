@@ -680,7 +680,33 @@
     const supabaseClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
     let sessionUser = null;
 
+    // ===== [LOGIN SERAGAM] =====
+    // Login hanya di satu tempat (login.html -> Edge Function tof-vault). Halaman ini tidak lagi
+    // mencocokkan PIN sendiri; ia memakai sesi bersama (tof_wallet + tof_login_username).
+    function keLoginUtama() {
+      window.location.href = '/html/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+    }
+
+    // Samakan tof_user_session (kunci milik halaman ini) dengan login utama
+    function sinkronSesiDariLoginUtama() {
+      try {
+        const w = localStorage.getItem('tof_wallet');
+        const u = localStorage.getItem('tof_login_username');
+        let sesiLama = null;
+        try { sesiLama = JSON.parse(localStorage.getItem('tof_user_session') || 'null'); } catch (e) {}
+        if (w && u) {
+          if (!sesiLama || sesiLama.id !== w || sesiLama.username !== u) {
+            localStorage.setItem('tof_user_session', JSON.stringify({ id: w, username: u }));
+          }
+        } else if (sesiLama) {
+          // Login utama sudah keluar (mis. logout di halaman lain): sesi lokal halaman ini ikut berakhir
+          localStorage.removeItem('tof_user_session');
+        }
+      } catch (e) {}
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
+      sinkronSesiDariLoginUtama(); // [LOGIN SERAGAM]
       const stored = localStorage.getItem('tof_user_session');
       if (stored) {
         try {
@@ -690,7 +716,7 @@
           if (supabaseClient) {
             const { data } = await supabaseClient
               .from('profiles')
-              .select('*')
+              .select('id,username,tanggal_lahir,wayang_archetype,wuku_data') // [LOGIN SERAGAM] bukan '*': pin_hash tidak boleh ikut terunduh
               .eq('id', sessionUser.id)
               .maybeSingle();
             
@@ -710,7 +736,9 @@
           document.getElementById('mainContent').style.display = 'block';
         } catch(e) { doLogout(); }
       } else {
-        document.getElementById('authGate').style.display = 'block';
+        // [LOGIN SERAGAM] gerbang login lama tidak ditampilkan lagi; masuk lewat login utama
+        // document.getElementById('authGate').style.display = 'block';
+        keLoginUtama();
       }
     });
 
@@ -741,7 +769,14 @@
       return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
+    // [LOGIN SERAGAM] Tombol pada gerbang lama kini mengarah ke login utama
     async function doLoginSession() {
+      keLoginUtama();
+    }
+
+    // [TIDAK DIPAKAI LAGI] Alur lama: mengunduh SELURUH tabel profiles (termasuk pin_hash semua orang)
+    // lalu mencocokkan PIN di browser. Dipertahankan hanya sebagai arsip, aman dihapus.
+    async function doLoginSessionLama() {
       const rawId = document.getElementById('loginId').value.trim();
       const pin = document.getElementById('loginPin').value.trim();
       if (!rawId || !pin) { alert("Isi nama pengguna dan PIN."); return; }
@@ -788,6 +823,8 @@
 
     function doLogout() { 
       localStorage.removeItem('tof_user_session'); 
+      // [LOGIN SERAGAM] keluar dari sesi bersama juga (tanpa ini, sesi langsung terpasang lagi dari login utama)
+      ['tof_wallet', 'tof_login_username', 'tof_level', 'tof_rank', 'tof_xp'].forEach(k => localStorage.removeItem(k));
       location.reload(); 
     }
 

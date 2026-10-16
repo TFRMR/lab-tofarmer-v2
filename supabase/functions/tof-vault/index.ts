@@ -1,6 +1,6 @@
 // ============================================================
 // Supabase Edge Function: tof-vault
-// Actions: check | login | set_pin | register | deposit | reveal
+// Actions: check | login | set_pin | register | deposit | reveal | ganti_pin | vault_status | update_profil
 // Semua balasan HTTP 200 dengan JSON { ok: boolean, ... }.
 //
 // Secrets yang harus di-set (supabase secrets set ...):
@@ -51,6 +51,17 @@ const repo: Repo = {
   },
   async deleteProfile(id) {
     must(await db.from("profiles").delete().eq("id", id));
+  },
+  async updateProfileFields(id, patch) {
+    const { error } = await db.from("profiles").update(patch).eq("id", id);
+    if (!error) return "ok";
+    console.error("updateProfileFields:", error.message);
+    return error.code === "23505" ? "duplicate" : "error";
+  },
+  async getSesiKunci() {
+    const { data, error } = await db.from("tof_secret").select("value").eq("name", "sesi_kunci").maybeSingle();
+    if (error) { console.error("getSesiKunci:", error.message); return null; }
+    return ((data as { value?: string } | null)?.value) ?? null;
   },
   async setHasPin(id, value) {
     must(await db.from("profiles").update({ has_pin: value, pin_hash: null }).eq("id", id));
