@@ -526,10 +526,22 @@
         </div>
         <div class="grid">
           
-          <div class="card-btn" onclick="kirimKeGitHub('mp3', 'Audio MP3 Jernih')">
+          <div class="card-btn" onclick="kirimKeGitHub('mp3_320', 'Suara Paling Jernih (MP3 320kbps)')">
             <i class="ph-bold ph-music-notes icon"></i>
-            <div class="label">Suara MP3 (Jernih)</div>
-            <div class="desc">Diproses langsung dengan FFmpeg menjadi file MP3 paling jernih.</div>
+            <div class="label">Suara Paling Jernih</div>
+            <div class="desc">Cocok diputar di speaker/salon hajatan. Kualitas terbaik (~8.5 MB).</div>
+          </div>
+
+          <div class="card-btn" onclick="kirimKeGitHub('mp3_192', 'Suara Sedang (MP3 192kbps)')">
+            <i class="ph-bold ph-headphones icon"></i>
+            <div class="label">Suara Sedang (Hemat)</div>
+            <div class="desc">Paling pas untuk didengar lewat HP sehari-hari (~4.8 MB).</div>
+          </div>
+
+          <div class="card-btn" onclick="kirimKeGitHub('m4a', 'Audio M4A Hemat')">
+            <i class="ph-bold ph-file-audio icon"></i>
+            <div class="label">Suara Irit Kuota</div>
+            <div class="desc">Ukuran file sangat kecil (~2.5 MB), cepat selesai diproses.</div>
           </div>
 
         </div>
@@ -543,22 +555,28 @@
         </div>
         <div class="grid">
 
-          <div class="card-btn" onclick="kirimKeGitHub('mp4_1080p', 'Video 1080p Full HD')">
+          <div class="card-btn" onclick="kirimKeGitHub('mp4_1080p', 'Video Bening (1080p Full HD)')">
             <i class="ph-bold ph-television icon"></i>
-            <div class="label">Gambar Bening (1080p)</div>
-            <div class="desc">Gambar paling tajam saat diputar di TV atau laptop.</div>
+            <div class="label">Gambar Sangat Bening (1080p)</div>
+            <div class="desc">Sangat tajam saat diputar di TV atau laptop (~45 MB).</div>
           </div>
 
-          <div class="card-btn" onclick="kirimKeGitHub('mp4_720p', 'Video 720p HD')">
+          <div class="card-btn" onclick="kirimKeGitHub('mp4_720p', 'Video Sedang (720p HD)')">
             <i class="ph-bold ph-device-tablet icon"></i>
             <div class="label">Gambar Sedang (720p)</div>
-            <div class="desc">Sangat pas dan jernih di layar HP sehari-hari.</div>
+            <div class="desc">Sudah jelas dan tidak pecah di layar HP (~22 MB).</div>
           </div>
 
-          <div class="card-btn" onclick="kirimKeGitHub('mp4_480p', 'Video 480p Hemat')">
+          <div class="card-btn" onclick="kirimKeGitHub('mp4_480p', 'Video Hemat (480p)')">
             <i class="ph-bold ph-cellphone icon"></i>
             <div class="label">Gambar Hemat (480p)</div>
-            <div class="desc">Irit memori HP dan cepat diproses oleh server.</div>
+            <div class="desc">Irit kuota internet dan tidak memenuhi memori HP (~12 MB).</div>
+          </div>
+
+          <div class="card-btn" onclick="kirimKeGitHub('mp4_360p', 'Video Paling Ringan (360p)')">
+            <i class="ph-bold ph-gauge icon"></i>
+            <div class="label">Gambar Paling Ringan (360p)</div>
+            <div class="desc">Proses unduh paling cepat meski sinyal HP kurang kuat (~6 MB).</div>
           </div>
 
         </div>
@@ -595,9 +613,8 @@
     const sessionData = localStorage.getItem('tof_session');
 
     if (!usernameLogin || !sessionData) {
-      // Simpan halaman tujuan supaya bisa balik lagi setelah login
       sessionStorage.setItem('tof_login_next', window.location.pathname + window.location.search);
-      window.location.href = '/login.html'; // Sesuaikan lokasi halaman login Anda
+      window.location.href = '/login.html'; 
     } else {
       document.getElementById('wargaName').innerText = usernameLogin;
     }
@@ -611,7 +628,6 @@
   </script>
 
   <script>
-    // Konfigurasi repository ToFarmer (Tanpa membocorkan token rahasia ke browser)
     const REPO_OWNER = "TFRMR";
     const REPO_NAME = "lab-tofarmer-v2";
     const WORKFLOW_ID = "youtube-downloader.yml";
@@ -658,7 +674,6 @@
       previewCard.classList.add('active');
     }
 
-    // Fungsi Utama: Memicu GitHub Actions (Aman karena token ditangani lewat backend aman / GitHub Secrets)
     async function kirimKeGitHub(formatCode, formatLabel) {
       const urlYoutube = document.getElementById('ytUrl').value;
 
@@ -676,10 +691,6 @@
 
       processStatus.innerText = `Mengirim Perintah: ${formatLabel}...`;
       logTerminal.innerHTML = `<div>[1/3] Menyiapkan komunikasi dengan peladen ToFarmer...</div>`;
-
-      // CATATAN: Untuk keamanan token, idealnya pemicu dispatch ini dilempar lewat 
-      // Supabase Edge Function (Server-Side) yang memegang GitHub Secret Token.
-      // Di sini kita berikan instruksi log ke terminal warga.
       
       tambahLog(logTerminal, `<span style="color:#fde047;">[Info] Warga terautentikasi. Memproses antrean unduhan...</span>`);
       tambahLog(logTerminal, `[2/3] Mengirim tautan video ke peladen GitHub Actions...`);
