@@ -789,11 +789,17 @@ function pesanVault(res) {
 }
 
 // Dipakai setelah login / daftar berhasil
-async function selesaiLoginWallet(profile) {
+async function selesaiLoginWallet(profile, session) {
   currentWallet = profile.id;
   localStorage.setItem("tof_wallet", profile.id);
   // Simpan username versi database (huruf besar/kecil sesuai aslinya)
   localStorage.setItem("tof_login_username", profile.username);
+  // [LOGIN SERAGAM] token sesi bertanda tangan dari server: dipakai Scan, Jurnal, Tracker, dll. tanpa minta PIN lagi
+  if (session && session.token) {
+    localStorage.setItem("tof_session", JSON.stringify({ id: profile.id, token: session.token, exp: session.exp }));
+  } else {
+    localStorage.removeItem("tof_session");
+  }
 
   await syncProfile(profile.id);
   updateWalletUI();
@@ -849,7 +855,7 @@ async function connectWallet() {
       return null;
     }
 
-    await selesaiLoginWallet(res.profile);
+    await selesaiLoginWallet(res.profile, res.session);
     return res.profile.id;
   }
 
@@ -863,7 +869,7 @@ async function connectWallet() {
     return null;
   }
 
-  await selesaiLoginWallet(res.profile);
+  await selesaiLoginWallet(res.profile, res.session);
   return res.profile.id;
 }
 
@@ -906,7 +912,7 @@ async function daftarBaru(username) {
     return null;
   }
 
-  await selesaiLoginWallet(res.profile);
+  await selesaiLoginWallet(res.profile, res.session);
   return res.profile.id;
 }
 
@@ -1195,6 +1201,8 @@ function logoutWallet() {
   currentProfile = null
   localStorage.removeItem("tof_wallet")
   localStorage.removeItem("tof_user_id")
+  localStorage.removeItem("tof_session")      // [LOGIN SERAGAM]
+  localStorage.removeItem("tof_user_session") // [LOGIN SERAGAM]
   updateWalletUI()
   renderProfile()
   window.location.href = 'index.html'; 

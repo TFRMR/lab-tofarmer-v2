@@ -24,6 +24,7 @@
 
   <!-- SUPABASE JS SDK v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/js/tof-sesi.js"></script>
 
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
@@ -1045,6 +1046,19 @@
     }
 
     function checkExistingSession() {
+      // [LOGIN SERAGAM] Ikuti login utama (tof_wallet + tof_login_username) dan token sesi bersama.
+      // Login di mana pun (beranda, halaman lain) otomatis berlaku di sini; keluar di mana pun juga.
+      (function sinkronSesiBersama() {
+        const sso = TofSesi.ambil();
+        let lama = null;
+        try { lama = JSON.parse(localStorage.getItem('tof_user_session') || 'null'); } catch (e) {}
+        if (!sso) { if (lama) localStorage.removeItem('tof_user_session'); sessionPinHash = null; return; }
+        if (!lama || lama.id !== sso.id || lama.username !== sso.username) {
+          localStorage.setItem('tof_user_session', JSON.stringify({ id: sso.id, username: sso.username, avatar_url: (lama && lama.id === sso.id && lama.avatar_url) || '' }));
+        }
+        sessionPinHash = TofSesi.token(); // token sesi (null bila kedaluwarsa -> PIN diminta saat dibutuhkan)
+        if (sessionPinHash && typeof syncMyItems === 'function') setTimeout(syncMyItems, 0);
+      })();
       const stored = localStorage.getItem('tof_user_session');
       if (stored) {
         try {
@@ -1114,6 +1128,7 @@
     }
 
     function logoutUser(silent = false) {
+      if (window.TofSesi) TofSesi.hapus(); // [LOGIN SERAGAM] keluar dari sesi bersama (termasuk token)
       if (currentUserSession) forgetPin(currentUserSession.id);
       localStorage.removeItem('tof_user_session');
       localStorage.removeItem('tof_wallet');
@@ -1148,6 +1163,12 @@
         const walletAddress = account.addr; // Menjadi 'id' Primary Key di DB
         const secretMnemonic = algosdk.secretKeyToMnemonic(account.sk);
 
+        // 2-3. [LOGIN SERAGAM] Daftar lewat server (tof-vault): PIN di-hash di server, frasa dititipkan ke brankas
+        //      (sama seperti pendaftaran di beranda), dan sesi bersama langsung terbentuk.
+        const reg = await TofSesi.daftar(supabaseClient, { username: username, pin: pin, mnemonic: secretMnemonic });
+        if (!reg.ok) throw new Error(TofSesi.pesan(reg));
+
+        /* [ARSIP — TIDAK DIJALANKAN] daftar dengan menulis pin_hash dari browser (alur lama)
         // 2. Hash PIN
         const pinHash = await hashPIN(pin);
 
@@ -1169,12 +1190,13 @@
           throw error;
         }
 
+        */
         // 4. Unduh Kartu QR Anggota
         // [FIX] seed terenkripsi (s) dihapus dari kartu: XOR dengan PIN 6 digit bisa ditembus seketika
         const qrPayload = JSON.stringify({ u: username, w: walletAddress, type: 'TOF_MEMBER_CARD' });
         downloadQRCardImage(qrPayload, username);
 
-        sessionPinHash = pinHash;
+        sessionPinHash = TofSesi.token(); // [LOGIN SERAGAM]
 
         // 5. Simpan Sesi Global & Local
         saveGlobalSession({ id: walletAddress, username: username, xp: 0, saldo_tof: 0, rank: 'GROWER', level: 1 });
@@ -1209,6 +1231,13 @@
       }
 
       try {
+        // [LOGIN SERAGAM] PIN diperiksa di server (tof-vault); boleh username atau alamat wallet (Kartu QR)
+        const kred = algosdk.isValidAddress(identifier) ? { profile_id: identifier, pin: pin } : { username: identifier, pin: pin };
+        const resLogin = await TofSesi.login(supabaseClient, kred);
+        if (!resLogin.ok) { alert(TofSesi.pesan(resLogin)); return; }
+        const data = resLogin.profile;
+        sessionPinHash = TofSesi.token(); // token sesi bersama (bukan hash PIN)
+        /* [ARSIP — TIDAK DIJALANKAN] verifikasi hash PIN di browser (alur lama)
         const pinHash = await hashPIN(pin);
 
         // [FIX] pilih kolom berdasarkan format input (bukan .or() dengan string mentah yang bisa diinjeksi),
@@ -1242,6 +1271,7 @@
 
         delete data.pin_hash;
         sessionPinHash = pinHash; // [V2]
+        */
 
         // Simpan Sesi Global & Local
         saveGlobalSession(data);
@@ -1481,6 +1511,7 @@
     }
 
     function requirePinHash(desc) {
+      sessionPinHash = TofSesi.token(); // [LOGIN SERAGAM] selalu ikut sesi bersama; null bila kedaluwarsa -> minta PIN
       if (sessionPinHash) return Promise.resolve(sessionPinHash);
       return new Promise(resolve => {
         pinResolver = resolve;
@@ -1494,7 +1525,12 @@
     async function submitPinConfirm() {
       const pin = document.getElementById('pinConfirmInput').value.trim();
       if (!/^\d{6}$/.test(pin)) { alert("PIN harus 6 angka ya."); return; }
-      const hash = await hashPIN(pin);
+      // [LOGIN SERAGAM] PIN diperiksa server lalu ditukar dengan token sesi (bukan hash PIN).
+      // Modal tetap terbuka bila PIN salah supaya bisa dicoba lagi.
+      if (!currentUserSession) { alert("Masuk dulu ya."); return; }
+      const resPin = await TofSesi.login(supabaseClient, { profile_id: currentUserSession.id, pin: pin });
+      if (!resPin.ok) { alert(TofSesi.pesan(resPin)); return; }
+      const hash = TofSesi.token();
       document.getElementById('pinModal').style.display = 'none';
       const r = pinResolver; pinResolver = null;
       if (r) r(hash);
@@ -1518,15 +1554,23 @@
     }
     function pinKey(id) { return 'olahrasa_pinh_' + id; }
     function autosyncKey(id) { return 'olahrasa_autosync_' + id; }
-    function getRememberedPin(id) {
+    // [LOGIN SERAGAM] Tidak ada lagi hash PIN di perangkat: sesi bersama (token bertanda tangan) menggantikannya,
+    // jadi sinkron otomatis saat sinyal kembali tetap jalan tanpa minta PIN.
+    function getRememberedPin(id) { return TofSesi.token(); }
+    // [ARSIP] versi lama (hash PIN di localStorage), tidak dipakai lagi
+    function getRememberedPinLama(id) {
       try { return localStorage.getItem(autosyncKey(id)) === '1' ? (localStorage.getItem(pinKey(id)) || null) : null; } catch (e) { return null; }
     }
-    function rememberPinIfAllowed(hash) {
+    function rememberPinIfAllowed(hash) { /* [LOGIN SERAGAM] tidak menyimpan PIN/hash lagi */ }
+    // [ARSIP] versi lama, tidak dipakai lagi
+    function rememberPinIfAllowedLama(hash) {
       if (!currentUserSession) return;
       try { if (localStorage.getItem(autosyncKey(currentUserSession.id)) === '1') localStorage.setItem(pinKey(currentUserSession.id), hash); } catch (e) {}
     }
     function forgetPin(id) { if (!id) return; try { localStorage.removeItem(pinKey(id)); } catch (e) {} }
-    async function offerAutoSync() {
+    async function offerAutoSync() { /* [LOGIN SERAGAM] tidak perlu lagi: token sesi sudah menjaga sinkron otomatis tanpa menyimpan PIN */ }
+    // [ARSIP] versi lama (menawarkan penyimpanan PIN di perangkat), tidak dipakai lagi
+    async function offerAutoSyncLama() {
       if (!currentUserSession || !sessionPinHash) return;
       const id = currentUserSession.id;
       let v = null; try { v = localStorage.getItem(autosyncKey(id)); } catch (e) {}

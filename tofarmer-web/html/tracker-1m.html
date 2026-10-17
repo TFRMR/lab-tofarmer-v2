@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SUPABASE JS SDK v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/tof-sesi.js"></script>
     <!-- ALGORAND SDK (untuk dompet saat Daftar Baru, sama seperti halaman ToFarmer lain) -->
     <script src="https://cdn.jsdelivr.net/npm/algosdk@2.7.0/dist/browser/algosdk.min.js"></script>
     <style>
@@ -496,6 +497,18 @@
             updateDashboard();
 
             // Pulihkan sesi login jika ada, kalau tidak tampilkan layar Masuk
+            // [LOGIN SERAGAM] Sesi diambil dari login bersama (tof_wallet + token); hash PIN tidak lagi disimpan di perangkat.
+            let restored = false;
+            localStorage.removeItem(SESSION_KEY); // buang sesi lama yang menyimpan hash PIN
+            const sso = TofSesi.ambil();
+            const tokenSesi = TofSesi.token();
+            if (sso && tokenSesi) {
+                currentUser = { id: sso.id, username: sso.username, pin_hash: tokenSesi }; // field pin_hash kini berisi token sesi
+                restored = true;
+            } else if (sso) {
+                document.getElementById('loginIdentifier').value = sso.username; // sudah login tapi token belum ada/kedaluwarsa: cukup isi PIN
+            }
+            /* [ARSIP — TIDAK DIJALANKAN] memulihkan sesi dari tof_tracker_session (menyimpan hash PIN)
             let restored = false;
             try {
                 const stored = localStorage.getItem(SESSION_KEY);
@@ -509,6 +522,7 @@
             } catch (e) {
                 localStorage.removeItem(SESSION_KEY);
             }
+            */
 
             if (restored) {
                 renderUserBadge();
@@ -594,6 +608,7 @@
                 return true;
             } catch (e) {
                 console.error("Gagal menyimpan ke Supabase:", e);
+                sesiKadaluarsaTracker(e); // [LOGIN SERAGAM]
                 showModal("Gagal Menyimpan", "Data tidak tersimpan ke server: " + (e.message || e));
                 return false;
             }
@@ -610,6 +625,7 @@
                 return true;
             } catch (e) {
                 console.error("Gagal reset di Supabase:", e);
+                sesiKadaluarsaTracker(e); // [LOGIN SERAGAM]
                 showModal("Gagal Reset", "Data tidak terhapus di server: " + (e.message || e));
                 return false;
             }
@@ -655,7 +671,7 @@
 
         function startSession(user) {
             currentUser = { id: user.id, username: user.username, pin_hash: user.pin_hash };
-            localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+            // [LOGIN SERAGAM] sesi disimpan di sesi bersama (tof_session), bukan lagi hash PIN di tof_tracker_session
             renderUserBadge();
         }
 
@@ -673,6 +689,11 @@
             const btn = document.getElementById('btnLogin');
             btn.disabled = true;
             try {
+                // [LOGIN SERAGAM] login lewat server (tof-vault); sesi dibagi dengan semua halaman
+                const res = await TofSesi.login(supabaseClient, { username: username, pin: pin });
+                if (!res.ok) { showAuthError(TofSesi.pesan(res)); return; }
+                startSession({ id: res.profile.id, username: res.profile.username, pin_hash: TofSesi.token() });
+                /* [ARSIP — TIDAK DIJALANKAN] login lewat RPC tracker_login dengan hash PIN (alur lama)
                 const pinHash = await hashPIN(pin);
                 const { data, error } = await supabaseClient.rpc('tracker_login', {
                     p_username: username,
@@ -687,9 +708,16 @@
                 }
 
                 startSession({ id: data[0].id, username: data[0].username, pin_hash: pinHash });
+                */
                 document.getElementById('loginPin').value = '';
                 closeAuthModal();
-                await loadFromStorage();
+                if (window.tfBelumTersimpan) {
+                    // sesi habis saat menyimpan: kirim ulang data di layar, jangan ditimpa data server
+                    window.tfBelumTersimpan = false;
+                    await saveLogsToCloud(Object.keys(userLogs));
+                } else {
+                    await loadFromStorage();
+                }
                 updateDashboard();
                 showToast(`Selamat datang, ${currentUser.username}!`);
             } catch (err) {
@@ -718,6 +746,13 @@
                 const walletAddress = account.addr;
                 const secretMnemonic = algosdk.secretKeyToMnemonic(account.sk);
 
+                // 2. [LOGIN SERAGAM] Daftar lewat server (tof-vault): PIN di-hash di server, frasa dititipkan ke brankas
+                const reg = await TofSesi.daftar(supabaseClient, { username: username, pin: pin, mnemonic: secretMnemonic });
+                if (!reg.ok) throw new Error(TofSesi.pesan(reg));
+
+                // 3. Sesi bersama sudah terbentuk + tampilkan 25 kata dompet
+                startSession({ id: walletAddress, username: username, pin_hash: TofSesi.token() });
+                /* [ARSIP — TIDAK DIJALANKAN] daftar dengan menulis pin_hash dari browser (alur lama)
                 // 2. Hash PIN & simpan profil
                 const pinHash = await hashPIN(pin);
                 const { error } = await supabaseClient.from('profiles').insert([{
@@ -739,6 +774,7 @@
 
                 // 3. Sesi + tampilkan 25 kata dompet
                 startSession({ id: walletAddress, username: username, pin_hash: pinHash });
+                */
                 document.getElementById('regPin').value = '';
                 closeAuthModal();
                 openMnemonicModal(secretMnemonic);
@@ -774,12 +810,24 @@
             showToast(`Selamat datang, ${currentUser ? currentUser.username : ''}!`);
         }
 
+        // [LOGIN SERAGAM] Token kedaluwarsa/dicabut (mis. PIN diganti di perangkat lain): minta PIN lagi, data di layar aman
+        function sesiKadaluarsaTracker(e) {
+            if (!/Akses ditolak/i.test(String((e && e.message) || e))) return;
+            window.tfBelumTersimpan = true;
+            TofSesi.hapusToken();
+            const s = TofSesi.ambil();
+            if (s) document.getElementById('loginIdentifier').value = s.username;
+            openAuthModal('login');
+        }
+
         function logoutUser(silent = false) {
+            if (window.TofSesi) { if (silent) TofSesi.hapusToken(); else TofSesi.hapus(); } // [LOGIN SERAGAM] keluar = keluar di semua halaman
             localStorage.removeItem(SESSION_KEY);
             currentUser = null;
             userLogs = {};
             renderUserBadge();
             updateDashboard();
+            { const s = window.TofSesi && TofSesi.ambil(); if (s) document.getElementById('loginIdentifier').value = s.username; } // [LOGIN SERAGAM]
             openAuthModal('login');
             if (!silent) showToast("Kamu sudah keluar. Sampai jumpa lagi!");
         }

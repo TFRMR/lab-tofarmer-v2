@@ -604,6 +604,7 @@
           console.warn("Data login tidak valid:", error);
 
           localStorage.removeItem("tof_wallet");
+          localStorage.removeItem("tof_session"); // [LOGIN SERAGAM]
           localStorage.removeItem("tof_login_username");
 
           currentUser = null;
@@ -1134,6 +1135,7 @@ function getExportRows() {
     function handleLogout() {
       // Login sistem ini menggunakan localStorage, bukan Supabase Auth session.
       localStorage.removeItem("tof_wallet");
+      localStorage.removeItem("tof_session"); // [LOGIN SERAGAM]
       localStorage.removeItem("tof_login_username");
       localStorage.removeItem("tof_level");
       localStorage.removeItem("tof_rank");

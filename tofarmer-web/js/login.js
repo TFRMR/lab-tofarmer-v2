@@ -179,6 +179,12 @@ async function handleLogin(event) {
         // 4. Login berhasil! Set localStorage (sesuai struktur app.js)
         localStorage.setItem('tof_wallet', data.id);
         localStorage.setItem('tof_login_username', data.username); // ← FIX: Use tof_login_username (sesuai app.js)
+        // [LOGIN SERAGAM] token sesi bertanda tangan dari server: dipakai Scan, Jurnal, Tracker, dll. tanpa minta PIN lagi
+        if (res.session && res.session.token) {
+            localStorage.setItem('tof_session', JSON.stringify({ id: data.id, token: res.session.token, exp: res.session.exp }));
+        } else {
+            localStorage.removeItem('tof_session');
+        }
         
         // Level calculation (from index.html)
         const effectiveXp = (data.xp || 0) + (data.saldo_tof || 0) * 1000;

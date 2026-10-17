@@ -2876,6 +2876,15 @@ async function gantiPinPengaturan() {
 
   if (!res.ok) { elGalat.textContent = pesanVaultProfil(res); return; }
 
+  // Sesi lama gugur otomatis saat PIN diganti; simpan sesi baru dari server agar halaman lain tetap masuk
+  try {
+    if (res.session && res.session.token) {
+      localStorage.setItem("tof_session", JSON.stringify({ id: currentWallet, token: res.session.token, exp: res.session.exp }));
+    } else {
+      localStorage.removeItem("tof_session");
+    }
+  } catch (e) {}
+
   alert("PIN berhasil diganti 🔐");
   const overlay = document.getElementById("overlay-pengaturan-tof");
   if (overlay) overlay.remove();

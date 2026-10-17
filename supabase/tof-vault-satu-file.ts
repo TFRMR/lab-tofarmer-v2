@@ -162,6 +162,8 @@ export interface Repo {
   findProfileById(id: string): Promise<Profile | null>;
   insertProfile(row: Row): Promise<"ok" | "duplicate" | "error">;
   deleteProfile(id: string): Promise<void>;
+  updateProfileFields(id: string, patch: Row): Promise<"ok" | "duplicate" | "error">; // username/nama/bio/tanggal lahir
+  getSesiKunci(): Promise<string | null>; // kunci tanda tangan sesi (tabel tertutup tof_secret)
   setHasPin(id: string, value: boolean): Promise<void>;
   getPin(id: string): Promise<PinRow | null>;
   upsertPin(row: { profile_id: string; algo: string; salt: string | null; pin_hash: string; fails: number; locked_until: string | null; pin_terpisah?: boolean }): Promise<void>;
@@ -260,6 +262,14 @@ type Res = Record<string, unknown>;
 const fail = (error: string, extra: Res = {}): Res => ({ ok: false, error, ...extra });
 const ok = (extra: Res = {}): Res => ({ ok: true, ...extra });
 
+// Tanggal lahir disimpan sebagai teks "DD-MM-YYYY" (format yang dibaca Kaji Wayang). Terima juga D/M/YYYY lama.
+function normTanggal(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const m = /^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})$/.exec(v.trim());
+  if (!m) return null;
+  return m[1].padStart(2, "0") + "-" + m[2].padStart(2, "0") + "-" + m[3];
+}
+
 function safeProfile(p: Profile): Profile {
   const copy = { ...p };
   delete copy.pin_hash; // jangan pernah kirim sisa hash lama ke browser
@@ -335,6 +345,36 @@ async function verifyPinFor(profile: Profile, pin: unknown, d: Deps): Promise<Re
   return fail("bad_pin", { left: MAX_FAILS - fails });
 }
 
+// HMAC-SHA256 (hex). Kunci diperlakukan sebagai teks UTF-8, sama dengan hmac(text, text, 'sha256') di pgcrypto.
+export async function hmacHex(key: string, msg: string): Promise<string> {
+  const enc = new TextEncoder();
+  const k = await crypto.subtle.importKey("raw", enc.encode(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return toHex(await crypto.subtle.sign("HMAC", k, enc.encode(msg)));
+}
+
+// ---- Sesi bertanda tangan (login sekali, dipakai semua halaman) ----
+// Token "v1.<exp>.<hmac>" menggantikan hash PIN pada parameter p_pin_hash di fungsi RPC database
+// (tof_check_pin memeriksanya). Tanda tangan = HMAC-SHA256(kunci, id.exp.salt-PIN):
+//   - tidak bisa dipalsukan tanpa kunci (tabel tertutup tof_secret),
+//   - otomatis tidak berlaku bila PIN diganti/direset (salt berubah / baris PIN hilang).
+// Bila kunci belum ada (SQL 009 belum dijalankan) sesi tidak dibuat; login tetap berhasil.
+export const SESI_HARI = 30;
+
+async function buatSesi(profileId: string, d: Deps): Promise<{ token: string; exp: number } | null> {
+  try {
+    const kunci = await d.repo.getSesiKunci();
+    if (!kunci) return null;
+    const row = await d.repo.getPin(profileId); // baca ulang: salt bisa berubah setelah PIN dinaikkan ke PBKDF2
+    if (!row) return null;
+    const exp = Math.floor(d.now() / 1000) + SESI_HARI * 86400;
+    const sig = await hmacHex(kunci, `${profileId}.${exp}.${row.salt ?? ""}`);
+    return { token: `v1.${exp}.${sig}`, exp };
+  } catch (e) {
+    console.error("buatSesi:", e);
+    return null;
+  }
+}
+
 export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> {
   switch (action) {
     // ---- Cek username: ada/tidak, sudah punya PIN/belum ----
@@ -349,11 +389,13 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
 
     // ---- Login: username + PIN ----
     case "login": {
-      const r = await resolveProfile(body, d, false);
+      // username ATAU profile_id (alamat wallet, mis. dari Kartu QR) + PIN; batas salah PIN tetap berlaku
+      const r = await resolveProfile(body, d, true);
       if ("error" in r) return fail(r.error);
       const v = await verifyPinFor(r.profile, body.pin, d);
       if (!v.ok) return v;
-      return ok({ profile: safeProfile(r.profile) });
+      const sesi = await buatSesi(r.profile.id, d);
+      return ok({ profile: safeProfile(r.profile), ...(sesi ? { session: sesi } : {}) });
     }
 
     // ---- Akun lama tanpa PIN: wallet harus cocok, lalu buat PIN ----
@@ -374,7 +416,8 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
       await d.repo.setHasPin(p.id, true);
       if (vault) await d.repo.clearResetPending(p.id);
       await d.repo.log(p.id, "set_pin", true);
-      return ok({ profile: safeProfile(p) });
+      const sesi = await buatSesi(p.id, d);
+      return ok({ profile: safeProfile(p), ...(sesi ? { session: sesi } : {}) });
     }
 
     // ---- Daftar baru (dompet otomatis dengan frasa, atau dompet sendiri) ----
@@ -433,7 +476,8 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
       }
       await d.repo.log(address, mnemonic ? "register_vault" : "register", true);
       const created = await d.repo.findProfileById(address);
-      return ok({ profile: created ? safeProfile(created) : { id: address, username } });
+      const sesi = await buatSesi(address, d);
+      return ok({ profile: created ? safeProfile(created) : { id: address, username }, ...(sesi ? { session: sesi } : {}) });
     }
 
     // ---- Titip frasa (user lama / yang tadinya pakai dompet sendiri) ----
@@ -498,7 +542,73 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
       const rec = await makePinRecord(body.pin_baru, d.pepper);
       await d.repo.upsertPin({ profile_id: r.profile.id, ...rec, fails: 0, locked_until: null, pin_terpisah: true });
       await d.repo.log(r.profile.id, "ganti_pin", true);
-      return ok();
+      // sesi lama otomatis tidak berlaku (salt PIN berubah): kirim sesi baru agar pengguna tidak perlu login ulang
+      const sesi = await buatSesi(r.profile.id, d);
+      return ok(sesi ? { session: sesi } : {});
+    }
+
+    // ---- Ubah data profil (username, nama lengkap, bio, tanggal lahir) ----
+    // PIN wajib (login hanya localStorage, jadi PIN-lah bukti pemilik akun). Aturan sama dengan deposit/reveal:
+    // akun yang PIN-nya masih terbaca publik harus ganti PIN dulu.
+    case "update_profil": {
+      const r = await resolveProfile(body, d, true);
+      if ("error" in r) return fail(r.error);
+      if (pinPublikAktif(r.profile, await d.repo.getPin(r.profile.id))) return fail("pin_publik");
+      const v = await verifyPinFor(r.profile, body.pin, d);
+      if (!v.ok) return v;
+      if (await samaDenganHashPublik(r.profile, body.pin)) return fail("pin_publik");
+
+      const patch: Row = {};
+
+      if (typeof body.username === "string" && body.username.trim() !== r.profile.username) {
+        const u = body.username.trim();
+        if (!isValidUsername(u)) return fail("bad_username");
+        const dupe = (await d.repo.findProfilesByUsername(u)).filter((x) => x.id !== r.profile.id);
+        if (dupe.length > 0) return fail("username_taken");
+        patch.username = u;
+      }
+
+      if (body.real_name !== undefined) {
+        if (body.real_name !== null && typeof body.real_name !== "string") return fail("bad_real_name");
+        const n = typeof body.real_name === "string" ? body.real_name.trim() : "";
+        if (n.length > 60) return fail("bad_real_name");
+        patch.real_name = n || null;
+      }
+
+      if (body.bio !== undefined) {
+        if (body.bio !== null && typeof body.bio !== "string") return fail("bad_bio");
+        const b = typeof body.bio === "string" ? body.bio.trim() : "";
+        if (b.length > 300) return fail("bad_bio");
+        patch.bio = b || null;
+      }
+
+      if (body.tanggal_lahir !== undefined) {
+        const t = typeof body.tanggal_lahir === "string" ? body.tanggal_lahir.trim() : "";
+        if (t) {
+          const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(t);
+          const ms = m ? Date.UTC(+m[3], +m[2] - 1, +m[1]) : NaN;
+          const dt = new Date(ms);
+          if (!m || isNaN(ms) || dt.getUTCDate() !== +m[1] || dt.getUTCMonth() !== +m[2] - 1 || ms > d.now() || +m[3] < 1900) {
+            return fail("bad_tanggal_lahir");
+          }
+        }
+        if ((t || null) !== normTanggal(r.profile.tanggal_lahir)) {
+          patch.tanggal_lahir = t || null;
+          // Hasil Kaji Wayang dihitung dari tanggal lahir, jadi dikosongkan agar dihitung ulang
+          patch.wayang_archetype = null;
+          patch.wuku_data = null;
+        }
+      }
+
+      if (Object.keys(patch).length === 0) return ok({ profile: safeProfile(r.profile) });
+
+      const hasil = await d.repo.updateProfileFields(r.profile.id, patch);
+      if (hasil === "duplicate") return fail("username_taken");
+      if (hasil !== "ok") return fail("server_error");
+
+      await d.repo.log(r.profile.id, "update_profil", true);
+      const baru = await d.repo.findProfileById(r.profile.id);
+      return ok({ profile: safeProfile(baru ?? { ...r.profile, ...patch }) });
     }
 
     // ---- Status brankas (tanpa PIN): dipakai halaman Dompet untuk menampilkan tombol yang sesuai ----
@@ -1286,7 +1396,7 @@ function itemBatch(r: TopupRow, nomor: number, nama: Map<string, string>) {
 // ---------------- index.ts ----------------
 // ============================================================
 // Supabase Edge Function: tof-vault
-// Actions: check | login | set_pin | register | deposit | reveal
+// Actions: check | login | set_pin | register | deposit | reveal | ganti_pin | vault_status | update_profil
 // Semua balasan HTTP 200 dengan JSON { ok: boolean, ... }.
 //
 // Secrets yang harus di-set (supabase secrets set ...):
@@ -1332,6 +1442,17 @@ const repo: Repo = {
   },
   async deleteProfile(id) {
     must(await db.from("profiles").delete().eq("id", id));
+  },
+  async updateProfileFields(id, patch) {
+    const { error } = await db.from("profiles").update(patch).eq("id", id);
+    if (!error) return "ok";
+    console.error("updateProfileFields:", error.message);
+    return error.code === "23505" ? "duplicate" : "error";
+  },
+  async getSesiKunci() {
+    const { data, error } = await db.from("tof_secret").select("value").eq("name", "sesi_kunci").maybeSingle();
+    if (error) { console.error("getSesiKunci:", error.message); return null; }
+    return ((data as { value?: string } | null)?.value) ?? null;
   },
   async setHasPin(id, value) {
     must(await db.from("profiles").update({ has_pin: value, pin_hash: null }).eq("id", id));
