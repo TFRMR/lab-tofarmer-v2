@@ -51,7 +51,10 @@
     c.type = 'button';
     c.setAttribute('aria-label', 'Instal aplikasi ToFarmer');
     c.textContent = '⚡ Instal';
+    // width/margin/height ditulis eksplisit: beberapa halaman punya aturan `button { width:45%; margin-top:10px }`
+    // yang bila tidak ditimpa membuat tombol ini selebar 45% layar.
     c.style.cssText = 'display:none;position:fixed;left:14px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:9000;' +
+      'width:auto;min-width:0;max-width:none;height:auto;margin:0;flex:none;box-sizing:border-box;line-height:1.2;white-space:nowrap;' +
       'align-items:center;gap:4px;padding:10px 14px;border:none;border-radius:999px;cursor:pointer;' +
       'font:700 12px Inter,system-ui,sans-serif;color:#fff;background:linear-gradient(90deg,#4caf7a,#c9a227);' +
       'box-shadow:0 6px 18px rgba(0,0,0,.22);-webkit-tap-highlight-color:transparent;';
@@ -98,7 +101,7 @@
     (tombol || []).forEach(function (t) {
       var b = doc.createElement('button');
       b.textContent = t.teks;
-      b.style.cssText = 'flex:1;padding:11px;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;' +
+      b.style.cssText = 'flex:1;width:auto;margin:0;padding:11px;border:none;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;' +
         (t.utama ? 'background:linear-gradient(90deg,#4caf7a,#c9a227);color:#fff;' : 'background:#eef7f1;color:#2f6f4e;');
       b.onclick = function () { o.remove(); if (t.aksi) t.aksi(); };
       aksi.appendChild(b);
