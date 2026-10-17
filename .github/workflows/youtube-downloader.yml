@@ -1,0 +1,53 @@
+name: Mesin Pemroses YouTube ToFarmer
+
+on:
+  workflow_dispatch:
+    inputs:
+      url_youtube:
+        description: 'Alamat / Link Video YouTube'
+        required: true
+        default: ''
+      pilihan_format:
+        description: 'Format Output (mp3, mp4_1080p, mp4_720p, mp4_480p)'
+        required: true
+        default: 'mp3'
+
+jobs:
+  proses-download:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install FFmpeg & yt-dlp Terbaru
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+          mkdir -p output_file
+
+      - name: Eksekusi Download & Konversi Video/Audio
+        run: |
+          URL="${{ github.event.inputs.url_youtube }}"
+          FORMAT="${{ github.event.inputs.pilihan_format }}"
+          
+          echo "Memproses URL: $URL dengan Format: $FORMAT"
+
+          if [ "$FORMAT" == "mp3" ]; then
+            yt-dlp -x --audio-format mp3 --audio-quality 0 -o "output_file/%(title)s.%(ext)s" "$URL"
+          elif [ "$FORMAT" == "mp4_1080p" ]; then
+            yt-dlp -f "bestvideo[height<=1080]+bestaudio/best" --merge-output-format mp4 -o "output_file/%(title)s.%(ext)s" "$URL"
+          elif [ "$FORMAT" == "mp4_720p" ]; then
+            yt-dlp -f "bestvideo[height<=720]+bestaudio/best" --merge-output-format mp4 -o "output_file/%(title)s.%(ext)s" "$URL"
+          else
+            yt-dlp -f "bestvideo[height<=480]+bestaudio/best" --merge-output-format mp4 -o "output_file/%(title)s.%(ext)s" "$URL"
+          fi
+
+      - name: Simpan Hasil File (Artifact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hasil-Video-ToFarmer
+          path: output_file/
+          retention-days: 1
