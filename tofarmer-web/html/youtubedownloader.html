@@ -150,6 +150,34 @@
       pointer-events: none;
     }
 
+    /* TOKEN INPUT BOX */
+    .token-box {
+      background: rgba(8, 18, 12, 0.6);
+      border: 1px solid rgba(234, 179, 8, 0.3);
+      border-radius: 18px;
+      padding: 15px 20px;
+      margin-bottom: 25px;
+    }
+
+    .token-box label {
+      display: block;
+      font-size: .8rem;
+      color: #fde047;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .token-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #f8fafc;
+      font-size: .85rem;
+      outline: none;
+    }
+
     /* INPUT SECTION */
     .input-group {
       display: flex;
@@ -409,24 +437,6 @@
       display: block;
     }
 
-    .progress-bar-bg {
-      width: 100%;
-      height: 14px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 15px 0;
-      border: 1px solid rgba(74, 222, 128, 0.1);
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #22c55e, #eab308);
-      border-radius: 10px;
-      transition: width 0.3s ease;
-    }
-
     .log-terminal {
       background: #040805;
       border-radius: 12px;
@@ -434,7 +444,7 @@
       font-family: monospace;
       font-size: .75rem;
       color: #84a98c;
-      max-height: 110px;
+      max-height: 150px;
       overflow-y: auto;
       margin-top: 15px;
       border: 1px solid rgba(255, 255, 255, 0.03);
@@ -481,11 +491,17 @@
         </div>
       </div>
       <h1>Unduh & Simpan Video YouTube</h1>
-      <p>Pilih lagu atau video favoritmu dari internet, ubah ukurannya supaya pas di HP, hemat kuota, dan bisa diputar kapan saja tanpa jaringan.</p>
+      <p>Pilih lagu atau video favoritmu dari internet, ubah ukurannya supaya pas di HP, hemat kuota, dan diproses langsung oleh mesin otomatis ToFarmer.</p>
     </header>
 
     <!-- MAIN BOX -->
     <main class="main-box">
+
+      <!-- KOTAK KUNCI PENGHUBUNG (GITHUB TOKEN) -->
+      <div class="token-box">
+        <label for="ghToken"><i class="ph-bold ph-key"></i> Kunci Akses Pemroses (GitHub Token):</label>
+        <input type="password" id="ghToken" class="token-input" placeholder="Tempel token ghp_XXXXXXXXXXXXXXXXXXXX di sini (Otomatis tersimpan di browser)" onchange="simpanTokenLocal()">
+      </div>
 
       <!-- INPUT UTAMA -->
       <div class="input-group">
@@ -511,8 +527,7 @@
         <div class="video-info">
           <h3 id="videoTitle">Rick Astley - Never Gonna Give You Up (Official Music Video)</h3>
           <div class="video-meta">
-            <span><i class="ph-bold ph-clock"></i> Durasi: <strong id="videoDuration">3 Menit 33 Detik</strong></span>
-            <span><i class="ph-bold ph-user-circle"></i> Saluran: <strong id="videoChannel">RickAstleyVEVO</strong></span>
+            <span><i class="ph-bold ph-check-circle"></i> Status: <strong style="color: #4ade80;">Video Siap Diproses</strong></span>
           </div>
         </div>
       </div>
@@ -525,22 +540,10 @@
         </div>
         <div class="grid">
           
-          <div class="card-btn" onclick="mulaiUnduh('Audio Jernih (MP3 320kbps)', 'audio', '8.5 MB')">
+          <div class="card-btn" onclick="kirimKeGitHub('mp3', 'Audio MP3 Jernih')">
             <i class="ph-bold ph-music-notes icon"></i>
-            <div class="label">Suara Paling Jernih</div>
-            <div class="desc">Cocok untuk diputar di speaker/salon hajatan. File agak besar (~8.5 MB).</div>
-          </div>
-
-          <div class="card-btn" onclick="mulaiUnduh('Audio Sedang (MP3 192kbps)', 'audio', '4.8 MB')">
-            <i class="ph-bold ph-headphones icon"></i>
-            <div class="label">Suara Sedang (Hemat)</div>
-            <div class="desc">Paling pas untuk didengar lewat HP sehari-hari. Ukuran sedang (~4.8 MB).</div>
-          </div>
-
-          <div class="card-btn" onclick="mulaiUnduh('Audio M4A Hemat', 'audio', '2.5 MB')">
-            <i class="ph-bold ph-file-audio icon"></i>
-            <div class="label">Suara Irit Kuota</div>
-            <div class="desc">Ukuran file sangat kecil (~2.5 MB), cepat selesai diunduh.</div>
+            <div class="label">Suara MP3 (Jernih)</div>
+            <div class="desc">Diproses langsung dengan FFmpeg menjadi file MP3 paling jernih.</div>
           </div>
 
         </div>
@@ -554,46 +557,35 @@
         </div>
         <div class="grid">
 
-          <div class="card-btn" onclick="mulaiUnduh('Video Bening (1080p Full HD)', 'video', '45 MB')">
+          <div class="card-btn" onclick="kirimKeGitHub('mp4_1080p', 'Video 1080p Full HD')">
             <i class="ph-bold ph-television icon"></i>
-            <div class="label">Gambar Sangat Bening (1080p)</div>
-            <div class="desc">Sangat tajam saat diputar di TV atau laptop. Ukuran besar (~45 MB).</div>
+            <div class="label">Gambar Bening (1080p)</div>
+            <div class="desc">Gambar paling tajam saat diputar di TV atau laptop.</div>
           </div>
 
-          <div class="card-btn" onclick="mulaiUnduh('Video Sedang (720p HD)', 'video', '22 MB')">
+          <div class="card-btn" onclick="kirimKeGitHub('mp4_720p', 'Video 720p HD')">
             <i class="ph-bold ph-device-tablet icon"></i>
             <div class="label">Gambar Sedang (720p)</div>
-            <div class="desc">Sudah jelas dan tidak pecah di layar HP. Ukuran sedang (~22 MB).</div>
+            <div class="desc">Sangat pas dan jernih di layar HP sehari-hari.</div>
           </div>
 
-          <div class="card-btn" onclick="mulaiUnduh('Video Hemat (480p)', 'video', '12 MB')">
+          <div class="card-btn" onclick="kirimKeGitHub('mp4_480p', 'Video 480p Hemat')">
             <i class="ph-bold ph-cellphone icon"></i>
             <div class="label">Gambar Hemat (480p)</div>
-            <div class="desc">Irit kuota internet dan tidak memenuhi memori HP. Ukuran (~12 MB).</div>
-          </div>
-
-          <div class="card-btn" onclick="mulaiUnduh('Video Paling Ringan (360p)', 'video', '6 MB')">
-            <i class="ph-bold ph-gauge icon"></i>
-            <div class="label">Gambar Paling Ringan (360p)</div>
-            <div class="desc">Proses unduh paling cepat meski sinyal HP kurang kuat (~6 MB).</div>
+            <div class="desc">Irit memori HP dan cepat diproses oleh server.</div>
           </div>
 
         </div>
       </section>
 
-      <!-- KOTAK PROSES PENGERJAAN -->
+      <!-- KOTAK CATATAN PROSES -->
       <div id="processBox" class="process-box">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <strong id="processStatus" style="color: #fde047; font-size: 0.95rem;">Sedang Menyiapkan...</strong>
-          <span id="processPercent" style="color: #4ade80; font-weight: 800; font-size: 0.95rem;">0%</span>
-        </div>
-
-        <div class="progress-bar-bg">
-          <div id="progressBar" class="progress-bar-fill"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <strong id="processStatus" style="color: #fde047; font-size: 0.95rem;">Menghubungkan ke GitHub...</strong>
         </div>
 
         <div id="logTerminal" class="log-terminal">
-          <div>[Sistem] Menunggu perintah...</div>
+          <div>[Sistem] Menunggu perintah pengunduhan...</div>
         </div>
       </div>
 
@@ -602,7 +594,7 @@
     <!-- FOOTER INFORMASI LUGAS -->
     <footer class="footer">
       <div class="footer-text">
-        <p><strong>Catatan Sederhana:</strong> Aplikasi ini dirancang agar mudah digunakan siapa saja. Untuk penggunaan langsung di perangkat tanpa internet, sistem memerlukan mesin pengolah video (*yt-dlp & FFmpeg*) di komputer server.</p>
+        <p><strong>Sistem Terhubung:</strong> Menggunakan mesin pemroses <code>yt-dlp + FFmpeg</code> melalui GitHub Actions di repositori <strong>TFRMR/lab-tofarmer-v2</strong>.</p>
         <p style="margin-top: 6px;">Dibuat untuk kemudahan warga & komunitas di Pegunungan Menoreh.</p>
       </div>
     </footer>
@@ -610,6 +602,24 @@
   </div>
 
   <script>
+    const REPO_OWNER = "TFRMR";
+    const REPO_NAME = "lab-tofarmer-v2";
+    const WORKFLOW_ID = "youtube-downloader.yml";
+
+    // Muat token dari simpanan browser saat pertama kali dibuka
+    window.onload = function() {
+      const savedToken = localStorage.getItem("tofarmer_gh_token");
+      if (savedToken) {
+        document.getElementById("ghToken").value = savedToken;
+      }
+      prosesAlamat();
+    };
+
+    function simpanTokenLocal() {
+      const token = document.getElementById("ghToken").value.trim();
+      localStorage.setItem("tofarmer_gh_token", token);
+    }
+
     // Fungsi Ambil ID Video dari Alamat YouTube
     function dapatkanIdYoutube(url) {
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -634,7 +644,6 @@
         return;
       }
 
-      // Pasang gambar sampul dari YouTube
       document.getElementById('videoThumb').src = `https://img.youtube.com/vi/${idVideo}/hqdefault.jpg`;
       
       if (judulKustom) {
@@ -642,7 +651,7 @@
       } else if (idVideo === 'dQw4w9WgXcQ') {
         document.getElementById('videoTitle').innerText = "Rick Astley - Never Gonna Give You Up (Lagu Nostalgia)";
       } else if (idVideo === 'jfKfPfyJRdk') {
-        document.getElementById('videoTitle').innerText = "Lofi Hip Hop Radio - Musik Santai Pengantar Tidur & Kerja";
+        document.getElementById('videoTitle').innerText = "Lofi Hip Hop Radio - Musik Santai Pengantar Tidur";
       } else if (idVideo === 'L_LUpnjgPso') {
         document.getElementById('videoTitle').innerText = "Indahnya Pemandangan Alam Sawah & Gunung Menoreh 4K";
       } else {
@@ -650,80 +659,77 @@
       }
 
       previewCard.classList.add('active');
-      previewCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
-    // Simulasi Proses Unduh & Konversi
-    let timerProses = null;
+    // Fungsi Utama: Mengirim Perintah ke GitHub Actions
+    async function kirimKeGitHub(formatCode, formatLabel) {
+      const urlYoutube = document.getElementById('ytUrl').value;
+      const token = document.getElementById('ghToken').value.trim();
 
-    function mulaiUnduh(namaPilihan, tipe, estimasiUkuran) {
-      const processBox = document.getElementById('processBox');
-      const processStatus = document.getElementById('processStatus');
-      const processPercent = document.getElementById('processPercent');
-      const progressBar = document.getElementById('progressBar');
-      const logTerminal = document.getElementById('logTerminal');
-
-      const url = document.getElementById('ytUrl').value;
-      if (!dapatkanIdYoutube(url)) {
+      if (!dapatkanIdYoutube(urlYoutube)) {
         alert("Silakan masukkan alamat video YouTube yang benar terlebih dahulu!");
         return;
       }
 
-      // Tampilkan kotak proses
+      if (!token) {
+        alert("⚠️ Kunci Akses (GitHub Token) belum diisi!\nSilakan masukkan Token GitHub Anda di kolom paling atas.");
+        document.getElementById('ghToken').focus();
+        return;
+      }
+
+      simpanTokenLocal();
+
+      const processBox = document.getElementById('processBox');
+      const processStatus = document.getElementById('processStatus');
+      const logTerminal = document.getElementById('logTerminal');
+
       processBox.classList.add('active');
       processBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-      // Reset tampilan
-      progressBar.style.width = '0%';
-      processPercent.innerText = '0%';
-      processStatus.innerText = `Memproses: ${namaPilihan}...`;
-      logTerminal.innerHTML = `<div>[1/4] Menghubungkan ke alamat video...</div>`;
+      processStatus.innerText = `Mengirim Perintah: ${formatLabel}...`;
+      logTerminal.innerHTML = `<div>[1/3] Menghubungkan ke GitHub API (TFRMR/lab-tofarmer-v2)...</div>`;
 
-      if (timerProses) clearInterval(timerProses);
+      const endpoint = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/${WORKFLOW_ID}/dispatches`;
 
-      let persen = 0;
-      timerProses = setInterval(() => {
-        persen += Math.floor(Math.random() * 12) + 5;
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ref: "main",
+            inputs: {
+              url_youtube: urlYoutube,
+              pilihan_format: formatCode
+            }
+          })
+        });
 
-        if (persen >= 100) {
-          persen = 100;
-          clearInterval(timerProses);
-          
-          progressBar.style.width = '100%';
-          processPercent.innerText = '100%';
-          processStatus.innerText = `Selesai! ${namaPilihan} Siap Disimpan (${estimasiUkuran})`;
-
-          tambahLog(logTerminal, `[4/4] Selesai! File berhasil disiapkan.`);
-          tambahLog(logTerminal, `<strong style="color:#4ade80;">[Sukses] File simulasi (${estimasiUkuran}) siap masuk ke memori HP.</strong>`);
-
-          setTimeout(() => {
-            alert(`[Simulasi Selesai]\n\nFile: ${namaPilihan}\nUkuran: ${estimasiUkuran}\n\nProses pemotongan & penataan file berhasil disimulasikan dengan lancar!`);
-          }, 300);
-
+        if (response.ok || response.status === 204) {
+          processStatus.innerText = `✅ Mesin GitHub Sedang Bekerja!`;
+          tambahLog(logTerminal, `<span style="color:#4ade80;">[2/3] Perintah berhasil diterima oleh GitHub Actions!</span>`);
+          tambahLog(logTerminal, `[3/3] Mesin yt-dlp + FFmpeg sedang mengunduh & mengonversi file Anda.`);
+          tambahLog(logTerminal, `<br><strong style="color:#fde047;">👉 Silakan buka menu Actions di GitHub untuk mengunduh hasilnya setelah selesai (10-30 detik):</strong>`);
+          tambahLog(logTerminal, `<a href="https://github.com/${REPO_OWNER}/${REPO_NAME}/actions" target="_blank" style="color:#6ee7b7; text-decoration:underline;">https://github.com/${REPO_OWNER}/${REPO_NAME}/actions</a>`);
         } else {
-          progressBar.style.width = persen + '%';
-          processPercent.innerText = persen + '%';
-
-          if (persen > 25 && persen < 50) {
-            tambahLog(logTerminal, `[2/4] Mengambil data ${tipe === 'audio' ? 'suara' : 'gambar'} dari YouTube...`);
-          } else if (persen >= 50 && persen < 85) {
-            tambahLog(logTerminal, `[3/4] Mengubah format file agar pas (${estimasiUkuran})...`);
-          }
+          const err = await response.json().catch(() => ({ message: response.statusText }));
+          processStatus.innerText = `⚠️ Gagal Mengirim Perintah`;
+          tambahLog(logTerminal, `<span style="color:#f87171;">[Gagal] Pesan Error: ${err.message || response.statusText}</span>`);
+          tambahLog(logTerminal, `<span>Pastikan token GitHub Anda memiliki izin 'repo' dan 'workflow'.</span>`);
         }
-      }, 400);
-    }
-
-    function tambahLog(terminal, teks) {
-      if (!terminal.innerHTML.includes(teks)) {
-        terminal.innerHTML += `<div>${teks}</div>`;
-        terminal.scrollTop = terminal.scrollHeight;
+      } catch (error) {
+        processStatus.innerText = `⚠️ Kesalahan Jaringan`;
+        tambahLog(logTerminal, `<span style="color:#f87171;">[Error] Tidak dapat terhubung ke server GitHub: ${error.message}</span>`);
       }
     }
 
-    // Jalankan pemeriksaan awal saat halaman selesai dimuat
-    window.onload = function() {
-      prosesAlamat();
-    };
+    function tambahLog(terminal, teks) {
+      terminal.innerHTML += `<div>${teks}</div>`;
+      terminal.scrollTop = terminal.scrollHeight;
+    }
   </script>
 </body>
 </html>
