@@ -8,6 +8,29 @@
 --   1) PIN tidak bisa lagi ditebak lewat Data API (tinggal token 256-bit),
 --   2) tidak ada lagi hash PIN yang terbaca publik.
 -- ============================================================
+--
+-- CEK DULU (hanya membaca; jalankan satu per satu SEBELUM skrip di bawah):
+--
+--   -- (a) berapa akun yang PIN-nya hanya ada di profiles.pin_hash dan akan diselamatkan langkah 1
+--   select count(*) from public.profiles p
+--   where p.pin_hash is not null and p.pin_hash <> ''
+--     and not exists (select 1 from public.pin_secrets s where s.profile_id = p.id);
+--
+--   -- (b) akun yang PIN di pin_secrets BERBEDA dari pin_hash (langkah 4 akan membuang pin_hash-nya;
+--   --     yang berlaku tetap yang di pin_secrets). Idealnya kosong.
+--   select p.id, p.username from public.profiles p
+--   join public.pin_secrets s on s.profile_id = p.id
+--   where p.pin_hash is not null and s.algo = 'sha256' and s.pin_hash <> p.pin_hash;
+--
+--   -- (c) akun yang tidak punya PIN sama sekali (tidak bisa login sebelum maupun sesudah; harus buat PIN dari beranda)
+--   select count(*) from public.profiles p
+--   where not exists (select 1 from public.pin_secrets s where s.profile_id = p.id)
+--     and (p.pin_hash is null or p.pin_hash = '');
+--
+-- PIN TIDAK HILANG: PIN yang berlaku untuk login selalu yang di pin_secrets (tabel tertutup). Skrip ini hanya
+-- (1) menyalin PIN yang tertinggal di profiles ke sana, (2) berhenti menerima hash SHA-256 sebagai kunci RPC,
+-- (3) membuang salinan publiknya. Pengguna tetap masuk dengan PIN yang sama.
+-- ============================================================
 
 -- 1. Selamatkan PIN akun yang dibuat halaman lama setelah 001 dijalankan (belum punya baris di pin_secrets)
 insert into public.pin_secrets (profile_id, algo, pin_hash)

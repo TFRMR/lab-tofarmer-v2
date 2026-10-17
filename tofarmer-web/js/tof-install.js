@@ -17,8 +17,8 @@
 
   var doc = global.document;
   var tunda = null;                 // peristiwa beforeinstallprompt yang ditahan
-  var K_TUTUP = 'tof_instal_tutup'; // waktu banner terakhir ditutup pengguna
-  var TUTUP_HARI = 7;
+  var K_KECIL = 'tof_instal_kecil';        // '1' = pengguna memperkecil banner (tombol ✕)
+  var K_TUTUP_LAMA = 'tof_instal_tutup';   // versi lama: ✕ menyembunyikan banner 7 hari; kini ✕ = diperkecil
 
   function terpasang() {
     try {
@@ -34,19 +34,50 @@
     var p = global.location.pathname;
     return p === '/' || p === '/index.html';
   }
-  function barusanDitutup() {
-    try {
-      var t = parseInt(global.localStorage.getItem(K_TUTUP) || '0', 10);
-      return t && (Date.now() - t) < TUTUP_HARI * 86400000;
-    } catch (e) { return false; }
+  // Banner diperkecil (bukan dihilangkan) selama aplikasi belum terpasang
+  function diperkecil() {
+    try { return global.localStorage.getItem(K_KECIL) === '1' || !!global.localStorage.getItem(K_TUTUP_LAMA); }
+    catch (e) { return false; }
   }
 
   function banner() { return doc.getElementById('pwaBanner'); }
+
+  // Tombol kecil "⚡ Instal" (pojok kiri bawah; pojok kanan dipakai tombol WhatsApp di beranda)
+  function chip(buat) {
+    var c = doc.getElementById('tof-instal-chip');
+    if (c || !buat) return c;
+    c = doc.createElement('button');
+    c.id = 'tof-instal-chip';
+    c.type = 'button';
+    c.setAttribute('aria-label', 'Instal aplikasi ToFarmer');
+    c.textContent = '⚡ Instal';
+    c.style.cssText = 'display:none;position:fixed;left:14px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:9000;' +
+      'align-items:center;gap:4px;padding:10px 14px;border:none;border-radius:999px;cursor:pointer;' +
+      'font:700 12px Inter,system-ui,sans-serif;color:#fff;background:linear-gradient(90deg,#4caf7a,#c9a227);' +
+      'box-shadow:0 6px 18px rgba(0,0,0,.22);-webkit-tap-highlight-color:transparent;';
+    c.addEventListener('click', function () { TofInstall.pasang(); });
+    doc.body.appendChild(c);
+    return c;
+  }
+
+  // tampil=true : banner penuh, atau tombol kecil bila pengguna memperkecilnya
+  // tampil=false: semuanya disembunyikan (sudah terpasang)
   function tampilkanBanner(tampil) {
     var b = banner();
-    if (!b) return;
-    if (tampil && (terpasang() || barusanDitutup())) tampil = false;
-    b.style.display = tampil ? 'flex' : 'none';
+    if (terpasang()) tampil = false;
+    if (!tampil) {
+      if (b) b.style.display = 'none';
+      var c0 = chip(false); if (c0) c0.style.display = 'none';
+      return;
+    }
+    if (!b) return;                 // halaman tanpa banner: tidak menampilkan apa-apa
+    if (diperkecil()) {
+      b.style.display = 'none';
+      chip(true).style.display = 'flex';
+    } else {
+      b.style.display = 'flex';
+      var c1 = chip(false); if (c1) c1.style.display = 'none';
+    }
   }
 
   // ---------- dialog petunjuk (mandiri, tidak bergantung pada halaman) ----------
@@ -114,10 +145,10 @@
       petunjuk();
     },
 
-    // Tutup banner untuk sementara (tombol ✕)
+    // Tombol ✕: perkecil jadi tombol "⚡ Instal" (tidak hilang, supaya masih bisa dipasang kapan saja)
     tutupBanner: function () {
-      try { global.localStorage.setItem(K_TUTUP, String(Date.now())); } catch (e) {}
-      tampilkanBanner(false);
+      try { global.localStorage.setItem(K_KECIL, '1'); } catch (e) {}
+      tampilkanBanner(true);
     },
 
     // Satu service worker untuk seluruh situs; bersihkan service worker Jurnal lama (scope /html/) yang
@@ -158,7 +189,7 @@
     for (var j = 0; j < tutup.length; j++) tutup[j].addEventListener('click', function () { TofInstall.tutupBanner(); });
 
     if (terpasang()) { tampilkanBanner(false); }
-    else if (iOS() && banner() && !barusanDitutup()) { banner().style.display = 'flex'; } // iOS tidak punya prompt bawaan
+    else if (iOS() && banner()) { tampilkanBanner(true); } // iOS tidak punya prompt bawaan
 
     // Dibawa dari halaman lain lewat "Buka halaman utama": langsung tunjukkan cara memasang
     if (dibukaDiBeranda() && /[?&]pasang=1\b/.test(global.location.search) && !terpasang() && !tunda) {
