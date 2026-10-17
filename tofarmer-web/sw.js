@@ -9,7 +9,7 @@
 //
 // CARA NAIKKAN VERSI: setiap kali ada perubahan besar ke app (bukan cuma isi game),
 // ubah angka di CACHE_VERSION ini, supaya cache lama dibuang bersih.
-const CACHE_VERSION = 'tofarmer-v1';
+const CACHE_VERSION = 'tofarmer-v2'; // [PWA SERAGAM] dinaikkan: satu aplikasi/SW untuk seluruh situs, cache lama dibuang
 const CACHE_NAME = `tofarmer-cache-${CACHE_VERSION}`;
 
 // Aset inti yang boleh langsung di-precache saat install (opsional, aman kalau kosong --
@@ -17,6 +17,11 @@ const CACHE_NAME = `tofarmer-cache-${CACHE_VERSION}`;
 const PRECACHE_ASSETS = [
   './',
   './desa-tof.html',
+  './manifest.webmanifest',   // [PWA SERAGAM] kerangka aplikasi utama
+  './aset/pwa-192.png',
+  './aset/pwa-512.png',
+  './js/tof-sesi.js',
+  './js/tof-install.js',
 ];
 
 self.addEventListener('install', (event) => {
@@ -80,6 +85,28 @@ async function networkFirstThenCache(request) {
     // Gagal konek (offline) -- baru pakai cache sebagai cadangan.
     const cached = await caches.match(request);
     if (cached) return cached;
+    // [PWA SERAGAM] Offline: cari salinan yang sama tanpa melihat ?query (mis. ...html?u=nama),
+    // dan untuk perpindahan halaman yang belum tersimpan tampilkan beranda daripada layar error browser.
+    const mirip = await caches.match(request, { ignoreSearch: true });
+    if (mirip) return mirip;
+    if (request.mode === 'navigate') {
+      const beranda = await caches.match('./');
+      if (beranda) return beranda;
+    }
     throw err;
   }
 }
+
+// [PWA SERAGAM] Halaman (mis. Jurnal) boleh meminta dirinya disimpan agar bisa dibuka offline sejak kunjungan pertama.
+// Dulu ditangani service worker Jurnal tersendiri (html/sw.js, scope /html/); kini satu service worker untuk semua.
+self.addEventListener('message', (event) => {
+  const d = event.data || {};
+  if (d.type === 'CACHE_PAGE' && d.url) {
+    event.waitUntil((async () => {
+      try {
+        const r = await fetch(d.url, { cache: 'reload' });
+        if (r.ok) await (await caches.open(CACHE_NAME)).put(d.url, r);
+      } catch (e) {}
+    })());
+  }
+});

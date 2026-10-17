@@ -6,9 +6,6 @@
   <title>Jurnal Olahrasa & Sasmita - Tracking Sensor Tubuh & Intuisi</title>
   <meta name="theme-color" content="#2f6f4e">
 
-  <!-- MANIFEST INLINE (untuk Instal 5 Detik) -->
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="apple-touch-icon" href="./icon-192.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
 
@@ -332,6 +329,11 @@
     .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); background: #1f2d26; color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 12px; max-width: 90vw; text-align: center; opacity: 0; pointer-events: none; transition: .25s; z-index: 100000; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   </style>
+  <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/aset/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="ToFarmer">
+  <script src="/js/tof-install.js"></script>
 </head>
 <body>
 
@@ -375,8 +377,8 @@
     <!-- PASANG APLIKASI -->
     <div class="pwa-banner" id="pwaBanner">
       <div>
-        <h4 style="font-size: 12px; color:#2f6f4e;">Pasang Aplikasi Jurnal Olahrasa</h4>
-        <span style="font-size: 10px; color:#6f7f76;">Taruh di layar depan HP supaya mudah dibuka, dan tetap bisa mencatat saat sinyal lemah</span>
+        <h4 style="font-size: 12px; color:#2f6f4e;">Pasang Aplikasi ToFarmer</h4>
+        <span style="font-size: 10px; color:#6f7f76;">Satu aplikasi untuk semua fitur ToFarmer; Jurnal tetap bisa mencatat saat sinyal lemah</span>
       </div>
       <button class="pwa-btn" id="btnDirectInstall" onclick="executeInstall()">⚡ Instal 5 Detik</button>
     </div>
@@ -2772,7 +2774,8 @@
     }
     function registerSW() {
       if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
-      navigator.serviceWorker.register('./sw.js')
+      // [PWA SERAGAM] satu service worker untuk seluruh situs (dulu ./sw.js = scope /html/ khusus Jurnal)
+      navigator.serviceWorker.register('/sw.js', { scope: '/' })
         .then(() => navigator.serviceWorker.ready)
         .then((reg) => { if (reg.active) reg.active.postMessage({ type: 'CACHE_PAGE', url: location.href.split('#')[0] }); })
         .catch((e) => console.warn('Service worker gagal didaftarkan', e));
@@ -2783,6 +2786,16 @@
       modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
     }
 
+    // ----------------------------------------------------
+    // PWA INSTALL (satu aplikasi ToFarmer untuk seluruh situs)
+    // ----------------------------------------------------
+    // [PWA SERAGAM] "Instal 5 Detik" di halaman ini memasang aplikasi ToFarmer yang SAMA dengan halaman lain
+    // (manifest + service worker bersama, lihat /js/tof-install.js), bukan aplikasi terpisah per halaman.
+    function executeInstall() {
+      TofInstall.pasang();
+    }
+
+    /* [ARSIP — TIDAK DIJALANKAN] pemasangan lama yang memakai manifest halaman ini sendiri (aplikasi terpisah per halaman)
     // ----------------------------------------------------
     // PWA INSTALL TRIGGER ("Instal 5 Detik")
     // ----------------------------------------------------
@@ -2821,7 +2834,7 @@
           okText: 'Siap'
         });
       }
-    }
+    }    */
   </script>
 </body>
 </html>

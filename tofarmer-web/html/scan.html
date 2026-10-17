@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ToFarmer - QR Centric App (Supabase Connected)</title>
   
-  <!-- MANIFEST INLINE VALID -->
-  <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22ToFarmer%20QR%22%2C%22short_name%22%3A%22ToFarmer%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f4f7f5%22%2C%22theme_color%22%3A%22%232f6f4e%22%7D">
 
   <!-- FAVICON SVG VALID -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ffffff' stroke='%232f6f4e' stroke-width='6'/><circle cx='50' cy='50' r='40' fill='none' stroke='%23c9a227' stroke-width='2'/><text x='50' y='58' font-size='28' font-weight='900' font-family='sans-serif' text-anchor='middle' fill='%232f6f4e'>TOF</text></svg>">
@@ -186,6 +184,12 @@
 
     @media(max-width:850px){ .layout{flex-direction:column;} .left{width:100%;} }
   </style>
+  <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2f6f4e">
+  <link rel="apple-touch-icon" href="/aset/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="ToFarmer">
+  <script src="/js/tof-install.js"></script>
 </head>
 <body>
 
@@ -1601,6 +1605,16 @@
     }
 
     // ----------------------------------------------------
+    // PWA INSTALL (satu aplikasi ToFarmer untuk seluruh situs)
+    // ----------------------------------------------------
+    // [PWA SERAGAM] "Instal 5 Detik" di halaman ini memasang aplikasi ToFarmer yang SAMA dengan halaman lain
+    // (manifest + service worker bersama, lihat /js/tof-install.js), bukan aplikasi terpisah per halaman.
+    function executeInstall() {
+      TofInstall.pasang();
+    }
+
+    /* [ARSIP — TIDAK DIJALANKAN] pemasangan lama yang memakai manifest halaman ini sendiri (aplikasi terpisah per halaman)
+    // ----------------------------------------------------
     // PWA INSTALL TRIGGER
     // ----------------------------------------------------
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -1625,7 +1639,7 @@
           okText: 'Siap'
         });
       }
-    }
+    }    */
   </script>
 </body>
 </html>
