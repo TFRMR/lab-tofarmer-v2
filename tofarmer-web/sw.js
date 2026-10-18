@@ -61,8 +61,32 @@ self.addEventListener('fetch', (event) => {
   // itu harus selalu langsung ke jaringan, tidak boleh lewat cache Service Worker ini.
   if (req.url.includes('supabase.co')) return;
 
+  // [PWA SERAGAM] Service worker ini kini aktif di semua halaman, jadi dibuat ringan: biarkan browser menangani sendiri
+  // video/audio/potongan (Range) dan permintaan lintas-situs selain pustaka (script/style/font) dan gambar.
+  // Menggandakan aliran respons besar ke cache memboros memori HP.
+  const dest = req.destination;
+  if (req.headers.get('range') || dest === 'video' || dest === 'audio' || dest === 'track') return;
+  const sama = new URL(req.url).origin === self.location.origin;
+  if (!sama && dest !== 'script' && dest !== 'style' && dest !== 'font' && dest !== 'image') return;
+
   event.respondWith(networkFirstThenCache(req));
 });
+
+// [PWA SERAGAM] Hanya simpan yang wajar: respons utuh (200), bukan media, tidak lebih dari ~1,5 MB.
+// Respons lintas-situs "opaque" dihitung ~7 MB per berkas terhadap kuota penyimpanan, jadi hanya pustaka
+// (script/style/font) yang boleh opaque; gambar lintas-situs hanya bila boleh dibaca (CORS).
+function bolehDisimpan(request, response) {
+  if (!response) return false;
+  const dest = request.destination;
+  const sama = new URL(request.url).origin === self.location.origin;
+  if (response.type === 'opaque') return !sama && (dest === 'script' || dest === 'style' || dest === 'font');
+  if (response.status !== 200) return false;
+  const jenis = String(response.headers.get('content-type') || '').toLowerCase();
+  if (jenis.startsWith('video/') || jenis.startsWith('audio/')) return false;
+  const ukuran = parseInt(response.headers.get('content-length') || '0', 10);
+  if (ukuran > 1500000) return false;
+  return true;
+}
 
 async function networkFirstThenCache(request) {
   try {
@@ -74,7 +98,9 @@ async function networkFirstThenCache(request) {
     if (request.url.startsWith('http://') || request.url.startsWith('https://')) {
       try {
         const cache = await caches.open(CACHE_NAME);
-        cache.put(request, fresh.clone());
+        if (bolehDisimpan(request, fresh)) {
+          cache.put(request, fresh.clone()).catch((e) => console.warn('[SW] Cache put failed:', e && e.message));
+        }
       } catch (cacheErr) {
         // Kalau cache.put() gagal, jangan hentikan flow -- tetap return fresh response
         console.warn('[SW] Cache put failed:', cacheErr.message);
