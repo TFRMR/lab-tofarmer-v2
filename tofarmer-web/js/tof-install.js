@@ -30,6 +30,21 @@
     var ua = global.navigator.userAgent || '';
     return /iphone|ipad|ipod/i.test(ua) || (global.navigator.platform === 'MacIntel' && global.navigator.maxTouchPoints > 1);
   }
+  function android() { return /Android/i.test(global.navigator.userAgent || ''); }
+  // Chrome asli di Android: ada "Chrome/" tetapi bukan Samsung/Opera/Edge/UC/Mi/Oppo/Vivo/Firefox/WebView tertanam
+  function androidBukanChrome() {
+    var ua = global.navigator.userAgent || '';
+    if (!android()) return false;
+    if (/SamsungBrowser|OPR\/|EdgA|UCBrowser|MiuiBrowser|HeyTapBrowser|VivoBrowser|Firefox|; wv\)|Version\/[\d.]+ Chrome\//.test(ua)) return true;
+    return !/Chrome\//.test(ua);
+  }
+  // Membuka halaman yang sama di Chrome; jika Chrome belum terpasang, diarahkan ke halamannya di Play Store
+  function urlChrome(tujuan) {
+    var u = new URL(tujuan, global.location.origin);
+    var cadangan = encodeURIComponent('https://play.google.com/store/apps/details?id=com.android.chrome');
+    return 'intent://' + u.host + u.pathname + u.search + u.hash +
+      '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + cadangan + ';end';
+  }
   function dibukaDiBeranda() {
     var p = global.location.pathname;
     return p === '/' || p === '/index.html';
@@ -128,12 +143,23 @@
 
   var TofInstall = {
     terpasang: terpasang,
+    navigasi: function (u) { global.location.href = u; },
+    urlChrome: urlChrome,
+    androidBukanChrome: androidBukanChrome,
     bisaOtomatis: function () { return !!tunda; },
 
     // Dipanggil tombol "Instal 5 Detik" di halaman mana pun: selalu memasang aplikasi ToFarmer yang sama.
     pasang: function () {
       if (terpasang()) {
         dialog('Sudah terpasang', 'Kamu sedang memakai aplikasi ToFarmer. 🌱', [{ teks: 'Siap', utama: true }]);
+        return;
+      }
+      if (androidBukanChrome() && !global.__tofTetapDiSini) {
+        dialog('Pasang lewat Chrome',
+          'Supaya aplikasi ToFarmer terpasang dan berjalan stabil seperti di HP lain, pasang lewat <b>Chrome</b>. ' +
+          'Halaman ini akan dibuka di Chrome; tinggal tekan <b>Instal 5 Detik</b> di sana.',
+          [{ teks: 'Buka di Chrome', utama: true, aksi: function () { TofInstall.navigasi(urlChrome('/?pasang=1')); } },
+           { teks: 'Tetap di sini', aksi: function () { global.__tofTetapDiSini = true; TofInstall.pasang(); } }]);
         return;
       }
       if (tunda) {
@@ -191,6 +217,9 @@
     var tutup = doc.querySelectorAll('[data-tof-instal-tutup]');
     for (var j = 0; j < tutup.length; j++) tutup[j].addEventListener('click', function () { TofInstall.tutupBanner(); });
 
+    if (dibukaDiBeranda() && /[?&]pasang=1\b/.test(global.location.search)) {
+      try { global.localStorage.removeItem(K_KECIL); global.localStorage.removeItem(K_TUTUP_LAMA); } catch (e) {}
+    }
     if (terpasang()) { tampilkanBanner(false); }
     else if (iOS() && banner()) { tampilkanBanner(true); } // iOS tidak punya prompt bawaan
 
