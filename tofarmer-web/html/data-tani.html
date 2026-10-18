@@ -602,7 +602,10 @@
         const { data: profile, error } = await supabaseClient
           .from("profiles")
           .select("*")
-          .eq("username", username)
+          // [USERNAME BISA BERUBAH] Username kini bisa diganti (Pengaturan Profil). Perangkat lain masih menyimpan nama lama di
+          // localStorage, dan pencocokan nama itu akan mengeluarkan pengguna yang sebenarnya valid. Yang menentukan akun adalah
+          // id/wallet; nama lokal disegarkan di bawah.
+          // .eq("username", username)
           .eq("id", walletId)
           .single();
 
@@ -621,6 +624,7 @@
         }
 
         // Login valid
+        if (profile.username !== username) localStorage.setItem("tof_login_username", profile.username); // [USERNAME BISA BERUBAH]
         currentUser = {
           id: profile.id,
           username: profile.username

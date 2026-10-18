@@ -1295,6 +1295,20 @@
     state.wallet = wallet;
     state.username = localStorage.getItem("tof_login_username") || "";
     $("namaUser").textContent = state.username ? "@" + state.username : "";
+    // [USERNAME BISA BERUBAH] Username bisa diganti dari perangkat lain (Pengaturan Profil): segarkan nama yang tampil.
+    // Tidak memengaruhi transaksi: Nabung/Tarik memakai alamat dompet, dan catatan transaksinya dibuat server dengan nama terbaru.
+    try {
+      if (typeof supabaseClient !== "undefined") {
+        Promise.resolve(supabaseClient.from("profiles").select("username").eq("id", wallet).maybeSingle()).then((r) => {
+          const u = r && r.data && r.data.username;
+          if (u && u !== state.username) {
+            state.username = u;
+            try { localStorage.setItem("tof_login_username", u); } catch (e) { /* abaikan */ }
+            $("namaUser").textContent = "@" + u;
+          }
+        }).catch(() => {});
+      }
+    } catch (e) { /* abaikan */ }
     $("alamatTeks").textContent = pendek(wallet);
     $("btnSalinAlamat").onclick = () => salin(wallet, "Alamat disalin");
     $("pesanLogin").hidden = true;
