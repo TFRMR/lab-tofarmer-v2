@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diagnosa Instal | ToFarmer</title>
+  <meta name="robots" content="noindex" />
+  <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#2f6f4e">
+  <link rel="apple-touch-icon" href="/aset/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="ToFarmer">
+  <script src="/js/tof-install.js"></script>
+  <style>
+    body { margin: 0; background: #f4f7f5; font-family: Inter, system-ui, sans-serif; color: #1c2b22; }
+    .wrap { max-width: 560px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 18px; color: #2f6f4e; margin: 4px 0 4px; }
+    p.kecil { font-size: 12px; color: #6f7f76; margin: 0 0 14px; line-height: 1.5; }
+    .kartu { background: #fff; border: 1px solid rgba(0,0,0,.06); border-radius: 16px; padding: 4px 14px; }
+    .baris { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eef2ef; font-size: 13px; }
+    .baris:last-child { border-bottom: none; }
+    .baris span:first-child { color: #6f7f76; flex-shrink: 0; }
+    .baris span:last-child { font-weight: 600; text-align: right; word-break: break-word; }
+    .ok { color: #2f6f4e; } .buruk { color: #c0392b; } .netral { color: #8a6d1a; }
+    button { width: 100%; margin-top: 14px; padding: 12px; border: none; border-radius: 12px; font-weight: 700; font-size: 13px; cursor: pointer; color: #fff; background: linear-gradient(90deg, #4caf7a, #c9a227); }
+    #hasil { width: 100%; box-sizing: border-box; margin-top: 10px; height: 110px; font-size: 11px; border-radius: 10px; border: 1px solid #cbd5e1; padding: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🔎 Diagnosa Instal Aplikasi</h1>
+    <p class="kecil">Halaman ini hanya membaca info browser di HP-mu untuk mencari penyebab aplikasi berhenti. Tidak ada data pribadi atau PIN yang ditampilkan. Buka halaman ini dari browser yang biasa kamu pakai, lalu kirim tangkapan layarnya.</p>
+    <div class="kartu" id="daftar"></div>
+    <button id="salin" type="button">Salin hasil</button>
+    <textarea id="hasil" readonly></textarea>
+  </div>
+
+  <script>
+    (function () {
+      var ua = navigator.userAgent || '';
+
+      function namaBrowser() {
+        var m;
+        if ((m = ua.match(/SamsungBrowser\/([\d.]+)/))) return { nama: 'Samsung Internet', versi: m[1], chromium: true };
+        if ((m = ua.match(/(?:OPR|OPiOS)\/([\d.]+)/))) return { nama: 'Opera', versi: m[1], chromium: true };
+        if ((m = ua.match(/EdgA?\/([\d.]+)/))) return { nama: 'Microsoft Edge', versi: m[1], chromium: true };
+        if ((m = ua.match(/UCBrowser\/([\d.]+)/))) return { nama: 'UC Browser', versi: m[1], chromium: false };
+        if ((m = ua.match(/MiuiBrowser\/([\d.]+)/))) return { nama: 'Mi Browser', versi: m[1], chromium: true };
+        if ((m = ua.match(/HeyTapBrowser\/([\d.]+)/))) return { nama: 'HeyTap/Oppo Browser', versi: m[1], chromium: true };
+        if ((m = ua.match(/VivoBrowser\/([\d.]+)/))) return { nama: 'Vivo Browser', versi: m[1], chromium: true };
+        if ((m = ua.match(/Firefox\/([\d.]+)/))) return { nama: 'Firefox', versi: m[1], chromium: false };
+        if (/; wv\)/.test(ua) || /Version\/[\d.]+ Chrome\//.test(ua)) {
+          m = ua.match(/Chrome\/([\d.]+)/);
+          return { nama: 'WebView / browser tertanam (bukan Chrome)', versi: m ? m[1] : '?', chromium: true };
+        }
+        if ((m = ua.match(/CriOS\/([\d.]+)/))) return { nama: 'Chrome iOS', versi: m[1], chromium: false };
+        if ((m = ua.match(/Chrome\/([\d.]+)/))) return { nama: 'Chrome', versi: m[1], chromium: true };
+        if (/Safari\//.test(ua)) { m = ua.match(/Version\/([\d.]+)/); return { nama: 'Safari', versi: m ? m[1] : '?', chromium: false }; }
+        return { nama: 'Tidak dikenali', versi: '', chromium: false };
+      }
+      function android() { var m = ua.match(/Android ([\d.]+)/); return m ? 'Android ' + m[1] : (/iPhone|iPad|iPod/.test(ua) ? 'iOS' : 'Lainnya'); }
+
+      var baris = [];
+      function tambah(label, nilai, kelas) { baris.push({ label: label, nilai: String(nilai), kelas: kelas || '' }); render(); }
+      function render() {
+        var d = document.getElementById('daftar');
+        d.innerHTML = '';
+        baris.forEach(function (b) {
+          var r = document.createElement('div'); r.className = 'baris';
+          var a = document.createElement('span'); a.textContent = b.label;
+          var z = document.createElement('span'); z.textContent = b.nilai; if (b.kelas) z.className = b.kelas;
+          r.appendChild(a); r.appendChild(z); d.appendChild(r);
+        });
+        document.getElementById('hasil').value = baris.map(function (b) { return b.label + ': ' + b.nilai; }).join('\n');
+      }
+
+      var br = namaBrowser();
+      tambah('Sistem', android());
+      tambah('Browser yang membuka halaman ini', br.nama + (br.versi ? ' ' + br.versi : ''), br.nama === 'Chrome' ? 'ok' : 'netral');
+      tambah('Alamat', location.origin);
+
+      var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+      tambah('Dibuka sebagai aplikasi (tanpa kolom alamat)', standalone ? 'Ya' : 'Tidak, di tab browser', standalone ? 'ok' : '');
+
+      // Manifest
+      var link = document.querySelector('link[rel="manifest"]');
+      tambah('Manifest yang dipakai halaman ini', link ? link.getAttribute('href') : 'tidak ada', link && link.getAttribute('href') === '/manifest.webmanifest' ? 'ok' : 'buruk');
+      if (link && window.fetch) {
+        fetch(link.href, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (m) {
+          tambah('Nama / id / mulai dari', (m.name || '?') + ' / ' + (m.id || '-') + ' / ' + (m.start_url || '?'), 'ok');
+          tambah('Jumlah ikon', (m.icons || []).length, (m.icons || []).length >= 2 ? 'ok' : 'buruk');
+        }).catch(function () { tambah('Manifest bisa dibaca', 'GAGAL', 'buruk'); });
+      }
+
+      // Service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          if (!regs.length) { tambah('Service worker', 'belum terdaftar', 'netral'); return; }
+          regs.forEach(function (r) {
+            var p = ''; try { p = new URL(r.scope).pathname; } catch (e) {}
+            tambah('Service worker (scope ' + p + ')', r.active ? 'aktif' : 'belum aktif', p === '/html/' ? 'buruk' : 'ok');
+          });
+        }).catch(function () { tambah('Service worker', 'tidak bisa dibaca', 'buruk'); });
+      } else {
+        tambah('Service worker', 'tidak didukung browser ini', 'buruk');
+      }
+
+      // Dukungan pasang otomatis
+      var dapatPrompt = false;
+      window.addEventListener('beforeinstallprompt', function () { dapatPrompt = true; });
+      setTimeout(function () {
+        tambah('Browser menawarkan pasang otomatis', dapatPrompt ? 'Ya' : (standalone ? 'Tidak perlu (sudah aplikasi)' : 'Tidak'), dapatPrompt ? 'ok' : 'netral');
+      }, 2500);
+
+      // Penyimpanan (hanya ada/tidak, tanpa isi)
+      try {
+        tambah('Sudah login di perangkat ini', localStorage.getItem('tof_wallet') ? 'Ya' : 'Tidak');
+        tambah('Sesi PIN (token) tersimpan', localStorage.getItem('tof_session') ? 'Ya' : 'Tidak');
+      } catch (e) { tambah('Penyimpanan browser', 'diblokir', 'buruk'); }
+
+      tambah('Cara membaca', br.nama === 'Chrome'
+        ? 'Chrome terdeteksi. Jika ikon aplikasi tetap berhenti, pastikan Chrome terpasang dan aktif di Pengaturan > Aplikasi.'
+        : 'Browser ini bukan Chrome. Ikon aplikasi yang dibuat dari browser yang sudah dicopot/dinonaktifkan akan berhenti. Coba pasang lewat Chrome.', br.nama === 'Chrome' ? 'ok' : 'netral');
+
+      document.getElementById('salin').addEventListener('click', function () {
+        var t = document.getElementById('hasil'); t.select();
+        try { navigator.clipboard.writeText(t.value); } catch (e) { document.execCommand('copy'); }
+        this.textContent = 'Tersalin ✓';
+      });
+    })();
+  </script>
+</body>
+</html>
