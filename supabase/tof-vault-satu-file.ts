@@ -206,6 +206,31 @@ export interface Repo {
   countTarikSince(profileId: string, sinceIso: string): Promise<number>;
   expireTarik(nowIso: string): Promise<void>;
   txidTarikSudahAda(txid: string, exceptId: string): Promise<boolean>;
+  // ---- Pinjam ke diri sendiri ----
+  insertPinjaman(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: PinjamanRow }>;
+  getPinjaman(id: string): Promise<PinjamanRow | null>;
+  // compare-and-set pada status (dan opsional bunga_status)
+  updatePinjamanIf(id: string, expect: string[], patch: Record<string, unknown>, bungaExpect?: string[]): Promise<PinjamanRow | null>;
+  listPinjamanByProfile(profileId: string, limit: number): Promise<PinjamanRow[]>;   // terbaru dulu
+  listPinjamanBerjalan(profileId: string): Promise<PinjamanRow[]>;                    // status diajukan/aktif/dibayar
+  listPinjamanByStatus(statuses: string[], limit: number, urut: "dibuat_asc" | "dibuat_desc" | "tempo_asc"): Promise<PinjamanRow[]>;
+  sumBungaPinjamanSince(sinceIso: string): Promise<number>; // unit TOF bunga yang dikirim otomatis sejak waktu tsb
+  // ---- Dividen ----
+  insertDividenPeriode(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: DividenPeriodeRow }>;
+  getDividenPeriode(id: string): Promise<DividenPeriodeRow | null>;
+  updateDividenPeriodeIf(id: string, expect: string[], patch: Record<string, unknown>): Promise<DividenPeriodeRow | null>;
+  getDividenTerbuka(): Promise<DividenPeriodeRow | null>;            // status pratinjau / disetujui / berjalan
+  listDividenPeriode(limit: number): Promise<DividenPeriodeRow[]>;   // terbaru dulu
+  insertDividenItems(rows: Record<string, unknown>[]): Promise<void>;
+  listDividenItem(periodeId: string): Promise<DividenItemRow[]>;
+  getDividenItem(id: string): Promise<DividenItemRow | null>;
+  updateDividenItemIf(id: string, expect: string[], patch: Record<string, unknown>): Promise<DividenItemRow | null>;
+  getPersetujuan(profileId: string): Promise<PersetujuanRow | null>;
+  upsertPersetujuan(row: PersetujuanRow): Promise<void>;
+  deletePersetujuan(profileId: string): Promise<void>;
+  listPersetujuan(): Promise<PersetujuanRow[]>;
+  listVaultIds(): Promise<string[]>;
+  listKandidatProfil(): Promise<Profile[]>;                           // id, username, pin_hash
 }
 
 export interface TarikRow {
@@ -241,6 +266,8 @@ export interface Chain {
   status(txId: string): Promise<"confirmed" | "pending" | "rejected" | "unknown">;
   // Rincian transfer TOF yang sudah terkonfirmasi (dipakai memverifikasi TOF yang dikirim anggota untuk penarikan)
   getTransfer(txId: string): Promise<{ status: "confirmed" | "pending" | "not_found"; sender?: string; receiver?: string; isTof?: boolean; amount?: bigint }>;
+  // Potongan dividen: menandatangani dengan frasa anggota (dibuka dari brankas) dan mengirim TOF ke `to`; biaya ditanggung dompet pembayar.
+  sendTofDariAnggota(a: { mnemonic: string; to: string; amount: bigint; note: string; leaseKey: string }): Promise<{ txId: string }>;
 }
 
 export interface Deps {
@@ -658,6 +685,14 @@ async function ambilPengaturan(d: Deps) {
     alamat_tarik: typeof s.alamat_tarik === "string" && d.isValidAddress(s.alamat_tarik) ? s.alamat_tarik : "", // dompet pengurus penerima TOF penarikan
     min_tarik_tof: angka(s.min_tarik_tof, 5),
     maks_tarik_tof: angka(s.maks_tarik_tof, 500),
+    // Pinjam ke diri sendiri (nonaktif sampai pengurus menyalakannya)
+    pinjam_aktif: s.pinjam_aktif === true,
+    pinjam_min_rp: angka(s.pinjam_min_rp, 10000),
+    pinjam_maks_rp: angka(s.pinjam_maks_rp, 5000000),
+    pinjam_bunga_persen: angka(s.pinjam_bunga_persen, 5),
+    // Dividen: batas minus per periode (persen, dipakai sebagai batas persetujuan anggota) dan saldo minimum peserta
+    dividen_batas_minus_bp: angka(s.dividen_batas_minus_persen, 10) * 100,
+    dividen_min_saldo_tof: angka(s.dividen_min_saldo_tof, 1),
   };
 }
 
@@ -1014,7 +1049,9 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
         pengaturan: { kurs: s.kurs, min_rp: s.min_rp, maks_rp: s.maks_rp, aktif: s.aktif, nama_penerima: s.nama_penerima, aturan: s.aturan, qris: s.qris,
           auto_kirim: s.auto_kirim, batas_harian_tof: s.batas_harian_tof, batas_transaksi_tof: s.batas_transaksi_tof, terpakai_24j: terpakai,
           mode_kirim: s.mode_kirim, alamat_penampung: s.alamat_penampung, ambang_batch_tof: s.ambang_batch_tof,
-          tarik_aktif: s.tarik_aktif, alamat_tarik: s.alamat_tarik, min_tarik_tof: s.min_tarik_tof, maks_tarik_tof: s.maks_tarik_tof },
+          tarik_aktif: s.tarik_aktif, alamat_tarik: s.alamat_tarik, min_tarik_tof: s.min_tarik_tof, maks_tarik_tof: s.maks_tarik_tof,
+          pinjam_aktif: s.pinjam_aktif, pinjam_min_rp: s.pinjam_min_rp, pinjam_maks_rp: s.pinjam_maks_rp,
+          dividen_batas_minus_persen: s.dividen_batas_minus_bp / 100, dividen_min_saldo_tof: s.dividen_min_saldo_tof },
         kas,
       });
     }
@@ -1065,6 +1102,12 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
         if (body.tarik_aktif === true && !alamatAkhir) return fail("alamat_tarik_belum_diatur");
         nilai.tarik_aktif = body.tarik_aktif === true;
       }
+      if ("pinjam_min_rp" in body) { const n = bil(body.pinjam_min_rp, 100000000); if (n === null) return fail("batas_pinjam_tidak_valid"); nilai.pinjam_min_rp = n; }
+      if ("pinjam_maks_rp" in body) { const n = bil(body.pinjam_maks_rp, 1000000000); if (n === null) return fail("batas_pinjam_tidak_valid"); nilai.pinjam_maks_rp = n; }
+      if (((nilai.pinjam_maks_rp as number | undefined) ?? cur.pinjam_maks_rp) < ((nilai.pinjam_min_rp as number | undefined) ?? cur.pinjam_min_rp)) return fail("batas_pinjam_tidak_valid");
+      if ("pinjam_aktif" in body) nilai.pinjam_aktif = body.pinjam_aktif === true;
+      if ("dividen_batas_minus_persen" in body) { const n = bil(body.dividen_batas_minus_persen, 50); if (n === null) return fail("batas_dividen_tidak_valid"); nilai.dividen_batas_minus_persen = n; }
+      if ("dividen_min_saldo_tof" in body) { const n = bil(body.dividen_min_saldo_tof, 1000000000); if (n === null) return fail("batas_dividen_tidak_valid"); nilai.dividen_min_saldo_tof = n; }
       if ("aktif" in body) nilai.aktif = body.aktif === true;
       if ("nama_penerima" in body) nilai.nama_penerima = teks(body.nama_penerima, 80);
       if ("aturan" in body) nilai.aturan = teks(body.aturan, 1500);
@@ -1215,6 +1258,10 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       let saldo;
       try { saldo = await d.chain.getAccount(a.profile.id); } catch { return fail("gagal_baca_saldo"); }
       if (!saldo.tofOptin || saldo.tof < BigInt(units)) return fail("saldo_tof_kurang", { saldo_units: Number(saldo.tof) });
+      {
+        const kunci = await jaminanTerkunci(a.profile.id, d); // TOF yang sedang menjadi jaminan pinjaman
+        if (kunci > 0n && saldo.tof - kunci < BigInt(units)) return fail("jaminan_terkunci", { bebas_units: Number(saldo.tof > kunci ? saldo.tof - kunci : 0n) });
+      }
       const rp = Number((BigInt(units) * BigInt(s.kurs)) / 1000000n);
       const ins = await d.repo.insertTarik({
         profile_id: a.profile.id, jumlah_tof_units: units, kurs_rp_per_tof: s.kurs, jumlah_rp: rp,
@@ -1328,6 +1375,734 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
     }
 
     default:
+      return await handlePinjam(action, body, d);
+  }
+}
+
+// ============================================================
+// PINJAM KE DIRI SENDIRI — pinjam uang (rupiah) dari kas dengan jaminan TOF milik sendiri
+//  - Batas pinjam = nilai TOF on-chain yang tidak sedang terkunci (dibaca SERVER dari algod), dibatasi pinjam_maks_rp.
+//  - Bunga flat (bawaan 5%) dari pokok. Bunga dibayar rupiah bersama pokok; setelah lunas, bunga dikirim balik
+//    ke dompet anggota sebagai TOF (dompet pembayar, batas harian yang sama dengan Nabung).
+//  - Jaminan = kunci lunak: dihitung di server dan dipakai menolak tarik_buat dan pinjaman baru.
+//    TOF tetap berada di dompet anggota (anggota yang memegang kuncinya), jadi ini alat komitmen diri, bukan pengaman kas.
+//  - Satu pinjaman berjalan per anggota (indeks unik di database).
+// ============================================================
+export interface PinjamanRow {
+  id: string; profile_id: string; username: string | null;
+  pokok_rp: number; bunga_persen: number; bunga_rp: number; total_rp: number;
+  kurs_rp_per_tof: number; jaminan_tof_units: number; bunga_tof_units: number; tenor_hari: number;
+  tujuan_jenis: string; tujuan_nomor: string; tujuan_nama: string; status: string;
+  dibuat: string; dicairkan_pada: string | null; dicairkan_oleh: string | null; jatuh_tempo: string | null;
+  ditagih_admin: boolean; ditagih_pada: string | null; kode_unik: number | null; total_bayar_rp: number | null;
+  ref_cair: string | null; ref_user: string | null; catatan_admin: string | null;
+  dibayar_pada: string | null; dilunasi_pada: string | null; dilunasi_oleh: string | null;
+  bunga_status: string; bunga_catatan: string | null; bunga_txid: string | null; bunga_kirim_pada: string | null;
+}
+
+const PINJAM_TENOR_OPSI = [7, 14, 30];
+const PINJAM_BERJALAN = ["diajukan", "aktif", "dibayar"];
+const HARI_MS = 24 * 3600 * 1000;
+
+function tampilPinjam(r: PinjamanRow) {
+  return {
+    id: r.id, profile_id: r.profile_id, username: r.username, pokok_rp: r.pokok_rp, bunga_persen: r.bunga_persen, bunga_rp: r.bunga_rp,
+    total_rp: r.total_rp, jaminan_tof_units: r.jaminan_tof_units, bunga_tof_units: r.bunga_tof_units, tenor_hari: r.tenor_hari,
+    tujuan_jenis: r.tujuan_jenis, tujuan_nomor: r.tujuan_nomor, tujuan_nama: r.tujuan_nama, status: r.status, dibuat: r.dibuat,
+    jatuh_tempo: r.jatuh_tempo, ditagih_admin: r.ditagih_admin, ditagih_pada: r.ditagih_pada, kode_unik: r.kode_unik,
+    total_bayar_rp: r.total_bayar_rp, ref_cair: r.ref_cair, ref_user: r.ref_user, catatan_admin: r.catatan_admin,
+    bunga_status: r.bunga_status, bunga_catatan: r.bunga_catatan, bunga_txid: r.bunga_txid,
+  };
+}
+
+// Total TOF (unit terkecil) yang sedang menjadi jaminan pinjaman berjalan
+async function jaminanTerkunci(profileId: string, d: Deps): Promise<bigint> {
+  const rows = await d.repo.listPinjamanBerjalan(profileId);
+  return rows.reduce((n, r) => n + BigInt(r.jaminan_tof_units), 0n);
+}
+
+function catatanBunga(username: string, address: string): string {
+  return (username || "-") + " # " + address + " # bunga pinjaman";
+}
+
+// Mengirim bunga (TOF) ke dompet anggota setelah pinjaman lunas. Pengamannya sama dengan Nabung:
+// klaim atomik (bunga_status 'mengirim'), lease Algorand dari ID pinjaman, batas per transaksi dan harian, pra-cek opt-in dan saldo.
+async function kirimBungaPinjam(row: PinjamanRow, oleh: string, d: Deps): Promise<Payout> {
+  const chain = d.chain;
+  const s = await ambilPengaturan(d);
+  const tunda = async (alasan: string): Promise<Payout> => {
+    await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_catatan: alasan }, ["belum"]);
+    return { status: "tertunda", alasan };
+  };
+  const kembali = async (alasan: string) => {
+    await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "belum", bunga_catatan: alasan, bunga_txid: null }, ["mengirim"]);
+  };
+  const units = BigInt(row.bunga_tof_units);
+  if (units <= 0n) {
+    await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "terkirim", bunga_catatan: "Bunga kurang dari 1 unit TOF, tidak ada yang dikirim." }, ["belum"]);
+    return { status: "selesai" };
+  }
+  if (!s.auto_kirim) return tunda("Kirim otomatis nonaktif. Kirim bunga manual dari Dompet.");
+  if (!chain || !chain.payoutAddress()) return tunda("Dompet pembayar belum diatur (secret PAYOUT_MNEMONIC).");
+  if (units > BigInt(s.batas_transaksi_tof) * 1000000n) return tunda("Melebihi batas per transaksi kirim otomatis. Kirim manual.");
+  const since = iso(d.now() - 24 * 3600 * 1000);
+  const terpakai = BigInt(await d.repo.sumTofAutoSince(since)) + BigInt(await d.repo.sumBungaPinjamanSince(since));
+  if (terpakai + units > BigInt(s.batas_harian_tof) * 1000000n) return tunda("Melebihi batas harian kirim otomatis. Kirim manual atau tunggu.");
+
+  const klaim = await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "mengirim", bunga_catatan: null, bunga_kirim_pada: iso(d.now()) }, ["belum"]);
+  if (!klaim) return { status: "tertunda", alasan: "Bunga sudah dikirim atau sedang diproses." };
+
+  try {
+    const [kas, tujuan] = await Promise.all([chain.getAccount(chain.payoutAddress()!), chain.getAccount(row.profile_id)]);
+    const gagal = !tujuan.tofOptin ? "Penerima belum opt-in TOF. Minta anggota opt-in, lalu kirim ulang."
+      : kas.tof < units ? "Saldo TOF dompet pembayar kurang. Isi ulang dompet pembayar."
+      : kas.algo - kas.minBal < FEE_UNITS ? "Saldo ALGO dompet pembayar kurang untuk biaya. Isi ulang dompet pembayar."
+      : "";
+    if (gagal) { await kembali(gagal); return { status: "tertunda", alasan: gagal }; }
+  } catch (e) {
+    console.error("pra-cek bunga pinjaman:", e);
+    await kembali("Gagal membaca jaringan Algorand. Coba kirim ulang.");
+    return { status: "tertunda", alasan: "Gagal membaca jaringan Algorand. Coba kirim ulang." };
+  }
+
+  let txId = "";
+  try {
+    ({ txId } = await chain!.sendTof({ to: row.profile_id, amount: units, note: catatanBunga(row.username || "", row.profile_id), leaseKey: "pinjam-bunga:" + row.id }));
+  } catch (e) {
+    const kind = (e as { kind?: string })?.kind;
+    const pesan = String((e as { message?: string })?.message || "").slice(0, 150);
+    await d.repo.logTopup(row.id, row.profile_id, "pinjam_bunga_gagal", oleh, { kind, pesan });
+    if (kind === "ditolak") { await kembali("Ditolak jaringan: " + pesan); return { status: "tertunda", alasan: "Ditolak jaringan: " + pesan }; }
+    const cat = "Hasil pengiriman bunga tidak pasti. Periksa dompet pembayar di explorer sebelum mengirim ulang.";
+    await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_catatan: cat }, ["mengirim"]);
+    return { status: "mengirim", alasan: cat };
+  }
+
+  await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_txid: txId }, ["mengirim"]);
+  await d.repo.logTopup(row.id, row.profile_id, "pinjam_bunga_kirim", oleh, { txid: txId, tof_units: row.bunga_tof_units });
+  const hasil = await tungguKonfirmasi(txId, d);
+  if (hasil === "confirmed") {
+    await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "terkirim" }, ["mengirim"]);
+    return { status: "selesai", txid: txId };
+  }
+  if (hasil === "rejected") { await kembali("Transaksi ditolak jaringan setelah dikirim. Coba kirim ulang."); return { status: "tertunda", alasan: "Transaksi ditolak jaringan setelah dikirim." }; }
+  return { status: "mengirim", txid: txId, alasan: "Menunggu konfirmasi jaringan. Tekan Kirim bunga lagi beberapa saat lagi untuk memeriksa." };
+}
+
+async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
+  switch (action) {
+    // ---- publik: info untuk menampilkan kartu Pinjam ----
+    case "pinjam_info": {
+      const s = await ambilPengaturan(d);
+      return ok({
+        aktif: s.pinjam_aktif && !!s.qris, bunga_persen: s.pinjam_bunga_persen, tenor_opsi: PINJAM_TENOR_OPSI,
+        min_rp: s.pinjam_min_rp, maks_rp: s.pinjam_maks_rp, kurs: s.kurs, qris: s.qris, nama_penerima: s.nama_penerima,
+      });
+    }
+
+    // ---- tanpa PIN: jaminan terkunci + tagihan jatuh tempo (tanpa data rekening tujuan) ----
+    case "pinjam_tagihan": {
+      const r = await resolveProfile(body, d, true);
+      if ("error" in r) return fail(r.error);
+      const rows = await d.repo.listPinjamanBerjalan(r.profile.id);
+      const terkunci = rows.reduce((n, x) => n + BigInt(x.jaminan_tof_units), 0n);
+      const sekarang = d.now();
+      const p = rows.find((x) => x.status === "aktif" && !!x.jatuh_tempo && (Date.parse(x.jatuh_tempo) <= sekarang || x.ditagih_admin));
+      let tagihan: Res | null = null;
+      if (p && p.jatuh_tempo) {
+        const jt = Date.parse(p.jatuh_tempo);
+        tagihan = {
+          id: p.id, pokok_rp: p.pokok_rp, bunga_rp: p.bunga_rp, total_rp: p.total_rp, jatuh_tempo: p.jatuh_tempo,
+          terlambat_hari: Math.max(0, Math.floor((sekarang - jt) / HARI_MS)), sisa_hari: Math.ceil((jt - sekarang) / HARI_MS),
+          ditagih_pengurus: p.ditagih_admin,
+        };
+      }
+      return ok({ terkunci_units: Number(terkunci), tagihan });
+    }
+
+    case "pinjam_buat": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      // Pinjaman mencairkan uang tanpa tanda tangan dompet, jadi PIN yang hash-nya masih terbaca publik tidak boleh dipakai.
+      if (pinPublikAktif(a.profile, await d.repo.getPin(a.profile.id))) return fail("pin_publik");
+      if (await samaDenganHashPublik(a.profile, body.pin)) return fail("pin_publik");
+      const s = await ambilPengaturan(d);
+      if (!(s.pinjam_aktif && s.qris)) return fail("pinjam_nonaktif");
+      const pokok = Number(body.pokok_rp);
+      if (!Number.isInteger(pokok) || pokok < s.pinjam_min_rp) return fail("pinjam_min_rp", { min_rp: s.pinjam_min_rp });
+      const tenor = Number(body.tenor_hari);
+      if (!PINJAM_TENOR_OPSI.includes(tenor)) return fail("tenor_tidak_valid");
+      const tujuan = cekTujuanTarik(body);
+      if ("error" in tujuan) return fail(tujuan.error);
+      const sekarang = d.now();
+      const riwayat = await d.repo.listPinjamanByProfile(a.profile.id, 50);
+      if (riwayat.some((r) => PINJAM_BERJALAN.includes(r.status))) return fail("masih_ada_pinjaman");
+      if (riwayat.filter((r) => Date.parse(r.dibuat) >= sekarang - 24 * 3600 * 1000).length >= 5) return fail("terlalu_sering");
+      if (!d.chain) return fail("chain_tidak_tersedia");
+      let saldo;
+      try { saldo = await d.chain.getAccount(a.profile.id); } catch { return fail("gagal_baca_saldo"); }
+      const kurs = BigInt(s.kurs);
+      const bebas = saldo.tofOptin ? saldo.tof : 0n; // tidak ada pinjaman berjalan (sudah diperiksa), jadi tidak ada TOF terkunci
+      let maks = Number((bebas * kurs) / 1000000n);
+      if (maks > s.pinjam_maks_rp) maks = s.pinjam_maks_rp;
+      if (pokok > maks) return fail("pinjam_melebihi_batas", { maks_rp: maks });
+      const bungaRp = Math.floor((pokok * s.pinjam_bunga_persen) / 100);
+      const jaminan = (BigInt(pokok) * 1000000n + kurs - 1n) / kurs; // dibulatkan ke atas
+      const bungaTof = (BigInt(bungaRp) * 1000000n) / kurs;
+      const ins = await d.repo.insertPinjaman({
+        profile_id: a.profile.id, username: a.profile.username, pokok_rp: pokok, bunga_persen: s.pinjam_bunga_persen, bunga_rp: bungaRp,
+        total_rp: pokok + bungaRp, kurs_rp_per_tof: s.kurs, jaminan_tof_units: Number(jaminan), bunga_tof_units: Number(bungaTof), tenor_hari: tenor,
+        tujuan_jenis: tujuan.jenis, tujuan_nomor: tujuan.nomor, tujuan_nama: tujuan.nama, status: "diajukan", dibuat: iso(sekarang),
+      });
+      if (ins.result === "duplicate") return fail("masih_ada_pinjaman");
+      if (ins.result !== "ok" || !ins.row) return fail("server_error");
+      await d.repo.logTopup(ins.row.id, a.profile.id, "pinjam_buat", a.profile.id, { pokok_rp: pokok, bunga_rp: bungaRp, tenor_hari: tenor });
+      return ok({ pinjam: tampilPinjam(ins.row) });
+    }
+
+    case "pinjam_saya": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const daftar = (await d.repo.listPinjamanByProfile(a.profile.id, 20)).reverse(); // terlama → terbaru (client membaliknya)
+      return ok({ daftar: daftar.map(tampilPinjam) });
+    }
+
+    case "pinjam_batal": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row || row.profile_id !== a.profile.id) return fail("pinjam_tidak_ditemukan");
+      const baru = await d.repo.updatePinjamanIf(row.id, ["diajukan"], { status: "dibatalkan" });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, a.profile.id, "pinjam_batal", a.profile.id, {});
+      return ok({ pinjam: tampilPinjam(baru) });
+    }
+
+    // Anggota menekan "Lunasi": server memberi total bayar dengan kode unik (idempoten: kode yang sama dipakai ulang)
+    case "pinjam_bayar": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row || row.profile_id !== a.profile.id) return fail("pinjam_tidak_ditemukan");
+      if (row.status !== "aktif" && row.status !== "dibayar") return fail("status_tidak_cocok");
+      if (row.total_bayar_rp) return ok({ pinjam: tampilPinjam(row) });
+      // hindari total yang sama dengan tagihan Nabung aktif atau pelunasan pinjaman lain (supaya mutasi tidak ambigu)
+      const dipakai = new Set<number>();
+      for (const t of await d.repo.listTopupByStatus(["menunggu", "dibayar"], 1000)) dipakai.add(Number(t.total_rp));
+      for (const p of await d.repo.listPinjamanByStatus(["aktif", "dibayar"], 1000, "dibuat_asc")) if (p.total_bayar_rp) dipakai.add(Number(p.total_bayar_rp));
+      for (const kode of acakKode()) {
+        const total = row.total_rp + kode;
+        if (dipakai.has(total)) continue;
+        const baru = await d.repo.updatePinjamanIf(row.id, ["aktif"], { kode_unik: kode, total_bayar_rp: total });
+        if (!baru) return fail("status_tidak_cocok");
+        await d.repo.logTopup(row.id, a.profile.id, "pinjam_bayar", a.profile.id, { total_bayar_rp: total });
+        return ok({ pinjam: tampilPinjam(baru) });
+      }
+      return fail("kode_unik_habis");
+    }
+
+    case "pinjam_dibayar": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row || row.profile_id !== a.profile.id) return fail("pinjam_tidak_ditemukan");
+      if (!row.total_bayar_rp) return fail("status_tidak_cocok");
+      const baru = await d.repo.updatePinjamanIf(row.id, ["aktif"], { status: "dibayar", ref_user: teks(body.ref, 60) || null, dibayar_pada: iso(d.now()) });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, a.profile.id, "pinjam_dibayar", a.profile.id, { ref: baru.ref_user });
+      return ok({ pinjam: tampilPinjam(baru) });
+    }
+
+    // ---------------- pengurus ----------------
+    case "admin_pinjam_daftar": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const t = body.tampil;
+      let rows: PinjamanRow[];
+      if (t === "diajukan") rows = await d.repo.listPinjamanByStatus(["diajukan"], 100, "dibuat_asc");
+      else if (t === "dibayar") rows = await d.repo.listPinjamanByStatus(["dibayar"], 100, "dibuat_asc");
+      else if (t === "aktif") rows = await d.repo.listPinjamanByStatus(["aktif"], 100, "tempo_asc");
+      else rows = (await d.repo.listPinjamanByStatus(["lunas", "ditolak", "dibatalkan"], 100, "dibuat_desc")).reverse();
+      const nama = await namaProfil(d, rows.map((r) => r.profile_id));
+      return ok({ daftar: rows.map((r) => ({ ...tampilPinjam(r), username: nama.get(r.profile_id) || r.username || "", bunga_tof_units: r.bunga_tof_units })) });
+    }
+
+    // Pengurus sudah mengirim uang pokok ke tujuan anggota → pinjaman mulai berjalan, jatuh tempo dihitung dari sekarang
+    case "admin_pinjam_cairkan": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const ref = teks(body.ref, 100);
+      if (!ref) return fail("ref_wajib");
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row) return fail("pinjam_tidak_ditemukan");
+      if (row.profile_id === a.profile.id && (d.adminIds || []).length > 1) return fail("tidak_boleh_proses_sendiri");
+      if (row.status !== "diajukan") return fail("status_tidak_cocok");
+      // kunci lunak: pastikan TOF jaminan masih ada di dompet anggota saat uang dikirim
+      if (!d.chain) return fail("chain_tidak_tersedia");
+      try {
+        const ac = await d.chain.getAccount(row.profile_id);
+        if (!ac.tofOptin || ac.tof < BigInt(row.jaminan_tof_units)) return fail("jaminan_kurang", { jaminan_units: row.jaminan_tof_units, saldo_units: Number(ac.tof) });
+      } catch { return fail("gagal_baca_saldo"); }
+      const sekarang = d.now();
+      const baru = await d.repo.updatePinjamanIf(row.id, ["diajukan"], {
+        status: "aktif", dicairkan_pada: iso(sekarang), dicairkan_oleh: a.profile.id, ref_cair: ref,
+        jatuh_tempo: iso(sekarang + row.tenor_hari * HARI_MS),
+      });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "pinjam_cairkan", a.profile.id, { pokok_rp: row.pokok_rp, ref });
+      return ok({ pinjam: tampilPinjam(baru) });
+    }
+
+    case "admin_pinjam_tolak": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const alasan = teks(body.alasan, 200);
+      if (!alasan) return fail("alasan_wajib");
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row) return fail("pinjam_tidak_ditemukan");
+      const baru = await d.repo.updatePinjamanIf(row.id, ["diajukan"], { status: "ditolak", catatan_admin: alasan });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "pinjam_tolak", a.profile.id, { alasan });
+      return ok({ pinjam: tampilPinjam(baru) });
+    }
+
+    // Nyalakan/matikan tagihan pop-up lebih awal dari jatuh tempo
+    case "admin_pinjam_tagih": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row) return fail("pinjam_tidak_ditemukan");
+      const tagih = body.tagih !== false;
+      const baru = await d.repo.updatePinjamanIf(row.id, ["aktif"], { ditagih_admin: tagih, ditagih_pada: tagih ? iso(d.now()) : null });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, tagih ? "pinjam_tagih" : "pinjam_henti_tagih", a.profile.id, {});
+      return ok({ pinjam: tampilPinjam(baru) });
+    }
+
+    // Anggota bilang sudah bayar tetapi mutasi belum ada → kembali ke 'aktif'
+    case "admin_pinjam_belum_masuk": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const alasan = teks(body.alasan, 200);
+      if (!alasan) return fail("alasan_wajib");
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row) return fail("pinjam_tidak_ditemukan");
+      const baru = await d.repo.updatePinjamanIf(row.id, ["dibayar"], { status: "aktif", catatan_admin: alasan });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "pinjam_belum_masuk", a.profile.id, { alasan });
+      return ok({ pinjam: tampilPinjam(baru) });
+    }
+
+    // Uang pelunasan sudah masuk kas → lunas, jaminan dibuka, bunga dikirim balik sebagai TOF
+    case "admin_pinjam_lunas": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row) return fail("pinjam_tidak_ditemukan");
+      if (row.profile_id === a.profile.id && (d.adminIds || []).length > 1) return fail("tidak_boleh_proses_sendiri");
+      const baru = await d.repo.updatePinjamanIf(row.id, ["aktif", "dibayar"], { status: "lunas", dilunasi_pada: iso(d.now()), dilunasi_oleh: a.profile.id });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "pinjam_lunas", a.profile.id, { total_rp: row.total_rp });
+      const payout = await kirimBungaPinjam(baru, a.profile.id, d);
+      return ok({ pinjam: tampilPinjam((await d.repo.getPinjaman(row.id)) || baru), payout });
+    }
+
+    // Kirim ulang / periksa bunga TOF setelah lunas. yakin:true mengembalikan status 'mengirim' tanpa ID transaksi (setelah memeriksa explorer).
+    case "admin_pinjam_kirim_bunga": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row) return fail("pinjam_tidak_ditemukan");
+      if (row.status !== "lunas") return fail("status_tidak_cocok");
+      if (row.bunga_status === "terkirim") return fail("bunga_sudah_terkirim");
+      if (row.bunga_status === "mengirim") {
+        if (!row.bunga_txid) {
+          if (body.yakin !== true) return fail("konfirmasi_wajib");
+          await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "belum", bunga_catatan: "Dikembalikan manual oleh pengurus untuk dikirim ulang." }, ["mengirim"]);
+          await d.repo.logTopup(row.id, row.profile_id, "pinjam_bunga_reset", a.profile.id, {});
+        } else {
+          if (!d.chain) return fail("kas_belum_diatur");
+          const st = await d.chain.status(row.bunga_txid);
+          if (st === "confirmed") await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "terkirim" }, ["mengirim"]);
+          else if (st === "rejected") await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "belum", bunga_txid: null, bunga_catatan: "Transaksi ditolak jaringan. Coba kirim ulang." }, ["mengirim"]);
+          const terbaru = (await d.repo.getPinjaman(row.id)) || row;
+          return ok({ pinjam: tampilPinjam(terbaru), payout: { status: st === "confirmed" ? "selesai" : st === "rejected" ? "tertunda" : "mengirim", txid: row.bunga_txid } });
+        }
+      }
+      const segar = (await d.repo.getPinjaman(row.id)) || row;
+      const payout = await kirimBungaPinjam(segar, a.profile.id, d);
+      return ok({ pinjam: tampilPinjam((await d.repo.getPinjaman(row.id)) || segar), payout });
+    }
+
+    default:
+      return await handleDividen(action, body, d);
+  }
+}
+
+// ============================================================
+// DIVIDEN — pembagian (positif) atau koreksi (negatif) berdasarkan persentase dari saldo TOF tiap peserta.
+//  - Pengurus mengetik persentase → server membuat PRATINJAU (daftar peserta + jumlah) yang disimpan sebagai foto saldo.
+//    Peserta bisa dicentang/dikeluarkan; yang tidak memenuhi syarat otomatis dilewati beserta alasannya.
+//  - Syarat peserta: frasa dititip, sudah menyetujui (dividen_setuju), PIN sudah diamankan, sudah opt-in TOF, saldo >= minimum.
+//  - Positif: TOF dikirim dari dompet pembayar. Negatif: TOF ditarik OTOMATIS dari dompet peserta (frasa dibuka dari brankas,
+//    ditandatangani di server, biaya jaringan ditanggung dompet pembayar lewat transaksi berkelompok), dikirim ke dompet pembayar.
+//  - Pagar negatif: batas persen per periode (pengaturan), persetujuan anggota memuat batasnya, TOF jaminan pinjaman diambil
+//    paling akhir (hanya TOF bebas yang dipotong), butuh persetujuan pengurus kedua bila pengurus lebih dari satu.
+//  - Satu periode terbuka pada satu waktu, satu label hanya sekali (indeks unik), tiap transaksi memakai lease dari ID item.
+// ============================================================
+export interface DividenPeriodeRow {
+  id: string; label: string; persen_bp: number; status: string; dibuat: string; dibuat_oleh: string | null;
+  disetujui_oleh: string | null; disetujui_pada: string | null; selesai_pada: string | null; catatan: string | null;
+}
+export interface DividenItemRow {
+  id: string; periode_id: string; profile_id: string; username: string | null; saldo_units: number; terkunci_units: number;
+  arah: string; jumlah_units: number; kurang_units: number; ikut: boolean; status: string; alasan: string | null;
+  txid: string | null; kirim_pada: string | null;
+}
+export interface PersetujuanRow { profile_id: string; batas_minus_bp: number; versi: number; disetujui_pada: string }
+
+const DIVIDEN_MAKS_PER_PANGGILAN = 5;
+const VERSI_PERSETUJUAN = 1;
+
+function catatanDividen(username: string, address: string, label: string): string {
+  return (username || "-") + " # " + address + " # dividen " + label;
+}
+
+function tampilPeriodeDividen(p: DividenPeriodeRow) {
+  return {
+    id: p.id, label: p.label, persen_bp: p.persen_bp, status: p.status, dibuat: p.dibuat,
+    dibuat_oleh: p.dibuat_oleh, disetujui_oleh: p.disetujui_oleh, disetujui_pada: p.disetujui_pada, selesai_pada: p.selesai_pada,
+  };
+}
+
+function tampilItemDividen(i: DividenItemRow) {
+  return {
+    id: i.id, profile_id: i.profile_id, username: i.username || "", saldo_units: i.saldo_units, terkunci_units: i.terkunci_units,
+    arah: i.arah, jumlah_units: i.jumlah_units, kurang_units: i.kurang_units, ikut: i.ikut, status: i.status,
+    alasan: i.alasan, txid: i.txid,
+  };
+}
+
+function ringkasDividen(items: DividenItemRow[]) {
+  const aktif = items.filter((i) => i.ikut && i.status !== "dilewati");
+  const jml = (rs: DividenItemRow[]) => rs.reduce((n, r) => n + Number(r.jumlah_units), 0);
+  const hitung = (st: string) => items.filter((i) => i.ikut && i.status === st).length;
+  return {
+    peserta: aktif.length, dilewati: items.filter((i) => i.status === "dilewati").length,
+    total_bagi_units: jml(aktif.filter((i) => i.arah === "bagi")), total_potong_units: jml(aktif.filter((i) => i.arah === "potong")),
+    menunggu: hitung("menunggu"), mengirim: hitung("mengirim"), selesai: hitung("selesai"), gagal: hitung("gagal"),
+  };
+}
+
+async function tampilDividenLengkap(p: DividenPeriodeRow, d: Deps) {
+  const items = await d.repo.listDividenItem(p.id);
+  return { periode: tampilPeriodeDividen(p), ringkas: ringkasDividen(items), items: items.map(tampilItemDividen) };
+}
+
+// Menandatangani dan mengirim penarikan dari dompet peserta untuk satu item 'potong' atau pengiriman untuk item 'bagi'
+async function prosesDividenItem(it: DividenItemRow, p: DividenPeriodeRow, oleh: string, d: Deps): Promise<void> {
+  const chain = d.chain;
+  const klaim = await d.repo.updateDividenItemIf(it.id, ["menunggu"], { status: "mengirim", kirim_pada: iso(d.now()), alasan: null });
+  if (!klaim) return;
+  const gagal = async (alasan: string) => {
+    await d.repo.updateDividenItemIf(it.id, ["mengirim"], { status: "gagal", alasan });
+    await d.repo.logTopup(it.id, it.profile_id, "dividen_gagal", oleh, { alasan, arah: it.arah });
+  };
+  if (!chain || !chain.payoutAddress()) return await gagal("Dompet pembayar belum diatur.");
+  const kasAddr = chain.payoutAddress()!;
+  const units = BigInt(it.jumlah_units);
+  const catatan = catatanDividen(it.username || "", it.profile_id, p.label);
+  let txId = "";
+
+  try {
+    if (it.arah === "bagi") {
+      const [kas, tujuan] = await Promise.all([chain.getAccount(kasAddr), chain.getAccount(it.profile_id)]);
+      if (!tujuan.tofOptin) return await gagal("Penerima belum opt-in TOF.");
+      if (kas.tof < units) return await gagal("Saldo TOF dompet pembayar kurang.");
+      if (kas.algo - kas.minBal < FEE_UNITS) return await gagal("Saldo ALGO dompet pembayar kurang untuk biaya.");
+    } else {
+      const [kas, anggota, kunci] = await Promise.all([chain.getAccount(kasAddr), chain.getAccount(it.profile_id), jaminanTerkunci(it.profile_id, d)]);
+      if (!anggota.tofOptin || anggota.tof - kunci < units) return await gagal("Saldo TOF bebas peserta berubah dan kurang dari jumlah potongan. Ulangi setelah dicek.");
+      if (kas.algo - kas.minBal < FEE_UNITS * 2n) return await gagal("Saldo ALGO dompet pembayar kurang untuk biaya (biaya potongan ditanggung dompet pembayar).");
+    }
+  } catch (e) {
+    console.error("pra-cek dividen:", e);
+    return await gagal("Gagal membaca jaringan Algorand. Ulangi.");
+  }
+
+  try {
+    if (it.arah === "bagi") {
+      ({ txId } = await chain.sendTof({ to: it.profile_id, amount: units, note: catatan, leaseKey: "dividen:" + it.id }));
+    } else {
+      const vault = await d.repo.getVault(it.profile_id);
+      if (!vault) return await gagal("Frasa tidak ada di brankas.");
+      let mnemonic = "";
+      try { mnemonic = await decryptMnemonic(vault.ciphertext, vault.iv, d.masterKey, it.profile_id); }
+      catch (e) { console.error("dekripsi dividen:", e); return await gagal("Gagal membuka brankas frasa."); }
+      let alamat = "";
+      try { alamat = d.addressFromMnemonic(mnemonic); } catch { return await gagal("Frasa di brankas tidak valid."); }
+      if (alamat !== it.profile_id) return await gagal("Frasa di brankas tidak cocok dengan alamat dompet.");
+      ({ txId } = await chain.sendTofDariAnggota({ mnemonic, to: kasAddr, amount: units, note: catatan, leaseKey: "dividen:" + it.id }));
+    }
+  } catch (e) {
+    const kind = (e as { kind?: string })?.kind;
+    const pesan = String((e as { message?: string })?.message || "").slice(0, 150);
+    await d.repo.logTopup(it.id, it.profile_id, "dividen_kirim_gagal", oleh, { kind, pesan });
+    if (kind === "ditolak") return await gagal("Ditolak jaringan: " + pesan);
+    await d.repo.updateDividenItemIf(it.id, ["mengirim"], { alasan: "Hasil pengiriman tidak pasti. Periksa explorer sebelum mengulang." });
+    return;
+  }
+
+  await d.repo.updateDividenItemIf(it.id, ["mengirim"], { txid: txId });
+  await d.repo.logTopup(it.id, it.profile_id, "dividen_kirim", oleh, { txid: txId, arah: it.arah, units: it.jumlah_units });
+  const hasil = await tungguKonfirmasi(txId, d);
+  if (hasil === "confirmed") await d.repo.updateDividenItemIf(it.id, ["mengirim"], { status: "selesai" });
+  else if (hasil === "rejected") await gagal("Transaksi ditolak jaringan setelah dikirim.");
+  // pending: tetap 'mengirim' dengan txid; pengurus memeriksa lewat admin_dividen_ulangi
+}
+
+async function selesaikanPeriodeBilaTuntas(p: DividenPeriodeRow, d: Deps): Promise<boolean> {
+  const items = await d.repo.listDividenItem(p.id);
+  const sisa = items.filter((i) => i.ikut && ["menunggu", "mengirim", "gagal"].includes(i.status));
+  if (sisa.length > 0) return false;
+  await d.repo.updateDividenPeriodeIf(p.id, ["berjalan"], { status: "selesai", selesai_pada: iso(d.now()) });
+  return true;
+}
+
+async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> {
+  switch (action) {
+    // ---- anggota (tanpa PIN): status syarat dividen ----
+    case "dividen_status": {
+      const r = await resolveProfile(body, d, true);
+      if ("error" in r) return fail(r.error);
+      const s = await ambilPengaturan(d);
+      const [vault, pin, sj] = await Promise.all([d.repo.getVault(r.profile.id), d.repo.getPin(r.profile.id), d.repo.getPersetujuan(r.profile.id)]);
+      return ok({
+        has_vault: !!vault, pin_publik: pinPublikAktif(r.profile, pin), setuju: !!sj,
+        batas_minus_persen: sj ? sj.batas_minus_bp / 100 : 0, batas_sekarang_persen: s.dividen_batas_minus_bp / 100,
+        perlu_perbarui: !!sj && sj.batas_minus_bp < s.dividen_batas_minus_bp,
+      });
+    }
+
+    // ---- anggota (PIN): menyetujui dividen termasuk penarikan otomatis saat minus ----
+    case "dividen_setuju": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      if (pinPublikAktif(a.profile, await d.repo.getPin(a.profile.id))) return fail("pin_publik");
+      if (await samaDenganHashPublik(a.profile, body.pin)) return fail("pin_publik");
+      if (!(await d.repo.getVault(a.profile.id))) return fail("no_vault");
+      const s = await ambilPengaturan(d);
+      await d.repo.upsertPersetujuan({ profile_id: a.profile.id, batas_minus_bp: s.dividen_batas_minus_bp, versi: VERSI_PERSETUJUAN, disetujui_pada: iso(d.now()) });
+      await d.repo.log(a.profile.id, "dividen_setuju", true);
+      return ok({ batas_minus_persen: s.dividen_batas_minus_bp / 100 });
+    }
+
+    case "dividen_cabut": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      await d.repo.deletePersetujuan(a.profile.id);
+      await d.repo.log(a.profile.id, "dividen_cabut", true);
+      return ok();
+    }
+
+    // ---------------- pengurus ----------------
+    case "admin_dividen_lihat": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const s = await ambilPengaturan(d);
+      const terbuka = body.periode_id && typeof body.periode_id === "string" ? await d.repo.getDividenPeriode(body.periode_id) : await d.repo.getDividenTerbuka();
+      let kas: Record<string, unknown> | null = null;
+      if (d.chain && d.chain.payoutAddress()) {
+        try { const ac = await d.chain.getAccount(d.chain.payoutAddress()!); kas = { alamat: d.chain.payoutAddress(), tof_units: Number(ac.tof), algo_units: Number(ac.algo - ac.minBal) }; }
+        catch { kas = { galat: true }; }
+      }
+      const riwayat = (await d.repo.listDividenPeriode(12)).map(tampilPeriodeDividen);
+      return ok({
+        pengaturan: { batas_minus_persen: s.dividen_batas_minus_bp / 100, min_saldo_tof: s.dividen_min_saldo_tof },
+        kas, riwayat, ...(terbuka ? await tampilDividenLengkap(terbuka, d) : { periode: null }),
+      });
+    }
+
+    // Membuat pratinjau: menghitung semua kandidat dari saldo on-chain SAAT INI dan menyimpannya sebagai foto saldo
+    case "admin_dividen_pratinjau": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const s = await ambilPengaturan(d);
+      const label = teks(body.label, 40);
+      if (!label) return fail("label_wajib");
+      const bp = Number(body.persen_bp);
+      if (!Number.isInteger(bp) || bp === 0 || Math.abs(bp) > 10000) return fail("persen_tidak_valid");
+      if (bp < 0 && -bp > s.dividen_batas_minus_bp) return fail("minus_melebihi_batas", { batas_persen: s.dividen_batas_minus_bp / 100 });
+      if (!d.chain || !d.chain.payoutAddress()) return fail("kas_belum_diatur");
+      if (await d.repo.getDividenTerbuka()) return fail("periode_masih_terbuka");
+      const arah = bp > 0 ? "bagi" : "potong";
+      const abs = BigInt(Math.abs(bp));
+
+      const kasAlamat = new Set<string>([d.chain.payoutAddress()!, s.alamat_penampung, s.alamat_tarik].filter(Boolean));
+      const kandidat = (await d.repo.listKandidatProfil()).filter((p) => !kasAlamat.has(p.id));
+      const [vaultIds, setuju] = await Promise.all([d.repo.listVaultIds(), d.repo.listPersetujuan()]);
+      const punyaVault = new Set(vaultIds);
+      const sj = new Map(setuju.map((x) => [x.profile_id, x]));
+
+      type Hasil = { p: Profile; alasan: string };
+      const awal: Hasil[] = [];
+      for (const p of kandidat) {
+        let alasan = "";
+        if (!punyaVault.has(p.id)) alasan = "Belum menitip frasa";
+        else if (!sj.get(p.id)) alasan = "Belum menyetujui dividen";
+        else if (arah === "potong" && sj.get(p.id)!.batas_minus_bp < -bp) alasan = "Persetujuan hanya sampai minus " + sj.get(p.id)!.batas_minus_bp / 100 + "%";
+        else if (pinPublikAktif(p, await d.repo.getPin(p.id))) alasan = "PIN belum diamankan";
+        awal.push({ p, alasan });
+      }
+
+      const barisItem: Record<string, unknown>[] = [];
+      const layak = awal.filter((x) => !x.alasan);
+      for (let i = 0; i < layak.length; i += 10) {
+        await Promise.all(layak.slice(i, i + 10).map(async (x) => {
+          try {
+            const ac = await d.chain!.getAccount(x.p.id);
+            if (!ac.tofOptin) { x.alasan = "Belum opt-in TOF"; return; }
+            if (ac.tof < BigInt(s.dividen_min_saldo_tof) * 1000000n) { x.alasan = "Saldo di bawah minimum (" + s.dividen_min_saldo_tof + " TOF)"; return; }
+            const kunci = await jaminanTerkunci(x.p.id, d);
+            let jumlah = (ac.tof * abs) / 10000n;
+            let kurang = 0n;
+            if (arah === "potong") {
+              const bebas = ac.tof > kunci ? ac.tof - kunci : 0n;
+              if (jumlah > bebas) { kurang = jumlah - bebas; jumlah = bebas; }
+            }
+            if (jumlah <= 0n) { x.alasan = arah === "bagi" ? "Dividen kurang dari 1 unit TOF" : "Tidak ada TOF bebas untuk dipotong"; return; }
+            barisItem.push({ profile_id: x.p.id, username: x.p.username, saldo_units: Number(ac.tof), terkunci_units: Number(kunci), arah, jumlah_units: Number(jumlah), kurang_units: Number(kurang), ikut: true, status: "menunggu", alasan: null });
+          } catch (e) {
+            console.error("saldo dividen:", e);
+            x.alasan = "Gagal membaca saldo dari jaringan";
+          }
+        }));
+      }
+      for (const x of awal.filter((y) => y.alasan)) {
+        barisItem.push({ profile_id: x.p.id, username: x.p.username, saldo_units: 0, terkunci_units: 0, arah, jumlah_units: 0, kurang_units: 0, ikut: false, status: "dilewati", alasan: x.alasan });
+      }
+      if (barisItem.filter((x) => x.status === "menunggu").length === 0) return fail("tidak_ada_peserta", { dilewati: barisItem.length });
+
+      const ins = await d.repo.insertDividenPeriode({ label, persen_bp: bp, status: "pratinjau", dibuat: iso(d.now()), dibuat_oleh: a.profile.id });
+      if (ins.result === "duplicate") return fail("label_sudah_dipakai");
+      if (ins.result !== "ok" || !ins.row) return fail("server_error");
+      await d.repo.insertDividenItems(barisItem.map((x) => ({ ...x, periode_id: ins.row!.id })));
+      await d.repo.logTopup(ins.row.id, a.profile.id, "dividen_pratinjau", a.profile.id, { label, persen_bp: bp });
+      return ok(await tampilDividenLengkap(ins.row, d));
+    }
+
+    // Mencentang / mengeluarkan peserta (hanya saat pratinjau)
+    case "admin_dividen_pilih": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const p = typeof body.periode_id === "string" ? await d.repo.getDividenPeriode(body.periode_id) : null;
+      if (!p) return fail("periode_tidak_ditemukan");
+      if (p.status !== "pratinjau") return fail("status_tidak_cocok");
+      const ids = Array.isArray(body.ids) ? (body.ids as unknown[]).filter((x): x is string => typeof x === "string").slice(0, 1000) : [];
+      let diubah = 0;
+      for (const id of ids) {
+        const it = await d.repo.getDividenItem(id);
+        if (!it || it.periode_id !== p.id) continue;
+        if (await d.repo.updateDividenItemIf(id, ["menunggu"], { ikut: body.ikut === true })) diubah++;
+      }
+      return ok({ diubah, ...(await tampilDividenLengkap(p, d)) });
+    }
+
+    // Persetujuan pengurus. Bila pengurus lebih dari satu, penyetuju harus orang lain dari pembuat pratinjau.
+    case "admin_dividen_setujui": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const p = typeof body.periode_id === "string" ? await d.repo.getDividenPeriode(body.periode_id) : null;
+      if (!p) return fail("periode_tidak_ditemukan");
+      if (p.status !== "pratinjau") return fail("status_tidak_cocok");
+      if ((d.adminIds || []).length > 1 && p.dibuat_oleh === a.profile.id) return fail("perlu_pengurus_lain");
+      const ringkas = ringkasDividen(await d.repo.listDividenItem(p.id));
+      if (ringkas.peserta === 0) return fail("tidak_ada_peserta");
+      if (!d.chain || !d.chain.payoutAddress()) return fail("kas_belum_diatur");
+      try {
+        const kas = await d.chain.getAccount(d.chain.payoutAddress()!);
+        const fee = FEE_UNITS * (p.persen_bp > 0 ? 1n : 2n) * BigInt(ringkas.peserta);
+        if (p.persen_bp > 0 && kas.tof < BigInt(ringkas.total_bagi_units)) return fail("kas_tof_kurang", { butuh_units: ringkas.total_bagi_units, ada_units: Number(kas.tof) });
+        if (kas.algo - kas.minBal < fee) return fail("kas_algo_kurang", { butuh_units: Number(fee), ada_units: Number(kas.algo - kas.minBal) });
+      } catch { return fail("gagal_baca_saldo"); }
+      const baru = await d.repo.updateDividenPeriodeIf(p.id, ["pratinjau"], { status: "disetujui", disetujui_oleh: a.profile.id, disetujui_pada: iso(d.now()) });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(p.id, a.profile.id, "dividen_setujui", a.profile.id, { label: p.label, ringkas });
+      return ok(await tampilDividenLengkap(baru, d));
+    }
+
+    case "admin_dividen_batal": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const p = typeof body.periode_id === "string" ? await d.repo.getDividenPeriode(body.periode_id) : null;
+      if (!p) return fail("periode_tidak_ditemukan");
+      if (p.status === "berjalan") return fail("sudah_berjalan");
+      const baru = await d.repo.updateDividenPeriodeIf(p.id, ["pratinjau", "disetujui"], { status: "dibatalkan" });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(p.id, a.profile.id, "dividen_batal", a.profile.id, { label: p.label });
+      return ok({ periode: tampilPeriodeDividen(baru) });
+    }
+
+    // Eksekusi bertahap (maks 5 item per panggilan, supaya tidak melewati batas waktu). Layar pengurus memanggil berulang sampai sisa 0.
+    case "admin_dividen_jalankan": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      if (body.yakin !== true) return fail("konfirmasi_wajib");
+      let p = typeof body.periode_id === "string" ? await d.repo.getDividenPeriode(body.periode_id) : null;
+      if (!p) return fail("periode_tidak_ditemukan");
+      const aktif = await d.repo.updateDividenPeriodeIf(p.id, ["disetujui", "berjalan"], { status: "berjalan" });
+      if (!aktif) return fail("status_tidak_cocok");
+      p = aktif;
+      if (!d.chain) return fail("kas_belum_diatur");
+      const antre = (await d.repo.listDividenItem(p.id)).filter((i) => i.ikut && i.status === "menunggu").slice(0, DIVIDEN_MAKS_PER_PANGGILAN);
+      for (const it of antre) await prosesDividenItem(it, p, a.profile.id, d);
+      const selesai = await selesaikanPeriodeBilaTuntas(p, d);
+      const terbaru = (await d.repo.getDividenPeriode(p.id)) || p;
+      return ok({ diproses: antre.length, periode_selesai: selesai, ...(await tampilDividenLengkap(terbaru, d)) });
+    }
+
+    // Item gagal → antre lagi; item 'mengirim' dengan txid → periksa jaringan; tanpa txid → butuh yakin:true setelah cek explorer
+    case "admin_dividen_ulangi": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const it = typeof body.item_id === "string" ? await d.repo.getDividenItem(body.item_id) : null;
+      if (!it) return fail("item_tidak_ditemukan");
+      const p = await d.repo.getDividenPeriode(it.periode_id);
+      if (!p || !["berjalan", "disetujui"].includes(p.status)) return fail("status_tidak_cocok");
+      if (it.status === "gagal") {
+        await d.repo.updateDividenItemIf(it.id, ["gagal"], { status: "menunggu", alasan: null });
+      } else if (it.status === "mengirim") {
+        if (it.txid) {
+          if (!d.chain) return fail("kas_belum_diatur");
+          const st = await d.chain.status(it.txid);
+          if (st === "confirmed") await d.repo.updateDividenItemIf(it.id, ["mengirim"], { status: "selesai", alasan: null });
+          else if (st === "rejected") await d.repo.updateDividenItemIf(it.id, ["mengirim"], { status: "gagal", alasan: "Transaksi ditolak jaringan." });
+        } else {
+          if (body.yakin !== true) return fail("konfirmasi_wajib");
+          await d.repo.updateDividenItemIf(it.id, ["mengirim"], { status: "menunggu", alasan: null });
+        }
+      } else return fail("status_tidak_cocok");
+      await d.repo.logTopup(it.id, it.profile_id, "dividen_ulangi", a.profile.id, {});
+      await selesaikanPeriodeBilaTuntas(p, d);
+      return ok(await tampilDividenLengkap((await d.repo.getDividenPeriode(p.id)) || p, d));
+    }
+
+    // Melewati item gagal tanpa mengulang (mis. anggota sudah keluar)
+    case "admin_dividen_lewati": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const it = typeof body.item_id === "string" ? await d.repo.getDividenItem(body.item_id) : null;
+      if (!it) return fail("item_tidak_ditemukan");
+      const p = await d.repo.getDividenPeriode(it.periode_id);
+      if (!p || !["berjalan", "disetujui"].includes(p.status)) return fail("status_tidak_cocok");
+      const baru = await d.repo.updateDividenItemIf(it.id, ["gagal"], { status: "dilewati", ikut: false, alasan: "Dilewati pengurus: " + (it.alasan || "") });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(it.id, it.profile_id, "dividen_lewati", a.profile.id, {});
+      await selesaikanPeriodeBilaTuntas(p, d);
+      return ok(await tampilDividenLengkap((await d.repo.getDividenPeriode(p.id)) || p, d));
+    }
+
+    default:
       return fail("unknown_action");
   }
 }
@@ -1397,6 +2172,8 @@ function itemBatch(r: TopupRow, nomor: number, nama: Map<string, string>) {
 // ============================================================
 // Supabase Edge Function: tof-vault
 // Actions: check | login | set_pin | register | deposit | reveal | ganti_pin | vault_status | update_profil
+//          + topup_* | tarik_* | admin_* (Nabung & Tarik) + pinjam_* | admin_pinjam_* (Pinjam ke diri sendiri)
+//          + dividen_* | admin_dividen_* (Dividen positif/negatif)
 // Semua balasan HTTP 200 dengan JSON { ok: boolean, ... }.
 //
 // Secrets yang harus di-set (supabase secrets set ...):
@@ -1572,6 +2349,91 @@ const repo: Repo = {
     return (count ?? 0) > 0;
   },
 
+  // ---------------- Pinjam ke diri sendiri ----------------
+  async insertPinjaman(row) {
+    const { data, error } = await db.from("pinjaman").insert(row).select().single();
+    if (!error) return { result: "ok", row: data as PinjamanRow };
+    if (error.code === "23505") return { result: "duplicate" }; // sudah ada pinjaman berjalan
+    console.error("insertPinjaman:", error.message);
+    return { result: "error" };
+  },
+  async getPinjaman(id) {
+    return must(await db.from("pinjaman").select("*").eq("id", id).maybeSingle()) as PinjamanRow | null;
+  },
+  async updatePinjamanIf(id, expect, patch, bungaExpect) {
+    const q = db.from("pinjaman").update(patch).eq("id", id).in("status", expect);
+    const q2 = bungaExpect ? q.in("bunga_status", bungaExpect) : q;
+    return must(await q2.select().maybeSingle()) as PinjamanRow | null;
+  },
+  async listPinjamanByProfile(profileId, limit) {
+    return must(await db.from("pinjaman").select("*").eq("profile_id", profileId).order("dibuat", { ascending: false }).limit(limit)) as PinjamanRow[];
+  },
+  async listPinjamanBerjalan(profileId) {
+    return must(await db.from("pinjaman").select("*").eq("profile_id", profileId).in("status", ["diajukan", "aktif", "dibayar"])) as PinjamanRow[];
+  },
+  async listPinjamanByStatus(statuses, limit, urut) {
+    const q = db.from("pinjaman").select("*").in("status", statuses);
+    const o = urut === "tempo_asc" ? q.order("jatuh_tempo", { ascending: true }) : q.order("dibuat", { ascending: urut === "dibuat_asc" });
+    return must(await o.limit(limit)) as PinjamanRow[];
+  },
+  async sumBungaPinjamanSince(sinceIso) {
+    const rows = must(await db.from("pinjaman").select("bunga_tof_units")
+      .in("bunga_status", ["mengirim", "terkirim"]).gte("bunga_kirim_pada", sinceIso)) as { bunga_tof_units: number }[];
+    return (rows || []).reduce((n, r) => n + Number(r.bunga_tof_units), 0);
+  },
+
+  // ---------------- Dividen ----------------
+  async insertDividenPeriode(row) {
+    const { data, error } = await db.from("dividen_periode").insert(row).select().single();
+    if (!error) return { result: "ok", row: data as DividenPeriodeRow };
+    if (error.code === "23505") return { result: "duplicate" }; // label sudah dipakai
+    console.error("insertDividenPeriode:", error.message);
+    return { result: "error" };
+  },
+  async getDividenPeriode(id) {
+    return must(await db.from("dividen_periode").select("*").eq("id", id).maybeSingle()) as DividenPeriodeRow | null;
+  },
+  async updateDividenPeriodeIf(id, expect, patch) {
+    return must(await db.from("dividen_periode").update(patch).eq("id", id).in("status", expect).select().maybeSingle()) as DividenPeriodeRow | null;
+  },
+  async getDividenTerbuka() {
+    return must(await db.from("dividen_periode").select("*").in("status", ["pratinjau", "disetujui", "berjalan"]).limit(1).maybeSingle()) as DividenPeriodeRow | null;
+  },
+  async listDividenPeriode(limit) {
+    return must(await db.from("dividen_periode").select("*").order("dibuat", { ascending: false }).limit(limit)) as DividenPeriodeRow[];
+  },
+  async insertDividenItems(rows) {
+    for (let i = 0; i < rows.length; i += 200) must(await db.from("dividen_item").insert(rows.slice(i, i + 200)));
+  },
+  async listDividenItem(periodeId) {
+    return must(await db.from("dividen_item").select("*").eq("periode_id", periodeId).order("username", { ascending: true }).limit(1000)) as DividenItemRow[];
+  },
+  async getDividenItem(id) {
+    return must(await db.from("dividen_item").select("*").eq("id", id).maybeSingle()) as DividenItemRow | null;
+  },
+  async updateDividenItemIf(id, expect, patch) {
+    return must(await db.from("dividen_item").update(patch).eq("id", id).in("status", expect).select().maybeSingle()) as DividenItemRow | null;
+  },
+  async getPersetujuan(profileId) {
+    return must(await db.from("dividen_persetujuan").select("*").eq("profile_id", profileId).maybeSingle()) as PersetujuanRow | null;
+  },
+  async upsertPersetujuan(row) {
+    must(await db.from("dividen_persetujuan").upsert(row, { onConflict: "profile_id" }));
+  },
+  async deletePersetujuan(profileId) {
+    must(await db.from("dividen_persetujuan").delete().eq("profile_id", profileId));
+  },
+  async listPersetujuan() {
+    return must(await db.from("dividen_persetujuan").select("*").limit(1000)) as PersetujuanRow[];
+  },
+  async listVaultIds() {
+    const rows = must(await db.from("wallet_vault").select("profile_id").limit(1000)) as { profile_id: string }[];
+    return (rows || []).map((r) => r.profile_id);
+  },
+  async listKandidatProfil() {
+    return must(await db.from("profiles").select("id,username,pin_hash").limit(1000)) as Profile[];
+  },
+
   // ---------------- Penampungan & batch ----------------
   async listDitampung() {
     return must(await db.from("topup_requests").select("*").eq("status", "ditampung").order("dibuat", { ascending: true }).limit(2000)) as TopupRow[];
@@ -1663,6 +2525,42 @@ const chain: Chain = {
       res = await fetch(ALGOD + "/v2/transactions", { method: "POST", headers: { "Content-Type": "application/x-binary" }, body: blob });
     } catch (e) {
       throw { kind: "ambigu", message: "jaringan putus saat mengirim" }; // mungkin sudah diterima node
+    }
+    if (res.ok) return { txId };
+    const teks = await res.text().catch(() => "");
+    throw { kind: res.status >= 400 && res.status < 500 ? "ditolak" : "ambigu", message: teks || "HTTP " + res.status };
+  },
+  // Potongan dividen: TOF dari dompet anggota ke dompet pembayar. Dua transaksi sekelompok (atomik): TOF anggota (biaya 0) +
+  // pembayaran 0 dari dompet pembayar dengan biaya 2x, sehingga anggota tidak perlu memegang ALGO.
+  // Kunci anggota hanya ada di memori selama panggilan ini; frasa tidak pernah dicatat atau dikirim ke mana pun.
+  async sendTofDariAnggota({ mnemonic, to, amount, note, leaseKey }) {
+    if (!payout) throw { kind: "ditolak", message: "dompet pembayar belum diatur" };
+    let blob: Uint8Array, txId: string;
+    try {
+      const anggota = algosdk.mnemonicToSecretKey(mnemonic);
+      const p = await algodGet("/v2/transactions/params");
+      const sp = { flatFee: true, firstRound: p["last-round"], lastRound: p["last-round"] + 1000, genesisID: p["genesis-id"], genesisHash: p["genesis-hash"] };
+      const lease = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("topup:" + leaseKey)));
+      const tx1 = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        from: String(anggota.addr), to, amount, assetIndex: TOF_ASSET_ID, note: new TextEncoder().encode(note), suggestedParams: { ...sp, fee: 0 },
+      });
+      tx1.addLease(lease); // lease dipasang SEBELUM group ID dihitung
+      const tx2 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({ from: payout.addr, to: payout.addr, amount: 0, suggestedParams: { ...sp, fee: 2000 } });
+      algosdk.assignGroupID([tx1, tx2]);
+      const b1 = tx1.signTxn(anggota.sk);
+      const b2 = tx2.signTxn(payout.sk);
+      blob = new Uint8Array(b1.length + b2.length);
+      blob.set(b1, 0);
+      blob.set(b2, b1.length);
+      txId = tx1.txID();
+    } catch (e) {
+      throw { kind: "ditolak", message: "gagal menyiapkan transaksi: " + (e instanceof Error ? e.message : String(e)) }; // belum dikirim
+    }
+    let res: Response;
+    try {
+      res = await fetch(ALGOD + "/v2/transactions", { method: "POST", headers: { "Content-Type": "application/x-binary" }, body: blob });
+    } catch (_e) {
+      throw { kind: "ambigu", message: "jaringan putus saat mengirim" };
     }
     if (res.ok) return { txId };
     const teks = await res.text().catch(() => "");
