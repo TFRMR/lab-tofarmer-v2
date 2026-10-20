@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jurnal Manifestasi Tesla 3-6-9 | Menoreh Agritech</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,800;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background:
+            radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+            radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+            linear-gradient(135deg, #070e0a 0%, #0d1e14 50%, #050b07 100%);
+        min-height: 100vh;
+        overflow-x: hidden;
+        color: #e2e8f0;
+        position: relative;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+        pointer-events: none;
+        animation: fog 14s ease-in-out infinite;
+        z-index: 1;
+    }
+
+    @keyframes fog {
+        0% { transform: translateX(-3%); }
+        50% { transform: translateX(3%); }
+        100% { transform: translateX(-3%); }
+    }
+
+    .container {
+        width: 100%;
+        max-width: 1150px;
+        margin: auto;
+        padding: 22px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .hero {
+        position: relative;
+        padding: 40px 20px 50px;
+        text-align: center;
+    }
+
+    .hero::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: 10px;
+        transform: translateX(-50%);
+        width: 180px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(234, 179, 8, 0.4), transparent);
+    }
+
+    .logo-wrap {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 18px;
+    }
+
+    .logo {
+        width: 95px;
+        height: 95px;
+        border-radius: 50%;
+        padding: 5px;
+        background: rgba(20, 38, 27, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(74, 222, 128, 0.25);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        transition: .5s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+    }
+
+    .logo:hover {
+        transform: rotate(8deg) scale(1.04);
+        border-color: #eab308;
+        box-shadow: 0 0 20px rgba(234, 179, 8, 0.3);
+    }
+
+    .hero h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 3rem;
+        font-weight: 800;
+        letter-spacing: -1px;
+        line-height: 1.2;
+        background: linear-gradient(135deg, #fef08a 0%, #4ade80 50%, #22c55e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .hero p {
+        margin-top: 18px;
+        font-size: .98rem;
+        line-height: 1.8;
+        color: #84a98c;
+        max-width: 650px;
+        margin-inline: auto;
+    }
+
+    .top-nav {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+
+    .top-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 24px;
+        border-radius: 999px;
+        text-decoration: none;
+        font-size: .83rem;
+        font-weight: 700;
+        letter-spacing: .5px;
+        background: rgba(20, 36, 26, 0.5);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        color: #a7f3d0;
+        border: 1px solid rgba(74, 222, 128, 0.2);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+
+    .top-btn:hover {
+        transform: translateY(-3px);
+        background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+        color: #050b07;
+        border-color: #4ade80;
+        box-shadow: 0 10px 25px rgba(34, 197, 94, 0.3);
+    }
+
+    .top-btn.active-tab {
+        background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+        color: #050b07;
+        border-color: #fef08a;
+    }
+
+    .main-box {
+        background: rgba(14, 28, 19, 0.45);
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 34px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 30px;
+    }
+
+    .main-box::before {
+        content: "";
+        position: absolute;
+        top: -120px;
+        right: -120px;
+        width: 240px;
+        height: 240px;
+        background: radial-gradient(circle, rgba(234, 179, 8, 0.08), transparent 70%);
+    }
+
+    .section {
+        margin-bottom: 45px;
+    }
+
+    .section-title {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+    }
+
+    .section-title span {
+        font-size: .82rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: #fde047;
+    }
+
+    .line {
+        flex: 1;
+        min-width: 30px;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(234, 179, 8, 0.3), rgba(34, 197, 94, 0.05), transparent);
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 18px;
+    }
+
+    .card-btn {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        padding: 32px 20px;
+        border-radius: 24px;
+        background: rgba(18, 35, 24, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        border-left: 2px solid rgba(34, 197, 94, 0.15);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        transition: all .35s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        min-height: 160px;
+        cursor: pointer;
+    }
+
+    .card-btn:hover {
+        transform: translateY(-6px);
+        background: rgba(22, 46, 31, 0.6);
+        border-color: rgba(74, 222, 128, 0.25);
+        border-left-color: #4ade80;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(234, 179, 8, 0.05);
+    }
+
+    .card-btn:active {
+        transform: scale(.97);
+    }
+
+    .card-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #eab308, transparent);
+        opacity: 0;
+        transition: .3s;
+    }
+
+    .card-btn:hover::before {
+        opacity: 1;
+    }
+
+    .icon {
+        font-size: 2.6rem;
+        margin-bottom: 16px;
+        transition: .4s;
+        filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));
+    }
+
+    .card-btn:hover .icon {
+        transform: translateY(-5px) scale(1.1);
+    }
+
+    .label {
+        font-size: .83rem;
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #f8fafc;
+        text-align: center;
+        transition: color .2s;
+    }
+
+    .card-btn:hover .label {
+        color: #fde047;
+    }
+
+    .desc {
+        margin-top: 10px;
+        font-size: .75rem;
+        line-height: 1.6;
+        text-align: center;
+        color: #94a3b8;
+    }
+
+    .soon {
+        opacity: .45;
+        border-style: dashed;
+        background: rgba(255, 255, 255, 0.01);
+        border-color: rgba(255, 255, 255, 0.08);
+        cursor: not-allowed;
+    }
+
+    .soon:hover {
+        transform: none;
+        box-shadow: none;
+        background: rgba(255, 255, 255, 0.01);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .soon:hover .label { color: #f8fafc; }
+    .soon:hover .icon { transform: none; }
+
+    /* Custom Input and Form Styling matching Menoreh theme */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #a7f3d0;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 14px 18px;
+        border-radius: 14px;
+        background: rgba(7, 14, 10, 0.6);
+        border: 1px solid rgba(74, 222, 128, 0.2);
+        color: #f8fafc;
+        font-family: inherit;
+        font-size: 0.95rem;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #eab308;
+        box-shadow: 0 0 15px rgba(234, 179, 8, 0.2);
+        background: rgba(13, 30, 20, 0.8);
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 90px;
+    }
+
+    .btn-submit {
+        background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+        color: #050b07;
+        font-weight: 800;
+        padding: 14px 28px;
+        border-radius: 12px;
+        border: 1px solid #4ade80;
+        cursor: pointer;
+        transition: all 0.3s;
+        width: 100%;
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+        background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+    }
+
+    /* Modals & Overlays */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(5, 11, 7, 0.85);
+        backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        padding: 20px;
+    }
+
+    .modal-overlay.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .modal-card {
+        background: rgba(14, 28, 19, 0.95);
+        border: 1px solid rgba(74, 222, 128, 0.3);
+        border-radius: 28px;
+        padding: 32px;
+        max-width: 450px;
+        width: 100%;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+        position: relative;
+    }
+
+    .modal-card h2 {
+        font-family: 'Playfair Display', serif;
+        color: #fde047;
+        margin-bottom: 12px;
+    }
+
+    .close-modal {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+
+    .error-msg {
+        color: #f87171;
+        font-size: 0.8rem;
+        margin-top: 8px;
+        display: none;
+    }
+
+    .error-msg.show {
+        display: block;
+    }
+
+    /* Day Tracker Grid */
+    .tracker-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .day-box {
+        aspect-ratio: 1;
+        background: rgba(18, 35, 24, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .day-box.done {
+        background: rgba(34, 197, 94, 0.25);
+        border-color: #22c55e;
+        color: #4ade80;
+    }
+
+    .day-box.active {
+        border-color: #eab308;
+        box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+    }
+
+    .footer {
+        padding: 50px 20px 60px;
+        text-align: center;
+    }
+
+    .footer-text {
+        font-size: .78rem;
+        color: #475569;
+        line-height: 1.9;
+        letter-spacing: .5px;
+    }
+
+    /* Breathing Circle Animation */
+    .breath-circle {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(74, 222, 128, 0.4) 0%, rgba(13, 30, 20, 0.8) 70%);
+        border: 2px solid #22c55e;
+        margin: 20px auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #fef08a;
+        box-shadow: 0 0 30px rgba(34, 197, 94, 0.2);
+        transition: transform 4s ease-in-out;
+    }
+
+    .breath-circle.expand {
+        transform: scale(1.4);
+        box-shadow: 0 0 50px rgba(234, 179, 8, 0.5);
+    }
+
+    @media(max-width: 768px) {
+        .container { padding: 12px; }
+        .hero h1 { font-size: 2rem; }
+        .main-box { padding: 20px 14px; border-radius: 22px; }
+        .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .tracker-grid { grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .day-box { font-size: 0.7rem; border-radius: 8px; }
+    }
+
+    @media(max-width: 480px) {
+        .grid { grid-template-columns: 1fr; }
+    }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="hero">
+        <div class="logo-wrap">
+            <div class="logo">⚡</div>
+        </div>
+        <h1>Nikola Tesla 3-6-9</h1>
+        <p>Aplikasi Manifestasi Kelimpahan & Pemrograman Pikiran Bawah Sadar Suasana Hutan Menoreh</p>
+        
+        <div class="top-nav">
+            <button class="top-btn active-tab" onclick="switchView('journal')">📖 Jurnal 3-6-9</button>
+            <button class="top-btn" onclick="switchView('tracker')">📅 Tracker 21 Hari</button>
+            <button class="top-btn" onclick="switchView('action')">🌱 Inspired Action</button>
+            <button class="top-btn" id="login-nav-btn" onclick="openLoginModal()">👤 Login ToFarmer</button>
+        </div>
+    </div>
+
+    <!-- MAIN PANEL -->
+    <div class="main-box">
+        <!-- VIEW 1: JURNAL 369 -->
+        <div id="view-journal">
+            <div class="section-title">
+                <span>1. Tentukan Afirmasi & Target</span>
+                <div class="line"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="target-amount">Target Keuangan Anda:</label>
+                <select id="target-amount" class="form-control" onchange="updateStatementDefault()">
+                    <option value="1000000000">Rp 1.000.000.000 (1 Milyar Pertama)</option>
+                    <option value="100000000">Rp 100.000.000 (100 Juta Pertama)</option>
+                    <option value="25000000">Rp 25.000.000 (25 Juta Pertama)</option>
+                    <option value="10000000">Rp 10.000.000 (10 Juta Pertama)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="manifest-statement">Kalimat Afirmasi (Bawa Emosi & Rasa Syukur):</label>
+                <textarea id="manifest-statement" class="form-control" rows="2"></textarea>
+            </div>
+
+            <!-- BREATHING RELAXATION -->
+            <div class="section-title" style="margin-top:30px;">
+                <span>2. Latihan Pernapasan Gelombang Teta</span>
+                <div class="line"></div>
+            </div>
+            <div style="text-align:center;">
+                <p style="font-size:0.85rem; color:#84a98c;">Tarik napas kedamaian, lepaskan keraguan sebelum menulis.</p>
+                <div class="breath-circle" id="breathCircle">Tarik Napas</div>
+                <button class="top-btn" onclick="startBreathing()" style="margin-top:10px;">🫁 Mulai Pernapasan 1 Menit</button>
+            </div>
+
+            <!-- 3-6-9 INPUTS -->
+            <div class="section-title" style="margin-top:40px;">
+                <span>3. Sesi Penulisan Harian</span>
+                <div class="line"></div>
+            </div>
+
+            <div class="grid">
+                <!-- PAGI 3x -->
+                <div class="card-btn" onclick="openWriteModal('pagi', 3)">
+                    <div class="icon">🌅</div>
+                    <div class="label">Pagi Hari (3x)</div>
+                    <div class="desc">Saat Gelombang Teta (Bangun Tidur)</div>
+                    <div style="margin-top:10px; font-size:0.75rem; color:#4ade80;" id="status-pagi">Belum Diisi</div>
+                </div>
+
+                <!-- SIANG 6x -->
+                <div class="card-btn" onclick="openWriteModal('siang', 6)">
+                    <div class="icon">☀️</div>
+                    <div class="label">Siang Hari (6x)</div>
+                    <div class="desc">Reset Fokus Energi Pertengahan Hari</div>
+                    <div style="margin-top:10px; font-size:0.75rem; color:#4ade80;" id="status-siang">Belum Diisi</div>
+                </div>
+
+                <!-- MALAM 9x -->
+                <div class="card-btn" onclick="openWriteModal('malam', 9)">
+                    <div class="icon">🌙</div>
+                    <div class="label">Malam Hari (9x)</div>
+                    <div class="desc">Kunci ke Alam Bawah Sadar Sebelum Tidur</div>
+                    <div style="margin-top:10px; font-size:0.75rem; color:#4ade80;" id="status-malam">Belum Diisi</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: TRACKER 21 HARI -->
+        <div id="view-tracker" style="display:none;">
+            <div class="section-title">
+                <span>Tantangan Konsistensi 21 Hari</span>
+                <div class="line"></div>
+            </div>
+            <p style="font-size:0.85rem; color:#84a98c; margin-bottom:15px;">
+                Klik pada hari yang telah Anda selesaikan seluruh sesi (Pagi, Siang, Malam).
+            </p>
+            <div class="tracker-grid" id="trackerGrid"></div>
+        </div>
+
+        <!-- VIEW 3: INSPIRED ACTION LOG -->
+        <div id="view-action" style="display:none;">
+            <div class="section-title">
+                <span>Catatan Inspired Action (Tindakan Terinspirasi)</span>
+                <div class="line"></div>
+            </div>
+            <p style="font-size:0.85rem; color:#84a98c; margin-bottom:15px;">
+                Metode Tesla membuka pintu intuisi. Catat ide spontan atau langkah nyata yang Anda ambil hari ini!
+            </p>
+            
+            <div class="form-group">
+                <textarea id="action-note" class="form-control" placeholder="Tuliskan ide atau dorongan bertindak yang muncul hari ini..."></textarea>
+            </div>
+            <button class="btn-submit" onclick="saveInspiredAction()">Simpan Action Log</button>
+
+            <div id="action-list" style="margin-top:25px;"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="footer-text">
+            ToFarmer Agritech &amp; Menoreh Consciousness Subsystem<br>
+            &copy; 2026 Menoreh Forest Systems. All Rights Reserved.
+        </div>
+    </div>
+</div>
+
+<!-- MODAL LOGIN TOFARMER -->
+<div class="modal-overlay" id="login-modal">
+    <div class="modal-card">
+        <button class="close-modal" onclick="closeModal('login-modal')">&times;</button>
+        <h2>Login ToFarmer</h2>
+        <p style="font-size:0.8rem; color:#84a98c; margin-bottom:18px;">Masuk dengan akun ToFarmer untuk menyimpan progress ke Supabase Cloud.</p>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label>Username ToFarmer</label>
+                <input type="text" id="input-username" class="form-control" required placeholder="username">
+            </div>
+
+            <div class="form-group" id="wallet-group">
+                <label>Wallet ID (Diperlukan untuk buat PIN)</label>
+                <input type="text" id="input-wallet" class="form-control" placeholder="Wallet ID / Alamat Algorand">
+            </div>
+
+            <div class="form-group">
+                <label>PIN 6-Digit</label>
+                <input type="password" id="input-pin" class="form-control" maxlength="6" required placeholder="123456">
+            </div>
+
+            <div class="error-msg" id="error-message"></div>
+
+            <button type="submit" class="btn-submit" id="login-btn" style="margin-top:15px;">Masuk Ladang</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL PENULISAN 369 -->
+<div class="modal-overlay" id="write-modal">
+    <div class="modal-card" style="max-width:550px;">
+        <button class="close-modal" onclick="closeModal('write-modal')">&times;</button>
+        <h2 id="modal-session-title">Sesi Penulisan</h2>
+        <p style="font-size:0.8rem; color:#84a98c; margin-bottom:15px;" id="modal-session-desc">Ketikkan kalimat afirmasi Anda secara berulang sambil meyakininya.</p>
+        
+        <div id="write-inputs-container"></div>
+
+        <button class="btn-submit" onclick="submitWriteSession()" style="margin-top:15px;">Simpan Sesi Ini</button>
+    </div>
+</div>
+
+<!-- MODAL NEW PIN CREATED -->
+<div class="modal-overlay" id="pin-modal">
+    <div class="modal-card" style="text-align:center;">
+        <h2>PIN Berhasil Dibuat</h2>
+        <p style="font-size:0.85rem; color:#84a98c; margin-top:10px;">Simpan PIN 6-digit rahasia ini dengan baik:</p>
+        <div id="new-pin-display" style="font-size:2rem; font-weight:800; color:#eab308; letter-spacing:4px; margin:20px 0;">000000</div>
+        <button class="top-btn" id="copy-pin-btn" style="width:100%; justify-content:center; margin-bottom:10px;">📋 Salin PIN ke Clipboard</button>
+        <button class="btn-submit" id="confirm-pin-btn">Saya Sudah Menyimpannya</button>
+    </div>
+</div>
+
+<script>
+// ========================================
+// KONFIGURASI SUPABASE CLIENT
+// ========================================
+const SUPABASE_URL = "https://your-supabase-project.supabase.co"; // Ganti URL Supabase Anda
+const SUPABASE_ANON_KEY = "your-anon-key";                       // Ganti Anon Key Supabase Anda
+
+let supabaseClient = null;
+if (typeof supabase !== 'undefined') {
+    try {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch(e) {
+        console.warn('Supabase Client Init Warning:', e);
+    }
+}
+
+// Global App State
+let activeSessionType = null;
+let activeCount = 0;
+let userState = {
+    username: localStorage.getItem('tof_login_username') || null,
+    wallet: localStorage.getItem('tof_wallet') || null,
+    target: '1000000000',
+    statement: 'Aku sangat bersyukur sudah memiliki uang Rp1 miliar dengan cara yang mudah dan menyenangkan.',
+    tracker: Array(21).fill(false),
+    actions: [],
+    todayLogs: { pagi: false, siang: false, malam: false }
+};
+
+// Initialize App
+document.addEventListener('DOMContentLoaded', () => {
+    loadLocalData();
+    updateUIAuth();
+    updateStatementDefault();
+    renderTracker();
+    renderActionLogs();
+    
+    if (userState.username && supabaseClient) {
+        syncFromSupabase();
+    }
+});
+
+// Update default statement based on target selection
+function updateStatementDefault() {
+    const val = document.getElementById('target-amount').value;
+    userState.target = val;
+    let text = "";
+    if (val === "1000000000") text = "Aku sangat bersyukur sudah memiliki uang Rp1 miliar dengan cara yang mudah dan menyenangkan.";
+    else if (val === "100000000") text = "Aku sangat bersyukur sudah memiliki uang Rp100 juta dengan cara yang mudah dan menyenangkan.";
+    else if (val === "25000000") text = "Aku sangat bersyukur telah melampaui tabungan Rp25 juta pertama dengan penuh berkah.";
+    else text = "Aku sangat bersyukur meraih Rp10 juta pertama dengan cepat dan lancar.";
+
+    document.getElementById('manifest-statement').value = text;
+    userState.statement = text;
+}
+
+// Navigation View Switcher
+function switchView(viewName) {
+    document.getElementById('view-journal').style.display = viewName === 'journal' ? 'block' : 'none';
+    document.getElementById('view-tracker').style.display = viewName === 'tracker' ? 'block' : 'none';
+    document.getElementById('view-action').style.display = viewName === 'action' ? 'block' : 'none';
+
+    document.querySelectorAll('.top-nav .top-btn').forEach(btn => btn.classList.remove('active-tab'));
+    event.target.classList.add('active-tab');
+}
+
+// Breathing Exercise
+function startBreathing() {
+    const circle = document.getElementById('breathCircle');
+    circle.innerText = "Tarik Napas...";
+    circle.classList.add('expand');
+
+    setTimeout(() => {
+        circle.innerText = "Tahan...";
+    }, 4000);
+
+    setTimeout(() => {
+        circle.innerText = "Hembuskan...";
+        circle.classList.remove('expand');
+    }, 7000);
+
+    setTimeout(() => {
+        circle.innerText = "Selesai";
+    }, 11000);
+}
+
+// Writing Modals
+function openWriteModal(type, count) {
+    activeSessionType = type;
+    activeCount = count;
+    
+    document.getElementById('modal-session-title').innerText = `Sesi ${type.toUpperCase()} (${count}x)`;
+    const container = document.getElementById('write-inputs-container');
+    container.innerHTML = '';
+
+    const currentStatement = document.getElementById('manifest-statement').value;
+
+    for (let i = 0; i < count; i++) {
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        div.innerHTML = `<label>Tulis ke-${i+1}:</label>
+            <input type="text" class="form-control write-input" placeholder="${currentStatement}">`;
+        container.appendChild(div);
+    }
+
+    document.getElementById('write-modal').classList.add('show');
+}
+
+function submitWriteSession() {
+    userState.todayLogs[activeSessionType] = true;
+    document.getElementById(`status-${activeSessionType}`).innerText = "✓ Selesai";
+    document.getElementById(`status-${activeSessionType}`).style.color = "#4ade80";
+    
+    closeModal('write-modal');
+    saveLocalData();
+    syncToSupabase();
+}
+
+// Inspired Action Log
+function saveInspiredAction() {
+    const note = document.getElementById('action-note').value.trim();
+    if (!note) return;
+
+    const actionObj = { date: new Date().toLocaleDateString('id-ID'), text: note };
+    userState.actions.unshift(actionObj);
+    document.getElementById('action-note').value = '';
+
+    renderActionLogs();
+    saveLocalData();
+    syncToSupabase();
+}
+
+function renderActionLogs() {
+    const container = document.getElementById('action-list');
+    container.innerHTML = '';
+    userState.actions.forEach(act => {
+        const card = document.createElement('div');
+        card.style.background = "rgba(18, 35, 24, 0.4)";
+        card.style.border = "1px solid rgba(74, 222, 128, 0.2)";
+        card.style.borderRadius = "12px";
+        card.style.padding = "14px";
+        card.style.marginBottom = "10px";
+        card.innerHTML = `<div style="font-size:0.75rem; color:#eab308; margin-bottom:4px;">${act.date}</div>
+            <div style="font-size:0.9rem; color:#e2e8f0;">${act.text}</div>`;
+        container.appendChild(card);
+    });
+}
+
+// Render 21 Days Tracker Grid
+function renderTracker() {
+    const grid = document.getElementById('trackerGrid');
+    grid.innerHTML = '';
+    userState.tracker.forEach((status, idx) => {
+        const box = document.createElement('div');
+        box.className = `day-box ${status ? 'done' : ''}`;
+        box.innerText = `H-${idx + 1}`;
+        box.onclick = () => {
+            userState.tracker[idx] = !userState.tracker[idx];
+            renderTracker();
+            saveLocalData();
+            syncToSupabase();
+        };
+        grid.appendChild(box);
+    });
+}
+
+// Modals Helper
+function closeModal(id) {
+    document.getElementById(id).classList.remove('show');
+}
+
+function openLoginModal() {
+    document.getElementById('login-modal').classList.add('show');
+}
+
+// UI State Sync
+function updateUIAuth() {
+    const loginBtn = document.getElementById('login-nav-btn');
+    if (userState.username) {
+        loginBtn.innerText = `👤 ${userState.username}`;
+    } else {
+        loginBtn.innerText = `👤 Login ToFarmer`;
+    }
+}
+
+// Local Storage Handlers
+function saveLocalData() {
+    localStorage.setItem('tesla_manifest_state', JSON.stringify(userState));
+}
+
+function loadLocalData() {
+    const local = localStorage.getItem('tesla_manifest_state');
+    if (local) {
+        try {
+            userState = { ...userState, ...JSON.parse(local) };
+        } catch(e) {}
+    }
+}
+
+// Supabase Cloud Sync
+async function syncToSupabase() {
+    if (!supabaseClient || !userState.username) return;
+    try {
+        await supabaseClient
+            .from('tesla_manifestation_logs')
+            .upsert({
+                username: userState.username,
+                data: userState,
+                updated_at: new Date()
+            }, { onConflict: 'username' });
+    } catch(e) {
+        console.error('Supabase Sync Error:', e);
+    }
+}
+
+async function syncFromSupabase() {
+    if (!supabaseClient || !userState.username) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('tesla_manifestation_logs')
+            .select('data')
+            .eq('username', userState.username)
+            .single();
+
+        if (data && data.data) {
+            userState = { ...userState, ...data.data };
+            renderTracker();
+            renderActionLogs();
+            saveLocalData();
+        }
+    } catch(e) {
+        console.error('Supabase Fetch Error:', e);
+    }
+}
+
+// Login Form Handling (ToFarmer Vault 2FA PIN Integration)
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const usernameInput = document.getElementById('input-username').value.trim();
+    const pinInput = document.getElementById('input-pin').value.trim();
+
+    if (!usernameInput || pinInput.length !== 6) {
+        document.getElementById('error-message').innerText = "Username & 6-digit PIN wajib diisi!";
+        document.getElementById('error-message').classList.add('show');
+        return;
+    }
+
+    userState.username = usernameInput;
+    localStorage.setItem('tof_login_username', usernameInput);
+    updateUIAuth();
+    closeModal('login-modal');
+
+    syncFromSupabase();
+});
+</script>
+
+</body>
+</html>
