@@ -32,7 +32,9 @@
     topup: null,     // info Nabung dari server (kurs, QRIS, aturan)
     pinjam: null,    // info Pinjam dari server (bunga, tenor, batas)
     terkunci: 0n,    // TOF yang sedang menjadi jaminan pinjaman (unit terkecil)
-    popupPinjamTampil: false
+    popupPinjamTampil: false,
+    dividen: null,       // status syarat dividen (frasa, persetujuan)
+    dividenIngat: false
   };
 
   // ---------------- util DOM ----------------
@@ -1161,6 +1163,115 @@
     s.ganti(el("div", { id: "daftarNabung" }, baris), el("button", { class: "btn teks", text: "Kembali", onclick: () => tampilFormNabung(s, info, sesi) }));
   }
 
+  // ---------------- Dividen: syarat peserta dan persetujuan ----------------
+  // Peserta dividen harus: sudah menitip frasa, PIN sudah diamankan, dan menyetujui aturan di bawah. Dividen positif dikirim ke
+  // dompet ini. Bila hasil investasi minus, server menarik TOF otomatis dari dompet ini (memakai frasa yang dititip) sampai batas
+  // yang tertulis di persetujuan. Semua angka dan aturan dijaga SERVER; bagian ini hanya menampilkan dan mengirim persetujuan.
+  function dividenSiap() {
+    const s = state.dividen;
+    return !!(s && s.has_vault && s.setuju && !s.perlu_perbarui && !s.pin_publik);
+  }
+
+  function renderDividen() {
+    const kartu = $("dividenCard");
+    if (!kartu) return;
+    const s = state.dividen;
+    if (!s) { kartu.hidden = true; return; }
+    kartu.hidden = false;
+    const siap = dividenSiap();
+    let teks;
+    if (siap) teks = "Kamu peserta dividen. Dividen positif masuk ke dompet ini. Bila hasil investasi minus, TOF ditarik otomatis dari dompet ini, maksimal " + s.batas_minus_persen + "% per periode.";
+    else if (s.pin_publik) teks = "Amankan akunmu dulu: buat PIN dompet baru di menu Frasa. Tanpa itu kamu belum ikut dividen.";
+    else if (!s.has_vault) teks = "Wajib menitip frasa dulu, lalu menyetujui aturan dividen. Tanpa itu kamu belum ikut dividen.";
+    else if (s.perlu_perbarui) teks = "Batas koreksi minus naik menjadi " + s.batas_sekarang_persen + "%. Setujui ulang supaya tetap ikut dividen.";
+    else teks = "Setujui aturan dividen supaya ikut dibagi. Tanpa itu kamu belum ikut dividen.";
+    $("dividenInfo").textContent = teks;
+    $("btnDividen").hidden = siap;
+    $("btnDividenCabut").hidden = !s.setuju;
+    $("btnDividen").onclick = () => { if (s.pin_publik || !s.has_vault) panelFrasa(); else panelSetujuDividen(); };
+    $("btnDividenCabut").onclick = panelCabutDividen;
+  }
+
+  function panelSetujuDividen() {
+    const s = state.dividen || {};
+    const batas = s.batas_sekarang_persen || 10;
+    const sh = bukaSheet("Aturan dividen");
+    const pin = pinInput("dividenPin");
+    const galat = el("div", { class: "galat", id: "galatDividen" });
+    const btn = el("button", { class: "btn utama", id: "btnSetujuDividen", text: "Saya mengerti dan setuju" });
+    sh.ganti(
+      el("div", { class: "info", text: "Dompet ini khusus untuk keperluan ToFarmer. Jangan dicampur dengan dompet pribadi." }),
+      el("ol", { class: "langkah" },
+        el("li", { text: "Dividen dihitung dari persentase saldo TOF-mu dan dikirim ke dompet ini bila hasil investasi bersama positif." }),
+        el("li", { text: "Bila hasilnya minus, pengurus dapat menjalankan koreksi: TOF ditarik OTOMATIS dari dompet ini memakai frasa yang kamu titip, dengan persentase yang sama untuk semua peserta dan maksimal " + batas + "% saldo per periode." }),
+        el("li", { text: "TOF yang sedang menjadi jaminan pinjaman tidak ikut ditarik; hanya TOF bebasmu." }),
+        el("li", { text: "Kamu bisa mencabut persetujuan kapan saja, tetapi setelah itu tidak ikut dividen berikutnya." })),
+      el("div", { class: "kecil abu", text: "Masukkan PIN untuk menyetujui." }), pin, galat, btn,
+      el("button", { class: "btn teks", text: "Nanti dulu", onclick: sh.tutup })
+    );
+    btn.onclick = async () => {
+      galat.textContent = "";
+      const p = pin.value.trim();
+      if (!/^\d{6}$/.test(p)) { galat.textContent = "PIN harus 6 digit angka."; return; }
+      btn.disabled = true;
+      const res = await vault("dividen_setuju", { profile_id: state.wallet, pin: p });
+      btn.disabled = false;
+      pin.value = "";
+      if (!res.ok) { galat.textContent = pesanVault(res); return; }
+      sh.tutup();
+      toast("Persetujuan dividen tersimpan.");
+      cekDividen();
+    };
+  }
+
+  function panelCabutDividen() {
+    const sh = bukaSheet("Cabut persetujuan dividen");
+    const pin = pinInput("dividenPinCabut");
+    const galat = el("div", { class: "galat", id: "galatCabutDividen" });
+    const btn = el("button", { class: "btn utama", id: "btnCabutDividen", text: "Cabut persetujuan" });
+    sh.ganti(
+      el("div", { class: "info", text: "Setelah dicabut, kamu tidak ikut dividen berikutnya (dan tidak terkena koreksi minus). Periode yang sudah berjalan tidak berubah." }),
+      pin, galat, btn, el("button", { class: "btn teks", text: "Batal", onclick: sh.tutup })
+    );
+    btn.onclick = async () => {
+      galat.textContent = "";
+      const p = pin.value.trim();
+      if (!/^\d{6}$/.test(p)) { galat.textContent = "PIN harus 6 digit angka."; return; }
+      btn.disabled = true;
+      const res = await vault("dividen_cabut", { profile_id: state.wallet, pin: p });
+      btn.disabled = false;
+      pin.value = "";
+      if (!res.ok) { galat.textContent = pesanVault(res); return; }
+      sh.tutup();
+      toast("Persetujuan dicabut.");
+      cekDividen();
+    };
+  }
+
+  // Dipanggil tiap Dompet dibuka (dan setelah persetujuan berubah)
+  async function cekDividen() {
+    if (!state.wallet) return;
+    const r = await vault("dividen_status", { profile_id: state.wallet });
+    state.dividen = r.ok ? r : null; // server belum punya fitur dividen → kartu tersembunyi
+    renderDividen();
+  }
+
+  // Pengingat sekali per pembukaan bila belum memenuhi syarat
+  function ingatkanDividen() {
+    const s = state.dividen;
+    if (!s || dividenSiap() || state.dividenIngat) return;
+    state.dividenIngat = true;
+    const sh = bukaSheet("Ikut dividen ToFarmer");
+    sh.ganti(
+      el("div", { class: "sukses", id: "popupDividen" },
+        el("div", { class: "ikon", text: "🌱" }),
+        el("div", { class: "judul", text: "Kamu belum ikut dividen" }),
+        el("div", { class: "sub", text: s.pin_publik ? "Amankan akunmu dulu dengan PIN baru di menu Frasa." : !s.has_vault ? "Titip frasa dulu, lalu setujui aturan dividen. Dompet ini khusus untuk keperluan ToFarmer." : "Setujui aturan dividen supaya ikut dibagi." })),
+      el("button", { class: "btn utama", id: "btnLanjutDividen", text: "Atur sekarang", onclick: () => { sh.tutup(); if (s.pin_publik || !s.has_vault) panelFrasa(); else panelSetujuDividen(); } }),
+      el("button", { class: "btn teks", text: "Nanti dulu", onclick: sh.tutup })
+    );
+  }
+
   // ---------------- Pinjam ke Diri Sendiri ----------------
   // Pinjam uang dari kas dengan jaminan TOF-mu sendiri (maksimal sebesar nilai saldo TOF). Bunga dibayar rupiah lalu
   // kembali ke dompetmu sebagai TOF. Aturan dan angka dijaga SERVER (tof-vault); bagian ini hanya menampilkan dan
@@ -1560,6 +1671,7 @@
       }),
       vault("topup_info", {}).then((r) => { state.topup = r.ok ? r : null; renderNabung(); renderTarik(); }),
       vault("pinjam_info", {}).then((r) => { state.pinjam = r.ok ? r : null; renderPinjam(); }),
+      cekDividen(),
       muatRiwayat()
     ];
     await Promise.all(tugas);
@@ -1678,6 +1790,7 @@
       const q = new URLSearchParams(window.location.search);
       const ke = q.get("ke");
       if (!ke && q.get("nabung") !== "1") cekTagihanPinjam(); // pop-up tagihan pinjaman (bila ada yang jatuh tempo)
+      if (!ke && q.get("nabung") !== "1") ingatkanDividen(); // pengingat bila belum memenuhi syarat dividen
       if (ke && bolehTandatangan()) {
         const sk = bukaSheet("Kirim");
         tampilFormKirim(sk, { aset: q.get("aset") === "ALGO" ? "ALGO" : "TOF", tujuan: ke, jumlah: q.get("jumlah") || "", catatan: q.get("catatan") || "" });

@@ -78,6 +78,19 @@
       case "kas_belum_diatur": return "Dompet pembayar belum diatur di server (secret PAYOUT_MNEMONIC).";
       case "batas_kirim_tidak_valid": return "Batas kirim tidak valid (bilangan bulat TOF; batas per transaksi tidak boleh melebihi batas harian).";
       case "konfirmasi_wajib": return "Perlu konfirmasi eksplisit.";
+      case "label_wajib": return "Isi nama periode.";
+      case "label_sudah_dipakai": return "Nama periode itu sudah dipakai. Pakai nama lain.";
+      case "persen_tidak_valid": return "Persentase tidak valid (maksimal 100%, tidak boleh 0).";
+      case "minus_melebihi_batas": return "Koreksi minus melebihi batas " + (res.batas_persen || 0) + "% per periode. Ubah batas di Pengaturan bila memang perlu.";
+      case "periode_masih_terbuka": return "Masih ada periode yang belum selesai. Selesaikan atau batalkan dulu.";
+      case "periode_tidak_ditemukan": return "Periode tidak ditemukan.";
+      case "item_tidak_ditemukan": return "Peserta tidak ditemukan.";
+      case "tidak_ada_peserta": return "Tidak ada peserta yang memenuhi syarat.";
+      case "perlu_pengurus_lain": return "Persetujuan harus dari pengurus lain, bukan pembuat pratinjau.";
+      case "sudah_berjalan": return "Periode sudah berjalan, tidak bisa dibatalkan.";
+      case "kas_tof_kurang": return "TOF di dompet pembayar kurang: butuh " + desimal(res.butuh_units || 0) + ", ada " + desimal(res.ada_units || 0) + ".";
+      case "kas_algo_kurang": return "ALGO bebas di dompet pembayar kurang untuk biaya: butuh " + desimal(res.butuh_units || 0) + ", ada " + desimal(res.ada_units || 0) + ".";
+      case "batas_dividen_tidak_valid": return "Batas dividen tidak valid (batas minus 1–50%, saldo minimum bilangan bulat).";
       case "txid_belum_ada": return "Transaksi ini belum punya ID transaksi untuk diperiksa.";
       case "pinjam_tidak_ditemukan": return "Pinjaman tidak ditemukan.";
       case "pinjam_belum_aktif": return "Pinjaman ini belum dicairkan.";
@@ -178,6 +191,7 @@
     if (tab === "pembagian") return muatPembagian();
     if (tab === "penarikan") return muatPenarikan();
     if (tab === "pinjaman") return muatPinjaman();
+    if (tab === "dividen") return muatDividen();
     const res = await adm("admin_topup_daftar", { tampil: tab });
     if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
     state.modeKirim = res.mode_kirim || "tampung";
@@ -599,6 +613,156 @@
     konten.replaceChildren(...anak);
   }
 
+  // ---------------- Dividen ----------------
+  // Alur: ketik persentase → Hitung pratinjau (foto saldo on-chain saat ini; yang tidak memenuhi syarat otomatis dilewati)
+  // → centang/keluarkan peserta → Setujui (pengurus lain bila pengurus lebih dari satu) → Jalankan.
+  // Positif: TOF dikirim dari dompet pembayar. Negatif: TOF ditarik otomatis dari dompet peserta (frasa dari brankas).
+  const STATUS_DIV = { pratinjau: ["Pratinjau", "tunggu"], disetujui: ["Disetujui, siap dijalankan", "ok"], berjalan: ["Berjalan", "tunggu"], selesai: ["Selesai", "ok"], dibatalkan: ["Dibatalkan", "gagal"] };
+  const STATUS_ITEM_DIV = { menunggu: ["Menunggu", "tunggu"], mengirim: ["Mengirim", "tunggu"], selesai: ["Selesai", "ok"], gagal: ["Gagal", "gagal"], dilewati: ["Dilewati", ""] };
+  const persenTeks = (bp) => (bp / 100).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + "%";
+  const chipDiv = (peta, st) => { const [t, k] = peta[st] || [st, ""]; return el("span", { class: "chip " + k, text: t }); };
+
+  async function jalankanDividen(pid, tombol, infoEl) {
+    tombol.disabled = true;
+    for (let putaran = 0; putaran < 200; putaran++) {
+      const res = await adm("admin_dividen_jalankan", { periode_id: pid, yakin: true });
+      if (!res.ok) { infoEl.textContent = pesan(res); break; }
+      const rg = res.ringkas;
+      infoEl.textContent = "Berjalan… selesai " + rg.selesai + " dari " + rg.peserta + (rg.gagal ? ", gagal " + rg.gagal : "") + (rg.mengirim ? ", menunggu konfirmasi " + rg.mengirim : "");
+      if (res.periode_selesai || res.diproses === 0) break;
+    }
+    muatDividen();
+  }
+
+  function kartuItemDividen(it, periode) {
+    const bisaCentang = periode.status === "pratinjau" && it.status === "menunggu";
+    const tanda = it.arah === "bagi" ? "+" : "−";
+    const galat = el("div", { class: "galat" });
+    const aksi = el("div", { class: "aksi" });
+    const cek = bisaCentang
+      ? el("input", { type: "checkbox", "data-ikut": it.id, checked: it.ikut ? "checked" : null, onchange: async function () {
+          const res = await adm("admin_dividen_pilih", { periode_id: periode.id, ids: [it.id], ikut: this.checked });
+          if (!res.ok) { galat.textContent = pesan(res); return; }
+          muatDividen();
+        } })
+      : null;
+    if (cek && it.ikut) cek.checked = true;
+    const k = el("div", { class: "card", "data-item": it.id },
+      el("div", { class: "baris" }, el("div", { style: "display:flex;gap:8px;align-items:center;font-weight:700;" }, cek, "@" + (it.username || "?")), chipDiv(STATUS_ITEM_DIV, it.status)),
+      it.status === "dilewati" && !it.jumlah_units
+        ? el("div", { class: "kecil", text: it.alasan || "" })
+        : el("div", { class: "kecil", text: "Saldo " + desimal(it.saldo_units) + " TOF · " + tanda + desimal(it.jumlah_units) + " TOF"
+            + (it.kurang_units ? " · kurang " + desimal(it.kurang_units) + " TOF (sisanya TOF jaminan pinjaman, tidak diambil)" : "")
+            + (it.terkunci_units ? " · jaminan " + desimal(it.terkunci_units) + " TOF" : "") }),
+      it.alasan && it.status !== "dilewati" ? el("div", { class: "kecil", text: it.alasan }) : null,
+      it.txid ? el("a", { class: "tautan", href: EXPLORER_TX + it.txid, target: "_blank", rel: "noopener", text: "Lihat transaksi" }) : null,
+      aksi, galat);
+    const ulang = async (tombol, action, extra) => {
+      tombol.disabled = true; galat.textContent = "";
+      const res = await adm(action, Object.assign({ item_id: it.id }, extra || {}));
+      tombol.disabled = false;
+      if (!res.ok) { galat.textContent = pesan(res); return; }
+      muatDividen();
+    };
+    if (it.status === "gagal") {
+      aksi.append(
+        el("button", { class: "btn hijau", "data-aksi": "ulangi", type: "button", text: "Ulangi", onclick: function () { ulang(this, "admin_dividen_ulangi"); } }),
+        el("button", { class: "btn abu", "data-aksi": "lewati", type: "button", text: "Lewati", onclick: function () { if (window.confirm("Lewati peserta ini tanpa mengirim/menarik?")) ulang(this, "admin_dividen_lewati"); } }));
+    } else if (it.status === "mengirim") {
+      aksi.append(el("button", { class: "btn hijau", "data-aksi": "periksa", type: "button", text: "Periksa status", onclick: function () {
+        if (it.txid) return ulang(this, "admin_dividen_ulangi");
+        if (!window.confirm("Hasil pengiriman tidak pasti. Pastikan di explorer TIDAK ADA transaksi untuk peserta ini sebelum mengulang. Lanjut?")) return;
+        ulang(this, "admin_dividen_ulangi", { yakin: true });
+      } }));
+    }
+    return k;
+  }
+
+  async function muatDividen() {
+    const konten = $("konten");
+    const r = await adm("admin_dividen_lihat", {});
+    if (!r.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(r) })); return; }
+    const anak = [];
+    if (state.pesanHasil) { anak.push(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil })); state.pesanHasil = ""; }
+    const kas = r.kas && !r.kas.galat ? "Dompet pembayar: " + desimal(r.kas.tof_units) + " TOF, ALGO bebas " + desimal(r.kas.algo_units) : "Dompet pembayar belum terbaca";
+    anak.push(el("div", { class: "card" },
+      el("div", { class: "kecil", text: kas }),
+      el("div", { class: "kecil", text: "Batas minus per periode: " + r.pengaturan.batas_minus_persen + "% · saldo minimum peserta: " + r.pengaturan.min_saldo_tof + " TOF (ubah di Pengaturan)" })));
+
+    const p = r.periode;
+    if (!p) {
+      const label = el("input", { class: "inp", id: "divLabel", maxlength: "40", value: new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" }) });
+      const persen = el("input", { class: "inp", id: "divPersen", inputmode: "decimal", placeholder: "mis. 2,5 atau -1,5" });
+      const galat = el("div", { class: "galat" });
+      const btn = el("button", { class: "btn utama", id: "btnPratinjau", type: "button", text: "Hitung pratinjau" });
+      btn.onclick = async () => {
+        galat.textContent = "";
+        const n = Number(String(persen.value).replace(",", ".").trim());
+        const bp = Math.round(n * 100);
+        if (!Number.isFinite(n) || !bp) { galat.textContent = "Isi persentase, mis. 2,5 atau -1,5."; return; }
+        btn.disabled = true; btn.textContent = "Menghitung dari saldo jaringan…";
+        const res = await adm("admin_dividen_pratinjau", { label: label.value.trim(), persen_bp: bp });
+        btn.disabled = false; btn.textContent = "Hitung pratinjau";
+        if (!res.ok) { galat.textContent = pesan(res); return; }
+        muatDividen();
+      };
+      anak.push(el("div", { class: "card" },
+        el("div", { style: "font-weight:700;" }, "Periode baru"),
+        el("label", { class: "lbl", for: "divLabel", text: "Nama periode (tiap nama hanya sekali)" }), label,
+        el("label", { class: "lbl", for: "divPersen", text: "Persentase dari saldo TOF peserta (negatif = koreksi minus)" }), persen,
+        el("div", { class: "kecil", text: "Dihitung dari saldo TOF di jaringan saat tombol ditekan (foto saldo), termasuk TOF yang dibekukan jaminan pinjaman. Pada koreksi minus hanya TOF bebas yang diambil." }),
+        galat, btn));
+    } else {
+      const rg = r.ringkas;
+      const info = el("div", { class: "kecil", id: "infoJalan" });
+      const negatif = p.persen_bp < 0;
+      anak.push(el("div", { class: "card", id: "kartuPeriode" },
+        el("div", { class: "baris" }, el("div", { style: "font-weight:700;", text: p.label + " · " + persenTeks(p.persen_bp) }), chipDiv(STATUS_DIV, p.status)),
+        el("div", { class: "total", text: (negatif ? "−" : "+") + desimal(negatif ? rg.total_potong_units : rg.total_bagi_units) + " TOF" }),
+        el("div", { class: "kecil", text: rg.peserta + " peserta · " + rg.dilewati + " dilewati (belum memenuhi syarat) · selesai " + rg.selesai + " · gagal " + rg.gagal + " · mengirim " + rg.mengirim }),
+        info));
+      const aksiP = el("div", { class: "aksi" });
+      const galatP = el("div", { class: "galat" });
+      const kerja = async (tombol, action, extra, bacaPesan) => {
+        tombol.disabled = true; galatP.textContent = "";
+        const res = await adm(action, Object.assign({ periode_id: p.id }, extra || {}));
+        tombol.disabled = false;
+        if (!res.ok) { galatP.textContent = pesan(res); return; }
+        state.pesanHasil = bacaPesan || "";
+        muatDividen();
+      };
+      if (p.status === "pratinjau") {
+        const idsMenunggu = r.items.filter((x) => x.status === "menunggu").map((x) => x.id);
+        aksiP.append(
+          el("button", { class: "btn abu", "data-aksi": "pilih-semua", type: "button", text: "Pilih semua", onclick: function () { kerja(this, "admin_dividen_pilih", { ids: idsMenunggu, ikut: true }); } }),
+          el("button", { class: "btn abu", "data-aksi": "kosongkan", type: "button", text: "Kosongkan", onclick: function () { kerja(this, "admin_dividen_pilih", { ids: idsMenunggu, ikut: false }); } }),
+          el("button", { class: "btn utama", "data-aksi": "setujui", type: "button", style: "margin-top:0;", text: "✓ Setujui", onclick: function () {
+            if (!window.confirm("Setujui periode " + p.label + " (" + persenTeks(p.persen_bp) + ") untuk " + rg.peserta + " peserta? Peserta yang tidak dicentang tidak ikut.")) return;
+            kerja(this, "admin_dividen_setujui", {}, "Periode disetujui. Tekan Jalankan untuk memulai.");
+          } }),
+          el("button", { class: "btn merah", "data-aksi": "batal", type: "button", text: "Batalkan", onclick: function () { if (window.confirm("Batalkan pratinjau ini?")) kerja(this, "admin_dividen_batal", {}, "Pratinjau dibatalkan."); } }));
+      } else if (p.status === "disetujui" || p.status === "berjalan") {
+        aksiP.append(
+          el("button", { class: "btn utama", "data-aksi": "jalankan", type: "button", style: "margin-top:0;", text: p.status === "berjalan" ? "Lanjutkan" : "▶ Jalankan sekarang", onclick: function () {
+            const teksKonfirm = negatif
+              ? "KOREKSI MINUS: TOF ditarik OTOMATIS dari dompet " + rg.peserta + " peserta, total " + desimal(rg.total_potong_units) + " TOF. Tidak bisa dibatalkan setelah berjalan. Lanjut?"
+              : "Kirim dividen " + desimal(rg.total_bagi_units) + " TOF ke " + rg.peserta + " peserta dari dompet pembayar. Lanjut?";
+            if (!window.confirm(teksKonfirm)) return;
+            jalankanDividen(p.id, this, info);
+          } }));
+        if (p.status === "disetujui") aksiP.append(el("button", { class: "btn merah", "data-aksi": "batal", type: "button", text: "Batalkan", onclick: function () { if (window.confirm("Batalkan periode ini?")) kerja(this, "admin_dividen_batal", {}, "Periode dibatalkan."); } }));
+      }
+      anak.push(aksiP, galatP);
+      const urut = r.items.slice().sort((a, b) => (a.status === "dilewati") - (b.status === "dilewati"));
+      anak.push(...urut.map((it) => kartuItemDividen(it, p)));
+    }
+
+    anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", text: "Riwayat periode" }));
+    if (r.riwayat.length) anak.push(...r.riwayat.map((x) => el("div", { class: "card", "data-periode": x.id }, el("div", { class: "baris" }, el("div", { text: x.label + " · " + persenTeks(x.persen_bp) }), chipDiv(STATUS_DIV, x.status)), el("div", { class: "kecil", text: tgl(x.dibuat) }))));
+    else anak.push(el("div", { class: "kecil", style: "padding:8px 4px;", text: "Belum ada periode." }));
+    konten.replaceChildren(...anak);
+  }
+
   // ---------------- pengaturan ----------------
   function bacaQris(file) {
     return new Promise((resolve, reject) => {
@@ -655,6 +819,8 @@
       pinjamAktif: el("input", { type: "checkbox", id: "setPinjamAktif" }),
       pinjamMin: el("input", { class: "inp", id: "setPinjamMin", inputmode: "numeric", value: String(p.pinjam_min_rp || 10000) }),
       pinjamMaks: el("input", { class: "inp", id: "setPinjamMaks", inputmode: "numeric", value: String(p.pinjam_maks_rp || 5000000) }),
+      divBatas: el("input", { class: "inp", id: "setDivBatas", inputmode: "numeric", value: String(p.dividen_batas_minus_persen || 10) }),
+      divMin: el("input", { class: "inp", id: "setDivMin", inputmode: "numeric", value: String(p.dividen_min_saldo_tof || 1) }),
       alamatTarik: el("input", { class: "inp", id: "setAlamatTarik", value: p.alamat_tarik || "", placeholder: "Alamat dompet pengurus penerima TOF (58 karakter)", autocomplete: "off", spellcheck: "false" }),
       minTarik: el("input", { class: "inp", id: "setMinTarik", inputmode: "numeric", value: String(p.min_tarik_tof) }),
       maksTarik: el("input", { class: "inp", id: "setMaksTarik", inputmode: "numeric", value: String(p.maks_tarik_tof) }),
@@ -687,6 +853,7 @@
         mode_kirim: f.mode.value, alamat_penampung: f.penampung.value.trim(), ambang_batch_tof: Number(f.ambang.value),
         tarik_aktif: f.tarik.checked, alamat_tarik: f.alamatTarik.value.trim(), min_tarik_tof: Number(f.minTarik.value), maks_tarik_tof: Number(f.maksTarik.value),
         pinjam_aktif: f.pinjamAktif.checked, pinjam_min_rp: Number(f.pinjamMin.value), pinjam_maks_rp: Number(f.pinjamMaks.value),
+        dividen_batas_minus_persen: Number(f.divBatas.value), dividen_min_saldo_tof: Number(f.divMin.value),
       };
       if (state.qrisBaru) body.qris = state.qrisBaru;
       simpan.disabled = true;
@@ -722,6 +889,10 @@
       el("label", { class: "lbl", for: "setPinjamMin", text: "Minimal sekali pinjam (Rp)" }), f.pinjamMin,
       el("label", { class: "lbl", for: "setPinjamMaks", text: "Maksimal sekali pinjam (Rp)" }), f.pinjamMaks,
       el("div", { class: "kecil", text: "Batas tiap anggota tetap dibatasi nilai TOF-nya sendiri. Bunga 5% flat. QRIS di atas dipakai juga untuk pelunasan. Bunga dikirim balik sebagai TOF lewat dompet pembayar (butuh Kirim TOF otomatis aktif)." }),
+      el("div", { class: "kecil", style: "margin-top:16px;font-weight:700;color:#1c2b22;", text: "Dividen" }),
+      el("label", { class: "lbl", for: "setDivBatas", text: "Batas koreksi minus per periode (%) — juga dicatat di persetujuan anggota" }), f.divBatas,
+      el("label", { class: "lbl", for: "setDivMin", text: "Saldo TOF minimum untuk ikut dividen" }), f.divMin,
+      el("div", { class: "kecil", text: "Menaikkan batas minus membuat anggota yang sudah setuju diminta menyetujui ulang." }),
       el("div", { class: "kecil", style: "margin-top:16px;font-weight:700;color:#1c2b22;", text: "Kirim TOF otomatis" }),
       el("div", { class: "kecil", id: "infoKas", text: !kas
         ? "Dompet pembayar belum diatur di server (secret PAYOUT_MNEMONIC). Selama belum, TOF dikirim manual."
