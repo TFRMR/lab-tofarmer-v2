@@ -34,6 +34,7 @@
     terkunci: 0n,    // TOF yang sedang menjadi jaminan pinjaman (unit terkecil)
     popupPinjamTampil: false,
     dividen: null,       // status syarat dividen (frasa, persetujuan)
+    tugas: null,         // tugas bulan ini dan dividen yang ditahan
     dividenIngat: false
   };
 
@@ -220,6 +221,12 @@
       case "mnemonic_mismatch": return "Frasa ini bukan milik dompet akunmu.";
       case "no_vault": return "Belum ada frasa yang dititipkan.";
       case "not_found": return "Akun tidak ditemukan.";
+      case "sesi_tidak_valid": return "Sesi login sudah habis. Keluar lalu masuk lagi.";
+      case "kode_hadir_salah": return "Kode hadir tidak dikenal. Periksa lagi kodenya.";
+      case "kegiatan_di_luar_waktu": return "Kegiatan ini belum mulai atau sudah selesai.";
+      case "sudah_hadir": return "Kamu sudah tercatat hadir di kegiatan ini.";
+      case "tugas_tidak_ditemukan": return "Tugas tidak ditemukan atau tidak aktif.";
+      case "klaim_sudah_ada": return "Klaim ini sudah menunggu persetujuan pengurus.";
       case "pinjam_nonaktif": return "Pinjaman belum dibuka oleh pengurus.";
       case "masih_ada_pinjaman": return "Kamu masih punya pinjaman yang berjalan. Lunasi dulu lewat menu Pinjam > Pinjamanku.";
       case "pinjam_melebihi_batas": return "Pinjaman melebihi batas: maksimal Rp " + fmtRp(res.maks_rp || 0) + " (nilai TOF yang tidak sedang terkunci).";
@@ -1163,6 +1170,111 @@
     s.ganti(el("div", { id: "daftarNabung" }, baris), el("button", { class: "btn teks", text: "Kembali", onclick: () => tampilFormNabung(s, info, sesi) }));
   }
 
+  // ---------------- Tugas bulan ini ----------------
+  // Kewajiban ringan sebagai syarat dividen positif. Yang belum lengkap membuat dividen DITAHAN (bisa dilepas setelah tugas selesai,
+  // dihanguskan setelah masa tahan). Penilaian dilakukan SERVER; bagian ini hanya menampilkan dan mengirim klaim/kode hadir.
+  function tokenSesi() {
+    try {
+      const o = JSON.parse(localStorage.getItem("tof_session") || "null");
+      return o && o.id === state.wallet && o.exp * 1000 > Date.now() + 60000 ? o.token : null;
+    } catch (e) { return null; }
+  }
+
+  async function cekTugas() {
+    if (!state.wallet) return;
+    const r = await vault("tugas_status", { profile_id: state.wallet });
+    state.tugas = r.ok ? r : null; // server belum punya fitur tugas → kartu tersembunyi
+    renderTugas();
+  }
+
+  function renderTugas() {
+    const kartu = $("tugasCard");
+    if (!kartu) return;
+    const t = state.tugas;
+    if (!t || (!(t.wajib || []).length && !(t.ditahan || []).length)) { kartu.hidden = true; return; }
+    kartu.hidden = false;
+    const total = t.wajib.length, selesai = t.wajib.filter((x) => x.ok).length;
+    $("tugasInfo").textContent = total
+      ? selesai + " dari " + total + " tugas wajib selesai bulan ini. " + (t.lengkap ? "Dividenmu aman." : "Dividen ditahan kalau belum lengkap.")
+      : "";
+    $("tugasBar").style.width = (total ? Math.round((selesai * 100) / total) : 100) + "%";
+    $("tugasDitahan").textContent = (t.ditahan || []).map((x) =>
+      "Dividen " + x.label + " ditahan (" + fmtUnits(BigInt(x.jumlah_units)) + " TOF). " + x.tugas_kurang + (x.sisa_hari > 0 ? " Hangus dalam " + x.sisa_hari + " hari." : "")
+    ).join(" ");
+    $("btnTugas").onclick = panelTugas;
+  }
+
+  function aksiTugas(x, sh) {
+    const k = x.kunci || "";
+    if (x.jenis === "sistem") {
+      if (k === "sistem:titip_frasa" || k === "sistem:pin_aman") return el("button", { class: "mini", type: "button", text: "Atur", onclick: () => { sh.tutup(); panelFrasa(); } });
+      if (k === "sistem:setuju_dividen") return el("button", { class: "mini", type: "button", text: "Setujui", onclick: () => { sh.tutup(); const s = state.dividen || {}; if (s.pin_publik || !s.has_vault) panelFrasa(); else panelSetujuDividen(); } });
+    }
+    if (x.jenis === "manual") return el("button", { class: "mini", type: "button", text: "Klaim selesai", onclick: () => { sh.tutup(); panelKlaimTugas(x); } });
+    if (x.jenis === "hadir") return el("button", { class: "mini", type: "button", text: "Kode hadir", onclick: () => { sh.tutup(); panelKodeHadir(); } });
+    if (x.url && !/dompet\.html$/.test(x.url)) return el("a", { class: "mini", href: x.url, style: "text-decoration:none;display:inline-flex;align-items:center;", text: "Kerjakan" });
+    return null;
+  }
+
+  function panelTugas() {
+    const t = state.tugas;
+    if (!t) return;
+    const sh = bukaSheet("Tugas bulan ini");
+    const baris = (x) => el("div", { class: "riwayat-baris", "data-tugas": x.kunci },
+      el("div", { class: "ikon-r " + (x.ok ? "masuk" : ""), text: x.ok ? "✓" : "○" }),
+      el("div", { class: "isi" }, el("div", { class: "judul", text: x.judul }), el("div", { class: "sub", text: x.target > 1 ? x.jumlah + " dari " + x.target : (x.ok ? "Selesai" : "Belum") })),
+      x.ok ? null : aksiTugas(x, sh));
+    sh.ganti(
+      el("div", { class: "info", text: "Tugas wajib yang belum lengkap membuat dividen positifmu ditahan. Setelah tugas selesai, pengurus melepasnya. Dividen yang ditahan lebih dari " + (t.masa_tahan_bulan || 3) + " bulan bisa dihanguskan." }),
+      (t.ditahan || []).length ? el("div", { class: "banner", id: "tugasBannerDitahan", text: t.ditahan.map((x) => "Dividen " + x.label + " ditahan: " + x.tugas_kurang).join(" ") }) : null,
+      el("h3", { text: "Wajib" }), el("div", { id: "daftarTugasWajib" }, t.wajib.map(baris)),
+      (t.opsional || []).length ? el("h3", { text: "Tambahan (tidak wajib)" }) : null,
+      (t.opsional || []).length ? el("div", {}, t.opsional.map(baris)) : null,
+      el("button", { class: "btn teks", text: "Tutup", onclick: sh.tutup })
+    );
+  }
+
+  function panelKodeHadir() {
+    const sh = bukaSheet("Kode hadir kegiatan");
+    const kode = el("input", { class: "inp", id: "kodeHadir", maxlength: "12", placeholder: "Kode dari pengurus", autocomplete: "off", autocapitalize: "characters" });
+    const galat = el("div", { class: "galat", id: "galatKodeHadir" });
+    const btn = el("button", { class: "btn utama", id: "btnKodeHadir", text: "Catat hadir" });
+    sh.ganti(el("div", { class: "info", text: "Masukkan kode yang diumumkan pengurus saat kegiatan berlangsung." }), kode, galat, btn, el("button", { class: "btn teks", text: "Batal", onclick: sh.tutup }));
+    btn.onclick = async () => {
+      galat.textContent = "";
+      const token = tokenSesi();
+      if (!token) { galat.textContent = pesanVault({ error: "sesi_tidak_valid" }); return; }
+      btn.disabled = true;
+      const res = await vault("tugas_hadir", { profile_id: state.wallet, token, kode_hadir: kode.value.trim().toUpperCase() });
+      btn.disabled = false;
+      if (!res.ok) { galat.textContent = pesanVault(res); return; }
+      sh.tutup();
+      toast("Hadir tercatat: " + res.kegiatan);
+      cekTugas();
+    };
+  }
+
+  function panelKlaimTugas(x) {
+    const sh = bukaSheet("Klaim tugas");
+    const catatan = el("textarea", { class: "inp", id: "catatanKlaim", rows: "3", maxlength: "200", placeholder: "Catatan singkat (opsional)" });
+    const pin = pinInput("pinKlaimTugas");
+    const galat = el("div", { class: "galat", id: "galatKlaimTugas" });
+    const btn = el("button", { class: "btn utama", id: "btnKlaimTugas", text: "Kirim klaim" });
+    sh.ganti(el("div", { class: "info", text: "Klaim \"" + x.judul + "\" menunggu persetujuan pengurus." }), catatan, pin, galat, btn, el("button", { class: "btn teks", text: "Batal", onclick: sh.tutup }));
+    btn.onclick = async () => {
+      galat.textContent = "";
+      const p = pin.value.trim();
+      if (!/^\d{6}$/.test(p)) { galat.textContent = "PIN harus 6 digit angka."; return; }
+      btn.disabled = true;
+      const res = await vault("tugas_klaim", { profile_id: state.wallet, pin: p, kode: x.kunci, catatan: catatan.value.trim() });
+      btn.disabled = false;
+      pin.value = "";
+      if (!res.ok) { galat.textContent = pesanVault(res); return; }
+      sh.tutup();
+      toast("Klaim terkirim. Menunggu pengurus.");
+    };
+  }
+
   // ---------------- Dividen: syarat peserta dan persetujuan ----------------
   // Peserta dividen harus: sudah menitip frasa, PIN sudah diamankan, dan menyetujui aturan di bawah. Dividen positif dikirim ke
   // dompet ini. Bila hasil investasi minus, server menarik TOF otomatis dari dompet ini (memakai frasa yang dititip) sampai batas
@@ -1672,6 +1784,7 @@
       vault("topup_info", {}).then((r) => { state.topup = r.ok ? r : null; renderNabung(); renderTarik(); }),
       vault("pinjam_info", {}).then((r) => { state.pinjam = r.ok ? r : null; renderPinjam(); }),
       cekDividen(),
+      cekTugas(),
       muatRiwayat()
     ];
     await Promise.all(tugas);

@@ -2566,6 +2566,8 @@ function pesanVaultProfil(res) {
     case "bad_real_name": return "Nama lengkap maksimal 60 karakter.";
     case "bad_bio": return "Bio maksimal 300 karakter.";
     case "bad_tanggal_lahir": return "Tanggal lahir tidak valid.";
+    case "bad_email": return "Format email tidak valid.";
+    case "bad_no_hp": return "Nomor HP tidak valid (8–15 angka, mis. 0812xxxxxxxx).";
     case "not_found": return "Akun tidak ditemukan.";
     case "ambiguous": return "Username ambigu, hubungi pengurus.";
     case "network": return "Koneksi bermasalah, coba lagi.";
@@ -2691,6 +2693,13 @@ async function bukaPengaturanProfil() {
     <input id="set-tgl" type="date" style="${gayaInput}">
     <div style="font-size:11px; color:#6f7f76; margin-top:4px; line-height:1.4;">Mengubah tanggal lahir mengosongkan hasil Kaji Wayang; jalankan ulang di halaman Kaji Wayang.</div>
 
+    <label style="${gayaLabel}" for="set-email">Email <span id="set-email-info" style="font-weight:400; color:#94a3b8;"></span></label>
+    <input id="set-email" type="email" maxlength="100" autocomplete="off" autocapitalize="off" placeholder="nama@email.com" style="${gayaInput}">
+
+    <label style="${gayaLabel}" for="set-hp">Nomor HP / WhatsApp <span id="set-hp-info" style="font-weight:400; color:#94a3b8;"></span></label>
+    <input id="set-hp" type="tel" inputmode="tel" maxlength="20" autocomplete="off" placeholder="0812xxxxxxxx" style="${gayaInput}">
+    <div style="font-size:11px; color:#6f7f76; margin-top:4px; line-height:1.4;">Email dan nomor HP disimpan tertutup (tidak tampil di profil publik) dan hanya dipakai pengurus untuk keperluan komunitas.</div>
+
     ${bolehSimpan ? `
       <label style="${gayaLabel}" for="set-pin-konfirmasi">PIN untuk menyimpan</label>
       <input id="set-pin-konfirmasi" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN 6 digit" style="${gayaInput}">
@@ -2743,11 +2752,21 @@ async function bukaPengaturanProfil() {
   elTgl.value = tglAwal;
   elTgl.max = new Date().toISOString().slice(0, 10);
   elTgl.min = "1900-01-01";
+  // Email/HP tidak pernah dikirim balik ke browser; hanya ditampilkan sudah terisi atau belum
+  panggilVaultProfil("kontak_status", { profile_id: currentWallet }).then((k) => {
+    if (!k || !k.ok) return;
+    if (k.email_ada) { document.getElementById("set-email-info").textContent = "(✓ sudah diisi, ketik untuk mengganti)"; }
+    if (k.hp_ada) { document.getElementById("set-hp-info").textContent = "(✓ sudah diisi, ketik untuk mengganti)"; }
+  });
 
   if (!bolehSimpan) {
     ["set-username", "set-realname", "set-bio", "set-tgl"].forEach(id => {
       document.getElementById(id).disabled = true;
     });
+  }
+
+  if (!bolehSimpan) {
+    ["set-email", "set-hp"].forEach(id => { document.getElementById(id).disabled = true; });
   }
 
   const elBio = document.getElementById("set-bio");
@@ -2807,6 +2826,10 @@ async function simpanProfilPengaturan(asli, tglAwal) {
       return;
     }
   }
+  const emailBaru = document.getElementById("set-email").value.trim();
+  const hpBaru = document.getElementById("set-hp").value.trim();
+  if (emailBaru && !/^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/.test(emailBaru)) { elGalat.textContent = pesanVaultProfil({ error: "bad_email" }); return; }
+  if (hpBaru && !/^\+?[\d\s().-]{8,20}$/.test(hpBaru)) { elGalat.textContent = pesanVaultProfil({ error: "bad_no_hp" }); return; }
   if (!/^\d{6}$/.test(pin)) { elGalat.textContent = "Isi PIN 6 digit untuk menyimpan."; return; }
 
   btn.disabled = true;
@@ -2822,6 +2845,9 @@ async function simpanProfilPengaturan(asli, tglAwal) {
   };
   // Hanya dikirim bila diubah (supaya tanggal lama yang formatnya tak terbaca tidak terhapus tanpa sengaja)
   if (tgl !== tglAwal) payload.tanggal_lahir = tglDariInput(tgl);
+  // Email/HP hanya dikirim bila diisi; kosong berarti tidak diubah
+  if (emailBaru) payload.email = emailBaru;
+  if (hpBaru) payload.no_hp = hpBaru;
 
   const res = await panggilVaultProfil("update_profil", payload);
 

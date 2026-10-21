@@ -233,3 +233,13 @@
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', siap); else siap();
   global.TofInstall = TofInstall;
 })(window);
+
+/* Tugas ToFarmer: ikut memuat skrip pencatat tugas di setiap halaman yang memuat tof-install.js */
+(function (d) {
+  try {
+    if (window.TofTugas || d.querySelector('script[data-tof-tugas]')) return;
+    var s = d.createElement('script');
+    s.src = '/js/tugas.js'; s.defer = true; s.setAttribute('data-tof-tugas', '1');
+    (d.head || d.documentElement).appendChild(s);
+  } catch (e) {}
+})(document);

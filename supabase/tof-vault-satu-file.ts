@@ -231,6 +231,32 @@ export interface Repo {
   listPersetujuan(): Promise<PersetujuanRow[]>;
   listVaultIds(): Promise<string[]>;
   listKandidatProfil(): Promise<Profile[]>;                           // id, username, pin_hash
+  // ---- Tugas ----
+  listTugasDefinisi(): Promise<TugasDefRow[]>;
+  getTugasByKode(kode: string): Promise<TugasDefRow | null>;
+  insertTugasDefinisi(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: TugasDefRow }>;
+  updateTugasDefinisi(id: string, patch: Record<string, unknown>): Promise<TugasDefRow | null>;
+  catatTugasHari(profileId: string, kode: string, periode: string, hari: string): Promise<void>;   // +1, paling banyak sekali per hari WIB
+  setTugasCatatan(profileId: string, kode: string, periode: string, jumlah: number, oleh: string | null): Promise<void>;
+  tambahTugasCatatan(profileId: string, kode: string, periode: string, oleh: string | null): Promise<void>; // +1 tanpa batas harian (kehadiran)
+  listTugasCatatan(dari: string, sampai: string | null, profileId: string | null): Promise<TugasCatatanRow[]>; // periode dari..sampai (null = seterusnya) + '-'
+  // Menghitung baris per pengguna dari tabel yang ada di AKSI_TABEL; null bila kueri gagal (kolom/tabel belum ada)
+  hitungAksi(tabel: string, kolomUser: string, kolomWaktu: string, sinceIso: string, untilIso: string | null, profileId: string | null): Promise<Record<string, number> | null>;
+  insertTugasKlaim(row: Record<string, unknown>): Promise<{ result: "ok" | "error"; row?: TugasKlaimRow }>;
+  getTugasKlaim(id: string): Promise<TugasKlaimRow | null>;
+  updateTugasKlaimIf(id: string, expect: string[], patch: Record<string, unknown>): Promise<TugasKlaimRow | null>;
+  listTugasKlaim(status: string, limit: number): Promise<TugasKlaimRow[]>;
+  listTugasKlaimByProfile(profileId: string, limit: number): Promise<TugasKlaimRow[]>;
+  insertKegiatan(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: TugasKegiatanRow }>;
+  getKegiatan(id: string): Promise<TugasKegiatanRow | null>;
+  getKegiatanByKode(kodeHadir: string): Promise<TugasKegiatanRow | null>;
+  updateKegiatan(id: string, patch: Record<string, unknown>): Promise<void>;
+  listKegiatan(limit: number): Promise<TugasKegiatanRow[]>;
+  insertKehadiran(kegiatanId: string, profileId: string): Promise<"ok" | "duplicate" | "error">;
+  getKontak(profileId: string): Promise<KontakRow | null>;
+  upsertKontak(profileId: string, patch: Record<string, unknown>): Promise<void>;
+  listKontak(): Promise<KontakRow[]>;
+  listDividenItemStatus(status: string): Promise<DividenItemRow[]>;
 }
 
 export interface TarikRow {
@@ -627,13 +653,33 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
         }
       }
 
-      if (Object.keys(patch).length === 0) return ok({ profile: safeProfile(r.profile) });
+      // Kontak (email, nomor HP) disimpan di tabel tertutup profil_kontak, BUKAN di profiles yang terbaca publik
+      let kontakPatch: Row | null = null;
+      if (body.email !== undefined || body.no_hp !== undefined) {
+        kontakPatch = {};
+        if (body.email !== undefined) {
+          const e = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+          if (e && (e.length > 100 || !/^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/.test(e))) return fail("bad_email");
+          kontakPatch.email = e || null;
+        }
+        if (body.no_hp !== undefined) {
+          const h = typeof body.no_hp === "string" ? body.no_hp.trim() : "";
+          const n = h ? normalisasiHp(h) : null;
+          if (h && !n) return fail("bad_no_hp");
+          kontakPatch.no_hp = n;
+        }
+      }
+      if (Object.keys(patch).length === 0) {
+        if (kontakPatch) { await d.repo.upsertKontak(r.profile.id, kontakPatch); await d.repo.log(r.profile.id, "update_profil", true); }
+        return ok({ profile: safeProfile(r.profile) });
+      }
 
       const hasil = await d.repo.updateProfileFields(r.profile.id, patch);
       if (hasil === "duplicate") return fail("username_taken");
       if (hasil !== "ok") return fail("server_error");
 
       await d.repo.log(r.profile.id, "update_profil", true);
+      if (kontakPatch) await d.repo.upsertKontak(r.profile.id, kontakPatch);
       const baru = await d.repo.findProfileById(r.profile.id);
       return ok({ profile: safeProfile(baru ?? { ...r.profile, ...patch }) });
     }
@@ -693,6 +739,7 @@ async function ambilPengaturan(d: Deps) {
     // Dividen: batas minus per periode (persen, dipakai sebagai batas persetujuan anggota) dan saldo minimum peserta
     dividen_batas_minus_bp: angka(s.dividen_batas_minus_persen, 10) * 100,
     dividen_min_saldo_tof: angka(s.dividen_min_saldo_tof, 1),
+    tugas_masa_tahan_bulan: angka(s.tugas_masa_tahan_bulan, 3), // dividen ditahan dihanguskan setelah masa ini
   };
 }
 
@@ -1753,11 +1800,12 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
 export interface DividenPeriodeRow {
   id: string; label: string; persen_bp: number; status: string; dibuat: string; dibuat_oleh: string | null;
   disetujui_oleh: string | null; disetujui_pada: string | null; selesai_pada: string | null; catatan: string | null;
+  bulan_tugas: string | null;
 }
 export interface DividenItemRow {
   id: string; periode_id: string; profile_id: string; username: string | null; saldo_units: number; terkunci_units: number;
   arah: string; jumlah_units: number; kurang_units: number; ikut: boolean; status: string; alasan: string | null;
-  txid: string | null; kirim_pada: string | null;
+  txid: string | null; kirim_pada: string | null; tugas_kurang: string | null; ditahan_pada: string | null;
 }
 export interface PersetujuanRow { profile_id: string; batas_minus_bp: number; versi: number; disetujui_pada: string }
 
@@ -1772,6 +1820,7 @@ function tampilPeriodeDividen(p: DividenPeriodeRow) {
   return {
     id: p.id, label: p.label, persen_bp: p.persen_bp, status: p.status, dibuat: p.dibuat,
     dibuat_oleh: p.dibuat_oleh, disetujui_oleh: p.disetujui_oleh, disetujui_pada: p.disetujui_pada, selesai_pada: p.selesai_pada,
+    bulan_tugas: p.bulan_tugas,
   };
 }
 
@@ -1779,18 +1828,20 @@ function tampilItemDividen(i: DividenItemRow) {
   return {
     id: i.id, profile_id: i.profile_id, username: i.username || "", saldo_units: i.saldo_units, terkunci_units: i.terkunci_units,
     arah: i.arah, jumlah_units: i.jumlah_units, kurang_units: i.kurang_units, ikut: i.ikut, status: i.status,
-    alasan: i.alasan, txid: i.txid,
+    alasan: i.alasan, txid: i.txid, tugas_kurang: i.tugas_kurang, ditahan_pada: i.ditahan_pada,
   };
 }
 
 function ringkasDividen(items: DividenItemRow[]) {
-  const aktif = items.filter((i) => i.ikut && i.status !== "dilewati");
+  const aktif = items.filter((i) => i.ikut && !["dilewati", "ditahan", "hangus"].includes(i.status));
   const jml = (rs: DividenItemRow[]) => rs.reduce((n, r) => n + Number(r.jumlah_units), 0);
   const hitung = (st: string) => items.filter((i) => i.ikut && i.status === st).length;
+  const ditahan = items.filter((i) => i.status === "ditahan");
   return {
     peserta: aktif.length, dilewati: items.filter((i) => i.status === "dilewati").length,
     total_bagi_units: jml(aktif.filter((i) => i.arah === "bagi")), total_potong_units: jml(aktif.filter((i) => i.arah === "potong")),
     menunggu: hitung("menunggu"), mengirim: hitung("mengirim"), selesai: hitung("selesai"), gagal: hitung("gagal"),
+    ditahan: ditahan.length, total_ditahan_units: jml(ditahan), hangus: items.filter((i) => i.status === "hangus").length,
   };
 }
 
@@ -1917,9 +1968,15 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
         catch { kas = { galat: true }; }
       }
       const riwayat = (await d.repo.listDividenPeriode(12)).map(tampilPeriodeDividen);
+      const ditahanPer = new Map<string, { periode_id: string; label: string; jumlah: number; total_units: number }>();
+      for (const it of await d.repo.listDividenItemStatus("ditahan")) {
+        const e = ditahanPer.get(it.periode_id) || { periode_id: it.periode_id, label: (await d.repo.getDividenPeriode(it.periode_id))?.label || "", jumlah: 0, total_units: 0 };
+        e.jumlah++; e.total_units += Number(it.jumlah_units); ditahanPer.set(it.periode_id, e);
+      }
+      const ditahan = Array.from(ditahanPer.values());
       return ok({
         pengaturan: { batas_minus_persen: s.dividen_batas_minus_bp / 100, min_saldo_tof: s.dividen_min_saldo_tof },
-        kas, riwayat, ...(terbuka ? await tampilDividenLengkap(terbuka, d) : { periode: null }),
+        kas, riwayat, ditahan, ...(terbuka ? await tampilDividenLengkap(terbuka, d) : { periode: null }),
       });
     }
 
@@ -1937,6 +1994,9 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       if (await d.repo.getDividenTerbuka()) return fail("periode_masih_terbuka");
       const arah = bp > 0 ? "bagi" : "potong";
       const abs = BigInt(Math.abs(bp));
+      // Bulan tugas (hanya dividen positif): peserta yang tugas wajib bulan itu belum lengkap -> 'ditahan'
+      if (body.bulan_tugas !== undefined && body.bulan_tugas !== "" && !(typeof body.bulan_tugas === "string" && BULAN_RE.test(body.bulan_tugas))) return fail("bulan_tidak_valid");
+      const bulanTugas = arah === "bagi" && typeof body.bulan_tugas === "string" && BULAN_RE.test(body.bulan_tugas) ? body.bulan_tugas : "";
 
       const kasAlamat = new Set<string>([d.chain.payoutAddress()!, s.alamat_penampung, s.alamat_tarik].filter(Boolean));
       const kandidat = (await d.repo.listKandidatProfil()).filter((p) => !kasAlamat.has(p.id));
@@ -1981,9 +2041,24 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       for (const x of awal.filter((y) => y.alasan)) {
         barisItem.push({ profile_id: x.p.id, username: x.p.username, saldo_units: 0, terkunci_units: 0, arah, jumlah_units: 0, kurang_units: 0, ikut: false, status: "dilewati", alasan: x.alasan });
       }
-      if (barisItem.filter((x) => x.status === "menunggu").length === 0) return fail("tidak_ada_peserta", { dilewati: barisItem.length });
+      if (bulanTugas) {
+        const k = await siapkanKonteks(d, bulanTugas, false, null);
+        const peta = new Map(kandidat.map((p) => [p.id, p]));
+        const sekarangIso = iso(d.now());
+        for (const x of barisItem) {
+          if (x.status !== "menunggu") continue;
+          const p = peta.get(String(x.profile_id));
+          if (!p) continue;
+          const kurang = evaluasiTugas(k, p, true, true).wajib.filter((y) => !y.ok); // peserta layak sudah pasti PIN-nya aman
+          if (kurang.length) {
+            x.status = "ditahan"; x.tugas_kurang = kurang.map((y) => y.kunci).join("|");
+            x.alasan = "Tugas belum selesai: " + kurang.map((y) => y.judul).join("; "); x.ditahan_pada = sekarangIso;
+          }
+        }
+      }
+      if (barisItem.filter((x) => x.status === "menunggu" || x.status === "ditahan").length === 0) return fail("tidak_ada_peserta", { dilewati: barisItem.length });
 
-      const ins = await d.repo.insertDividenPeriode({ label, persen_bp: bp, status: "pratinjau", dibuat: iso(d.now()), dibuat_oleh: a.profile.id });
+      const ins = await d.repo.insertDividenPeriode({ label, persen_bp: bp, status: "pratinjau", dibuat: iso(d.now()), dibuat_oleh: a.profile.id, bulan_tugas: bulanTugas || null });
       if (ins.result === "duplicate") return fail("label_sudah_dipakai");
       if (ins.result !== "ok" || !ins.row) return fail("server_error");
       await d.repo.insertDividenItems(barisItem.map((x) => ({ ...x, periode_id: ins.row!.id })));
@@ -2050,7 +2125,8 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       if (body.yakin !== true) return fail("konfirmasi_wajib");
       let p = typeof body.periode_id === "string" ? await d.repo.getDividenPeriode(body.periode_id) : null;
       if (!p) return fail("periode_tidak_ditemukan");
-      const aktif = await d.repo.updateDividenPeriodeIf(p.id, ["disetujui", "berjalan"], { status: "berjalan" });
+      let aktif = await d.repo.updateDividenPeriodeIf(p.id, ["disetujui", "berjalan"], { status: "berjalan" });
+      if (!aktif && p.status === "selesai") aktif = p; // periode yang sudah selesai tetap bisa mengirim item yang dilepas/diulang
       if (!aktif) return fail("status_tidak_cocok");
       p = aktif;
       if (!d.chain) return fail("kas_belum_diatur");
@@ -2068,7 +2144,7 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       const it = typeof body.item_id === "string" ? await d.repo.getDividenItem(body.item_id) : null;
       if (!it) return fail("item_tidak_ditemukan");
       const p = await d.repo.getDividenPeriode(it.periode_id);
-      if (!p || !["berjalan", "disetujui"].includes(p.status)) return fail("status_tidak_cocok");
+      if (!p || !["berjalan", "disetujui", "selesai"].includes(p.status)) return fail("status_tidak_cocok");
       if (it.status === "gagal") {
         await d.repo.updateDividenItemIf(it.id, ["gagal"], { status: "menunggu", alasan: null });
       } else if (it.status === "mengirim") {
@@ -2087,6 +2163,47 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       return ok(await tampilDividenLengkap((await d.repo.getDividenPeriode(p.id)) || p, d));
     }
 
+    // Melepas dividen yang ditahan. Tugas yang dulu menunggak harus sudah selesai (sejak awal bulan tugas); paksa:true = kebijakan pengurus.
+    case "admin_dividen_lepas": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const it = typeof body.item_id === "string" ? await d.repo.getDividenItem(body.item_id) : null;
+      if (!it) return fail("item_tidak_ditemukan");
+      const p = await d.repo.getDividenPeriode(it.periode_id);
+      if (!p || p.status === "dibatalkan" || it.status !== "ditahan") return fail("status_tidak_cocok");
+      const paksa = body.paksa === true;
+      if (!paksa) {
+        const kurang = await tunggakanTugas(it, p, d);
+        if (kurang.length) return fail("tugas_belum_selesai", { kurang });
+      }
+      const baru = await d.repo.updateDividenItemIf(it.id, ["ditahan"], { status: "menunggu", ikut: true, alasan: paksa ? "Dilepas pengurus tanpa menunggu tugas selesai." : null });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(it.id, it.profile_id, paksa ? "dividen_lepas_paksa" : "dividen_lepas", a.profile.id, {});
+      if (p.status === "berjalan" || p.status === "selesai") { // periode sudah dieksekusi: kirim sekarang
+        if (!d.chain) return fail("kas_belum_diatur");
+        await prosesDividenItem(baru, p, a.profile.id, d);
+        await selesaikanPeriodeBilaTuntas(p, d);
+      }
+      return ok(await tampilDividenLengkap((await d.repo.getDividenPeriode(p.id)) || p, d));
+    }
+
+    // Menghanguskan dividen yang ditahan setelah masa tahan (bawaan 3 bulan). Dananya tetap di kas bersama.
+    case "admin_dividen_hanguskan": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const it = typeof body.item_id === "string" ? await d.repo.getDividenItem(body.item_id) : null;
+      if (!it || it.status !== "ditahan") return fail("status_tidak_cocok");
+      const s = await ambilPengaturan(d);
+      const batas = new Date(Date.parse(it.ditahan_pada || iso(d.now())));
+      batas.setUTCMonth(batas.getUTCMonth() + s.tugas_masa_tahan_bulan);
+      if (d.now() < batas.getTime()) return fail("belum_waktunya", { sisa_hari: Math.ceil((batas.getTime() - d.now()) / 86400000) });
+      const baru = await d.repo.updateDividenItemIf(it.id, ["ditahan"], { status: "hangus", alasan: "Dihanguskan: tugas tidak selesai dalam " + s.tugas_masa_tahan_bulan + " bulan. " + (it.alasan || "") });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(it.id, it.profile_id, "dividen_hangus", a.profile.id, { jumlah_units: it.jumlah_units });
+      const p = await d.repo.getDividenPeriode(it.periode_id);
+      return ok(p ? await tampilDividenLengkap(p, d) : {});
+    }
+
     // Melewati item gagal tanpa mengulang (mis. anggota sudah keluar)
     case "admin_dividen_lewati": {
       const a = await authAdmin(body, d);
@@ -2094,12 +2211,396 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       const it = typeof body.item_id === "string" ? await d.repo.getDividenItem(body.item_id) : null;
       if (!it) return fail("item_tidak_ditemukan");
       const p = await d.repo.getDividenPeriode(it.periode_id);
-      if (!p || !["berjalan", "disetujui"].includes(p.status)) return fail("status_tidak_cocok");
+      if (!p || !["berjalan", "disetujui", "selesai"].includes(p.status)) return fail("status_tidak_cocok");
       const baru = await d.repo.updateDividenItemIf(it.id, ["gagal"], { status: "dilewati", ikut: false, alasan: "Dilewati pengurus: " + (it.alasan || "") });
       if (!baru) return fail("status_tidak_cocok");
       await d.repo.logTopup(it.id, it.profile_id, "dividen_lewati", a.profile.id, {});
       await selesaikanPeriodeBilaTuntas(p, d);
       return ok(await tampilDividenLengkap((await d.repo.getDividenPeriode(p.id)) || p, d));
+    }
+
+    default:
+      return await handleTugas(action, body, d);
+  }
+}
+
+// ============================================================
+// TUGAS — kewajiban ringan bulanan/sekali seumur hidup sebagai syarat dividen positif.
+//  Jenis tugas:
+//   sistem    : dihitung LANGSUNG dari keadaan akun (titip frasa, PIN aman, setuju dividen, biodata, email, nomor HP)
+//   kunjungan : anggota membuka halaman (dicatat tugas.js dengan token sesi bertanda tangan, sah setelah tab aktif ~20 detik,
+//               maksimal 1x per hari WIB per halaman). Halaman baru terdaftar otomatis berstatus 'baru' sampai pengurus memakainya.
+//   aksi      : tindakan bermakna. Bila ada di AKSI_TABEL, dihitung dari data tabelnya (posting, Ilmu Baku, vote);
+//               bila tidak, memakai catatan dari browser.
+//   manual    : pengurus mencentang per anggota (atau anggota mengklaim lalu pengurus menyetujui)
+//   hadir     : anggota memasukkan kode kegiatan dari pengurus selama kegiatan berlangsung
+//  Tugas bisa dikelompokkan (grup + grup_min): "pilih N dari fitur ini" untuk fitur bergilir tiap bulan.
+//  Dividen positif: peserta yang tugas wajibnya belum lengkap berstatus 'ditahan' (tercatat jumlahnya), bisa dilepas setelah tugas
+//  selesai, atau dihanguskan setelah masa tahan (bawaan 3 bulan). Dividen minus tidak terkait tugas.
+// ============================================================
+export interface TugasDefRow {
+  id: string; kode: string; judul: string; deskripsi: string | null; jenis: string; target: number; wajib: boolean;
+  status: string; bulanan: boolean; grup: string | null; grup_min: number; url: string | null; urutan: number; dibuat: string;
+}
+export interface TugasCatatanRow { profile_id: string; kode: string; periode: string; jumlah: number; hari_terakhir: string | null; oleh: string | null; diubah: string }
+export interface TugasKlaimRow {
+  id: string; profile_id: string; kode: string; periode: string; catatan: string | null; status: string; dibuat: string;
+  diproses_oleh: string | null; diproses_pada: string | null; catatan_admin: string | null;
+}
+export interface TugasKegiatanRow { id: string; judul: string; kode_tugas: string; kode_hadir: string; mulai: string; selesai: string; dibuat_oleh: string | null; dibuat: string; aktif: boolean }
+export interface KontakRow { profile_id: string; email: string | null; no_hp: string | null }
+
+const WIB_MS = 7 * 3600 * 1000;
+const bulanWib = (ms: number) => new Date(ms + WIB_MS).toISOString().slice(0, 7);
+const hariWib = (ms: number) => new Date(ms + WIB_MS).toISOString().slice(0, 10);
+const BULAN_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+function awalBulanIso(bulan: string): string { const [y, m] = bulan.split("-").map(Number); return new Date(Date.UTC(y, m - 1, 1) - WIB_MS).toISOString(); }
+function awalBulanBerikutIso(bulan: string): string { const [y, m] = bulan.split("-").map(Number); return new Date(Date.UTC(y, m, 1) - WIB_MS).toISOString(); }
+
+// Tindakan yang dibuktikan dari data tabelnya (bukan klaim browser). Hanya nama tabel/kolom di daftar ini yang pernah dikueri.
+const AKSI_TABEL: Record<string, { tabel: string; kolom_user: string; kolom_waktu: string }> = {
+  "aksi:posting": { tabel: "contributions", kolom_user: "user_id", kolom_waktu: "created_at" },
+  "aksi:ilmu_buat": { tabel: "ilmu_pending", kolom_user: "user_id", kolom_waktu: "created_at" },
+  "aksi:ilmu_vote": { tabel: "votes", kolom_user: "user_id", kolom_waktu: "created_at" },
+};
+// Dua tugas sistem ini sudah menjadi SYARAT PESERTA dividen (bila belum, peserta dilewati), jadi tidak dipakai lagi untuk menahan.
+const SISTEM_SYARAT_PESERTA = ["sistem:titip_frasa", "sistem:setuju_dividen"];
+const SISTEM_KODE = ["sistem:titip_frasa", "sistem:pin_aman", "sistem:setuju_dividen", "sistem:biodata", "sistem:email", "sistem:no_hp"];
+const KODE_RE = /^(aktif|login|fitur:\/([a-z0-9_\-\/.]{1,80}\.html)?|aksi:[a-z0-9_]{1,40}|manual:[a-z0-9_]{1,40}|hadir:[a-z0-9_]{1,40}|sistem:[a-z0-9_]{1,40})$/;
+const TIDAK_DICATAT = /admin|login|debug|diagnosa|celebrate|youtubedownloader|transfer-masal|titik-kumpul/;
+const JENIS_TUGAS = ["kunjungan", "aksi", "sistem", "manual", "hadir"];
+const MAKS_DEFINISI_OTOMATIS = 500;
+
+interface Persyaratan { kunci: string; judul: string; jenis: string; jumlah: number; target: number; ok: boolean; url: string | null; grup: string | null; wajib: boolean }
+
+interface KonteksTugas {
+  defs: TugasDefRow[]; bulan: string; sejak: boolean;
+  catatan: Map<string, TugasCatatanRow[]>; aksi: Map<string, Record<string, number> | null>;
+  kontak: Map<string, KontakRow>; vault: Set<string>; setuju: Set<string>;
+}
+
+async function siapkanKonteks(d: Deps, bulan: string, sejak: boolean, profileId: string | null): Promise<KonteksTugas> {
+  const defs = (await d.repo.listTugasDefinisi()).filter((x) => x.status === "aktif").sort((a, b) => a.urutan - b.urutan);
+  const rows = await d.repo.listTugasCatatan(bulan, sejak ? null : bulan, profileId);
+  const catatan = new Map<string, TugasCatatanRow[]>();
+  for (const r of rows) { const l = catatan.get(r.profile_id) || []; l.push(r); catatan.set(r.profile_id, l); }
+  const awal = awalBulanIso(bulan), akhir = sejak ? null : awalBulanBerikutIso(bulan);
+  const aksi = new Map<string, Record<string, number> | null>();
+  for (const df of defs) {
+    const peta = AKSI_TABEL[df.kode];
+    if (peta && df.jenis === "aksi") aksi.set(df.kode, await d.repo.hitungAksi(peta.tabel, peta.kolom_user, peta.kolom_waktu, awal, akhir, profileId));
+  }
+  const [kontakRows, vaultIds, sj] = await Promise.all([d.repo.listKontak(), d.repo.listVaultIds(), d.repo.listPersetujuan()]);
+  return { defs, bulan, sejak, catatan, aksi, kontak: new Map(kontakRows.map((x) => [x.profile_id, x])), vault: new Set(vaultIds), setuju: new Set(sj.map((x) => x.profile_id)) };
+}
+
+function sistemOk(kode: string, k: KonteksTugas, p: Profile, pinAman: boolean): boolean {
+  const kt = k.kontak.get(p.id);
+  const isi = (v: unknown) => typeof v === "string" && v.trim() !== "";
+  switch (kode) {
+    case "sistem:titip_frasa": return k.vault.has(p.id);
+    case "sistem:pin_aman": return pinAman;
+    case "sistem:setuju_dividen": return k.setuju.has(p.id);
+    case "sistem:biodata": return isi(p.real_name) && isi(p.bio) && isi(p.tanggal_lahir);
+    case "sistem:email": return isi(kt?.email);
+    case "sistem:no_hp": return isi(kt?.no_hp);
+    default: return false;
+  }
+}
+
+function jumlahTugas(k: KonteksTugas, df: TugasDefRow, p: Profile, pinAman: boolean): number {
+  if (df.jenis === "sistem") return sistemOk(df.kode, k, p, pinAman) ? 1 : 0;
+  if (df.jenis === "aksi" && AKSI_TABEL[df.kode]) {
+    const c = k.aksi.get(df.kode);
+    if (c) return c[p.id] ?? 0; // terbukti dari data tabel; bila kueri gagal (null) jatuh ke catatan browser
+  }
+  const rows = (k.catatan.get(p.id) || []).filter((r) => r.kode === df.kode && (df.bulanan ? r.periode !== "-" : r.periode === "-"));
+  return rows.reduce((n, r) => n + Number(r.jumlah), 0);
+}
+
+// Menghasilkan daftar persyaratan (tugas tunggal + kelompok "pilih N dari") beserta status terpenuhinya
+function evaluasiTugas(k: KonteksTugas, p: Profile, pinAman: boolean, tanpaSyaratPeserta: boolean): { wajib: Persyaratan[]; opsional: Persyaratan[] } {
+  const wajib: Persyaratan[] = [], opsional: Persyaratan[] = [];
+  const baris = (df: TugasDefRow): Persyaratan => {
+    const jumlah = jumlahTugas(k, df, p, pinAman);
+    return { kunci: df.kode, judul: df.judul, jenis: df.jenis, jumlah, target: df.target, ok: jumlah >= df.target, url: df.url, grup: df.grup, wajib: df.wajib };
+  };
+  const grup = new Map<string, TugasDefRow[]>();
+  for (const df of k.defs) {
+    if (df.wajib && tanpaSyaratPeserta && SISTEM_SYARAT_PESERTA.includes(df.kode)) continue;
+    if (!df.wajib) { opsional.push(baris(df)); continue; }
+    if (df.grup) { const l = grup.get(df.grup) || []; l.push(df); grup.set(df.grup, l); continue; }
+    wajib.push(baris(df));
+  }
+  for (const [nama, list] of grup) {
+    const hasil = list.map(baris);
+    const selesai = hasil.filter((x) => x.ok).length;
+    const min = Math.min(Math.max(1, list[0].grup_min), list.length);
+    wajib.push({ kunci: "grup:" + nama, judul: "Pilih " + min + " dari: " + list.map((x) => x.judul).join(", "), jenis: "grup", jumlah: selesai, target: min, ok: selesai >= min, url: null, grup: nama, wajib: true });
+  }
+  return { wajib, opsional };
+}
+
+async function pinAmanDari(p: Profile, d: Deps): Promise<boolean> {
+  const row = await d.repo.getPin(p.id);
+  return !!row && !pinPublikAktif(p, row);
+}
+
+// Token sesi bertanda tangan (dibuat saat login oleh buatSesi): bukti login tanpa PIN. Tanda tangan = HMAC(kunci, id.exp.salt-PIN)
+async function verifikasiSesi(profileId: string, token: unknown, d: Deps): Promise<boolean> {
+  if (typeof token !== "string") return false;
+  const m = /^v1\.(\d{9,12})\.([0-9a-f]{64})$/.exec(token);
+  if (!m) return false;
+  const exp = Number(m[1]);
+  if (exp * 1000 <= d.now()) return false;
+  const kunci = await d.repo.getSesiKunci();
+  const row = await d.repo.getPin(profileId);
+  if (!kunci || !row) return false;
+  return timingSafeEqual(await hmacHex(kunci, `${profileId}.${exp}.${row.salt ?? ""}`), m[2]);
+}
+
+async function authSesi(body: Row, d: Deps): Promise<{ profile: Profile } | Gagal> {
+  const r = await resolveProfile(body, d, true);
+  if ("error" in r) return { gagal: fail(r.error) };
+  if (!(await verifikasiSesi(r.profile.id, body.token, d))) return { gagal: fail("sesi_tidak_valid") };
+  return { profile: r.profile };
+}
+
+function tampilTugasDef(x: TugasDefRow) {
+  return { id: x.id, kode: x.kode, judul: x.judul, deskripsi: x.deskripsi, jenis: x.jenis, target: x.target, wajib: x.wajib, status: x.status, bulanan: x.bulanan, grup: x.grup, grup_min: x.grup_min, url: x.url, urutan: x.urutan };
+}
+
+// Tunggakan: tugas yang dahulu belum selesai (kunci tersimpan di item dividen) dan masih belum selesai sejak awal bulan tugas
+async function tunggakanTugas(it: DividenItemRow, p: DividenPeriodeRow, d: Deps): Promise<string[]> {
+  const kunci = (it.tugas_kurang || "").split("|").filter(Boolean);
+  if (kunci.length === 0 || !p.bulan_tugas) return [];
+  const profil = await d.repo.findProfileById(it.profile_id);
+  if (!profil) return kunci;
+  const k = await siapkanKonteks(d, p.bulan_tugas, true, it.profile_id);
+  const ev = evaluasiTugas(k, profil, await pinAmanDari(profil, d), true);
+  return ev.wajib.filter((x) => kunci.includes(x.kunci) && !x.ok).map((x) => x.judul);
+}
+
+function kodeAcak(n: number): string {
+  const abjad = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const r = crypto.getRandomValues(new Uint32Array(n));
+  return Array.from(r, (x) => abjad[x % abjad.length]).join("");
+}
+
+function normalisasiHp(v: string): string | null {
+  const s = v.replace(/[\s().-]/g, "").replace(/^\+/, "");
+  if (!/^\d{8,15}$/.test(s)) return null;
+  const n = s.startsWith("0") ? "62" + s.slice(1) : s.startsWith("8") ? "62" + s : s;
+  return /^62\d{8,13}$/.test(n) ? n : null;
+}
+
+async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
+  switch (action) {
+    // ---- anggota: status kontak (tanpa PIN, hanya ya/tidak) ----
+    case "kontak_status": {
+      const r = await resolveProfile(body, d, true);
+      if ("error" in r) return fail(r.error);
+      const kt = await d.repo.getKontak(r.profile.id);
+      return ok({ email_ada: !!kt?.email, hp_ada: !!kt?.no_hp });
+    }
+
+    // ---- anggota: catat kunjungan/aksi (token sesi bertanda tangan) ----
+    case "tugas_catat": {
+      const a = await authSesi(body, d);
+      if ("gagal" in a) return a.gagal;
+      const daftar = (Array.isArray(body.daftar) ? body.daftar : [{ kode: body.kode, judul: body.judul }]).slice(0, 5) as { kode?: unknown; judul?: unknown }[];
+      const sekarang = d.now(), bulan = bulanWib(sekarang), hari = hariWib(sekarang);
+      const diterima: string[] = [];
+      for (const x of daftar) {
+        const kode = teks(x?.kode, 100);
+        if (!KODE_RE.test(kode)) continue;
+        if (kode.startsWith("fitur:") && TIDAK_DICATAT.test(kode)) continue;
+        let df = await d.repo.getTugasByKode(kode);
+        if (!df) {
+          if (!(kode.startsWith("fitur:") || kode === "aktif")) continue; // hanya halaman baru yang terdaftar otomatis
+          if ((await d.repo.listTugasDefinisi()).length >= MAKS_DEFINISI_OTOMATIS) continue;
+          const ins = await d.repo.insertTugasDefinisi({
+            kode, judul: teks(x?.judul, 80) || kode, jenis: "kunjungan", target: 1, wajib: false, status: "baru", bulanan: true,
+            url: kode.startsWith("fitur:") ? kode.slice(6) : null, urutan: 100,
+          });
+          df = ins.row ?? (await d.repo.getTugasByKode(kode));
+        }
+        if (!df || df.status === "nonaktif" || !["kunjungan", "aksi"].includes(df.jenis)) continue;
+        await d.repo.catatTugasHari(a.profile.id, kode, df.bulanan ? bulan : "-", hari);
+        diterima.push(kode);
+      }
+      return ok({ diterima });
+    }
+
+    // ---- anggota (tanpa PIN, hanya baca): daftar tugas dan kemajuan bulan ini + dividen yang ditahan ----
+    case "tugas_status": {
+      const r = await resolveProfile(body, d, true);
+      if ("error" in r) return fail(r.error);
+      const bulan = bulanWib(d.now());
+      const k = await siapkanKonteks(d, bulan, false, r.profile.id);
+      const ev = evaluasiTugas(k, r.profile, await pinAmanDari(r.profile, d), false);
+      const s = await ambilPengaturan(d);
+      const ditahan = [];
+      for (const it of await d.repo.listDividenItemStatus("ditahan")) {
+        if (it.profile_id !== r.profile.id) continue;
+        const per = await d.repo.getDividenPeriode(it.periode_id);
+        const batas = new Date(Date.parse(it.ditahan_pada || iso(d.now())));
+        batas.setUTCMonth(batas.getUTCMonth() + s.tugas_masa_tahan_bulan);
+        ditahan.push({ item_id: it.id, label: per?.label || "", jumlah_units: it.jumlah_units, tugas_kurang: it.alasan, hangus_pada: batas.toISOString(), sisa_hari: Math.ceil((batas.getTime() - d.now()) / 86400000) });
+      }
+      return ok({ bulan, wajib: ev.wajib, opsional: ev.opsional, lengkap: ev.wajib.every((x) => x.ok), ditahan, masa_tahan_bulan: s.tugas_masa_tahan_bulan });
+    }
+
+    // ---- anggota (PIN): mengklaim tugas manual/hadir yang dikerjakan di luar web; menunggu persetujuan pengurus ----
+    case "tugas_klaim": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const df = typeof body.kode === "string" ? await d.repo.getTugasByKode(body.kode) : null;
+      if (!df || df.status !== "aktif" || !["manual", "hadir"].includes(df.jenis)) return fail("tugas_tidak_ditemukan");
+      const periode = df.bulanan ? bulanWib(d.now()) : "-";
+      const lama = await d.repo.listTugasKlaimByProfile(a.profile.id, 30);
+      if (lama.some((x) => x.kode === df.kode && x.periode === periode && x.status === "menunggu")) return fail("klaim_sudah_ada");
+      const ins = await d.repo.insertTugasKlaim({ profile_id: a.profile.id, kode: df.kode, periode, catatan: teks(body.catatan, 200) || null, status: "menunggu", dibuat: iso(d.now()) });
+      if (ins.result !== "ok") return fail("server_error");
+      return ok({ klaim_id: ins.row?.id });
+    }
+
+    // ---- anggota (token sesi): memasukkan kode hadir kegiatan ----
+    case "tugas_hadir": {
+      const a = await authSesi(body, d);
+      if ("gagal" in a) return a.gagal;
+      const kode = teks(body.kode_hadir, 12).toUpperCase();
+      const keg = kode ? await d.repo.getKegiatanByKode(kode) : null;
+      const sekarang = d.now();
+      if (!keg || !keg.aktif) return fail("kode_hadir_salah");
+      if (sekarang < Date.parse(keg.mulai) || sekarang > Date.parse(keg.selesai)) return fail("kegiatan_di_luar_waktu");
+      const df = await d.repo.getTugasByKode(keg.kode_tugas);
+      if (!df || df.status === "nonaktif") return fail("tugas_tidak_ditemukan");
+      const hasil = await d.repo.insertKehadiran(keg.id, a.profile.id);
+      if (hasil === "duplicate") return fail("sudah_hadir");
+      if (hasil !== "ok") return fail("server_error");
+      await d.repo.tambahTugasCatatan(a.profile.id, df.kode, df.bulanan ? bulanWib(Date.parse(keg.mulai)) : "-", null);
+      return ok({ kegiatan: keg.judul, tugas: df.judul });
+    }
+
+    // ---------------- pengurus ----------------
+    case "admin_tugas_lihat": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const nama = new Map<string, string>();
+      const klaim = await d.repo.listTugasKlaim("menunggu", 100);
+      for (const x of klaim) if (!nama.has(x.profile_id)) nama.set(x.profile_id, (await d.repo.findProfileById(x.profile_id))?.username || "");
+      const s = await ambilPengaturan(d);
+      return ok({
+        bulan: bulanWib(d.now()), masa_tahan_bulan: s.tugas_masa_tahan_bulan,
+        definisi: (await d.repo.listTugasDefinisi()).sort((x, y) => x.urutan - y.urutan).map(tampilTugasDef),
+        klaim: klaim.map((x) => ({ id: x.id, profile_id: x.profile_id, username: nama.get(x.profile_id) || "", kode: x.kode, periode: x.periode, catatan: x.catatan, dibuat: x.dibuat })),
+        kegiatan: await d.repo.listKegiatan(20),
+      });
+    }
+
+    case "admin_tugas_simpan": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const kode = teks(body.kode, 100);
+      if (!KODE_RE.test(kode)) return fail("kode_tugas_tidak_valid");
+      const jenis = teks(body.jenis, 20);
+      if (!JENIS_TUGAS.includes(jenis)) return fail("jenis_tidak_valid");
+      if (jenis === "sistem" && !SISTEM_KODE.includes(kode)) return fail("kode_tugas_tidak_valid");
+      const judul = teks(body.judul, 80);
+      if (!judul) return fail("judul_wajib");
+      const target = Number(body.target), gmin = Number(body.grup_min ?? 1), urut = Number(body.urutan ?? 100);
+      if (!Number.isInteger(target) || target < 1 || target > 100) return fail("target_tidak_valid");
+      if (!Number.isInteger(gmin) || gmin < 1 || gmin > 20) return fail("target_tidak_valid");
+      const status = teks(body.status, 12);
+      if (!["baru", "aktif", "nonaktif"].includes(status)) return fail("status_tidak_valid");
+      const url = teks(body.url, 120);
+      if (url && !url.startsWith("/")) return fail("url_tidak_valid");
+      const grup = teks(body.grup, 30);
+      const isi = {
+        kode, judul, deskripsi: teks(body.deskripsi, 200) || null, jenis, target, wajib: body.wajib === true, status,
+        bulanan: jenis === "sistem" ? false : body.bulanan !== false, grup: grup || null, grup_min: gmin, url: url || null, urutan: Number.isInteger(urut) ? urut : 100,
+      };
+      const ada = await d.repo.getTugasByKode(kode);
+      if (ada) { const baru = await d.repo.updateTugasDefinisi(ada.id, isi); return baru ? ok({ tugas: tampilTugasDef(baru) }) : fail("server_error"); }
+      const ins = await d.repo.insertTugasDefinisi(isi);
+      return ins.result === "ok" && ins.row ? ok({ tugas: tampilTugasDef(ins.row) }) : fail("server_error");
+    }
+
+    // Centang manual per anggota per bulan
+    case "admin_tugas_centang": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const df = typeof body.kode === "string" ? await d.repo.getTugasByKode(body.kode) : null;
+      if (!df || df.jenis === "sistem") return fail("tugas_tidak_ditemukan");
+      const bulan = typeof body.bulan === "string" && BULAN_RE.test(body.bulan) ? body.bulan : bulanWib(d.now());
+      // profile_id = pengurus yang masuk (dipakai authAdmin); anggota yang dicentang dikirim sebagai anggota_id
+      if (typeof body.anggota_id !== "string" || !(await d.repo.findProfileById(body.anggota_id))) return fail("not_found");
+      await d.repo.setTugasCatatan(body.anggota_id, df.kode, df.bulanan ? bulan : "-", body.ada === false ? 0 : Math.max(df.target, 1), a.profile.id);
+      await d.repo.logTopup(null, body.anggota_id, "tugas_centang", a.profile.id, { kode: df.kode, bulan, ada: body.ada !== false });
+      return ok();
+    }
+
+    case "admin_tugas_klaim_proses": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const kl = typeof body.id === "string" ? await d.repo.getTugasKlaim(body.id) : null;
+      if (!kl) return fail("not_found");
+      const setuju = body.setuju === true;
+      const baru = await d.repo.updateTugasKlaimIf(kl.id, ["menunggu"], { status: setuju ? "disetujui" : "ditolak", diproses_oleh: a.profile.id, diproses_pada: iso(d.now()), catatan_admin: teks(body.catatan, 200) || null });
+      if (!baru) return fail("status_tidak_cocok");
+      if (setuju) {
+        const df = await d.repo.getTugasByKode(kl.kode);
+        if (df) await d.repo.setTugasCatatan(kl.profile_id, df.kode, kl.periode, Math.max(df.target, 1), a.profile.id);
+      }
+      return ok();
+    }
+
+    // Kegiatan dengan kode hadir (untuk tugas di luar web)
+    case "admin_tugas_kegiatan_buat": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const judul = teks(body.judul, 80);
+      const df = typeof body.kode_tugas === "string" ? await d.repo.getTugasByKode(body.kode_tugas) : null;
+      const mulai = Date.parse(String(body.mulai)), selesai = Date.parse(String(body.selesai));
+      if (!judul) return fail("judul_wajib");
+      if (!df || df.jenis !== "hadir") return fail("tugas_tidak_ditemukan");
+      if (!Number.isFinite(mulai) || !Number.isFinite(selesai) || selesai <= mulai || selesai - mulai > 3 * 86400000) return fail("waktu_tidak_valid");
+      for (let i = 0; i < 5; i++) {
+        const ins = await d.repo.insertKegiatan({ judul, kode_tugas: df.kode, kode_hadir: kodeAcak(6), mulai: iso(mulai), selesai: iso(selesai), dibuat_oleh: a.profile.id, dibuat: iso(d.now()), aktif: true });
+        if (ins.result === "ok" && ins.row) return ok({ kegiatan: ins.row });
+        if (ins.result === "error") break;
+      }
+      return fail("server_error");
+    }
+
+    case "admin_tugas_kegiatan_tutup": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const keg = typeof body.id === "string" ? await d.repo.getKegiatan(body.id) : null;
+      if (!keg) return fail("not_found");
+      await d.repo.updateKegiatan(keg.id, { aktif: false });
+      return ok();
+    }
+
+    // Rekap: siapa yang tugas wajibnya lengkap pada bulan tertentu
+    case "admin_tugas_rekap": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const bulan = typeof body.bulan === "string" && BULAN_RE.test(body.bulan) ? body.bulan : bulanWib(d.now());
+      const s = await ambilPengaturan(d);
+      const kas = new Set<string>([d.chain?.payoutAddress() ?? "", s.alamat_penampung, s.alamat_tarik].filter(Boolean));
+      const profiles = (await d.repo.listKandidatProfil()).filter((p) => !kas.has(p.id));
+      const k = await siapkanKonteks(d, bulan, false, null);
+      const hasil: { profile_id: string; username: string; lengkap: boolean; kurang: string[]; selesai: number; total: number }[] = [];
+      for (let i = 0; i < profiles.length; i += 20) {
+        await Promise.all(profiles.slice(i, i + 20).map(async (p) => {
+          const ev = evaluasiTugas(k, p, await pinAmanDari(p, d), false);
+          hasil.push({ profile_id: p.id, username: p.username, lengkap: ev.wajib.every((x) => x.ok), kurang: ev.wajib.filter((x) => !x.ok).map((x) => x.judul), selesai: ev.wajib.filter((x) => x.ok).length, total: ev.wajib.length });
+        }));
+      }
+      hasil.sort((x, y) => Number(x.lengkap) - Number(y.lengkap) || x.username.localeCompare(y.username));
+      return ok({ bulan, daftar: hasil });
     }
 
     default:
@@ -2173,7 +2674,7 @@ function itemBatch(r: TopupRow, nomor: number, nama: Map<string, string>) {
 // Supabase Edge Function: tof-vault
 // Actions: check | login | set_pin | register | deposit | reveal | ganti_pin | vault_status | update_profil
 //          + topup_* | tarik_* | admin_* (Nabung & Tarik) + pinjam_* | admin_pinjam_* (Pinjam ke diri sendiri)
-//          + dividen_* | admin_dividen_* (Dividen positif/negatif)
+//          + dividen_* | admin_dividen_* (Dividen positif/negatif) + tugas_* | admin_tugas_* | kontak_status (Tugas)
 // Semua balasan HTTP 200 dengan JSON { ok: boolean, ... }.
 //
 // Secrets yang harus di-set (supabase secrets set ...):
@@ -2431,7 +2932,114 @@ const repo: Repo = {
     return (rows || []).map((r) => r.profile_id);
   },
   async listKandidatProfil() {
-    return must(await db.from("profiles").select("id,username,pin_hash").limit(1000)) as Profile[];
+    return must(await db.from("profiles").select("id,username,pin_hash,real_name,bio,tanggal_lahir").limit(1000)) as Profile[];
+  },
+
+  // ---------------- Tugas ----------------
+  async listTugasDefinisi() {
+    return must(await db.from("tugas_definisi").select("*").limit(1000)) as TugasDefRow[];
+  },
+  async getTugasByKode(kode) {
+    return must(await db.from("tugas_definisi").select("*").eq("kode", kode).maybeSingle()) as TugasDefRow | null;
+  },
+  async insertTugasDefinisi(row) {
+    const { data, error } = await db.from("tugas_definisi").insert(row).select().single();
+    if (!error) return { result: "ok", row: data as TugasDefRow };
+    if (error.code === "23505") return { result: "duplicate" };
+    console.error("insertTugasDefinisi:", error.message);
+    return { result: "error" };
+  },
+  async updateTugasDefinisi(id, patch) {
+    return must(await db.from("tugas_definisi").update(patch).eq("id", id).select().maybeSingle()) as TugasDefRow | null;
+  },
+  async catatTugasHari(profileId, kode, periode, hari) {
+    const row = must(await db.from("tugas_catatan").select("*").eq("profile_id", profileId).eq("kode", kode).eq("periode", periode).maybeSingle()) as TugasCatatanRow | null;
+    const now = new Date().toISOString();
+    if (row) {
+      if (row.hari_terakhir === hari) return;
+      must(await db.from("tugas_catatan").update({ jumlah: Number(row.jumlah) + 1, hari_terakhir: hari, diubah: now }).eq("profile_id", profileId).eq("kode", kode).eq("periode", periode));
+    } else {
+      const { error } = await db.from("tugas_catatan").insert({ profile_id: profileId, kode, periode, jumlah: 1, hari_terakhir: hari, diubah: now });
+      if (error && error.code !== "23505") throw new Error(error.message);
+    }
+  },
+  async setTugasCatatan(profileId, kode, periode, jumlah, oleh) {
+    must(await db.from("tugas_catatan").upsert({ profile_id: profileId, kode, periode, jumlah, oleh, diubah: new Date().toISOString() }, { onConflict: "profile_id,kode,periode" }));
+  },
+  async tambahTugasCatatan(profileId, kode, periode, oleh) {
+    const row = must(await db.from("tugas_catatan").select("*").eq("profile_id", profileId).eq("kode", kode).eq("periode", periode).maybeSingle()) as TugasCatatanRow | null;
+    must(await db.from("tugas_catatan").upsert({ profile_id: profileId, kode, periode, jumlah: (row ? Number(row.jumlah) : 0) + 1, oleh, diubah: new Date().toISOString() }, { onConflict: "profile_id,kode,periode" }));
+  },
+  async listTugasCatatan(dari, sampai, profileId) {
+    const filter = sampai ? `periode.eq.-,and(periode.gte.${dari},periode.lte.${sampai})` : `periode.eq.-,periode.gte.${dari}`;
+    const q = db.from("tugas_catatan").select("*").or(filter);
+    const q2 = profileId ? q.eq("profile_id", profileId) : q;
+    return must(await q2.limit(5000)) as TugasCatatanRow[];
+  },
+  async hitungAksi(tabel, kolomUser, kolomWaktu, sinceIso, untilIso, profileId) {
+    // hanya tabel/kolom yang tercantum di AKSI_TABEL yang boleh dikueri
+    if (!Object.values(AKSI_TABEL).some((x) => x.tabel === tabel && x.kolom_user === kolomUser && x.kolom_waktu === kolomWaktu)) return null;
+    let q = db.from(tabel).select(kolomUser).gte(kolomWaktu, sinceIso);
+    if (untilIso) q = q.lt(kolomWaktu, untilIso);
+    if (profileId) q = q.eq(kolomUser, profileId);
+    const { data, error } = await q.limit(5000);
+    if (error) { console.error("hitungAksi " + tabel + ":", error.message); return null; }
+    const out: Record<string, number> = {};
+    for (const r of (data || []) as unknown as Record<string, unknown>[]) { const u = String(r[kolomUser]); out[u] = (out[u] || 0) + 1; }
+    return out;
+  },
+  async insertTugasKlaim(row) {
+    const { data, error } = await db.from("tugas_klaim").insert(row).select().single();
+    if (error) { console.error("insertTugasKlaim:", error.message); return { result: "error" }; }
+    return { result: "ok", row: data as TugasKlaimRow };
+  },
+  async getTugasKlaim(id) {
+    return must(await db.from("tugas_klaim").select("*").eq("id", id).maybeSingle()) as TugasKlaimRow | null;
+  },
+  async updateTugasKlaimIf(id, expect, patch) {
+    return must(await db.from("tugas_klaim").update(patch).eq("id", id).in("status", expect).select().maybeSingle()) as TugasKlaimRow | null;
+  },
+  async listTugasKlaim(status, limit) {
+    return must(await db.from("tugas_klaim").select("*").eq("status", status).order("dibuat", { ascending: true }).limit(limit)) as TugasKlaimRow[];
+  },
+  async listTugasKlaimByProfile(profileId, limit) {
+    return must(await db.from("tugas_klaim").select("*").eq("profile_id", profileId).order("dibuat", { ascending: false }).limit(limit)) as TugasKlaimRow[];
+  },
+  async insertKegiatan(row) {
+    const { data, error } = await db.from("tugas_kegiatan").insert(row).select().single();
+    if (!error) return { result: "ok", row: data as TugasKegiatanRow };
+    if (error.code === "23505") return { result: "duplicate" };
+    console.error("insertKegiatan:", error.message);
+    return { result: "error" };
+  },
+  async getKegiatan(id) {
+    return must(await db.from("tugas_kegiatan").select("*").eq("id", id).maybeSingle()) as TugasKegiatanRow | null;
+  },
+  async getKegiatanByKode(kodeHadir) {
+    return must(await db.from("tugas_kegiatan").select("*").eq("kode_hadir", kodeHadir).maybeSingle()) as TugasKegiatanRow | null;
+  },
+  async updateKegiatan(id, patch) {
+    must(await db.from("tugas_kegiatan").update(patch).eq("id", id));
+  },
+  async listKegiatan(limit) {
+    return must(await db.from("tugas_kegiatan").select("*").order("dibuat", { ascending: false }).limit(limit)) as TugasKegiatanRow[];
+  },
+  async insertKehadiran(kegiatanId, profileId) {
+    const { error } = await db.from("tugas_kehadiran").insert({ kegiatan_id: kegiatanId, profile_id: profileId });
+    if (!error) return "ok";
+    return error.code === "23505" ? "duplicate" : "error";
+  },
+  async getKontak(profileId) {
+    return must(await db.from("profil_kontak").select("*").eq("profile_id", profileId).maybeSingle()) as KontakRow | null;
+  },
+  async upsertKontak(profileId, patch) {
+    must(await db.from("profil_kontak").upsert({ profile_id: profileId, ...patch, diubah: new Date().toISOString() }, { onConflict: "profile_id" }));
+  },
+  async listKontak() {
+    return must(await db.from("profil_kontak").select("profile_id,email,no_hp").limit(1000)) as KontakRow[];
+  },
+  async listDividenItemStatus(status) {
+    return must(await db.from("dividen_item").select("*").eq("status", status).limit(1000)) as DividenItemRow[];
   },
 
   // ---------------- Penampungan & batch ----------------

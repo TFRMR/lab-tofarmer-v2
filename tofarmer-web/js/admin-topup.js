@@ -78,6 +78,17 @@
       case "kas_belum_diatur": return "Dompet pembayar belum diatur di server (secret PAYOUT_MNEMONIC).";
       case "batas_kirim_tidak_valid": return "Batas kirim tidak valid (bilangan bulat TOF; batas per transaksi tidak boleh melebihi batas harian).";
       case "konfirmasi_wajib": return "Perlu konfirmasi eksplisit.";
+      case "tugas_belum_selesai": return "Tugas yang menunggak belum selesai: " + ((res.kurang || []).join("; ") || "-") + ". Gunakan Lepas paksa bila pengurus memutuskan lain.";
+      case "belum_waktunya": return "Belum bisa dihanguskan: masa tahan masih " + (res.sisa_hari || 0) + " hari lagi.";
+      case "bulan_tidak_valid": return "Bulan tugas tidak valid.";
+      case "kode_tugas_tidak_valid": return "Kode tugas tidak valid. Contoh: manual:kerja_bakti, hadir:rapat, aksi:nama, fitur:/html/halaman.html.";
+      case "jenis_tidak_valid": return "Jenis tugas tidak valid.";
+      case "judul_wajib": return "Isi judulnya.";
+      case "target_tidak_valid": return "Target harus bilangan bulat 1–100 (minimal kelompok 1–20).";
+      case "status_tidak_valid": return "Status tugas tidak valid.";
+      case "url_tidak_valid": return "Tautan harus diawali garis miring, mis. /html/dompet.html.";
+      case "waktu_tidak_valid": return "Waktu kegiatan tidak valid (selesai harus setelah mulai, maksimal 3 hari).";
+      case "tugas_tidak_ditemukan": return "Tugas tidak ditemukan atau jenisnya tidak cocok.";
       case "label_wajib": return "Isi nama periode.";
       case "label_sudah_dipakai": return "Nama periode itu sudah dipakai. Pakai nama lain.";
       case "persen_tidak_valid": return "Persentase tidak valid (maksimal 100%, tidak boleh 0).";
@@ -192,6 +203,7 @@
     if (tab === "penarikan") return muatPenarikan();
     if (tab === "pinjaman") return muatPinjaman();
     if (tab === "dividen") return muatDividen();
+    if (tab === "tugas") return muatTugas();
     const res = await adm("admin_topup_daftar", { tampil: tab });
     if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
     state.modeKirim = res.mode_kirim || "tampung";
@@ -618,7 +630,7 @@
   // → centang/keluarkan peserta → Setujui (pengurus lain bila pengurus lebih dari satu) → Jalankan.
   // Positif: TOF dikirim dari dompet pembayar. Negatif: TOF ditarik otomatis dari dompet peserta (frasa dari brankas).
   const STATUS_DIV = { pratinjau: ["Pratinjau", "tunggu"], disetujui: ["Disetujui, siap dijalankan", "ok"], berjalan: ["Berjalan", "tunggu"], selesai: ["Selesai", "ok"], dibatalkan: ["Dibatalkan", "gagal"] };
-  const STATUS_ITEM_DIV = { menunggu: ["Menunggu", "tunggu"], mengirim: ["Mengirim", "tunggu"], selesai: ["Selesai", "ok"], gagal: ["Gagal", "gagal"], dilewati: ["Dilewati", ""] };
+  const STATUS_ITEM_DIV = { menunggu: ["Menunggu", "tunggu"], mengirim: ["Mengirim", "tunggu"], selesai: ["Selesai", "ok"], gagal: ["Gagal", "gagal"], dilewati: ["Dilewati", ""], ditahan: ["Ditahan", "tunggu"], hangus: ["Hangus", "gagal"] };
   const persenTeks = (bp) => (bp / 100).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + "%";
   const chipDiv = (peta, st) => { const [t, k] = peta[st] || [st, ""]; return el("span", { class: "chip " + k, text: t }); };
 
@@ -674,13 +686,22 @@
         if (!window.confirm("Hasil pengiriman tidak pasti. Pastikan di explorer TIDAK ADA transaksi untuk peserta ini sebelum mengulang. Lanjut?")) return;
         ulang(this, "admin_dividen_ulangi", { yakin: true });
       } }));
+    } else if (it.status === "ditahan") {
+      aksi.append(
+        el("button", { class: "btn utama", "data-aksi": "lepas", type: "button", style: "margin-top:0;", text: "Lepas (tugas selesai)", onclick: function () { ulang(this, "admin_dividen_lepas"); } }),
+        el("button", { class: "btn hijau", "data-aksi": "lepas-paksa", type: "button", text: "Lepas paksa", onclick: function () {
+          if (window.confirm("Lepas dividen @" + (it.username || "?") + " meski tugasnya belum lengkap? Ini kebijakan pengurus.")) ulang(this, "admin_dividen_lepas", { paksa: true });
+        } }),
+        el("button", { class: "btn merah", "data-aksi": "hanguskan", type: "button", text: "Hanguskan", onclick: function () {
+          if (window.confirm("Hanguskan dividen @" + (it.username || "?") + "? Dananya tetap di kas bersama dan tidak dikirim.")) ulang(this, "admin_dividen_hanguskan");
+        } }));
     }
     return k;
   }
 
   async function muatDividen() {
     const konten = $("konten");
-    const r = await adm("admin_dividen_lihat", {});
+    const r = await adm("admin_dividen_lihat", state.dividenId ? { periode_id: state.dividenId } : {});
     if (!r.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(r) })); return; }
     const anak = [];
     if (state.pesanHasil) { anak.push(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil })); state.pesanHasil = ""; }
@@ -690,9 +711,19 @@
       el("div", { class: "kecil", text: "Batas minus per periode: " + r.pengaturan.batas_minus_persen + "% · saldo minimum peserta: " + r.pengaturan.min_saldo_tof + " TOF (ubah di Pengaturan)" })));
 
     const p = r.periode;
+    if (state.dividenId) {
+      anak.push(el("button", { class: "btn abu", id: "btnKembaliDividen", type: "button", text: "← Kembali", onclick: () => { state.dividenId = ""; muatDividen(); } }));
+    } else if ((r.ditahan || []).length) {
+      anak.push(el("div", { class: "card", id: "kartuDitahan" },
+        el("div", { style: "font-weight:700;", text: "Dividen ditahan (tugas belum lengkap)" }),
+        ...r.ditahan.map((x) => el("div", { class: "baris", style: "margin-top:8px;" },
+          el("div", { class: "kecil", text: x.label + " · " + x.jumlah + " peserta · " + desimal(x.total_units) + " TOF" }),
+          el("button", { class: "btn hijau", "data-aksi": "buka-ditahan", type: "button", text: "Buka", onclick: () => { state.dividenId = x.periode_id; muatDividen(); } })))));
+    }
     if (!p) {
       const label = el("input", { class: "inp", id: "divLabel", maxlength: "40", value: new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" }) });
       const persen = el("input", { class: "inp", id: "divPersen", inputmode: "decimal", placeholder: "mis. 2,5 atau -1,5" });
+      const bulanTugas = el("input", { class: "inp", id: "divBulanTugas", type: "month", value: new Date().toISOString().slice(0, 7) });
       const galat = el("div", { class: "galat" });
       const btn = el("button", { class: "btn utama", id: "btnPratinjau", type: "button", text: "Hitung pratinjau" });
       btn.onclick = async () => {
@@ -701,7 +732,7 @@
         const bp = Math.round(n * 100);
         if (!Number.isFinite(n) || !bp) { galat.textContent = "Isi persentase, mis. 2,5 atau -1,5."; return; }
         btn.disabled = true; btn.textContent = "Menghitung dari saldo jaringan…";
-        const res = await adm("admin_dividen_pratinjau", { label: label.value.trim(), persen_bp: bp });
+        const res = await adm("admin_dividen_pratinjau", { label: label.value.trim(), persen_bp: bp, bulan_tugas: bp > 0 ? bulanTugas.value : "" });
         btn.disabled = false; btn.textContent = "Hitung pratinjau";
         if (!res.ok) { galat.textContent = pesan(res); return; }
         muatDividen();
@@ -710,6 +741,8 @@
         el("div", { style: "font-weight:700;" }, "Periode baru"),
         el("label", { class: "lbl", for: "divLabel", text: "Nama periode (tiap nama hanya sekali)" }), label,
         el("label", { class: "lbl", for: "divPersen", text: "Persentase dari saldo TOF peserta (negatif = koreksi minus)" }), persen,
+        el("label", { class: "lbl", for: "divBulanTugas", text: "Bulan yang tugasnya dinilai (hanya dividen positif)" }), bulanTugas,
+        el("div", { class: "kecil", text: "Peserta yang tugas wajib bulan itu belum lengkap dividennya DITAHAN. Dilepas setelah tugas selesai; bisa dihanguskan setelah masa tahan." }),
         el("div", { class: "kecil", text: "Dihitung dari saldo TOF di jaringan saat tombol ditekan (foto saldo), termasuk TOF yang dibekukan jaminan pinjaman. Pada koreksi minus hanya TOF bebas yang diambil." }),
         galat, btn));
     } else {
@@ -719,7 +752,7 @@
       anak.push(el("div", { class: "card", id: "kartuPeriode" },
         el("div", { class: "baris" }, el("div", { style: "font-weight:700;", text: p.label + " · " + persenTeks(p.persen_bp) }), chipDiv(STATUS_DIV, p.status)),
         el("div", { class: "total", text: (negatif ? "−" : "+") + desimal(negatif ? rg.total_potong_units : rg.total_bagi_units) + " TOF" }),
-        el("div", { class: "kecil", text: rg.peserta + " peserta · " + rg.dilewati + " dilewati (belum memenuhi syarat) · selesai " + rg.selesai + " · gagal " + rg.gagal + " · mengirim " + rg.mengirim }),
+        el("div", { class: "kecil", text: rg.peserta + " peserta · " + rg.dilewati + " dilewati (belum memenuhi syarat) · selesai " + rg.selesai + " · gagal " + rg.gagal + " · mengirim " + rg.mengirim + (rg.ditahan ? " · ditahan " + rg.ditahan + " (" + desimal(rg.total_ditahan_units) + " TOF)" : "") + (rg.hangus ? " · hangus " + rg.hangus : "") }),
         info));
       const aksiP = el("div", { class: "aksi" });
       const galatP = el("div", { class: "galat" });
@@ -741,10 +774,10 @@
             kerja(this, "admin_dividen_setujui", {}, "Periode disetujui. Tekan Jalankan untuk memulai.");
           } }),
           el("button", { class: "btn merah", "data-aksi": "batal", type: "button", text: "Batalkan", onclick: function () { if (window.confirm("Batalkan pratinjau ini?")) kerja(this, "admin_dividen_batal", {}, "Pratinjau dibatalkan."); } }));
-      } else if (p.status === "disetujui" || p.status === "berjalan") {
+      } else if (p.status === "disetujui" || p.status === "berjalan" || (p.status === "selesai" && rg.menunggu > 0)) {
         aksiP.append(
-          el("button", { class: "btn utama", "data-aksi": "jalankan", type: "button", style: "margin-top:0;", text: p.status === "berjalan" ? "Lanjutkan" : "▶ Jalankan sekarang", onclick: function () {
-            const teksKonfirm = negatif
+          el("button", { class: "btn utama", "data-aksi": "jalankan", type: "button", style: "margin-top:0;", text: p.status === "berjalan" ? "Lanjutkan" : p.status === "selesai" ? "Kirim yang menunggu" : "▶ Jalankan sekarang", onclick: function () {
+            const teksKonfirm = p.status === "selesai" ? "Kirim dividen kepada " + rg.menunggu + " peserta yang menunggu (dilepas dari penahanan atau diulang)?" : negatif
               ? "KOREKSI MINUS: TOF ditarik OTOMATIS dari dompet " + rg.peserta + " peserta, total " + desimal(rg.total_potong_units) + " TOF. Tidak bisa dibatalkan setelah berjalan. Lanjut?"
               : "Kirim dividen " + desimal(rg.total_bagi_units) + " TOF ke " + rg.peserta + " peserta dari dompet pembayar. Lanjut?";
             if (!window.confirm(teksKonfirm)) return;
@@ -758,8 +791,153 @@
     }
 
     anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", text: "Riwayat periode" }));
-    if (r.riwayat.length) anak.push(...r.riwayat.map((x) => el("div", { class: "card", "data-periode": x.id }, el("div", { class: "baris" }, el("div", { text: x.label + " · " + persenTeks(x.persen_bp) }), chipDiv(STATUS_DIV, x.status)), el("div", { class: "kecil", text: tgl(x.dibuat) }))));
+    if (r.riwayat.length) anak.push(...r.riwayat.map((x) => el("div", { class: "card", "data-periode": x.id }, el("div", { class: "baris" }, el("div", { text: x.label + " · " + persenTeks(x.persen_bp) }), chipDiv(STATUS_DIV, x.status)), el("div", { class: "baris" }, el("div", { class: "kecil", text: tgl(x.dibuat) }), el("button", { class: "btn abu", "data-aksi": "buka-periode", type: "button", text: "Buka", onclick: () => { state.dividenId = x.id; muatDividen(); } })))));
     else anak.push(el("div", { class: "kecil", style: "padding:8px 4px;", text: "Belum ada periode." }));
+    konten.replaceChildren(...anak);
+  }
+
+  // ---------------- Tugas ----------------
+  // Mengatur kewajiban ringan sebagai syarat dividen positif: katalog tugas (halaman/fitur baru terdaftar otomatis berstatus "baru"),
+  // rekap bulanan, centang manual, klaim anggota, dan kegiatan dengan kode hadir. Penilaian dilakukan server.
+  const JENIS_TUGAS = [["kunjungan", "Buka halaman"], ["aksi", "Tindakan"], ["sistem", "Sistem (dari keadaan akun)"], ["manual", "Manual / klaim"], ["hadir", "Kode hadir kegiatan"]];
+  const STATUS_TUGAS = [["baru", "Baru (belum dipakai)"], ["aktif", "Aktif"], ["nonaktif", "Nonaktif"]];
+  const opsiSel = (daftar, nilai) => { const s = el("select", { class: "inp" }, daftar.map(([v, t]) => el("option", { value: v, text: t }))); s.value = nilai; return s; };
+
+  function formTugas(def) {
+    const baru = !def;
+    const x = def || { kode: "", judul: "", jenis: "manual", target: 1, wajib: false, status: "aktif", bulanan: true, grup: "", grup_min: 1, url: "", urutan: 100, deskripsi: "" };
+    const f = {
+      kode: el("input", { class: "inp", value: x.kode, placeholder: "manual:kerja_bakti  /  hadir:rapat  /  aksi:nama  /  fitur:/html/x.html", disabled: baru ? null : "disabled" }),
+      judul: el("input", { class: "inp", value: x.judul, maxlength: "80" }),
+      deskripsi: el("input", { class: "inp", value: x.deskripsi || "", maxlength: "200" }),
+      jenis: opsiSel(JENIS_TUGAS, x.jenis), status: opsiSel(STATUS_TUGAS, x.status),
+      target: el("input", { class: "inp", inputmode: "numeric", value: String(x.target) }),
+      wajib: el("input", { type: "checkbox" }), bulanan: el("input", { type: "checkbox" }),
+      grup: el("input", { class: "inp", value: x.grup || "", maxlength: "30", placeholder: "mis. bergilir (kosongkan bila tidak berkelompok)" }),
+      grupMin: el("input", { class: "inp", inputmode: "numeric", value: String(x.grup_min || 1) }),
+      url: el("input", { class: "inp", value: x.url || "", placeholder: "/html/jurnal-olah-rasa.html" }),
+      urutan: el("input", { class: "inp", inputmode: "numeric", value: String(x.urutan ?? 100) }),
+    };
+    f.wajib.checked = !!x.wajib; f.bulanan.checked = x.bulanan !== false;
+    if (!baru) f.jenis.disabled = true;
+    const galat = el("div", { class: "galat" });
+    const btn = el("button", { class: "btn utama", "data-aksi": "simpan-tugas", type: "button", text: baru ? "Tambah tugas" : "Simpan" });
+    btn.onclick = async () => {
+      galat.textContent = ""; btn.disabled = true;
+      const res = await adm("admin_tugas_simpan", {
+        kode: f.kode.value.trim(), judul: f.judul.value.trim(), deskripsi: f.deskripsi.value.trim(), jenis: f.jenis.value, status: f.status.value,
+        target: Number(f.target.value), wajib: f.wajib.checked, bulanan: f.bulanan.checked, grup: f.grup.value.trim(),
+        grup_min: Number(f.grupMin.value), url: f.url.value.trim(), urutan: Number(f.urutan.value),
+      });
+      btn.disabled = false;
+      if (!res.ok) { galat.textContent = pesan(res); return; }
+      state.pesanHasil = "Tugas \"" + res.tugas.judul + "\" tersimpan."; muatTugas();
+    };
+    const lbl = (t, e, kecil) => [el("label", { class: "lbl", text: t }), e, kecil ? el("div", { class: "kecil", text: kecil }) : null];
+    return el("div", {},
+      ...lbl("Kode", f.kode), ...lbl("Judul", f.judul), ...lbl("Keterangan", f.deskripsi), ...lbl("Jenis", f.jenis),
+      ...lbl("Status", f.status, "Baru = terdaftar otomatis dari halaman yang dibuka anggota, belum dihitung. Aktif = dipakai."),
+      ...lbl("Target (jumlah hari/kali)", f.target),
+      el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.wajib, "Wajib (syarat dividen)"),
+      el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.bulanan, "Dihitung per bulan (kosongkan = sekali seumur hidup)"),
+      ...lbl("Kelompok bergilir", f.grup, "Tugas wajib dengan nama kelompok sama dinilai sebagai satu syarat: cukup \"min\" dari semuanya."),
+      ...lbl("Minimal dari kelompok", f.grupMin), ...lbl("Tautan tombol Kerjakan", f.url), ...lbl("Urutan", f.urutan),
+      galat, btn);
+  }
+
+  async function muatTugas() {
+    const konten = $("konten");
+    const [r, rk] = await Promise.all([adm("admin_tugas_lihat", {}), adm("admin_tugas_rekap", state.tugasBulan ? { bulan: state.tugasBulan } : {})]);
+    if (!r.ok || !rk.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(!r.ok ? r : rk) })); return; }
+    const anak = [];
+    if (state.pesanHasil) { anak.push(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil })); state.pesanHasil = ""; }
+
+    // ---- rekap bulan ----
+    const bulan = el("input", { class: "inp", id: "tugasBulan", type: "month", value: rk.bulan, onchange: function () { state.tugasBulan = this.value; muatTugas(); } });
+    const lengkap = rk.daftar.filter((x) => x.lengkap).length;
+    anak.push(el("div", { class: "card", id: "rekapTugas" },
+      el("div", { style: "font-weight:700;" }, "Rekap bulan"), bulan,
+      el("div", { class: "kecil", text: lengkap + " dari " + rk.daftar.length + " anggota lengkap. Yang belum lengkap, dividen positifnya ditahan. Masa tahan: " + r.masa_tahan_bulan + " bulan (ubah di app_settings: tugas_masa_tahan_bulan)." }),
+      el("details", {}, el("summary", { class: "kecil", text: "Lihat per anggota" }),
+        ...rk.daftar.map((x) => el("div", { class: "kecil", "data-anggota": x.profile_id, style: "padding:4px 0;border-top:1px solid rgba(0,0,0,.06);", text: (x.lengkap ? "✓ " : "○ ") + "@" + x.username + " (" + x.selesai + "/" + x.total + ")" + (x.lengkap ? "" : " — kurang: " + x.kurang.join("; ")) })))));
+
+    // ---- klaim menunggu ----
+    anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", id: "judulKlaim", text: "Klaim menunggu (" + r.klaim.length + ")" }));
+    if (!r.klaim.length) anak.push(el("div", { class: "kecil", style: "padding:8px 4px;", text: "Tidak ada klaim." }));
+    r.klaim.forEach((x) => {
+      const galat = el("div", { class: "galat" });
+      const proses = async (tombol, setuju) => {
+        tombol.disabled = true;
+        const res = await adm("admin_tugas_klaim_proses", { id: x.id, setuju });
+        tombol.disabled = false;
+        if (!res.ok) { galat.textContent = pesan(res); return; }
+        state.pesanHasil = "Klaim @" + x.username + " " + (setuju ? "disetujui." : "ditolak."); muatTugas();
+      };
+      anak.push(el("div", { class: "card", "data-klaim": x.id },
+        el("div", { style: "font-weight:700;", text: "@" + x.username + " · " + x.kode }),
+        el("div", { class: "kecil", text: "Periode " + x.periode + (x.catatan ? " · " + x.catatan : "") }),
+        el("div", { class: "aksi" },
+          el("button", { class: "btn utama", "data-aksi": "klaim-setuju", type: "button", style: "margin-top:0;", text: "✓ Setujui", onclick: function () { proses(this, true); } }),
+          el("button", { class: "btn merah", "data-aksi": "klaim-tolak", type: "button", text: "Tolak", onclick: function () { proses(this, false); } })), galat));
+    });
+
+    // ---- kegiatan dengan kode hadir ----
+    const tugasHadir = r.definisi.filter((x) => x.jenis === "hadir" && x.status === "aktif");
+    const jam = (ms) => { const d = new Date(ms); const p = (n) => String(n).padStart(2, "0"); return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + "T" + p(d.getHours()) + ":" + p(d.getMinutes()); };
+    const kJudul = el("input", { class: "inp", id: "kegJudul", maxlength: "80", placeholder: "mis. Rapat anggota Oktober" });
+    const kTugas = opsiSel(tugasHadir.map((x) => [x.kode, x.judul]), tugasHadir[0] ? tugasHadir[0].kode : "");
+    const kMulai = el("input", { class: "inp", id: "kegMulai", type: "datetime-local", value: jam(Date.now()) });
+    const kSelesai = el("input", { class: "inp", id: "kegSelesai", type: "datetime-local", value: jam(Date.now() + 2 * 3600000) });
+    const kGalat = el("div", { class: "galat" });
+    const kBtn = el("button", { class: "btn utama", id: "btnKegiatan", type: "button", text: "Buat kode hadir" });
+    kBtn.onclick = async () => {
+      kGalat.textContent = ""; kBtn.disabled = true;
+      const res = await adm("admin_tugas_kegiatan_buat", { judul: kJudul.value.trim(), kode_tugas: kTugas.value, mulai: new Date(kMulai.value).toISOString(), selesai: new Date(kSelesai.value).toISOString() });
+      kBtn.disabled = false;
+      if (!res.ok) { kGalat.textContent = pesan(res); return; }
+      state.pesanHasil = "Kode hadir \"" + res.kegiatan.judul + "\": " + res.kegiatan.kode_hadir + " — umumkan ke anggota."; muatTugas();
+    };
+    anak.push(el("div", { class: "card", id: "kartuKegiatan" },
+      el("div", { style: "font-weight:700;" }, "Kegiatan dengan kode hadir (tugas di luar web)"),
+      tugasHadir.length ? el("div", {}, el("label", { class: "lbl", text: "Judul kegiatan" }), kJudul, el("label", { class: "lbl", text: "Tugas yang terpenuhi" }), kTugas,
+        el("label", { class: "lbl", text: "Mulai" }), kMulai, el("label", { class: "lbl", text: "Selesai (maksimal 3 hari)" }), kSelesai, kGalat, kBtn)
+        : el("div", { class: "kecil", text: "Belum ada tugas berjenis \"Kode hadir kegiatan\" yang aktif. Tambahkan di Katalog di bawah (mis. kode hadir:rapat)." })));
+    r.kegiatan.forEach((g) => anak.push(el("div", { class: "card", "data-kegiatan": g.id },
+      el("div", { class: "baris" }, el("div", { style: "font-weight:700;", text: g.judul }), el("span", { class: "chip " + (g.aktif ? "ok" : ""), text: g.aktif ? "Aktif" : "Ditutup" })),
+      el("div", { class: "total mono", text: g.kode_hadir }),
+      el("div", { class: "kecil", text: tgl(g.mulai) + " → " + tgl(g.selesai) + " · " + g.kode_tugas }),
+      g.aktif ? el("div", { class: "aksi" }, el("button", { class: "btn abu", "data-aksi": "tutup-kegiatan", type: "button", text: "Tutup kode", onclick: async function () { this.disabled = true; await adm("admin_tugas_kegiatan_tutup", { id: g.id }); muatTugas(); } })) : null)));
+
+    // ---- centang manual ----
+    const manual = r.definisi.filter((x) => ["manual", "hadir"].includes(x.jenis) && x.status === "aktif");
+    if (manual.length) {
+      const pilih = opsiSel(manual.map((x) => [x.kode, x.judul]), manual[0].kode);
+      pilih.id = "centangTugas";
+      anak.push(el("div", { class: "card", id: "kartuCentang" },
+        el("div", { style: "font-weight:700;" }, "Centang manual (bulan " + rk.bulan + ")"), pilih,
+        ...rk.daftar.map((x) => {
+          const st = el("span", { class: "kecil" });
+          const kirim = async (ada) => {
+            const res = await adm("admin_tugas_centang", { anggota_id: x.profile_id, kode: pilih.value, bulan: rk.bulan, ada });
+            st.textContent = res.ok ? (ada ? "✓ tercatat" : "dicabut") : pesan(res);
+          };
+          return el("div", { class: "baris", "data-centang": x.profile_id, style: "padding:5px 0;border-top:1px solid rgba(0,0,0,.06);" },
+            el("div", { text: "@" + x.username }), el("div", {}, st,
+              el("button", { class: "btn hijau", "data-aksi": "centang", type: "button", style: "margin-left:6px;", text: "✓", onclick: () => kirim(true) }),
+              el("button", { class: "btn abu", "data-aksi": "cabut", type: "button", style: "margin-left:4px;", text: "✕", onclick: () => kirim(false) })));
+        })));
+    }
+
+    // ---- katalog tugas ----
+    const urut = { baru: 0, aktif: 1, nonaktif: 2 };
+    const katalog = r.definisi.slice().sort((a, b) => urut[a.status] - urut[b.status] || a.urutan - b.urutan);
+    anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", id: "judulKatalog", text: "Katalog tugas (" + katalog.length + ") · " + katalog.filter((x) => x.status === "baru").length + " baru menunggu keputusan" }));
+    anak.push(el("div", { class: "card" }, el("details", {}, el("summary", { style: "font-weight:700;", text: "+ Tambah tugas" }), formTugas(null))));
+    katalog.forEach((x) => anak.push(el("div", { class: "card", "data-tugas": x.kode },
+      el("details", {}, el("summary", {}, el("span", { style: "font-weight:700;", text: x.judul + " " }),
+        el("span", { class: "chip " + (x.status === "aktif" ? "ok" : x.status === "baru" ? "tunggu" : ""), text: x.status }),
+        x.wajib ? el("span", { class: "chip gagal", style: "margin-left:4px;", text: "wajib" }) : null,
+        el("div", { class: "kecil mono", text: x.kode + " · " + x.jenis + " · target " + x.target + (x.grup ? " · kelompok " + x.grup : "") })), formTugas(x)))));
     konten.replaceChildren(...anak);
   }
 
