@@ -2239,7 +2239,7 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
 //  selesai, atau dihanguskan setelah masa tahan (bawaan 3 bulan). Dividen minus tidak terkait tugas.
 // ============================================================
 export interface TugasDefRow {
-  id: string; kode: string; judul: string; deskripsi: string | null; jenis: string; target: number; wajib: boolean;
+  id: string; kode: string; judul: string; deskripsi: string | null; petunjuk: string | null; jenis: string; target: number; wajib: boolean;
   status: string; bulanan: boolean; grup: string | null; grup_min: number; url: string | null; urutan: number; dibuat: string;
 }
 export interface TugasCatatanRow { profile_id: string; kode: string; periode: string; jumlah: number; hari_terakhir: string | null; oleh: string | null; diubah: string }
@@ -2271,7 +2271,7 @@ const TIDAK_DICATAT = /admin|login|debug|diagnosa|celebrate|youtubedownloader|tr
 const JENIS_TUGAS = ["kunjungan", "aksi", "sistem", "manual", "hadir"];
 const MAKS_DEFINISI_OTOMATIS = 500;
 
-interface Persyaratan { kunci: string; judul: string; jenis: string; jumlah: number; target: number; ok: boolean; url: string | null; grup: string | null; wajib: boolean }
+interface Persyaratan { kunci: string; judul: string; deskripsi: string | null; petunjuk: string | null; jenis: string; jumlah: number; target: number; ok: boolean; url: string | null; grup: string | null; wajib: boolean }
 
 interface KonteksTugas {
   defs: TugasDefRow[]; bulan: string; sejak: boolean;
@@ -2323,7 +2323,7 @@ function evaluasiTugas(k: KonteksTugas, p: Profile, pinAman: boolean, tanpaSyara
   const wajib: Persyaratan[] = [], opsional: Persyaratan[] = [];
   const baris = (df: TugasDefRow): Persyaratan => {
     const jumlah = jumlahTugas(k, df, p, pinAman);
-    return { kunci: df.kode, judul: df.judul, jenis: df.jenis, jumlah, target: df.target, ok: jumlah >= df.target, url: df.url, grup: df.grup, wajib: df.wajib };
+    return { kunci: df.kode, judul: df.judul, deskripsi: df.deskripsi, petunjuk: df.petunjuk ?? null, jenis: df.jenis, jumlah, target: df.target, ok: jumlah >= df.target, url: df.url, grup: df.grup, wajib: df.wajib };
   };
   const grup = new Map<string, TugasDefRow[]>();
   for (const df of k.defs) {
@@ -2336,7 +2336,7 @@ function evaluasiTugas(k: KonteksTugas, p: Profile, pinAman: boolean, tanpaSyara
     const hasil = list.map(baris);
     const selesai = hasil.filter((x) => x.ok).length;
     const min = Math.min(Math.max(1, list[0].grup_min), list.length);
-    wajib.push({ kunci: "grup:" + nama, judul: "Pilih " + min + " dari: " + list.map((x) => x.judul).join(", "), jenis: "grup", jumlah: selesai, target: min, ok: selesai >= min, url: null, grup: nama, wajib: true });
+    wajib.push({ kunci: "grup:" + nama, judul: "Pilih " + min + " dari: " + list.map((x) => x.judul).join(", "), deskripsi: null, petunjuk: null, jenis: "grup", jumlah: selesai, target: min, ok: selesai >= min, url: null, grup: nama, wajib: true });
   }
   return { wajib, opsional };
 }
@@ -2367,7 +2367,7 @@ async function authSesi(body: Row, d: Deps): Promise<{ profile: Profile } | Gaga
 }
 
 function tampilTugasDef(x: TugasDefRow) {
-  return { id: x.id, kode: x.kode, judul: x.judul, deskripsi: x.deskripsi, jenis: x.jenis, target: x.target, wajib: x.wajib, status: x.status, bulanan: x.bulanan, grup: x.grup, grup_min: x.grup_min, url: x.url, urutan: x.urutan };
+  return { id: x.id, kode: x.kode, judul: x.judul, deskripsi: x.deskripsi, petunjuk: x.petunjuk ?? null, jenis: x.jenis, target: x.target, wajib: x.wajib, status: x.status, bulanan: x.bulanan, grup: x.grup, grup_min: x.grup_min, url: x.url, urutan: x.urutan };
 }
 
 // Tunggakan: tugas yang dahulu belum selesai (kunci tersimpan di item dividen) dan masih belum selesai sejak awal bulan tugas
@@ -2448,7 +2448,11 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
         batas.setUTCMonth(batas.getUTCMonth() + s.tugas_masa_tahan_bulan);
         ditahan.push({ item_id: it.id, label: per?.label || "", jumlah_units: it.jumlah_units, tugas_kurang: it.alasan, hangus_pada: batas.toISOString(), sisa_hari: Math.ceil((batas.getTime() - d.now()) / 86400000) });
       }
-      return ok({ bulan, wajib: ev.wajib, opsional: ev.opsional, lengkap: ev.wajib.every((x) => x.ok), ditahan, masa_tahan_bulan: s.tugas_masa_tahan_bulan });
+      return ok({
+        bulan, wajib: ev.wajib, opsional: ev.opsional, lengkap: ev.wajib.every((x) => x.ok), ditahan, masa_tahan_bulan: s.tugas_masa_tahan_bulan,
+        berikutnya: ev.wajib.find((x) => !x.ok) ?? null, // tugas yang ditampilkan di pop-up: satu per satu, urut sesuai 'urutan'
+        selesai: ev.wajib.filter((x) => x.ok).length, total: ev.wajib.length,
+      });
     }
 
     // ---- anggota (PIN): mengklaim tugas manual/hadir yang dikerjakan di luar web; menunggu persetujuan pengurus ----
@@ -2518,7 +2522,7 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (url && !url.startsWith("/")) return fail("url_tidak_valid");
       const grup = teks(body.grup, 30);
       const isi = {
-        kode, judul, deskripsi: teks(body.deskripsi, 200) || null, jenis, target, wajib: body.wajib === true, status,
+        kode, judul, deskripsi: teks(body.deskripsi, 200) || null, petunjuk: teks(body.petunjuk, 600) || null, jenis, target, wajib: body.wajib === true, status,
         bulanan: jenis === "sistem" ? false : body.bulanan !== false, grup: grup || null, grup_min: gmin, url: url || null, urutan: Number.isInteger(urut) ? urut : 100,
       };
       const ada = await d.repo.getTugasByKode(kode);

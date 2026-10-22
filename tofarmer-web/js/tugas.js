@@ -4,7 +4,8 @@
    1. mencatat kunjungan: halaman yang dibuka (sah setelah tab aktif ~20 detik, sekali sehari per halaman) dan "aktif hari ini",
       memakai token sesi bertanda tangan (tof_session) sehingga tidak bisa mengaku atas nama orang lain;
    2. mencatat tindakan penting: elemen dengan atribut data-tugas="aksi:kode" atau panggilan TofTugas.catat('aksi:kode');
-   3. menampilkan pop-up pengingat: tagihan pinjaman (bila ada) dan tugas bulan ini yang belum selesai.
+   3. menampilkan pop-up: setiap halaman Profil dibuka atau di-refresh muncul SATU tugas (langkah-langkahnya sederhana) yang bisa ditutup
+      dengan X; tagihan pinjaman (bila ada) didahulukan.
    Fitur/halaman baru cukup memuat skrip ini: otomatis muncul di katalog admin-topup → Tugas berstatus "baru".
    Tanpa login (tof_wallet/tof_session kosong) skrip tidak melakukan apa pun. */
 (function (global) {
@@ -13,7 +14,7 @@
   var doc = global.document;
   var SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
   var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
-  var K_WALLET = 'tof_wallet', K_SESI = 'tof_session', K_KIRIM = 'tof_tugas_kirim', K_POPUP = 'tof_tugas_popup', K_TAGIH = 'tof_tugas_tagih';
+  var K_WALLET = 'tof_wallet', K_SESI = 'tof_session', K_KIRIM = 'tof_tugas_kirim', K_TAGIH = 'tof_tugas_tagih';
   var DETIK_AKTIF = 20;
   var KECUALI = /admin|login|debug|diagnosa|celebrate|youtubedownloader|transfer-masal|titik-kumpul/;
 
@@ -89,75 +90,94 @@
   }
 
   // ---- 3. pop-up ----
-  function gaya(el, css) { el.style.cssText = css; return el; }
+  // Aturan: tugas ditampilkan SATU per satu (yang pertama belum selesai), bahasa sederhana + langkah-langkah, dan muncul setiap
+  // halaman Profil dibuka atau di-refresh (tidak dibatasi sehari sekali). Bila belum mau dikerjakan, cukup ditutup dengan tombol X.
+  function adaProfil() { return /^\/profile(\.html)?\/?$/.test(jalur()); }
   function buat(tag, css, teks) { var e = doc.createElement(tag); if (css) e.style.cssText = css; if (teks != null) e.textContent = teks; return e; }
-  function sheet(judul) {
-    var lapis = gaya(doc.createElement('div'), 'position:fixed;inset:0;background:rgba(16,25,20,.45);display:flex;align-items:flex-end;justify-content:center;z-index:2147483000;font-family:Inter,system-ui,sans-serif;');
-    var isi = gaya(doc.createElement('div'), 'width:100%;max-width:520px;max-height:88vh;overflow:auto;background:#fff;border-radius:22px 22px 0 0;padding:16px 16px 22px;color:#1c2b22;box-shadow:0 -10px 30px rgba(0,0,0,.2);');
-    isi.appendChild(buat('div', 'font-size:16px;font-weight:700;color:#2f6f4e;margin-bottom:8px;', judul));
-    lapis.appendChild(isi);
-    lapis.addEventListener('click', function (e) { if (e.target === lapis) lapis.remove(); });
+  function sheet(judul, setelah) {
+    var lapis = buat('div', 'position:fixed;inset:0;background:rgba(16,25,20,.5);display:flex;align-items:flex-end;justify-content:center;z-index:2147483000;font-family:Inter,system-ui,sans-serif;');
+    var isi = buat('div', 'width:100%;max-width:520px;max-height:90vh;overflow:auto;background:#fff;border-radius:22px 22px 0 0;padding:14px 18px 24px;color:#1c2b22;box-shadow:0 -10px 30px rgba(0,0,0,.25);');
+    var kepala = buat('div', 'display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;');
+    kepala.appendChild(buat('div', 'font-size:13px;font-weight:700;color:#2f6f4e;', judul));
+    var x = buat('button', 'width:40px;height:40px;border:none;border-radius:50%;background:#f0f3f1;color:#445;font-size:18px;cursor:pointer;flex:none;', '✕');
+    x.setAttribute('aria-label', 'Tutup'); x.setAttribute('data-tutup', '1');
+    var sudah = false;
+    function tutup() { if (sudah) return; sudah = true; lapis.remove(); if (setelah) setelah(); }
+    x.addEventListener('click', tutup);
+    kepala.appendChild(x); isi.appendChild(kepala); lapis.appendChild(isi);
+    lapis.addEventListener('click', function (e) { if (e.target === lapis) tutup(); });
     doc.body.appendChild(lapis);
-    return { isi: isi, tutup: function () { lapis.remove(); } };
+    return { isi: isi, tutup: tutup };
   }
   function tombol(teks, utama, aksi) {
-    var b = buat('button', 'width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;' +
-      (utama ? 'background:linear-gradient(90deg,#4caf7a,#c9a227);color:#fff;' : 'background:none;color:#6f7f76;'), teks);
+    var b = buat('button', 'width:100%;margin-top:12px;padding:15px;border:none;border-radius:16px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;' +
+      (utama ? 'background:linear-gradient(90deg,#4caf7a,#c9a227);color:#fff;' : 'background:none;color:#6f7f76;font-size:14px;padding:10px;'), teks);
     b.addEventListener('click', aksi); return b;
   }
   function rp(n) { return Number(n || 0).toLocaleString('id-ID'); }
 
-  function popupTagihan(t) {
-    var s = sheet('🔔 Tagihan pinjaman');
+  function popupTagihan(t, lanjut) {
+    var s = sheet('🔔 Tagihan pinjaman', lanjut);
     var telat = (t.terlambat_hari || 0) > 0;
-    s.isi.appendChild(buat('div', 'font-size:14px;font-weight:700;', telat ? 'Utangmu ke diri sendiri sudah telat ' + t.terlambat_hari + ' hari 😅' : 'Pinjamanmu jatuh tempo'));
-    s.isi.appendChild(buat('div', 'font-size:13px;color:#445;margin-top:6px;line-height:1.5;', 'Total Rp ' + rp(t.total_rp) + ' (pokok Rp ' + rp(t.pokok_rp) + ' + bunga Rp ' + rp(t.bunga_rp) + '). Bunganya kembali ke dompetmu sebagai TOF.'));
+    s.isi.appendChild(buat('div', 'font-size:18px;font-weight:700;line-height:1.3;', telat ? 'Utangmu ke diri sendiri sudah telat ' + t.terlambat_hari + ' hari 😅' : 'Pinjamanmu sudah jatuh tempo'));
+    s.isi.appendChild(buat('div', 'font-size:15px;color:#445;margin-top:8px;line-height:1.5;', 'Total Rp ' + rp(t.total_rp) + ' (pokok Rp ' + rp(t.pokok_rp) + ' + bunga Rp ' + rp(t.bunga_rp) + '). Bunganya kembali ke dompetmu sebagai TOF.'));
     s.isi.appendChild(tombol('Buka Dompet untuk melunasi', true, function () { global.location.href = '/html/dompet.html'; }));
-    s.isi.appendChild(tombol('Nanti dulu', false, s.tutup));
+    s.isi.appendChild(tombol('Nanti saja', false, s.tutup));
   }
 
+  // Satu tugas: judul besar, keterangan, langkah bernomor, satu tombol besar
   function popupTugas(r) {
-    var belum = (r.wajib || []).filter(function (x) { return !x.ok; });
-    var s = sheet('🌱 Tugas bulan ini');
-    var total = (r.wajib || []).length;
-    s.isi.appendChild(buat('div', 'font-size:13px;color:#445;line-height:1.5;', (total - belum.length) + ' dari ' + total + ' tugas wajib selesai. Tugas yang belum lengkap membuat dividen ditahan.'));
-    (r.ditahan || []).forEach(function (x) {
-      s.isi.appendChild(buat('div', 'margin-top:8px;padding:8px 10px;background:#fff4d6;border-radius:10px;font-size:12px;color:#7a5d00;line-height:1.4;',
-        'Dividen ' + x.label + ' ditahan (' + (x.jumlah_units / 1e6) + ' TOF). ' + x.tugas_kurang + (x.sisa_hari > 0 ? ' Hangus dalam ' + x.sisa_hari + ' hari.' : '')));
-    });
-    belum.slice(0, 6).forEach(function (x) {
-      var baris = buat('div', 'display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;border-top:1px solid rgba(0,0,0,.07);font-size:13px;');
-      baris.appendChild(buat('div', 'flex:1;min-width:0;', x.judul + (x.target > 1 ? ' (' + x.jumlah + '/' + x.target + ')' : '')));
-      if (x.url) {
-        var a = buat('a', 'background:#eef7f1;color:#2f6f4e;text-decoration:none;border-radius:10px;padding:7px 12px;font-size:12px;font-weight:700;white-space:nowrap;', 'Kerjakan');
-        a.href = x.url; baris.appendChild(a);
+    var x = r.berikutnya;
+    var s = sheet(x ? '🌱 Tugas untukmu (' + Math.min((r.selesai || 0) + 1, r.total || 1) + ' dari ' + (r.total || 1) + ')' : '🌱 Tugas');
+    if (x) {
+      var bar = buat('div', 'height:8px;background:#eef2ef;border-radius:8px;overflow:hidden;margin:2px 0 12px;');
+      bar.appendChild(buat('div', 'height:100%;background:linear-gradient(90deg,#4caf7a,#c9a227);width:' + Math.round(((r.selesai || 0) * 100) / Math.max(r.total || 1, 1)) + '%;'));
+      s.isi.appendChild(bar);
+      s.isi.appendChild(buat('div', 'font-size:21px;font-weight:800;line-height:1.25;color:#1c2b22;', x.judul));
+      if (x.deskripsi) s.isi.appendChild(buat('div', 'font-size:15px;color:#445;margin-top:8px;line-height:1.5;', x.deskripsi));
+      if (x.target > 1) s.isi.appendChild(buat('div', 'font-size:14px;font-weight:700;color:#2f6f4e;margin-top:8px;', 'Baru ' + (x.jumlah || 0) + ' dari ' + x.target + '.'));
+      var langkah = String(x.petunjuk || '').split('\n').filter(function (l) { return l.trim(); });
+      if (langkah.length) {
+        s.isi.appendChild(buat('div', 'font-size:14px;font-weight:700;margin-top:14px;', 'Caranya:'));
+        var ol = buat('ol', 'margin:6px 0 0;padding-left:22px;font-size:15px;line-height:1.7;');
+        langkah.forEach(function (l) { ol.appendChild(buat('li', '', l.trim())); });
+        s.isi.appendChild(ol);
       }
-      s.isi.appendChild(baris);
+      if (x.url) {
+        var di = jalur() === String(x.url).toLowerCase();
+        s.isi.appendChild(tombol(di ? 'Oke, mengerti' : 'Kerjakan sekarang', true, function () { if (di) s.tutup(); else global.location.href = x.url; }));
+      } else {
+        s.isi.appendChild(buat('div', 'font-size:14px;color:#6f7f76;margin-top:12px;', 'Tugas ini diurus bersama pengurus. Tanyakan caranya ke pengurus.'));
+      }
+    }
+    (r.ditahan || []).forEach(function (d) {
+      s.isi.appendChild(buat('div', 'margin-top:14px;padding:10px 12px;background:#fff4d6;border-radius:12px;font-size:13px;color:#7a5d00;line-height:1.45;',
+        'Dividen ' + d.label + ' (' + (d.jumlah_units / 1e6) + ' TOF) sedang ditahan sampai tugasmu selesai.' + (d.sisa_hari > 0 ? ' Hangus dalam ' + d.sisa_hari + ' hari.' : '')));
     });
-    if (belum.length > 6) s.isi.appendChild(buat('div', 'font-size:12px;color:#6f7f76;padding-top:6px;', '+' + (belum.length - 6) + ' tugas lain di kartu Tugas pada Dompet.'));
-    s.isi.appendChild(tombol('Buka Dompet', true, function () { global.location.href = '/html/dompet.html'; }));
-    s.isi.appendChild(tombol('Nanti dulu', false, s.tutup));
+    s.isi.appendChild(tombol('Nanti saja', false, s.tutup));
   }
 
-  // Satu pop-up per halaman: tagihan pinjaman (paling lama sejam sekali per perangkat) didahulukan, lalu tugas (sekali sehari)
+  function tampilTugas(a) {
+    panggil('tugas_status', { profile_id: a.id }).then(function (r) {
+      if (!r || !r.ok) return;
+      if (!r.berikutnya && !(r.ditahan || []).length) return; // semua beres: tidak ada yang perlu ditampilkan
+      popupTugas(r);
+    });
+  }
+
+  // Profil dibuka/di-refresh -> tagihan pinjaman (bila ada) lalu SATU tugas. Halaman lain: hanya tagihan pinjaman (paling sering sekali sejam).
   function mulaiPopup() {
     var a = anggota();
     if (!a || !bolehHalaman() || adaDompet()) return; // Dompet punya kartu tersendiri
+    var profil = adaProfil();
     global.setTimeout(function () {
-      var jam = Number(baca(K_TAGIH) || 0);
-      var tagih = Date.now() - jam > 3600000
-        ? panggil('pinjam_tagihan', { profile_id: a.id }) : Promise.resolve({ ok: false });
-      tagih.then(function (r) {
-        if (r && r.ok && r.tagihan) { tulis(K_TAGIH, String(Date.now())); popupTagihan(r.tagihan); return; }
-        if (baca(K_POPUP) === hari()) return;
-        panggil('tugas_status', { profile_id: a.id }).then(function (s) {
-          if (!s || !s.ok) return;
-          var belum = (s.wajib || []).some(function (x) { return !x.ok; });
-          if (!belum && !(s.ditahan || []).length) return;
-          tulis(K_POPUP, hari()); popupTugas(s);
-        });
+      var perlu = profil || Date.now() - Number(baca(K_TAGIH) || 0) > 3600000;
+      (perlu ? panggil('pinjam_tagihan', { profile_id: a.id }) : Promise.resolve({ ok: false })).then(function (r) {
+        var lanjut = function () { if (profil) tampilTugas(a); };
+        if (r && r.ok && r.tagihan) { tulis(K_TAGIH, String(Date.now())); popupTagihan(r.tagihan, lanjut); return; }
+        lanjut();
       });
-    }, 4000);
+    }, profil ? 1200 : 4000);
   }
 
   global.TofTugas = { catat: function (kode) { catat([{ kode: kode }]); } };

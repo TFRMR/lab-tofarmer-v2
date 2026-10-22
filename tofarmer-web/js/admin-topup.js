@@ -810,6 +810,7 @@
       kode: el("input", { class: "inp", value: x.kode, placeholder: "manual:kerja_bakti  /  hadir:rapat  /  aksi:nama  /  fitur:/html/x.html", disabled: baru ? null : "disabled" }),
       judul: el("input", { class: "inp", value: x.judul, maxlength: "80" }),
       deskripsi: el("input", { class: "inp", value: x.deskripsi || "", maxlength: "200" }),
+      petunjuk: el("textarea", { class: "inp", rows: "4", maxlength: "600", placeholder: "Satu langkah per baris, bahasa sederhana. Tampil di pop-up sebagai Caranya." }),
       jenis: opsiSel(JENIS_TUGAS, x.jenis), status: opsiSel(STATUS_TUGAS, x.status),
       target: el("input", { class: "inp", inputmode: "numeric", value: String(x.target) }),
       wajib: el("input", { type: "checkbox" }), bulanan: el("input", { type: "checkbox" }),
@@ -818,14 +819,14 @@
       url: el("input", { class: "inp", value: x.url || "", placeholder: "/html/jurnal-olah-rasa.html" }),
       urutan: el("input", { class: "inp", inputmode: "numeric", value: String(x.urutan ?? 100) }),
     };
-    f.wajib.checked = !!x.wajib; f.bulanan.checked = x.bulanan !== false;
+    f.wajib.checked = !!x.wajib; f.bulanan.checked = x.bulanan !== false; f.petunjuk.value = x.petunjuk || "";
     if (!baru) f.jenis.disabled = true;
     const galat = el("div", { class: "galat" });
     const btn = el("button", { class: "btn utama", "data-aksi": "simpan-tugas", type: "button", text: baru ? "Tambah tugas" : "Simpan" });
     btn.onclick = async () => {
       galat.textContent = ""; btn.disabled = true;
       const res = await adm("admin_tugas_simpan", {
-        kode: f.kode.value.trim(), judul: f.judul.value.trim(), deskripsi: f.deskripsi.value.trim(), jenis: f.jenis.value, status: f.status.value,
+        kode: f.kode.value.trim(), judul: f.judul.value.trim(), deskripsi: f.deskripsi.value.trim(), petunjuk: f.petunjuk.value.trim(), jenis: f.jenis.value, status: f.status.value,
         target: Number(f.target.value), wajib: f.wajib.checked, bulanan: f.bulanan.checked, grup: f.grup.value.trim(),
         grup_min: Number(f.grupMin.value), url: f.url.value.trim(), urutan: Number(f.urutan.value),
       });
@@ -835,7 +836,7 @@
     };
     const lbl = (t, e, kecil) => [el("label", { class: "lbl", text: t }), e, kecil ? el("div", { class: "kecil", text: kecil }) : null];
     return el("div", {},
-      ...lbl("Kode", f.kode), ...lbl("Judul", f.judul), ...lbl("Keterangan", f.deskripsi), ...lbl("Jenis", f.jenis),
+      ...lbl("Kode", f.kode), ...lbl("Judul", f.judul), ...lbl("Keterangan", f.deskripsi), ...lbl("Petunjuk untuk anggota (Caranya)", f.petunjuk, "Satu langkah per baris. Pop-up menampilkannya bernomor."), ...lbl("Jenis", f.jenis),
       ...lbl("Status", f.status, "Baru = terdaftar otomatis dari halaman yang dibuka anggota, belum dihitung. Aktif = dipakai."),
       ...lbl("Target (jumlah hari/kali)", f.target),
       el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.wajib, "Wajib (syarat dividen)"),
