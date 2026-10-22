@@ -752,7 +752,7 @@
       anak.push(el("div", { class: "card", id: "kartuPeriode" },
         el("div", { class: "baris" }, el("div", { style: "font-weight:700;", text: p.label + " · " + persenTeks(p.persen_bp) }), chipDiv(STATUS_DIV, p.status)),
         el("div", { class: "total", text: (negatif ? "−" : "+") + desimal(negatif ? rg.total_potong_units : rg.total_bagi_units) + " TOF" }),
-        el("div", { class: "kecil", text: rg.peserta + " peserta · " + rg.dilewati + " dilewati (belum memenuhi syarat) · selesai " + rg.selesai + " · gagal " + rg.gagal + " · mengirim " + rg.mengirim + (rg.ditahan ? " · ditahan " + rg.ditahan + " (" + desimal(rg.total_ditahan_units) + " TOF)" : "") + (rg.hangus ? " · hangus " + rg.hangus : "") }),
+        el("div", { class: "kecil", text: rg.peserta + " peserta · " + rg.dilewati + " dilewati (belum opt-in TOF, saldo kurang, atau koreksi minus tanpa frasa) · selesai " + rg.selesai + " · gagal " + rg.gagal + " · mengirim " + rg.mengirim + (rg.ditahan ? " · ditahan " + rg.ditahan + " (" + desimal(rg.total_ditahan_units) + " TOF)" : "") + (rg.hangus ? " · hangus " + rg.hangus : "") }),
         info));
       const aksiP = el("div", { class: "aksi" });
       const galatP = el("div", { class: "galat" });

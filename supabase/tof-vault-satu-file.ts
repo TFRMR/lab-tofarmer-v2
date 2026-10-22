@@ -2004,15 +2004,24 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       const punyaVault = new Set(vaultIds);
       const sj = new Map(setuju.map((x) => [x.profile_id, x]));
 
-      type Hasil = { p: Profile; alasan: string };
+      type Hasil = { p: Profile; alasan: string; syarat: { kunci: string; teks: string }[] };
       const awal: Hasil[] = [];
       for (const p of kandidat) {
         let alasan = "";
-        if (!punyaVault.has(p.id)) alasan = "Belum menitip frasa";
-        else if (!sj.get(p.id)) alasan = "Belum menyetujui dividen";
-        else if (arah === "potong" && sj.get(p.id)!.batas_minus_bp < -bp) alasan = "Persetujuan hanya sampai minus " + sj.get(p.id)!.batas_minus_bp / 100 + "%";
-        else if (pinPublikAktif(p, await d.repo.getPin(p.id))) alasan = "PIN belum diamankan";
-        awal.push({ p, alasan });
+        const syarat: { kunci: string; teks: string }[] = [];
+        if (arah === "bagi") {
+          // Dividen POSITIF: syarat dasar yang belum dipenuhi membuat dividen DITAHAN (jumlah tercatat, bisa dilepas setelah dipenuhi), bukan hilang
+          if (!punyaVault.has(p.id)) syarat.push({ kunci: "sistem:titip_frasa", teks: "Belum menitip frasa" });
+          if (!sj.get(p.id)) syarat.push({ kunci: "sistem:setuju_dividen", teks: "Belum menyetujui aturan dividen" });
+          if (pinPublikAktif(p, await d.repo.getPin(p.id))) syarat.push({ kunci: "sistem:pin_aman", teks: "PIN belum diamankan" });
+        } else {
+          // Koreksi MINUS: tanpa frasa/persetujuan/PIN aman server tidak boleh menarik dari dompet, jadi dilewati
+          if (!punyaVault.has(p.id)) alasan = "Belum menitip frasa";
+          else if (!sj.get(p.id)) alasan = "Belum menyetujui dividen";
+          else if (sj.get(p.id)!.batas_minus_bp < -bp) alasan = "Persetujuan hanya sampai minus " + sj.get(p.id)!.batas_minus_bp / 100 + "%";
+          else if (pinPublikAktif(p, await d.repo.getPin(p.id))) alasan = "PIN belum diamankan";
+        }
+        awal.push({ p, alasan, syarat });
       }
 
       const barisItem: Record<string, unknown>[] = [];
@@ -2031,7 +2040,10 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
               if (jumlah > bebas) { kurang = jumlah - bebas; jumlah = bebas; }
             }
             if (jumlah <= 0n) { x.alasan = arah === "bagi" ? "Dividen kurang dari 1 unit TOF" : "Tidak ada TOF bebas untuk dipotong"; return; }
-            barisItem.push({ profile_id: x.p.id, username: x.p.username, saldo_units: Number(ac.tof), terkunci_units: Number(kunci), arah, jumlah_units: Number(jumlah), kurang_units: Number(kurang), ikut: true, status: "menunggu", alasan: null });
+            barisItem.push({ profile_id: x.p.id, username: x.p.username, saldo_units: Number(ac.tof), terkunci_units: Number(kunci), arah, jumlah_units: Number(jumlah), kurang_units: Number(kurang), ikut: true,
+              ...(x.syarat.length
+                ? { status: "ditahan", alasan: "Syarat belum lengkap: " + x.syarat.map((y) => y.teks).join("; "), tugas_kurang: x.syarat.map((y) => y.kunci).join("|"), ditahan_pada: iso(d.now()) }
+                : { status: "menunggu", alasan: null }) });
           } catch (e) {
             console.error("saldo dividen:", e);
             x.alasan = "Gagal membaca saldo dari jaringan";
@@ -2046,13 +2058,16 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
         const peta = new Map(kandidat.map((p) => [p.id, p]));
         const sekarangIso = iso(d.now());
         for (const x of barisItem) {
-          if (x.status !== "menunggu") continue;
+          if (x.status !== "menunggu" && x.status !== "ditahan") continue; // 'ditahan' karena syarat dasar: tugas bulanan yang kurang ditambahkan
           const p = peta.get(String(x.profile_id));
           if (!p) continue;
-          const kurang = evaluasiTugas(k, p, true, true).wajib.filter((y) => !y.ok); // peserta layak sudah pasti PIN-nya aman
+          const sudah = String(x.tugas_kurang || "").split("|").filter(Boolean);
+          const kurang = evaluasiTugas(k, p, !sudah.includes("sistem:pin_aman"), true).wajib.filter((y) => !y.ok && !sudah.includes(y.kunci));
           if (kurang.length) {
-            x.status = "ditahan"; x.tugas_kurang = kurang.map((y) => y.kunci).join("|");
-            x.alasan = "Tugas belum selesai: " + kurang.map((y) => y.judul).join("; "); x.ditahan_pada = sekarangIso;
+            x.alasan = [x.status === "ditahan" ? String(x.alasan || "") : "", "Tugas belum selesai: " + kurang.map((y) => y.judul).join("; ")].filter(Boolean).join(". ");
+            x.tugas_kurang = sudah.concat(kurang.map((y) => y.kunci)).join("|");
+            x.ditahan_pada = x.ditahan_pada || sekarangIso;
+            x.status = "ditahan";
           }
         }
       }
@@ -2370,15 +2385,24 @@ function tampilTugasDef(x: TugasDefRow) {
   return { id: x.id, kode: x.kode, judul: x.judul, deskripsi: x.deskripsi, petunjuk: x.petunjuk ?? null, jenis: x.jenis, target: x.target, wajib: x.wajib, status: x.status, bulanan: x.bulanan, grup: x.grup, grup_min: x.grup_min, url: x.url, urutan: x.urutan };
 }
 
-// Tunggakan: tugas yang dahulu belum selesai (kunci tersimpan di item dividen) dan masih belum selesai sejak awal bulan tugas
+// Tunggakan: syarat dasar (frasa, persetujuan, PIN aman) dan tugas yang dahulu belum selesai (kunci tersimpan di item dividen)
+// dan masih belum terpenuhi sekarang. Tugas bulanan dihitung sejak awal bulan tugas.
+const JUDUL_SYARAT: Record<string, string> = { "sistem:titip_frasa": "Simpan frasa dompetmu", "sistem:setuju_dividen": "Setujui aturan dividen", "sistem:pin_aman": "Buat PIN baru yang aman" };
 async function tunggakanTugas(it: DividenItemRow, p: DividenPeriodeRow, d: Deps): Promise<string[]> {
   const kunci = (it.tugas_kurang || "").split("|").filter(Boolean);
-  if (kunci.length === 0 || !p.bulan_tugas) return [];
+  if (kunci.length === 0) return [];
   const profil = await d.repo.findProfileById(it.profile_id);
   if (!profil) return kunci;
-  const k = await siapkanKonteks(d, p.bulan_tugas, true, it.profile_id);
-  const ev = evaluasiTugas(k, profil, await pinAmanDari(profil, d), true);
-  return ev.wajib.filter((x) => kunci.includes(x.kunci) && !x.ok).map((x) => x.judul);
+  const k = await siapkanKonteks(d, p.bulan_tugas || bulanWib(d.now()), true, it.profile_id);
+  const pinAman = await pinAmanDari(profil, d);
+  const ev = evaluasiTugas(k, profil, pinAman, false);
+  const belum: string[] = [];
+  for (const key of kunci) {
+    if (JUDUL_SYARAT[key]) { if (!sistemOk(key, k, profil, pinAman)) belum.push(JUDUL_SYARAT[key]); continue; }
+    const r = ev.wajib.find((x) => x.kunci === key);
+    if (r && !r.ok) belum.push(r.judul);
+  }
+  return belum;
 }
 
 function kodeAcak(n: number): string {

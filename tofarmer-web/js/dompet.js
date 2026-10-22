@@ -1293,10 +1293,10 @@
     const siap = dividenSiap();
     let teks;
     if (siap) teks = "Kamu peserta dividen. Dividen positif masuk ke dompet ini. Bila hasil investasi minus, TOF ditarik otomatis dari dompet ini, maksimal " + s.batas_minus_persen + "% per periode.";
-    else if (s.pin_publik) teks = "Amankan akunmu dulu: buat PIN dompet baru di menu Frasa. Tanpa itu kamu belum ikut dividen.";
-    else if (!s.has_vault) teks = "Wajib menitip frasa dulu, lalu menyetujui aturan dividen. Tanpa itu kamu belum ikut dividen.";
+    else if (s.pin_publik) teks = "Amankan akunmu dulu: buat PIN dompet baru di menu Frasa. Selama belum selesai, dividenmu ditahan (tidak hilang).";
+    else if (!s.has_vault) teks = "Wajib menitip frasa dulu, lalu menyetujui aturan dividen. Selama belum selesai, dividenmu ditahan (tidak hilang).";
     else if (s.perlu_perbarui) teks = "Batas koreksi minus naik menjadi " + s.batas_sekarang_persen + "%. Setujui ulang supaya tetap ikut dividen.";
-    else teks = "Setujui aturan dividen supaya ikut dibagi. Tanpa itu kamu belum ikut dividen.";
+    else teks = "Setujui aturan dividen supaya ikut dibagi. Selama belum selesai, dividenmu ditahan (tidak hilang).";
     $("dividenInfo").textContent = teks;
     $("btnDividen").hidden = siap;
     $("btnDividenCabut").hidden = !s.setuju;
@@ -1377,7 +1377,7 @@
     sh.ganti(
       el("div", { class: "sukses", id: "popupDividen" },
         el("div", { class: "ikon", text: "🌱" }),
-        el("div", { class: "judul", text: "Kamu belum ikut dividen" }),
+        el("div", { class: "judul", text: "Ayo siapkan dividenmu" }),
         el("div", { class: "sub", text: s.pin_publik ? "Amankan akunmu dulu dengan PIN baru di menu Frasa." : !s.has_vault ? "Titip frasa dulu, lalu setujui aturan dividen. Dompet ini khusus untuk keperluan ToFarmer." : "Setujui aturan dividen supaya ikut dibagi." })),
       el("button", { class: "btn utama", id: "btnLanjutDividen", text: "Atur sekarang", onclick: () => { sh.tutup(); if (s.pin_publik || !s.has_vault) panelFrasa(); else panelSetujuDividen(); } }),
       el("button", { class: "btn teks", text: "Nanti dulu", onclick: sh.tutup })
