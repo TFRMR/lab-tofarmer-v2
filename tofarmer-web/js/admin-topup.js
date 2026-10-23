@@ -89,6 +89,8 @@
       case "url_tidak_valid": return "Tautan harus diawali garis miring, mis. /html/dompet.html.";
       case "waktu_tidak_valid": return "Waktu kegiatan tidak valid (selesai harus setelah mulai, maksimal 3 hari).";
       case "tugas_tidak_ditemukan": return "Tugas tidak ditemukan atau jenisnya tidak cocok.";
+      case "tidak_bisa_dihapus": return "Tugas bawaan, sistem, dan halaman tidak dihapus karena akan terdaftar lagi otomatis. Arsipkan saja.";
+      case "masih_dipakai": return "Tugas ini masih mengikat " + (res.jumlah || 0) + " dividen yang ditahan. Arsipkan saja, atau lepas/hanguskan dulu dividen itu.";
       case "label_wajib": return "Isi nama periode.";
       case "label_sudah_dipakai": return "Nama periode itu sudah dipakai. Pakai nama lain.";
       case "persen_tidak_valid": return "Persentase tidak valid (maksimal 100%, tidak boleh 0).";
@@ -929,16 +931,62 @@
         })));
     }
 
-    // ---- katalog tugas ----
-    const urut = { baru: 0, aktif: 1, nonaktif: 2 };
-    const katalog = r.definisi.slice().sort((a, b) => urut[a.status] - urut[b.status] || a.urutan - b.urutan);
-    anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", id: "judulKatalog", text: "Katalog tugas (" + katalog.length + ") · " + katalog.filter((x) => x.status === "baru").length + " baru menunggu keputusan" }));
+    // ---- halaman baru terdeteksi: belum dihitung, pengurus memilih Jadikan tugas atau Abaikan ----
+    const baru = r.definisi.filter((x) => x.status === "baru");
+    const simpanStatus = async (x, status, galatEl) => {
+      const res = await adm("admin_tugas_simpan", { kode: x.kode, judul: x.judul, deskripsi: x.deskripsi || "", petunjuk: x.petunjuk || "", jenis: x.jenis, status, target: x.target, wajib: x.wajib, bulanan: x.bulanan, grup: x.grup || "", grup_min: x.grup_min, url: x.url || "", urutan: x.urutan });
+      if (!res.ok) { if (galatEl) galatEl.textContent = pesan(res); return false; }
+      return true;
+    };
+    const otomatis = el("input", { type: "checkbox", id: "setOtomatis" }); otomatis.checked = !!r.daftar_otomatis;
+    otomatis.onchange = async function () {
+      const res = await adm("admin_pengaturan_simpan", { tugas_daftar_otomatis: this.checked });
+      state.pesanHasil = res.ok ? "Pendaftaran halaman baru otomatis: " + (this.checked ? "AKTIF." : "MATI.") : pesan(res); muatTugas();
+    };
+    anak.push(el("div", { class: "card", id: "kartuBaru" },
+      el("div", { style: "font-weight:700;", text: "Halaman baru terdeteksi (" + baru.length + ")" }),
+      el("div", { class: "kecil", text: "Otomatis terdaftar saat anggota membuka sebuah halaman, satu baris per halaman. Belum dihitung sebagai tugas. Pilih Jadikan tugas bila mau dipakai, atau Abaikan." }),
+      el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, otomatis, "Daftarkan halaman baru otomatis (matikan bila daftar sudah cukup)"),
+      baru.length ? el("div", { class: "aksi" }, el("button", { class: "btn abu", "data-aksi": "abaikan-semua", type: "button", text: "Abaikan semua (" + baru.length + ")", onclick: async function () {
+        if (!window.confirm("Abaikan " + baru.length + " halaman baru? Halaman yang diabaikan tidak dihitung dan tidak muncul lagi sebagai baru.")) return;
+        this.disabled = true; const res = await adm("admin_tugas_abaikan_baru", {});
+        state.pesanHasil = res.ok ? res.diabaikan + " halaman diabaikan." : pesan(res); muatTugas();
+      } })) : null,
+      ...baru.map((x) => {
+        const galat = el("div", { class: "galat" });
+        const ubah = (status, pesanOk) => async function () { this.disabled = true; if (await simpanStatus(x, status, galat)) { state.pesanHasil = pesanOk; muatTugas(); } else this.disabled = false; };
+        return el("div", { "data-baru": x.kode, style: "padding:6px 0;border-top:1px solid rgba(0,0,0,.06);" },
+          el("div", { class: "kecil", style: "font-weight:700;color:#1c2b22;", text: x.judul }), el("div", { class: "kecil mono", text: x.kode }),
+          el("div", { class: "aksi" },
+            el("button", { class: "btn hijau", "data-aksi": "jadikan", type: "button", text: "Jadikan tugas", onclick: ubah("aktif", "\"" + x.judul + "\" dijadikan tugas (tidak wajib; atur wajib dan target di katalog).") }),
+            el("button", { class: "btn abu", "data-aksi": "abaikan", type: "button", text: "Abaikan", onclick: ubah("nonaktif", "\"" + x.judul + "\" diabaikan.") })), galat);
+      })));
+
+    // ---- katalog tugas (aktif dan diarsipkan) ----
+    const urut = { aktif: 0, nonaktif: 1 };
+    const katalog = r.definisi.filter((x) => x.status !== "baru").sort((a, b) => urut[a.status] - urut[b.status] || a.urutan - b.urutan);
+    const dapatHapus = (x) => x.jenis !== "sistem" && x.kode !== "aktif" && !x.kode.startsWith("fitur:");
+    anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", id: "judulKatalog", text: "Katalog tugas (" + katalog.filter((x) => x.status === "aktif").length + " aktif, " + katalog.filter((x) => x.status === "nonaktif").length + " diarsipkan)" }));
+    anak.push(el("div", { class: "kecil", style: "padding:0 4px;", text: "Arsipkan = tidak berlaku untuk periode baru. Dividen yang sudah terlanjur ditahan karena tugas itu tetap menunggu sampai dipenuhi atau dilepas paksa. Hapus hanya untuk tugas buatan sendiri yang tidak lagi mengikat dividen yang ditahan." }));
     anak.push(el("div", { class: "card" }, el("details", {}, el("summary", { style: "font-weight:700;", text: "+ Tambah tugas" }), formTugas(null))));
-    katalog.forEach((x) => anak.push(el("div", { class: "card", "data-tugas": x.kode },
-      el("details", {}, el("summary", {}, el("span", { style: "font-weight:700;", text: x.judul + " " }),
-        el("span", { class: "chip " + (x.status === "aktif" ? "ok" : x.status === "baru" ? "tunggu" : ""), text: x.status }),
-        x.wajib ? el("span", { class: "chip gagal", style: "margin-left:4px;", text: "wajib" }) : null,
-        el("div", { class: "kecil mono", text: x.kode + " · " + x.jenis + " · target " + x.target + (x.grup ? " · kelompok " + x.grup : "") })), formTugas(x)))));
+    katalog.forEach((x) => {
+      const galat = el("div", { class: "galat" });
+      const aksiBar = el("div", { class: "aksi" },
+        x.status === "aktif"
+          ? el("button", { class: "btn abu", "data-aksi": "arsipkan", type: "button", text: "Arsipkan", onclick: async function () { this.disabled = true; if (await simpanStatus(x, "nonaktif", galat)) { state.pesanHasil = "\"" + x.judul + "\" diarsipkan."; muatTugas(); } else this.disabled = false; } })
+          : el("button", { class: "btn hijau", "data-aksi": "aktifkan", type: "button", text: "Aktifkan lagi", onclick: async function () { this.disabled = true; if (await simpanStatus(x, "aktif", galat)) { state.pesanHasil = "\"" + x.judul + "\" diaktifkan."; muatTugas(); } else this.disabled = false; } }),
+        dapatHapus(x) ? el("button", { class: "btn merah", "data-aksi": "hapus-tugas", type: "button", text: "Hapus", onclick: async function () {
+          if (!window.confirm("Hapus tugas \"" + x.judul + "\"? Catatan kemajuan anggota tetap tersimpan.")) return;
+          this.disabled = true; const res = await adm("admin_tugas_hapus", { id: x.id }); this.disabled = false;
+          if (!res.ok) { galat.textContent = pesan(res); return; }
+          state.pesanHasil = "Tugas \"" + x.judul + "\" dihapus."; muatTugas();
+        } }) : null);
+      anak.push(el("div", { class: "card", "data-tugas": x.kode },
+        el("details", {}, el("summary", {}, el("span", { style: "font-weight:700;", text: x.judul + " " }),
+          el("span", { class: "chip " + (x.status === "aktif" ? "ok" : ""), text: x.status === "aktif" ? "aktif" : "diarsipkan" }),
+          x.wajib ? el("span", { class: "chip gagal", style: "margin-left:4px;", text: "wajib" }) : null,
+          el("div", { class: "kecil mono", text: x.kode + " · " + x.jenis + " · target " + x.target + (x.grup ? " · kelompok " + x.grup : "") })), formTugas(x), aksiBar, galat)));
+    });
     konten.replaceChildren(...anak);
   }
 

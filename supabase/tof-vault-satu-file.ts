@@ -235,6 +235,7 @@ export interface Repo {
   listTugasDefinisi(): Promise<TugasDefRow[]>;
   getTugasByKode(kode: string): Promise<TugasDefRow | null>;
   insertTugasDefinisi(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: TugasDefRow }>;
+  hapusTugasDefinisi(id: string): Promise<void>;
   updateTugasDefinisi(id: string, patch: Record<string, unknown>): Promise<TugasDefRow | null>;
   catatTugasHari(profileId: string, kode: string, periode: string, hari: string): Promise<void>;   // +1, paling banyak sekali per hari WIB
   setTugasCatatan(profileId: string, kode: string, periode: string, jumlah: number, oleh: string | null): Promise<void>;
@@ -740,6 +741,7 @@ async function ambilPengaturan(d: Deps) {
     dividen_batas_minus_bp: angka(s.dividen_batas_minus_persen, 10) * 100,
     dividen_min_saldo_tof: angka(s.dividen_min_saldo_tof, 1),
     tugas_masa_tahan_bulan: angka(s.tugas_masa_tahan_bulan, 3), // dividen ditahan dihanguskan setelah masa ini
+    tugas_daftar_otomatis: s.tugas_daftar_otomatis !== false,    // halaman yang dibuka anggota didaftarkan otomatis sebagai tugas 'baru'
   };
 }
 
@@ -1098,7 +1100,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
           mode_kirim: s.mode_kirim, alamat_penampung: s.alamat_penampung, ambang_batch_tof: s.ambang_batch_tof,
           tarik_aktif: s.tarik_aktif, alamat_tarik: s.alamat_tarik, min_tarik_tof: s.min_tarik_tof, maks_tarik_tof: s.maks_tarik_tof,
           pinjam_aktif: s.pinjam_aktif, pinjam_min_rp: s.pinjam_min_rp, pinjam_maks_rp: s.pinjam_maks_rp,
-          dividen_batas_minus_persen: s.dividen_batas_minus_bp / 100, dividen_min_saldo_tof: s.dividen_min_saldo_tof },
+          dividen_batas_minus_persen: s.dividen_batas_minus_bp / 100, dividen_min_saldo_tof: s.dividen_min_saldo_tof, tugas_daftar_otomatis: s.tugas_daftar_otomatis },
         kas,
       });
     }
@@ -1153,6 +1155,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       if ("pinjam_maks_rp" in body) { const n = bil(body.pinjam_maks_rp, 1000000000); if (n === null) return fail("batas_pinjam_tidak_valid"); nilai.pinjam_maks_rp = n; }
       if (((nilai.pinjam_maks_rp as number | undefined) ?? cur.pinjam_maks_rp) < ((nilai.pinjam_min_rp as number | undefined) ?? cur.pinjam_min_rp)) return fail("batas_pinjam_tidak_valid");
       if ("pinjam_aktif" in body) nilai.pinjam_aktif = body.pinjam_aktif === true;
+      if ("tugas_daftar_otomatis" in body) nilai.tugas_daftar_otomatis = body.tugas_daftar_otomatis === true;
       if ("dividen_batas_minus_persen" in body) { const n = bil(body.dividen_batas_minus_persen, 50); if (n === null) return fail("batas_dividen_tidak_valid"); nilai.dividen_batas_minus_persen = n; }
       if ("dividen_min_saldo_tof" in body) { const n = bil(body.dividen_min_saldo_tof, 1000000000); if (n === null) return fail("batas_dividen_tidak_valid"); nilai.dividen_min_saldo_tof = n; }
       if ("aktif" in body) nilai.aktif = body.aktif === true;
@@ -2294,8 +2297,8 @@ interface KonteksTugas {
   kontak: Map<string, KontakRow>; vault: Set<string>; setuju: Set<string>;
 }
 
-async function siapkanKonteks(d: Deps, bulan: string, sejak: boolean, profileId: string | null): Promise<KonteksTugas> {
-  const defs = (await d.repo.listTugasDefinisi()).filter((x) => x.status === "aktif").sort((a, b) => a.urutan - b.urutan);
+async function siapkanKonteks(d: Deps, bulan: string, sejak: boolean, profileId: string | null, semuaDef = false): Promise<KonteksTugas> {
+  const defs = (await d.repo.listTugasDefinisi()).filter((x) => semuaDef || x.status === "aktif").sort((a, b) => a.urutan - b.urutan);
   const rows = await d.repo.listTugasCatatan(bulan, sejak ? null : bulan, profileId);
   const catatan = new Map<string, TugasCatatanRow[]>();
   for (const r of rows) { const l = catatan.get(r.profile_id) || []; l.push(r); catatan.set(r.profile_id, l); }
@@ -2393,7 +2396,7 @@ async function tunggakanTugas(it: DividenItemRow, p: DividenPeriodeRow, d: Deps)
   if (kunci.length === 0) return [];
   const profil = await d.repo.findProfileById(it.profile_id);
   if (!profil) return kunci;
-  const k = await siapkanKonteks(d, p.bulan_tugas || bulanWib(d.now()), true, it.profile_id);
+  const k = await siapkanKonteks(d, p.bulan_tugas || bulanWib(d.now()), true, it.profile_id, true); // termasuk tugas yang sudah diarsipkan: dividen yang terlanjur ditahan tetap terikat
   const pinAman = await pinAmanDari(profil, d);
   const ev = evaluasiTugas(k, profil, pinAman, false);
   const belum: string[] = [];
@@ -2442,6 +2445,7 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
         let df = await d.repo.getTugasByKode(kode);
         if (!df) {
           if (!(kode.startsWith("fitur:") || kode === "aktif")) continue; // hanya halaman baru yang terdaftar otomatis
+          if (!(await ambilPengaturan(d)).tugas_daftar_otomatis) continue;   // pengurus mematikan pendaftaran otomatis
           if ((await d.repo.listTugasDefinisi()).length >= MAKS_DEFINISI_OTOMATIS) continue;
           const ins = await d.repo.insertTugasDefinisi({
             kode, judul: teks(x?.judul, 80) || kode, jenis: "kunjungan", target: 1, wajib: false, status: "baru", bulanan: true,
@@ -2520,7 +2524,7 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
       for (const x of klaim) if (!nama.has(x.profile_id)) nama.set(x.profile_id, (await d.repo.findProfileById(x.profile_id))?.username || "");
       const s = await ambilPengaturan(d);
       return ok({
-        bulan: bulanWib(d.now()), masa_tahan_bulan: s.tugas_masa_tahan_bulan,
+        bulan: bulanWib(d.now()), masa_tahan_bulan: s.tugas_masa_tahan_bulan, daftar_otomatis: s.tugas_daftar_otomatis,
         definisi: (await d.repo.listTugasDefinisi()).sort((x, y) => x.urutan - y.urutan).map(tampilTugasDef),
         klaim: klaim.map((x) => ({ id: x.id, profile_id: x.profile_id, username: nama.get(x.profile_id) || "", kode: x.kode, periode: x.periode, catatan: x.catatan, dibuat: x.dibuat })),
         kegiatan: await d.repo.listKegiatan(20),
@@ -2553,6 +2557,33 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (ada) { const baru = await d.repo.updateTugasDefinisi(ada.id, isi); return baru ? ok({ tugas: tampilTugasDef(baru) }) : fail("server_error"); }
       const ins = await d.repo.insertTugasDefinisi(isi);
       return ins.result === "ok" && ins.row ? ok({ tugas: tampilTugasDef(ins.row) }) : fail("server_error");
+    }
+
+    // Menghapus tugas buatan pengurus. Tugas bawaan, sistem, dan halaman (fitur:) tidak dihapus tetapi diarsipkan,
+    // sebab halaman akan terdaftar lagi otomatis saat dibuka. Tugas yang masih mengikat dividen yang ditahan tidak boleh dihapus.
+    case "admin_tugas_hapus": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const df = typeof body.id === "string" ? (await d.repo.listTugasDefinisi()).find((x) => x.id === body.id) : null;
+      if (!df) return fail("tugas_tidak_ditemukan");
+      if (df.jenis === "sistem" || df.kode === "aktif" || df.kode.startsWith("fitur:")) return fail("tidak_bisa_dihapus");
+      const dipakai = (await d.repo.listDividenItemStatus("ditahan")).filter((it) => {
+        const kunci = (it.tugas_kurang || "").split("|");
+        return kunci.includes(df.kode) || (!!df.grup && kunci.includes("grup:" + df.grup));
+      }).length;
+      if (dipakai) return fail("masih_dipakai", { jumlah: dipakai });
+      await d.repo.hapusTugasDefinisi(df.id);
+      await d.repo.logTopup(null, a.profile.id, "tugas_hapus", a.profile.id, { kode: df.kode });
+      return ok();
+    }
+
+    // Mengabaikan semua halaman 'baru' sekaligus (status nonaktif: tidak dihitung dan tidak muncul lagi sebagai baru)
+    case "admin_tugas_abaikan_baru": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      let n = 0;
+      for (const df of await d.repo.listTugasDefinisi()) if (df.status === "baru") { await d.repo.updateTugasDefinisi(df.id, { status: "nonaktif" }); n++; }
+      return ok({ diabaikan: n });
     }
 
     // Centang manual per anggota per bulan
@@ -2976,6 +3007,9 @@ const repo: Repo = {
     if (error.code === "23505") return { result: "duplicate" };
     console.error("insertTugasDefinisi:", error.message);
     return { result: "error" };
+  },
+  async hapusTugasDefinisi(id) {
+    must(await db.from("tugas_definisi").delete().eq("id", id));
   },
   async updateTugasDefinisi(id, patch) {
     return must(await db.from("tugas_definisi").update(patch).eq("id", id).select().maybeSingle()) as TugasDefRow | null;
