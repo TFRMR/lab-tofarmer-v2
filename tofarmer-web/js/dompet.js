@@ -73,6 +73,30 @@
     toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
   }
 
+  // Mengunduh gambar QRIS supaya bisa dibuka dari galeri dan dipindai e-wallet (tanpa tangkapan layar manual).
+  // Android/komputer: unduh langsung. iPhone/iPad: lembar bagikan ("Simpan Gambar" ke Foto) bila tersedia.
+  async function unduhQris(src, nama) {
+    try {
+      const blob = await (await fetch(src)).blob();
+      const ext = ((blob.type || "image/png").split("/")[1] || "png").replace("jpeg", "jpg");
+      const berkas = (nama || "QRIS-ToFarmer") + "." + ext;
+      const file = new File([blob], berkas, { type: blob.type || "image/png" });
+      const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      if (ios && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: "QRIS ToFarmer" }); return; }
+        catch (e) { if (e && e.name === "AbortError") return; }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = berkas;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast("QRIS diunduh. Buka dari galeri atau unduhan, lalu pindai.");
+    } catch (e) {
+      toast("Gagal mengunduh. Tekan lama gambar QRIS lalu pilih Simpan Gambar.");
+    }
+  }
+
   async function salin(teks, pesan) {
     try {
       await navigator.clipboard.writeText(teks);
@@ -1121,6 +1145,7 @@
     const anak = [
       el("div", { class: "tengah" }, chipStatus(tp.status)),
       aktif && info.qris ? el("img", { class: "qris", id: "gambarQris", src: info.qris, alt: "QRIS" }) : null,
+      aktif && info.qris ? el("div", { class: "tengah" }, el("button", { class: "mini", type: "button", id: "btnUnduhQris", text: "📥 Download QRIS", onclick: () => unduhQris(info.qris, "QRIS-ToFarmer-Nabung") })) : null,
       aktif && info.nama_penerima ? el("div", { class: "kecil abu tengah", text: "Penerima: " + info.nama_penerima }) : null,
       el("div", { class: "kecil abu tengah", text: aktif ? "Bayar PERSIS sejumlah:" : "Jumlah:" }),
       el("div", { class: "total-bayar", id: "totalBayar", text: "Rp " + fmtRp(tp.total_rp) }),
@@ -1655,6 +1680,7 @@
     s.ganti(
       el("div", { class: "tengah" }, chipPinjam(q.status)),
       !sudahBayar && info.qris ? el("img", { class: "qris", id: "gambarQrisPinjam", src: info.qris, alt: "QRIS" }) : null,
+      !sudahBayar && info.qris ? el("div", { class: "tengah" }, el("button", { class: "mini", type: "button", id: "btnUnduhQrisPinjam", text: "📥 Download QRIS", onclick: () => unduhQris(info.qris, "QRIS-ToFarmer-Pelunasan") })) : null,
       !sudahBayar && info.nama_penerima ? el("div", { class: "kecil abu tengah", text: "Penerima: " + info.nama_penerima }) : null,
       el("div", { class: "kecil abu tengah", text: sudahBayar ? "Jumlah:" : "Bayar PERSIS sejumlah:" }),
       el("div", { class: "total-bayar", id: "totalBayarPinjam", text: "Rp " + fmtRp(q.total_bayar_rp) }),
