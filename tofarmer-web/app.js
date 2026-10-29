@@ -899,6 +899,7 @@ function showDisclaimerDaftarModal() {
           <ul style="margin:0;padding-left:18px;">
             <li style="margin:4px 0;">Bukan bank, layanan keuangan, atau ajakan investasi. Tidak ada janji keuntungan apa pun.</li>
             <li style="margin:4px 0;">Poin, saldo, dan fitur dompet hanya bersifat percobaan, tidak ada jaminan nilai maupun kelangsungannya.</li>
+            <li style="margin:4px 0;">Dompet dibuatkan otomatis di belakang layar. Fungsinya sebagai alat hitung TOF (koin asa kita), tidak perlu kamu urus sendiri.</li>
             <li style="margin:4px 0;">Fitur dan data bisa berubah, direset, atau dihapus sewaktu-waktu.</li>
             <li style="margin:4px 0;">Jangan memasukkan data pribadi yang sensitif, dan jangan menyimpan dana yang tidak siap hilang.</li>
             <li style="margin:4px 0;">Pendaftaran terutama untuk yang memang ingin ikut mencoba dan belajar bersama.</li>
@@ -941,8 +942,12 @@ function showDisclaimerDaftarModal() {
 
 // Pendaftaran: dompet otomatis (frasa ditampilkan dulu, lalu dititipkan terenkripsi di server)
 // atau dompet sendiri (Pera/Defly)
+// true = pendaftar tidak diberi pilihan; dompet dibuat otomatis di belakang layar
+// dan frasanya langsung dititipkan ke brankas (tanpa layar frasa). Ubah ke false untuk memunculkan pilihan Pera/Defly lagi.
+const DAFTAR_DOMPET_OTOMATIS_SAJA = true;
+
 async function daftarBaru(username) {
-  const pilihan = await showPilihDompetModal(username);
+  const pilihan = DAFTAR_DOMPET_OTOMATIS_SAJA ? "otomatis" : await showPilihDompetModal(username);
   if (!pilihan) return null;
 
   let wallet = null;
@@ -961,7 +966,7 @@ async function daftarBaru(username) {
   if (!setup) return null;
 
   // Dompet otomatis: frasa WAJIB ditampilkan & dikonfirmasi sebelum akun dibuat
-  if (mnemonic) {
+  if (mnemonic && !DAFTAR_DOMPET_OTOMATIS_SAJA) {
     const lanjut = await showFrasaModal(mnemonic, wallet);
     if (!lanjut) return null; // batal → tidak ada akun yang dibuat
   }
