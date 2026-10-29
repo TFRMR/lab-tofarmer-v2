@@ -215,6 +215,18 @@ export interface Repo {
   listPinjamanBerjalan(profileId: string): Promise<PinjamanRow[]>;                    // status diajukan/aktif/dibayar
   listPinjamanByStatus(statuses: string[], limit: number, urut: "dibuat_asc" | "dibuat_desc" | "tempo_asc"): Promise<PinjamanRow[]>;
   sumBungaPinjamanSince(sinceIso: string): Promise<number>; // unit TOF bunga yang dikirim otomatis sejak waktu tsb
+  // ---- [CICILAN] Cicilan pinjaman & potong otomatis saat lewat masa tenggang ----
+  insertCicilan(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: CicilanRow }>;
+  getCicilan(id: string): Promise<CicilanRow | null>;
+  updateCicilanIf(id: string, expect: string[], patch: Record<string, unknown>): Promise<CicilanRow | null>;
+  listCicilanByProfile(profileId: string, limit: number): Promise<CicilanRow[]>;                       // terbaru dulu
+  listCicilanByStatus(statuses: string[], limit: number, urut: "asc" | "desc"): Promise<CicilanRow[]>; // urut menurut waktu dibuat
+  countCicilanSince(profileId: string, sinceIso: string): Promise<number>;
+  expireCicilan(nowIso: string): Promise<void>;                                                        // hanya status 'menunggu'
+  aktivitasCicilanTerakhir(profileId: string): Promise<string | null>;                                 // waktu cicilan terakhir (ISO) yang bukan ditolak/kedaluwarsa
+  setDibayarPinjamanIf(id: string, dibayarLama: number, dibayarBaru: number): Promise<PinjamanRow | null>; // optimistic: hanya bila dibayar_rp masih = dibayarLama
+  updatePinjamanPotongIf(id: string, expectStatus: string[], expectPotong: string[], patch: Record<string, unknown>): Promise<PinjamanRow | null>;
+  listPinjamanLewatTempo(nowIso: string, limit: number): Promise<PinjamanRow[]>;                       // aktif, sudah ada persetujuan, belum dipotong, jatuh tempo <= sekarang
   // ---- Dividen ----
   insertDividenPeriode(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: DividenPeriodeRow }>;
   getDividenPeriode(id: string): Promise<DividenPeriodeRow | null>;
@@ -307,6 +319,7 @@ export interface Deps {
   adminIds?: string[]; // alamat dompet pengurus (secret ADMIN_IDS)
   chain?: Chain;       // pengiriman TOF otomatis (opsional)
   sleep?: (ms: number) => Promise<void>;
+  cronSecret?: string; // [CICILAN] rahasia untuk pemicu terjadwal 'sistem_pinjam_potong' (secret CRON_SECRET)
 }
 
 export const MAX_FAILS = 5;
@@ -737,6 +750,7 @@ async function ambilPengaturan(d: Deps) {
     pinjam_min_rp: angka(s.pinjam_min_rp, 10000),
     pinjam_maks_rp: angka(s.pinjam_maks_rp, 5000000),
     pinjam_bunga_persen: angka(s.pinjam_bunga_persen, 5),
+    pinjam_tenggang_hari: angka(s.pinjam_tenggang_hari, 60), // [CICILAN] masa tenggang setelah jatuh tempo sebelum TOF dipotong otomatis
     // Dividen: batas minus per periode (persen, dipakai sebagai batas persetujuan anggota) dan saldo minimum peserta
     dividen_batas_minus_bp: angka(s.dividen_batas_minus_persen, 10) * 100,
     dividen_min_saldo_tof: angka(s.dividen_min_saldo_tof, 1),
@@ -923,8 +937,12 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       if ((await d.repo.countTopupActive(a.profile.id)) > 0) return fail("masih_ada_tagihan");
       if ((await d.repo.countTopupSince(a.profile.id, iso(sekarang - 24 * 3600 * 1000))) >= TOPUP_MAKS_PER_HARI) return fail("terlalu_sering");
 
+      // [CICILAN] jangan pakai total yang sama dengan cicilan pinjaman yang sedang menunggu dicek (mutasi tidak boleh ambigu)
+      const dipakaiCicilan = new Set<number>();
+      for (const c of await d.repo.listCicilanByStatus(["menunggu", "dibayar"], 1000, "asc")) dipakaiCicilan.add(Number(c.total_bayar_rp));
       for (const kode of acakKode().slice(0, 40)) {
         const total = nominal + kode;
+        if (dipakaiCicilan.has(total)) continue;
         const tofUnits = Number((BigInt(total) * 1000000n) / BigInt(s.kurs)); // 6 desimal
         const hasil = await d.repo.insertTopup({
           profile_id: a.profile.id, nominal_rp: nominal, kode_unik: kode, total_rp: total,
@@ -1099,7 +1117,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
           auto_kirim: s.auto_kirim, batas_harian_tof: s.batas_harian_tof, batas_transaksi_tof: s.batas_transaksi_tof, terpakai_24j: terpakai,
           mode_kirim: s.mode_kirim, alamat_penampung: s.alamat_penampung, ambang_batch_tof: s.ambang_batch_tof,
           tarik_aktif: s.tarik_aktif, alamat_tarik: s.alamat_tarik, min_tarik_tof: s.min_tarik_tof, maks_tarik_tof: s.maks_tarik_tof,
-          pinjam_aktif: s.pinjam_aktif, pinjam_min_rp: s.pinjam_min_rp, pinjam_maks_rp: s.pinjam_maks_rp,
+          pinjam_aktif: s.pinjam_aktif, pinjam_min_rp: s.pinjam_min_rp, pinjam_maks_rp: s.pinjam_maks_rp, pinjam_tenggang_hari: s.pinjam_tenggang_hari,
           dividen_batas_minus_persen: s.dividen_batas_minus_bp / 100, dividen_min_saldo_tof: s.dividen_min_saldo_tof, tugas_daftar_otomatis: s.tugas_daftar_otomatis },
         kas,
       });
@@ -1155,6 +1173,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       if ("pinjam_maks_rp" in body) { const n = bil(body.pinjam_maks_rp, 1000000000); if (n === null) return fail("batas_pinjam_tidak_valid"); nilai.pinjam_maks_rp = n; }
       if (((nilai.pinjam_maks_rp as number | undefined) ?? cur.pinjam_maks_rp) < ((nilai.pinjam_min_rp as number | undefined) ?? cur.pinjam_min_rp)) return fail("batas_pinjam_tidak_valid");
       if ("pinjam_aktif" in body) nilai.pinjam_aktif = body.pinjam_aktif === true;
+      if ("pinjam_tenggang_hari" in body) { const n = bil(body.pinjam_tenggang_hari, 365); if (n === null) return fail("tenggang_tidak_valid"); nilai.pinjam_tenggang_hari = n; }
       if ("tugas_daftar_otomatis" in body) nilai.tugas_daftar_otomatis = body.tugas_daftar_otomatis === true;
       if ("dividen_batas_minus_persen" in body) { const n = bil(body.dividen_batas_minus_persen, 50); if (n === null) return fail("batas_dividen_tidak_valid"); nilai.dividen_batas_minus_persen = n; }
       if ("dividen_min_saldo_tof" in body) { const n = bil(body.dividen_min_saldo_tof, 1000000000); if (n === null) return fail("batas_dividen_tidak_valid"); nilai.dividen_min_saldo_tof = n; }
@@ -1436,7 +1455,13 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
 //    ke dompet anggota sebagai TOF (dompet pembayar, batas harian yang sama dengan Nabung).
 //  - Jaminan = kunci lunak: dihitung di server dan dipakai menolak tarik_buat dan pinjaman baru.
 //    TOF tetap berada di dompet anggota (anggota yang memegang kuncinya), jadi ini alat komitmen diri, bukan pengaman kas.
-//  - Satu pinjaman berjalan per anggota (indeks unik di database).
+//  - [CICILAN] Boleh punya beberapa pinjaman berjalan selama total pokok yang tersisa di bawah batas (pinjam_maks_rp);
+//    hanya satu pengajuan yang menunggu dicairkan pada satu waktu (indeks unik di database).
+//  - [CICILAN] Pelunasan boleh dicicil: bayar dari luar dompet (QRIS/transfer) seperti Nabung, dicocokkan pengurus, lalu
+//    dialokasikan ke pinjaman paling lama jatuh tempo. TOF jaminan ikut turun sebanding.
+//  - [CICILAN] Pemotongan TOF otomatis: bila sudah lewat jatuh tempo + masa tenggang dan tidak ada aktivitas cicilan, TOF jaminan
+//    yang tersisa dipotong dari dompet anggota (frasa dititip, sama seperti koreksi minus dividen). Anggota menyetujui ketentuan ini
+//    dengan mencentang saat pinjam (disimpan: setuju_pada, setuju_versi).
 // ============================================================
 export interface PinjamanRow {
   id: string; profile_id: string; username: string | null;
@@ -1448,14 +1473,22 @@ export interface PinjamanRow {
   ref_cair: string | null; ref_user: string | null; catatan_admin: string | null;
   dibayar_pada: string | null; dilunasi_pada: string | null; dilunasi_oleh: string | null;
   bunga_status: string; bunga_catatan: string | null; bunga_txid: string | null; bunga_kirim_pada: string | null;
+  // [CICILAN]
+  dibayar_rp: number; setuju_pada: string | null; setuju_versi: number | null; tenggang_hari: number | null;
+  potong_status: string; potong_catatan: string | null; dipotong_pada: string | null; dipotong_units: number | null; dipotong_txid: string | null;
 }
 
 const PINJAM_TENOR_OPSI = [7, 14, 30];
 const PINJAM_BERJALAN = ["diajukan", "aktif", "dibayar"];
 const HARI_MS = 24 * 3600 * 1000;
 
-function tampilPinjam(r: PinjamanRow) {
+function tampilPinjam(r: PinjamanRow, potongPada?: string | null) {
   return {
+    // [CICILAN]
+    dibayar_rp: Number(r.dibayar_rp || 0), sisa_rp: sisaTotalPinjam(r), jaminan_sisa_units: Number(jaminanSisaPinjam(r)),
+    setuju_pada: r.setuju_pada ?? null, tenggang_hari: r.tenggang_hari ?? null, potong_pada: potongPada ?? null,
+    potong_status: r.potong_status ?? "tidak", potong_catatan: r.potong_catatan ?? null, dipotong_pada: r.dipotong_pada ?? null,
+    dipotong_units: r.dipotong_units ?? null, dipotong_txid: r.dipotong_txid ?? null,
     id: r.id, profile_id: r.profile_id, username: r.username, pokok_rp: r.pokok_rp, bunga_persen: r.bunga_persen, bunga_rp: r.bunga_rp,
     total_rp: r.total_rp, jaminan_tof_units: r.jaminan_tof_units, bunga_tof_units: r.bunga_tof_units, tenor_hari: r.tenor_hari,
     tujuan_jenis: r.tujuan_jenis, tujuan_nomor: r.tujuan_nomor, tujuan_nama: r.tujuan_nama, status: r.status, dibuat: r.dibuat,
@@ -1466,9 +1499,205 @@ function tampilPinjam(r: PinjamanRow) {
 }
 
 // Total TOF (unit terkecil) yang sedang menjadi jaminan pinjaman berjalan
+// [CICILAN] Jaminan ikut turun sebanding dengan cicilan yang sudah dibayar.
 async function jaminanTerkunci(profileId: string, d: Deps): Promise<bigint> {
   const rows = await d.repo.listPinjamanBerjalan(profileId);
-  return rows.reduce((n, r) => n + BigInt(r.jaminan_tof_units), 0n);
+  return rows.reduce((n, r) => n + jaminanSisaPinjam(r), 0n);
+}
+
+// ---------------- [CICILAN] Cicilan pinjaman & potong otomatis ----------------
+export interface CicilanRow {
+  id: string; profile_id: string; username: string | null; nominal_rp: number; kode_unik: number; total_bayar_rp: number;
+  status: string; ref_user: string | null; catatan_admin: string | null; dibuat: string; kedaluwarsa_pada: string;
+  dibayar_pada: string | null; diproses_oleh: string | null; diproses_pada: string | null; alokasi: unknown;
+}
+const CICIL_TTL_MS = 24 * 3600 * 1000;
+const CICIL_MAKS_PER_HARI = 5;
+const PINJAM_VERSI_KETENTUAN = 1;
+const POTONG_MAKS_PER_PANGGILAN = 5;
+
+const sisaTotalPinjam = (r: PinjamanRow): number => Math.max(0, Number(r.total_rp) - Number(r.dibayar_rp || 0));
+
+// Pokok yang belum dikembalikan (cicilan dianggap mengurangi pokok dan bunga secara sebanding)
+function sisaPokokPinjam(r: PinjamanRow): number {
+  if (r.status === "diajukan") return Number(r.pokok_rp);
+  const t = BigInt(Number(r.total_rp) || 1);
+  const dibayar = BigInt(Math.min(Number(r.dibayar_rp || 0), Number(r.total_rp) || 0));
+  return Math.max(0, Number(r.pokok_rp) - Number((BigInt(r.pokok_rp) * dibayar) / t));
+}
+
+// TOF jaminan yang masih terkunci untuk pinjaman ini
+function jaminanSisaPinjam(r: PinjamanRow): bigint {
+  const j = BigInt(r.jaminan_tof_units);
+  if (r.status === "diajukan") return j;
+  const t = BigInt(Number(r.total_rp) || 1);
+  const dibayar = BigInt(Math.min(Number(r.dibayar_rp || 0), Number(r.total_rp) || 0));
+  return j - (j * dibayar) / t;
+}
+
+// Batas waktu potong: (yang lebih akhir antara jatuh tempo dan cicilan terakhir) + masa tenggang
+function batasPotongMs(r: PinjamanRow, aktivitasIso: string | null, tenggangBawaan: number): number | null {
+  if (!r.jatuh_tempo) return null;
+  const jt = Date.parse(r.jatuh_tempo);
+  const akt = aktivitasIso ? Date.parse(aktivitasIso) : 0;
+  const hari = r.tenggang_hari != null && Number(r.tenggang_hari) > 0 ? Number(r.tenggang_hari) : tenggangBawaan;
+  return Math.max(jt, akt) + hari * HARI_MS;
+}
+
+// Tampilan untuk anggota tanpa PIN: tanpa rekening/nomor tujuan
+function tampilPinjamRingkas(r: PinjamanRow, potongPada: string | null) {
+  return {
+    id: r.id, status: r.status, pokok_rp: r.pokok_rp, bunga_persen: r.bunga_persen, bunga_rp: r.bunga_rp, total_rp: r.total_rp,
+    dibayar_rp: Number(r.dibayar_rp || 0), sisa_rp: sisaTotalPinjam(r), jaminan_sisa_units: Number(jaminanSisaPinjam(r)),
+    jatuh_tempo: r.jatuh_tempo, tenggang_hari: r.tenggang_hari ?? null, potong_pada: potongPada, ditagih_pengurus: r.ditagih_admin,
+    dibuat: r.dibuat,
+  };
+}
+
+function tampilCicilan(r: CicilanRow) {
+  return {
+    id: r.id, profile_id: r.profile_id, username: r.username, nominal_rp: r.nominal_rp, kode_unik: r.kode_unik, total_bayar_rp: r.total_bayar_rp,
+    status: r.status, ref_user: r.ref_user, catatan_admin: r.catatan_admin, dibuat: r.dibuat, kedaluwarsa_pada: r.kedaluwarsa_pada,
+    dibayar_pada: r.dibayar_pada, diproses_pada: r.diproses_pada, alokasi: r.alokasi ?? null,
+  };
+}
+
+function catatanPotong(username: string, address: string): string {
+  return (username || "-") + " # " + address + " # potong pinjaman";
+}
+
+// Cicilan yang sudah dicocokkan pengurus dialokasikan ke pinjaman dengan jatuh tempo paling awal.
+// Pinjaman yang sisanya menjadi 0 langsung lunas dan bunganya dikirim balik sebagai TOF (seperti pelunasan biasa).
+async function terapkanCicilan(c: CicilanRow, oleh: string, d: Deps) {
+  let sisa = Number(c.nominal_rp);
+  const alokasi: { pinjam_id: string; rp: number }[] = [];
+  const lunas: { id: string; payout: Payout }[] = [];
+  let konflik = 0;
+  while (sisa > 0 && konflik < 20) {
+    const rows = (await d.repo.listPinjamanBerjalan(c.profile_id))
+      .filter((x) => (x.status === "aktif" || x.status === "dibayar") && sisaTotalPinjam(x) > 0 && x.potong_status !== "mengirim")
+      .sort((x, y) => Date.parse(x.jatuh_tempo || x.dibuat) - Date.parse(y.jatuh_tempo || y.dibuat));
+    const r = rows[0];
+    if (!r) break;
+    const bayar = Math.min(sisaTotalPinjam(r), sisa);
+    const baru = await d.repo.setDibayarPinjamanIf(r.id, Number(r.dibayar_rp || 0), Number(r.dibayar_rp || 0) + bayar);
+    if (!baru) { konflik++; continue; } // ada perubahan lain, baca ulang
+    sisa -= bayar;
+    alokasi.push({ pinjam_id: r.id, rp: bayar });
+    if (sisaTotalPinjam(baru) <= 0) {
+      const tutup = await d.repo.updatePinjamanIf(r.id, ["aktif", "dibayar"], { status: "lunas", dilunasi_pada: iso(d.now()), dilunasi_oleh: oleh });
+      if (tutup) {
+        await d.repo.logTopup(r.id, r.profile_id, "pinjam_lunas", oleh, { total_rp: r.total_rp, lewat: "cicilan", cicilan_id: c.id });
+        lunas.push({ id: r.id, payout: await kirimBungaPinjam(tutup, oleh, d) });
+      }
+    }
+  }
+  return { alokasi, lunas, kelebihan_rp: sisa };
+}
+
+type HasilPotong = { status: "selesai" | "mengirim" | "gagal" | "dilewati"; alasan?: string; txid?: string; units?: number };
+
+// Memotong TOF jaminan yang tersisa dari dompet anggota ke dompet pembayar (kas). Aman diulang:
+// klaim atomik (potong_status 'mengirim'), lease Algorand dari ID pinjaman, pra-cek saldo, dan hanya untuk pinjaman
+// yang anggotanya sudah menyetujui ketentuan potong otomatis (setuju_pada).
+async function prosesPotongPinjam(row: PinjamanRow, oleh: string, d: Deps, yakin = false): Promise<HasilPotong> {
+  const chain = d.chain;
+  const segar = await d.repo.getPinjaman(row.id);
+  if (!segar || segar.status !== "aktif") return { status: "dilewati", alasan: "Status pinjaman sudah berubah." };
+  if (!segar.setuju_pada) return { status: "dilewati", alasan: "Pinjaman ini dibuat sebelum ada persetujuan potong otomatis, jadi tidak dipotong otomatis." };
+
+  const selesai = async (txId: string, units: bigint, catatanKurang: string | null): Promise<HasilPotong> => {
+    const baru = await d.repo.updatePinjamanPotongIf(segar.id, ["aktif"], ["mengirim"], {
+      status: "dipotong", potong_status: "selesai", dipotong_pada: iso(d.now()), dipotong_units: Number(units), dipotong_txid: txId, potong_catatan: catatanKurang,
+    });
+    if (baru) await d.repo.logTopup(segar.id, segar.profile_id, "pinjam_dipotong", oleh, { txid: txId, units: Number(units), sisa_rp: sisaTotalPinjam(segar) });
+    return { status: "selesai", txid: txId, units: Number(units), alasan: catatanKurang || undefined };
+  };
+
+  // lanjutan dari percobaan sebelumnya yang belum pasti
+  if (segar.potong_status === "mengirim") {
+    if (segar.dipotong_txid && chain) {
+      const st = await chain.status(segar.dipotong_txid);
+      if (st === "confirmed") return await selesai(segar.dipotong_txid, BigInt(segar.dipotong_units || 0), segar.potong_catatan);
+      if (st === "rejected") {
+        await d.repo.updatePinjamanPotongIf(segar.id, ["aktif"], ["mengirim"], { potong_status: "gagal", dipotong_txid: null, potong_catatan: "Transaksi ditolak jaringan. Coba lagi." });
+        return { status: "gagal", alasan: "Transaksi ditolak jaringan." };
+      }
+      return { status: "mengirim", alasan: "Transaksi belum terkonfirmasi.", txid: segar.dipotong_txid };
+    }
+    if (!yakin) return { status: "mengirim", alasan: "Hasil pengiriman sebelumnya tidak pasti. Periksa explorer, pastikan tidak ada transaksi TOF dari anggota ke kas, lalu ulangi dengan konfirmasi." };
+    await d.repo.updatePinjamanPotongIf(segar.id, ["aktif"], ["mengirim"], { potong_status: "gagal", potong_catatan: "Dikembalikan manual oleh pengurus untuk diulang." });
+  }
+
+  const perlu = jaminanSisaPinjam(segar);
+  if (perlu <= 0n) return { status: "dilewati", alasan: "Tidak ada TOF jaminan yang tersisa." };
+  const klaim = await d.repo.updatePinjamanPotongIf(segar.id, ["aktif"], ["tidak", "gagal"], { potong_status: "mengirim", potong_catatan: null });
+  if (!klaim) return { status: "dilewati", alasan: "Sedang diproses atau sudah berubah." };
+
+  const gagal = async (alasan: string): Promise<HasilPotong> => {
+    await d.repo.updatePinjamanPotongIf(segar.id, ["aktif"], ["mengirim"], { potong_status: "gagal", potong_catatan: alasan });
+    await d.repo.logTopup(segar.id, segar.profile_id, "pinjam_potong_gagal", oleh, { alasan });
+    return { status: "gagal", alasan };
+  };
+  if (!chain || !chain.payoutAddress()) return await gagal("Dompet pembayar belum diatur.");
+  const kasAddr = chain.payoutAddress()!;
+  let units = 0n;
+  try {
+    const [kas, anggota] = await Promise.all([chain.getAccount(kasAddr), chain.getAccount(segar.profile_id)]);
+    if (!anggota.tofOptin || anggota.tof <= 0n) return await gagal("Anggota tidak punya TOF di dompetnya.");
+    units = anggota.tof < perlu ? anggota.tof : perlu;
+    if (kas.algo - kas.minBal < FEE_UNITS * 2n) return await gagal("Saldo ALGO dompet pembayar kurang untuk biaya (biaya potongan ditanggung dompet pembayar).");
+  } catch (e) {
+    console.error("pra-cek potong pinjaman:", e);
+    return await gagal("Gagal membaca jaringan Algorand. Ulangi.");
+  }
+  const kurang = units < perlu ? "TOF anggota kurang: hanya " + (Number(units) / 1e6) + " dari " + (Number(perlu) / 1e6) + " TOF jaminan yang bisa dipotong." : null;
+
+  let txId = "";
+  try {
+    const vault = await d.repo.getVault(segar.profile_id);
+    if (!vault) return await gagal("Frasa tidak ada di brankas.");
+    let mnemonic = "";
+    try { mnemonic = await decryptMnemonic(vault.ciphertext, vault.iv, d.masterKey, segar.profile_id); }
+    catch (e) { console.error("dekripsi potong pinjaman:", e); return await gagal("Gagal membuka brankas frasa."); }
+    let alamat = "";
+    try { alamat = d.addressFromMnemonic(mnemonic); } catch { return await gagal("Frasa di brankas tidak valid."); }
+    if (alamat !== segar.profile_id) return await gagal("Frasa di brankas tidak cocok dengan alamat dompet.");
+    ({ txId } = await chain.sendTofDariAnggota({ mnemonic, to: kasAddr, amount: units, note: catatanPotong(segar.username || "", segar.profile_id), leaseKey: "pinjam-potong:" + segar.id }));
+  } catch (e) {
+    const kind = (e as { kind?: string })?.kind;
+    const pesan = String((e as { message?: string })?.message || "").slice(0, 150);
+    await d.repo.logTopup(segar.id, segar.profile_id, "pinjam_potong_kirim_gagal", oleh, { kind, pesan });
+    if (kind === "ditolak") return await gagal("Ditolak jaringan: " + pesan);
+    await d.repo.updatePinjamanPotongIf(segar.id, ["aktif"], ["mengirim"], { potong_catatan: "Hasil pengiriman tidak pasti. Periksa explorer sebelum mengulang." });
+    return { status: "mengirim", alasan: "Hasil pengiriman tidak pasti. Periksa explorer sebelum mengulang." };
+  }
+
+  await d.repo.updatePinjamanPotongIf(segar.id, ["aktif"], ["mengirim"], { dipotong_txid: txId, dipotong_units: Number(units), potong_catatan: kurang });
+  await d.repo.logTopup(segar.id, segar.profile_id, "pinjam_potong_kirim", oleh, { txid: txId, units: Number(units) });
+  const hasil = await tungguKonfirmasi(txId, d);
+  if (hasil === "confirmed") return await selesai(txId, units, kurang);
+  if (hasil === "rejected") return await gagal("Transaksi ditolak jaringan setelah dikirim.");
+  return { status: "mengirim", txid: txId, units: Number(units), alasan: "Belum terkonfirmasi dalam batas waktu. Periksa lagi sebentar lagi." };
+}
+
+// Memproses semua pinjaman yang sudah lewat jatuh tempo + masa tenggang tanpa aktivitas cicilan.
+async function jalankanPotongJatuhTempo(oleh: string, d: Deps, maks = POTONG_MAKS_PER_PANGGILAN) {
+  const s = await ambilPengaturan(d);
+  const rows = await d.repo.listPinjamanLewatTempo(iso(d.now()), 200);
+  const adaPengurusLain = (d.adminIds || []).length > 1;
+  const hasil: { id: string; username: string; status: string; alasan?: string; units?: number; txid?: string }[] = [];
+  let diproses = 0;
+  for (const r of rows) {
+    if (diproses >= maks) break;
+    const batas = batasPotongMs(r, await d.repo.aktivitasCicilanTerakhir(r.profile_id), s.pinjam_tenggang_hari);
+    if (batas === null || d.now() < batas) continue;
+    if (adaPengurusLain && r.profile_id === oleh) continue; // pemisahan tugas
+    diproses++;
+    const h = await prosesPotongPinjam(r, oleh, d);
+    hasil.push({ id: r.id, username: r.username || "", status: h.status, alasan: h.alasan, units: h.units, txid: h.txid });
+  }
+  return { diproses, hasil };
 }
 
 function catatanBunga(username: string, address: string): string {
@@ -1547,6 +1776,7 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       return ok({
         aktif: s.pinjam_aktif && !!s.qris, bunga_persen: s.pinjam_bunga_persen, tenor_opsi: PINJAM_TENOR_OPSI,
         min_rp: s.pinjam_min_rp, maks_rp: s.pinjam_maks_rp, kurs: s.kurs, qris: s.qris, nama_penerima: s.nama_penerima,
+        tenggang_hari: s.pinjam_tenggang_hari, versi_ketentuan: PINJAM_VERSI_KETENTUAN, min_cicilan_rp: s.min_rp,
       });
     }
 
@@ -1555,19 +1785,54 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       const r = await resolveProfile(body, d, true);
       if ("error" in r) return fail(r.error);
       const rows = await d.repo.listPinjamanBerjalan(r.profile.id);
-      const terkunci = rows.reduce((n, x) => n + BigInt(x.jaminan_tof_units), 0n);
+      const terkunci = rows.reduce((n, x) => n + jaminanSisaPinjam(x), 0n); // [CICILAN] jaminan turun sebanding cicilan
       const sekarang = d.now();
-      const p = rows.find((x) => x.status === "aktif" && !!x.jatuh_tempo && (Date.parse(x.jatuh_tempo) <= sekarang || x.ditagih_admin));
+      const sPeng = await ambilPengaturan(d);
+      const aktivitas = await d.repo.aktivitasCicilanTerakhir(r.profile.id);
+      const p = rows
+        .filter((x) => x.status === "aktif" && !!x.jatuh_tempo && (Date.parse(x.jatuh_tempo) <= sekarang || x.ditagih_admin))
+        .sort((x, y) => Date.parse(x.jatuh_tempo!) - Date.parse(y.jatuh_tempo!))[0];
       let tagihan: Res | null = null;
       if (p && p.jatuh_tempo) {
         const jt = Date.parse(p.jatuh_tempo);
+        const batas = batasPotongMs(p, aktivitas, sPeng.pinjam_tenggang_hari);
         tagihan = {
           id: p.id, pokok_rp: p.pokok_rp, bunga_rp: p.bunga_rp, total_rp: p.total_rp, jatuh_tempo: p.jatuh_tempo,
           terlambat_hari: Math.max(0, Math.floor((sekarang - jt) / HARI_MS)), sisa_hari: Math.ceil((jt - sekarang) / HARI_MS),
           ditagih_pengurus: p.ditagih_admin,
+          // [CICILAN]
+          dibayar_rp: Number(p.dibayar_rp || 0), sisa_rp: sisaTotalPinjam(p),
+          sisa_total_rp: rows.filter((x) => x.status === "aktif" || x.status === "dibayar").reduce((n, x) => n + sisaTotalPinjam(x), 0),
+          potong_pada: batas ? iso(batas) : null, tenggang_hari: p.tenggang_hari ?? sPeng.pinjam_tenggang_hari, bisa_dipotong: !!p.setuju_pada,
         };
       }
       return ok({ terkunci_units: Number(terkunci), tagihan });
+    }
+
+    // [CICILAN] Ringkasan pinjaman berjalan untuk kartu di Dompet (tanpa PIN, tanpa data rekening tujuan)
+    case "pinjam_ringkas": {
+      const r = await resolveProfile(body, d, true);
+      if ("error" in r) return fail(r.error);
+      const s = await ambilPengaturan(d);
+      await d.repo.expireCicilan(iso(d.now()));
+      const rows = await d.repo.listPinjamanBerjalan(r.profile.id);
+      const jalan = rows.filter((x) => x.status === "aktif" || x.status === "dibayar")
+        .sort((x, y) => Date.parse(x.jatuh_tempo || x.dibuat) - Date.parse(y.jatuh_tempo || y.dibuat));
+      const ajuan = rows.some((x) => x.status === "diajukan");
+      const terpakai = rows.reduce((n, x) => n + sisaPokokPinjam(x), 0);
+      const tersisa = Math.max(0, s.pinjam_maks_rp - terpakai);
+      const aktivitas = await d.repo.aktivitasCicilanTerakhir(r.profile.id);
+      const cicilan = (await d.repo.listCicilanByProfile(r.profile.id, 10)).find((c) => c.status === "menunggu" || c.status === "dibayar") || null;
+      return ok({
+        berjalan: jalan.map((x) => { const b = batasPotongMs(x, aktivitas, s.pinjam_tenggang_hari); return tampilPinjamRingkas(x, b ? iso(b) : null); }),
+        total_sisa_rp: jalan.reduce((n, x) => n + sisaTotalPinjam(x), 0),
+        terkunci_units: Number(rows.reduce((n, x) => n + jaminanSisaPinjam(x), 0n)),
+        terpakai_rp: terpakai, maks_rp: s.pinjam_maks_rp, tersisa_rp: tersisa, min_rp: s.pinjam_min_rp,
+        ada_pengajuan: ajuan,
+        bisa_pinjam: s.pinjam_aktif && !!s.qris && !ajuan && tersisa >= s.pinjam_min_rp,
+        ada_cicilan: cicilan ? { id: cicilan.id, status: cicilan.status, nominal_rp: cicilan.nominal_rp } : null,
+        tenggang_hari: s.pinjam_tenggang_hari,
+      });
     }
 
     case "pinjam_buat": {
@@ -1578,6 +1843,9 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (await samaDenganHashPublik(a.profile, body.pin)) return fail("pin_publik");
       const s = await ambilPengaturan(d);
       if (!(s.pinjam_aktif && s.qris)) return fail("pinjam_nonaktif");
+      // [CICILAN] persetujuan ketentuan (tanda tangan dengan centang) dan frasa dititip supaya pemotongan otomatis bisa dijalankan
+      if (body.setuju !== true) return fail("setuju_wajib");
+      if (!(await d.repo.getVault(a.profile.id))) return fail("no_vault");
       const pokok = Number(body.pokok_rp);
       if (!Number.isInteger(pokok) || pokok < s.pinjam_min_rp) return fail("pinjam_min_rp", { min_rp: s.pinjam_min_rp });
       const tenor = Number(body.tenor_hari);
@@ -1586,15 +1854,21 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       if ("error" in tujuan) return fail(tujuan.error);
       const sekarang = d.now();
       const riwayat = await d.repo.listPinjamanByProfile(a.profile.id, 50);
-      if (riwayat.some((r) => PINJAM_BERJALAN.includes(r.status))) return fail("masih_ada_pinjaman");
+      if (riwayat.some((r) => r.status === "diajukan")) return fail("masih_ada_pengajuan"); // [CICILAN] hanya satu pengajuan menunggu; pinjaman berjalan tidak lagi menghalangi
       if (riwayat.filter((r) => Date.parse(r.dibuat) >= sekarang - 24 * 3600 * 1000).length >= 5) return fail("terlalu_sering");
       if (!d.chain) return fail("chain_tidak_tersedia");
       let saldo;
       try { saldo = await d.chain.getAccount(a.profile.id); } catch { return fail("gagal_baca_saldo"); }
       const kurs = BigInt(s.kurs);
-      const bebas = saldo.tofOptin ? saldo.tof : 0n; // tidak ada pinjaman berjalan (sudah diperiksa), jadi tidak ada TOF terkunci
+      // [CICILAN] boleh pinjam lagi selama sisa pokok yang berjalan masih di bawah batas; TOF jaminan pinjaman lain tidak ikut dihitung bebas
+      const berjalanLama = riwayat.filter((r) => PINJAM_BERJALAN.includes(r.status));
+      const kunciLama = berjalanLama.reduce((n, r) => n + jaminanSisaPinjam(r), 0n);
+      const terpakaiLama = berjalanLama.reduce((n, r) => n + sisaPokokPinjam(r), 0);
+      const sisaPlafon = Math.max(0, s.pinjam_maks_rp - terpakaiLama);
+      if (sisaPlafon < s.pinjam_min_rp) return fail("pinjam_batas_penuh", { maks_rp: s.pinjam_maks_rp, terpakai_rp: terpakaiLama });
+      const bebas = saldo.tofOptin && saldo.tof > kunciLama ? saldo.tof - kunciLama : 0n;
       let maks = Number((bebas * kurs) / 1000000n);
-      if (maks > s.pinjam_maks_rp) maks = s.pinjam_maks_rp;
+      if (maks > sisaPlafon) maks = sisaPlafon;
       if (pokok > maks) return fail("pinjam_melebihi_batas", { maks_rp: maks });
       const bungaRp = Math.floor((pokok * s.pinjam_bunga_persen) / 100);
       const jaminan = (BigInt(pokok) * 1000000n + kurs - 1n) / kurs; // dibulatkan ke atas
@@ -1603,10 +1877,11 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
         profile_id: a.profile.id, username: a.profile.username, pokok_rp: pokok, bunga_persen: s.pinjam_bunga_persen, bunga_rp: bungaRp,
         total_rp: pokok + bungaRp, kurs_rp_per_tof: s.kurs, jaminan_tof_units: Number(jaminan), bunga_tof_units: Number(bungaTof), tenor_hari: tenor,
         tujuan_jenis: tujuan.jenis, tujuan_nomor: tujuan.nomor, tujuan_nama: tujuan.nama, status: "diajukan", dibuat: iso(sekarang),
+        setuju_pada: iso(sekarang), setuju_versi: PINJAM_VERSI_KETENTUAN, tenggang_hari: s.pinjam_tenggang_hari, // [CICILAN]
       });
-      if (ins.result === "duplicate") return fail("masih_ada_pinjaman");
+      if (ins.result === "duplicate") return fail("masih_ada_pengajuan");
       if (ins.result !== "ok" || !ins.row) return fail("server_error");
-      await d.repo.logTopup(ins.row.id, a.profile.id, "pinjam_buat", a.profile.id, { pokok_rp: pokok, bunga_rp: bungaRp, tenor_hari: tenor });
+      await d.repo.logTopup(ins.row.id, a.profile.id, "pinjam_buat", a.profile.id, { pokok_rp: pokok, bunga_rp: bungaRp, tenor_hari: tenor, setuju_versi: PINJAM_VERSI_KETENTUAN, tenggang_hari: s.pinjam_tenggang_hari });
       return ok({ pinjam: tampilPinjam(ins.row) });
     }
 
@@ -1614,7 +1889,7 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       const a = await authUser(body, d);
       if ("gagal" in a) return a.gagal;
       const daftar = (await d.repo.listPinjamanByProfile(a.profile.id, 20)).reverse(); // terlama → terbaru (client membaliknya)
-      return ok({ daftar: daftar.map(tampilPinjam) });
+      return ok({ daftar: daftar.map((x) => tampilPinjam(x)) });
     }
 
     case "pinjam_batal": {
@@ -1641,7 +1916,7 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       for (const t of await d.repo.listTopupByStatus(["menunggu", "dibayar"], 1000)) dipakai.add(Number(t.total_rp));
       for (const p of await d.repo.listPinjamanByStatus(["aktif", "dibayar"], 1000, "dibuat_asc")) if (p.total_bayar_rp) dipakai.add(Number(p.total_bayar_rp));
       for (const kode of acakKode()) {
-        const total = row.total_rp + kode;
+        const total = row.total_rp - Number(row.dibayar_rp || 0) + kode; // [CICILAN] yang sudah dicicil tidak ditagih lagi
         if (dipakai.has(total)) continue;
         const baru = await d.repo.updatePinjamanIf(row.id, ["aktif"], { kode_unik: kode, total_bayar_rp: total });
         if (!baru) return fail("status_tidak_cocok");
@@ -1663,6 +1938,81 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       return ok({ pinjam: tampilPinjam(baru) });
     }
 
+    // ---------------- [CICILAN] bayar pinjaman (boleh dicicil) ----------------
+    // Seperti Nabung: bayar dari luar dompet lewat QRIS/transfer dengan kode unik, lalu pengurus mencocokkan mutasi.
+    // Idempoten: bila masih ada tagihan cicilan yang berjalan dan nominal tidak dikirim (atau sama), tagihan itu dikembalikan.
+    case "pinjam_cicil_buat": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const s = await ambilPengaturan(d);
+      if (!s.qris) return fail("pinjam_nonaktif"); // pinjaman baru boleh ditutup, tetapi pembayaran tetap bisa selama ada QRIS
+      const sekarang = d.now();
+      await d.repo.expireCicilan(iso(sekarang));
+      const jalan = (await d.repo.listPinjamanBerjalan(a.profile.id)).filter((x) => x.status === "aktif" || x.status === "dibayar");
+      const totalSisa = jalan.reduce((n, x) => n + sisaTotalPinjam(x), 0);
+      const berjalan = (await d.repo.listCicilanByProfile(a.profile.id, 10)).find((c) => c.status === "menunggu" || c.status === "dibayar");
+      const nominalAda = body.nominal_rp !== undefined && body.nominal_rp !== null;
+      if (berjalan) {
+        if (!nominalAda || Number(body.nominal_rp) === Number(berjalan.nominal_rp)) return ok({ cicilan: tampilCicilan(berjalan), total_sisa_rp: totalSisa });
+        return fail("masih_ada_cicilan");
+      }
+      if (totalSisa <= 0) return fail("tidak_ada_tagihan");
+      const nominal = Number(body.nominal_rp);
+      const minimal = Math.min(s.min_rp, totalSisa);
+      if (!Number.isInteger(nominal) || nominal < minimal || nominal > totalSisa) return fail("nominal_tidak_valid", { min_rp: minimal, maks_rp: totalSisa });
+      if ((await d.repo.countCicilanSince(a.profile.id, iso(sekarang - 24 * 3600 * 1000))) >= CICIL_MAKS_PER_HARI) return fail("terlalu_sering");
+      // hindari total yang sama dengan tagihan Nabung/cicilan/pelunasan lain yang aktif (mutasi tidak boleh ambigu)
+      const dipakai = new Set<number>();
+      for (const t of await d.repo.listTopupByStatus(["menunggu", "dibayar"], 1000)) dipakai.add(Number(t.total_rp));
+      for (const p of await d.repo.listPinjamanByStatus(["aktif", "dibayar"], 1000, "dibuat_asc")) if (p.total_bayar_rp) dipakai.add(Number(p.total_bayar_rp));
+      for (const c of await d.repo.listCicilanByStatus(["menunggu", "dibayar"], 1000, "asc")) dipakai.add(Number(c.total_bayar_rp));
+      for (const kode of acakKode().slice(0, 60)) {
+        const total = nominal + kode;
+        if (dipakai.has(total)) continue;
+        const hasil = await d.repo.insertCicilan({
+          profile_id: a.profile.id, username: a.profile.username, nominal_rp: nominal, kode_unik: kode, total_bayar_rp: total,
+          status: "menunggu", dibuat: iso(sekarang), kedaluwarsa_pada: iso(sekarang + CICIL_TTL_MS),
+        });
+        if (hasil.result === "ok" && hasil.row) {
+          await d.repo.logTopup(hasil.row.id, a.profile.id, "cicil_buat", a.profile.id, { nominal_rp: nominal, total_bayar_rp: total });
+          return ok({ cicilan: tampilCicilan(hasil.row), total_sisa_rp: totalSisa });
+        }
+        if (hasil.result === "error") return fail("server_error");
+      }
+      return fail("kode_unik_habis");
+    }
+
+    case "pinjam_cicil_dibayar": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getCicilan(body.id) : null;
+      if (!row || row.profile_id !== a.profile.id) return fail("not_found");
+      const baru = await d.repo.updateCicilanIf(row.id, ["menunggu"], { status: "dibayar", ref_user: teks(body.ref, 60) || null, dibayar_pada: iso(d.now()) });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, a.profile.id, "cicil_dibayar", a.profile.id, { ref: baru.ref_user });
+      return ok({ cicilan: tampilCicilan(baru) });
+    }
+
+    case "pinjam_cicil_batal": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getCicilan(body.id) : null;
+      if (!row || row.profile_id !== a.profile.id) return fail("not_found");
+      const baru = await d.repo.updateCicilanIf(row.id, ["menunggu"], { status: "dibatalkan" });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, a.profile.id, "cicil_batal", a.profile.id, {});
+      return ok({ cicilan: tampilCicilan(baru) });
+    }
+
+    // Pemicu terjadwal (pg_cron / GitHub Actions) tanpa PIN: dijaga rahasia CRON_SECRET. Memotong pinjaman yang sudah lewat tenggang.
+    case "sistem_pinjam_potong": {
+      const rahasia = typeof body.rahasia === "string" ? body.rahasia : "";
+      if (!d.cronSecret || !rahasia || !timingSafeEqual(rahasia, d.cronSecret)) return fail("tidak_berhak");
+      const hasil = await jalankanPotongJatuhTempo("sistem", d);
+      await d.repo.log("sistem", "pinjam_potong_terjadwal", true);
+      return ok({ diproses: hasil.diproses, hasil: hasil.hasil });
+    }
+
     // ---------------- pengurus ----------------
     case "admin_pinjam_daftar": {
       const a = await authAdmin(body, d);
@@ -1672,9 +2022,19 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (t === "diajukan") rows = await d.repo.listPinjamanByStatus(["diajukan"], 100, "dibuat_asc");
       else if (t === "dibayar") rows = await d.repo.listPinjamanByStatus(["dibayar"], 100, "dibuat_asc");
       else if (t === "aktif") rows = await d.repo.listPinjamanByStatus(["aktif"], 100, "tempo_asc");
-      else rows = (await d.repo.listPinjamanByStatus(["lunas", "ditolak", "dibatalkan"], 100, "dibuat_desc")).reverse();
+      else rows = (await d.repo.listPinjamanByStatus(["lunas", "dipotong", "ditolak", "dibatalkan"], 100, "dibuat_desc")).reverse();
       const nama = await namaProfil(d, rows.map((r) => r.profile_id));
-      return ok({ daftar: rows.map((r) => ({ ...tampilPinjam(r), username: nama.get(r.profile_id) || r.username || "", bunga_tof_units: r.bunga_tof_units })) });
+      const sPeng = await ambilPengaturan(d);
+      const daftar: Res[] = [];
+      for (const r of rows) {
+        let potongPada: string | null = null;
+        if (r.status === "aktif" && r.jatuh_tempo) {
+          const b = batasPotongMs(r, await d.repo.aktivitasCicilanTerakhir(r.profile_id), sPeng.pinjam_tenggang_hari);
+          potongPada = b ? iso(b) : null;
+        }
+        daftar.push({ ...tampilPinjam(r, potongPada), username: nama.get(r.profile_id) || r.username || "", bunga_tof_units: r.bunga_tof_units });
+      }
+      return ok({ daftar });
     }
 
     // Pengurus sudah mengirim uang pokok ke tujuan anggota → pinjaman mulai berjalan, jatuh tempo dihitung dari sekarang
@@ -1691,7 +2051,8 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (!d.chain) return fail("chain_tidak_tersedia");
       try {
         const ac = await d.chain.getAccount(row.profile_id);
-        if (!ac.tofOptin || ac.tof < BigInt(row.jaminan_tof_units)) return fail("jaminan_kurang", { jaminan_units: row.jaminan_tof_units, saldo_units: Number(ac.tof) });
+        const kunciTotal = await jaminanTerkunci(row.profile_id, d); // [CICILAN] termasuk pengajuan ini dan pinjaman lain yang berjalan
+        if (!ac.tofOptin || ac.tof < kunciTotal) return fail("jaminan_kurang", { jaminan_units: Number(kunciTotal), saldo_units: Number(ac.tof) });
       } catch { return fail("gagal_baca_saldo"); }
       const sekarang = d.now();
       const baru = await d.repo.updatePinjamanIf(row.id, ["diajukan"], {
@@ -1750,11 +2111,90 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
       if (!row) return fail("pinjam_tidak_ditemukan");
       if (row.profile_id === a.profile.id && (d.adminIds || []).length > 1) return fail("tidak_boleh_proses_sendiri");
-      const baru = await d.repo.updatePinjamanIf(row.id, ["aktif", "dibayar"], { status: "lunas", dilunasi_pada: iso(d.now()), dilunasi_oleh: a.profile.id });
+      if (row.potong_status === "mengirim") return fail("sedang_dipotong"); // [CICILAN]
+      const baru = await d.repo.updatePinjamanIf(row.id, ["aktif", "dibayar"], { status: "lunas", dibayar_rp: row.total_rp, dilunasi_pada: iso(d.now()), dilunasi_oleh: a.profile.id });
       if (!baru) return fail("status_tidak_cocok");
       await d.repo.logTopup(row.id, row.profile_id, "pinjam_lunas", a.profile.id, { total_rp: row.total_rp });
       const payout = await kirimBungaPinjam(baru, a.profile.id, d);
       return ok({ pinjam: tampilPinjam((await d.repo.getPinjaman(row.id)) || baru), payout });
+    }
+
+    // ---------------- [CICILAN] pengurus: cocokkan cicilan ----------------
+    case "admin_cicil_daftar": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      await d.repo.expireCicilan(iso(d.now()));
+      const rows = body.tampil === "riwayat"
+        ? (await d.repo.listCicilanByStatus(["diterima", "ditolak", "dibatalkan", "kedaluwarsa"], 30, "desc"))
+        : (await d.repo.listCicilanByStatus(["menunggu", "dibayar"], 100, "asc"));
+      const nama = await namaProfil(d, rows.map((r) => r.profile_id));
+      const sisa = new Map<string, number>();
+      if (body.tampil !== "riwayat") {
+        for (const r of rows) {
+          if (sisa.has(r.profile_id)) continue;
+          sisa.set(r.profile_id, (await d.repo.listPinjamanBerjalan(r.profile_id)).filter((x) => x.status === "aktif" || x.status === "dibayar").reduce((n, x) => n + sisaTotalPinjam(x), 0));
+        }
+      }
+      return ok({ daftar: rows.map((r) => ({ ...tampilCicilan(r), username: nama.get(r.profile_id) || r.username || "", sisa_total_rp: sisa.get(r.profile_id) ?? null, catatan_transaksi: catatanBunga(nama.get(r.profile_id) || r.username || "", r.profile_id).replace("bunga pinjaman", "cicilan pinjaman") })) });
+    }
+
+    case "admin_cicil_terima": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getCicilan(body.id) : null;
+      if (!row) return fail("not_found");
+      if (row.profile_id === a.profile.id && (d.adminIds || []).length > 1) return fail("tidak_boleh_proses_sendiri");
+      // 'kedaluwarsa' ikut diizinkan: uangnya bisa saja sudah masuk walau tagihan lewat 24 jam
+      const baru = await d.repo.updateCicilanIf(row.id, ["menunggu", "dibayar", "kedaluwarsa"], {
+        status: "diterima", diproses_oleh: a.profile.id, diproses_pada: iso(d.now()), catatan_admin: teks(body.catatan, 200) || null,
+      });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "cicil_terima", a.profile.id, { nominal_rp: row.nominal_rp, total_bayar_rp: row.total_bayar_rp });
+      const hasil = await terapkanCicilan(baru, a.profile.id, d);
+      const catatan = hasil.kelebihan_rp > 0
+        ? "Kelebihan Rp " + hasil.kelebihan_rp + " tidak teralokasi (tidak ada pinjaman berjalan yang bisa menerimanya). Kembalikan manual ke anggota."
+        : null;
+      const akhir = (await d.repo.updateCicilanIf(row.id, ["diterima"], { alokasi: hasil.alokasi, ...(catatan ? { catatan_admin: catatan } : {}) })) || baru;
+      return ok({ cicilan: tampilCicilan(akhir), alokasi: hasil.alokasi, lunas: hasil.lunas, kelebihan_rp: hasil.kelebihan_rp });
+    }
+
+    case "admin_cicil_tolak": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const alasan = teks(body.alasan, 200);
+      if (!alasan) return fail("alasan_wajib");
+      const row = typeof body.id === "string" ? await d.repo.getCicilan(body.id) : null;
+      if (!row) return fail("not_found");
+      const baru = await d.repo.updateCicilanIf(row.id, ["menunggu", "dibayar"], { status: "ditolak", catatan_admin: alasan, diproses_oleh: a.profile.id, diproses_pada: iso(d.now()) });
+      if (!baru) return fail("status_tidak_cocok");
+      await d.repo.logTopup(row.id, row.profile_id, "cicil_tolak", a.profile.id, { alasan });
+      return ok({ cicilan: tampilCicilan(baru) });
+    }
+
+    // ---------------- [CICILAN] pengurus: potong TOF pinjaman yang lewat tenggang ----------------
+    // Satu pinjaman (tombol "Potong TOF sekarang"; yakin:true untuk mengulang percobaan yang hasilnya tidak pasti).
+    // Hanya boleh bila sudah lewat jatuh tempo + masa tenggang tanpa aktivitas cicilan, kecuali pengurus menekan 'paksa'.
+    case "admin_pinjam_potong": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const row = typeof body.id === "string" ? await d.repo.getPinjaman(body.id) : null;
+      if (!row) return fail("pinjam_tidak_ditemukan");
+      if (row.status !== "aktif") return fail("status_tidak_cocok");
+      if (row.profile_id === a.profile.id && (d.adminIds || []).length > 1) return fail("tidak_boleh_proses_sendiri");
+      const sPeng = await ambilPengaturan(d);
+      const batas = batasPotongMs(row, await d.repo.aktivitasCicilanTerakhir(row.profile_id), sPeng.pinjam_tenggang_hari);
+      if (batas === null || d.now() < batas) return fail("belum_lewat_tenggang", { potong_pada: batas ? iso(batas) : null });
+      const hasil = await prosesPotongPinjam(row, a.profile.id, d, body.yakin === true);
+      const terbaru = (await d.repo.getPinjaman(row.id)) || row;
+      return ok({ pinjam: tampilPinjam(terbaru), potong: hasil });
+    }
+
+    // Semua pinjaman yang sudah lewat tenggang (maksimal beberapa per panggilan; ulangi bila masih ada).
+    case "admin_pinjam_potong_semua": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const hasil = await jalankanPotongJatuhTempo(a.profile.id, d);
+      return ok({ diproses: hasil.diproses, hasil: hasil.hasil });
     }
 
     // Kirim ulang / periksa bunga TOF setelah lunas. yakin:true mengembalikan status 'mengirim' tanpa ID transaksi (setelah memeriksa explorer).
@@ -2741,6 +3181,7 @@ function itemBatch(r: TopupRow, nomor: number, nama: Map<string, string>) {
 //   PIN_PEPPER        = string acak panjang         (openssl rand -base64 24)
 //   ADMIN_IDS         = alamat dompet pengurus Nabung TOF, dipisah koma
 //   PAYOUT_MNEMONIC   = 25 kata dompet PEMBAYAR khusus (opsional; untuk kirim TOF otomatis)
+//   CRON_SECRET       = (opsional) string acak panjang untuk pemicu terjadwal potong pinjaman ('sistem_pinjam_potong')
 //   ALLOWED_ORIGINS   = (opsional) daftar origin dipisah koma
 // SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY sudah otomatis tersedia.
 // ============================================================
@@ -2753,6 +3194,7 @@ const INDEXER = Deno.env.get("INDEXER_URL") ?? "https://mainnet-idx.algonode.clo
 const ALGOD = Deno.env.get("ALGOD_URL") ?? "https://mainnet-api.algonode.cloud";
 const TOF_ASSET_ID = Number(Deno.env.get("TOF_ASSET_ID") ?? "3558306283");
 const PAYOUT_MNEMONIC = (Deno.env.get("PAYOUT_MNEMONIC") ?? "").trim();
+const CRON_SECRET = (Deno.env.get("CRON_SECRET") ?? "").trim();
 const ADMIN_IDS = (Deno.env.get("ADMIN_IDS") ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 const ALLOWED = (Deno.env.get("ALLOWED_ORIGINS") ?? "https://www.tofarmer.xyz,https://tofarmer.xyz")
   .split(",").map((s) => s.trim()).filter(Boolean);
@@ -2940,6 +3382,53 @@ const repo: Repo = {
     const rows = must(await db.from("pinjaman").select("bunga_tof_units")
       .in("bunga_status", ["mengirim", "terkirim"]).gte("bunga_kirim_pada", sinceIso)) as { bunga_tof_units: number }[];
     return (rows || []).reduce((n, r) => n + Number(r.bunga_tof_units), 0);
+  },
+
+  // ---------------- [CICILAN] Cicilan pinjaman & potong otomatis ----------------
+  async insertCicilan(row) {
+    const { data, error } = await db.from("pinjaman_cicilan").insert(row).select().single();
+    if (!error) return { result: "ok", row: data as CicilanRow };
+    if (error.code === "23505") return { result: "duplicate" }; // total bayar sudah dipakai cicilan aktif lain
+    console.error("insertCicilan:", error.message);
+    return { result: "error" };
+  },
+  async getCicilan(id) {
+    return must(await db.from("pinjaman_cicilan").select("*").eq("id", id).maybeSingle()) as CicilanRow | null;
+  },
+  async updateCicilanIf(id, expect, patch) {
+    return must(await db.from("pinjaman_cicilan").update(patch).eq("id", id).in("status", expect).select().maybeSingle()) as CicilanRow | null;
+  },
+  async listCicilanByProfile(profileId, limit) {
+    return must(await db.from("pinjaman_cicilan").select("*").eq("profile_id", profileId).order("dibuat", { ascending: false }).limit(limit)) as CicilanRow[];
+  },
+  async listCicilanByStatus(statuses, limit, urut) {
+    return must(await db.from("pinjaman_cicilan").select("*").in("status", statuses).order("dibuat", { ascending: urut === "asc" }).limit(limit)) as CicilanRow[];
+  },
+  async countCicilanSince(profileId, sinceIso) {
+    const { count, error } = await db.from("pinjaman_cicilan").select("id", { count: "exact", head: true })
+      .eq("profile_id", profileId).gte("dibuat", sinceIso);
+    if (error) throw new Error(error.message);
+    return count ?? 0;
+  },
+  async expireCicilan(nowIso) {
+    must(await db.from("pinjaman_cicilan").update({ status: "kedaluwarsa" }).eq("status", "menunggu").lt("kedaluwarsa_pada", nowIso));
+  },
+  async aktivitasCicilanTerakhir(profileId) {
+    const rows = must(await db.from("pinjaman_cicilan").select("dibuat").eq("profile_id", profileId)
+      .in("status", ["menunggu", "dibayar", "diterima"]).order("dibuat", { ascending: false }).limit(1)) as { dibuat: string }[];
+    return rows && rows.length ? rows[0].dibuat : null;
+  },
+  async setDibayarPinjamanIf(id, dibayarLama, dibayarBaru) {
+    return must(await db.from("pinjaman").update({ dibayar_rp: dibayarBaru }).eq("id", id).eq("dibayar_rp", dibayarLama)
+      .in("status", ["aktif", "dibayar"]).select().maybeSingle()) as PinjamanRow | null;
+  },
+  async updatePinjamanPotongIf(id, expectStatus, expectPotong, patch) {
+    return must(await db.from("pinjaman").update(patch).eq("id", id).in("status", expectStatus).in("potong_status", expectPotong).select().maybeSingle()) as PinjamanRow | null;
+  },
+  async listPinjamanLewatTempo(nowIso, limit) {
+    return must(await db.from("pinjaman").select("*").eq("status", "aktif").in("potong_status", ["tidak", "mengirim"])
+      .not("setuju_pada", "is", null).not("jatuh_tempo", "is", null).lte("jatuh_tempo", nowIso)
+      .order("jatuh_tempo", { ascending: true }).limit(limit)) as PinjamanRow[];
   },
 
   // ---------------- Dividen ----------------
@@ -3272,6 +3761,7 @@ const deps: Deps = {
   now: () => Date.now(),
   adminIds: ADMIN_IDS,
   chain,
+  cronSecret: CRON_SECRET,
 };
 
 function corsHeaders(req: Request): Record<string, string> {

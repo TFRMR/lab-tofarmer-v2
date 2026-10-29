@@ -33,6 +33,7 @@
     pinjam: null,    // info Pinjam dari server (bunga, tenor, batas)
     terkunci: 0n,    // TOF yang sedang menjadi jaminan pinjaman (unit terkecil)
     popupPinjamTampil: false,
+    pinjamRingkas: null, // [CICILAN] ringkasan pinjaman berjalan dari server (sisa, jatuh tempo, batas, tagihan cicilan)
     dividen: null,       // status syarat dividen (frasa, persetujuan)
     tugas: null,         // tugas bulan ini dan dividen yang ditahan
     dividenIngat: false
@@ -253,11 +254,17 @@
       case "klaim_sudah_ada": return "Klaim ini sudah menunggu persetujuan pengurus.";
       case "pinjam_nonaktif": return "Pinjaman belum dibuka oleh pengurus.";
       case "masih_ada_pinjaman": return "Kamu masih punya pinjaman yang berjalan. Lunasi dulu lewat menu Pinjam > Pinjamanku.";
-      case "pinjam_melebihi_batas": return "Pinjaman melebihi batas: maksimal Rp " + fmtRp(res.maks_rp || 0) + " (nilai TOF yang tidak sedang terkunci).";
+      case "pinjam_melebihi_batas": return "Pinjaman melebihi batas: maksimal Rp " + fmtRp(res.maks_rp || 0) + " (nilai TOF yang tidak sedang terkunci dan sisa plafon pinjaman).";
       case "pinjam_min_rp": return "Jumlah pinjaman minimal Rp " + fmtRp(res.min_rp || 0) + ".";
       case "tenor_tidak_valid": return "Lama pinjam tidak valid.";
       case "pinjam_tidak_ditemukan": return "Pinjaman tidak ditemukan.";
       case "jaminan_terkunci": return "Sebagian TOF-mu sedang menjadi jaminan pinjaman. Yang bisa dipakai sekarang: " + fmtUnits(res.bebas_units || 0) + " TOF.";
+      // [CICILAN]
+      case "setuju_wajib": return "Centang persetujuan ketentuan pinjaman dulu.";
+      case "masih_ada_pengajuan": return "Pengajuan pinjamanmu yang sebelumnya masih menunggu dicairkan pengurus. Tunggu sampai selesai dulu.";
+      case "pinjam_batas_penuh": return "Batas pinjamanmu sudah penuh (Rp " + fmtRp(res.terpakai_rp || 0) + " dari Rp " + fmtRp(res.maks_rp || 0) + "). Bayar sebagian dulu untuk bisa meminjam lagi.";
+      case "masih_ada_cicilan": return "Kamu masih punya tagihan cicilan yang belum selesai. Lanjutkan atau batalkan dulu.";
+      case "tidak_ada_tagihan": return "Tidak ada pinjaman berjalan yang perlu dibayar.";
       case "network": return "Koneksi bermasalah, coba lagi.";
       default: return "Gagal: " + (res.error || "tidak diketahui");
     }
@@ -401,8 +408,11 @@
   });
 
   // Layar konfirmasi + PIN + eksekusi + hasil
-  function layarKonfirmasi(sheet, { judul, baris, catatan, tombol, jalankan, kembali, suksesLayar }) {
+  function layarKonfirmasi(sheet, { judul, baris, catatan, tombol, jalankan, kembali, suksesLayar, centang }) {
     const galat = el("div", { class: "galat", id: "galatKonfirmasi" });
+    // [CICILAN] persetujuan opsional (dipakai Pinjam): wajib dicentang sebelum PIN dipakai menandatangani
+    const cek = centang ? el("input", { type: "checkbox", id: "cekKetentuan" }) : null;
+    const labelCek = centang ? el("label", { class: "lbl", for: "cekKetentuan", style: "display:flex;gap:8px;align-items:flex-start;font-weight:600;" }, cek, centang) : null;
     const pin = pinInput("pinKonfirmasi");
     const btn = el("button", { class: "btn utama", id: "btnKonfirmasi", text: tombol });
     const tabel = el("div", { class: "ringkas" },
@@ -414,6 +424,7 @@
     sheet.ganti(
       tabel,
       catatan ? el("div", { class: "info", text: catatan }) : null,
+      labelCek,
       el("label", { class: "lbl", for: "pinKonfirmasi", text: "Masukkan PIN untuk menandatangani" }),
       pin, galat, btn,
       kembali ? el("button", { class: "btn teks", text: "Kembali", onclick: kembali }) : null
@@ -422,6 +433,7 @@
     btn.onclick = async () => {
       const p = pin.value.trim();
       galat.textContent = "";
+      if (cek && !cek.checked) { galat.textContent = "Centang persetujuan ketentuan dulu."; return; }
       if (!/^\d{6}$/.test(p)) { galat.textContent = "PIN harus 6 digit angka."; return; }
       btn.disabled = true;
       btn.textContent = "Memproses…";
@@ -1418,6 +1430,7 @@
     aktif: ["Berjalan", "ok"],
     dibayar: ["Pelunasan menunggu dicek pengurus", "tunggu"],
     lunas: ["Lunas", "ok"],
+    dipotong: ["TOF dipotong (tidak dibayar)", "gagal"],
     ditolak: ["Ditolak pengurus", "gagal"],
     dibatalkan: ["Dibatalkan", "gagal"]
   };
@@ -1443,13 +1456,63 @@
     const info = state.pinjam;
     const kartu = $("pinjamCard");
     if (!kartu) return;
-    kartu.hidden = !(info && info.aktif);
+    // [CICILAN] kartu tetap tampil bila anggota masih punya pinjaman berjalan, walau pinjaman baru sedang ditutup pengurus
+    const adaBerjalan = !!(state.pinjamRingkas && state.pinjamRingkas.berjalan && state.pinjamRingkas.berjalan.length);
+    kartu.hidden = !(info && (info.aktif || adaBerjalan));
     if (info && info.aktif) {
       $("pinjamInfo").textContent = "Pinjam uang dari kas dengan jaminan TOF-mu sendiri, maksimal sebesar nilai saldo TOF. Bunga " + info.bunga_persen
         + "% dari pokok, dan kembali ke dompetmu sebagai TOF saat lunas."
         + (state.terkunci > 0n ? " TOF terkunci sebagai jaminan: " + fmtUnits(state.terkunci) + "." : "");
     }
     $("btnPinjam").onclick = panelPinjam;
+    renderPinjamSisa(); // [CICILAN]
+  }
+
+  // [CICILAN] Ringkasan pinjaman berjalan di kartu: sisa yang harus dibayar, jatuh tempo, batas, dan tombol Bayar.
+  // Tombol Pinjam hilang bila batas pinjaman sudah penuh, dan muncul lagi setelah dicicil.
+  function renderPinjamSisa() {
+    const info = state.pinjam;
+    const rg = state.pinjamRingkas;
+    const box = $("pinjamSisa"), peringatan = $("pinjamPeringatan"), btnBayar = $("btnBayarPinjaman"), btnPinjam = $("btnPinjam");
+    if (!box || !peringatan || !btnBayar || !btnPinjam) return;
+    const berjalan = rg && rg.berjalan ? rg.berjalan : [];
+    const ada = berjalan.length > 0;
+    box.hidden = !ada;
+    btnBayar.hidden = !ada;
+    btnBayar.onclick = panelBayarPinjaman;
+    btnPinjam.hidden = !(info && info.aktif) || (rg ? !rg.bisa_pinjam : false);
+    const baris = (k, v, tebal) => el("div", { class: "baris" }, el("div", { class: "k", text: k }), el("div", { class: "v", style: tebal ? "font-size:15px;" : "", text: v }));
+    if (!ada) {
+      box.replaceChildren();
+      const pesan = [];
+      if (rg && rg.ada_pengajuan) pesan.push("Pengajuan pinjamanmu menunggu dicairkan pengurus.");
+      peringatan.textContent = pesan.join(" ");
+      peringatan.hidden = pesan.length === 0;
+      return;
+    }
+    const anak = [baris("Sisa yang harus dibayar", "Rp " + fmtRp(rg.total_sisa_rp), true)];
+    berjalan.forEach((p) => {
+      anak.push(baris("Rp " + fmtRp(p.pokok_rp) + " · " + (p.jatuh_tempo ? "tempo " + tglPinjam(p.jatuh_tempo) : "belum jatuh tempo"),
+        "sisa Rp " + fmtRp(p.sisa_rp) + (p.dibayar_rp > 0 ? " (sudah bayar Rp " + fmtRp(p.dibayar_rp) + ")" : "")));
+    });
+    anak.push(baris("Batas pinjam terpakai", "Rp " + fmtRp(rg.terpakai_rp) + " dari Rp " + fmtRp(rg.maks_rp)));
+    anak.push(baris("TOF jaminan terkunci", fmtUnits(BigInt(rg.terkunci_units || 0)) + " TOF"));
+    box.replaceChildren(...anak);
+
+    const pesan = [];
+    const telat = berjalan.filter((p) => p.jatuh_tempo && sisaHariPinjam(p.jatuh_tempo) < 0);
+    if (telat.length) {
+      const p = telat[0];
+      pesan.push("Ada pinjaman yang sudah lewat jatuh tempo. Boleh dicicil. Jika sampai " + (p.potong_pada ? tglPinjam(p.potong_pada) : "akhir masa tenggang")
+        + " belum ada pembayaran, TOF jaminan yang tersisa dipotong otomatis dari dompetmu.");
+    } else {
+      pesan.push("Bayar boleh dicicil kapan saja. TOF-mu tidak disentuh selama pinjaman dibayar sebelum jatuh tempo + masa tenggang.");
+    }
+    if (rg.ada_pengajuan) pesan.push("Ada pengajuan baru yang menunggu dicairkan pengurus.");
+    else if (rg && !rg.bisa_pinjam && info && info.aktif) pesan.push("Batas pinjamanmu sudah penuh; tombol Pinjam muncul lagi setelah kamu mencicil.");
+    if (info && !info.aktif) pesan.push("Pinjaman baru sedang ditutup pengurus. Kamu tetap bisa membayar yang berjalan.");
+    peringatan.textContent = pesan.join(" ");
+    peringatan.hidden = false;
   }
 
   function panelPinjam() {
@@ -1471,11 +1534,14 @@
       if (bebas <= 0n) return 0;
       let m = Number((bebas * BigInt(info.kurs)) / SATU);
       if (info.maks_rp && m > info.maks_rp) m = info.maks_rp;
+      // [CICILAN] dibatasi juga oleh sisa plafon (total pinjaman berjalan + yang baru tidak boleh melebihi batas)
+      const sisaPlafon = state.pinjamRingkas ? Number(state.pinjamRingkas.tersisa_rp) : NaN;
+      if (Number.isFinite(sisaPlafon) && m > sisaPlafon) m = sisaPlafon;
       return m;
     };
     const perbaruiSaldo = () => {
       saldoEl.textContent = state.ringkas
-        ? "Batas pinjammu: Rp " + fmtRp(maksRp()) + " (nilai TOF yang tidak sedang menjadi jaminan)"
+        ? "Batas pinjammu: Rp " + fmtRp(maksRp()) + " (nilai TOF yang tidak sedang menjadi jaminan, dibatasi sisa plafon pinjaman)"
         : "Saldo TOF belum terbaca.";
     };
     perbaruiSaldo();
@@ -1523,7 +1589,7 @@
     hitung();
 
     s.ganti(
-      el("div", { class: "info", text: "Kamu meminjam dari dirimu sendiri. TOF-mu dikunci sebagai jaminan sampai pinjaman lunas, dan pengurus mengirim uangnya ke tujuan di bawah. Saat jatuh tempo, pinjaman ditagih lewat pop-up di Dompet." }),
+      el("div", { class: "info", text: "Kamu meminjam dari dirimu sendiri. TOF-mu dikunci sebagai jaminan, dan pengurus mengirim uangnya ke tujuan di bawah. Bayar boleh dicicil kapan saja dari luar dompet (QRIS/transfer), dan kamu boleh meminjam lagi selama total pinjamanmu masih di bawah batas. Saat jatuh tempo, pinjaman ditagih lewat pop-up di Dompet." }),
       saldoEl,
       el("label", { class: "lbl", text: "Jumlah pinjaman (Rp)" }), grid, jumlah, preview,
       el("label", { class: "lbl", for: "pinjamTenor", text: "Lama pinjam" }), tenor,
@@ -1565,12 +1631,18 @@
           ["Dikirim ke", jenisTujuan + " · " + nomorBersih],
           ["Atas nama", namaBersih]
         ],
-        catatan: "Pastikan nomor tujuan benar. Bunga tidak hilang: setelah lunas, bunga kembali ke dompetmu sebagai TOF. TOF jaminan tidak bisa dikirim atau ditarik selama pinjaman berjalan.",
+        catatan: "Pastikan nomor tujuan benar. Bunga tidak hilang: setelah lunas, bunga kembali ke dompetmu sebagai TOF. TOF jaminan tidak bisa dikirim atau ditarik selama pinjaman berjalan.\n\n"
+          + "KETENTUAN PINJAMAN\n"
+          + "1. Pinjaman boleh dibayar dicicil berapa pun, kapan pun, lewat tombol Bayar pinjaman (dari luar dompet, QRIS atau transfer).\n"
+          + "2. TOF di dompetmu tidak disentuh selama pinjaman dibayar sebelum jatuh tempo ditambah masa tenggang " + (info.tenggang_hari || 60) + " hari.\n"
+          + "3. Jika lewat jatuh tempo + masa tenggang dan tidak ada aktivitas pembayaran, sisa pinjaman DIPOTONG OTOMATIS dari saldo TOF-mu sebesar TOF jaminan yang tersisa. Ini sama dengan dana yang sudah ditarik, sehingga nilai asetmu berkurang.\n"
+          + "4. Pemotongan memakai frasa dompet yang kamu titipkan di brankas, dan tidak meminta PIN lagi.",
+        centang: "Saya sudah membaca dan menyetujui ketentuan pinjaman di atas, dan menandatanganinya dengan centang ini.",
         tombol: "Ajukan pinjaman",
         kembali: () => tampilFormPinjam(s, info, sesi, sisa),
         suksesLayar: layarSuksesPinjam,
         jalankan: async (pin) => {
-          const r = await vault("pinjam_buat", { profile_id: state.wallet, pin, pokok_rp: pokok, tenor_hari: Number(tenor.value), jenis: jenisTujuan, nomor: nomorBersih, nama: namaBersih });
+          const r = await vault("pinjam_buat", { profile_id: state.wallet, pin, pokok_rp: pokok, tenor_hari: Number(tenor.value), jenis: jenisTujuan, nomor: nomorBersih, nama: namaBersih, setuju: true });
           if (!r.ok) { const e = new Error(pesanVault(r)); e.tampil = true; throw e; }
           sesi.pin = pin;
           return r;
@@ -1611,7 +1683,7 @@
       if (!res.ok) { galat.textContent = pesanVault(res); return; }
       sesi.pin = p;
       const langsung = idLangsung ? res.daftar.find((x) => x.id === idLangsung) : null;
-      if (langsung) tampilBayarPinjam(s, info, sesi, langsung);
+      if (langsung) { await muatRingkasPinjam(); tampilFormCicilan(s, info, sesi); } // [CICILAN] bayar boleh dicicil
       else daftarPinjam(s, info, sesi, res.daftar);
     };
   }
@@ -1631,7 +1703,7 @@
     const galat = el("div", { class: "galat", id: "galatDetailPinjam" });
     const aksi = [];
     if (p.status === "aktif") {
-      aksi.push(el("button", { class: "btn utama", id: "btnLunasiPinjam", text: "Lunasi sekarang", onclick: () => tampilBayarPinjam(s, info, sesi, p) }));
+      aksi.push(el("button", { class: "btn utama", id: "btnLunasiPinjam", text: "Bayar pinjaman", onclick: async () => { await muatRingkasPinjam(); tampilFormCicilan(s, info, sesi); } }));
     }
     if (p.status === "diajukan") {
       aksi.push(el("button", { class: "btn teks", id: "btnBatalPinjam", text: "Batalkan (hanya jika uang belum dikirim)", onclick: async () => {
@@ -1648,9 +1720,13 @@
       el("div", { class: "ringkas" },
         el("div", { class: "baris" }, el("div", { class: "k", text: "Bunga " + p.bunga_persen + "%" }), el("div", { class: "v", text: "Rp " + fmtRp(p.bunga_rp) })),
         el("div", { class: "baris" }, el("div", { class: "k", text: "Total dikembalikan" }), el("div", { class: "v", text: "Rp " + fmtRp(p.total_rp) })),
-        el("div", { class: "baris" }, el("div", { class: "k", text: "TOF dikunci" }), el("div", { class: "v", text: fmtUnits(p.jaminan_tof_units) + " TOF" })),
+        p.status === "aktif" || p.status === "dibayar" || p.status === "lunas" ? el("div", { class: "baris" }, el("div", { class: "k", text: "Sudah dibayar" }), el("div", { class: "v", text: "Rp " + fmtRp(p.dibayar_rp || 0) })) : null,
+        p.status === "aktif" || p.status === "dibayar" ? el("div", { class: "baris" }, el("div", { class: "k", text: "Sisa yang harus dibayar" }), el("div", { class: "v", text: "Rp " + fmtRp(p.sisa_rp != null ? p.sisa_rp : p.total_rp) })) : null,
+        el("div", { class: "baris" }, el("div", { class: "k", text: "TOF dikunci" }), el("div", { class: "v", text: fmtUnits(p.jaminan_sisa_units != null && (p.status === "aktif" || p.status === "dibayar") ? p.jaminan_sisa_units : p.jaminan_tof_units) + " TOF" })),
         p.status === "aktif" || p.status === "dibayar" ? el("div", { class: "baris" }, el("div", { class: "k", text: "Jatuh tempo" }), el("div", { class: "v", text: teksSisaPinjam(p) })) : null,
         el("div", { class: "baris" }, el("div", { class: "k", text: "Uang dikirim ke" }), el("div", { class: "v", text: p.tujuan_jenis + " · " + p.tujuan_nomor }))),
+      p.status === "dipotong" ? el("div", { class: "info", id: "infoDipotong", text: "Pinjaman ini lewat jatuh tempo dan masa tenggang tanpa pembayaran, jadi " + fmtUnits(p.dipotong_units || 0) + " TOF dipotong dari dompetmu sesuai ketentuan yang kamu setujui." + (p.potong_catatan ? " " + p.potong_catatan : "") }) : null,
+      p.dipotong_txid ? el("a", { class: "tautan", href: EXPLORER_TX + p.dipotong_txid, target: "_blank", rel: "noopener", text: "Lihat transaksi pemotongan di explorer" }) : null,
       p.status === "lunas" ? el("div", { class: "info", text: "Lunas. Bunga Rp " + fmtRp(p.bunga_rp) + " sudah kembali ke dompetmu sebagai TOF" + (p.bunga_txid ? "." : " (sedang dikirim pengurus).") }) : null,
       p.status === "ditolak" && p.catatan_admin ? el("div", { class: "info", text: "Alasan: " + p.catatan_admin }) : null,
       p.status === "dibayar" ? el("div", { class: "info", text: "Terima kasih. Pengurus mencocokkan dengan mutasi kas, lalu TOF jaminanmu dibuka kembali." }) : null,
@@ -1705,6 +1781,160 @@
     );
   }
 
+  // ---------------- [CICILAN] Bayar pinjaman (boleh dicicil) ----------------
+  // Seperti Nabung: bayar dari luar dompet (QRIS/transfer) dengan kode unik, lalu pengurus mencocokkan mutasi.
+  // TOF di dompetmu tidak disentuh. Aturan dan angka dijaga SERVER; bagian ini hanya menampilkan dan mengirim permintaan.
+  const STATUS_CICILAN = {
+    menunggu: ["Menunggu pembayaran", "tunggu"], dibayar: ["Menunggu dicek pengurus", "tunggu"], diterima: ["Diterima", "ok"],
+    ditolak: ["Ditolak pengurus", "gagal"], kedaluwarsa: ["Kedaluwarsa", "gagal"], dibatalkan: ["Dibatalkan", "gagal"]
+  };
+  function chipCicilan(status) {
+    const [teks, kelas] = STATUS_CICILAN[status] || [status, ""];
+    return el("span", { class: "chip " + kelas, text: teks });
+  }
+
+  async function muatRingkasPinjam() {
+    if (!state.wallet) return;
+    const r = await vault("pinjam_ringkas", { profile_id: state.wallet });
+    if (!r.ok) return; // server belum punya fitur cicilan → abaikan
+    state.pinjamRingkas = r;
+    state.terkunci = BigInt(r.terkunci_units || 0);
+    renderPinjam();
+  }
+
+  function panelBayarPinjaman() {
+    const info = state.pinjam || {};
+    if (!bolehTandatangan()) return;
+    const s = bukaSheet("Bayar pinjaman");
+    const sesi = { pin: "" };
+    s.onTutup(() => { sesi.pin = ""; });
+    muatRingkasPinjam().finally(() => tampilFormCicilan(s, info, sesi));
+  }
+
+  function tampilFormCicilan(s, info, sesi) {
+    s.setJudul("Bayar pinjaman");
+    const rg = state.pinjamRingkas || { berjalan: [], total_sisa_rp: 0 };
+    const total = Number(rg.total_sisa_rp || 0);
+    if (total <= 0) {
+      s.ganti(el("div", { class: "info", text: "Tidak ada pinjaman berjalan yang perlu dibayar." }), el("button", { class: "btn teks", text: "Tutup", onclick: s.tutup }));
+      return;
+    }
+    const minRp = Math.min(Number(info.min_cicilan_rp || 5000), total);
+    const adaCicilan = !!rg.ada_cicilan;
+    const perluPin = !sesi.pin;
+    const pin = perluPin ? pinInput("pinjamPinCicilan") : null;
+    const galat = el("div", { class: "galat", id: "galatCicilan" });
+    const jumlah = el("input", { class: "inp", id: "cicilanJumlah", inputmode: "numeric", placeholder: "Jumlah yang dibayar (Rp)", autocomplete: "off" });
+    const hitungEl = el("div", { class: "info", id: "cicilanHitung", text: "Sisa pinjamanmu sekarang Rp " + fmtRp(total) + ". Ketik jumlah untuk melihat sisanya." });
+    const grid = el("div", { class: "grid-nominal", id: "gridCicilan" });
+    const btn = el("button", { class: "btn utama", id: "btnLanjutCicilan", text: adaCicilan ? "Lanjutkan tagihan sebelumnya" : "Buat tagihan" });
+
+    // Kalkulator otomatis: sisa setelah dicicil
+    const hitung = () => {
+      const n = /^\d+$/.test(jumlah.value.trim()) ? Number(jumlah.value.trim()) : 0;
+      if (!n) { hitungEl.textContent = "Sisa pinjamanmu sekarang Rp " + fmtRp(total) + ". Ketik jumlah untuk melihat sisanya."; return; }
+      if (n > total) { hitungEl.textContent = "Jumlah melebihi sisa pinjaman (Rp " + fmtRp(total) + ")."; return; }
+      const sisa = total - n;
+      hitungEl.textContent = "Dibayar Rp " + fmtRp(n) + " → sisa pinjamanmu Rp " + fmtRp(sisa)
+        + (sisa === 0 ? ". Lunas! Bunga kembali ke dompetmu sebagai TOF." : ". Boleh dicicil lagi kapan saja.");
+    };
+    jumlah.oninput = () => { grid.querySelectorAll(".mini").forEach((x) => x.classList.remove("pilih")); hitung(); };
+    [[25, "25%"], [50, "50%"], [100, "Lunasi semua"]].forEach(([pc, label]) => {
+      const b = el("button", { class: "mini", type: "button", text: label, "data-persen": String(pc) });
+      b.onclick = () => {
+        galat.textContent = "";
+        jumlah.value = String(pc === 100 ? total : Math.min(total, Math.max(minRp, Math.ceil((total * pc) / 100))));
+        grid.querySelectorAll(".mini").forEach((x) => x.classList.remove("pilih"));
+        b.classList.add("pilih");
+        hitung();
+      };
+      grid.append(b);
+    });
+
+    const ringkas = el("div", { class: "ringkas" },
+      el("div", { class: "baris" }, el("div", { class: "k", text: "Sisa yang harus dibayar" }), el("div", { class: "v", text: "Rp " + fmtRp(total) })),
+      ...(rg.berjalan || []).map((p) => el("div", { class: "baris" },
+        el("div", { class: "k", text: "Rp " + fmtRp(p.pokok_rp) + (p.jatuh_tempo ? " · tempo " + tglPinjam(p.jatuh_tempo) : "") }),
+        el("div", { class: "v", text: "sisa Rp " + fmtRp(p.sisa_rp) }))));
+
+    s.ganti(
+      ringkas,
+      el("div", { class: "info", text: "Bayar dari luar dompet (QRIS/transfer), boleh dicicil berapa pun. TOF di dompetmu tidak disentuh. Pengurus mencocokkan dengan mutasi kas, lalu sisa pinjamanmu berkurang." }),
+      adaCicilan ? el("div", { class: "info", text: "Kamu masih punya tagihan cicilan Rp " + fmtRp((rg.ada_cicilan || {}).nominal_rp || 0) + " yang belum selesai. Lanjutkan dulu." }) : null,
+      !adaCicilan ? el("label", { class: "lbl", text: "Jumlah yang mau dibayar (Rp)" }) : null,
+      !adaCicilan ? grid : null,
+      !adaCicilan ? jumlah : null,
+      !adaCicilan ? hitungEl : null,
+      perluPin ? el("label", { class: "lbl", for: "pinjamPinCicilan", text: "Masukkan PIN" }) : null,
+      pin, galat, btn,
+      el("button", { class: "btn teks", id: "btnTutupFormCicilan", text: "Tutup", onclick: s.tutup })
+    );
+
+    btn.onclick = async () => {
+      galat.textContent = "";
+      let n = 0;
+      if (!adaCicilan) {
+        n = /^\d+$/.test(jumlah.value.trim()) ? Number(jumlah.value.trim()) : 0;
+        if (!Number.isInteger(n) || n < minRp || n > total) { galat.textContent = pesanVault({ error: "nominal_tidak_valid", min_rp: minRp, maks_rp: total }); return; }
+      }
+      const p = perluPin ? pin.value.trim() : sesi.pin;
+      if (!/^\d{6}$/.test(p)) { galat.textContent = "PIN harus 6 digit angka."; return; }
+      btn.disabled = true;
+      const teksAwal = btn.textContent;
+      btn.textContent = "Menyiapkan…";
+      const r = await vault("pinjam_cicil_buat", Object.assign({ profile_id: state.wallet, pin: p }, adaCicilan ? {} : { nominal_rp: n }));
+      btn.disabled = false;
+      btn.textContent = teksAwal;
+      if (pin) pin.value = "";
+      if (!r.ok) { galat.textContent = pesanVault(r); return; }
+      sesi.pin = p;
+      tampilBayarCicilan(s, info, sesi, r.cicilan);
+    };
+  }
+
+  // Tagihan cicilan: total dengan kode unik → bayar ke QRIS kas → "Saya sudah bayar" → pengurus mencocokkan mutasi.
+  function tampilBayarCicilan(s, info, sesi, q) {
+    s.setJudul("Bayar pinjaman");
+    const galat = el("div", { class: "galat", id: "galatBayarCicilan" });
+    const ref = el("input", { class: "inp", id: "cicilanRef", maxlength: "60", placeholder: "Nama pengirim di e-wallet/bank (opsional)", autocomplete: "off" });
+    const sudahBayar = q.status === "dibayar";
+    s.ganti(
+      el("div", { class: "tengah" }, chipCicilan(q.status)),
+      !sudahBayar && info.qris ? el("img", { class: "qris", id: "gambarQrisCicilan", src: info.qris, alt: "QRIS" }) : null,
+      !sudahBayar && info.qris ? el("div", { class: "tengah" }, el("button", { class: "mini", type: "button", id: "btnUnduhQrisCicilan", text: "📥 Download QRIS", onclick: () => unduhQris(info.qris, "QRIS-ToFarmer-Cicilan") })) : null,
+      !sudahBayar && info.nama_penerima ? el("div", { class: "kecil abu tengah", text: "Penerima: " + info.nama_penerima }) : null,
+      el("div", { class: "kecil abu tengah", text: sudahBayar ? "Jumlah:" : "Bayar PERSIS sejumlah:" }),
+      el("div", { class: "total-bayar", id: "totalBayarCicilan", text: "Rp " + fmtRp(q.total_bayar_rp) }),
+      !sudahBayar ? el("div", { class: "tengah" }, el("button", { class: "mini", type: "button", id: "btnSalinTotalCicilan", text: "Salin jumlah", onclick: () => salin(String(q.total_bayar_rp), "Jumlah disalin") })) : null,
+      el("div", { class: "kecil abu tengah", text: "Cicilan Rp " + fmtRp(q.nominal_rp) + " + kode unik " + q.kode_unik + ". TOF di dompetmu tidak disentuh." }),
+      !sudahBayar ? el("ol", { class: "langkah" },
+        el("li", { text: "Buka e-wallet atau m-banking, pilih Bayar/Scan QRIS." }),
+        el("li", { text: "Scan QRIS di atas dan bayar PERSIS Rp " + fmtRp(q.total_bayar_rp) + " (termasuk 2 angka terakhir)." }),
+        el("li", { text: "Tekan “Saya sudah bayar”. Pengurus mencocokkan dengan mutasi, lalu sisa pinjamanmu berkurang." })) : el("div", { class: "info", text: "Terima kasih. Menunggu pengurus mencocokkan dengan mutasi kas." }),
+      !sudahBayar ? el("label", { class: "lbl", for: "cicilanRef", text: "Catatan (opsional)" }) : null,
+      !sudahBayar ? ref : null,
+      galat,
+      !sudahBayar ? el("button", { class: "btn utama", id: "btnSudahBayarCicilan", text: "Saya sudah bayar", onclick: async function () {
+        this.disabled = true;
+        const res = await vault("pinjam_cicil_dibayar", { profile_id: state.wallet, pin: sesi.pin, id: q.id, ref: ref.value.trim() });
+        this.disabled = false;
+        if (!res.ok) { galat.textContent = pesanVault(res); return; }
+        tampilBayarCicilan(s, info, sesi, res.cicilan);
+        muatRingkasPinjam();
+      } }) : null,
+      q.status === "menunggu" ? el("button", { class: "btn teks", id: "btnBatalCicilan", text: "Batalkan tagihan ini", onclick: async function () {
+        if (!window.confirm("Batalkan tagihan cicilan ini? Jangan batalkan jika kamu sudah membayar.")) return;
+        this.disabled = true;
+        const res = await vault("pinjam_cicil_batal", { profile_id: state.wallet, pin: sesi.pin, id: q.id });
+        this.disabled = false;
+        if (!res.ok) { galat.textContent = pesanVault(res); return; }
+        await muatRingkasPinjam();
+        tampilFormCicilan(s, info, sesi);
+      } }) : null,
+      el("button", { class: "btn teks", id: "btnTutupBayarCicilan", text: "Tutup", onclick: s.tutup })
+    );
+  }
+
   // Pop-up tagihan: muncul setiap Dompet dibuka selama pinjaman sudah jatuh tempo (atau ditagih pengurus) dan belum lunas.
   function popupTagihanPinjam(t) {
     const info = state.pinjam || {};
@@ -1728,9 +1958,12 @@
         el("div", { class: "baris" }, el("div", { class: "k", text: "Pokok" }), el("div", { class: "v", text: "Rp " + fmtRp(t.pokok_rp) })),
         el("div", { class: "baris" }, el("div", { class: "k", text: "Bunga " + (info.bunga_persen || 5) + "%" }), el("div", { class: "v", text: "Rp " + fmtRp(t.bunga_rp) })),
         el("div", { class: "baris" }, el("div", { class: "k", text: "Total" }), el("div", { class: "v", text: "Rp " + fmtRp(t.total_rp) })),
+        t.dibayar_rp > 0 ? el("div", { class: "baris" }, el("div", { class: "k", text: "Sudah dibayar" }), el("div", { class: "v", text: "Rp " + fmtRp(t.dibayar_rp) })) : null,
+        t.sisa_rp != null ? el("div", { class: "baris" }, el("div", { class: "k", text: "Sisa yang harus dibayar" }), el("div", { class: "v", text: "Rp " + fmtRp(t.sisa_total_rp != null ? t.sisa_total_rp : t.sisa_rp) })) : null,
         el("div", { class: "baris" }, el("div", { class: "k", text: "Jatuh tempo" }), el("div", { class: "v", text: tglPinjam(t.jatuh_tempo) }))),
+      t.potong_pada && t.bisa_dipotong ? el("div", { class: "info", id: "infoPotongPopup", text: "Boleh dicicil. Jika sampai " + tglPinjam(t.potong_pada) + " belum ada pembayaran, TOF jaminan yang tersisa dipotong otomatis dari dompetmu sesuai ketentuan yang kamu setujui." }) : null,
       el("div", { class: "info", text: "Yang kamu bayar ke kas hanya pokoknya. Bunganya kembali ke dompetmu sebagai TOF, jadi aset kamu tetap bertambah." }),
-      el("button", { class: "btn utama", id: "btnBayarPopup", text: "Lunasi sekarang", onclick: () => tampilRiwayatPinjam(s, info, sesi, t.id) }),
+      el("button", { class: "btn utama", id: "btnBayarPopup", text: "Bayar sekarang", onclick: () => tampilRiwayatPinjam(s, info, sesi, t.id) }),
       el("button", { class: "btn teks", id: "btnNantiPopup", text: "Nanti dulu", onclick: s.tutup })
     );
   }
@@ -1742,6 +1975,7 @@
     if (!r.ok) return; // server belum punya fitur pinjaman → abaikan
     state.terkunci = BigInt(r.terkunci_units || 0);
     renderPinjam();
+    await muatRingkasPinjam(); // [CICILAN] sisa pinjaman, batas, dan tombol Bayar di kartu
     if (r.tagihan && !state.popupPinjamTampil) {
       state.popupPinjamTampil = true;
       popupTagihanPinjam(r.tagihan);
@@ -1809,6 +2043,7 @@
       }),
       vault("topup_info", {}).then((r) => { state.topup = r.ok ? r : null; renderNabung(); renderTarik(); }),
       vault("pinjam_info", {}).then((r) => { state.pinjam = r.ok ? r : null; renderPinjam(); }),
+      muatRingkasPinjam(), // [CICILAN]
       cekDividen(),
       cekTugas(),
       muatRiwayat()
