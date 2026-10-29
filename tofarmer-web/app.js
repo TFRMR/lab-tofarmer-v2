@@ -826,6 +826,9 @@ async function connectWallet() {
       alert(pesanVault({ error: "username_taken" }));
       return null;
     }
+    // Penjelasan eksperimen WAJIB dibaca dulu sebelum mengisi data pendaftaran
+    const paham = await showDisclaimerDaftarModal();
+    if (!paham) return null;
     return await daftarBaru(username);
   }
 
@@ -871,6 +874,69 @@ async function connectWallet() {
 
   await selesaiLoginWallet(res.profile, res.session);
   return res.profile.id;
+}
+
+// Modal: penjelasan bahwa ToFarmer masih eksperimen (wajib dipahami sebelum daftar)
+function showDisclaimerDaftarModal() {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
+
+    modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(16,25,20,.65);backdrop-filter:blur(12px);display:flex;justify-content:center;align-items:center;z-index:99999;padding:20px;">
+      <div style="width:100%;max-width:420px;max-height:90vh;overflow-y:auto;background:#fff;border-radius:28px;padding:24px;">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">🌱</div>
+          <h2 style="color:#2f6f4e;">Sebelum Daftar</h2>
+          <p style="font-size:12px;color:#666;margin-top:8px;">
+            Baca sebentar ya, supaya tidak salah paham.
+          </p>
+        </div>
+
+        <div style="margin-top:16px;font-size:12px;line-height:1.6;color:#555;">
+          <p style="margin:0 0 10px;">
+            <b>ToFarmer adalah proyek eksperimen</b> yang masih dalam tahap belajar dan pengembangan. Ini belum produk matang.
+          </p>
+          <ul style="margin:0;padding-left:18px;">
+            <li style="margin:4px 0;">Bukan bank, layanan keuangan, atau ajakan investasi. Tidak ada janji keuntungan apa pun.</li>
+            <li style="margin:4px 0;">Poin, saldo, dan fitur dompet hanya bersifat percobaan, tidak ada jaminan nilai maupun kelangsungannya.</li>
+            <li style="margin:4px 0;">Fitur dan data bisa berubah, direset, atau dihapus sewaktu-waktu.</li>
+            <li style="margin:4px 0;">Jangan memasukkan data pribadi yang sensitif, dan jangan menyimpan dana yang tidak siap hilang.</li>
+            <li style="margin:4px 0;">Pendaftaran terutama untuk yang memang ingin ikut mencoba dan belajar bersama.</li>
+          </ul>
+        </div>
+
+        <label style="display:flex;gap:8px;align-items:flex-start;margin-top:16px;font-size:12px;color:#2f6f4e;font-weight:600;cursor:pointer;">
+          <input id="disclaimerCek" type="checkbox" style="margin-top:2px;" />
+          <span>Saya mengerti ToFarmer masih eksperimen dan ikut atas kesadaran sendiri.</span>
+        </label>
+
+        <button id="disclaimerLanjut" disabled style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:700;cursor:pointer;opacity:.45;">Saya paham, lanjut daftar 🌱</button>
+        <button id="disclaimerBatal" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">🐐 Batal</button>
+      </div>
+    </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const cek = modal.querySelector("#disclaimerCek");
+    const lanjut = modal.querySelector("#disclaimerLanjut");
+
+    cek.onchange = () => {
+      lanjut.disabled = !cek.checked;
+      lanjut.style.opacity = cek.checked ? "1" : ".45";
+    };
+
+    lanjut.onclick = () => {
+      if (!cek.checked) return;
+      document.body.removeChild(modal);
+      resolve(true);
+    };
+
+    modal.querySelector("#disclaimerBatal").onclick = () => {
+      document.body.removeChild(modal);
+      resolve(false);
+    };
+  });
 }
 
 // Pendaftaran: dompet otomatis (frasa ditampilkan dulu, lalu dititipkan terenkripsi di server)
@@ -1124,7 +1190,7 @@ function showLoginModal() {
             Masuk cukup dengan Username + PIN (huruf besar/kecil bebas)
           </p>
           <p style="font-size:11px;color:#999;margin-top:4px;">
-            Belum punya akun? Ketik username pilihanmu, lalu tekan Daftar Baru — dompet Algorand dibuatkan otomatis 🌱
+            Belum punya akun? Ketik username pilihanmu, lalu tekan Daftar Baru 🌱
           </p>
         </div>
 
