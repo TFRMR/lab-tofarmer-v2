@@ -4,6 +4,131 @@
 // ============================================================
 import { createClient } from "npm:@supabase/supabase-js@2";
 import algosdk from "npm:algosdk@2.4.0";
+import { ed25519 } from "npm:@noble/curves@1.4.2/ed25519";
+import { sha512 } from "npm:@noble/hashes@1.4.0/sha512";
+import { sha256 } from "npm:@noble/hashes@1.4.0/sha256";
+import { hmac } from "npm:@noble/hashes@1.4.0/hmac";
+import { mnemonicToSeedSync, validateMnemonic } from "npm:@scure/bip39@1.3.0";
+import { wordlist } from "npm:@scure/bip39@1.3.0/wordlists/english";
+
+// ---------------- xHD (ARC-52) untuk frasa 24 kata BIP39 (mis. "Universal Wallet" Pera) ----------------
+// Implementasi BIP32-Ed25519 (varian Peikert & Khovratovich) dengan pustaka murni-JS (tanpa WASM).
+// Frasa 25 kata (cara lama Algorand) tetap ditangani algosdk; ini hanya untuk frasa 24 kata BIP39.
+
+const XHD_L = ed25519.CURVE.n;
+const XHD_PT = ed25519.ExtendedPoint;
+const XHD_HARD = 0x80000000;
+
+function xhdLeToBig(b: Uint8Array): bigint { let n = 0n; for (let i = b.length - 1; i >= 0; i--) n = (n << 8n) | BigInt(b[i]); return n; }
+function xhdBigToLe(n: bigint, len: number): Uint8Array { const o = new Uint8Array(len); for (let i = 0; i < len; i++) { o[i] = Number(n & 0xffn); n >>= 8n; } return o; }
+function xhdGabung(...a: Uint8Array[]): Uint8Array { const o = new Uint8Array(a.reduce((s, x) => s + x.length, 0)); let p = 0; for (const x of a) { o.set(x, p); p += x.length; } return o; }
+function xhdU32le(n: number): Uint8Array { const o = new Uint8Array(4); new DataView(o.buffer).setUint32(0, n, true); return o; }
+
+// Kunci publik = scalar * G tanpa clamp (scalar boleh > XHD_L, G berorde XHD_L sehingga cukup mod XHD_L)
+function xhdPubDariScalar(kL: Uint8Array): Uint8Array {
+  const s = xhdLeToBig(kL) % XHD_L;
+  if (s === 0n) throw new Error("scalar tidak valid");
+  return XHD_PT.BASE.multiply(s).toRawBytes();
+}
+
+function xhdKosongkanBit(z: Uint8Array, g: number): Uint8Array { // trunc_256_minus_g_bits: nolkan g bit paling belakang
+  const t = new Uint8Array(z); let sisa = g;
+  for (let i = t.length - 1; i >= 0 && sisa > 0; i--) {
+    if (sisa >= 8) { t[i] = 0; sisa -= 8; } else { t[i] &= (0xff >> sisa); break; }
+  }
+  return t;
+}
+
+export function xhdAkarDariBenih(benih: Uint8Array): Uint8Array {
+  let k = sha512(benih);
+  let kL = k.slice(0, 32), kR = k.slice(32, 64);
+  while ((kL[31] & 0b00100000) !== 0) { k = hmac(sha512, kL, kR); kL = k.slice(0, 32); kR = k.slice(32, 64); }
+  kL[0] &= 0b11111000; kL[31] &= 0b01111111; kL[31] |= 0b01000000;
+  const c = sha256(xhdGabung(new Uint8Array([1]), benih));
+  return xhdGabung(kL, kR, c);
+}
+
+function xhdTurunAnak(induk: Uint8Array, index: number, g: number): Uint8Array {
+  const kL = induk.slice(0, 32), kR = induk.slice(32, 64), cc = induk.slice(64, 96);
+  let z: Uint8Array, ccAnak: Uint8Array;
+  if (index < XHD_HARD) {
+    const pk = xhdPubDariScalar(kL);
+    z = hmac(sha512, cc, xhdGabung(new Uint8Array([2]), pk, xhdU32le(index)));
+    ccAnak = hmac(sha512, cc, xhdGabung(new Uint8Array([3]), pk, xhdU32le(index))).slice(32, 64);
+  } else {
+    z = hmac(sha512, cc, xhdGabung(new Uint8Array([0]), kL, kR, xhdU32le(index)));
+    ccAnak = hmac(sha512, cc, xhdGabung(new Uint8Array([1]), kL, kR, xhdU32le(index))).slice(32, 64);
+  }
+  const zL = xhdKosongkanBit(z.slice(0, 32), g);
+  const kiri = xhdLeToBig(kL) + xhdLeToBig(zL) * 8n;
+  if (kiri >= (1n << 255n)) throw new Error("zL*8 melebihi 2^255");
+  const kanan = (xhdLeToBig(kR) + xhdLeToBig(z.slice(32, 64))) & ((1n << 256n) - 1n);
+  return xhdGabung(xhdBigToLe(kiri, 32), xhdBigToLe(kanan, 32), ccAnak);
+}
+
+export type XhdInfo = { tipe: "P" | "K"; account: number; index: number };
+const XHD_GTIPE: Record<string, number> = { P: 9, K: 32 }; // Peikert, Khovratovich
+
+function xhdTurunAlamat(akar: Uint8Array, tipe: string, account: number, index: number): Uint8Array {
+  const g = XHD_GTIPE[tipe];
+  let k = akar;
+  for (const i of [XHD_HARD + 44, XHD_HARD + 283, XHD_HARD + account, 0, index]) k = xhdTurunAnak(k, i, g);
+  return k; // (kL, kR, cc)
+}
+
+export function xhdFrasaValid(frasa: string): boolean { return validateMnemonic(frasa, wordlist); }
+
+export function xhdAkar(frasa: string): Uint8Array {
+  if (!validateMnemonic(frasa, wordlist)) throw new Error("frasa BIP39 tidak valid");
+  return xhdAkarDariBenih(mnemonicToSeedSync(frasa, ""));
+}
+
+export function xhdKunciPublik(frasa: string, info: XhdInfo): Uint8Array {
+  const k = xhdTurunAlamat(xhdAkar(frasa), info.tipe, info.account, info.index);
+  return xhdPubDariScalar(k.slice(0, 32));
+}
+
+// Cari tipe/account/index yang menghasilkan kunci publik = pkTarget (32 byte). null bila tidak ada.
+export function xhdCari(frasa: string, pkTarget: Uint8Array, maksAccount = 10, maksIndex = 20): XhdInfo | null {
+  const akar = xhdAkar(frasa);
+  const sama = (a: Uint8Array, b: Uint8Array) => a.length === b.length && a.every((v: number, i: number) => v === b[i]);
+  for (const tipe of ["P", "K"] as const) {
+    for (let account = 0; account < maksAccount; account++) {
+      for (let index = 0; index < maksIndex; index++) {
+        let k: Uint8Array;
+        try { k = xhdTurunAlamat(akar, tipe, account, index); } catch { continue; }
+        if (sama(xhdPubDariScalar(k.slice(0, 32)), pkTarget)) return { tipe, account, index };
+      }
+    }
+  }
+  return null;
+}
+
+// Tanda tangan Ed25519 dengan kunci extended (BIP32-Ed25519). `data` = bytes yang ditandatangani (bytesToSign transaksi).
+export function xhdTandatangani(frasa: string, info: XhdInfo, data: Uint8Array): Uint8Array {
+  const k = xhdTurunAlamat(xhdAkar(frasa), info.tipe, info.account, info.index);
+  const skalar = xhdLeToBig(k.slice(0, 32)), kR = k.slice(32, 64);
+  const pub = xhdPubDariScalar(k.slice(0, 32));
+  const r = xhdLeToBig(sha512(xhdGabung(kR, data))) % XHD_L;
+  const R = XHD_PT.BASE.multiply(r).toRawBytes();
+  const h = xhdLeToBig(sha512(xhdGabung(R, pub, data))) % XHD_L;
+  const S = (r + h * (skalar % XHD_L)) % XHD_L;
+  return xhdGabung(R, xhdBigToLe(S, 32));
+}
+
+
+// ---- Format frasa 24 kata di brankas: "xhd1:<P|K>:<account>:<index>:<24 kata>" ----
+// Dipakai agar tahu kunci mana yang cocok dengan alamat dompet. Frasa 25 kata tetap tersimpan polos seperti dulu.
+export const XHD_AWAL = "xhd1:";
+export function xhdBentukSimpanan(info: XhdInfo, kata: string): string {
+  return XHD_AWAL + info.tipe + ":" + info.account + ":" + info.index + ":" + kata;
+}
+export function xhdParseSimpanan(s: string): { info: XhdInfo; kata: string } | null {
+  if (typeof s !== "string" || !s.startsWith(XHD_AWAL)) return null;
+  const m = /^xhd1:([PK]):(\d{1,3}):(\d{1,3}):(.+)$/.exec(s);
+  if (!m) return null;
+  return { info: { tipe: m[1] as "P" | "K", account: Number(m[2]), index: Number(m[3]) }, kata: m[4] };
+}
 
 // ---------------- lib.ts ----------------
 // ============================================================
@@ -562,6 +687,27 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
       if (await samaDenganHashPublik(r.profile, body.pin)) return fail("pin_publik");
 
       const mnemonic = normalizeMnemonic(body.mnemonic);
+
+      // Frasa 24 kata BIP39 (mis. Pera "Universal Wallet"): cari tipe/account/index yang cocok dengan alamat dompet ini.
+      // Hanya diterima bila alamat hasil turunan SAMA dengan alamat akun, lalu disimpan dengan penanda "xhd1:".
+      if (mnemonic.split(" ").length === 24) {
+        let info: XhdInfo | null = null;
+        try {
+          if (!xhdFrasaValid(mnemonic)) return fail("bad_mnemonic");
+          info = xhdCari(mnemonic, algosdk.decodeAddress(r.profile.id).publicKey);
+        } catch {
+          return fail("bad_mnemonic");
+        }
+        if (!info) {
+          await d.repo.log(r.profile.id, "deposit", false);
+          return fail("mnemonic_mismatch");
+        }
+        const sealedXhd = await encryptMnemonic(xhdBentukSimpanan(info, mnemonic), d.masterKey, r.profile.id);
+        await d.repo.upsertVault({ profile_id: r.profile.id, ...sealedXhd, reset_pending: false });
+        await d.repo.log(r.profile.id, "deposit_xhd", true);
+        return ok({ xhd: true });
+      }
+
       let address = "";
       try {
         address = d.addressFromMnemonic(mnemonic);
@@ -592,6 +738,9 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
       try {
         const mnemonic = await decryptMnemonic(vault.ciphertext, vault.iv, d.masterKey, r.profile.id);
         await d.repo.log(r.profile.id, "reveal", true);
+        // Frasa 24 kata: kirim kata polos + info xHD (tipe/account/index) agar browser bisa menandatangani
+        const xhdSimpanan = xhdParseSimpanan(mnemonic);
+        if (xhdSimpanan) return ok({ mnemonic: xhdSimpanan.kata, xhd: xhdSimpanan.info });
         return ok({ mnemonic });
       } catch (e) {
         console.error("dekripsi gagal:", e);
@@ -3813,7 +3962,10 @@ const chain: Chain = {
     if (!payout) throw { kind: "ditolak", message: "dompet pembayar belum diatur" };
     let blob: Uint8Array, txId: string;
     try {
-      const anggota = algosdk.mnemonicToSecretKey(mnemonic);
+      const xhdAnggota = xhdParseSimpanan(mnemonic); // frasa 24 kata (Pera): ditandatangani dengan xHD
+      const anggota = xhdAnggota
+        ? { addr: algosdk.encodeAddress(xhdKunciPublik(xhdAnggota.kata, xhdAnggota.info)), sk: new Uint8Array(0) }
+        : algosdk.mnemonicToSecretKey(mnemonic);
       const p = await algodGet("/v2/transactions/params");
       const sp = { flatFee: true, firstRound: p["last-round"], lastRound: p["last-round"] + 1000, genesisID: p["genesis-id"], genesisHash: p["genesis-hash"] };
       const lease = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("topup:" + leaseKey)));
@@ -3823,7 +3975,9 @@ const chain: Chain = {
       tx1.addLease(lease); // lease dipasang SEBELUM group ID dihitung
       const tx2 = algosdk.makePaymentTxnWithSuggestedParamsFromObject({ from: payout.addr, to: payout.addr, amount: 0, suggestedParams: { ...sp, fee: 2000 } });
       algosdk.assignGroupID([tx1, tx2]);
-      const b1 = tx1.signTxn(anggota.sk);
+      const b1 = xhdAnggota
+        ? tx1.attachSignature(String(anggota.addr), xhdTandatangani(xhdAnggota.kata, xhdAnggota.info, tx1.bytesToSign()))
+        : tx1.signTxn(anggota.sk);
       const b2 = tx2.signTxn(payout.sk);
       blob = new Uint8Array(b1.length + b2.length);
       blob.set(b1, 0);
@@ -3873,7 +4027,10 @@ const deps: Deps = {
   repo,
   masterKey: MASTER_KEY,
   pepper: PEPPER,
-  addressFromMnemonic: (m) => String(algosdk.mnemonicToSecretKey(m).addr),
+  addressFromMnemonic: (m) => {
+    const x = xhdParseSimpanan(m); // frasa 24 kata (Pera) tersimpan dengan penanda xhd1:
+    return x ? String(algosdk.encodeAddress(xhdKunciPublik(x.kata, x.info))) : String(algosdk.mnemonicToSecretKey(m).addr);
+  },
   isValidAddress: (a) => algosdk.isValidAddress(a),
   now: () => Date.now(),
   adminIds: ADMIN_IDS,

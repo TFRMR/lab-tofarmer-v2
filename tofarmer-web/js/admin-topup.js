@@ -278,6 +278,28 @@
     return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode("distribusi:" + id)));
   }
 
+  // [FRASA 24 KATA] Frasa 24 kata BIP39 (mis. Pera "Universal Wallet", jenis xHD) ditandatangani dengan pustaka kecil
+  // /js/tof-xhd.js (satu situs, tanpa CDN). Dimuat hanya saat dibutuhkan. Frasa 25 kata tetap lewat algosdk seperti biasa.
+  function muatXhd() {
+    if (window.TofXhd) return Promise.resolve(window.TofXhd);
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "/js/tof-xhd.js";
+      s.onload = () => (window.TofXhd ? resolve(window.TofXhd) : reject(new Error("Pustaka frasa 24 kata tidak termuat.")));
+      s.onerror = () => reject(new Error("Pustaka frasa 24 kata (/js/tof-xhd.js) gagal dimuat."));
+      document.head.appendChild(s);
+    });
+  }
+  async function pulihXhd(rv) {
+    const X = await muatXhd();
+    const addr = algosdk.encodeAddress(X.xhdKunciPublik(rv.mnemonic, rv.xhd));
+    return {
+      addr,
+      sk: null,
+      xhd: { tandatangani: (txn) => txn.attachSignature(addr, X.xhdTandatangani(rv.mnemonic, rv.xhd, txn.bytesToSign())) }
+    };
+  }
+
   // Kirim TOF dari dompet penampung ke tiap anggota batch. Ditandatangani DI BROWSER pengurus pemilik dompet penampung:
   // frasa dibuka sebentar dengan PIN, dipakai menandatangani, lalu dihapus dari memori.
   async function bagikanBatch(batch, items, progres) {
@@ -285,7 +307,7 @@
     if (!rv.ok) throw new Error(pesan(rv));
     let sk = null;
     try {
-      const pulih = algosdk.mnemonicToSecretKey(rv.mnemonic);
+      const pulih = rv.xhd ? await pulihXhd(rv) : algosdk.mnemonicToSecretKey(rv.mnemonic);
       if (String(pulih.addr) !== state.wallet) throw new Error("Frasa akun ini tidak cocok dengan alamat dompet.");
       sk = pulih.sk;
       progres("Memeriksa saldo dan opt-in anggota…");
@@ -311,7 +333,7 @@
           txns.push(tx);
         }
         algosdk.assignGroupID(txns); // satu kelompok atomik: semua masuk atau tidak sama sekali
-        const blobs = txns.map((t) => t.signTxn(sk));
+        const blobs = txns.map((t) => (pulih.xhd ? pulih.xhd.tandatangani(t) : t.signTxn(sk)));
         await kirimGrup(gabung(blobs));
         const hasil = grup.map((it, k) => ({ id: it.id, txid: txns[k].txID() }));
         if (!(await tungguTx(hasil[0].txid))) { belum.push(...grup.map((g) => g.username + ": belum terkonfirmasi")); continue; }

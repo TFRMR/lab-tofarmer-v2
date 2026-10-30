@@ -242,8 +242,8 @@
       case "status_tidak_cocok": return "Status tagihan sudah berubah. Buka Riwayat nabung untuk melihat yang terbaru.";
       case "pin_sama": return "PIN baru harus berbeda dari PIN lama.";
       case "pin_baru_sama_publik": return "PIN baru tidak boleh sama dengan PIN di halaman lain (Jurnal, Scan, Tracker). Pilih PIN lain.";
-      case "bad_mnemonic": return "Frasa tidak valid (harus 25 kata yang benar).";
-      case "mnemonic_mismatch": return "Frasa ini bukan milik dompet akunmu.";
+      case "bad_mnemonic": return "Frasa tidak valid (harus 25 kata, atau 24 kata dari Pera, yang benar).";
+      case "mnemonic_mismatch": return "Frasa ini bukan milik dompet akunmu. Untuk frasa 24 kata, pastikan frasa itu dari akun Pera yang alamatnya sama dengan dompet ini.";
       case "no_vault": return "Belum ada frasa yang dititipkan.";
       case "not_found": return "Akun tidak ditemukan.";
       case "sesi_tidak_valid": return "Sesi login sudah habis. Keluar lalu masuk lagi.";
@@ -271,6 +271,28 @@
   }
 
   // ---------------- tanda tangan & kirim ----------------
+  // [FRASA 24 KATA] Frasa 24 kata BIP39 (mis. Pera "Universal Wallet", jenis xHD) ditandatangani dengan pustaka kecil
+  // /js/tof-xhd.js (satu situs, tanpa CDN). Dimuat hanya saat dibutuhkan. Frasa 25 kata tetap lewat algosdk seperti biasa.
+  function muatXhd() {
+    if (window.TofXhd) return Promise.resolve(window.TofXhd);
+    return new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "/js/tof-xhd.js";
+      s.onload = () => (window.TofXhd ? resolve(window.TofXhd) : reject(new Error("Pustaka frasa 24 kata tidak termuat.")));
+      s.onerror = () => reject(new Error("Pustaka frasa 24 kata (/js/tof-xhd.js) gagal dimuat."));
+      document.head.appendChild(s);
+    });
+  }
+  async function pulihXhd(rv) {
+    const X = await muatXhd();
+    const addr = algosdk.encodeAddress(X.xhdKunciPublik(rv.mnemonic, rv.xhd));
+    return {
+      addr,
+      sk: null,
+      xhd: { tandatangani: (txn) => txn.attachSignature(addr, X.xhdTandatangani(rv.mnemonic, rv.xhd, txn.bytesToSign())) }
+    };
+  }
+
   // Frasa dibuka dengan PIN → kunci dipakai menandatangani → dihapus dari memori.
   async function tandatanganDanKirim(pin, bangun) {
     const rv = await vault("reveal", { profile_id: state.wallet, pin });
@@ -281,14 +303,14 @@
     }
     let kunci = null;
     try {
-      const pulih = algosdk.mnemonicToSecretKey(rv.mnemonic);
+      const pulih = rv.xhd ? await pulihXhd(rv) : algosdk.mnemonicToSecretKey(rv.mnemonic);
       if (String(pulih.addr) !== state.wallet) {
         throw new Error("Frasa di brankas tidak cocok dengan alamat dompet ini.");
       }
       kunci = pulih.sk;
       const sp = await ambilParams();
       const txn = bangun(sp);
-      const blob = txn.signTxn(kunci);
+      const blob = pulih.xhd ? pulih.xhd.tandatangani(txn) : txn.signTxn(kunci);
       const txId = txn.txID();
       await kirimMentah(blob);
       const pasti = await tungguKonfirmasi(txId);
@@ -603,7 +625,7 @@
     } else {
       anak.push(el("div", { class: "status " + (st.has_vault ? "ok" : "belum"), id: "statusFrasa",
         text: st.has_vault ? "Frasa tersimpan di brankas terenkripsi" : "Belum ada frasa yang dititipkan" }));
-      anak.push(el("div", { class: "kecil abu", text: "Frasa 25 kata adalah kunci dompetmu. Hanya bisa dibuka dengan PIN dan tidak pernah disimpan di browser." }));
+      anak.push(el("div", { class: "kecil abu", text: "Frasa (25 kata, atau 24 kata dari Pera) adalah kunci dompetmu. Hanya bisa dibuka dengan PIN dan tidak pernah disimpan di browser." }));
       anak.push(el("button", { class: "btn utama", id: "btnTitip", text: st.has_vault ? "Ganti frasa yang dititip" : "Titip frasa", onclick: () => tampilTitip(s) }));
       if (st.has_vault) anak.push(el("button", { class: "btn sekunder", id: "btnLihat", text: "Lihat frasa", onclick: () => tampilLihat(s) }));
     }
@@ -654,13 +676,13 @@
 
   function tampilTitip(s) {
     s.setJudul("Titip frasa");
-    const frasa = el("textarea", { class: "inp", id: "titipFrasa", rows: "3", placeholder: "kata1 kata2 kata3 … (25 kata)", autocomplete: "off", autocapitalize: "off", spellcheck: "false" });
+    const frasa = el("textarea", { class: "inp", id: "titipFrasa", rows: "3", placeholder: "kata1 kata2 kata3 … (25 kata, atau 24 kata dari Pera)", autocomplete: "off", autocapitalize: "off", spellcheck: "false" });
     const pin = pinInput("titipPin");
     const galat = el("div", { class: "galat", id: "galatTitip" });
     const btn = el("button", { class: "btn utama", id: "btnSimpanFrasa", text: "Simpan di brankas" });
 
     s.ganti(
-      el("div", { class: "kecil abu", text: "Tempel 25 kata frasa dompetmu. Disimpan terenkripsi dan hanya bisa dibuka dengan PIN." }),
+      el("div", { class: "kecil abu", text: "Tempel frasa dompetmu (25 kata, atau 24 kata dari Pera). Disimpan terenkripsi dan hanya bisa dibuka dengan PIN." }),
       frasa, pin, galat, btn,
       el("button", { class: "btn teks", text: "Kembali", onclick: () => { frasa.value = ""; tampilMenuFrasa(s); } })
     );
@@ -669,7 +691,7 @@
       galat.textContent = "";
       const f = frasa.value.trim();
       const p = pin.value.trim();
-      if (!f) { galat.textContent = "Tempel frasa 25 kata dulu."; return; }
+      if (!f) { galat.textContent = "Tempel frasa dulu."; return; }
       if (!/^\d{6}$/.test(p)) { galat.textContent = "PIN harus 6 digit angka."; return; }
       btn.disabled = true;
       btn.textContent = "Menyimpan…";
