@@ -1262,6 +1262,8 @@
       const wa = "Halo @" + res.username + ", ini kode reset PIN ToFarmer kamu: " + kode +
         "\n\nBuka ToFarmer → Masuk → Lupa PIN? → \"Saya sudah punya kode dari admin\". Berlaku " + res.berlaku_menit + " menit. Jangan dibagikan ke siapa pun.";
       const info = el("div", { class: "kecil", style: "margin-top:8px;", text: "Kode ini tidak bisa ditampilkan lagi. Kalau hilang, buat kode baru (kode lama otomatis diganti)." });
+      // Reset akun pengurus: pemakai kode bisa membuat PIN baru lalu membuka frasa dompetnya, jadi beri peringatan
+      const infoPengurus = res.target_pengurus ? el("div", { class: "galat", id: "peringatanPengurus", style: "margin-top:8px;", text: "Ini akun PENGURUS. Pemakai kode bisa membuat PIN baru dan membuka frasa dompetnya. Kirim hanya langsung ke orangnya." }) : null;
       const salin = el("button", { class: "btn hijau", id: "btnSalinPesanReset", type: "button", style: "margin-top:10px;", text: "Salin pesan WhatsApp", onclick: async function () {
         try { await navigator.clipboard.writeText(wa); this.textContent = "Tersalin ✓"; }
         catch (e) { window.prompt("Salin pesan ini:", wa); }
@@ -1269,14 +1271,14 @@
       hasil.replaceChildren(el("div", { class: "card", style: "border-color:#4caf7a;text-align:center;" },
         el("div", { class: "kecil", text: "Kode untuk @" + res.username }),
         el("div", { class: "total mono", id: "kodeResetTampil", style: "letter-spacing:4px;margin-top:6px;", text: kode }),
-        info, salin));
+        info, infoPengurus, salin));
       hasil.hidden = false;
       target.value = "";
     } });
     konten.replaceChildren(
       el("div", { class: "card" },
         el("div", { style: "font-weight:700;", text: "Reset PIN anggota" }),
-        el("div", { class: "kecil", text: "Untuk anggota yang lupa PIN. PIN lama tetap berlaku sampai kode dipakai, jadi aman kalau ternyata anggota ingat lagi. Akun pengurus tidak bisa direset lewat sini." }),
+        el("div", { class: "kecil", text: "Untuk anggota yang lupa PIN. PIN lama tetap berlaku sampai kode dipakai, jadi aman kalau ternyata anggota ingat lagi. Pengurus bisa mereset pengurus lain (bukan akun sendiri)." }),
         el("label", { class: "lbl", for: "resetTarget", text: "Username anggota" }), target,
         galat, buat),
       hasil);

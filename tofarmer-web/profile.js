@@ -700,6 +700,11 @@ async function sendProfilePost() {
     return;
   }
 
+  // [ANTI-DOBEL] Gembok global: tombol bisa saja tergambar ulang (render ulang halaman) sehingga
+  // "disabled" saja tidak cukup. Klik ulang selagi proses menanam masih berjalan diabaikan.
+  if (window.sedangMenanamKarya) return;
+  window.sedangMenanamKarya = true;
+
   let teksTombolAsli = "🌱 TANAM KARYA";
   if (btnTanam) {
     teksTombolAsli = btnTanam.innerHTML;
@@ -864,6 +869,7 @@ ${konteksLengkap}`
     console.error("Proses menanam gagal:", globalError);
     alert("Gagal menanam karya: " + globalError.message);
   } finally {
+    window.sedangMenanamKarya = false; // [ANTI-DOBEL] lepas gembok
     if (btnTanam) {
       btnTanam.disabled = false;
       btnTanam.style.opacity = "1";
@@ -1245,7 +1251,7 @@ async function reactPost(postId, type) {
 // COMMENTS
 // =====================
 
-async function sendComment(postId) {
+async function sendCommentAsli(postId) {
   const input = document.getElementById("cmt-" + postId)
   const text = input.value.trim()
 
@@ -1275,6 +1281,24 @@ async function sendComment(postId) {
       top: koordinatY - 40,
       behavior: "auto"
     });
+  }
+}
+
+// [ANTI-DOBEL] Gembok kirim komentar per postingan (fungsi asli: sendCommentAsli di atas).
+const komentarSedangDikirim = new Set();
+
+async function sendComment(postId) {
+  if (komentarSedangDikirim.has(postId)) return;
+  komentarSedangDikirim.add(postId);
+
+  const tombol = document.querySelector(`button[onclick="sendComment('${postId}')"]`);
+  if (tombol) tombol.disabled = true;
+
+  try {
+    await sendCommentAsli(postId);
+  } finally {
+    komentarSedangDikirim.delete(postId);
+    if (tombol) tombol.disabled = false;
   }
 }
 

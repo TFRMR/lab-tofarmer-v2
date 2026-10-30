@@ -1514,7 +1514,7 @@ async function classifyPilar(text) {
   return userChoice || rekomendasiAwal
 }
 
-async function sendPost() {
+async function sendPostAsli() {
   let imageUrl = null
   const input = document.getElementById("postBox")
   const imageInput = document.getElementById("imageInput")
@@ -1566,6 +1566,12 @@ async function sendPost() {
       }
     ])
 
+  // Jangan tambah XP kalau postingan gagal tersimpan
+  if (error) {
+    alert("Gagal kirim: " + error.message)
+    return
+  }
+
   if (currentProfile) {
     const newXP = (currentProfile.xp || 0) + xpBonus
     const { error: xpError } = await supabaseClient
@@ -1590,6 +1596,34 @@ async function sendPost() {
   loadFeed()
 
   
+}
+
+// [ANTI-DOBEL] Gembok kirim postingan: klik/tap ulang selagi proses berjalan diabaikan.
+// Fungsi aslinya (sendPostAsli) tidak diubah; ini hanya pembungkus yang memasang gembok.
+let sedangMengirimPost = false
+
+async function sendPost() {
+  if (sedangMengirimPost) return
+  sedangMengirimPost = true
+
+  const tombol = document.querySelector('button[onclick="sendPost()"]')
+  const teksAsli = tombol ? tombol.innerHTML : ""
+  if (tombol) {
+    tombol.disabled = true
+    tombol.style.opacity = "0.7"
+    tombol.innerHTML = "⏳ Mengirim..."
+  }
+
+  try {
+    await sendPostAsli()
+  } finally {
+    sedangMengirimPost = false
+    if (tombol) {
+      tombol.disabled = false
+      tombol.style.opacity = ""
+      tombol.innerHTML = teksAsli
+    }
+  }
 }
 
 // ===================== ECONOMY & ALGORAND INFRA =====================
@@ -2288,7 +2322,7 @@ function toggleKomentarBox(postId) {
     box.style.display = "none";
   }
 }
-async function sendComment(postId) {
+async function sendCommentAsli(postId) {
   const input = document.getElementById(`comment-${postId}`);
   if (!input) return;
   const commentText = input.value.trim();
@@ -2354,6 +2388,24 @@ async function sendComment(postId) {
     counterEl.innerHTML = `💬 ${currentCount + 1} Komentar`;
   }
 }
+// [ANTI-DOBEL] Gembok kirim komentar per postingan: klik ulang "Kirim" saat proses berjalan diabaikan.
+const komentarSedangDikirim = new Set();
+
+async function sendComment(postId) {
+  if (komentarSedangDikirim.has(postId)) return;
+  komentarSedangDikirim.add(postId);
+
+  const tombol = document.querySelector(`button[onclick="sendComment('${postId}')"]`);
+  if (tombol) tombol.disabled = true;
+
+  try {
+    await sendCommentAsli(postId);
+  } finally {
+    komentarSedangDikirim.delete(postId);
+    if (tombol) tombol.disabled = false;
+  }
+}
+
 let isReactingFeed = false; // <-- Ini gembok pengamannya
 
 async function reactPost(postId, type) {

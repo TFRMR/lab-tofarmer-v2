@@ -609,8 +609,9 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
       const t = await resolveProfile({ username: body.target }, d, false);
       if ("error" in t) return fail(t.error);
       if (t.profile.id === a.profile.id) return fail("tidak_bisa_diri_sendiri");
-      // Akun pengurus tidak boleh direset lewat jalur ini (mencegah satu pengurus mengambil alih pengurus lain)
-      if ((d.adminIds || []).includes(t.profile.id)) return fail("target_pengurus");
+      // Pengurus BOLEH mereset pengurus LAIN (bukan diri sendiri), supaya pengurus yang lupa PIN tidak perlu SQL manual.
+      // Dicatat terpisah di log sebagai jejak audit. (Sebelumnya di sini: return fail("target_pengurus");)
+      const targetPengurus = (d.adminIds || []).includes(t.profile.id);
 
       const kode = kodeResetAcak();
       const kedaluwarsa = new Date(d.now() + KODE_RESET_MENIT * 60000).toISOString();
@@ -623,7 +624,8 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
       });
       await d.repo.log(t.profile.id, "admin_reset_pin", true);
       await d.repo.log(a.profile.id, "admin_reset_pin_buat", true);
-      return ok({ username: t.profile.username, kode, berlaku_menit: KODE_RESET_MENIT, kedaluwarsa_pada: kedaluwarsa });
+      if (targetPengurus) await d.repo.log(t.profile.id, "admin_reset_pin_pengurus", true);
+      return ok({ username: t.profile.username, kode, berlaku_menit: KODE_RESET_MENIT, kedaluwarsa_pada: kedaluwarsa, target_pengurus: targetPengurus });
     }
 
     // ---- Lupa PIN, langkah 1: cek kode saja (tidak menghabiskan kode) supaya salah ketik ketahuan sebelum buat PIN ----
