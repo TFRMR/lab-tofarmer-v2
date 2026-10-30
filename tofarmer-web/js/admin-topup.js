@@ -115,6 +115,11 @@
       case "belum_lewat_tenggang": return "Belum lewat masa tenggang" + (res.potong_pada ? ": TOF baru boleh dipotong setelah " + tgl(res.potong_pada) + "." : ".");
       case "sedang_dipotong": return "Pinjaman ini sedang dalam proses potong TOF. Periksa dulu hasilnya sebelum melunasi.";
       case "tidak_berhak": return "Tidak berhak.";
+      // [RESET PIN]
+      case "not_found": return "Username tidak ditemukan.";
+      case "ambiguous": return "Username ambigu, tulis persis seperti saat anggota mendaftar.";
+      case "target_pengurus": return "Akun pengurus tidak bisa direset lewat sini.";
+      case "tidak_bisa_diri_sendiri": return "Tidak bisa mereset akun sendiri.";
       case "network": return "Koneksi bermasalah, coba lagi.";
       default: return "Gagal: " + (res.error || "tidak diketahui");
     }
@@ -211,6 +216,7 @@
     if (tab === "pinjaman") return muatPinjaman();
     if (tab === "dividen") return muatDividen();
     if (tab === "tugas") return muatTugas();
+    if (tab === "resetpin") return muatResetPin();
     const res = await adm("admin_topup_daftar", { tampil: tab });
     if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
     state.modeKirim = res.mode_kirim || "tampung";
@@ -1231,6 +1237,49 @@
       el("label", { class: "lbl", for: "setBatasHarian", text: "Batas total per 24 jam (TOF)" }), f.bHarian,
       el("div", { class: "kecil", text: "Isi dompet pembayar secukupnya saja. Kerugian terburuk bila ada penyalahgunaan dibatasi oleh isi dompet itu dan batas harian ini." }),
       galat, ok, simpan));
+  }
+
+  // ---------------- Reset PIN (anggota lupa PIN) ----------------
+  // Pengurus membuat kode 8 digit sekali pakai (berlaku 60 menit). Kode hanya tampil SEKALI di sini;
+  // server hanya menyimpan hash-nya. Anggota memakainya lewat tombol "Lupa PIN?" di halaman masuk.
+  async function muatResetPin() {
+    const konten = $("konten");
+    const galat = el("div", { class: "galat", id: "galatResetPin" });
+    const target = el("input", { class: "inp", id: "resetTarget", maxlength: "30", autocomplete: "off", spellcheck: "false", placeholder: "Username anggota yang lupa PIN" });
+    const hasil = el("div", { id: "hasilResetPin", hidden: true });
+    const buat = el("button", { class: "btn utama", id: "btnBuatKodeReset", type: "button", text: "Buat kode reset", onclick: async function () {
+      galat.textContent = "";
+      hasil.hidden = true;
+      hasil.replaceChildren();
+      const nama = target.value.trim().replace(/^@/, "");
+      if (!nama) { galat.textContent = "Isi username anggotanya."; return; }
+      if (!window.confirm("Buat kode reset PIN untuk @" + nama + "?\nPastikan benar-benar anggota itu yang meminta (mis. lewat WhatsApp yang kamu kenal).")) return;
+      this.disabled = true;
+      const res = await adm("admin_reset_pin", { target: nama });
+      this.disabled = false;
+      if (!res.ok) { galat.textContent = pesan(res); return; }
+      const kode = res.kode.slice(0, 4) + " " + res.kode.slice(4);
+      const wa = "Halo @" + res.username + ", ini kode reset PIN ToFarmer kamu: " + kode +
+        "\n\nBuka ToFarmer → Masuk → Lupa PIN? → \"Saya sudah punya kode dari admin\". Berlaku " + res.berlaku_menit + " menit. Jangan dibagikan ke siapa pun.";
+      const info = el("div", { class: "kecil", style: "margin-top:8px;", text: "Kode ini tidak bisa ditampilkan lagi. Kalau hilang, buat kode baru (kode lama otomatis diganti)." });
+      const salin = el("button", { class: "btn hijau", id: "btnSalinPesanReset", type: "button", style: "margin-top:10px;", text: "Salin pesan WhatsApp", onclick: async function () {
+        try { await navigator.clipboard.writeText(wa); this.textContent = "Tersalin ✓"; }
+        catch (e) { window.prompt("Salin pesan ini:", wa); }
+      } });
+      hasil.replaceChildren(el("div", { class: "card", style: "border-color:#4caf7a;text-align:center;" },
+        el("div", { class: "kecil", text: "Kode untuk @" + res.username }),
+        el("div", { class: "total mono", id: "kodeResetTampil", style: "letter-spacing:4px;margin-top:6px;", text: kode }),
+        info, salin));
+      hasil.hidden = false;
+      target.value = "";
+    } });
+    konten.replaceChildren(
+      el("div", { class: "card" },
+        el("div", { style: "font-weight:700;", text: "Reset PIN anggota" }),
+        el("div", { class: "kecil", text: "Untuk anggota yang lupa PIN. PIN lama tetap berlaku sampai kode dipakai, jadi aman kalau ternyata anggota ingat lagi. Akun pengurus tidak bisa direset lewat sini." }),
+        el("label", { class: "lbl", for: "resetTarget", text: "Username anggota" }), target,
+        galat, buat),
+      hasil);
   }
 
   // ---------------- mulai ----------------

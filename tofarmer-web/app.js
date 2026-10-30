@@ -228,7 +228,7 @@ function showPinSetupModal(username, walletId) {
 }
 
 // Modal Forgot PIN - Instruksi Manual Reset
-function showForgotPinModal() {
+function showForgotPinModal(onSelesai) {
   const modal = document.createElement("div");
   
   modal.innerHTML = `
@@ -303,12 +303,25 @@ function showForgotPinModal() {
           ✓ Setelah Admin Reset:
         </p>
         <ol style="font-size:12px;color:#333;margin:8px 0 0 0;padding-left:20px;">
-          <li style="margin:4px 0;">Admin akan bilang "sudah direset"</li>
-          <li style="margin:4px 0;">Kamu login lagi dengan username, lalu isi Alamat Wallet saat diminta</li>
+          <li style="margin:4px 0;">Admin mengirim kode 8 digit (berlaku 1 jam)</li>
+          <li style="margin:4px 0;">Tekan tombol "Saya sudah punya kode" di bawah, lalu masukkan kodenya</li>
           <li style="margin:4px 0;">Buat PIN baru saat diminta</li>
-          <li style="margin:4px 0;">Selesai! ✓</li>
+          <li style="margin:4px 0;">Selesai! ✓ Kamu langsung masuk</li>
         </ol>
       </div>
+
+      <button id="kodeResetBtn" style="
+        width:100%;
+        margin-top:16px;
+        padding:12px;
+        border:none;
+        border-radius:14px;
+        background:#2f6f4e;
+        color:white;
+        font-weight:700;
+        cursor:pointer;
+        font-size:12px;
+      ">🔑 Saya sudah punya kode dari admin</button>
       
       <button id="closeForgotPinBtn" style="
         width:100%;
@@ -336,6 +349,101 @@ function showForgotPinModal() {
   modal.querySelector("#closeForgotPinBtn").onclick = () => {
     document.body.removeChild(modal);
   };
+
+  // Lupa PIN otomatis: kode sekali pakai dari admin → PIN baru → langsung masuk
+  modal.querySelector("#kodeResetBtn").onclick = async () => {
+    const hasil = await showKodeResetModal(localStorage.getItem("tof_login_username") || "");
+    if (!hasil) return;
+    document.body.removeChild(modal);
+    if (onSelesai) onSelesai(hasil);
+  };
+}
+
+// Modal: masukkan kode reset dari admin, lalu buat PIN baru. Hasil: { profile, session } atau null
+function showKodeResetModal(username) {
+  return new Promise((resolve) => {
+    const modal = document.createElement("div");
+
+    modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(16,25,20,.65);backdrop-filter:blur(12px);display:flex;justify-content:center;align-items:center;z-index:100000;padding:20px;">
+      <div style="width:100%;max-width:380px;background:#fff;border-radius:28px;padding:24px;">
+        <div style="text-align:center;">
+          <div style="font-size:50px;">🔑</div>
+          <h2 style="color:#2f6f4e;">Kode Reset PIN</h2>
+          <p style="font-size:12px;color:#666;margin-top:8px;">
+            Masukkan kode 8 digit dari admin untuk akun <strong>${username || "-"}</strong>.
+          </p>
+        </div>
+
+        <input id="kodeResetInput" type="text" inputmode="numeric" maxlength="9" autocomplete="off" placeholder="1234 5678" style="
+          width:100%;margin-top:16px;padding:14px;border:2px solid #cfe8da;border-radius:14px;
+          font-size:20px;letter-spacing:4px;text-align:center;box-sizing:border-box;font-family:monospace;" />
+
+        <button id="kodeResetLanjut" style="width:100%;margin-top:16px;padding:12px;border:none;border-radius:14px;background:#4caf7a;color:white;font-weight:700;cursor:pointer;">Lanjut buat PIN baru</button>
+        <button id="kodeResetBatal" style="width:100%;margin-top:10px;padding:12px;border:none;border-radius:14px;background:#eee;color:#666;font-weight:600;cursor:pointer;">Batal</button>
+      </div>
+    </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const input = modal.querySelector("#kodeResetInput");
+    const lanjut = modal.querySelector("#kodeResetLanjut");
+    input.focus();
+
+    const tutup = (hasil) => {
+      if (modal.parentNode) document.body.removeChild(modal);
+      resolve(hasil);
+    };
+
+    lanjut.onclick = async () => {
+      const kode = input.value.replace(/\D/g, "");
+      if (kode.length !== 8) {
+        alert("Kode terdiri dari 8 digit angka 🌱");
+        return;
+      }
+      if (!username) {
+        alert("Username tidak ditemukan, tutup lalu coba masuk lagi 🌱");
+        return;
+      }
+
+      lanjut.disabled = true;
+      lanjut.textContent = "Memeriksa...";
+
+      // Langkah 1: cek kode dulu (tidak menghabiskan kode) supaya salah ketik ketahuan sebelum buat PIN
+      const cek = await callTofVault("cek_kode_reset", { username, kode });
+      if (!cek.ok) {
+        alert(pesanVault(cek));
+        lanjut.disabled = false;
+        lanjut.textContent = "Lanjut buat PIN baru";
+        if (cek.left === 0) tutup(null); // kode sudah hangus, minta admin lagi
+        return;
+      }
+
+      // Langkah 2: buat PIN baru. Batal di sini = kode tetap berlaku, bisa dicoba lagi
+      modal.style.display = "none";
+      const setup = await showPinSetupModal(username, null);
+      if (!setup) {
+        modal.style.display = "";
+        lanjut.disabled = false;
+        lanjut.textContent = "Lanjut buat PIN baru";
+        return;
+      }
+
+      const res = await callTofVault("pakai_kode_reset", { username, kode, pin_baru: setup.pin });
+      if (!res.ok) {
+        alert(pesanVault(res));
+        modal.style.display = "";
+        lanjut.disabled = false;
+        lanjut.textContent = "Lanjut buat PIN baru";
+        return;
+      }
+
+      tutup({ profile: res.profile, session: res.session });
+    };
+
+    modal.querySelector("#kodeResetBatal").onclick = () => tutup(null);
+  });
 }
 
 // Modal PIN Verify (untuk user yang sudah punya PIN)
@@ -548,7 +656,11 @@ function showPinVerifyModal() {
     };
     
     modal.querySelector("#forgotPinBtn").onclick = () => {
-      showForgotPinModal();
+      showForgotPinModal((hasil) => {
+        // Reset lewat kode berhasil: tutup modal PIN dan teruskan hasilnya ke connectWallet
+        if (modal.parentNode) document.body.removeChild(modal);
+        resolve({ resetSelesai: hasil });
+      });
     };
     
     modal.querySelector("#cancelBtn").onclick = () => {
@@ -783,6 +895,11 @@ function pesanVault(res) {
     case "reset_required": return "Akun ini punya brankas frasa, PIN-nya harus direset admin dulu 🔒";
     case "wallet_mismatch": return "Username atau Password salah ❌";
     case "already_has_pin": return "Akun ini sudah punya PIN, silakan login biasa 🌱";
+    case "kode_tidak_valid": return "Kode salah atau sudah tidak berlaku ❌" + (res.left !== undefined ? " (sisa percobaan: " + res.left + ")" : "") + " Kalau sudah 5x salah atau lewat 1 jam, minta kode baru ke admin.";
+    case "pin_baru_sama_publik": return "PIN baru ini tidak bisa dipakai, coba PIN 6 digit yang lain 🌱";
+    case "target_pengurus": return "Akun pengurus tidak bisa direset lewat jalur ini.";
+    case "tidak_bisa_diri_sendiri": return "Tidak bisa mereset akun sendiri.";
+    case "bukan_admin": return "Akun ini bukan pengurus.";
     case "network": return "Koneksi bermasalah, coba lagi ya 🌱";
     default: return "Gagal: " + (res.error || "tidak diketahui");
   }
@@ -865,6 +982,12 @@ async function connectWallet() {
   // Akun yang sudah punya PIN: cukup username + PIN
   const pinResult = await showPinVerifyModal();
   if (!pinResult) return null;
+
+  // Lupa PIN → kode reset dari admin berhasil dipakai: sudah punya PIN baru + sesi, langsung masuk
+  if (pinResult.resetSelesai) {
+    await selesaiLoginWallet(pinResult.resetSelesai.profile, pinResult.resetSelesai.session);
+    return pinResult.resetSelesai.profile.id;
+  }
 
   const res = await callTofVault("login", { username: namaAsli, pin: pinResult.pin });
   if (!res.ok) {

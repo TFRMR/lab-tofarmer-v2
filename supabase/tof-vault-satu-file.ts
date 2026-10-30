@@ -173,6 +173,11 @@ export interface Repo {
   upsertVault(row: { profile_id: string; ciphertext: string; iv: string; reset_pending: boolean }): Promise<void>;
   deleteVault(id: string): Promise<void>;
   clearResetPending(id: string): Promise<void>;
+  // ---- Kode reset PIN (dibuat admin, sekali pakai) ----
+  getKodeResetPin(id: string): Promise<{ profile_id: string; kode_hash: string; kedaluwarsa_pada: string; fails: number } | null>;
+  upsertKodeResetPin(row: { profile_id: string; kode_hash: string; kedaluwarsa_pada: string; fails: number; dibuat_oleh: string }): Promise<void>;
+  setKodeResetFails(id: string, fails: number): Promise<void>;
+  deleteKodeResetPin(id: string): Promise<void>;
   log(id: string, action: string, ok: boolean): Promise<void>;
   // ---- Nabung TOF ----
   getSettings(): Promise<Record<string, unknown>>;
@@ -595,6 +600,62 @@ export async function handle(action: unknown, body: Row, d: Deps): Promise<Res> 
       }
     }
 
+    // ---- Lupa PIN: admin membuatkan kode reset sekali pakai (PIN lama tetap berlaku sampai kode dipakai) ----
+    // Admin (ADMIN_IDS + PIN admin) mengirim `target` = username pengguna. Kode 8 digit hanya ditampilkan SEKALI
+    // ke admin; yang tersimpan hanya hash-nya. Berlaku 60 menit, 5x salah = hangus.
+    case "admin_reset_pin": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      const t = await resolveProfile({ username: body.target }, d, false);
+      if ("error" in t) return fail(t.error);
+      if (t.profile.id === a.profile.id) return fail("tidak_bisa_diri_sendiri");
+      // Akun pengurus tidak boleh direset lewat jalur ini (mencegah satu pengurus mengambil alih pengurus lain)
+      if ((d.adminIds || []).includes(t.profile.id)) return fail("target_pengurus");
+
+      const kode = kodeResetAcak();
+      const kedaluwarsa = new Date(d.now() + KODE_RESET_MENIT * 60000).toISOString();
+      await d.repo.upsertKodeResetPin({
+        profile_id: t.profile.id,
+        kode_hash: await hashKodeReset(t.profile.id, kode, d),
+        kedaluwarsa_pada: kedaluwarsa,
+        fails: 0,
+        dibuat_oleh: a.profile.id,
+      });
+      await d.repo.log(t.profile.id, "admin_reset_pin", true);
+      await d.repo.log(a.profile.id, "admin_reset_pin_buat", true);
+      return ok({ username: t.profile.username, kode, berlaku_menit: KODE_RESET_MENIT, kedaluwarsa_pada: kedaluwarsa });
+    }
+
+    // ---- Lupa PIN, langkah 1: cek kode saja (tidak menghabiskan kode) supaya salah ketik ketahuan sebelum buat PIN ----
+    case "cek_kode_reset": {
+      const k = await periksaKodeReset(body, d);
+      if ("gagal" in k) return k.gagal;
+      return ok({ username: k.profile.username });
+    }
+
+    // ---- Lupa PIN, langkah 2: kode benar → pasang PIN baru, kode hangus, langsung login ----
+    case "pakai_kode_reset": {
+      if (!isValidPin(body.pin_baru)) return fail("bad_pin_format");
+      const k = await periksaKodeReset(body, d);
+      if ("gagal" in k) return k.gagal;
+      const p = k.profile;
+      // PIN baru tidak boleh sama dengan hash publik lama (jaga brankas), kode tidak dihanguskan agar bisa coba PIN lain
+      if (await samaDenganHashPublik(p, body.pin_baru)) return fail("pin_baru_sama_publik");
+
+      const sudahAdaPin = !!(await d.repo.getPin(p.id));
+      const rec = await makePinRecord(body.pin_baru, d.pepper);
+      await d.repo.upsertPin({ profile_id: p.id, ...rec, fails: 0, locked_until: null, pin_terpisah: true });
+      // setHasPin juga mengosongkan profiles.pin_hash; hanya dipanggil bila akun memang belum punya baris PIN
+      // (akun lama yang masih memakai pin_hash di halaman lain tidak diubah)
+      if (!sudahAdaPin) await d.repo.setHasPin(p.id, true);
+      if (await d.repo.getVault(p.id)) await d.repo.clearResetPending(p.id);
+      await d.repo.deleteKodeResetPin(p.id);
+      await d.repo.log(p.id, "pakai_kode_reset", true);
+      // sesi lama otomatis gugur (salt PIN berubah); kirim sesi baru
+      const sesi = await buatSesi(p.id, d);
+      return ok({ profile: safeProfile(p), ...(sesi ? { session: sesi } : {}) });
+    }
+
     // ---- Ganti PIN (dan memisahkannya dari hash publik untuk akun lama) ----
     // PIN lama dipakai membuktikan pemilik akun; PIN baru WAJIB berbeda dari PIN lama dan dari hash publik.
     case "ganti_pin": {
@@ -798,6 +859,47 @@ async function authAdmin(body: Row, d: Deps): Promise<{ profile: Profile } | Gag
   const v = await verifyPinFor(r.profile, body.pin, d);
   if (!v.ok) return { gagal: v };
   if (await samaDenganHashPublik(r.profile, body.pin)) return { gagal: fail("pin_publik") };
+  return { profile: r.profile };
+}
+
+// ---------------- kode reset PIN (dibuat admin, 8 digit, sekali pakai) ----------------
+export const KODE_RESET_MENIT = 60;
+export const KODE_RESET_MAX_FAILS = 5;
+
+function kodeResetAcak(): string {
+  // 8 digit acak merata (rejection sampling agar tidak bias)
+  let n = 0;
+  do { n = crypto.getRandomValues(new Uint32Array(1))[0]; } while (n >= 4294967295 - (4294967295 % 100000000));
+  return String(n % 100000000).padStart(8, "0");
+}
+
+async function hashKodeReset(profileId: string, kode: string, d: Deps): Promise<string> {
+  return await hmacHex(d.pepper, `resetpin.${profileId}.${kode}`);
+}
+
+// Memeriksa kode reset milik pengguna. Salah → hitung percobaan; 5x salah atau lewat waktu → kode dihanguskan.
+async function periksaKodeReset(body: Row, d: Deps): Promise<{ profile: Profile } | { gagal: Res }> {
+  const r = await resolveProfile(body, d, false);
+  if ("error" in r) return { gagal: fail("kode_tidak_valid") }; // sengaja generik: tidak membocorkan username
+  const kode = typeof body.kode === "string" ? body.kode.replace(/\D/g, "") : "";
+  if (kode.length !== 8) return { gagal: fail("kode_tidak_valid") };
+  const row = await d.repo.getKodeResetPin(r.profile.id);
+  if (!row) return { gagal: fail("kode_tidak_valid") };
+  if (Date.parse(row.kedaluwarsa_pada) <= d.now()) {
+    await d.repo.deleteKodeResetPin(r.profile.id);
+    return { gagal: fail("kode_tidak_valid") };
+  }
+  const hash = await hashKodeReset(r.profile.id, kode, d);
+  if (!timingSafeEqual(hash, row.kode_hash)) {
+    const fails = row.fails + 1;
+    if (fails >= KODE_RESET_MAX_FAILS) {
+      await d.repo.deleteKodeResetPin(r.profile.id);
+      await d.repo.log(r.profile.id, "kode_reset_hangus", false);
+      return { gagal: fail("kode_tidak_valid", { left: 0 }) };
+    }
+    await d.repo.setKodeResetFails(r.profile.id, fails);
+    return { gagal: fail("kode_tidak_valid", { left: KODE_RESET_MAX_FAILS - fails }) };
+  }
   return { profile: r.profile };
 }
 
@@ -3259,6 +3361,19 @@ const repo: Repo = {
   },
   async clearResetPending(id) {
     must(await db.from("wallet_vault").update({ reset_pending: false }).eq("profile_id", id));
+  },
+  async getKodeResetPin(id) {
+    return must(await db.from("pin_reset_codes").select("profile_id, kode_hash, kedaluwarsa_pada, fails").eq("profile_id", id).maybeSingle()) as
+      { profile_id: string; kode_hash: string; kedaluwarsa_pada: string; fails: number } | null;
+  },
+  async upsertKodeResetPin(row) {
+    must(await db.from("pin_reset_codes").upsert({ ...row, created_at: new Date().toISOString() }, { onConflict: "profile_id" }));
+  },
+  async setKodeResetFails(id, fails) {
+    must(await db.from("pin_reset_codes").update({ fails }).eq("profile_id", id));
+  },
+  async deleteKodeResetPin(id) {
+    must(await db.from("pin_reset_codes").delete().eq("profile_id", id));
   },
   async log(id, action, okFlag) {
     await db.from("vault_log").insert({ profile_id: id, action, ok: okFlag }); // best effort
