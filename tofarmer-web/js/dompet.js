@@ -237,6 +237,7 @@
       case "jumlah_tidak_valid": return "Jumlah tarik harus antara " + (res.min_tarik_tof || 0) + " dan " + (res.maks_tarik_tof || 0) + " TOF.";
       case "nominal_tidak_valid": return "Nominal harus bilangan bulat Rp " + fmtRp(res.min_rp || 0) + " sampai Rp " + fmtRp(res.maks_rp || 0) + ".";
       case "masih_ada_tagihan": return "Kamu masih punya tagihan aktif. Buka Riwayat nabung untuk melanjutkannya.";
+      case "punya_pinjaman": return "Kamu masih punya pinjaman berjalan, jadi Nabung dinonaktifkan dulu agar fokus melunasi. Setelah lunas, Nabung dibuka lagi.";
       case "terlalu_sering": return "Batas 5 tagihan per 24 jam tercapai. Coba lagi besok.";
       case "kode_unik_habis": return "Sedang ramai, coba lagi beberapa menit lagi.";
       case "status_tidak_cocok": return "Status tagihan sudah berubah. Buka Riwayat nabung untuk melihat yang terbaru.";
@@ -822,6 +823,20 @@
         + (info.mode_kirim === "tampung" ? " TOF ditampung dulu dan dibagikan setelah setoran bersama terkumpul minimal " + info.ambang_batch_tof + " TOF." : "");
     }
     $("btnNabung").onclick = panelNabung;
+
+    // Selama ada pinjaman (diajukan/berjalan) tombol Nabung dinonaktifkan; server juga menolak (punya_pinjaman)
+    const kunciNabung = punyaPinjaman();
+    $("btnNabung").disabled = kunciNabung;
+    $("btnNabung").style.opacity = kunciNabung ? "0.5" : "";
+    if (info && info.aktif && kunciNabung) {
+      $("nabungInfo").textContent += " Nabung dinonaktifkan selama masih ada pinjaman. Lunasi dulu agar bisa menabung lagi.";
+    }
+  }
+
+  // Apakah anggota punya pinjaman yang diajukan atau berjalan (data dari pinjam_ringkas)
+  function punyaPinjaman() {
+    const r = state.pinjamRingkas;
+    return !!(r && ((r.berjalan && r.berjalan.length) || r.ada_pengajuan));
   }
 
   // ---------------- Tarik dana (TOF → uang) ----------------
@@ -1097,6 +1112,7 @@
   function panelNabung() {
     const info = state.topup;
     if (!info || !info.aktif) { toast("Nabung belum dibuka oleh pengurus."); return; }
+    if (punyaPinjaman()) { toast("Kamu masih punya pinjaman. Lunasi dulu agar Nabung dibuka lagi."); return; }
     const s = bukaSheet("Nabung TOF");
     const sesi = { pin: "" };
     s.onTutup(() => { sesi.pin = ""; });
@@ -1822,6 +1838,7 @@
     state.pinjamRingkas = r;
     state.terkunci = BigInt(r.terkunci_units || 0);
     renderPinjam();
+    renderNabung(); // status tombol Nabung bergantung pada ada-tidaknya pinjaman
   }
 
   function panelBayarPinjaman() {

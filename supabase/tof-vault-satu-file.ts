@@ -1181,6 +1181,9 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       if ("gagal" in a) return a.gagal;
       const s = await ambilPengaturan(d);
       if (!(s.aktif && s.qris)) return fail("topup_nonaktif");
+      // Selama masih punya pinjaman berjalan (diajukan/aktif/dibayar) Nabung dinonaktifkan agar fokus melunasi.
+      // Mencegah putaran "pinjam lalu nabung memakai uang pinjaman". Setelah lunas, Nabung dibuka lagi.
+      if ((await d.repo.listPinjamanBerjalan(a.profile.id)).length > 0) return fail("punya_pinjaman");
       const nominal = Number(body.nominal_rp);
       if (!Number.isInteger(nominal) || nominal < s.min_rp || nominal > s.maks_rp) {
         return fail("nominal_tidak_valid", { min_rp: s.min_rp, maks_rp: s.maks_rp });
