@@ -992,6 +992,54 @@
       el("details", {}, el("summary", { class: "kecil", text: "Lihat per anggota" }),
         ...rk.daftar.map((x) => el("div", { class: "kecil", "data-anggota": x.profile_id, style: "padding:4px 0;border-top:1px solid rgba(0,0,0,.06);", text: (x.lengkap ? "✓ " : "○ ") + "@" + x.username + " (" + x.selesai + "/" + x.total + ")" + (x.lengkap ? "" : " — kurang: " + x.kurang.join("; ")) })))));
 
+    // ---- laporan untuk grup: bisa disalin dan ditempel di grup WhatsApp ----
+    // Yang sudah lengkap diberi ✅, yang belum ⬜ (beserta tugas yang masih kurang). Ada juga versi pengingat (yang belum saja).
+    const NAMA_BULAN = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const labelBulan = (b) => { const p = String(b).split("-"); return (NAMA_BULAN[Number(p[1]) - 1] || b) + " " + p[0]; };
+    const susunLaporan = (jenis) => {
+      const sudah = rk.daftar.filter((x) => x.lengkap);
+      const belum = rk.daftar.filter((x) => !x.lengkap);
+      const baris = [];
+      const barisBelum = (x) => "⬜ @" + x.username + " — " + x.selesai + "/" + x.total + (x.kurang && x.kurang.length ? " (kurang: " + x.kurang.join(", ") + ")" : "");
+      if (jenis === "pengingat") {
+        baris.push("🔔 *Pengingat Tugas Bulanan — " + labelBulan(rk.bulan) + "*");
+        // Yang sudah lengkap tetap disebut (apresiasi), ringkas dalam satu baris
+        if (sudah.length) baris.push("", "✅ Sudah lengkap, terima kasih (" + sudah.length + "): " + sudah.map((x) => "@" + x.username).join(" "));
+        if (!belum.length) { baris.push("", "Semua anggota sudah melengkapi tugas bulan ini 🎉 Terima kasih!"); return baris.join("\n"); }
+        baris.push("", "Yang belum lengkap (" + belum.length + " dari " + rk.daftar.length + " anggota):", "");
+        belum.forEach((x) => baris.push(barisBelum(x)));
+        baris.push("", "Yuk dilengkapi. Dividen positif yang belum lengkap ditahan sampai tugasnya selesai 🌱");
+        return baris.join("\n");
+      }
+      baris.push("📋 *Laporan Tugas Bulanan — " + labelBulan(rk.bulan) + "*");
+      baris.push(sudah.length + " dari " + rk.daftar.length + " anggota sudah lengkap", "");
+      baris.push("✅ *Sudah lengkap (" + sudah.length + ")*");
+      if (sudah.length) sudah.forEach((x) => baris.push("✅ @" + x.username)); else baris.push("- belum ada");
+      baris.push("", "⬜ *Belum lengkap (" + belum.length + ")*");
+      if (belum.length) belum.forEach((x) => baris.push(barisBelum(x))); else baris.push("- semua sudah lengkap 🎉");
+      if (belum.length) baris.push("", "Yang belum lengkap, dividen positifnya ditahan sampai tugas selesai. Yuk dilengkapi 🌱");
+      return baris.join("\n");
+    };
+    const kotakLaporan = el("textarea", { class: "inp", id: "teksLaporan", rows: "12", readonly: true, style: "font-family:ui-monospace,Menlo,monospace;font-size:12px;" });
+    kotakLaporan.value = susunLaporan("lengkap");
+    const statusSalin = el("div", { class: "kecil", id: "statusSalinLaporan", style: "margin-top:6px;" });
+    const salinTeks = async (jenis) => {
+      const teks = susunLaporan(jenis);
+      kotakLaporan.value = teks;
+      let berhasil = false;
+      try { await navigator.clipboard.writeText(teks); berhasil = true; }
+      catch (e) { try { kotakLaporan.focus(); kotakLaporan.select(); berhasil = document.execCommand("copy"); } catch (e2) { berhasil = false; } }
+      statusSalin.textContent = berhasil ? "Tersalin ✓ Tempel di grup." : "Gagal menyalin otomatis. Teksnya sudah dipilih, salin manual (tahan lalu Salin).";
+    };
+    anak.push(el("div", { class: "card", id: "laporanTugas" },
+      el("div", { style: "font-weight:700;" }, "Laporan untuk grup"),
+      el("div", { class: "kecil", text: "Salin lalu tempel di grup. Yang sudah lengkap diberi ✅, yang belum ⬜ beserta tugas yang masih kurang (tugas wajib bulan " + labelBulan(rk.bulan) + ")." }),
+      kotakLaporan,
+      el("div", { class: "aksi" },
+        el("button", { class: "btn utama", id: "btnSalinLaporan", type: "button", style: "margin-top:0;", text: "Salin laporan lengkap", onclick: () => salinTeks("lengkap") }),
+        el("button", { class: "btn hijau", id: "btnSalinPengingat", type: "button", text: "Salin pengingat (sertakan yang sudah)", onclick: () => salinTeks("pengingat") })),
+      statusSalin));
+
     // ---- klaim menunggu ----
     anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", id: "judulKlaim", text: "Klaim menunggu (" + r.klaim.length + ")" }));
     if (!r.klaim.length) anak.push(el("div", { class: "kecil", style: "padding:8px 4px;", text: "Tidak ada klaim." }));
