@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pemandu Permakultur - ToFarmer</title>
+<meta name="theme-color" content="#2f6f4e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/tof-sesi.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+body { background:#f4f7f5; color:#1c2b22; padding-bottom:80px; }
+.container { max-width:760px; margin:auto; padding:1rem; }
+header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:1rem 0; border-bottom:1px solid #e0e8e3; margin-bottom:12px; }
+.brand { display:flex; align-items:center; gap:10px; color:#2f6f4e; font-weight:bold; font-size:15px; }
+.logo-icon { width:42px; height:42px; border-radius:50%; background:#fff; border:2px solid #2f6f4e; display:flex; align-items:center; justify-content:center; font-weight:900; color:#2f6f4e; }
+.badge { display:flex; align-items:center; gap:8px; background:#fff; border:1px solid #e0e8e3; padding:6px 12px; border-radius:12px; font-size:11px; }
+.badge a { color:#2f6f4e; font-weight:bold; text-decoration:none; }
+.pwa-banner { background:#fff; border:1px solid rgba(76,175,122,.3); border-radius:16px; padding:12px 16px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.pwa-banner h4 { font-size:12px; color:#2f6f4e; } .pwa-banner span { font-size:10px; color:#6f7f76; }
+.pwa-btn { background:linear-gradient(90deg,#4caf7a,#c9a227); color:#fff; border:none; padding:10px 18px; border-radius:10px; font-size:11px; font-weight:bold; cursor:pointer; flex:none; }
+.sync { font-size:12px; color:#6f7f76; margin-bottom:12px; }
+.sync b, .sync a { color:#2f6f4e; }
+nav { display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:12px; }
+nav button { flex:none; border:1px solid #e0e8e3; background:#fff; color:#2f6f4e; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:bold; cursor:pointer; }
+nav button.on { background:#2f6f4e; color:#fff; border-color:#2f6f4e; }
+.card { background:#fff; border-radius:16px; padding:18px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,.03); border:1px solid rgba(0,0,0,.05); }
+.card h3 { font-size:14px; color:#2f6f4e; margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; }
+.card h3 span { font-size:11px; color:#4caf7a; font-weight:600; }
+.hint { font-size:12px; color:#6f7f76; margin:2px 0 10px; line-height:1.45; }
+label { display:block; font-size:11px; font-weight:600; color:#2f6f4e; margin:10px 0 4px; }
+input, select, textarea { width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:10px; font-size:13px; outline:none; background:#fff; color:#1c2b22; }
+input:focus, select:focus, textarea:focus { border-color:#2f6f4e; }
+textarea { min-height:64px; resize:vertical; }
+.row { display:flex; gap:8px; } .row > div { flex:1; }
+.acts { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.btn { background:#2f6f4e; color:#fff; border:none; padding:10px 16px; border-radius:10px; font-size:12px; font-weight:bold; cursor:pointer; }
+.btn:hover { background:#24583e; }
+.btn.alt { background:#fff; color:#2f6f4e; border:1px solid #2f6f4e; } .btn.alt:hover { background:#e9f4ee; }
+.btn.bad { background:#fff; color:#dc2626; border:1px solid #dc2626; }
+.btn:focus-visible, nav button:focus-visible { outline:2px solid #2f6f4e; outline-offset:2px; }
+.ent { border-top:1px dashed #e0e8e3; margin-top:10px; padding-top:8px; font-size:13px; line-height:1.45; }
+.ent small { color:#6f7f76; font-size:11px; }
+.ent button { float:right; border:0; background:none; color:#dc2626; font-size:11px; font-weight:bold; cursor:pointer; }
+.strip { display:flex; height:12px; border-radius:6px; overflow:hidden; background:#e9f4ee; margin:6px 0 2px; }
+.strip i { display:block; background:linear-gradient(90deg,#4caf7a,#2f6f4e); }
+.stg { display:flex; justify-content:space-between; align-items:baseline; margin-top:12px; font-size:13px; }
+.stg span { font-size:11px; color:#6f7f76; }
+.toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1c2b22; color:#fff; padding:10px 16px; border-radius:12px; font-size:12px; opacity:0; transition:.3s; pointer-events:none; max-width:90%; text-align:center; }
+.toast.show { opacity:1; }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/aset/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="ToFarmer">
+<script src="/js/tof-install.js"></script>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand"><div class="logo-icon">P</div><div>Pemandu Permakultur</div></div>
+    <div class="badge" id="badge"></div>
+  </header>
+  <div class="pwa-banner">
+    <div><h4>Pasang Aplikasi ToFarmer</h4><span>Catat di kebun meski sinyal lemah; data disinkronkan saat ada sinyal</span></div>
+    <button class="pwa-btn" onclick="if(window.TofInstall)TofInstall.pasang()">⚡ Instal 5 Detik</button>
+  </div>
+  <div class="sync" id="sync"></div>
+  <nav id="nav"></nav>
+  <div id="view"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ---------- Koneksi (kunci anon memang publik; data dijaga fungsi RPC + token sesi) ----------
+var SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+var LOGIN_URL = '/html/login.html'; // sesuaikan bila halaman login ada di alamat lain
+var sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+var sso = null; try { sso = window.TofSesi ? TofSesi.ambil() : null; } catch (e) {}
+var KEY = 'perma_v2_' + (sso ? sso.id : 'tamu');
+var S = { profil: {}, entries: [], dels: [], profilDirty: false };
+try { var raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+var tab = 'lahan', G = {}, busy = false;
+
+var T = [['lahan','Lahan'],['amati','Amati'],['analisis','Analisis'],['desain','Desain'],['rencana','Rencana'],['ekspor','Ekspor']];
+var P = {
+amati:[
+['matahari','Matahari','Arah terbit dan terbenam, bayangan pagi, siang, sore. Ulangi tiap musim.'],
+['angin','Angin','Arah angin kencang dan angin kering/lembap.'],
+['airhujan','Aliran air hujan','Ke mana air mengalir, di mana menggenang, dari atap ke mana.'],
+['kontur','Kemiringan dan kontur','Titik tertinggi dan terendah, arah lereng, perkiraan kemiringan.'],
+['perkolasi','Uji perkolasi','Gali lubang, isi air, catat berapa menit sampai surut.'],
+['toples','Uji tanah: toples','Persentase pasir, lumpur, liat setelah mengendap.'],
+['ph','Uji tanah: pH, warna, bau','Catat nilai pH, warna, bau, kepadatan, jumlah cacing.'],
+['vegetasi','Vegetasi yang ada','Pohon, semak, gulma indikator. Mana yang dipertahankan.'],
+['fauna','Fauna','Burung, serangga, hewan liar atau ternak yang lewat.'],
+['sumberair','Sumber air','Sumur, mata air, PDAM, tandon, debit dan musimnya.'],
+['struktur','Struktur yang ada','Rumah, jalan, saluran, kandang, pagar, kompos.'],
+['tujuan','Kebutuhan dan tujuan','Apa yang ingin dihasilkan, waktu, tenaga, anggaran.']],
+analisis:[
+['sektor','Sektor','Gabungkan matahari, angin, air, dan pemandangan jadi satu gambaran.'],
+['zona','Zonasi 0-5','Apa yang masuk zona 0, 1, 2, dan seterusnya, dan alasannya.'],
+['kendala','Kendala','Yang membatasi: tanah, air, waktu, biaya, aturan.'],
+['peluang','Peluang','Sumber daya yang belum dimanfaatkan.']],
+desain:[
+['airdes','Air','Penampungan, swale, kolam, saluran.'],
+['tanahdes','Tanah dan kompos','Cara memperbaiki tanah, lokasi kompos, mulsa.'],
+['tanamandes','Tanaman dan guild','Tanaman per zona dan kelompok yang saling menopang.'],
+['akses','Akses dan jalan','Jalur harian, jalan angkut, pagar.'],
+['strukturdes','Struktur baru','Kandang, rumah bibit, penampung hujan, dan lainnya.']],
+rencana:[
+['prioritas','Langkah pertama','Pekerjaan paling awal, biasanya air dan tanah.'],
+['bahan','Bahan dan biaya','Daftar bahan, jumlah, perkiraan biaya.'],
+['jadwal','Jadwal tanam dan kerja','Kapan mengerjakan apa menurut musim.'],
+['evaluasi','Cara menilai hasil','Tanda berhasil dan kapan dicek ulang.']]};
+var ST = { amati:'Amati', analisis:'Analisis', desain:'Desain', rencana:'Rencana' };
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+function uid() { return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c == 'x' ? r : (r & 3 | 8)).toString(16); })); }
+function toast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(function () { t.classList.remove('show'); }, 3200); }
+function titleOf(k) { for (var s in P) for (var i = 0; i < P[s].length; i++) if (P[s][i][0] == k) return P[s][i][1]; return k; }
+function done(s) { var n = 0; P[s].forEach(function (p) { if (S.entries.some(function (e) { return e.topik == p[0]; })) n++; }); return n; }
+function setSync(t) { document.getElementById('sync').innerHTML = t; }
+function loginHref() { return LOGIN_URL + '?next=' + encodeURIComponent(location.pathname + location.search); }
+
+function head() {
+  document.getElementById('badge').innerHTML = sso ? '<span>' + esc(sso.username) + '</span>' : '<a href="' + loginHref() + '">Masuk</a>';
+  document.getElementById('nav').innerHTML = T.map(function (t) { return '<button class="' + (t[0] == tab ? 'on' : '') + '" onclick="go(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
+}
+function go(t) { tab = t; render(); }
+function render() { head(); var v = document.getElementById('view'); v.innerHTML = tab == 'lahan' ? lahan() : tab == 'ekspor' ? ekspor() : stage(tab); window.scrollTo(0, 0); }
+
+function f(id, l, v) { return '<label for="p_' + id + '">' + l + '</label><input id="p_' + id + '" value="' + esc(v) + '">'; }
+function lahan() {
+  var p = S.profil, h = '';
+  if (!sso) h += '<div class="card"><h3>Masuk untuk menyimpan ke cloud</h3><p class="hint">Tanpa masuk, catatan hanya tersimpan di perangkat ini. Masuk sekali berlaku di semua halaman ToFarmer.</p><a class="btn" style="display:inline-block;text-decoration:none" href="' + loginHref() + '">Masuk</a></div>';
+  h += '<div class="card"><h3>Profil lahan</h3><p class="hint">Diisi sekali, lalu diperbarui bila berubah.</p>' +
+    f('nama', 'Nama lahan', p.nama) + f('lokasi', 'Lokasi (desa, kecamatan, atau koordinat)', p.lokasi) + f('luas', 'Luas dan bentuk', p.luas) + f('iklim', 'Iklim dan curah hujan', p.iklim) + f('status', 'Status lahan (milik, sewa, bersama)', p.status) +
+    '<div class="acts"><button class="btn" onclick="saveProfil()">Simpan profil</button></div></div><div class="card"><h3>Kelengkapan</h3>';
+  Object.keys(ST).forEach(function (s) { var n = done(s), t = P[s].length; h += '<div class="stg"><b>' + ST[s] + '</b><span>' + n + ' dari ' + t + ' topik</span></div><div class="strip"><i style="width:' + (n / t * 100) + '%"></i></div>'; });
+  return h + '</div>';
+}
+function saveProfil() { ['nama','lokasi','luas','iklim','status'].forEach(function (k) { S.profil[k] = document.getElementById('p_' + k).value.trim(); }); S.profilDirty = true; save(); toast('Profil tersimpan'); sync(); }
+
+function stage(s) {
+  var h = '';
+  P[s].forEach(function (p) {
+    var k = p[0], es = S.entries.filter(function (e) { return e.topik == k; }).sort(function (a, b) { return a.created_at < b.created_at ? 1 : -1; });
+    h += '<div class="card"><h3>' + p[1] + (es.length ? '<span>terisi ' + es.length + '</span>' : '') + '</h3><p class="hint">' + p[2] + '</p>' +
+      '<div class="row"><div><label for="a_' + k + '">Area</label><select id="a_' + k + '"><option>Kebun</option><option>Rumah</option><option>Keduanya</option></select></div><div><label for="v_' + k + '">Nilai singkat</label><input id="v_' + k + '" placeholder="mis. pH 6, 12 menit"></div></div>' +
+      '<label for="n_' + k + '">Catatan</label><textarea id="n_' + k + '"></textarea>' +
+      '<div class="acts"><button class="btn" onclick="add(\'' + s + '\',\'' + k + '\')">Simpan catatan</button><button class="btn alt" onclick="gps(\'' + k + '\',this)">Tandai posisi saya</button></div>';
+    es.forEach(function (e) { h += '<div class="ent"><button onclick="del(\'' + e.id + '\')">hapus</button><b>' + esc(e.area) + (e.nilai ? ': ' + esc(e.nilai) : '') + '</b><br>' + esc(e.catatan) + '<br><small>' + new Date(e.created_at).toLocaleString('id-ID') + (e.lat != null ? ' &middot; ' + (+e.lat).toFixed(5) + ', ' + (+e.lng).toFixed(5) : '') + (e.synced ? ' &middot; tersinkron' : ' &middot; menunggu kirim') + '</small></div>'; });
+    h += '</div>';
+  });
+  return h;
+}
+function gps(k, b) {
+  if (!navigator.geolocation) { toast('Perangkat ini tidak mendukung penentuan posisi'); return; }
+  b.textContent = 'Mencari posisi...';
+  navigator.geolocation.getCurrentPosition(function (r) { G[k] = { lat: r.coords.latitude, lng: r.coords.longitude }; b.textContent = 'Posisi ditandai'; }, function () { b.textContent = 'Posisi gagal, coba lagi'; }, { enableHighAccuracy: true, timeout: 15000 });
+}
+function add(s, k) {
+  var v = document.getElementById('v_' + k).value.trim(), n = document.getElementById('n_' + k).value.trim();
+  if (!v && !n) { toast('Isi nilai singkat atau catatan dulu'); return; }
+  var g = G[k] || {};
+  S.entries.push({ id: uid(), tahap: s, topik: k, area: document.getElementById('a_' + k).value, nilai: v, catatan: n, lat: g.lat == null ? null : g.lat, lng: g.lng == null ? null : g.lng, created_at: new Date().toISOString(), synced: false });
+  delete G[k]; save(); render(); sync();
+}
+function del(id) {
+  if (!confirm('Hapus catatan ini?')) return;
+  var e = S.entries.filter(function (x) { return x.id == id; })[0];
+  S.entries = S.entries.filter(function (x) { return x.id != id; });
+  if (e && e.synced) S.dels.push(id);
+  save(); render(); sync();
+}
+
+// ---------- Sinkron: antre di perangkat, kirim saat ada sinyal dan sesi ----------
+function rpc(fn, params, tok) { return sb.rpc(fn, Object.assign({ p_id: sso.id, p_pin_hash: tok }, params)).then(function (r) { if (r.error) throw r.error; return r.data; }); }
+async function sync(manual) {
+  if (busy) return;
+  if (!sso || !sb) { setSync('Belum masuk: catatan tersimpan di perangkat ini saja. <a href="' + loginHref() + '"><b>Masuk</b></a> untuk menyimpan ke cloud.'); return; }
+  var tok = null; try { tok = TofSesi.token(); } catch (e) {}
+  if (!tok) { setSync('Sesi habis. <a href="' + loginHref() + '"><b>Masuk lagi</b></a> untuk sinkron; catatanmu aman di perangkat.'); return; }
+  if (!navigator.onLine) { setSync('Tanpa sinyal: catatan antre dan dikirim otomatis nanti.'); return; }
+  busy = true; setSync('Menyinkronkan...');
+  try {
+    var kirim = S.entries.filter(function (e) { return !e.synced; });
+    for (var i = 0; i < kirim.length; i++) {
+      var e = kirim[i];
+      await rpc('permakultur_save', { p_entry: { id: e.id, tahap: e.tahap, topik: e.topik, area: e.area, nilai: e.nilai, catatan: e.catatan, lat: e.lat, lng: e.lng, created_at: e.created_at } }, tok);
+      e.synced = true; save();
+    }
+    while (S.dels.length) { await rpc('permakultur_delete', { p_log_id: String(S.dels[0]) }, tok); S.dels.shift(); save(); }
+    if (S.profilDirty) { await rpc('permakultur_profil_save', { p_data: S.profil }, tok); S.profilDirty = false; save(); }
+    var cloud = await rpc('permakultur_list', {}, tok), ce = (cloud && cloud.entries) || [];
+    var hasil = S.entries.filter(function (x) { return !x.synced; }); // yang belum terkirim tetap
+    ce.forEach(function (c) { hasil.push({ id: c.id, tahap: c.tahap, topik: c.topik, area: c.area, nilai: c.nilai, catatan: c.catatan, lat: c.lat, lng: c.lng, created_at: c.created_at, synced: true }); });
+    S.entries = hasil;
+    if (!S.profilDirty && cloud && cloud.profil && Object.keys(cloud.profil).length) S.profil = cloud.profil;
+    save(); setSync('<b>Tersinkron</b> ' + new Date().toLocaleTimeString('id-ID'));
+    if (manual) toast('Sinkron selesai');
+    if (!(document.activeElement && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))) render(); // jangan ganggu pengetikan
+  } catch (err) {
+    var m = String((err && err.message) || err);
+    setSync(/PIN salah|akun tidak valid/i.test(m) ? 'Sesi tidak berlaku. <a href="' + loginHref() + '"><b>Masuk lagi</b></a>; catatanmu aman di perangkat.' : 'Sinyal belum cukup atau server sibuk. Catatan antre, dicoba lagi otomatis.');
+  }
+  busy = false;
+}
+window.addEventListener('online', function () { sync(); });
+
+// ---------- Ekspor / impor ----------
+function ekspor() {
+  return '<div class="card"><h3>Ekspor data</h3><p class="hint">Unduh rekapan sebagai data. Ekspor lagi kapan pun setelah data bertambah.</p><div class="acts"><button class="btn" onclick="exJSON()">JSON lengkap</button><button class="btn" onclick="exCSV()">CSV catatan</button><button class="btn" onclick="exMD()">Rekap teks (Markdown)</button></div></div>' +
+    '<div class="card"><h3>Sinkron</h3><p class="hint">Kirim catatan yang menunggu dan tarik data terbaru dari cloud.</p><button class="btn alt" onclick="sync(true)">Sinkron sekarang</button></div>' +
+    '<div class="card"><h3>Impor data</h3><p class="hint">Muat file JSON hasil ekspor (termasuk dari versi sebelumnya). Catatan digabung tanpa ganda dan ikut terkirim ke cloud.</p><input type="file" accept=".json" onchange="imp(this)"></div>' +
+    '<div class="card"><h3>Hapus data di perangkat</h3><p class="hint">Hanya menghapus salinan di perangkat ini. Data di cloud tidak ikut terhapus.</p><button class="btn bad" onclick="reset()">Hapus salinan perangkat</button></div>';
+}
+function dl(n, t, m) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: m })); a.download = n; document.body.appendChild(a); a.click(); a.remove(); }
+function stamp() { return new Date().toISOString().slice(0, 10); }
+function clean() { return S.entries.map(function (e) { return { id: e.id, tahap: e.tahap, topik: e.topik, area: e.area, nilai: e.nilai, catatan: e.catatan, lat: e.lat, lng: e.lng, created_at: e.created_at }; }); }
+function exJSON() { dl('permakultur-' + stamp() + '.json', JSON.stringify({ versi: 2, diekspor: new Date().toISOString(), profil: S.profil, entries: clean() }, null, 2), 'application/json'); }
+function q(x) { return '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"'; }
+function exCSV() { var r = [['tahap','topik','judul_topik','area','nilai','catatan','lat','lng','waktu']]; clean().forEach(function (e) { r.push([e.tahap, e.topik, titleOf(e.topik), e.area, e.nilai, e.catatan, e.lat, e.lng, e.created_at]); }); dl('permakultur-' + stamp() + '.csv', '\ufeff' + r.map(function (x) { return x.map(q).join(','); }).join('\n'), 'text/csv'); }
+function exMD() {
+  var p = S.profil, m = '# Rekap Desain Permakultur\n\nDiekspor: ' + stamp() + '\n\n## Profil lahan\n';
+  [['nama','Nama'],['lokasi','Lokasi'],['luas','Luas'],['iklim','Iklim'],['status','Status']].forEach(function (a) { if (p[a[0]]) m += '- ' + a[1] + ': ' + p[a[0]] + '\n'; });
+  Object.keys(ST).forEach(function (s) {
+    m += '\n## ' + ST[s] + ' (' + done(s) + ' dari ' + P[s].length + ' topik)\n';
+    P[s].forEach(function (x) { var es = S.entries.filter(function (e) { return e.topik == x[0]; }); m += '\n### ' + x[1] + '\n'; if (!es.length) m += '_Belum diisi._\n'; es.forEach(function (e) { m += '- [' + e.area + '] ' + (e.nilai ? e.nilai + '. ' : '') + (e.catatan || '') + ' (' + String(e.created_at).slice(0, 10) + ')\n'; }); });
+  });
+  dl('permakultur-' + stamp() + '.md', m, 'text/markdown');
+}
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function imp(el) {
+  var fl = el.files[0]; if (!fl) return; var r = new FileReader();
+  r.onload = function () {
+    try {
+      var d = JSON.parse(r.result); if (!Array.isArray(d.entries)) throw 0;
+      var ada = {}; S.entries.forEach(function (e) { ada[e.id] = 1; }); var n = 0;
+      d.entries.forEach(function (e) {
+        var id = UUID.test(String(e.id)) ? e.id : uid(); // file versi 1 memakai id angka
+        if (ada[id]) return;
+        S.entries.push({ id: id, tahap: e.tahap || e.stage, topik: e.topik || e.key, area: e.area || 'Kebun', nilai: e.nilai || '', catatan: e.catatan || '', lat: e.lat == null ? null : e.lat, lng: e.lng == null ? null : e.lng, created_at: e.created_at || e.t || new Date().toISOString(), synced: false }); n++;
+      });
+      if (d.profil) { S.profil = Object.assign({}, d.profil, S.profil); S.profilDirty = true; }
+      save(); toast('Impor selesai: ' + n + ' catatan baru'); render(); sync();
+    } catch (x) { toast('File tidak dikenali. Pakai file JSON hasil ekspor.'); }
+  };
+  r.readAsText(fl);
+}
+function reset() { if (confirm('Salinan di perangkat ini akan dihapus. Data di cloud tetap ada. Lanjut?')) { S = { profil: {}, entries: [], dels: [], profilDirty: false }; save(); render(); sync(); } }
+
+render(); sync();
+</script>
+</body>
+</html>
