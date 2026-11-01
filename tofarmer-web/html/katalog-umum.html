@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Katalog Umum Tumbuhan - ToFarmer</title>
+<meta name="theme-color" content="#2f6f4e">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/tof-sesi.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+body { background:#f4f7f5; color:#1c2b22; padding-bottom:80px; }
+.container { max-width:760px; margin:auto; padding:1rem; }
+header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:1rem 0; border-bottom:1px solid #e0e8e3; margin-bottom:12px; }
+.brand { display:flex; align-items:center; gap:10px; color:#2f6f4e; font-weight:bold; font-size:15px; }
+.logo-icon { width:42px; height:42px; border-radius:50%; background:#fff; border:2px solid #2f6f4e; display:flex; align-items:center; justify-content:center; font-size:20px; }
+.badge { background:#fff; border:1px solid #e0e8e3; padding:6px 12px; border-radius:12px; font-size:11px; }
+.badge a, .hint a { color:#2f6f4e; font-weight:bold; text-decoration:none; }
+.stat { font-size:12px; color:#6f7f76; margin-bottom:12px; line-height:1.5; } .stat b { color:#2f6f4e; }
+nav { display:flex; gap:6px; margin-bottom:12px; }
+nav button { flex:1; border:1px solid #e0e8e3; background:#fff; color:#2f6f4e; padding:9px 6px; border-radius:10px; font-size:12px; font-weight:bold; cursor:pointer; }
+nav button.on { background:#2f6f4e; color:#fff; border-color:#2f6f4e; }
+.card { background:#fff; border-radius:16px; padding:18px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,.03); border:1px solid rgba(0,0,0,.05); }
+.card h3 { font-size:14px; color:#2f6f4e; margin-bottom:4px; }
+.hint { font-size:12px; color:#6f7f76; margin:2px 0 8px; line-height:1.45; }
+label { display:block; font-size:11px; font-weight:600; color:#2f6f4e; margin:10px 0 4px; }
+input, select, textarea { width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:10px; font-size:13px; outline:none; background:#fff; color:#1c2b22; }
+input:focus, select:focus, textarea:focus { border-color:#2f6f4e; }
+textarea { min-height:70px; resize:vertical; }
+.row { display:flex; gap:8px; } .row > * { flex:1; }
+.acts { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.btn { background:#2f6f4e; color:#fff; border:none; padding:9px 14px; border-radius:10px; font-size:12px; font-weight:bold; cursor:pointer; text-decoration:none; display:inline-block; }
+.btn:hover { background:#24583e; }
+.btn.alt { background:#fff; color:#2f6f4e; border:1px solid #2f6f4e; } .btn.bad { background:#fff; color:#dc2626; border:1px solid #dc2626; }
+.btn:focus-visible, nav button:focus-visible, summary:focus-visible { outline:2px solid #2f6f4e; outline-offset:2px; }
+details { background:#fff; border:1px solid #e0e8e3; border-radius:14px; margin-bottom:10px; padding:12px 14px; }
+summary { cursor:pointer; font-size:14px; font-weight:600; list-style:none; }
+summary i { display:block; font-style:normal; font-size:11px; font-weight:400; color:#6f7f76; margin-top:2px; }
+.mk { display:inline-block; font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; margin:4px 4px 0 0; background:#fff7df; color:#8a6d0b; }
+.mk.n { background:#e9f4ee; color:#2f6f4e; }
+.dg { margin-top:10px; font-size:13px; line-height:1.5; } .dg h5 { font-size:11px; color:#2f6f4e; margin:12px 0 2px; } .dg p { white-space:pre-wrap; }
+.kosong { color:#9aa8a0; font-style:italic; }
+.us { border-radius:10px; padding:8px 10px; margin:6px 0; font-size:12px; line-height:1.45; }
+.us p { margin:4px 0; font-size:13px; } .us small { color:#6f7f76; display:block; }
+.us.wait { background:#fff7df; border:1px solid #f0dc9a; } .us.ok { background:#e9f4ee; border:1px solid #bfe0cd; }
+.us.no { background:#fdecec; border:1px solid #f2c0c0; } .us.need { background:#eef3ff; border:1px solid #c9d6f5; }
+.us button { border:0; background:none; color:#2f6f4e; font-weight:bold; font-size:11px; cursor:pointer; text-decoration:underline; }
+.fu { border-top:1px dashed #e0e8e3; margin-top:14px; padding-top:6px; }
+.gal { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+.th { width:92px; } .th img { width:92px; height:92px; object-fit:cover; border-radius:10px; border:1px solid #e0e8e3; cursor:pointer; display:block; }
+.th span { display:block; font-size:10px; color:#6f7f76; margin-top:2px; text-align:center; }
+.th .ph { width:92px; height:92px; border-radius:10px; background:#e9f4ee; color:#6f7f76; font-size:10px; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+#lb { position:fixed; inset:0; background:rgba(16,25,20,.92); display:none; flex-direction:column; align-items:center; justify-content:center; gap:12px; z-index:50; padding:12px; }
+#lb img { max-width:100%; max-height:80vh; border-radius:10px; } #lb a { color:#fff; font-size:12px; font-weight:bold; text-decoration:none; background:#2f6f4e; padding:8px 14px; border-radius:10px; }
+.toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1c2b22; color:#fff; padding:10px 16px; border-radius:12px; font-size:12px; opacity:0; transition:.3s; pointer-events:none; max-width:90%; text-align:center; }
+.toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand"><div class="logo-icon">🌐</div><div>Katalog Umum Tumbuhan</div></div>
+    <div class="badge" id="badge"></div>
+  </header>
+  <div class="stat" id="stat">Memuat katalog...</div>
+  <nav id="nav"></nav>
+  <div id="view"></div>
+</div>
+<div id="lb" onclick="this.style.display='none'"></div>
+<div class="toast" id="toast"></div>
+<script>
+var SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+var LOGIN_URL = '/html/login.html'; // sesuaikan bila halaman login ada di alamat lain
+var sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+var sso = null; try { sso = window.TofSesi ? TofSesi.ambil() : null; } catch (e) {}
+
+var BENTUK = ['Mikro (lumut, lumut hati, alga)','Paku-pakuan','Rumput & teki','Herba / gulma','Semak & perdu','Merambat / liana','Epifit (menempel)','Tanaman air','Palma & bambu','Pohon kecil','Pohon sedang','Pohon besar','Lainnya'];
+// Isian yang boleh tampil ke umum (sama dengan daftar di SQL)
+var PUBF = [['nama_lokal','Nama lokal'],['nama_ilmiah','Nama ilmiah'],['golongan','Bentuk hidup'],['nama_lain','Nama lain / sebutan daerah'],['famili','Famili'],
+['tinggi','Tinggi dan ukuran'],['akar','Akar'],['batang','Batang dan percabangan'],['daun','Daun'],['bunga','Bunga'],['buah_biji','Buah dan biji'],['bau_rasa','Bau, rasa, getah'],['ciri_pembeda','Pembeda dari yang mirip'],
+['deskripsi','Deskripsi'],['histori','Histori'],['asal_nama','Asal-usul nama'],
+['m_pangan','Manfaat: pangan'],['m_obat','Manfaat: obat tradisional'],['m_pakan','Manfaat: pakan ternak'],['m_bahan','Manfaat: bahan'],['m_ekologi','Peran ekologi'],['m_budaya','Budaya dan nilai jual'],['peran','Peran dalam permakultur'],['bahaya','Bahaya'],
+['perbanyakan','Perbanyakan'],['perawatan','Perawatan']];
+var D = { login: false, kurator: false, tumbuhan: [], baru: [] }, tab = 'katalog', qv = '', gv = '', OPEN = {}, FC = {};
+if (location.hash == '#usulan') tab = 'usulan';
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+function toast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(function () { t.classList.remove('show'); }, 3600); }
+function loginHref() { return LOGIN_URL + '?next=' + encodeURIComponent(location.pathname + location.search + location.hash); }
+function lab(k) { for (var i = 0; i < PUBF.length; i++) if (PUBF[i][0] == k) return PUBF[i][1]; return k; }
+function val(p, k) { return (k == 'nama_lokal' || k == 'nama_ilmiah' || k == 'golongan') ? p[k] : (p.data || {})[k]; }
+function cari(id) { return D.tumbuhan.filter(function (p) { return p.id == id; })[0]; }
+function tgl(d) { try { return new Date(d).toLocaleDateString('id-ID'); } catch (e) { return ''; } }
+function oks(v) { return v === true ? '✓ setuju' : v === false ? '✗ menolak' : 'belum'; }
+function token() { try { return TofSesi.token(); } catch (e) { return null; } }
+
+// ---------- Foto: tautan Google atau gambar base64 ----------
+function isLink(d) { return /^https?:\/\//i.test(d || ''); }
+function embed(d) {
+  if (!isLink(d)) return d;
+  var m = d.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?[^#]*id=|thumbnail\?id=)([\w-]+)/);
+  if (m) return 'https://drive.google.com/thumbnail?id=' + m[1] + '&sz=w1600';
+  if (/googleusercontent\.com|\.(jpe?g|png|webp|gif)(\?|$)/i.test(d)) return d;
+  return null;
+}
+function gagalMuat(el) { var a = document.createElement('a'); a.className = 'ph'; a.href = el.getAttribute('data-href'); a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Buka foto'; el.replaceWith(a); }
+function kotak(d, f) {
+  var u = embed(d), alt = esc(f.bagian || 'foto');
+  if (u) return '<img src="' + esc(u) + '" alt="' + alt + '" loading="lazy" data-href="' + esc(d) + '" onerror="gagalMuat(this)" onclick="lihat(\'' + f.id + '\')">';
+  return '<a class="ph" href="' + esc(d) + '" target="_blank" rel="noopener">Buka foto</a>';
+}
+function galeri(p) {
+  var l = p.foto || []; if (!l.length) return '';
+  return '<div class="gal">' + l.map(function (f) { var d = f.url || FC[f.id]; return '<div class="th">' + (d ? kotak(d, f) : '<div class="ph">Memuat...</div>') + '<span>' + esc(f.bagian || '') + '</span></div>'; }).join('') + '</div>';
+}
+function lihat(id) {
+  var d = null; D.tumbuhan.forEach(function (p) { (p.foto || []).forEach(function (f) { if (f.id == id) d = f.url || FC[f.id]; }); }); if (!d) return;
+  var u = embed(d), lb = document.getElementById('lb');
+  lb.innerHTML = (u ? '<img src="' + esc(u) + '" alt="foto" data-href="' + esc(d) + '" onerror="gagalMuat(this)">' : '') + (isLink(d) ? '<a href="' + esc(d) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Buka di tautan asli</a>' : '<a href="' + d + '" download="tumbuhan.jpg" onclick="event.stopPropagation()">Unduh foto</a>');
+  lb.style.display = 'flex';
+}
+async function tg(id, el) {
+  OPEN[id] = el.open; if (!el.open) return; var p = cari(id); if (!p) return; var ada = false;
+  for (var i = 0; i < (p.foto || []).length; i++) {
+    var f = p.foto[i]; if (f.url || FC[f.id]) continue;
+    try { var r = await sb.rpc('tumbuhan_publik_foto_get', { p_foto_id: f.id }); if (r.data) { FC[f.id] = r.data; ada = true; } } catch (e) { break; }
+  }
+  if (ada) { var g = document.getElementById('g_' + id); if (g) g.innerHTML = galeri(p); }
+}
+
+// ---------- Muat dan tampilkan ----------
+async function load() {
+  var t = token(), a = {}; if (sso && t) a = { p_id: sso.id, p_pin_hash: t };
+  var r = await sb.rpc('tumbuhan_publik_list', a);
+  if (r.error) { document.getElementById('stat').innerHTML = 'Gagal memuat katalog: ' + esc(r.error.message); return false; }
+  D = r.data || D; D.tumbuhan = D.tumbuhan || []; D.baru = D.baru || [];
+  var s = D.login ? 'Masuk sebagai <b>' + esc(sso.username) + '</b>' + (D.kurator ? ' (kurator)' : '') + '. '
+    : sso ? 'Sesi tidak berlaku. <a href="' + loginHref() + '"><b>Masuk lagi</b></a> untuk mengusulkan. ' : 'Kamu melihat sebagai pengunjung. <a href="' + loginHref() + '"><b>Masuk</b></a> untuk mengusulkan koreksi atau tambahan. ';
+  document.getElementById('stat').innerHTML = s + 'Usulan baru terbit setelah disetujui pemilik dan kurator.';
+  return true;
+}
+function head() {
+  document.getElementById('badge').innerHTML = '<a href="/html/tumbuhan.html">Katalog pribadi</a>';
+  var n = 0; if (D.login) { D.tumbuhan.forEach(function (p) { (p.usulan || []).forEach(function (u) { if (u.boleh_putuskan) n++; }); }); D.baru.forEach(function (u) { if (u.boleh_putuskan) n++; }); }
+  var T = [['katalog', 'Katalog'], ['usulan', 'Usulan' + (n ? ' (' + n + ')' : '')], ['baru', 'Usul baru']];
+  document.getElementById('nav').innerHTML = T.map(function (t) { return '<button class="' + (t[0] == tab ? 'on' : '') + '" onclick="go(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
+}
+function go(t) { tab = t; render(); }
+function render() { head(); var v = document.getElementById('view'); v.innerHTML = tab == 'katalog' ? katalog() : tab == 'usulan' ? usulan() : baru(); if (tab == 'katalog') paint(); }
+
+function katalog() {
+  return '<div class="card"><div class="row"><input id="q" placeholder="Cari nama..." value="' + esc(qv) + '" oninput="qv=this.value;paint()"><select id="gf" onchange="gv=this.value;paint()"><option value="">Semua bentuk</option>' + BENTUK.map(function (b) { return '<option' + (gv == b ? ' selected' : '') + '>' + b + '</option>'; }).join('') + '</select></div><div class="hint" style="margin-top:8px"><b>' + D.tumbuhan.length + '</b> tumbuhan dibagikan oleh pemiliknya. Data lokasi kebun tidak ditampilkan.</div></div><div id="lst"></div>';
+}
+function paint() {
+  var q = qv.toLowerCase(), l = D.tumbuhan.filter(function (p) {
+    if (gv && p.golongan != gv) return false;
+    return !q || [p.nama_lokal, p.nama_ilmiah, (p.data || {}).nama_lain].join(' ').toLowerCase().indexOf(q) > -1;
+  });
+  document.getElementById('lst').innerHTML = l.map(card).join('') || '<p class="hint">' + (D.tumbuhan.length ? 'Tidak ada yang cocok.' : 'Belum ada tumbuhan yang dibagikan.') + '</p>';
+}
+function card(p) {
+  var tunggu = (p.usulan || []).filter(function (u) { return u.status == 'menunggu'; }).length, ada = (p.butuh || []).length;
+  return '<details' + (OPEN[p.id] ? ' open' : '') + ' ontoggle="tg(\'' + p.id + '\',this)"><summary>' + esc(p.nama_lokal) + '<i>' + esc([p.nama_ilmiah, p.golongan].filter(Boolean).join(' · ')) + ' · kebun @' + esc(p.pemilik_nama) + '</i>' +
+    (tunggu ? '<span class="mk">⏳ ' + tunggu + ' usulan menunggu</span>' : '') + (ada ? '<span class="mk n">📝 butuh data</span>' : '') + '</summary><div class="dg">' + badan(p) + '</div></details>';
+}
+function badan(p) {
+  var h = '<div id="g_' + p.id + '">' + galeri(p) + '</div>', byF = {}, bt = {}, last = {};
+  (p.usulan || []).forEach(function (u) { (byF[u.field] = byF[u.field] || []).push(u); if (u.status == 'diterapkan') last[u.field] = u.id; });
+  (p.butuh || []).forEach(function (b) { bt[b.field] = b.catatan || 'Butuh data'; });
+  PUBF.forEach(function (f) {
+    var k = f[0], v = val(p, k), us = (byF[k] || []).filter(function (u) { return u.status != 'dikembalikan' && (u.status != 'diterapkan' || (last[k] == u.id && u.nilai_baru == v)); });
+    if (!v && !us.length && bt[k] === undefined) return;
+    h += '<h5>' + f[1] + '</h5>' + (v ? '<p>' + esc(v) + '</p>' : '<p class="kosong">belum ada data</p>');
+    if (bt[k] !== undefined) h += '<div class="us need">📝 Butuh data: ' + esc(bt[k]) + (D.kurator ? ' <button onclick="butuhOff(\'' + p.id + '\',\'' + k + '\')">hapus penanda</button>' : '') + '</div>';
+    us.forEach(function (u) { h += ent(u, p, false); });
+  });
+  return h + formUsul(p) + (D.kurator ? formButuh(p) : '');
+}
+function ent(u, p, ctx) {
+  var who = '@' + esc(u.kontributor_nama || 'warga'), pre = ctx ? '<b>' + esc(p.nama_lokal) + '</b> · ' + esc(lab(u.field)) + ': ' : '';
+  if (u.status == 'diterapkan') return '<div class="us ok">' + pre + '✅ Disumbang oleh ' + who + ' <small>' + tgl(u.decided_at) + (ctx ? ' · “' + esc(String(u.nilai_baru).slice(0, 80)) + '”' : '') + '</small>' + ((p.milikku || D.kurator) ? '<button onclick="kembalikan(\'' + u.id + '\')">Kembalikan ke isi lama</button>' : '') + '</div>';
+  if (u.status == 'ditolak') return '<div class="us no">' + pre + '❌ Usulan ' + who + ' ditolak: ' + esc(u.catatan_pemilik || u.catatan_kurator || '-') + (u.dari_saya ? '<small>Usulanmu: ' + esc(u.nilai_baru) + '</small>' : '') + '</div>';
+  if (u.status == 'dikembalikan') return '<div class="us no">' + pre + '↩ Sumbangan ' + who + ' sudah dikembalikan ke isi lama</div>';
+  return '<div class="us wait">' + pre + '⏳ ' + who + ' mengusulkan ' + (u.jenis == 'tambahan' ? 'tambahan' : 'koreksi') + ' (menunggu persetujuan):<p>' + esc(u.nilai_baru) + '</p><small>Sumber: ' + esc(u.sumber) + '<br>Pemilik: ' + oks(u.pemilik_ok) + ' · Kurator: ' + oks(u.kurator_ok) + '</small>' +
+    (u.boleh_putuskan ? '<div class="acts"><button class="btn" onclick="putus(\'' + u.id + '\',true)">Setuju</button><button class="btn bad" onclick="putus(\'' + u.id + '\',false)">Tolak</button></div>' : '') + '</div>';
+}
+function inputUf(id, k) { return k == 'golongan' ? '<select id="uv_' + id + '">' + BENTUK.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>' : '<textarea id="uv_' + id + '" placeholder="Isi usulanmu"></textarea>'; }
+function gantiUf(id) { document.getElementById('ufv_' + id).innerHTML = inputUf(id, document.getElementById('uf_' + id).value); }
+function formUsul(p) {
+  if (!D.login) return '<p class="hint" style="margin-top:12px">Ingin menambah atau mengoreksi? <a href="' + loginHref() + '">Masuk</a> dulu.</p>';
+  if (p.milikku) return '<p class="hint" style="margin-top:12px">Ini tumbuhanmu. Ubah lewat <a href="/html/tumbuhan.html">katalog pribadi</a>.</p>';
+  return '<div class="fu"><h5>Usulkan koreksi atau tambahan</h5><select id="uf_' + p.id + '" onchange="gantiUf(\'' + p.id + '\')">' + PUBF.map(function (f) { return '<option value="' + f[0] + '">' + f[1] + (val(p, f[0]) ? '' : ' (kosong)') + '</option>'; }).join('') + '</select><div id="ufv_' + p.id + '">' + inputUf(p.id, PUBF[0][0]) + '</div>' +
+    '<label for="us_' + p.id + '">Sumber atau alasan *</label><input id="us_' + p.id + '" placeholder="mis. pengamatan sendiri, buku, kata Mbah..."><div class="acts"><button class="btn" onclick="kirim(\'' + p.id + '\')">Kirim usulan</button></div><p class="hint">Usulanmu ditinjau pemilik dan kurator. Selama menunggu, usulan tampil dengan penanda.</p></div>';
+}
+function formButuh(p) {
+  var kosong = PUBF.filter(function (f) { return !val(p, f[0]); }); if (!kosong.length) return '';
+  return '<div class="fu"><h5>Kurator: tandai isian yang butuh data</h5><select id="bf_' + p.id + '">' + kosong.map(function (f) { return '<option value="' + f[0] + '">' + f[1] + '</option>'; }).join('') + '</select><input id="bc_' + p.id + '" placeholder="Catatan arahan, mis. tolong foto bunga" style="margin-top:6px"><div class="acts"><button class="btn alt" onclick="butuhSet(\'' + p.id + '\')">Tandai</button></div></div>';
+}
+
+// ---------- Tab Usulan ----------
+function entBaru(u) {
+  var d = u.data || {}, isi = Object.keys(d).map(function (k) { return '<b>' + esc(lab(k)) + ':</b> ' + esc(String(d[k]).slice(0, 120)); }).join('<br>');
+  var kls = u.status == 'ditolak' ? 'no' : 'wait';
+  return '<div class="us ' + kls + '"><b>🌱 Tumbuhan baru: ' + esc(u.nama_lokal) + '</b>' + (u.nama_ilmiah ? ' (' + esc(u.nama_ilmiah) + ')' : '') + ' · @' + esc(u.kontributor_nama) + '<p>' + (isi || '') + '</p><small>Sumber: ' + esc(u.sumber) + '<br>' +
+    (u.status == 'ditolak' ? '❌ Ditolak: ' + esc(u.catatan_kurator || '-') : '⏳ Menunggu kurator (' + oks(u.kurator_ok) + ')') + '</small>' +
+    (u.boleh_putuskan ? '<div class="acts"><button class="btn" onclick="putus(\'' + u.id + '\',true)">Setuju terbitkan</button><button class="btn bad" onclick="putus(\'' + u.id + '\',false)">Tolak</button></div>' : '') + '</div>';
+}
+function usulan() {
+  if (!D.login) return '<div class="card"><h3>Usulan</h3><p class="hint">Masuk untuk melihat usulanmu dan usulan yang menunggu keputusanmu.</p><a class="btn" href="' + loginHref() + '">Masuk</a></div>';
+  var tunggu = [], saya = [];
+  D.tumbuhan.forEach(function (p) { (p.usulan || []).forEach(function (u) { if (u.boleh_putuskan) tunggu.push([u, p]); if (u.dari_saya) saya.push([u, p]); }); });
+  var bt = D.baru.filter(function (u) { return u.boleh_putuskan; }), bs = D.baru.filter(function (u) { return u.dari_saya; });
+  var h = '<div class="card"><h3>Menunggu keputusanmu (' + (tunggu.length + bt.length) + ')</h3>' + (tunggu.length + bt.length ? '' : '<p class="hint">Tidak ada usulan yang menunggu keputusanmu.</p>');
+  tunggu.forEach(function (x) { h += ent(x[0], x[1], true); }); bt.forEach(function (u) { h += entBaru(u); });
+  h += '</div><div class="card"><h3>Usulanku (' + (saya.length + bs.length) + ')</h3>' + (saya.length + bs.length ? '' : '<p class="hint">Kamu belum mengirim usulan. Buka sebuah tumbuhan di Katalog, atau pakai tab Usul baru.</p>');
+  saya.forEach(function (x) { h += ent(x[0], x[1], true); }); bs.forEach(function (u) { h += entBaru(u); });
+  return h + '</div>';
+}
+function baru() {
+  if (!D.login) return '<div class="card"><h3>Usulkan tumbuhan baru</h3><p class="hint">Masuk dulu untuk mengusulkan.</p><a class="btn" href="' + loginHref() + '">Masuk</a></div>';
+  var h = '<div class="card"><h3>Usulkan tumbuhan baru</h3><p class="hint">Isi yang kamu ketahui; hanya nama lokal yang wajib. Setelah disetujui kurator, tumbuhan ini terbit di katalog umum dan masuk ke katalog pribadimu. ' + (D.kurator ? 'Sebagai kurator, usulanmu langsung terbit.' : '') + '</p>';
+  PUBF.forEach(function (f) {
+    var k = f[0]; h += '<label for="nb_' + k + '">' + f[1] + (k == 'nama_lokal' ? ' *' : '') + '</label>';
+    h += k == 'golongan' ? '<select id="nb_' + k + '"><option value="">-</option>' + BENTUK.map(function (o) { return '<option>' + o + '</option>'; }).join('') + '</select>' : (k == 'nama_lokal' || k == 'nama_ilmiah' || k == 'nama_lain' || k == 'famili' || k == 'tinggi') ? '<input id="nb_' + k + '">' : '<textarea id="nb_' + k + '"></textarea>';
+  });
+  return h + '<label for="nb_sumber">Sumber atau alasan *</label><input id="nb_sumber" placeholder="mis. pengamatan sendiri, buku, kata Mbah..."><div class="acts"><button class="btn" onclick="kirimBaru()">Kirim usulan</button></div></div>';
+}
+
+// ---------- Aksi (semua lewat fungsi server yang memeriksa token) ----------
+async function call(fn, params) {
+  var t = token(); if (!sso || !t) { toast('Masuk dulu untuk melakukan ini'); throw 0; }
+  var r = await sb.rpc(fn, Object.assign({ p_id: sso.id, p_pin_hash: t }, params));
+  if (r.error) { toast(r.error.message); throw r.error; } return r.data;
+}
+async function segar() { await load(); render(); }
+async function kirim(id) {
+  var f = document.getElementById('uf_' + id).value, n = document.getElementById('uv_' + id).value.trim(), s = document.getElementById('us_' + id).value.trim();
+  if (!n) { toast('Isi usulannya dulu'); return; } if (!s) { toast('Sumber atau alasan wajib diisi'); return; }
+  try { await call('tumbuhan_usulan_kirim', { p_tumbuhan_id: id, p_field: f, p_nilai: n, p_sumber: s }); toast('Usulan terkirim. Tampil dengan penanda sampai disetujui.'); OPEN[id] = true; await segar(); } catch (e) {}
+}
+async function kirimBaru() {
+  var d = {}; PUBF.forEach(function (f) { var v = document.getElementById('nb_' + f[0]).value.trim(); if (v) d[f[0]] = v; });
+  var s = document.getElementById('nb_sumber').value.trim();
+  if (!d.nama_lokal) { toast('Nama lokal wajib diisi'); return; } if (!s) { toast('Sumber atau alasan wajib diisi'); return; }
+  try { var r = await call('tumbuhan_usulan_baru', { p_data: d, p_sumber: s }); toast(r.status == 'diterapkan' ? 'Tumbuhan baru terbit di katalog umum' : 'Usulan terkirim, menunggu kurator'); tab = r.status == 'diterapkan' ? 'katalog' : 'usulan'; await segar(); } catch (e) {}
+}
+async function putus(uid, setuju) {
+  var cat = null; if (!setuju) { cat = prompt('Alasan penolakan (wajib, akan terlihat oleh pengusul):'); if (!cat || !cat.trim()) return; }
+  try { var r = await call('tumbuhan_usulan_putuskan', { p_usulan_id: uid, p_setuju: setuju, p_catatan: cat }); toast(r.status == 'diterapkan' ? 'Disetujui kedua pihak dan diterapkan' : r.status == 'ditolak' ? 'Usulan ditolak' : 'Persetujuanmu tercatat, menunggu pihak lain'); await segar(); } catch (e) {}
+}
+async function kembalikan(uid) { if (!confirm('Kembalikan isian ini ke isi sebelum sumbangan?')) return; try { await call('tumbuhan_usulan_kembalikan', { p_usulan_id: uid }); toast('Dikembalikan'); await segar(); } catch (e) {} }
+async function butuhSet(id) {
+  var f = document.getElementById('bf_' + id).value, c = document.getElementById('bc_' + id).value.trim();
+  try { await call('tumbuhan_butuh_set', { p_tumbuhan_id: id, p_field: f, p_catatan: c, p_aktif: true }); toast('Penanda dipasang'); OPEN[id] = true; await segar(); } catch (e) {}
+}
+async function butuhOff(id, f) { try { await call('tumbuhan_butuh_set', { p_tumbuhan_id: id, p_field: f, p_catatan: '', p_aktif: false }); await segar(); } catch (e) {} }
+
+if (!sb) { document.getElementById('stat').textContent = 'Pustaka Supabase gagal dimuat. Periksa koneksi.'; } else { load().then(render); }
+</script>
+</body>
+</html>

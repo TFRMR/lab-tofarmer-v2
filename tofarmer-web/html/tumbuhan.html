@@ -228,7 +228,7 @@ function daftar() {
   var st = Object.keys(c).map(function (k) { return k + ' <b>' + c[k] + '</b>'; }).join(' &middot; ');
   return '<div class="card"><h3>Kebunku: <b>' + S.entries.length + '</b> tumbuhan</h3><div class="stat">' + (st || 'Belum ada data. Mulai dari yang paling mudah dikenali di depan rumah.') + '</div>' +
     '<div class="row"><input id="q" placeholder="Cari nama..." value="' + esc(qv) + '" oninput="qv=this.value;paint()"><select id="gf" onchange="gv=this.value;paint()"><option value="">Semua bentuk</option>' + BENTUK.map(function (b) { return '<option' + (gv == b ? ' selected' : '') + '>' + b + '</option>'; }).join('') + '</select></div>' +
-    '<div class="acts"><button class="btn" onclick="editing=null;go(\'form\')">+ Tambah tumbuhan</button></div></div><div id="lst"></div>';
+    '<div class="acts"><button class="btn" onclick="editing=null;go(\'form\')">+ Tambah tumbuhan</button><a class="btn alt" style="text-decoration:none" href="/html/katalog-umum.html">🌐 Katalog umum</a></div>' + usulanBanner() + '</div><div id="lst"></div>';
 }
 function paint() {
   var q = qv.toLowerCase(), l = S.entries.filter(function (e) {
@@ -242,8 +242,8 @@ function paint() {
       if (r) b += '<h5 style="font-size:12px;border-bottom:1px solid #e0e8e3;margin-top:14px">' + s.g + '</h5>' + r;
     });
     var d = e.data || {}, pos = d.lat != null ? '<h5>Posisi</h5><p>' + (+d.lat).toFixed(5) + ', ' + (+d.lng).toFixed(5) + '</p>' : '';
-    return '<details ontoggle="bukaDet(\'' + e.id + '\',this)"><summary>' + esc(e.nama_lokal) + '<i>' + esc([e.nama_ilmiah, e.golongan].filter(Boolean).join(' · ')) + ' · ' + (e.synced ? 'tersinkron' : 'menunggu kirim') + '</i><div class="bar"><b style="width:' + p + '%"></b></div><i>Kelengkapan ' + p + '%</i></summary><div class="dg"><div id="g_' + e.id + '">' + galeri(e.id, false) + '</div>' + b + pos +
-      '<div class="acts"><button class="btn alt" onclick="ubah(\'' + e.id + '\')">Ubah / lengkapi</button><button class="btn bad" onclick="hapus(\'' + e.id + '\')">Hapus</button></div></div></details>';
+    return '<details ontoggle="bukaDet(\'' + e.id + '\',this)"><summary>' + esc(e.nama_lokal) + '<i>' + esc([e.nama_ilmiah, e.golongan].filter(Boolean).join(' · ')) + ' · ' + (e.synced ? 'tersinkron' : 'menunggu kirim') + (e.publik ? ' · 🌐 dibagikan' : '') + '</i><div class="bar"><b style="width:' + p + '%"></b></div><i>Kelengkapan ' + p + '%</i></summary><div class="dg"><div id="g_' + e.id + '">' + galeri(e.id, false) + '</div>' + b + pos +
+      '<div class="acts"><button class="btn alt" onclick="ubah(\'' + e.id + '\')">Ubah / lengkapi</button>' + bagikanBtn(e) + '<button class="btn bad" onclick="hapus(\'' + e.id + '\')">Hapus</button></div></div></details>';
   }).join('');
   document.getElementById('lst').innerHTML = h || (S.entries.length ? '<p class="hint">Tidak ada yang cocok.</p>' : '');
 }
@@ -308,9 +308,10 @@ async function sync(manual) {
     }
     while (S.dels.length) { await rpc('tumbuhan_delete', { p_log_id: String(S.dels[0]) }, tok); S.dels.shift(); save(); }
     await fotoSync(tok);
+    await cekUsulan(tok);
     var cloud = (await rpc('tumbuhan_list', {}, tok)) || [], hasil = S.entries.filter(function (x) { return !x.synced; }), tunda = {};
     hasil.forEach(function (x) { tunda[x.id] = 1; });
-    cloud.forEach(function (c) { if (!tunda[c.id]) hasil.push({ id: c.id, nama_lokal: c.nama_lokal, nama_ilmiah: c.nama_ilmiah, golongan: c.golongan, data: c.data || {}, created_at: c.created_at, synced: true }); });
+    cloud.forEach(function (c) { if (!tunda[c.id]) hasil.push({ id: c.id, nama_lokal: c.nama_lokal, nama_ilmiah: c.nama_ilmiah, golongan: c.golongan, data: c.data || {}, created_at: c.created_at, publik: !!c.publik, synced: true }); });
     S.entries = hasil; save(); setSync('<b>Tersinkron</b> ' + new Date().toLocaleTimeString('id-ID'));
     if (manual) toast('Sinkron selesai');
     if (tab == 'daftar' && !(document.activeElement && /INPUT|SELECT/.test(document.activeElement.tagName))) render();
@@ -321,6 +322,25 @@ async function sync(manual) {
   busy = false;
 }
 window.addEventListener('online', function () { sync(); });
+
+// ---------- Katalog umum: bagikan tumbuhan, cek usulan yang menunggu keputusan ----------
+var NUSULAN = 0;
+function bagikanBtn(e) {
+  if (!e.synced) return '';
+  return e.publik ? '<button class="btn alt" onclick="bagikan(\'' + e.id + '\',false)">Tarik dari katalog umum</button>' : '<button class="btn alt" onclick="bagikan(\'' + e.id + '\',true)">🌐 Bagikan ke katalog umum</button>';
+}
+async function bagikan(id, ya) {
+  var e = S.entries.filter(function (x) { return x.id == id; })[0]; if (!e) return;
+  if (!e.synced) { toast('Sinkron dulu sebelum dibagikan'); return; }
+  if (ya && !confirm('Bagikan ke katalog umum? Yang tampil hanya nama, ciri, deskripsi, histori, manfaat, bahaya, perawatan, dan foto. Lokasi, koordinat, jumlah, tanggal, dan kondisi tetap privat. Orang lain hanya bisa mengusulkan perubahan, dan perubahan baru berlaku setelah kamu dan kurator menyetujui.')) return;
+  var tok = null; try { tok = TofSesi.token(); } catch (x) {}
+  if (!tok || !sso || !sb) { toast('Masuk dulu'); return; }
+  try { await rpc('tumbuhan_publikasi', { p_tumbuhan_id: id, p_publik: ya }, tok); e.publik = ya; save(); render(); toast(ya ? 'Dibagikan ke katalog umum' : 'Ditarik dari katalog umum'); } catch (err) { toast((err && err.message) || 'Gagal. Coba lagi.'); }
+}
+async function cekUsulan(tok) {
+  try { var r = await rpc('tumbuhan_publik_list', {}, tok), n = 0; ((r && r.tumbuhan) || []).forEach(function (p) { (p.usulan || []).forEach(function (u) { if (u.boleh_putuskan) n++; }); }); ((r && r.baru) || []).forEach(function (u) { if (u.boleh_putuskan) n++; }); NUSULAN = n; } catch (e) {}
+}
+function usulanBanner() { return NUSULAN ? '<div class="stat" style="margin:10px 0 0">🔔 <b>' + NUSULAN + '</b> usulan menunggu keputusanmu. <a href="/html/katalog-umum.html#usulan" style="color:#2f6f4e;font-weight:bold">Tinjau sekarang</a></div>' : ''; }
 
 // ---------- Ekspor / impor ----------
 function ekspor() {
