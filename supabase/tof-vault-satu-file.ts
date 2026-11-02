@@ -2767,6 +2767,11 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
             x.tugas_kurang = sudah.concat(kurang.map((y) => y.kunci)).join("|");
             x.ditahan_pada = x.ditahan_pada || sekarangIso;
             x.status = "ditahan";
+            if (TUGAS_HANGUS_LANGSUNG) {
+              x.status = "hangus";
+              x.alasan = "Tidak mendapat dividen bulan ini: tugas wajib belum lengkap (" + kurang.map((y) => y.judul).join("; ") + ").";
+              x.ditahan_pada = null;
+            }
           }
         }
       }
@@ -2968,6 +2973,11 @@ const WIB_MS = 7 * 3600 * 1000;
 const bulanWib = (ms: number) => new Date(ms + WIB_MS).toISOString().slice(0, 7);
 const hariWib = (ms: number) => new Date(ms + WIB_MS).toISOString().slice(0, 10);
 const BULAN_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+// Kebijakan: peserta yang tugas wajib bulan dividennya belum lengkap TIDAK mendapat dividen positif bulan itu
+// (langsung berstatus 'hangus', bukan 'ditahan'; dananya tetap di kas bersama). "Tidak kerja, tidak digaji."
+// Syarat dasar (titip frasa, setuju dividen, PIN aman) yang kurang tetap 'ditahan'. Ubah ke false untuk kembali ke perilaku lama (ditahan).
+const TUGAS_HANGUS_LANGSUNG = true;
 function awalBulanIso(bulan: string): string { const [y, m] = bulan.split("-").map(Number); return new Date(Date.UTC(y, m - 1, 1) - WIB_MS).toISOString(); }
 function awalBulanBerikutIso(bulan: string): string { const [y, m] = bulan.split("-").map(Number); return new Date(Date.UTC(y, m, 1) - WIB_MS).toISOString(); }
 

@@ -1300,7 +1300,7 @@
       el("div", { class: "isi" }, el("div", { class: "judul", text: x.judul }), el("div", { class: "sub", text: x.target > 1 ? x.jumlah + " dari " + x.target : (x.ok ? "Selesai" : "Belum") })),
       x.ok ? null : aksiTugas(x, sh));
     sh.ganti(
-      el("div", { class: "info", text: "Tugas wajib yang belum lengkap membuat dividen positifmu ditahan. Setelah tugas selesai, pengurus melepasnya. Dividen yang ditahan lebih dari " + (t.masa_tahan_bulan || 3) + " bulan bisa dihanguskan." }),
+      el("div", { class: "info", text: "Tugas wajib yang belum lengkap pada bulan dividen membuat kamu tidak mendapat dividen positif bulan itu (dananya tetap di kas bersama). Kerjakan tugas wajib tiap bulan agar dividenmu cair. Dividen yang sudah ditahan lebih dari " + (t.masa_tahan_bulan || 3) + " bulan bisa dihanguskan." }),
       (t.ditahan || []).length ? el("div", { class: "banner", id: "tugasBannerDitahan", text: t.ditahan.map((x) => "Dividen " + x.label + " ditahan: " + x.tugas_kurang).join(" ") }) : null,
       el("h3", { text: "Wajib" }), el("div", { id: "daftarTugasWajib" }, t.wajib.map(baris)),
       (t.opsional || []).length ? el("h3", { text: "Tambahan (tidak wajib)" }) : null,

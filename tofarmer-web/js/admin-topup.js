@@ -872,7 +872,7 @@
         el("label", { class: "lbl", for: "divLabel", text: "Nama periode (tiap nama hanya sekali)" }), label,
         el("label", { class: "lbl", for: "divPersen", text: "Persentase dari saldo TOF peserta (negatif = koreksi minus)" }), persen,
         el("label", { class: "lbl", for: "divBulanTugas", text: "Bulan yang tugasnya dinilai (hanya dividen positif)" }), bulanTugas,
-        el("div", { class: "kecil", text: "Peserta yang tugas wajib bulan itu belum lengkap dividennya DITAHAN. Dilepas setelah tugas selesai; bisa dihanguskan setelah masa tahan." }),
+        el("div", { class: "kecil", text: "Peserta yang tugas wajib bulan itu belum lengkap TIDAK mendapat dividen bulan itu (berstatus Hangus, dananya tetap di kas). Syarat dasar yang kurang (frasa, persetujuan, PIN aman) tetap DITAHAN dan bisa dilepas setelah dipenuhi." }),
         el("div", { class: "kecil", text: "Dihitung dari saldo TOF di jaringan saat tombol ditekan (foto saldo), termasuk TOF yang dibekukan jaminan pinjaman. Pada koreksi minus hanya TOF bebas yang diambil." }),
         galat, btn));
     } else {
@@ -988,7 +988,7 @@
     const lengkap = rk.daftar.filter((x) => x.lengkap).length;
     anak.push(el("div", { class: "card", id: "rekapTugas" },
       el("div", { style: "font-weight:700;" }, "Rekap bulan"), bulan,
-      el("div", { class: "kecil", text: lengkap + " dari " + rk.daftar.length + " anggota lengkap. Yang belum lengkap, dividen positifnya ditahan. Masa tahan: " + r.masa_tahan_bulan + " bulan (ubah di app_settings: tugas_masa_tahan_bulan)." }),
+      el("div", { class: "kecil", text: lengkap + " dari " + rk.daftar.length + " anggota lengkap. Yang belum lengkap tidak mendapat dividen positif bulan itu. Masa tahan (hanya untuk syarat dasar dan dividen lama yang sudah ditahan): " + r.masa_tahan_bulan + " bulan (ubah di app_settings: tugas_masa_tahan_bulan)." }),
       el("details", {}, el("summary", { class: "kecil", text: "Lihat per anggota" }),
         ...rk.daftar.map((x) => el("div", { class: "kecil", "data-anggota": x.profile_id, style: "padding:4px 0;border-top:1px solid rgba(0,0,0,.06);", text: (x.lengkap ? "✓ " : "○ ") + "@" + x.username + " (" + x.selesai + "/" + x.total + ")" + (x.lengkap ? "" : " — kurang: " + x.kurang.join("; ")) })))));
 
@@ -1008,7 +1008,7 @@
         if (!belum.length) { baris.push("", "Semua anggota sudah melengkapi tugas bulan ini 🎉 Terima kasih!"); return baris.join("\n"); }
         baris.push("", "Yang belum lengkap (" + belum.length + " dari " + rk.daftar.length + " anggota):", "");
         belum.forEach((x) => baris.push(barisBelum(x)));
-        baris.push("", "Yuk dilengkapi. Dividen positif yang belum lengkap ditahan sampai tugasnya selesai 🌱");
+        baris.push("", "Yuk dilengkapi. Yang tugas wajibnya belum lengkap tidak mendapat dividen bulan ini 🌱");
         return baris.join("\n");
       }
       baris.push("📋 *Laporan Tugas Bulanan — " + labelBulan(rk.bulan) + "*");
@@ -1017,7 +1017,7 @@
       if (sudah.length) sudah.forEach((x) => baris.push("✅ @" + x.username)); else baris.push("- belum ada");
       baris.push("", "⬜ *Belum lengkap (" + belum.length + ")*");
       if (belum.length) belum.forEach((x) => baris.push(barisBelum(x))); else baris.push("- semua sudah lengkap 🎉");
-      if (belum.length) baris.push("", "Yang belum lengkap, dividen positifnya ditahan sampai tugas selesai. Yuk dilengkapi 🌱");
+      if (belum.length) baris.push("", "Yang belum lengkap tidak mendapat dividen bulan ini. Yuk dilengkapi 🌱");
       return baris.join("\n");
     };
     const kotakLaporan = el("textarea", { class: "inp", id: "teksLaporan", rows: "12", readonly: true, style: "font-family:ui-monospace,Menlo,monospace;font-size:12px;" });
