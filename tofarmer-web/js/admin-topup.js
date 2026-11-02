@@ -771,7 +771,7 @@
       if (!res.ok) { infoEl.textContent = pesan(res); break; }
       const rg = res.ringkas;
       infoEl.textContent = "Berjalan… selesai " + rg.selesai + " dari " + rg.peserta + (rg.gagal ? ", gagal " + rg.gagal : "") + (rg.mengirim ? ", menunggu konfirmasi " + rg.mengirim : "");
-      if (res.periode_selesai || res.diproses === 0) break;
+      if (res.periode_selesai || res.diproses === 0) { if (res.periode_selesai) state.dividenId = pid; break; } // setelah selesai, langsung tampilkan periode + laporan
     }
     muatDividen();
   }
@@ -827,6 +827,76 @@
         } }));
     }
     return k;
+  }
+
+  // ---------------- Laporan dividen untuk grup (siap salin) ----------------
+  // Muncul di periode yang sudah selesai: persentase (plus/minus), siapa yang mendapat/terkena, siapa yang tidak beserta alasannya.
+  const NAMA_BULAN_DIV = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+  const labelBulanDiv = (b) => { const t = String(b || "").split("-"); return t.length === 2 && NAMA_BULAN_DIV[Number(t[1]) - 1] ? NAMA_BULAN_DIV[Number(t[1]) - 1] + " " + t[0] : ""; };
+
+  function susunLaporanDividen(p, items, denganJumlah) {
+    const negatif = p.persen_bp < 0;
+    const tanda = negatif ? "−" : "+";
+    const urut = (a) => a.slice().sort((x, y) => String(x.username || "").localeCompare(String(y.username || "")));
+    const unit = (x) => BigInt(Math.round(Number(x.jumlah_units) || 0));
+    const terkirim = urut(items.filter((x) => x.status === "selesai"));
+    const proses = urut(items.filter((x) => (x.status === "menunggu" && x.ikut) || x.status === "mengirim" || x.status === "gagal"));
+    const tidak = urut(items.filter((x) => !terkirim.includes(x) && !proses.includes(x)));
+    const total = terkirim.reduce((s, x) => s + unit(x), 0n);
+    const rapikan = (a) => { const t = String(a || "").trim().replace(/^Tidak mendapat dividen( bulan ini)?:\s*/i, "").replace(/^Syarat belum lengkap:\s*/i, "").replace(/\.$/, ""); return t ? t.charAt(0).toLowerCase() + t.slice(1) : ""; };
+    const alasanTidak = (x) => {
+      if (x.status === "menunggu" && !x.ikut) return "tidak diikutkan pengurus";
+      const a = rapikan(x.alasan);
+      if (x.status === "ditahan") return "ditahan" + (a ? ": " + a : "");
+      return a || "tidak memenuhi syarat";
+    };
+    const baris = [];
+    if (negatif) {
+      baris.push("📊 *Laporan Koreksi Minus — " + p.label + "*");
+      baris.push("Koreksi " + tanda + persenTeks(Math.abs(p.persen_bp)) + " dari TOF bebas anggota (TOF jaminan pinjaman tidak diambil)");
+      baris.push("Total ditarik: " + desimal(total) + " TOF dari " + terkirim.length + " anggota", "");
+      baris.push("🔻 *Terkena koreksi (" + terkirim.length + ")*");
+      if (terkirim.length) terkirim.forEach((x) => baris.push("🔻 @" + x.username + (denganJumlah ? " — " + tanda + desimal(x.jumlah_units) + " TOF" : "") + (x.kurang_units ? " (sisa " + desimal(x.kurang_units) + " TOF tidak diambil karena jaminan)" : ""))); else baris.push("- tidak ada");
+    } else {
+      baris.push("📊 *Laporan Dividen — " + p.label + "*");
+      baris.push("Dividen " + tanda + persenTeks(p.persen_bp) + " dari saldo TOF");
+      if (p.bulan_tugas && labelBulanDiv(p.bulan_tugas)) baris.push("Penilaian tugas bulan: " + labelBulanDiv(p.bulan_tugas));
+      baris.push("Dibagikan: " + desimal(total) + " TOF kepada " + terkirim.length + " anggota", "");
+      baris.push("✅ *Mendapat dividen (" + terkirim.length + ")*");
+      if (terkirim.length) terkirim.forEach((x) => baris.push("✅ @" + x.username + (denganJumlah ? " — " + tanda + desimal(x.jumlah_units) + " TOF" : ""))); else baris.push("- tidak ada");
+    }
+    if (proses.length) {
+      baris.push("", "⏳ *Masih diproses (" + proses.length + ")*");
+      proses.forEach((x) => baris.push("⏳ @" + x.username + (denganJumlah ? " — " + tanda + desimal(x.jumlah_units) + " TOF" : "")));
+    }
+    baris.push("", (negatif ? "⬜ *Tidak dikenakan koreksi (" : "❌ *Tidak mendapat dividen (") + tidak.length + ")*");
+    if (tidak.length) tidak.forEach((x) => baris.push((negatif ? "⬜ @" : "❌ @") + x.username + " — " + alasanTidak(x))); else baris.push("- semua ikut 🎉");
+    if (!negatif && tidak.length) baris.push("", "Yang belum mendapat dividen bisa melengkapi syaratnya agar dividen berikutnya cair 🌱");
+    return baris.join("\n");
+  }
+
+  function kartuLaporanDividen(p, items) {
+    const kotak = el("textarea", { class: "inp", id: "teksLaporanDividen", rows: "14", readonly: true, style: "font-family:ui-monospace,Menlo,monospace;font-size:12px;" });
+    const cekJumlah = el("input", { type: "checkbox", id: "cekJumlahLaporanDividen" });
+    cekJumlah.checked = true;
+    const status = el("div", { class: "kecil", id: "statusSalinLaporanDividen", style: "margin-top:6px;" });
+    const perbarui = () => { kotak.value = susunLaporanDividen(p, items, cekJumlah.checked); };
+    cekJumlah.onchange = perbarui;
+    perbarui();
+    const salin = async () => {
+      perbarui();
+      let berhasil = false;
+      try { await navigator.clipboard.writeText(kotak.value); berhasil = true; }
+      catch (e) { try { kotak.focus(); kotak.select(); berhasil = document.execCommand("copy"); } catch (e2) { berhasil = false; } }
+      status.textContent = berhasil ? "Tersalin ✓ Tempel di grup." : "Gagal menyalin otomatis. Teksnya sudah dipilih, salin manual (tahan lalu Salin).";
+    };
+    return el("div", { class: "card", id: "laporanDividen" },
+      el("div", { style: "font-weight:700;" }, "Laporan dividen untuk grup"),
+      el("div", { class: "kecil", text: "Salin lalu tempel di grup. Berisi persentase, siapa yang mendapat atau terkena, dan siapa yang tidak beserta alasannya." }),
+      el("label", { class: "kecil", style: "display:flex;gap:6px;align-items:center;margin-top:8px;" }, cekJumlah, "Tampilkan jumlah TOF per anggota"),
+      kotak,
+      el("div", { class: "aksi" }, el("button", { class: "btn utama", id: "btnSalinLaporanDividen", type: "button", style: "margin-top:0;", text: "Salin laporan", onclick: salin })),
+      status);
   }
 
   async function muatDividen() {
@@ -916,6 +986,7 @@
         if (p.status === "disetujui") aksiP.append(el("button", { class: "btn merah", "data-aksi": "batal", type: "button", text: "Batalkan", onclick: function () { if (window.confirm("Batalkan periode ini?")) kerja(this, "admin_dividen_batal", {}, "Periode dibatalkan."); } }));
       }
       anak.push(aksiP, galatP);
+      if (p.status === "selesai") anak.push(kartuLaporanDividen(p, r.items)); // laporan siap salin untuk grup
       const urut = r.items.slice().sort((a, b) => (a.status === "dilewati") - (b.status === "dilewati"));
       anak.push(...urut.map((it) => kartuItemDividen(it, p)));
     }
