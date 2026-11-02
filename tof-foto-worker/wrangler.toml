@@ -1,0 +1,35 @@
+# Konfigurasi Cloudflare Worker foto ToFarmer.
+# Deploy:  cd worker && npx wrangler deploy
+name = "tof-foto"
+main = "index.js"
+compatibility_date = "2024-11-01"
+
+# Bucket R2 (buat dulu: npx wrangler r2 bucket create tof-foto)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "tof-foto"
+
+# Dua tugas terjadwal. Cron backup harus sama persis dengan CRON_BACKUP di index.js; cron lain = migrasi.
+[triggers]
+crons = ["*/2 * * * *", "*/10 * * * *"]
+
+[vars]
+SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co"
+# Kunci anon Supabase (publik, sama dengan yang dipakai halaman web)
+SUPABASE_ANON_KEY = "ISI_DENGAN_KUNCI_ANON_SUPABASE"
+# Alamat publik foto. Bisa alamat Worker ini, atau domain khusus yang diarahkan ke Worker ini, mis. https://foto.tofarmer.xyz
+URL_PUBLIK = "https://foto.tofarmer.xyz"
+# Asal halaman web yang boleh mengunggah/menghapus, dipisah koma
+ORIGIN_DIIZINKAN = "https://tofarmer.xyz"
+# Jumlah foto per putaran (paket gratis Cloudflare membatasi 50 permintaan keluar per tugas; angka ini aman)
+MIGRASI_BATCH = "3"
+BACKUP_BATCH = "8"
+# Penyimpanan kedua yang terpisah dari R2 (S3-compatible, mis. Backblaze B2). Kosongkan bila belum dipakai: backup dilewati.
+BACKUP_ENDPOINT = "https://s3.us-west-004.backblazeb2.com"
+BACKUP_REGION = "us-west-004"
+BACKUP_BUCKET = "tof-foto-backup"
+
+# RAHASIA: jangan ditulis di berkas ini. Isi lewat perintah (satu per satu):
+#   npx wrangler secret put SUPABASE_SERVICE_KEY   (kunci service_role Supabase)
+#   npx wrangler secret put BACKUP_KEY_ID          (application key ID penyimpanan kedua)
+#   npx wrangler secret put BACKUP_KEY_SECRET      (application key penyimpanan kedua)

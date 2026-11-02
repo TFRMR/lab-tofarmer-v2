@@ -97,6 +97,9 @@ function token() { try { return TofSesi.token(); } catch (e) { return null; } }
 
 // ---------- Foto: tautan Google atau gambar base64 ----------
 function isLink(d) { return /^https?:\/\//i.test(d || ''); }
+function isR2(u) { return /\/f\/[0-9a-f-]{36}\.(jpe?g|png|webp)(\?|$)/i.test(u || ''); }
+function blobKeData(b) { return new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(b); }); }
+async function ambilR2(url) { var r = await fetch(url); if (!r.ok) throw new Error('foto tidak terambil'); return blobKeData(await r.blob()); }
 function embed(d) {
   if (!isLink(d)) return d;
   var m = d.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?[^#]*id=|thumbnail\?id=)([\w-]+)/);
@@ -129,6 +132,258 @@ async function tg(id, el) {
   if (ada) { var g = document.getElementById('g_' + id); if (g) g.innerHTML = galeri(p); }
 }
 
+// ---------- Pustaka buku PDF (salinan dari katalog pribadi; isian yang ditampilkan hanya yang publik) ----------
+var FIELDS = [
+{ g:'Identitas', f:[
+ ['nama_lokal','Nama lokal (Jawa / Indonesia) *','t'],
+ ['nama_ilmiah','Nama ilmiah (bila tahu)','t'],
+ ['nama_lain','Nama lain, sebutan daerah, nama Inggris','t'],
+ ['golongan','Bentuk hidup','s',BENTUK],
+ ['famili','Famili (bila tahu)','t'],
+ ['asal','Asal di kebun','s',['Tumbuh liar','Sengaja ditanam','Tumbuh sendiri lalu dipelihara','Belum tahu']],
+ ['keyakinan','Keyakinan identifikasi','s',['Pasti','Cukup yakin','Dugaan']],
+ ['sumber_id','Sumber identifikasi','t','mis. tanya Mbah, buku, aplikasi, bandingkan dengan tetangga']]},
+{ g:'Ciri fisik', f:[
+ ['tinggi','Tinggi dan ukuran','t','mis. 30 cm, atau 12 m dengan lebar tajuk 6 m'],
+ ['akar','Akar','a'],['batang','Batang dan percabangan','a'],['daun','Daun (bentuk, susunan, tepi, warna, ukuran)','a'],
+ ['bunga','Bunga (warna, bentuk, waktu mekar)','a'],['buah_biji','Buah dan biji','a'],
+ ['bau_rasa','Bau, rasa, getah','a'],['ciri_pembeda','Pembeda dari tumbuhan yang mirip','a']]},
+{ g:'Deskripsi', f:[['deskripsi','Deskripsi dengan kata-katamu sendiri','a','Seperti menjelaskan ke orang yang belum pernah melihatnya']]},
+{ g:'Keberadaan di kebun', f:[
+ ['lokasi','Lokasi / area / zona','t','mis. pagar timur, zona 2, belakang rumah'],
+ ['cahaya','Cahaya','s',['Terbuka penuh','Teduh sebagian','Teduh']],
+ ['tanah_air','Tanah dan kelembapan sekitar','t'],
+ ['jumlah','Jumlah atau luas sebaran','t'],
+ ['mulai','Pertama ditemukan / ditanam','d'],
+ ['musim','Musim berbunga, berbuah, meranggas','t'],
+ ['kondisi','Kondisi sehat, hama, penyakit','a']]},
+{ g:'Histori', f:[
+ ['histori','Sejarah di kebun dan kampung','a','Siapa yang menanam, sejak kapan, kisah tentangnya'],
+ ['asal_nama','Asal-usul nama','a']]},
+{ g:'Manfaat dan peran', f:[
+ ['m_pangan','Pangan','a'],['m_obat','Obat tradisional (catat sumber dan kehati-hatian)','a'],['m_pakan','Pakan ternak','a'],
+ ['m_bahan','Bahan: kayu, serat, anyaman, dll.','a'],['m_ekologi','Peran ekologi','a'],['m_budaya','Budaya, adat, nilai jual','a'],
+ ['peran','Peran dalam desain permakultur','s',['Penambat nitrogen','Penutup tanah','Penarik penyerbuk','Penahan erosi','Pelindung angin','Mulsa / biomassa','Pangan utama','Indikator tanah','Belum jelas']],
+ ['bahaya','Bahaya: beracun, invasif, duri, dll.','a']]},
+{ g:'Perawatan', f:[['perbanyakan','Cara perbanyakan','a'],['perawatan','Cara merawat','a'],['catatan','Catatan lain','a']]}
+];
+var JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+function muatJsPDF() { return new Promise(function (res, rej) { if (window.jspdf) return res(); var s = document.createElement('script'); s.src = JSPDF_URL; s.onload = res; s.onerror = function () { rej(new Error('Pustaka PDF gagal dimuat. Perlu sambungan internet sekali untuk memuatnya.')); }; document.head.appendChild(s); }); }
+function kecilGambar(file, m, q) { return new Promise(function (res, rej) { var im = new Image(), u = URL.createObjectURL(file); im.onload = function () { var s = Math.min(1, m / Math.max(im.width, im.height)), c = document.createElement('canvas'); c.width = Math.round(im.width * s); c.height = Math.round(im.height * s); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', q)); }; im.onerror = function () { URL.revokeObjectURL(u); rej(); }; im.src = u; }); }
+async function pilihSampul(inp) { var f = inp.files && inp.files[0]; if (!f) return; try { BK.gambar = await kecilGambar(f, 2000, 0.85); var p = document.getElementById('bk_prev'); if (p) p.innerHTML = '<img src="' + BK.gambar + '" alt="gambar sampul" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid #e0e8e3">'; } catch (e) { toast('Gambar tidak bisa dibaca'); } }
+// Penyusun PDF. Dua putaran: putaran pertama mencatat nomor halaman, putaran kedua menulis daftar isi dan indeks dengan nomor yang benar.
+async function susunBuku(o) {
+  var JS = window.jspdf.jsPDF, A4 = o.ukuran == 'A4', W = A4 ? 210 : 148, H = A4 ? 297 : 210;
+  var MT = A4 ? 20 : 16, MB = A4 ? 22 : 18, MI = (A4 ? 18 : 15) + (o.jilid ? 8 : 0), MO = A4 ? 18 : 15, CW = W - MI - MO, BS = A4 ? 11 : 10.5;
+  var GREEN = [47, 111, 78], DARK = [31, 77, 54], GOLD = [201, 162, 39], GRAY = [111, 127, 118], INK = [28, 43, 34];
+  var DIM = {}, tmp = new JS(), skipLink = 0;
+  function san(t) { return String(t == null ? '' : t).replace(/\r/g, '').replace(/[^\n\u0020-\u007E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D\u2026\u2022]/g, ''); }
+  function lh(pt) { return pt * 0.3528 * 1.38; }
+  function fmt(d) { return /^data:image\/png/i.test(d) ? 'PNG' : 'JPEG'; }
+  function tglID(v, pj) { var d = new Date(v); if (isNaN(d)) return String(v); return d.toLocaleDateString('id-ID', pj ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'short', year: 'numeric' }); }
+  function fotoDari(e) { return FOTO.filter(function (f) { return f.tumbuhan_id == e.id; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; }); }
+  function fotoOk(e) { return o.foto ? fotoDari(e).filter(function (f) { return f.data && !isLink(f.data) && DIM[f.id]; }) : []; }
+  o.entries.forEach(function (e) { fotoDari(e).forEach(function (f) { if (!f.data) return; if (isLink(f.data)) { if (o.foto) skipLink++; return; } try { var p = tmp.getImageProperties(f.data); DIM[f.id] = [p.width, p.height]; } catch (x) {} }); });
+  if (o.gambar) { try { var cp = tmp.getImageProperties(o.gambar); DIM.sampul = [cp.width, cp.height]; } catch (x) { o.gambar = null; } }
+  if (!o.gambar && o.sampul != 'polos') o.sampul = 'polos';
+  var skip = { nama_lokal: 1, nama_ilmiah: 1, golongan: 1, famili: 1 };
+  function baris(e, s) {
+    var r = [], d = e.data || {};
+    s.f.forEach(function (x) { var k = x[0]; if (skip[k]) return; if (!o.privat && !PUBK[k]) return; var v = val(e, k); if (v == null || String(v).trim() === '') return; r.push([x[1].replace(' *', '').replace(/\s*\([^)]*\)/g, '').replace(' dengan kata-katamu sendiri', '').trim(), k, String(v)]); });
+    if (s.g == 'Keberadaan di kebun' && o.privat && d.lat != null) r.push(['Posisi (GPS)', 'gps', (+d.lat).toFixed(5) + ', ' + (+d.lng).toFixed(5)]);
+    return r;
+  }
+  function judulBagian(e) { var r = []; if (fotoOk(e).length) r.push('Foto'); FIELDS.forEach(function (s) { if (baris(e, s).length) r.push(s.g); }); return r; }
+  function namaBab(e, n) { return n + '. ' + e.nama_lokal + (e.nama_ilmiah ? ' (' + e.nama_ilmiah + ')' : ''); }
+
+  function tulis(dry, pm) {
+    var doc = new JS({ unit: 'mm', format: [W, H], orientation: 'portrait', compress: true });
+    var pg = 1, y = MT, off = null, M = { bab: [], bagian: {}, nama: [], off: 0, indeks: 0 }, back = 0;
+    function x0() { return pg % 2 ? MI : MO; }
+    function baru() { doc.addPage([W, H]); pg++; y = MT; }
+    function ruang(h) { if (y + h > H - MB) baru(); }
+    function font(f, s, pt, c) { doc.setFont(f, s); doc.setFontSize(pt); c = c || INK; doc.setTextColor(c[0], c[1], c[2]); }
+    function teks(t, f, s, pt, c, sesudah, tengah) {
+      font(f, s, pt, c); var L = doc.splitTextToSize(san(t), CW), h = lh(pt);
+      for (var i = 0; i < L.length; i++) { ruang(h); if (tengah) doc.text(L[i], x0() + CW / 2, y + pt * 0.3528 * 0.95, { align: 'center' }); else doc.text(L[i], x0(), y + pt * 0.3528 * 0.95); y += h; }
+      y += sesudah == null ? 1.2 : sesudah;
+    }
+    function garis(c, w) { doc.setDrawColor(c[0], c[1], c[2]); doc.setLineWidth(0.4); doc.line(x0(), y, x0() + (w || CW), y); y += 3; }
+    function judulHal(t) { teks(t, 'helvetica', 'bold', A4 ? 17 : 15, GREEN, 1); garis(GOLD, 22); y += 2; }
+    function fitCover(d, x, yy, w, h) {
+      if (dry) return; var s = DIM.sampul, r = s[0] / s[1], iw, ih; if (r > w / h) { ih = h; iw = h * r; } else { iw = w; ih = w / r; }
+      doc.saveGraphicsState(); doc.rect(x, yy, w, h, null); doc.clip(); doc.discardPath(); doc.addImage(d, fmt(d), x + (w - iw) / 2, yy + (h - ih) / 2, iw, ih); doc.restoreGraphicsState();
+    }
+    function sampul() {
+      if (o.sampul == 'penuh' && o.gambar) { fitCover(o.gambar, 0, 0, W, H); return; }
+      doc.setFillColor(DARK[0], DARK[1], DARK[2]); doc.rect(0, 0, W, H, 'F'); doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.5); doc.rect(7, 7, W - 14, H - 14, 'S');
+      var ty = H * 0.36;
+      if (o.sampul == 'pemanis' && o.gambar) { var iw = W * 0.62, ih = H * 0.34, ix = (W - iw) / 2; fitCover(o.gambar, ix, 22, iw, ih); doc.setDrawColor(255, 255, 255); doc.setLineWidth(0.8); doc.rect(ix, 22, iw, ih, 'S'); ty = 22 + ih + 20; }
+      var pt = A4 ? 32 : 26, h = lh(pt); doc.setFont('times', 'bold'); doc.setFontSize(pt); doc.setTextColor(255, 255, 255);
+      var L = doc.splitTextToSize(san(o.judul), W - 44); L.forEach(function (s, i) { doc.text(s, W / 2, ty + i * h, { align: 'center' }); }); ty += L.length * h + 2;
+      doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.6); doc.line(W / 2 - 14, ty, W / 2 + 14, ty); ty += 9;
+      if (o.sub) { doc.setFont('times', 'italic'); doc.setFontSize(A4 ? 14 : 12); doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]); doc.splitTextToSize(san(o.sub), W - 48).forEach(function (s, i) { doc.text(s, W / 2, ty + i * lh(A4 ? 14 : 12), { align: 'center' }); }); }
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(255, 255, 255); if (o.penulis) doc.text(san(o.penulis), W / 2, H - 24, { align: 'center' });
+      doc.setFontSize(7.5); doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]); doc.text('TOFARMER', W / 2, H - 16, { align: 'center' });
+    }
+    function halJudul() { baru(); y = H * 0.30; teks(o.judul, 'times', 'bold', A4 ? 26 : 22, GREEN, 3, true); if (o.sub) teks(o.sub, 'times', 'italic', A4 ? 14 : 12, GRAY, 8, true); doc.setDrawColor(GOLD[0], GOLD[1], GOLD[2]); doc.setLineWidth(0.6); doc.line(W / 2 - 14, y, W / 2 + 14, y); y += 10; if (o.penulis) teks(o.penulis, 'helvetica', 'normal', 11, INK, 2, true); teks(tglID(new Date(), true), 'helvetica', 'normal', 9, GRAY, 2, true); }
+    function halTentang() {
+      baru(); judulHal('Tentang buku ini');
+      teks('Buku ini disusun dari Katalog Tumbuhan Kebun ToFarmer: ' + o.entries.length + ' tumbuhan hasil pengamatan langsung. Setiap isian ditulis dari kondisi dan bentuk nyata di kebun, dan dapat dilengkapi seiring pengamatan.', 'times', 'normal', BS, INK, 3);
+      teks('Tanggal cetak: ' + tglID(new Date(), true) + '.', 'times', 'normal', BS, INK, 3);
+      if (!o.privat) teks('Data lokasi dan isian pribadi kebun tidak disertakan dalam buku ini.', 'times', 'normal', BS, INK, 3);
+      if (skipLink) teks(skipLink + ' foto tersimpan sebagai tautan dan tidak ikut tercetak.', 'times', 'normal', BS, INK, 3);
+      if (o.kredit) teks(o.kredit, 'times', 'normal', BS - 0.5, INK, 3);
+      teks('Catatan penting: keterangan tentang manfaat obat tradisional dalam buku ini adalah catatan pengamatan dan pengetahuan turun-temurun, bukan saran medis. Pastikan jenis tumbuhan benar sebelum dikonsumsi, dan konsultasikan dengan tenaga kesehatan sebelum memakainya sebagai obat.', 'times', 'italic', BS - 0.5, GRAY, 3);
+    }
+    function titik(t, h, ind, miring) {
+      var pt = BS, hh = lh(pt) + 0.8; ruang(hh); font('times', miring ? 'italic' : 'normal', pt, INK);
+      var xs = x0() + (ind || 0), tt = san(t), num = h == null ? '' : String(h), maxW = CW - (ind || 0) - 14;
+      while (doc.getTextWidth(tt) > maxW && tt.length > 4) tt = tt.slice(0, -2);
+      if (tt != san(t)) tt += '...';
+      var base = y + pt * 0.3528 * 0.95; doc.text(tt, xs, base); var tw = doc.getTextWidth(tt); font('times', 'normal', pt, GRAY);
+      var nw = doc.getTextWidth(num), dw = doc.getTextWidth('.'), n = Math.max(0, Math.floor((CW - (ind || 0) - tw - nw - 5) / dw));
+      if (num) { doc.text(new Array(n + 1).join('.'), xs + tw + 2, base); font('times', 'normal', pt, INK); doc.text(num, x0() + CW, base, { align: 'right' }); }
+      y += hh;
+    }
+    function nomor(p) { return p == null ? '000' : String(p - pm.off); }
+    function daftarIsi() {
+      baru(); judulHal('Daftar Isi');
+      if (o.tunggal) { judulBagian(o.entries[0]).forEach(function (t) { titik(t, pm.bagian && pm.bagian[t] != null ? nomor(pm.bagian[t]) : '000'); }); }
+      else { o.entries.forEach(function (e, i) { titik(namaBab(e, i + 1), pm.bab && pm.bab[i] ? nomor(pm.bab[i].p) : '000'); }); titik('Indeks Nama', pm.indeks ? nomor(pm.indeks) : '000'); }
+    }
+    function kv(l, v, k) {
+      if (k == 'mulai') v = tglID(v); v = san(v); var lab = san(l);
+      font('helvetica', 'bold', 8.5, GRAY); var lw = doc.getTextWidth(lab + ':  '); font('times', 'normal', BS, INK); var vw = doc.getTextWidth(v);
+      if (v.indexOf('\n') < 0 && lw + vw <= CW) { var h = lh(BS); ruang(h); var base = y + BS * 0.3528 * 0.95; font('helvetica', 'bold', 8.5, GRAY); doc.text(lab + ':', x0(), base); font('times', 'normal', BS, INK); doc.text(v, x0() + lw, base); y += h + 0.6; }
+      else { teks(lab, 'helvetica', 'bold', 8.5, GRAY, 0.2); teks(v, 'times', 'normal', BS, INK, 1.4); }
+    }
+    function gambar(f, x, yy, w, h) { if (!dry) doc.addImage(f.data, fmt(f.data), x, yy, w, h); }
+    function fotoBlok(e) {
+      var ph = fotoOk(e); if (!ph.length) return;
+      var mx = A4 ? 100 : 72, d0 = DIM[ph[0].id], s0 = Math.min(CW / d0[0], mx / d0[1]), w0 = d0[0] * s0, h0 = d0[1] * s0;
+      ruang(h0 + 8); M.bagian.Foto = pg; gambar(ph[0], x0() + (CW - w0) / 2, y, w0, h0); y += h0 + 1.2; teks(ph[0].bagian || '', 'helvetica', 'normal', 7.5, GRAY, 3, true);
+      var cols = A4 ? 3 : 2, gap = 3, cw = (CW - gap * (cols - 1)) / cols;
+      for (var i = 1; i < ph.length; i += cols) {
+        var row = ph.slice(i, i + cols).map(function (f) { var d = DIM[f.id], s = Math.min(cw / d[0], cw * 0.72 / d[1]); return { f: f, w: d[0] * s, h: d[1] * s }; }), rh = 0; row.forEach(function (r) { rh = Math.max(rh, r.h); });
+        ruang(rh + 8); row.forEach(function (r, j) { var cx = x0() + j * (cw + gap); gambar(r.f, cx + (cw - r.w) / 2, y, r.w, r.h); font('helvetica', 'normal', 7.5, GRAY); doc.text(san(r.f.bagian || ''), cx + cw / 2, y + rh + 3.2, { align: 'center' }); }); y += rh + 7;
+      }
+      y += 1;
+    }
+    function bab(e, n) {
+      baru(); if (off === null) { off = pg - 1; M.off = off; }
+      M.bab.push({ id: e.id, p: pg }); M.nama.push({ t: e.nama_lokal, p: pg, i: false });
+      if (e.nama_ilmiah) M.nama.push({ t: e.nama_ilmiah, p: pg, i: true });
+      String((e.data || {}).nama_lain || '').split(/[,;\/]/).forEach(function (s) { s = s.trim(); if (s && s.toLowerCase() != String(e.nama_lokal).toLowerCase()) M.nama.push({ t: s, p: pg, i: false }); });
+      teks('BAB ' + n, 'helvetica', 'bold', 8, GRAY, 0.5); teks(e.nama_lokal, 'times', 'bold', A4 ? 24 : 20, GREEN, 0.5);
+      if (e.nama_ilmiah) teks(e.nama_ilmiah, 'times', 'italic', A4 ? 13 : 12, GRAY, 0.5);
+      var meta = [e.golongan, val(e, 'famili') ? 'Famili ' + val(e, 'famili') : '', e.kebun ? 'Kebun @' + e.kebun : ''].filter(Boolean).join('   ·   '); if (meta) teks(meta, 'helvetica', 'normal', 8.5, GRAY, 1);
+      garis(GOLD); fotoBlok(e);
+      FIELDS.forEach(function (s) { var r = baris(e, s); if (!r.length) return; ruang(16); M.bagian[s.g] = pg; teks(s.g.toUpperCase(), 'helvetica', 'bold', 8, GREEN, 1.2); r.forEach(function (x) { if (x[0].toLowerCase() == s.g.toLowerCase()) teks(x[2], 'times', 'normal', BS, INK, 1.4); else kv(x[0], x[2], x[1]); }); y += 2; });
+    }
+    function indeks() {
+      baru(); M.indeks = pg; judulHal('Indeks Nama');
+      var l = M.nama.slice().sort(function (a, b) { return a.t.localeCompare(b.t, 'id'); }), huruf = '';
+      l.forEach(function (x) { var h = x.t.charAt(0).toUpperCase(); if (h != huruf) { huruf = h; y += 1.5; ruang(12); teks(h, 'helvetica', 'bold', 10, GREEN, 0.4); } titik(x.t, x.p - off, 0, x.i); });
+    }
+    function belakang() { baru(); back = pg; doc.setFillColor(DARK[0], DARK[1], DARK[2]); doc.rect(0, 0, W, H, 'F'); doc.setFont('times', 'italic'); doc.setFontSize(10); doc.setTextColor(GOLD[0], GOLD[1], GOLD[2]); doc.text('Mengenal kebun sendiri,', W / 2, H / 2 - 3, { align: 'center' }); doc.text('dari pengamatan yang nyata.', W / 2, H / 2 + 3, { align: 'center' }); doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.text('TOFARMER', W / 2, H - 16, { align: 'center' }); }
+
+    sampul(); halJudul(); halTentang();
+    if (o.pengantar) { baru(); judulHal('Kata Pengantar'); teks(o.pengantar, 'times', 'normal', BS, INK, 2); }
+    daftarIsi();
+    o.entries.forEach(function (e, i) { bab(e, i + 1); });
+    if (!o.tunggal) indeks();
+    if (o.sampul != 'penuh') belakang();
+    var total = doc.getNumberOfPages(), first = M.bab.length ? M.bab[0].p : 1;
+    for (var p = first; p <= total; p++) { if (p == back) continue; doc.setPage(p); font('helvetica', 'normal', 8.5, GRAY); doc.text(String(p - off), W / 2, H - 9, { align: 'center' }); }
+    return { doc: doc, M: M };
+  }
+  var r1 = tulis(true, {});
+  return tulis(false, { off: r1.M.off, bab: r1.M.bab, bagian: r1.M.bagian, indeks: r1.M.indeks }).doc;
+}
+
+
+// ---------- Ekspor katalog umum (syarat: sudah login). Data yang diekspor hanya isian publik, lengkap dengan nama kebun dan penyumbang. ----------
+var PUBK = {}; PUBF.forEach(function (f) { PUBK[f[0]] = 1; });
+FIELDS = FIELDS.map(function (s) { return { g: s.g, f: s.f.filter(function (x) { return PUBK[x[0]]; }) }; }).filter(function (s) { return s.f.length; });
+var FOTO = [], BK = { gambar: null, sibuk: false }, EXCAK = 'semua', EXSEL = {};
+function stamp() { return new Date().toISOString().slice(0, 10); }
+function dl(n, t, m) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: m })); a.download = n; document.body.appendChild(a); a.click(); a.remove(); }
+function q(x) { return '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"'; }
+function gerbang() { if (!D.login) { toast('Masuk dulu untuk mengekspor'); return false; } return true; }
+function sumbangan(p) { return (p.usulan || []).filter(function (u) { return u.status == 'diterapkan' && u.jenis != 'baru'; }).map(function (u) { return { isian: lab(u.field), oleh: u.kontributor_nama, tanggal: u.decided_at }; }); }
+function kreditDari(sel) {
+  var ow = {}, kb = {}; sel.forEach(function (p) { ow[p.pemilik_nama] = 1; sumbangan(p).forEach(function (s) { kb[s.oleh] = 1; }); });
+  var a = Object.keys(ow).map(function (n) { return '@' + n; }).join(', '), b = Object.keys(kb).map(function (n) { return '@' + n; }).join(', ');
+  return 'Bersumber dari Katalog Umum Tumbuhan ToFarmer. Pemilik kebun: ' + a + '.' + (b ? ' Penyumbang koreksi dan tambahan: ' + b + '.' : '') + ' Mohon cantumkan sumber bila buku ini disebarkan.';
+}
+function exBaca() {
+  var r = document.querySelector('input[name="excak"]:checked'); EXCAK = r ? r.value : 'semua'; EXSEL = {};
+  Array.prototype.forEach.call(document.querySelectorAll('.exp'), function (e) { if (e.checked) EXSEL[e.value] = true; });
+  return D.tumbuhan.filter(function (p) { return EXCAK == 'semua' || EXSEL[p.id]; }).sort(function (a, b) { return String(a.nama_lokal).localeCompare(String(b.nama_lokal), 'id'); });
+}
+async function exFoto(sel) {
+  var m = []; sel.forEach(function (p) { (p.foto || []).forEach(function (f) { if (!FC[f.id] && (!f.url || isR2(f.url))) m.push(f); }); });
+  for (var i = 0; i < m.length; i++) { toast('Mengambil foto ' + (i + 1) + ' dari ' + m.length + '...'); try { if (m[i].url) FC[m[i].id] = await ambilR2(m[i].url); else { var r = await sb.rpc('tumbuhan_publik_foto_get', { p_foto_id: m[i].id }); if (r.data) FC[m[i].id] = r.data; } } catch (e) { if (!m[i].url) break; } }
+}
+function fotoLengkap(sel) { FOTO = []; sel.forEach(function (p) { (p.foto || []).forEach(function (f, i) { FOTO.push({ id: f.id, tumbuhan_id: p.id, bagian: f.bagian, data: FC[f.id] || f.url || null, created_at: ('000' + i).slice(-3) }); }); }); }
+function eksporTab() {
+  if (!D.login) return '<div class="card"><h3>Ekspor katalog umum</h3><p class="hint">Ekspor (JSON, CSV, teks, dan buku PDF) tersedia untuk semua pengguna yang sudah masuk. Cukup masuk, tanpa syarat lain.</p><a class="btn" href="' + loginHref() + '">Masuk</a></div>';
+  if (!D.tumbuhan.length) return '<div class="card"><h3>Ekspor katalog umum</h3><p class="hint">Belum ada tumbuhan yang dibagikan.</p></div>';
+  var l = D.tumbuhan.slice().sort(function (a, b) { return String(a.nama_lokal).localeCompare(String(b.nama_lokal), 'id'); });
+  var rd = function (nm, v, cur, t) { return '<label style="display:flex;gap:8px;align-items:center;font-weight:400;color:#1c2b22;margin:7px 0"><input type="radio" name="' + nm + '" value="' + v + '" ' + (cur == v ? 'checked' : '') + ' style="width:auto">' + t + '</label>'; };
+  var cb = function (id, on, t) { return '<label style="display:flex;gap:8px;align-items:center;font-weight:400;color:#1c2b22;margin:7px 0"><input type="checkbox" id="' + id + '" ' + (on ? 'checked' : '') + ' style="width:auto">' + t + '</label>'; };
+  return '<div class="card"><h3>Isi ekspor</h3><p class="hint">Yang diekspor hanya isian publik, lengkap dengan nama kebun pemilik dan penyumbang sebagai sumber.</p>' + rd('excak', 'semua', EXCAK, 'Semua tumbuhan (' + l.length + ')') + rd('excak', 'pilih', EXCAK, 'Pilih sendiri') +
+    '<div style="max-height:220px;overflow:auto;border:1px solid #e0e8e3;border-radius:10px;padding:4px 10px">' + l.map(function (p) { return '<label style="display:flex;gap:8px;align-items:center;font-weight:400;color:#1c2b22;margin:6px 0"><input type="checkbox" class="exp" value="' + p.id + '" ' + (EXSEL[p.id] ? 'checked' : '') + ' style="width:auto"> ' + esc(p.nama_lokal) + (p.nama_ilmiah ? ' <small>(' + esc(p.nama_ilmiah) + ')</small>' : '') + '</label>'; }).join('') + '</div>' +
+    cb('ex_foto', true, 'Sertakan foto (foto berupa tautan tidak bisa disematkan ke berkas atau buku)') + '</div>' +
+    '<div class="card"><h3>Data</h3><div class="acts"><button class="btn" onclick="exJSON()">JSON</button><button class="btn" onclick="exCSV()">CSV</button><button class="btn" onclick="exMD()">Rekap teks (Markdown)</button></div></div>' +
+    '<div class="card"><h3>📖 Buku siap cetak</h3><p class="hint">Sampul, halaman judul, daftar isi, satu bab per tumbuhan, dan indeks nama. Nama kebun dan penyumbang tercantum sebagai sumber.</p>' +
+    '<label for="bk_judul">Judul buku</label><input id="bk_judul" placeholder="Katalog Tumbuhan Menoreh"><label for="bk_sub">Subjudul</label><input id="bk_sub" placeholder="Dari Katalog Umum ToFarmer"><label for="bk_penulis">Penyusun</label><input id="bk_penulis" value="' + esc(sso ? sso.username : '') + '">' +
+    '<label for="bk_pengantar">Kata pengantar <small>(boleh kosong)</small></label><textarea id="bk_pengantar"></textarea>' +
+    '<label>Sampul</label>' + rd('bksam', 'polos', 'polos', 'Otomatis, polos') + rd('bksam', 'pemanis', 'polos', 'Otomatis + gambar pemanis') + rd('bksam', 'penuh', 'polos', 'Gambar unggahan jadi sampul penuh') +
+    '<input type="file" id="bk_file" accept="image/*" onchange="pilihSampul(this)"><div id="bk_prev" style="margin-top:8px"></div>' +
+    '<label for="bk_ukuran">Ukuran kertas</label><select id="bk_ukuran"><option value="A5">A5 (buku saku)</option><option value="A4">A4</option></select>' + cb('bk_jilid', true, 'Beri ruang jilid di sisi dalam halaman') +
+    '<div class="acts"><button class="btn" id="bk_unduh" onclick="exBuku(\'unduh\')">Unduh PDF</button><button class="btn alt" onclick="exBuku(\'buka\')">Buka untuk dicetak</button></div></div>';
+}
+async function exJSON() {
+  if (!gerbang()) return; var sel = exBaca(); if (!sel.length) { toast('Pilih minimal satu tumbuhan'); return; }
+  var on = document.getElementById('ex_foto').checked; if (on) await exFoto(sel);
+  var out = { versi: 1, sumber: 'Katalog Umum Tumbuhan ToFarmer', catatan: 'Dibagikan oleh pemiliknya. Mohon cantumkan sumber bila disebarkan.', diekspor: new Date().toISOString(), diekspor_oleh: sso.username,
+    tumbuhan: sel.map(function (p) { return { id: p.id, kebun: p.pemilik_nama, nama_lokal: p.nama_lokal, nama_ilmiah: p.nama_ilmiah, golongan: p.golongan, data: p.data, disumbang_oleh: sumbangan(p), foto: (p.foto || []).map(function (f) { return { id: f.id, bagian: f.bagian, tautan: f.url || null, data: on && (!f.url || isR2(f.url)) ? (FC[f.id] || null) : undefined }; }) }; }) };
+  dl('katalog-umum-' + stamp() + '.json', JSON.stringify(out, null, 2), 'application/json');
+}
+function exCSV() {
+  if (!gerbang()) return; var sel = exBaca(); if (!sel.length) { toast('Pilih minimal satu tumbuhan'); return; }
+  var ks = []; FIELDS.forEach(function (s) { s.f.forEach(function (x) { if (x[0] != 'nama_lokal' && x[0] != 'nama_ilmiah' && x[0] != 'golongan') ks.push(x[0]); }); });
+  var r = [['kebun', 'nama_lokal', 'nama_ilmiah', 'golongan'].concat(ks).concat(['disumbang_oleh', 'jumlah_foto'])];
+  sel.forEach(function (p) { r.push([p.pemilik_nama, p.nama_lokal, p.nama_ilmiah, p.golongan].concat(ks.map(function (k) { return val(p, k); })).concat([sumbangan(p).map(function (s) { return s.isian + ' (@' + s.oleh + ')'; }).join('; '), (p.foto || []).length])); });
+  dl('katalog-umum-' + stamp() + '.csv', '\ufeff' + r.map(function (x) { return x.map(q).join(','); }).join('\n'), 'text/csv');
+}
+function exMD() {
+  if (!gerbang()) return; var sel = exBaca(); if (!sel.length) { toast('Pilih minimal satu tumbuhan'); return; }
+  var m = '# Katalog Umum Tumbuhan ToFarmer\n\nDiekspor: ' + stamp() + ' oleh @' + sso.username + ' (' + sel.length + ' tumbuhan). Dibagikan oleh para pemilik kebun; mohon cantumkan sumber bila disebarkan.\n';
+  sel.forEach(function (p) {
+    m += '\n## ' + p.nama_lokal + (p.nama_ilmiah ? ' (*' + p.nama_ilmiah + '*)' : '') + '\n\n- **Kebun:** @' + p.pemilik_nama + '\n' + (p.golongan ? '- **Bentuk hidup:** ' + p.golongan + '\n' : '');
+    FIELDS.forEach(function (s) { var r = ''; s.f.forEach(function (x) { var v = val(p, x[0]); if (x[0] != 'nama_lokal' && x[0] != 'nama_ilmiah' && x[0] != 'golongan' && v != null && String(v).trim() !== '') r += '- **' + x[1] + ':** ' + String(v).replace(/\n/g, ' ') + '\n'; }); if (r) m += '\n### ' + s.g + '\n' + r; });
+    var sb_ = sumbangan(p); if (sb_.length) m += '\n_Disumbang oleh: ' + sb_.map(function (s) { return '@' + s.oleh + ' (' + s.isian + ')'; }).join(', ') + '_\n';
+  });
+  dl('katalog-umum-' + stamp() + '.md', m, 'text/markdown');
+}
+async function exBuku(mode) {
+  if (!gerbang() || BK.sibuk) return; var sel = exBaca(); if (!sel.length) { toast('Pilih minimal satu tumbuhan'); return; }
+  var g = function (id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; }, r = document.querySelector('input[name="bksam"]:checked'), sam = r ? r.value : 'polos';
+  if (sam != 'polos' && !BK.gambar) { toast('Unggah gambarnya dulu, atau pilih sampul polos'); return; }
+  var foto = document.getElementById('ex_foto').checked, btn = document.getElementById('bk_unduh'); BK.sibuk = true; if (btn) btn.textContent = 'Menyusun buku...'; toast('Menyusun buku, mohon tunggu...');
+  try {
+    await muatJsPDF(); if (foto) await exFoto(sel); fotoLengkap(sel);
+    var jd = g('bk_judul') || (sel.length == 1 ? sel[0].nama_lokal : 'Katalog Tumbuhan Menoreh');
+    var doc = await susunBuku({ entries: sel.map(function (p) { return Object.assign({}, p, { kebun: p.pemilik_nama }); }), judul: jd, sub: g('bk_sub'), penulis: g('bk_penulis'), pengantar: g('bk_pengantar'), sampul: sam, gambar: BK.gambar, ukuran: g('bk_ukuran') || 'A5', jilid: document.getElementById('bk_jilid').checked, foto: foto, privat: false, tunggal: sel.length == 1, kredit: kreditDari(sel) });
+    if (mode == 'buka') window.open(doc.output('bloburl'), '_blank'); else doc.save(jd.replace(/[^\w\-]+/g, '_') + '-' + stamp() + '.pdf');
+    toast('Buku selesai: ' + doc.getNumberOfPages() + ' halaman');
+  } catch (e) { toast((e && e.message) || 'Gagal menyusun buku'); }
+  BK.sibuk = false; if (btn) btn.textContent = 'Unduh PDF';
+}
+
 // ---------- Muat dan tampilkan ----------
 async function load() {
   var t = token(), a = {}; if (sso && t) a = { p_id: sso.id, p_pin_hash: t };
@@ -143,11 +398,11 @@ async function load() {
 function head() {
   document.getElementById('badge').innerHTML = '<a href="/html/tumbuhan.html">Katalog pribadi</a>';
   var n = 0; if (D.login) { D.tumbuhan.forEach(function (p) { (p.usulan || []).forEach(function (u) { if (u.boleh_putuskan) n++; }); }); D.baru.forEach(function (u) { if (u.boleh_putuskan) n++; }); }
-  var T = [['katalog', 'Katalog'], ['usulan', 'Usulan' + (n ? ' (' + n + ')' : '')], ['baru', 'Usul baru']];
+  var T = [['katalog', 'Katalog'], ['usulan', 'Usulan' + (n ? ' (' + n + ')' : '')], ['baru', 'Usul baru'], ['ekspor', 'Ekspor']];
   document.getElementById('nav').innerHTML = T.map(function (t) { return '<button class="' + (t[0] == tab ? 'on' : '') + '" onclick="go(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
 }
 function go(t) { tab = t; render(); }
-function render() { head(); var v = document.getElementById('view'); v.innerHTML = tab == 'katalog' ? katalog() : tab == 'usulan' ? usulan() : baru(); if (tab == 'katalog') paint(); }
+function render() { head(); var v = document.getElementById('view'); v.innerHTML = tab == 'katalog' ? katalog() : tab == 'usulan' ? usulan() : tab == 'ekspor' ? eksporTab() : baru(); if (tab == 'katalog') paint(); }
 
 function katalog() {
   return '<div class="card"><div class="row"><input id="q" placeholder="Cari nama..." value="' + esc(qv) + '" oninput="qv=this.value;paint()"><select id="gf" onchange="gv=this.value;paint()"><option value="">Semua bentuk</option>' + BENTUK.map(function (b) { return '<option' + (gv == b ? ' selected' : '') + '>' + b + '</option>'; }).join('') + '</select></div><div class="hint" style="margin-top:8px"><b>' + D.tumbuhan.length + '</b> tumbuhan dibagikan oleh pemiliknya. Data lokasi kebun tidak ditampilkan.</div></div><div id="lst"></div>';

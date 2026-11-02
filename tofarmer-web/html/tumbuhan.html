@@ -83,10 +83,11 @@ summary i { display:block; font-style:normal; font-size:11px; font-weight:400; c
 var SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
 var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
 var LOGIN_URL = '/html/login.html'; // sesuaikan bila halaman login ada di alamat lain
+var FOTO_WORKER = ''; // alamat Cloudflare Worker foto, mis. 'https://foto.tofarmer.xyz'. Kosong = foto tetap disimpan di Supabase seperti sebelumnya
 var sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 var sso = null; try { sso = window.TofSesi ? TofSesi.ambil() : null; } catch (e) {}
 var KEY = 'tumbuhan_v1_' + (sso ? sso.id : 'tamu');
-var S = { entries: [], dels: [], fdels: [] };
+var S = { entries: [], dels: [], fdels: [], rdels: [] };
 try { var raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 var tab = 'daftar', editing = null, G = {}, busy = false, qv = '', gv = '';
@@ -110,10 +111,11 @@ function embed(d) {
 }
 function gagalMuat(el) { var a = document.createElement('a'); a.className = 'ph'; a.href = el.getAttribute('data-href'); a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Buka foto'; el.replaceWith(a); }
 function kotak(f) {
-  if (!f.data) return '<div class="ph">Memuat...</div>';
-  var u = embed(f.data), alt = esc(f.bagian || 'foto');
-  if (u) return '<img src="' + esc(u) + '" alt="' + alt + '" loading="lazy" data-href="' + esc(f.data) + '" onerror="gagalMuat(this)" onclick="lihat(\'' + f.id + '\')">';
-  return '<a class="ph" href="' + esc(f.data) + '" target="_blank" rel="noopener">Buka foto</a>';
+  var d = f.data || f.url;
+  if (!d) return '<div class="ph">Memuat...</div>';
+  var u = embed(d), alt = esc(f.bagian || 'foto');
+  if (u) return '<img src="' + esc(u) + '" alt="' + alt + '" loading="lazy" data-href="' + esc(d) + '" onerror="gagalMuat(this)" onclick="lihat(\'' + f.id + '\')">';
+  return '<a class="ph" href="' + esc(d) + '" target="_blank" rel="noopener">Buka foto</a>';
 }
 function galeri(tid, edit) {
   var l = FOTO.filter(function (f) { return f.tumbuhan_id == tid; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; });
@@ -131,7 +133,7 @@ function fotoCard() {
 async function tambahTautan() {
   var el = document.getElementById('in_tautan'), v = el ? el.value.trim() : '';
   if (!/^https?:\/\/\S+$/i.test(v)) { toast('Tempel tautan lengkap yang diawali https://'); return; }
-  var f = { id: uid(), tumbuhan_id: curId(), bagian: document.getElementById('ft_bagian').value, data: v, created_at: new Date().toISOString(), synced: false };
+  var f = { id: uid(), tumbuhan_id: curId(), bagian: document.getElementById('ft_bagian').value, data: null, url: v, created_at: new Date().toISOString(), synced: false };
   FOTO.push(f); await fotoPut(f); el.value = ''; paintFormFoto(); toast('Tautan foto ditambahkan'); if (editing) sync();
 }
 function paintFormFoto() { var el = document.getElementById('fg'); if (el) el.innerHTML = galeri(curId(), true); }
@@ -145,33 +147,68 @@ async function tambahFoto(inp) {
 }
 function hapusFoto(id) {
   var f = FOTO.filter(function (x) { return x.id == id; })[0]; if (!f) return;
-  FOTO = FOTO.filter(function (x) { return x.id != id; }); fotoDel(id); if (f.synced) { S.fdels.push(id); save(); } paintFormFoto();
+  FOTO = FOTO.filter(function (x) { return x.id != id; }); fotoDel(id); if (f.synced) { S.fdels.push(id); } if (f.url && isR2(f.url)) { S.rdels = S.rdels || []; S.rdels.push({ id: f.id, url: f.url }); } save(); paintFormFoto();
 }
 function hapusFotoTumbuhan(tid, plantSynced) {
-  FOTO.filter(function (f) { return f.tumbuhan_id == tid; }).forEach(function (f) { fotoDel(f.id); if (f.synced && !plantSynced) S.fdels.push(f.id); });
+  FOTO.filter(function (f) { return f.tumbuhan_id == tid; }).forEach(function (f) { fotoDel(f.id); if (f.synced && !plantSynced) S.fdels.push(f.id); if (f.url && isR2(f.url)) { S.rdels = S.rdels || []; S.rdels.push({ id: f.id, url: f.url }); } });
   FOTO = FOTO.filter(function (f) { return f.tumbuhan_id != tid; });
 }
 function bersihkanYatim() { if (formId && !S.entries.some(function (e) { return e.id == formId; })) hapusFotoTumbuhan(formId, true); formId = null; }
 function batal() { bersihkanYatim(); editing = null; tab = 'daftar'; render(); }
 function lihat(id) {
-  var f = FOTO.filter(function (x) { return x.id == id; })[0]; if (!f || !f.data) return;
-  if (isLink(f.data)) { var u = embed(f.data), b = document.getElementById('lb'); b.innerHTML = (u ? '<img src="' + esc(u) + '" alt="' + esc(f.bagian || 'foto') + '" data-href="' + esc(f.data) + '" onerror="gagalMuat(this)">' : '') + '<a href="' + esc(f.data) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Buka di tautan asli</a>'; b.style.display = 'flex'; return; }
+  var f = FOTO.filter(function (x) { return x.id == id; })[0]; if (!f) return; var d = d || f.url; if (!d) return; f.dipakai = Date.now(); fotoPut(f);
+  if (isLink(d)) { var u = embed(d), b = document.getElementById('lb'); b.innerHTML = (u ? '<img src="' + esc(u) + '" alt="' + esc(f.bagian || 'foto') + '" data-href="' + esc(d) + '" onerror="gagalMuat(this)">' : '') + '<a href="' + esc(d) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Buka di tautan asli</a>'; b.style.display = 'flex'; return; }
   var e = S.entries.filter(function (x) { return x.id == f.tumbuhan_id; })[0], nm = ((e ? e.nama_lokal : 'tumbuhan') + '-' + (f.bagian || 'foto')).replace(/[^\w\-]+/g, '_') + '.jpg', lb = document.getElementById('lb');
-  lb.innerHTML = '<img src="' + f.data + '" alt="' + esc(f.bagian || 'foto') + '"><a href="' + f.data + '" download="' + nm + '" onclick="event.stopPropagation()">Unduh foto</a>'; lb.style.display = 'flex';
+  lb.innerHTML = '<img src="' + d + '" alt="' + esc(f.bagian || 'foto') + '"><a href="' + d + '" download="' + nm + '" onclick="event.stopPropagation()">Unduh foto</a>'; lb.style.display = 'flex';
 }
 async function bukaDet(id, el) {
   if (!el.open || !sso || !sb) return; var tok = null; try { tok = TofSesi.token(); } catch (e) {} if (!tok || !navigator.onLine) return;
-  var m = FOTO.filter(function (f) { return f.tumbuhan_id == id && !f.data; });
+  FOTO.forEach(function (f) { if (f.tumbuhan_id == id) f.dipakai = Date.now(); });
+  var m = FOTO.filter(function (f) { return f.tumbuhan_id == id && !f.data && !f.url; });
   for (var i = 0; i < m.length; i++) { try { m[i].data = await rpc('tumbuhan_foto_get', { p_foto_id: m[i].id }, tok); await fotoPut(m[i]); } catch (e) { break; } }
   if (m.length) { var g = document.getElementById('g_' + id); if (g) g.innerHTML = galeri(id, false); }
 }
+// ---------- Penyimpanan foto di Cloudflare R2 (lewat Worker). Kosongkan FOTO_WORKER bila belum dipasang: foto disimpan di Supabase seperti semula ----------
+var CACHE_MB = 40; // batas cache foto di perangkat; yang paling lama tidak dipakai dibersihkan lebih dulu (foto yang belum terkirim tidak pernah dibersihkan)
+function isR2(u) { return /\/f\/[0-9a-f-]{36}\.(jpe?g|png|webp)(\?|$)/i.test(u || ''); }
+function normFoto(f) { if (f.data && isLink(f.data)) { f.url = f.url || f.data; f.data = null; } return f; }
+function blobKeData(b) { return new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(fr.result); }; fr.onerror = rej; fr.readAsDataURL(b); }); }
+async function ambilR2(url) { var r = await fetch(url); if (!r.ok) throw new Error('foto tidak terambil'); return blobKeData(await r.blob()); }
+async function unggahR2(f, tok) {
+  var blob = await (await fetch(f.data)).blob();
+  var r = await fetch(FOTO_WORKER + '/upload/' + f.id, { method: 'POST', headers: { 'X-Tof-Id': sso.id, 'X-Tof-Token': tok, 'Content-Type': blob.type || 'image/jpeg' }, body: blob });
+  var j = null; try { j = await r.json(); } catch (e) {}
+  if (!r.ok || !j || !j.url) throw new Error((j && j.galat) || ('Unggah foto gagal (' + r.status + ')'));
+  return j.url;
+}
+async function hapusR2(item, tok) {
+  var m = /\/f\/([0-9a-f-]{36}\.(?:jpe?g|png|webp))/i.exec(item.url || ''); if (!m || !FOTO_WORKER) return;
+  var r = await fetch(FOTO_WORKER + '/f/' + m[1], { method: 'DELETE', headers: { 'X-Tof-Id': sso.id, 'X-Tof-Token': tok } });
+  if (!r.ok && r.status !== 404) throw new Error('Hapus foto di penyimpanan gagal (' + r.status + ')');
+}
+async function bersihkanCache() {
+  var batas = CACHE_MB * 1024 * 1024, tot = 0, kand = [];
+  FOTO.forEach(function (f) { if (f.data) { tot += f.data.length; if (f.synced) kand.push(f); } });
+  if (tot <= batas) return;
+  kand.sort(function (a, b) { return (a.dipakai || 0) - (b.dipakai || 0); });
+  for (var i = 0; i < kand.length && tot > batas; i++) { tot -= kand[i].data.length; kand[i].data = null; await fotoPut(kand[i]); }
+}
 async function fotoSync(tok) {
-  var kirim = FOTO.filter(function (f) { return !f.synced && f.data; });
-  for (var i = 0; i < kirim.length; i++) { var f = kirim[i]; await rpc('tumbuhan_foto_save', { p_foto: { id: f.id, tumbuhan_id: f.tumbuhan_id, bagian: f.bagian || null, data: f.data, created_at: f.created_at } }, tok); f.synced = true; await fotoPut(f); }
+  S.rdels = S.rdels || [];
+  // 1. kirim foto baru: ke R2 lewat Worker bila FOTO_WORKER diisi (lalu hanya URL-nya yang disimpan di Supabase), kalau tidak ke Supabase seperti semula
+  var kirim = FOTO.filter(function (f) { return !f.synced && (f.data || f.url); });
+  for (var i = 0; i < kirim.length; i++) {
+    var f = kirim[i], isi = f.data;
+    if (isi && FOTO_WORKER) { f.url = await unggahR2(f, tok); isi = f.url; await fotoPut(f); } else if (!isi) { isi = f.url; }
+    await rpc('tumbuhan_foto_save', { p_foto: { id: f.id, tumbuhan_id: f.tumbuhan_id, bagian: f.bagian || null, data: isi, created_at: f.created_at } }, tok); f.synced = true; await fotoPut(f);
+  }
+  // 2. hapus: berkas di R2 dulu, baru catatannya di Supabase (bila hapus di R2 gagal, semuanya dicoba lagi nanti)
+  while (S.rdels.length) { await hapusR2(S.rdels[0], tok); S.rdels.shift(); save(); }
   while (S.fdels.length) { await rpc('tumbuhan_foto_delete', { p_foto_id: String(S.fdels[0]) }, tok); S.fdels.shift(); save(); }
   var meta = (await rpc('tumbuhan_foto_list', {}, tok)) || [], ids = {};
-  meta.forEach(function (m) { ids[m.id] = 1; var ada = FOTO.filter(function (x) { return x.id == m.id; })[0]; if (!ada) { var n = { id: m.id, tumbuhan_id: m.tumbuhan_id, bagian: m.bagian, data: m.url || null, created_at: m.created_at, synced: true }; FOTO.push(n); fotoPut(n); } else if (m.url && ada.synced && ada.data !== m.url) { ada.data = m.url; fotoPut(ada); } });
+  meta.forEach(function (m) { ids[m.id] = 1; var ada = FOTO.filter(function (x) { return x.id == m.id; })[0]; if (!ada) { var n = { id: m.id, tumbuhan_id: m.tumbuhan_id, bagian: m.bagian, data: null, url: m.url || null, created_at: m.created_at, synced: true }; FOTO.push(n); fotoPut(n); } else if (m.url && ada.synced && ada.url !== m.url) { ada.url = m.url; fotoPut(ada); } });
   FOTO = FOTO.filter(function (f) { if (f.synced && !ids[f.id]) { fotoDel(f.id); return false; } return true; });
+  await bersihkanCache();
 }
 
 // ---------- Daftar isian: [kunci, label, tipe(t/a/s/d), petunjuk/opsi]. Tiga kunci pertama = kolom tabel, sisanya di data ----------
@@ -324,7 +361,7 @@ async function sync(manual) {
     if (tab == 'daftar' && !(document.activeElement && /INPUT|SELECT/.test(document.activeElement.tagName))) render();
   } catch (err) {
     var m = String((err && err.message) || err);
-    setSync(/PIN salah|akun tidak valid/i.test(m) ? 'Sesi tidak berlaku. <a href="' + loginHref() + '"><b>Masuk lagi</b></a>; datamu aman di perangkat.' : /terlalu besar/i.test(m) ? esc(m) : 'Sinyal belum cukup atau server sibuk. Data antre, dicoba lagi otomatis.');
+    setSync(/PIN salah|akun tidak valid/i.test(m) ? 'Sesi tidak berlaku. <a href="' + loginHref() + '"><b>Masuk lagi</b></a>; datamu aman di perangkat.' : /terlalu besar|Batas harian|Hanya JPEG|Sesi tidak sah|Hapus foto di penyimpanan/i.test(m) ? esc(m) : 'Sinyal belum cukup atau server sibuk. Data antre, dicoba lagi otomatis.');
   }
   busy = false;
 }
@@ -339,7 +376,7 @@ function bagikanBtn(e) {
 async function bagikan(id, ya) {
   var e = S.entries.filter(function (x) { return x.id == id; })[0]; if (!e) return;
   if (!e.synced) { toast('Sinkron dulu sebelum dibagikan'); return; }
-  if (ya && !confirm('Bagikan ke katalog umum? Yang tampil hanya nama, ciri, deskripsi, histori, manfaat, bahaya, perawatan, dan foto. Lokasi, koordinat, jumlah, tanggal, dan kondisi tetap privat. Orang lain hanya bisa mengusulkan perubahan, dan perubahan baru berlaku setelah kamu dan kurator menyetujui.')) return;
+  if (ya && !confirm('Bagikan ke katalog umum? Yang tampil hanya nama, ciri, deskripsi, histori, manfaat, bahaya, perawatan, dan foto. Lokasi, koordinat, jumlah, tanggal, dan kondisi tetap privat. Orang lain hanya bisa mengusulkan perubahan, dan perubahan baru berlaku setelah kamu dan kurator menyetujui. Pengguna yang login juga bisa mengekspor dan mencetak isi yang dibagikan (dengan nama kebunmu tercantum sebagai sumber).')) return;
   var tok = null; try { tok = TofSesi.token(); } catch (x) {}
   if (!tok || !sso || !sb) { toast('Masuk dulu'); return; }
   try { await rpc('tumbuhan_publikasi', { p_tumbuhan_id: id, p_publik: ya }, tok); e.publik = ya; save(); render(); toast(ya ? 'Dibagikan ke katalog umum' : 'Ditarik dari katalog umum'); } catch (err) { toast((err && err.message) || 'Gagal. Coba lagi.'); }
@@ -387,8 +424,11 @@ function bkBaca() {
 }
 async function lengkapiFoto(ids) {
   var m = FOTO.filter(function (f) { return ids[f.tumbuhan_id] && !f.data; }); if (!m.length) return;
-  var tok = null; try { tok = TofSesi.token(); } catch (e) {} if (!tok || !sso || !sb || !navigator.onLine) return;
-  for (var i = 0; i < m.length; i++) { toast('Mengambil foto ' + (i + 1) + ' dari ' + m.length + '...'); try { m[i].data = await rpc('tumbuhan_foto_get', { p_foto_id: m[i].id }, tok); await fotoPut(m[i]); } catch (e) { break; } }
+  var tok = null; try { tok = TofSesi.token(); } catch (e) {} var daring = !!(tok && sso && sb && navigator.onLine);
+  for (var i = 0; i < m.length; i++) {
+    toast('Mengambil foto ' + (i + 1) + ' dari ' + m.length + '...');
+    try { if (m[i].url) { if (isR2(m[i].url) && navigator.onLine) m[i].data = await ambilR2(m[i].url); } else if (daring) { m[i].data = await rpc('tumbuhan_foto_get', { p_foto_id: m[i].id }, tok); await fotoPut(m[i]); } } catch (e) {}
+  }
 }
 async function bukuBuat(mode) {
   if (BK.sibuk) return; bkBaca();
@@ -419,7 +459,7 @@ async function susunBuku(o) {
   function tglID(v, pj) { var d = new Date(v); if (isNaN(d)) return String(v); return d.toLocaleDateString('id-ID', pj ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'short', year: 'numeric' }); }
   function fotoDari(e) { return FOTO.filter(function (f) { return f.tumbuhan_id == e.id; }).sort(function (a, b) { return a.created_at < b.created_at ? -1 : 1; }); }
   function fotoOk(e) { return o.foto ? fotoDari(e).filter(function (f) { return f.data && !isLink(f.data) && DIM[f.id]; }) : []; }
-  o.entries.forEach(function (e) { fotoDari(e).forEach(function (f) { if (!f.data) return; if (isLink(f.data)) { if (o.foto) skipLink++; return; } try { var p = tmp.getImageProperties(f.data); DIM[f.id] = [p.width, p.height]; } catch (x) {} }); });
+  o.entries.forEach(function (e) { fotoDari(e).forEach(function (f) { if (!f.data) { if (f.url && o.foto) skipLink++; return; } if (isLink(f.data)) { if (o.foto) skipLink++; return; } try { var p = tmp.getImageProperties(f.data); DIM[f.id] = [p.width, p.height]; } catch (x) {} }); });
   if (o.gambar) { try { var cp = tmp.getImageProperties(o.gambar); DIM.sampul = [cp.width, cp.height]; } catch (x) { o.gambar = null; } }
   if (!o.gambar && o.sampul != 'polos') o.sampul = 'polos';
   var skip = { nama_lokal: 1, nama_ilmiah: 1, golongan: 1, famili: 1 };
@@ -468,7 +508,8 @@ async function susunBuku(o) {
       teks('Buku ini disusun dari Katalog Tumbuhan Kebun ToFarmer: ' + o.entries.length + ' tumbuhan hasil pengamatan langsung. Setiap isian ditulis dari kondisi dan bentuk nyata di kebun, dan dapat dilengkapi seiring pengamatan.', 'times', 'normal', BS, INK, 3);
       teks('Tanggal cetak: ' + tglID(new Date(), true) + '.', 'times', 'normal', BS, INK, 3);
       if (!o.privat) teks('Data lokasi dan isian pribadi kebun tidak disertakan dalam buku ini.', 'times', 'normal', BS, INK, 3);
-      if (skipLink) teks(skipLink + ' foto tersimpan sebagai tautan dan tidak ikut tercetak.', 'times', 'normal', BS, INK, 3);
+      if (skipLink) teks(skipLink + ' foto berupa tautan atau gagal diambil dan tidak ikut tercetak.', 'times', 'normal', BS, INK, 3);
+      if (o.kredit) teks(o.kredit, 'times', 'normal', BS - 0.5, INK, 3);
       teks('Catatan penting: keterangan tentang manfaat obat tradisional dalam buku ini adalah catatan pengamatan dan pengetahuan turun-temurun, bukan saran medis. Pastikan jenis tumbuhan benar sebelum dikonsumsi, dan konsultasikan dengan tenaga kesehatan sebelum memakainya sebagai obat.', 'times', 'italic', BS - 0.5, GRAY, 3);
     }
     function titik(t, h, ind, miring) {
@@ -512,7 +553,7 @@ async function susunBuku(o) {
       String((e.data || {}).nama_lain || '').split(/[,;\/]/).forEach(function (s) { s = s.trim(); if (s && s.toLowerCase() != String(e.nama_lokal).toLowerCase()) M.nama.push({ t: s, p: pg, i: false }); });
       teks('BAB ' + n, 'helvetica', 'bold', 8, GRAY, 0.5); teks(e.nama_lokal, 'times', 'bold', A4 ? 24 : 20, GREEN, 0.5);
       if (e.nama_ilmiah) teks(e.nama_ilmiah, 'times', 'italic', A4 ? 13 : 12, GRAY, 0.5);
-      var meta = [e.golongan, val(e, 'famili') ? 'Famili ' + val(e, 'famili') : ''].filter(Boolean).join('   ·   '); if (meta) teks(meta, 'helvetica', 'normal', 8.5, GRAY, 1);
+      var meta = [e.golongan, val(e, 'famili') ? 'Famili ' + val(e, 'famili') : '', e.kebun ? 'Kebun @' + e.kebun : ''].filter(Boolean).join('   ·   '); if (meta) teks(meta, 'helvetica', 'normal', 8.5, GRAY, 1);
       garis(GOLD); fotoBlok(e);
       FIELDS.forEach(function (s) { var r = baris(e, s); if (!r.length) return; ruang(16); M.bagian[s.g] = pg; teks(s.g.toUpperCase(), 'helvetica', 'bold', 8, GREEN, 1.2); r.forEach(function (x) { if (x[0].toLowerCase() == s.g.toLowerCase()) teks(x[2], 'times', 'normal', BS, INK, 1.4); else kv(x[0], x[2], x[1]); }); y += 2; });
     }
@@ -549,7 +590,7 @@ function stamp() { return new Date().toISOString().slice(0, 10); }
 function clean() { return S.entries.map(function (e) { return { id: e.id, nama_lokal: e.nama_lokal, nama_ilmiah: e.nama_ilmiah, golongan: e.golongan, data: e.data || {}, created_at: e.created_at }; }); }
 function fotoDari(id) { return FOTO.filter(function (f) { return f.tumbuhan_id == id; }); }
 function exJSON(denganFoto) {
-  var en = clean(); en.forEach(function (e) { e.jumlah_foto = fotoDari(e.id).length; if (denganFoto) e.foto = fotoDari(e.id).filter(function (f) { return f.data; }).map(function (f) { return { id: f.id, bagian: f.bagian, created_at: f.created_at, data: f.data }; }); });
+  var en = clean(); en.forEach(function (e) { e.jumlah_foto = fotoDari(e.id).length; if (denganFoto) e.foto = fotoDari(e.id).filter(function (f) { return f.data || f.url; }).map(function (f) { return { id: f.id, bagian: f.bagian, created_at: f.created_at, data: f.data || undefined, tautan: f.url || undefined }; }); });
   dl('tumbuhan-' + stamp() + (denganFoto ? '-foto' : '') + '.json', JSON.stringify({ versi: 2, diekspor: new Date().toISOString(), entries: en }, null, 2), 'application/json');
 }
 function q(x) { return '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"'; }
@@ -576,16 +617,16 @@ function imp(el) {
       d.entries.forEach(function (e) {
         if (!e.nama_lokal) return; var id = UUID.test(String(e.id)) ? e.id : uid(); if (ada[id]) return;
         S.entries.push({ id: id, nama_lokal: e.nama_lokal, nama_ilmiah: e.nama_ilmiah || '', golongan: e.golongan || '', data: e.data || {}, created_at: e.created_at || new Date().toISOString(), synced: false }); n++;
-        (e.foto || []).forEach(function (fx) { if (!fx.data) return; var fid = UUID.test(String(fx.id)) ? fx.id : uid(); if (FOTO.some(function (z) { return z.id == fid; })) return; var f = { id: fid, tumbuhan_id: id, bagian: fx.bagian || '', data: fx.data, created_at: fx.created_at || new Date().toISOString(), synced: false }; FOTO.push(f); fotoPut(f); });
+        (e.foto || []).forEach(function (fx) { if (!fx.data && !fx.tautan) return; var fid = UUID.test(String(fx.id)) ? fx.id : uid(); if (FOTO.some(function (z) { return z.id == fid; })) return; var f = { id: fid, tumbuhan_id: id, bagian: fx.bagian || '', data: fx.data || null, url: fx.tautan || null, created_at: fx.created_at || new Date().toISOString(), synced: false }; FOTO.push(f); fotoPut(f); });
       });
       save(); toast('Impor selesai: ' + n + ' tumbuhan baru'); render(); sync();
     } catch (x) { toast('File tidak dikenali. Pakai file JSON hasil ekspor.'); }
   };
   r.readAsText(fl);
 }
-function reset() { if (confirm('Salinan di perangkat ini akan dihapus. Data di cloud tetap ada. Lanjut?')) { S = { entries: [], dels: [], fdels: [] }; FOTO.forEach(function (f) { fotoDel(f.id); }); FOTO = []; save(); render(); sync(); } }
+function reset() { if (confirm('Salinan di perangkat ini akan dihapus. Data di cloud tetap ada. Lanjut?')) { S = { entries: [], dels: [], fdels: [], rdels: [] }; FOTO.forEach(function (f) { fotoDel(f.id); }); FOTO = []; save(); render(); sync(); } }
 
-idb().then(fotoAll).then(function (a) { FOTO = a.filter(function (f) { var ok = f.synced || S.entries.some(function (e) { return e.id == f.tumbuhan_id; }); if (!ok) fotoDel(f.id); return ok; }); render(); sync(); });
+idb().then(fotoAll).then(function (a) { a.forEach(normFoto); FOTO = a.filter(function (f) { var ok = f.synced || S.entries.some(function (e) { return e.id == f.tumbuhan_id; }); if (!ok) fotoDel(f.id); return ok; }); render(); sync(); });
 </script>
 </body>
 </html>
