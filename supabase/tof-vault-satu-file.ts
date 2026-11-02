@@ -2752,6 +2752,14 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       for (const x of awal.filter((y) => y.alasan)) {
         barisItem.push({ profile_id: x.p.id, username: x.p.username, saldo_units: 0, terkunci_units: 0, arah, jumlah_units: 0, kurang_units: 0, ikut: false, status: "dilewati", alasan: x.alasan });
       }
+      if (FRASA_HANGUS_LANGSUNG) {
+        for (const x of barisItem) {
+          if (x.status !== "ditahan" || !String(x.tugas_kurang || "").split("|").includes("sistem:titip_frasa")) continue;
+          x.status = "hangus";
+          x.alasan = "Tidak mendapat dividen: belum menitip frasa.";
+          x.ditahan_pada = null;
+        }
+      }
       if (bulanTugas) {
         const k = await siapkanKonteks(d, bulanTugas, false, null);
         const peta = new Map(kandidat.map((p) => [p.id, p]));
@@ -2978,6 +2986,9 @@ const BULAN_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 // (langsung berstatus 'hangus', bukan 'ditahan'; dananya tetap di kas bersama). "Tidak kerja, tidak digaji."
 // Syarat dasar (titip frasa, setuju dividen, PIN aman) yang kurang tetap 'ditahan'. Ubah ke false untuk kembali ke perilaku lama (ditahan).
 const TUGAS_HANGUS_LANGSUNG = true;
+// Kebijakan: peserta yang belum menitip frasa juga TIDAK mendapat dividen positif (langsung 'hangus', bukan 'ditahan').
+// Syarat dasar lain (setuju dividen, PIN aman) tetap 'ditahan'. Ubah ke false untuk kembali ke perilaku lama (ditahan).
+const FRASA_HANGUS_LANGSUNG = true;
 function awalBulanIso(bulan: string): string { const [y, m] = bulan.split("-").map(Number); return new Date(Date.UTC(y, m - 1, 1) - WIB_MS).toISOString(); }
 function awalBulanBerikutIso(bulan: string): string { const [y, m] = bulan.split("-").map(Number); return new Date(Date.UTC(y, m, 1) - WIB_MS).toISOString(); }
 

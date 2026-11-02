@@ -872,7 +872,7 @@
         el("label", { class: "lbl", for: "divLabel", text: "Nama periode (tiap nama hanya sekali)" }), label,
         el("label", { class: "lbl", for: "divPersen", text: "Persentase dari saldo TOF peserta (negatif = koreksi minus)" }), persen,
         el("label", { class: "lbl", for: "divBulanTugas", text: "Bulan yang tugasnya dinilai (hanya dividen positif)" }), bulanTugas,
-        el("div", { class: "kecil", text: "Peserta yang tugas wajib bulan itu belum lengkap TIDAK mendapat dividen bulan itu (berstatus Hangus, dananya tetap di kas). Syarat dasar yang kurang (frasa, persetujuan, PIN aman) tetap DITAHAN dan bisa dilepas setelah dipenuhi." }),
+        el("div", { class: "kecil", text: "Peserta yang tugas wajib bulan itu belum lengkap TIDAK mendapat dividen bulan itu (berstatus Hangus, dananya tetap di kas). Yang belum menitip frasa juga TIDAK mendapat dividen (Hangus). Syarat dasar lain (persetujuan, PIN aman) yang kurang tetap DITAHAN dan bisa dilepas setelah dipenuhi." }),
         el("div", { class: "kecil", text: "Dihitung dari saldo TOF di jaringan saat tombol ditekan (foto saldo), termasuk TOF yang dibekukan jaminan pinjaman. Pada koreksi minus hanya TOF bebas yang diambil." }),
         galat, btn));
     } else {

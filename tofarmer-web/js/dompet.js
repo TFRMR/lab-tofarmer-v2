@@ -1270,7 +1270,7 @@
     kartu.hidden = false;
     const total = t.wajib.length, selesai = t.wajib.filter((x) => x.ok).length;
     $("tugasInfo").textContent = total
-      ? selesai + " dari " + total + " tugas wajib selesai bulan ini. " + (t.lengkap ? "Dividenmu aman." : "Dividen ditahan kalau belum lengkap.")
+      ? selesai + " dari " + total + " tugas wajib selesai bulan ini. " + (t.lengkap ? "Dividenmu aman." : "Dividen bulan itu tidak cair kalau belum lengkap.")
       : "";
     $("tugasBar").style.width = (total ? Math.round((selesai * 100) / total) : 100) + "%";
     $("tugasDitahan").textContent = (t.ditahan || []).map((x) =>
@@ -1369,7 +1369,7 @@
     let teks;
     if (siap) teks = "Kamu peserta dividen. Dividen positif masuk ke dompet ini. Bila hasil investasi minus, TOF ditarik otomatis dari dompet ini, maksimal " + s.batas_minus_persen + "% per periode.";
     else if (s.pin_publik) teks = "Amankan akunmu dulu: buat PIN dompet baru di menu Frasa. Selama belum selesai, dividenmu ditahan (tidak hilang).";
-    else if (!s.has_vault) teks = "Wajib menitip frasa dulu, lalu menyetujui aturan dividen. Selama belum selesai, dividenmu ditahan (tidak hilang).";
+    else if (!s.has_vault) teks = "Wajib menitip frasa dulu, lalu menyetujui aturan dividen. Tanpa frasa yang dititip, kamu tidak mendapat dividen (hangus).";
     else if (s.perlu_perbarui) teks = "Batas koreksi minus naik menjadi " + s.batas_sekarang_persen + "%. Setujui ulang supaya tetap ikut dividen.";
     else teks = "Setujui aturan dividen supaya ikut dibagi. Selama belum selesai, dividenmu ditahan (tidak hilang).";
     $("dividenInfo").textContent = teks;
