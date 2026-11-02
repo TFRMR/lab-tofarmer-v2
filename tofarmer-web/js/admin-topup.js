@@ -342,7 +342,34 @@
         tercatat.push(...cat.tercatat);
         for (const b of cat.belum) belum.push(b.id + ": " + b.alasan);
       }
-      return { tercatat, lewati, belum };
+
+      // [TANDA RESET] Bila SEMUA sudah terkirim ke dompet masing-masing dan saldo TOF dompet penampung nol, buat satu transaksi
+      // 0 TOF ke dompet sendiri dengan catatan "reset". Penanda di blockchain: transaksi sebelum "reset" sudah dibagikan,
+      // yang sesudahnya adalah TOF yang baru tertampung (di toples). Gagal membuat tanda tidak membatalkan pembagian.
+      let reset = null;
+      if (siap.length && !belum.length && !lewati.length) {
+        try {
+          const sesudah = await ringkasAkun(state.wallet);
+          if (sesudah.tof === 0n) {
+            if (sesudah.algo - sesudah.minBal < 1000n) {
+              reset = { gagal: "ALGO dompet penampung tidak cukup untuk biaya transaksi" };
+            } else {
+              progres("Membuat tanda reset di dompet penampung…");
+              const spR = await ambilParams();
+              const txR = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+                from: state.wallet, to: state.wallet, amount: 0, assetIndex: TOF_ASSET_ID,
+                note: new TextEncoder().encode("reset"), suggestedParams: spR
+              });
+              txR.addLease(await lease("reset:" + batch.id)); // pencegah tanda ganda bila diulang
+              const blobR = pulih.xhd ? pulih.xhd.tandatangani(txR) : txR.signTxn(sk);
+              await kirimGrup(gabung([blobR]));
+              const idR = txR.txID();
+              reset = { txid: idR, terkonfirmasi: await tungguTx(idR) };
+            }
+          }
+        } catch (e) { reset = { gagal: String(e.message || e) }; }
+      }
+      return { tercatat, lewati, belum, reset };
     } finally {
       rv.mnemonic = "";
       if (sk) sk.fill(0);
@@ -416,13 +443,15 @@
           kartuBatch.append(
             el("div", { class: "kecil", style: "margin-top:8px;", text: "Tiap anggota menerima TOF sesuai setorannya sendiri, dengan catatan 'USERNAME # ALAMAT # nabung receh # batch " + batch.nomor + "'. Anggota yang belum opt-in TOF dilewati." }),
             el("button", { class: "btn utama", id: "btnBagikan", type: "button", text: "Bagikan TOF sekarang", onclick: async function () {
-              if (!window.confirm("Bagikan " + desimalUnit(batch.total_tof_units) + " TOF ke " + batch.jumlah_item + " anggota dari dompet penampung? Transaksi blockchain tidak bisa dibatalkan.")) return;
+              if (!window.confirm("Bagikan " + desimalUnit(batch.total_tof_units) + " TOF ke " + batch.jumlah_item + " anggota dari dompet penampung? Transaksi blockchain tidak bisa dibatalkan. Bila semua terkirim dan saldo TOF dompet penampung nol, akan dibuat satu transaksi 0 TOF ke dompet sendiri dengan catatan 'reset' sebagai penanda.")) return;
               this.disabled = true; galat.textContent = "";
               try {
                 const h = await bagikanBatch(batch, res.items, (t) => { progres.textContent = t; });
                 const ringkas = [h.tercatat.length + " anggota menerima TOF."];
                 if (h.lewati.length) ringkas.push("Dilewati (belum opt-in TOF): " + h.lewati.map((x) => "@" + x.username).join(", ") + ".");
                 if (h.belum.length) ringkas.push("Perlu dicek: " + h.belum.join("; ") + ".");
+                if (h.reset && h.reset.txid) ringkas.push("Tanda reset (0 TOF, catatan 'reset') dibuat di dompet penampung" + (h.reset.terkonfirmasi ? "" : " (belum terkonfirmasi, cek di explorer)") + ": " + h.reset.txid.slice(0, 10) + "…");
+                if (h.reset && h.reset.gagal) ringkas.push("Tanda reset belum dibuat: " + h.reset.gagal + ".");
                 state.pesanHasil = ringkas.join(" ");
                 muatPembagian();
               } catch (e) { galat.textContent = e.message; this.disabled = false; progres.textContent = ""; }
