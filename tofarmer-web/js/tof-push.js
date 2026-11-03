@@ -11,8 +11,7 @@
 (function (global) {
   'use strict';
 
-  var VAPID_PUBLIK = 'BBP947TGhUoVOco2QtnlhA9uJU-NQtltR0oAwBpmCPtgAU7bPnhLzvZbpxabPZWwYk0GaPFRt88__l6Yv3XgL8I
-';
+    var VAPID_PUBLIK = 'BBP947TGhUoVOco2QtnlhA9uJU-NQtltR0oAwBpmCPtgAU7bPnhLzvZbpxabPZWwYk0GaPFRt88__l6Yv3XgL8I';
   var K_TUNDA = 'tof_push_tunda';      // anggota menutup ajakan: jangan tampil lagi sampai waktu ini
   var K_SINKRON = 'tof_push_sinkron';  // terakhir kali langganan didaftarkan ulang (maks 1x per hari)
 
