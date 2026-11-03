@@ -136,3 +136,36 @@ self.addEventListener('message', (event) => {
     })());
   }
 });
+
+// ============================================================
+// [NOTIFIKASI PUSH] Menampilkan notifikasi di layar HP (dikirim Edge Function kirim-push)
+// - tag sama = notifikasi lama ditimpa, bukan menumpuk
+// - isi notifikasi tidak memuat PIN/frasa/saldo
+// ============================================================
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) { d = { body: event.data ? event.data.text() : '' }; }
+  const judul = d.title || 'ToFarmer';
+  const opsi = {
+    body: d.body || '',
+    icon: d.icon || '/aset/pwa-192.png',
+    badge: d.badge || '/aset/pwa-192.png',
+    data: { url: d.url || '/' },
+    vibrate: [120, 60, 120],
+  };
+  if (d.tag) { opsi.tag = d.tag; opsi.renotify = true; }
+  event.waitUntil(self.registration.showNotification(judul, opsi));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const tujuan = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((daftar) => {
+      for (const c of daftar) {
+        if (c.url === tujuan && 'focus' in c) return c.focus();
+      }
+      return self.clients.openWindow(tujuan);
+    })
+  );
+});

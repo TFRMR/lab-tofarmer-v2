@@ -2065,6 +2065,16 @@ async function loadNotifikasiUser() {
         linkAksi = `window.location.assign('profile.html?u=${usernameAsliPengirim}&targetPost=${n.related_id}');`;
       }
 
+      // [NOTIF DOMPET & PENGURUS] Jenis dompet_* (anggota) dan pengurus_* (pengurus): tanpa awalan nama pengirim,
+      // dan tapnya langsung membuka dompet / halaman pengurus.
+      let awalanNama = `<strong>${namaDisplay}</strong> `;
+      if (typeof n.type === "string" && (n.type.indexOf("dompet_") === 0 || n.type.indexOf("pengurus_") === 0)) {
+        awalanNama = "";
+        linkAksi = n.type.indexOf("pengurus_") === 0
+          ? "window.location.assign('/html/admin-topup.html');"
+          : "window.location.assign('/html/dompet.html');";
+      }
+
       const bgWarna = n.is_read ? "white" : "#f0fdf4";
 
       return `
@@ -2074,7 +2084,7 @@ async function loadNotifikasiUser() {
           onmouseover="this.style.background='#f7faf8'" 
           onmouseout="this.style.background='${bgWarna}'"
         >
-          <strong>${namaDisplay}</strong> ${n.message}
+          ${awalanNama}${n.message}
           <span style="font-size: 10px; color: #999; display: block; margin-top: 4px;">
             ${new Date(n.created_at).toLocaleDateString('id-ID')}
           </span>
