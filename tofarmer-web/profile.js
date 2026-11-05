@@ -890,6 +890,34 @@ let userPostAllLoaded = false;
 // true  = angka dinaikkan oleh trigger database 'trg_reactions_hitung' (ubah ke true SETELAH SQL trigger dijalankan).
 const HITUNG_REAKSI_DI_DATABASE = false;
 
+// 🟢 SISIPAN: SAKLAR jalur server untuk reaksi & edit postingan (lewat Edge Function tof-vault).
+// false = langsung ke database dari browser (cara lama).
+// true  = lewat tof-vault: pemilik postingan, batas 1 reaksi/akun, dan sesi login diperiksa di SERVER.
+// Ubah ke true SETELAH tof-vault diperbarui (aksi post_react & post_edit) dan trigger reaksi aktif.
+const PAKAI_SERVER_POSTING = false;
+
+function ambilTokenSesiPost() {
+  try {
+    const s = JSON.parse(localStorage.getItem("tof_session") || "null");
+    if (s && s.id === currentWallet && s.token && Number(s.exp) * 1000 > Date.now()) return s.token;
+  } catch (e) {}
+  return null;
+}
+
+function pesanPosting(res) {
+  switch (res && res.error) {
+    case "sesi_tidak_valid": return "Sesi login habis atau tidak sah. Keluar lalu login lagi ya 🌱";
+    case "karya_sendiri": return "Tidak bisa reaction di karya sendiri 😄";
+    case "sudah_bereaksi": return "Anda sudah memberikan apresiasi pada karya ini 🌱";
+    case "bukan_pemilik": return "Postingan ini bukan milik Anda ❌";
+    case "teks_tidak_valid": return "Teks kosong atau terlalu panjang (maks 5000 karakter) 🌱";
+    case "not_found": return "Postingan tidak ditemukan 🌱";
+    case "unknown_action": return "Server belum diperbarui (fungsi tof-vault perlu di-deploy ulang).";
+    case "network": return "Koneksi bermasalah, coba lagi ya 🌱";
+    default: return "Gagal: " + ((res && res.error) || "tidak diketahui");
+  }
+}
+
 // 🟢 SISIPAN: simpan teks asli tiap postingan di memori, supaya tombol Edit tidak bergantung pada teks di dalam atribut HTML
 const userPostTextMap = {};
 
@@ -1191,6 +1219,18 @@ async function reactPost(postId, type) {
   reacting = true; 
 
   try {
+    // 🟢 SISIPAN: jalur server (tof-vault) — pemilik karya & duplikat reaksi diperiksa di server
+    if (PAKAI_SERVER_POSTING) {
+      const resSrv = await panggilVaultProfil("post_react", { profile_id: currentWallet, token: ambilTokenSesiPost(), post_id: postId, type });
+      if (!resSrv.ok) { alert(pesanPosting(resSrv)); return; }
+      const kartuSrv = document.getElementById(`post-card-${postId}`);
+      const ySrv = kartuSrv ? kartuSrv.getBoundingClientRect().top + window.scrollY : 0;
+      await loadUserPosts();
+      if (ySrv) window.scrollTo({ top: ySrv - 40, behavior: "auto" });
+      return; // finally tetap membuka gembok
+    }
+    // 🟢 AKHIR SISIPAN
+
     const { data: post, error: fetchErr } = await supabaseClient
       .from("contributions")
       .select("*")
@@ -1616,6 +1656,16 @@ async function aksiEditPostingan(postId, teksLama) {
   const teksBaru = await bukaEditorPostingan(teksLama, "✏️ Edit catatan karya Anda"); // 🟢 SISIPAN: multi-baris
   if (teksBaru === null) return; 
   if (!teksBaru.trim()) return alert("Catatan tidak boleh kosong 🌱");
+
+  // 🟢 SISIPAN: jalur server (tof-vault) — kepemilikan postingan diperiksa di server
+  if (PAKAI_SERVER_POSTING) {
+    const resSrv = await panggilVaultProfil("post_edit", { profile_id: currentWallet, token: ambilTokenSesiPost(), post_id: postId, teks: teksBaru });
+    if (!resSrv.ok) return alert(pesanPosting(resSrv));
+    alert("Postingan berhasil diperbarui! 🌿");
+    if (typeof loadUserPosts === "function") loadUserPosts();
+    return;
+  }
+  // 🟢 AKHIR SISIPAN
 
   const { data: hasilEdit, error } = await supabaseClient
     .from("contributions")
