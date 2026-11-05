@@ -888,13 +888,13 @@ let userPostAllLoaded = false;
 // 🟢 SISIPAN: SAKLAR hitung angka sruput/cangkul.
 // false = angka dinaikkan oleh kode ini (cara lama).
 // true  = angka dinaikkan oleh trigger database 'trg_reactions_hitung' (ubah ke true SETELAH SQL trigger dijalankan).
-const HITUNG_REAKSI_DI_DATABASE = false;
+const HITUNG_REAKSI_DI_DATABASE = true;
 
 // 🟢 SISIPAN: SAKLAR jalur server untuk reaksi & edit postingan (lewat Edge Function tof-vault).
 // false = langsung ke database dari browser (cara lama).
 // true  = lewat tof-vault: pemilik postingan, batas 1 reaksi/akun, dan sesi login diperiksa di SERVER.
 // Ubah ke true SETELAH tof-vault diperbarui (aksi post_react & post_edit) dan trigger reaksi aktif.
-const PAKAI_SERVER_POSTING = false;
+const PAKAI_SERVER_POSTING = true;
 
 function ambilTokenSesiPost() {
   try {
