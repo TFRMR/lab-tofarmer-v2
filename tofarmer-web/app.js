@@ -2038,6 +2038,7 @@ async function renderPostsBatch(posts, feed) {
     const postComments = comments.filter(c => c && String(c.post_id).trim() === String(item.id).trim());
     const date = new Date(item.created_at).toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const safeText = (item.deskripsi_proses || "").replace(/`/g, "\\`").replace(/\$/g, "\\$");
+    feedPostTextMap[item.id] = item.deskripsi_proses || ""; // 🟢 SISIPAN
 
     // KUNCI FB: Cek apakah postingan ini milik user yang sedang login sekarang
     const isMyPost = item.profiles?.id === currentWallet;
@@ -2406,6 +2407,9 @@ async function sendComment(postId) {
   }
 }
 
+// 🟢 SISIPAN: teks asli tiap postingan beranda (utuh, termasuk link video) untuk kotak edit
+const feedPostTextMap = {};
+
 let isReactingFeed = false; // <-- Ini gembok pengamannya
 
 async function reactPost(postId, type) {
@@ -2591,9 +2595,61 @@ window.addEventListener('click', function(e) {
     // Ambil teks asli dari elemen .text di dalam card
     const tekstEl = card.querySelector('.text');
     const teksLama = tekstEl ? (tekstEl.innerText || tekstEl.textContent || "") : "";
-    aksiEditPostingan(postId, teksLama);
+    aksiEditPostingan(postId, feedPostTextMap[postId] !== undefined ? feedPostTextMap[postId] : teksLama); // 🟢 SISIPAN: pakai teks asli (link video tidak hilang)
   }
 });
+
+// 🟢 SISIPAN: KOTAK EDIT MULTI-BARIS (pengganti prompt() satu baris)
+// Mengembalikan teks baru, atau null jika dibatalkan.
+function bukaEditorPostingan(teksLama, judul) {
+  return new Promise((resolve) => {
+    const lama = document.getElementById("tof-edit-modal");
+    if (lama) lama.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "tof-edit-modal";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;";
+
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.25);overflow:hidden;">
+        <div style="padding:14px 16px;border-bottom:1px solid #e4e6eb;font-weight:700;font-size:14px;color:#2f6f4e;">${judul || "✏️ Edit Postingan"}</div>
+        <div style="padding:14px 16px;flex:1;overflow:auto;">
+          <textarea id="tof-edit-textarea" rows="10" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:10px;font-size:13px;line-height:1.6;font-family:inherit;resize:vertical;min-height:160px;max-height:55vh;"></textarea>
+          <div style="font-size:11px;color:#9aa5a0;margin-top:6px;">Enter = baris baru · Ctrl+Enter = simpan · Esc = batal</div>
+        </div>
+        <div style="padding:12px 16px;border-top:1px solid #e4e6eb;display:flex;gap:8px;justify-content:flex-end;">
+          <button type="button" id="tof-edit-batal" style="padding:8px 16px;border-radius:10px;border:1px solid #ddd;background:#fff;color:#444;font-size:13px;cursor:pointer;">Batal</button>
+          <button type="button" id="tof-edit-simpan" style="padding:8px 18px;border-radius:10px;border:none;background:#2f6f4e;color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Simpan</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const ta = overlay.querySelector("#tof-edit-textarea");
+    ta.value = teksLama || ""; // lewat .value agar tanda kutip/HTML di teks aman
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+
+    let selesai = false;
+    const tutup = (hasil) => {
+      if (selesai) return;
+      selesai = true;
+      document.removeEventListener("keydown", onKey, true);
+      overlay.remove();
+      resolve(hasil);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); tutup(null); }
+      else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); tutup(ta.value); }
+    };
+    document.addEventListener("keydown", onKey, true);
+
+    overlay.querySelector("#tof-edit-batal").onclick = () => tutup(null);
+    overlay.querySelector("#tof-edit-simpan").onclick = () => tutup(ta.value);
+    // klik area gelap sengaja TIDAK menutup, agar teks yang sedang diketik tidak hilang tak sengaja
+  });
+}
+// 🟢 AKHIR SISIPAN
 
 async function aksiEditPostingan(postId, teksLama) {
   if (!currentWallet) {
@@ -2601,7 +2657,8 @@ async function aksiEditPostingan(postId, teksLama) {
     return;
   }
 
-  const teksBaru = prompt("Edit postingan Anda:", teksLama);
+  // const teksBaru = prompt("Edit postingan Anda:", teksLama); // (lama, satu baris)
+  const teksBaru = await bukaEditorPostingan(teksLama, "✏️ Edit postingan Anda"); // 🟢 SISIPAN: multi-baris
   if (teksBaru === null) return;
   if (!teksBaru.trim()) return alert("Teks tidak boleh kosong!");
 
