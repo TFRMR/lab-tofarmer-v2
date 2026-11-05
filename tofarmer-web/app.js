@@ -2418,11 +2418,51 @@ async function reactPost(postId, type) {
   isReactingFeed = true;      // <-- Kunci pintu!
 
   try {
+    // 🟢 SISIPAN: satu akun hanya boleh satu apresiasi per karya, dan tidak boleh di karya sendiri
+    const { data: postRow } = await supabaseClient
+      .from("contributions")
+      .select("user_id, sruput_count, cangkul_count")
+      .eq("id", postId)
+      .single();
+
+    if (postRow && postRow.user_id === currentWallet) {
+      alert("Tidak bisa reaction di karya sendiri 😄");
+      return; // finally tetap membuka gembok
+    }
+
+    const { data: existing } = await supabaseClient
+      .from("reactions")
+      .select("id")
+      .eq("post_id", postId)
+      .eq("user_id", currentWallet)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      alert("Anda sudah memberikan apresiasi pada karya ini 🌱");
+      return;
+    }
+
+    const { error: insertErr } = await supabaseClient
+      .from("reactions")
+      .insert([{ post_id: postId, user_id: currentWallet, type }]);
+
+    if (insertErr) {
+      console.log("Gagal mencatat reaksi (kemungkinan sudah ada):", insertErr.message);
+      return;
+    }
+    // 🟢 AKHIR SISIPAN
+
     const { error } = await supabaseClient
       .rpc(type === 'sruput' ? 'increment_sruput' : 'increment_cangkul', { row_id: postId });
 
     if (error) {
       console.log("RPC gagal, mencoba metode update alternatif...");
+      // 🟢 SISIPAN: metode alternatif yang sebelumnya hanya berupa log
+      const kolom = type === 'sruput' ? 'sruput_count' : 'cangkul_count';
+      await supabaseClient
+        .from("contributions")
+        .update({ [kolom]: ((postRow && postRow[kolom]) || 0) + 1 })
+        .eq("id", postId);
     }
 
     // A. KUNCI KOORDINAT LAYAR

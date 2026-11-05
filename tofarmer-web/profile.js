@@ -885,6 +885,8 @@ let userPostPage = 0;
 const USER_POST_PAGE_SIZE = 5;
 let userPostLoading = false;
 let userPostAllLoaded = false;
+// 🟢 SISIPAN: simpan teks asli tiap postingan di memori, supaya tombol Edit tidak bergantung pada teks di dalam atribut HTML
+const userPostTextMap = {};
 
 function initUserPostScroll() {
   window.addEventListener("scroll", () => {
@@ -1113,6 +1115,7 @@ function renderUserPostsBatch(data, box) {
     const currentUsername = profileUsername || "Petani";
     const isMyPost = currentWallet === targetProfileId;
     const videoEmbeds = generateAllVideoEmbeds(post.deskripsi_proses || "");
+    userPostTextMap[post.id] = post.deskripsi_proses || ""; // 🟢 SISIPAN
 
     const div = document.createElement("div");
     div.id = `post-card-${post.id}`;
@@ -1127,7 +1130,7 @@ function renderUserPostsBatch(data, box) {
         <div class="post-menu-container" style="position: relative; display: inline-block;">
           <button class="btn-dot-menu" onclick="toggleDotMenu('${post.id}')" style="background:none; border:none; color:#65676b; font-size:16px; cursor:pointer; padding:2px 6px;">•••</button>
           <div class="dot-dropdown" id="dropdown-${post.id}" style="display:none; position:absolute; right:0; top:20px; background:white; box-shadow:0 2px 12px rgba(0,0,0,0.15); border-radius:8px; z-index:100; min-width:160px; border:1px solid #e4e6eb; padding:4px 0;">
-            <button onclick="aksiEditPostingan('${post.id}', \`${safeText}\`)" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
+            <button onclick="aksiEditPostingan('${post.id}', userPostTextMap['${post.id}'])" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">✏️ Edit Postingan</button>
             <button onclick="aksiKembalikanKeBeranda('${post.id}')" style="width:100%; text-align:left; background:none; border:none; padding:8px 12px; font-size:12px; color:#050505; cursor:pointer;">🌍 Tampilkan di Beranda</button>
           </div>
         </div>
@@ -1202,9 +1205,9 @@ async function reactPost(postId, type) {
       .select("*")
       .eq("post_id", postId)
       .eq("user_id", currentWallet)
-      .maybeSingle();
+      .limit(1); // 🟢 PERBAIKAN: maybeSingle() error kalau sudah ada >1 baris, sehingga dianggap "belum pernah"
 
-    if (existing) {
+    if (existing && existing.length > 0) {
       alert("Anda sudah memberikan apresiasi pada karya ini 🌱");
       reacting = false;
       return;
@@ -1555,13 +1558,18 @@ async function aksiEditPostingan(postId, teksLama) {
   if (teksBaru === null) return; 
   if (!teksBaru.trim()) return alert("Catatan tidak boleh kosong 🌱");
 
-  const { error } = await supabaseClient
+  const { data: hasilEdit, error } = await supabaseClient
     .from("contributions")
     .update({ deskripsi_proses: teksBaru.trim() })
-    .eq("id", postId);
+    .eq("id", postId)
+    .eq("user_id", currentWallet)
+    .select(); // 🟢 SISIPAN: minta baris hasil update supaya bisa dicek benar-benar berubah
 
   if (error) {
     alert("Gagal memperbarui postingan: " + error.message);
+  } else if (!hasilEdit || hasilEdit.length === 0) {
+    // 🟢 SISIPAN: update "sukses" tapi 0 baris berubah (biasanya diblokir kebijakan RLS Supabase)
+    alert("Postingan tidak berubah. Periksa izin UPDATE (RLS) tabel contributions di Supabase 🌱");
   } else {
     alert("Postingan berhasil diperbarui! 🌿");
     if (typeof loadUserPosts === "function") loadUserPosts(); 
