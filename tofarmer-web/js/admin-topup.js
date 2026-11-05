@@ -1300,6 +1300,60 @@
     });
   }
 
+  // ---------- QRIS bernominal otomatis: pemeriksaan gambar dan uji ----------
+  // Anggota melihat QRIS yang nominalnya sudah terisi (dibuat dari gambar QRIS statis di bawah). Bagian ini memeriksa
+  // apakah gambar yang disimpan bisa dibaca, dan menyediakan QR uji untuk dipindai sebelum dipakai anggota.
+  let _qrisAlatAdm = null;
+  function muatAlatQris() {
+    if (!_qrisAlatAdm) {
+      _qrisAlatAdm = new Promise((res, rej) => {
+        if (window.TofQris) return res();
+        const sk = document.createElement("script");
+        sk.src = "/js/tof-qris.js"; sk.onload = res; sk.onerror = () => rej(new Error("tof-qris.js tidak termuat"));
+        document.head.appendChild(sk);
+      }).catch((e) => { _qrisAlatAdm = null; throw e; });
+    }
+    return _qrisAlatAdm;
+  }
+  function fileKeUrl(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader(); fr.onerror = () => reject(new Error("Gagal membaca gambar")); fr.onload = () => resolve(String(fr.result)); fr.readAsDataURL(file);
+    });
+  }
+  async function periksaQrisAdmin(file, srcSimpan, kotak) {
+    const set = (ok, teks) => { kotak.style.color = ok ? "#1f6b3d" : "#8a5a00"; kotak.textContent = teks; };
+    kotak.style.color = ""; kotak.textContent = "Memeriksa QRIS…";
+    try {
+      await muatAlatQris();
+      let simpan = null, asli = null;
+      try { simpan = await window.TofQris.periksaGambar(srcSimpan); } catch (e) { /* tidak terbaca */ }
+      if (!simpan && file) { try { asli = await window.TofQris.periksaGambar(await fileKeUrl(file)); } catch (e) { /* tidak terbaca */ } }
+      if (simpan && simpan.bisaBernominal) set(true, "✔ QRIS terbaca: " + simpan.nama + " · " + simpan.kota + ". Nominal tagihan akan otomatis terisi di QRIS yang dilihat anggota. Coba dulu lewat “Tampilkan QR uji” di bawah sebelum dibuka ke anggota.");
+      else if (simpan) set(false, "⚠ Ini QRIS yang sudah bernominal (dinamis). Unggah QRIS statis. Selama ini yang dipakai, anggota tetap melihat gambar apa adanya dan mengetik nominal sendiri.");
+      else if (asli) set(false, "⚠ QR terbaca di gambar asli, tetapi tidak terbaca setelah gambar dikecilkan untuk disimpan. Anggota tetap melihat gambar statis. Coba gambar yang QR-nya lebih besar atau potong di sekitar QR.");
+      else set(false, "⚠ QR tidak terbaca di gambar ini. Anggota tetap melihat gambar statis dan mengetik nominal sendiri.");
+    } catch (e) { set(false, "Pemeriksaan QRIS tidak bisa dijalankan: " + e.message + " (anggota tetap memakai QRIS statis)."); }
+  }
+  function kotakUjiQris(ambilSrc) {
+    const nominal = el("input", { class: "inp", id: "ujiNominal", inputmode: "numeric", placeholder: "Nominal uji (Rp), mis. 1001", autocomplete: "off" });
+    const hasil = el("div", { class: "tengah", id: "ujiHasil" });
+    const tombol = el("button", { class: "btn", type: "button", id: "btnUjiQris", text: "Tampilkan QR uji", onclick: async () => {
+      hasil.replaceChildren();
+      const n = Number(String(nominal.value).replace(/\D/g, ""));
+      if (!Number.isInteger(n) || n < 1) { hasil.append(el("div", { class: "galat", text: "Isi nominal uji (angka rupiah)." })); return; }
+      const src = ambilSrc();
+      if (!src) { hasil.append(el("div", { class: "galat", text: "Belum ada gambar QRIS." })); return; }
+      try {
+        await muatAlatQris();
+        const h = await window.TofQris.bernominal(src, n);
+        hasil.append(
+          el("img", { class: "qris-prev", id: "ujiGambar", alt: "QR uji", src: h.gambar, style: "max-width:260px;" }),
+          el("div", { class: "kecil", text: "Pindai dengan e-wallet atau m-banking lain. Yang harus muncul: nama merchant \"" + h.info.nama + "\" dan nominal Rp " + fmtRp(n) + " sudah terisi dan tidak bisa diubah. Bila kamu benar-benar membayar, uangnya masuk ke kas QRIS ini seperti pembayaran biasa." }));
+      } catch (e) { hasil.append(el("div", { class: "galat", text: "QR uji gagal dibuat: " + e.message })); }
+    } });
+    return el("div", { class: "card", style: "margin-top:8px;" }, el("div", { class: "kecil", style: "font-weight:700;color:#1c2b22;", text: "Uji QRIS bernominal" }), el("label", { class: "lbl", for: "ujiNominal", text: "Nominal uji" }), nominal, tombol, hasil);
+  }
+
   async function muatPengaturan() {
     const res = await adm("admin_pengaturan_ambil");
     const konten = $("konten");
@@ -1341,11 +1395,12 @@
     const prev = el("img", { class: "qris-prev", id: "prevQris", alt: "QRIS", hidden: !p.qris, src: p.qris || undefined });
     const galat = el("div", { class: "galat", id: "galatSet" });
     const ok = el("div", { class: "kecil", id: "okSet", style: "color:#1f6b3d;" });
+    const qrisCek = el("div", { class: "kecil", id: "qrisCek" });
     f.file.onchange = async () => {
       galat.textContent = "";
       const file = f.file.files && f.file.files[0];
       if (!file) return;
-      try { state.qrisBaru = await bacaQris(file); prev.src = state.qrisBaru; prev.hidden = false; }
+      try { state.qrisBaru = await bacaQris(file); prev.src = state.qrisBaru; prev.hidden = false; periksaQrisAdmin(file, state.qrisBaru, qrisCek); }
       catch (e) { galat.textContent = e.message; }
     };
     const simpan = el("button", { class: "btn utama", id: "btnSimpanSet", type: "button", text: "Simpan pengaturan", onclick: async () => {
@@ -1407,6 +1462,11 @@
       el("label", { class: "lbl", for: "setBatasHarian", text: "Batas total per 24 jam (TOF)" }), f.bHarian,
       el("div", { class: "kecil", text: "Isi dompet pembayar secukupnya saja. Kerugian terburuk bila ada penyalahgunaan dibatasi oleh isi dompet itu dan batas harian ini." }),
       galat, ok, simpan));
+    // QRIS bernominal: hasil pemeriksaan gambar + QR uji, ditempatkan tepat di bawah pratinjau QRIS
+    const kotakUji = kotakUjiQris(() => state.qrisBaru || p.qris);
+    prev.insertAdjacentElement("afterend", kotakUji);
+    prev.insertAdjacentElement("afterend", qrisCek);
+    if (p.qris) periksaQrisAdmin(null, p.qris, qrisCek);
   }
 
   // ---------------- Reset PIN (anggota lupa PIN) ----------------

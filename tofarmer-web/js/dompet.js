@@ -74,6 +74,39 @@
     toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
   }
 
+  // ---------- QRIS bernominal otomatis ----------
+  // Nominal tagihan (sudah termasuk kode unik) ditanam di kode QRIS, jadi anggota tidak perlu mengetik jumlah di aplikasi pembayaran.
+  // Gambar QRIS statis yang sudah ada dibaca (oleh /js/tof-qris.js), lalu dibuat QR baru yang memuat nominal.
+  // Bila gagal karena sebab apa pun, gambar QRIS statis tetap tampil dan anggota mengetik nominal seperti biasa.
+  // Ubah ke false bila ingin kembali memakai QRIS statis saja.
+  const QRIS_NOMINAL_OTOMATIS = true;
+  let _qrisAlat = null;
+  function muatAlatQris() {
+    if (!_qrisAlat) {
+      _qrisAlat = new Promise((res, rej) => {
+        if (window.TofQris) return res();
+        const sk = document.createElement("script");
+        sk.src = "/js/tof-qris.js"; sk.onload = res; sk.onerror = () => rej(new Error("tof-qris.js tidak termuat"));
+        document.head.appendChild(sk);
+      }).catch((e) => { _qrisAlat = null; throw e; });
+    }
+    return _qrisAlat;
+  }
+  function qrisOtomatis(idGambar, idTombol, nominal, info, namaUnduh) {
+    const img = $(idGambar);
+    const n = Number(nominal);
+    if (!QRIS_NOMINAL_OTOMATIS || !img || !info || !info.qris || !Number.isInteger(n) || n < 1) return;
+    const tombol = idTombol ? $(idTombol) : null;
+    const notif = el("div", { class: "kecil abu tengah", id: idGambar + "Notif", text: "Menyiapkan QRIS dengan nominal otomatis…" });
+    (tombol && tombol.parentNode ? tombol.parentNode : img).insertAdjacentElement("afterend", notif);
+    muatAlatQris().then(() => window.TofQris.bernominal(info.qris, n)).then((h) => {
+      if (!document.body.contains(img)) return;
+      img.src = h.gambar;
+      if (tombol) tombol.onclick = () => unduhQris(h.gambar, namaUnduh);
+      notif.textContent = "✔ Nominal Rp " + fmtRp(n) + " sudah terisi otomatis di QRIS ini. Cukup scan, cek jumlahnya, lalu bayar.";
+    }).catch(() => { notif.textContent = "Scan QRIS di atas, lalu ketik nominal PERSIS sesuai jumlah di bawah."; });
+  }
+
   // Mengunduh gambar QRIS supaya bisa dibuka dari galeri dan dipindai e-wallet (tanpa tangkapan layar manual).
   // Android/komputer: unduh langsung. iPhone/iPad: lembar bagikan ("Simpan Gambar" ke Foto) bila tersedia.
   async function unduhQris(src, nama) {
@@ -1233,6 +1266,7 @@
     }
     anak.push(el("button", { class: "btn " + (aktif && tp.status !== "menunggu" ? "utama" : "teks"), id: "btnTutupTagihan", text: aktif && tp.status !== "menunggu" ? "Selesai" : "Tutup", onclick: s.tutup }));
     s.ganti(anak);
+    if (aktif && info.qris) qrisOtomatis("gambarQris", "btnUnduhQris", tp.total_rp, info, "QRIS-ToFarmer-Nabung");
   }
 
   function tampilRiwayatNabung(s, info, sesi, daftar) {
@@ -1817,6 +1851,7 @@
       } }) : null,
       el("button", { class: "btn teks", id: "btnTutupBayarPinjam", text: "Tutup", onclick: s.tutup })
     );
+    if (!sudahBayar && info.qris) qrisOtomatis("gambarQrisPinjam", "btnUnduhQrisPinjam", q.total_bayar_rp, info, "QRIS-ToFarmer-Pelunasan");
   }
 
   // ---------------- [CICILAN] Bayar pinjaman (boleh dicicil) ----------------
@@ -1972,6 +2007,7 @@
       } }) : null,
       el("button", { class: "btn teks", id: "btnTutupBayarCicilan", text: "Tutup", onclick: s.tutup })
     );
+    if (!sudahBayar && info.qris) qrisOtomatis("gambarQrisCicilan", "btnUnduhQrisCicilan", q.total_bayar_rp, info, "QRIS-ToFarmer-Cicilan");
   }
 
   // Pop-up tagihan: muncul setiap Dompet dibuka selama pinjaman sudah jatuh tempo (atau ditagih pengurus) dan belum lunas.
