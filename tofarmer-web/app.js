@@ -2407,6 +2407,11 @@ async function sendComment(postId) {
   }
 }
 
+// 🟢 SISIPAN: SAKLAR hitung angka sruput/cangkul.
+// false = angka dinaikkan oleh kode ini (cara lama).
+// true  = angka dinaikkan oleh trigger database 'trg_reactions_hitung' (ubah ke true SETELAH SQL trigger dijalankan).
+const HITUNG_REAKSI_DI_DATABASE = false;
+
 // 🟢 SISIPAN: teks asli tiap postingan beranda (utuh, termasuk link video) untuk kotak edit
 const feedPostTextMap = {};
 
@@ -2456,7 +2461,8 @@ async function reactPost(postId, type) {
     }
     // 🟢 AKHIR SISIPAN
 
-    const { error } = await supabaseClient
+    // 🟢 SISIPAN: bila trigger database yang menghitung, lewati RPC (error dibuat null)
+    const { error } = HITUNG_REAKSI_DI_DATABASE ? { error: null } : await supabaseClient
       .rpc(type === 'sruput' ? 'increment_sruput' : 'increment_cangkul', { row_id: postId });
 
     if (error) {

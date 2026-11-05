@@ -885,6 +885,11 @@ let userPostPage = 0;
 const USER_POST_PAGE_SIZE = 5;
 let userPostLoading = false;
 let userPostAllLoaded = false;
+// 🟢 SISIPAN: SAKLAR hitung angka sruput/cangkul.
+// false = angka dinaikkan oleh kode ini (cara lama).
+// true  = angka dinaikkan oleh trigger database 'trg_reactions_hitung' (ubah ke true SETELAH SQL trigger dijalankan).
+const HITUNG_REAKSI_DI_DATABASE = false;
+
 // 🟢 SISIPAN: simpan teks asli tiap postingan di memori, supaya tombol Edit tidak bergantung pada teks di dalam atribut HTML
 const userPostTextMap = {};
 
@@ -1223,6 +1228,7 @@ async function reactPost(postId, type) {
       return;
     }
 
+    if (!HITUNG_REAKSI_DI_DATABASE) // 🟢 SISIPAN: dilewati bila trigger database yang menghitung
     await supabaseClient
       .from("contributions")
       .update({
