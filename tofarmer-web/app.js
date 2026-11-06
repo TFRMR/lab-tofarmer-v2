@@ -2440,6 +2440,11 @@ function pesanPosting(res) {
   }
 }
 
+// 🟢 SISIPAN: SAKLAR kartu "Peringkat Energi dan Kontribusi ToFarmer" di Beranda.
+// false = kartu disembunyikan dan data peringkat TIDAK diambil dari database (tampilan lebih bersih, lebih hemat).
+// true  = kartu tampil seperti dulu.
+const TAMPILKAN_RADAR_PERINGKAT = false;
+
 // 🟢 SISIPAN: SAKLAR perbarui kartu di tempat (tanpa memuat ulang seluruh feed).
 // true  = sruput/cangkul, edit teks, dan sembunyikan hanya mengubah KARTU yang bersangkutan, posisi scroll tidak berubah.
 // false = cara lama: loadFeed() menggambar ulang feed dari halaman pertama (layar bisa terlempar ke atas).
@@ -2599,6 +2604,16 @@ function sharePost(postId, username, text) {
 async function loadRadarPeringkat() {
   const wadahRadar = document.getElementById("radar-peringkat-list");
   if (!wadahRadar) return;
+
+  // 🟢 SISIPAN: bila saklar mati, sembunyikan HANYA daftar peringkat dan subjudulnya (QLR Radar di kartu yang sama tetap tampil),
+  // lalu berhenti; tidak ada kueri ke database.
+  if (!TAMPILKAN_RADAR_PERINGKAT) {
+    const subjudul = wadahRadar.previousElementSibling;
+    if (subjudul && (subjudul.textContent || "").includes("Peringkat Energi")) subjudul.style.display = "none";
+    wadahRadar.style.display = "none";
+    return;
+  }
+  // 🟢 AKHIR SISIPAN
 
   try {
     // 🟢 SUDAH FIX: diganti menjadi 'supabaseClient'
