@@ -407,6 +407,9 @@ export interface Repo {
   insertReaksi(postId: string | number, userId: string, type: string): Promise<"ok" | "duplicate" | "error">;
   // ---- 🟢 SISIPAN [SUSULAN]: persetujuan susulan untuk pinjaman lama (dibuat sebelum ada persetujuan potong otomatis) ----
   setujuiPinjamanLama(profileId: string, nowIso: string, versi: number, tenggang: number): Promise<number>;
+  // ---- 🟢 SISIPAN [SALDO]: salinan saldo TOF (kolom profiles.saldo_tof) yang disegarkan dari blockchain oleh server ----
+  listProfilSaldo(): Promise<{ id: string; saldo_tof: number | null }[]>;
+  setSaldoTof(id: string, saldo: number): Promise<void>;
 }
 
 export interface TarikRow {
@@ -3467,6 +3470,51 @@ async function handlePosting(action: unknown, body: Row, d: Deps): Promise<Res> 
     }
 
     default:
+      return await handleSaldo(action, body, d); // 🟢 SISIPAN [SALDO]: diteruskan; tetap berujung unknown_action
+  }
+}
+// 🟢 AKHIR SISIPAN
+
+// ============================================================
+// 🟢 SISIPAN [SALDO] — Segarkan salinan saldo TOF semua anggota (profiles.saldo_tof) dari blockchain, SEKALI untuk semua.
+//  Dipakai Radar QLR (dan bisa dipakai total aset/peringkat) supaya pengunjung tidak lagi menanyai blockchain satu per satu.
+//  - Tanpa PIN/sesi: hanya membaca data publik blockchain, lalu menulis lewat service role di server.
+//  - Dibatasi waktu: paling cepat sekali per SALDO_SNAPSHOT_MENIT menit (stempel disimpan di app_settings: saldo_snapshot_pada),
+//    jadi dipanggil berapa kali pun hanya satu putaran yang berjalan.
+//  - Pembacaan paralel per 10 akun; akun yang gagal dibaca dibiarkan memakai nilai lama.
+// ============================================================
+const SALDO_SNAPSHOT_MENIT = 10;
+
+async function handleSaldo(action: unknown, body: Row, d: Deps): Promise<Res> {
+  switch (action) {
+    case "saldo_segarkan": {
+      if (!d.chain) return fail("chain_tidak_tersedia");
+      const sekarang = d.now();
+      const st = await d.repo.getSettings();
+      const terakhir = typeof st.saldo_snapshot_pada === "string" ? Date.parse(st.saldo_snapshot_pada) : 0;
+      if (terakhir && sekarang - terakhir < SALDO_SNAPSHOT_MENIT * 60000) {
+        return ok({ disegarkan: false, diperbarui_pada: new Date(terakhir).toISOString() });
+      }
+      // klaim dulu (stempel waktu) supaya panggilan bersamaan tidak ikut menjalankan putaran yang sama
+      await d.repo.saveSettings({ saldo_snapshot_pada: iso(sekarang) }, (d.adminIds || [])[0] || "sistem");
+      const daftar = await d.repo.listProfilSaldo();
+      let berubah = 0, gagal = 0;
+      for (let i = 0; i < daftar.length; i += 10) {
+        await Promise.all(daftar.slice(i, i + 10).map(async (p) => {
+          try {
+            const ac = await d.chain!.getAccount(p.id);
+            const saldo = Number(ac.tof) / 1e6;
+            if (Number(p.saldo_tof ?? 0) !== saldo) { await d.repo.setSaldoTof(p.id, saldo); berubah++; }
+          } catch (e) {
+            console.error("saldo_segarkan " + p.id + ":", e);
+            gagal++;
+          }
+        }));
+      }
+      return ok({ disegarkan: true, diperbarui_pada: iso(sekarang), jumlah: daftar.length, berubah, gagal });
+    }
+
+    default:
       return fail("unknown_action");
   }
 }
@@ -3540,6 +3588,7 @@ function itemBatch(r: TopupRow, nomor: number, nama: Map<string, string>) {
 //          + topup_* | tarik_* | admin_* (Nabung & Tarik) + pinjam_* | admin_pinjam_* (Pinjam ke diri sendiri)
 //          + dividen_* | admin_dividen_* (Dividen positif/negatif) + tugas_* | admin_tugas_* | kontak_status (Tugas)
 //          + post_react | post_edit (Posting: reaksi sruput/cangkul & edit teks, pakai token sesi)   <- 🟢 SISIPAN
+//          + saldo_segarkan (menyegarkan profiles.saldo_tof semua anggota dari blockchain, dibatasi 1x/10 menit)   <- 🟢 SISIPAN
 // Semua balasan HTTP 200 dengan JSON { ok: boolean, ... }.
 //
 // Secrets yang harus di-set (supabase secrets set ...):
@@ -4001,6 +4050,15 @@ const repo: Repo = {
     const rows = must(await db.from("pinjaman").update({ setuju_pada: nowIso, setuju_versi: versi, tenggang_hari: tenggang })
       .eq("profile_id", profileId).in("status", ["aktif", "dibayar"]).is("setuju_pada", null).select("id")) as { id: string }[] | null;
     return rows ? rows.length : 0;
+  },
+  // 🟢 AKHIR SISIPAN
+
+  // 🟢 SISIPAN [SALDO]
+  async listProfilSaldo() {
+    return must(await db.from("profiles").select("id,saldo_tof").limit(2000)) as { id: string; saldo_tof: number | null }[];
+  },
+  async setSaldoTof(id, saldo) {
+    must(await db.from("profiles").update({ saldo_tof: saldo }).eq("id", id));
   },
   // 🟢 AKHIR SISIPAN
 

@@ -4,6 +4,12 @@ const WALLET_DIKECUALIKAN_DARI_RADAR = "R6QSHNSCY4HBQBH4UTSBJOJZTQTHCHW4IDQVXRVK
 
 const container = document.getElementById("qlrContainer");
 
+// 🟢 SISIPAN: SAKLAR sumber data radar.
+// true  = baca saldo dari kolom profiles.saldo_tof (satu kueri, tampil seketika), lalu minta server (tof-vault: saldo_segarkan)
+//         menyegarkan saldo semua anggota dari blockchain di latar belakang (paling cepat 1x/10 menit untuk SEMUA pengunjung).
+// false = cara lama: tanya blockchain satu per satu setiap kali halaman dibuka.
+const PAKAI_SNAPSHOT_SALDO = true;
+
 // Variabel state global untuk menyimpan data radar & status lipat
 let globalUserList = [];
 let isExpanded = false;
@@ -216,11 +222,53 @@ function drawRadarItems() {
   }
 }
 
+// ========================================================
+// 🟢 SISIPAN: RADAR DARI SALINAN SALDO (profiles.saldo_tof)
+// ========================================================
+async function muatDaftarDariSnapshot() {
+  const { data, error } = await supabaseClient
+    .from("profiles")
+    .select("id, username, saldo_tof");
+  if (error || !data) return null;
+
+  const daftar = [];
+  for (const u of data) {
+    if (u.id === WALLET_DIKECUALIKAN_DARI_RADAR) continue; // dompet yang dikecualikan tetap tidak ikut
+    const balance = Number(u.saldo_tof) || 0;
+    daftar.push({ username: u.username || u.id, balance: balance, months: calcMonths(balance) });
+  }
+  daftar.sort((a, b) => b.balance - a.balance);
+  return daftar;
+}
+
+// Mengembalikan true bila radar berhasil digambar dari salinan; false -> pakai cara lama (blockchain langsung)
+async function renderQLRDariSnapshot() {
+  const daftar = await muatDaftarDariSnapshot();
+  if (!daftar) return false;
+  globalUserList = daftar;
+  drawRadarItems();
+
+  // Minta server menyegarkan salinan saldo; bila memang menjalankan putaran baru, gambar ulang dengan angka terbaru.
+  try {
+    const { data } = await supabaseClient.functions.invoke("tof-vault", { body: { action: "saldo_segarkan" } });
+    if (data && data.ok && data.disegarkan && data.berubah > 0) {
+      const baru = await muatDaftarDariSnapshot();
+      if (baru) { globalUserList = baru; drawRadarItems(); }
+    }
+  } catch (e) {
+    // tof-vault belum diperbarui / jaringan bermasalah: radar tetap tampil dari salinan yang ada
+  }
+  return true;
+}
+
 // =========================
 // AMBIL DATA AWAL RADAR
 // =========================
 async function renderQLR() {
   container.innerHTML = "<div style='font-size:11px; color:#6f7f76; text-align:center; padding:10px;'>Menghitung radar ladang... 🌿</div>";
+
+  // 🟢 SISIPAN: jalur cepat dari salinan saldo; bila gagal, lanjut ke cara lama di bawah
+  if (PAKAI_SNAPSHOT_SALDO && await renderQLRDariSnapshot()) return;
 
   const users = await getAllWallets();
   globalUserList = []; // Reset ulang wadah data global
