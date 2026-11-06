@@ -400,6 +400,11 @@ export interface Repo {
   upsertKontak(profileId: string, patch: Record<string, unknown>): Promise<void>;
   listKontak(): Promise<KontakRow[]>;
   listDividenItemStatus(status: string): Promise<DividenItemRow[]>;
+  // ---- 🟢 SISIPAN: Posting (reaksi sruput/cangkul & edit teks) ----
+  getKontribusi(id: string | number): Promise<{ id: string | number; user_id: string } | null>;
+  updateKontribusiTeks(id: string | number, userId: string, teks: string): Promise<boolean>;
+  cariReaksi(postId: string | number, userId: string): Promise<boolean>;
+  insertReaksi(postId: string | number, userId: string, type: string): Promise<"ok" | "duplicate" | "error">;
 }
 
 export interface TarikRow {
@@ -3380,9 +3385,66 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
     }
 
     default:
+      return await handlePosting(action, body, d); // 🟢 SISIPAN [UBAH]: sebelumnya `return fail("unknown_action");` — kini diteruskan ke handlePosting, yang tetap berujung unknown_action
+  }
+}
+
+// ============================================================
+// 🟢 SISIPAN — POSTING: reaksi (sruput/cangkul) dan edit teks, diperiksa di SERVER.
+//  - Identitas = token sesi bertanda tangan (authSesi), bukan sekadar profile_id dari browser.
+//  - Reaksi: satu akun satu reaksi per karya (indeks unik di DB menutup balapan klik), tidak boleh di karya sendiri.
+//  - Angka sruput/cangkul dinaikkan oleh trigger database 'trg_reactions_hitung' (lihat reactions_trigger.sql),
+//    jadi fungsi ini TIDAK menyentuh kolom hitungan.
+//  - Edit: hanya pemilik karya (user_id harus sama dengan akun penanda tangan sesi).
+// ============================================================
+const POSTING_MAKS = 5000;
+
+function idPosting(v: unknown): string | number | null {
+  if (typeof v === "number" && Number.isSafeInteger(v) && v > 0) return v;
+  if (typeof v === "string" && /^[A-Za-z0-9-]{1,64}$/.test(v)) return v;
+  return null;
+}
+
+async function handlePosting(action: unknown, body: Row, d: Deps): Promise<Res> {
+  switch (action) {
+    case "post_react": {
+      const a = await authSesi(body, d);
+      if ("gagal" in a) return a.gagal;
+      const tipe = body.type;
+      const type = tipe === "sruput" || tipe === "cangkul" ? tipe : null;
+      if (!type) return fail("jenis_tidak_valid");
+      const id = idPosting(body.post_id);
+      if (id === null) return fail("not_found");
+      const post = await d.repo.getKontribusi(id);
+      if (!post) return fail("not_found");
+      if (post.user_id === a.profile.id) return fail("karya_sendiri");
+      if (await d.repo.cariReaksi(id, a.profile.id)) return fail("sudah_bereaksi");
+      const hasil = await d.repo.insertReaksi(id, a.profile.id, type);
+      if (hasil === "duplicate") return fail("sudah_bereaksi");
+      if (hasil !== "ok") return fail("server_error");
+      return ok();
+    }
+
+    case "post_edit": {
+      const a = await authSesi(body, d);
+      if ("gagal" in a) return a.gagal;
+      const id = idPosting(body.post_id);
+      if (id === null) return fail("not_found");
+      const teksBaru = typeof body.teks === "string" ? body.teks.trim() : "";
+      if (!teksBaru || teksBaru.length > POSTING_MAKS) return fail("teks_tidak_valid");
+      const post = await d.repo.getKontribusi(id);
+      if (!post) return fail("not_found");
+      if (post.user_id !== a.profile.id) return fail("bukan_pemilik");
+      if (!(await d.repo.updateKontribusiTeks(id, a.profile.id, teksBaru))) return fail("server_error");
+      await d.repo.log(a.profile.id, "post_edit", true);
+      return ok({ teks: teksBaru });
+    }
+
+    default:
       return fail("unknown_action");
   }
 }
+// 🟢 AKHIR SISIPAN
 
 async function namaProfil(d: Deps, ids: string[]): Promise<Map<string, string>> {
   const m = new Map<string, string>();
@@ -3451,6 +3513,7 @@ function itemBatch(r: TopupRow, nomor: number, nama: Map<string, string>) {
 // Actions: check | login | set_pin | register | deposit | reveal | ganti_pin | vault_status | update_profil
 //          + topup_* | tarik_* | admin_* (Nabung & Tarik) + pinjam_* | admin_pinjam_* (Pinjam ke diri sendiri)
 //          + dividen_* | admin_dividen_* (Dividen positif/negatif) + tugas_* | admin_tugas_* | kontak_status (Tugas)
+//          + post_react | post_edit (Posting: reaksi sruput/cangkul & edit teks, pakai token sesi)   <- 🟢 SISIPAN
 // Semua balasan HTTP 200 dengan JSON { ok: boolean, ... }.
 //
 // Secrets yang harus di-set (supabase secrets set ...):
@@ -3882,6 +3945,30 @@ const repo: Repo = {
   async listDividenItemStatus(status) {
     return must(await db.from("dividen_item").select("*").eq("status", status).limit(1000)) as DividenItemRow[];
   },
+
+  // ---------------- 🟢 SISIPAN: Posting (reaksi & edit) ----------------
+  async getKontribusi(id) {
+    return must(await db.from("contributions").select("id,user_id").eq("id", id).maybeSingle()) as { id: string | number; user_id: string } | null;
+  },
+  async updateKontribusiTeks(id, userId, teks) {
+    // user_id ikut di filter: hanya pemilik yang bisa mengubah; select() untuk memastikan ada baris yang berubah
+    const { data, error } = await db.from("contributions").update({ deskripsi_proses: teks }).eq("id", id).eq("user_id", userId).select("id");
+    if (error) { console.error("updateKontribusiTeks:", error.message); return false; }
+    return !!data && data.length > 0;
+  },
+  async cariReaksi(postId, userId) {
+    const { data, error } = await db.from("reactions").select("id").eq("post_id", postId).eq("user_id", userId).limit(1);
+    if (error) throw new Error(error.message);
+    return !!data && data.length > 0;
+  },
+  async insertReaksi(postId, userId, type) {
+    const { error } = await db.from("reactions").insert({ post_id: postId, user_id: userId, type });
+    if (!error) return "ok";
+    if (error.code === "23505") return "duplicate"; // indeks unik (post_id, user_id)
+    console.error("insertReaksi:", error.message);
+    return "error";
+  },
+  // 🟢 AKHIR SISIPAN
 
   // ---------------- Penampungan & batch ----------------
   async listDitampung() {

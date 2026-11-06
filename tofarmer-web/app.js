@@ -2410,13 +2410,13 @@ async function sendComment(postId) {
 // 🟢 SISIPAN: SAKLAR hitung angka sruput/cangkul.
 // false = angka dinaikkan oleh kode ini (cara lama).
 // true  = angka dinaikkan oleh trigger database 'trg_reactions_hitung' (ubah ke true SETELAH SQL trigger dijalankan).
-const HITUNG_REAKSI_DI_DATABASE = true;
+const HITUNG_REAKSI_DI_DATABASE = false;
 
 // 🟢 SISIPAN: SAKLAR jalur server untuk reaksi & edit postingan (lewat Edge Function tof-vault).
 // false = langsung ke database dari browser (cara lama).
 // true  = lewat tof-vault: pemilik postingan, batas 1 reaksi/akun, dan sesi login diperiksa di SERVER.
 // Ubah ke true SETELAH tof-vault diperbarui (aksi post_react & post_edit) dan trigger reaksi aktif.
-const PAKAI_SERVER_POSTING = true;
+const PAKAI_SERVER_POSTING = false;
 
 function ambilTokenSesiPost() {
   try {
@@ -2440,6 +2440,34 @@ function pesanPosting(res) {
   }
 }
 
+// 🟢 SISIPAN: SAKLAR perbarui kartu di tempat (tanpa memuat ulang seluruh feed).
+// true  = sruput/cangkul, edit teks, dan sembunyikan hanya mengubah KARTU yang bersangkutan, posisi scroll tidak berubah.
+// false = cara lama: loadFeed() menggambar ulang feed dari halaman pertama (layar bisa terlempar ke atas).
+const PERBARUI_TANPA_RELOAD_FEED = true;
+
+// Naikkan angka sruput/cangkul langsung di tampilan kartu. Mengembalikan false bila kartu tidak ditemukan.
+function perbaruiAngkaReaksi(postId, type) {
+  const span = document.querySelector(`[onclick="reactPost('${postId}','${type}')"]`);
+  if (!span) return false;
+  const m = span.textContent.match(/\d+/);
+  const n = (m ? parseInt(m[0], 10) : 0) + 1;
+  span.textContent = span.textContent.replace(/\d+/, String(n));
+  return true;
+}
+
+// Ganti teks kartu di tempat. Bila teks lama/baru memuat link video, kembalikan false (video perlu digambar ulang lewat loadFeed).
+function perbaruiTeksKartu(postId, teksBaru) {
+  const card = document.getElementById(`post-card-${postId}`);
+  const el = card ? card.querySelector('.text') : null;
+  if (!el) return false;
+  const baru = (teksBaru || "").trim();
+  const lama = feedPostTextMap[postId] !== undefined ? feedPostTextMap[postId] : "";
+  if (extractVideoEmbed(lama).videos.length > 0 || extractVideoEmbed(baru).videos.length > 0) return false;
+  feedPostTextMap[postId] = baru;
+  el.innerHTML = convertMentions(extractVideoEmbed(baru).text);
+  return true;
+}
+
 // 🟢 SISIPAN: teks asli tiap postingan beranda (utuh, termasuk link video) untuk kotak edit
 const feedPostTextMap = {};
 
@@ -2459,6 +2487,7 @@ async function reactPost(postId, type) {
     if (PAKAI_SERVER_POSTING) {
       const resSrv = await callTofVault("post_react", { profile_id: currentWallet, token: ambilTokenSesiPost(), post_id: postId, type });
       if (!resSrv.ok) { alert(pesanPosting(resSrv)); return; }
+      if (PERBARUI_TANPA_RELOAD_FEED && perbaruiAngkaReaksi(postId, type)) { loadRadarPeringkat(); return; } // 🟢 tanpa reload feed
       const kartuSrv = document.getElementById(`post-card-${postId}`);
       const ySrv = kartuSrv ? kartuSrv.getBoundingClientRect().top + window.scrollY : 0;
       await loadFeed();
@@ -2515,6 +2544,10 @@ async function reactPost(postId, type) {
         .update({ [kolom]: ((postRow && postRow[kolom]) || 0) + 1 })
         .eq("id", postId);
     }
+
+    // 🟢 SISIPAN: perbarui angka di kartu saja (tanpa reload feed, scroll tetap)
+    if (PERBARUI_TANPA_RELOAD_FEED && perbaruiAngkaReaksi(postId, type)) { loadRadarPeringkat(); return; }
+    // 🟢 AKHIR SISIPAN
 
     // A. KUNCI KOORDINAT LAYAR
     const targetCard = document.getElementById(`post-card-${postId}`);
@@ -2714,6 +2747,7 @@ async function aksiEditPostingan(postId, teksLama) {
     const resSrv = await callTofVault("post_edit", { profile_id: currentWallet, token: ambilTokenSesiPost(), post_id: postId, teks: teksBaru });
     if (!resSrv.ok) return alert(pesanPosting(resSrv));
     alert("Postingan berhasil diperbarui! 🌱");
+    if (PERBARUI_TANPA_RELOAD_FEED && perbaruiTeksKartu(postId, teksBaru)) return; // 🟢 tanpa reload feed
     if (typeof loadFeed === "function") loadFeed();
     return;
   }
@@ -2729,6 +2763,7 @@ async function aksiEditPostingan(postId, teksLama) {
     alert("Gagal mengedit: " + error.message);
   } else {
     alert("Postingan berhasil diperbarui! 🌱");
+    if (PERBARUI_TANPA_RELOAD_FEED && perbaruiTeksKartu(postId, teksBaru)) return; // 🟢 SISIPAN: tanpa reload feed
     if (typeof loadFeed === "function") loadFeed();
   }
 }
@@ -2746,6 +2781,11 @@ async function aksiSembunyikanKeProfil(postId) {
     alert("Gagal menyembunyikan: " + error.message);
   } else {
     alert("Postingan berhasil dipindahkan ke arsip profil pribadi 🔒");
+    // 🟢 SISIPAN: cukup buang kartunya dari tampilan (tanpa reload feed)
+    if (PERBARUI_TANPA_RELOAD_FEED) {
+      const kartuHilang = document.getElementById(`post-card-${postId}`);
+      if (kartuHilang) { kartuHilang.remove(); return; }
+    }
     if (typeof loadFeed === "function") loadFeed();
   }
 }
