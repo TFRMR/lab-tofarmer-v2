@@ -33,6 +33,7 @@
     pinjam: null,    // info Pinjam dari server (bunga, tenor, batas)
     terkunci: 0n,    // TOF yang sedang menjadi jaminan pinjaman (unit terkecil)
     popupPinjamTampil: false,
+    popupSusulanTampil: false, // 🟢 SISIPAN [SUSULAN]
     pinjamRingkas: null, // [CICILAN] ringkasan pinjaman berjalan dari server (sisa, jatuh tempo, batas, tagihan cicilan)
     dividen: null,       // status syarat dividen (frasa, persetujuan)
     tugas: null,         // tugas bulan ini dan dividen yang ditahan
@@ -293,6 +294,7 @@
       case "tenor_tidak_valid": return "Lama pinjam tidak valid.";
       case "pinjam_tidak_ditemukan": return "Pinjaman tidak ditemukan.";
       case "jaminan_terkunci": return "Sebagian TOF-mu sedang menjadi jaminan pinjaman. Yang bisa dipakai sekarang: " + fmtUnits(res.bebas_units || 0) + " TOF.";
+      case "tidak_ada_pinjaman_lama": return "Tidak ada pinjaman lama yang perlu disetujui (mungkin sudah disetujui sebelumnya)."; // 🟢 SISIPAN [SUSULAN]
       // [CICILAN]
       case "setuju_wajib": return "Centang persetujuan ketentuan pinjaman dulu.";
       case "masih_ada_pengajuan": return "Pengajuan pinjamanmu yang sebelumnya masih menunggu dicairkan pengurus. Tunggu sampai selesai dulu.";
@@ -1445,6 +1447,53 @@
     };
   }
 
+  // 🟢 SISIPAN [SUSULAN] Persetujuan susulan untuk pinjaman LAMA (dibuat sebelum ada ketentuan potong otomatis).
+  // Tidak memaksa: bila ditutup, pinjamannya tetap berjalan seperti biasa (ditagih manual oleh pengurus).
+  function panelSetujuSusulan() {
+    const r = state.pinjamRingkas || {};
+    const hari = r.tenggang_hari || 60;
+    const sh = bukaSheet("Ketentuan baru pinjaman");
+    const cek = el("input", { type: "checkbox", id: "cekSusulan" });
+    const labelCek = el("label", { class: "lbl", for: "cekSusulan", style: "display:flex;gap:8px;align-items:flex-start;font-weight:600;" }, cek,
+      "Saya mengerti dan setuju ketentuan di atas untuk pinjaman saya yang sedang berjalan.");
+    const pin = pinInput("pinSusulan");
+    const galat = el("div", { class: "galat", id: "galatSusulan" });
+    const btn = el("button", { class: "btn utama", id: "btnSetujuSusulan", text: "Setuju dan tandatangani" });
+    sh.onTutup(() => { cekTagihanPinjam(); }); // setelah ditutup, tampilkan tagihan (bila ada) dengan data terbaru
+    sh.ganti(
+      el("div", { class: "info", text: "Pinjamanmu dibuat sebelum ada ketentuan potong otomatis. Supaya semua pinjaman memakai aturan yang sama, kami minta persetujuanmu." }),
+      el("ol", { class: "langkah" },
+        el("li", { text: "Pinjaman boleh dicicil kapan saja; tidak harus sekali lunas." }),
+        el("li", { text: "Bila sudah lewat jatuh tempo dan masa tenggang " + hari + " hari TANPA ada pembayaran, sisa TOF jaminan dipotong otomatis dari dompetmu memakai frasa yang kamu titip." }),
+        el("li", { text: "Masa tenggang dihitung mulai hari kamu menyetujui ini (kalau pinjamanmu sudah lewat jatuh tempo, kamu tetap dapat waktu " + hari + " hari penuh)." }),
+        el("li", { text: "Yang dipotong hanya sebesar sisa pinjaman; TOF lain di dompetmu tidak disentuh." })),
+      el("div", { class: "kecil abu", text: "Kalau belum setuju, tidak apa-apa: pinjamanmu tetap berjalan dan ditagih manual oleh pengurus." }),
+      labelCek,
+      el("div", { class: "kecil abu", text: "Masukkan PIN untuk menandatangani." }), pin, galat, btn,
+      el("button", { class: "btn teks", text: "Nanti dulu", onclick: sh.tutup })
+    );
+    btn.onclick = async () => {
+      galat.textContent = "";
+      const p = pin.value.trim();
+      if (!cek.checked) { galat.textContent = "Centang persetujuan dulu."; return; }
+      if (!/^\d{6}$/.test(p)) { galat.textContent = "PIN harus 6 digit angka."; return; }
+      btn.disabled = true;
+      const res = await vault("pinjam_setuju_susulan", { profile_id: state.wallet, pin: p, setuju: true });
+      btn.disabled = false;
+      pin.value = "";
+      if (!res.ok) {
+        galat.textContent = res.error === "no_vault"
+          ? "Pemotongan otomatis butuh frasa yang dititip. Titip frasa dulu lewat menu Frasa, lalu setujui lagi."
+          : pesanVault(res);
+        return;
+      }
+      sh.tutup();
+      toast("Persetujuan tersimpan. Pinjaman lamamu kini mengikuti ketentuan baru.");
+      muatRingkasPinjam();
+    };
+  }
+  // 🟢 AKHIR SISIPAN
+
   function panelCabutDividen() {
     const sh = bukaSheet("Cabut persetujuan dividen");
     const pin = pinInput("dividenPinCabut");
@@ -2051,6 +2100,13 @@
     state.terkunci = BigInt(r.terkunci_units || 0);
     renderPinjam();
     await muatRingkasPinjam(); // [CICILAN] sisa pinjaman, batas, dan tombol Bayar di kartu
+    // 🟢 SISIPAN [SUSULAN]: pinjaman lama tanpa persetujuan potong otomatis -> minta persetujuan susulan (sekali per pembukaan Dompet)
+    if (state.pinjamRingkas && state.pinjamRingkas.perlu_persetujuan && !state.popupSusulanTampil) {
+      state.popupSusulanTampil = true;
+      panelSetujuSusulan();
+      return;
+    }
+    // 🟢 AKHIR SISIPAN
     if (r.tagihan && !state.popupPinjamTampil) {
       state.popupPinjamTampil = true;
       popupTagihanPinjam(r.tagihan);

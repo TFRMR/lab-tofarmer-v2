@@ -592,7 +592,7 @@
       r.jatuh_tempo ? el("div", { class: "kecil", style: "font-weight:700;color:#1c2b22;", "data-sisa": "1", text: teksSisa(r) }) : null,
       r.status === "aktif" && r.jatuh_tempo ? el("div", { class: "kecil", "data-potong": "1", text: r.setuju_pada
         ? "TOF dipotong otomatis bila belum ada pembayaran setelah " + (r.potong_pada ? tgl(r.potong_pada) : "akhir masa tenggang") + " (tenggang " + (r.tenggang_hari || "?") + " hari)."
-        : "Pinjaman lama tanpa persetujuan potong otomatis: tidak dipotong otomatis." }) : null,
+        : "Pinjaman lama tanpa persetujuan potong otomatis: belum dipotong otomatis. Anggota diminta setuju lewat pop-up saat membuka Dompetnya; sebelum itu penagihan manual." }) : null, // 🟢 teks diperjelas [SUSULAN]
       r.potong_status === "gagal" || r.potong_status === "mengirim" ? el("div", { class: "galat", "data-potong-status": "1", text: "Pemotongan TOF " + (r.potong_status === "gagal" ? "gagal" : "belum pasti") + (r.potong_catatan ? ": " + r.potong_catatan : ".") }) : null,
       r.status === "dipotong" ? el("div", { class: "kecil", "data-dipotong": "1", text: "TOF dipotong " + desimal(r.dipotong_units || 0) + " pada " + tgl(r.dipotong_pada) + (r.potong_catatan ? " · " + r.potong_catatan : "") }) : null,
       r.dipotong_txid ? el("a", { class: "tautan", href: EXPLORER_TX + r.dipotong_txid, target: "_blank", rel: "noopener", text: "Lihat transaksi pemotongan TOF" }) : null,

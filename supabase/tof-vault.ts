@@ -405,6 +405,8 @@ export interface Repo {
   updateKontribusiTeks(id: string | number, userId: string, teks: string): Promise<boolean>;
   cariReaksi(postId: string | number, userId: string): Promise<boolean>;
   insertReaksi(postId: string | number, userId: string, type: string): Promise<"ok" | "duplicate" | "error">;
+  // ---- 🟢 SISIPAN [SUSULAN]: persetujuan susulan untuk pinjaman lama (dibuat sebelum ada persetujuan potong otomatis) ----
+  setujuiPinjamanLama(profileId: string, nowIso: string, versi: number, tenggang: number): Promise<number>;
 }
 
 export interface TarikRow {
@@ -1802,7 +1804,10 @@ function batasPotongMs(r: PinjamanRow, aktivitasIso: string | null, tenggangBawa
   const jt = Date.parse(r.jatuh_tempo);
   const akt = aktivitasIso ? Date.parse(aktivitasIso) : 0;
   const hari = r.tenggang_hari != null && Number(r.tenggang_hari) > 0 ? Number(r.tenggang_hari) : tenggangBawaan;
-  return Math.max(jt, akt) + hari * HARI_MS;
+  // 🟢 SISIPAN [SUSULAN]: untuk pinjaman lama yang baru disetujui belakangan, masa tenggang dihitung sejak tanggal persetujuan
+  // (pinjaman baru: setuju_pada < jatuh_tempo, jadi tidak ada pengaruhnya)
+  const stp = r.setuju_pada ? Date.parse(r.setuju_pada) : 0;
+  return Math.max(jt, akt, stp) + hari * HARI_MS;
 }
 
 // Tampilan untuk anggota tanpa PIN: tanpa rekening/nomor tujuan
@@ -2092,6 +2097,8 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
         ada_pengajuan: ajuan,
         bisa_pinjam: s.pinjam_aktif && !!s.qris && !ajuan && tersisa >= s.pinjam_min_rp,
         ada_cicilan: cicilan ? { id: cicilan.id, status: cicilan.status, nominal_rp: cicilan.nominal_rp } : null,
+        perlu_persetujuan: jalan.some((x) => !x.setuju_pada), // 🟢 SISIPAN [SUSULAN]
+        jumlah_tanpa_persetujuan: jalan.filter((x) => !x.setuju_pada).length, // 🟢 SISIPAN [SUSULAN]
         tenggang_hari: s.pinjam_tenggang_hari,
       });
     }
@@ -2152,6 +2159,25 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       const daftar = (await d.repo.listPinjamanByProfile(a.profile.id, 20)).reverse(); // terlama → terbaru (client membaliknya)
       return ok({ daftar: daftar.map((x) => tampilPinjam(x)) });
     }
+
+    // 🟢 SISIPAN [SUSULAN] Anggota yang punya pinjaman LAMA (dibuat sebelum ada ketentuan potong otomatis) bisa menyetujui
+    // ketentuan yang sama secara susulan. PIN dipakai sebagai tanda tangan. Setelah itu pinjaman lamanya mengikuti skenario baru:
+    // lewat jatuh tempo + masa tenggang (dihitung sejak tanggal persetujuan ini) tanpa pembayaran -> TOF jaminan sisa dipotong otomatis.
+    case "pinjam_setuju_susulan": {
+      const a = await authUser(body, d);
+      if ("gagal" in a) return a.gagal;
+      // sama seperti pinjam_buat: PIN yang hash-nya masih terbaca publik tidak boleh dipakai menandatangani
+      if (pinPublikAktif(a.profile, await d.repo.getPin(a.profile.id))) return fail("pin_publik");
+      if (await samaDenganHashPublik(a.profile, body.pin)) return fail("pin_publik");
+      if (body.setuju !== true) return fail("setuju_wajib");
+      if (!(await d.repo.getVault(a.profile.id))) return fail("no_vault"); // pemotongan otomatis butuh frasa yang dititip
+      const sSus = await ambilPengaturan(d);
+      const jumlah = await d.repo.setujuiPinjamanLama(a.profile.id, iso(d.now()), PINJAM_VERSI_KETENTUAN, sSus.pinjam_tenggang_hari);
+      if (jumlah === 0) return fail("tidak_ada_pinjaman_lama");
+      await d.repo.logTopup(null, a.profile.id, "pinjam_setuju_susulan", a.profile.id, { jumlah, tenggang_hari: sSus.pinjam_tenggang_hari, setuju_versi: PINJAM_VERSI_KETENTUAN });
+      return ok({ jumlah, tenggang_hari: sSus.pinjam_tenggang_hari });
+    }
+    // 🟢 AKHIR SISIPAN
 
     case "pinjam_batal": {
       const a = await authUser(body, d);
@@ -3967,6 +3993,14 @@ const repo: Repo = {
     if (error.code === "23505") return "duplicate"; // indeks unik (post_id, user_id)
     console.error("insertReaksi:", error.message);
     return "error";
+  },
+  // 🟢 AKHIR SISIPAN
+
+  // 🟢 SISIPAN [SUSULAN]: hanya pinjaman berjalan (aktif/dibayar) milik anggota ini yang belum punya persetujuan
+  async setujuiPinjamanLama(profileId, nowIso, versi, tenggang) {
+    const rows = must(await db.from("pinjaman").update({ setuju_pada: nowIso, setuju_versi: versi, tenggang_hari: tenggang })
+      .eq("profile_id", profileId).in("status", ["aktif", "dibayar"]).is("setuju_pada", null).select("id")) as { id: string }[] | null;
+    return rows ? rows.length : 0;
   },
   // 🟢 AKHIR SISIPAN
 
