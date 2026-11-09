@@ -83,6 +83,13 @@
       case "bulan_tidak_valid": return "Bulan tugas tidak valid.";
       case "kode_tugas_tidak_valid": return "Kode tugas tidak valid. Contoh: manual:kerja_bakti, hadir:rapat, aksi:nama, fitur:/html/halaman.html.";
       case "jenis_tidak_valid": return "Jenis tugas tidak valid.";
+      case "sasaran_tidak_valid": return "Daftar anggota sasaran tidak valid (maksimal 50 anggota)."; // 🟢 SISIPAN
+      case "sasaran_tidak_ditemukan": return "Ada anggota sasaran yang tidak ditemukan. Muat ulang halaman lalu pilih lagi."; // 🟢 SISIPAN
+      case "kantong_tidak_valid": return "Isian kantong hadiah tidak valid. Jatah bunga 0 sampai persen bunga pinjaman; anggaran dan kurs bilangan bulat; catatan wajib."; // 🟢 SISIPAN [KANTONG HADIAH]
+      case "kantong_saldo_kurang": return "Saldo kantong hadiah kurang."; // 🟢 SISIPAN [KANTONG HADIAH]
+      case "kantong_belum_siap": return "Kantong hadiah belum siap: jalankan migrasi SQL dan perbarui tof-vault."; // 🟢 SISIPAN [KANTONG HADIAH]
+      case "imbalan_tidak_valid": return "Imbalan XP harus bilangan bulat 0 sampai 100.000."; // 🟢 SISIPAN [IMBALAN XP]
+      case "imbalan_grup": return "Imbalan XP tidak berlaku untuk tugas berkelompok (Pilih N dari). Kosongkan kolom kelompok atau isi imbalan 0."; // 🟢 SISIPAN [IMBALAN XP]
       case "judul_wajib": return "Isi judulnya.";
       case "target_tidak_valid": return "Target harus bilangan bulat 1–100 (minimal kelompok 1–20).";
       case "status_tidak_valid": return "Status tugas tidak valid.";
@@ -216,6 +223,7 @@
     if (tab === "pinjaman") return muatPinjaman();
     if (tab === "dividen") return muatDividen();
     if (tab === "tugas") return muatTugas();
+    if (tab === "kantong") return muatKantong(); // 🟢 SISIPAN [KANTONG HADIAH]
     if (tab === "resetpin") return muatResetPin();
     const res = await adm("admin_topup_daftar", { tampil: tab });
     if (!res.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(res) })); return; }
@@ -587,7 +595,7 @@
     const k = el("div", { class: "card", "data-id": r.id },
       el("div", { class: "baris" }, el("div", { text: "@" + (r.username || "?") + " · " + tgl(r.dibuat) }), chipPinjam(r.status)),
       el("div", { class: "total", text: "Rp " + fmtRp(r.pokok_rp) }),
-      el("div", { class: "kecil", text: "Bunga " + r.bunga_persen + "% = Rp " + fmtRp(r.bunga_rp) + " · total Rp " + fmtRp(r.total_rp) + " · tenor " + r.tenor_hari + " hari · jaminan " + desimal(r.jaminan_tof_units) + " TOF" }),
+      el("div", { class: "kecil", text: "Bunga " + r.bunga_persen + "% = Rp " + fmtRp(r.bunga_rp) + " · total Rp " + fmtRp(r.total_rp) + " · tenor " + r.tenor_hari + " hari · jaminan " + desimal(r.jaminan_tof_units) + " TOF" + (Number(r.bunga_kantong_units) > 0 ? " · jatah kantong hadiah " + desimal(r.bunga_kantong_units) + " TOF" : "") /* 🟢 SISIPAN */ }),
       (r.status === "aktif" || r.status === "dibayar") && r.dibayar_rp > 0 ? el("div", { class: "kecil", "data-cicilan": "1", text: "Sudah dicicil Rp " + fmtRp(r.dibayar_rp) + " · sisa Rp " + fmtRp(r.sisa_rp) + " · jaminan tersisa " + desimal(r.jaminan_sisa_units) + " TOF" }) : null,
       r.jatuh_tempo ? el("div", { class: "kecil", style: "font-weight:700;color:#1c2b22;", "data-sisa": "1", text: teksSisa(r) }) : null,
       r.status === "aktif" && r.jatuh_tempo ? el("div", { class: "kecil", "data-potong": "1", text: r.setuju_pada
@@ -619,7 +627,7 @@
         const p = res && res.payout;
         if (!p) return "Pinjaman dilunasi. TOF jaminan dibuka.";
         if (p.status === "selesai") return "Lunas. Bunga terkirim sebagai TOF ke @" + (r.username || "?") + " (ID transaksi: " + p.txid + ").";
-        return "Lunas, tetapi TOF bunga belum terkirim otomatis ke @" + (r.username || "?") + ": " + (p.alasan || "kirim manual dari Dompet") + " Jumlah bunga: " + desimal(r.bunga_tof_units) + " TOF.";
+        return "Lunas, tetapi TOF bunga belum terkirim otomatis ke @" + (r.username || "?") + ": " + (p.alasan || "kirim manual dari Dompet") + " Jumlah bunga: " + desimal(Number(r.bunga_tof_units) - Number(r.bunga_kantong_units || 0)) + " TOF." /* 🟢 SISIPAN [UBAH]: bunga bersih setelah jatah kantong hadiah */;
       });
     };
     const tolak = (tombol) => {
@@ -678,7 +686,7 @@
           jalan(this, "admin_pinjam_belum_masuk", { alasan }, () => "Dikembalikan ke status berjalan. Anggota bisa membayar lagi.");
         } }));
     } else if (bagian === "riwayat" && r.status === "lunas" && r.bunga_status !== "terkirim") {
-      k.insertBefore(el("div", { class: "galat", "data-catatan-bunga": "1", text: "Bunga " + desimal(r.bunga_tof_units) + " TOF belum terkirim ke anggota" + (r.bunga_catatan ? ": " + r.bunga_catatan : ".") }), aksi);
+      k.insertBefore(el("div", { class: "galat", "data-catatan-bunga": "1", text: "Bunga " + desimal(Number(r.bunga_tof_units) - Number(r.bunga_kantong_units || 0)) + " TOF belum terkirim ke anggota" /* 🟢 SISIPAN [UBAH]: bersih setelah jatah kantong */ + (r.bunga_catatan ? ": " + r.bunga_catatan : ".") }), aksi);
       aksi.append(
         el("button", { class: "btn utama", "data-aksi": "kirim-bunga", type: "button", style: "margin-top:0;", text: "Kirim bunga (TOF)", onclick: function () {
           const resetDulu = r.bunga_status === "mengirim" && !r.bunga_txid;
@@ -1050,6 +1058,15 @@
       urutan: el("input", { class: "inp", inputmode: "numeric", value: String(x.urutan ?? 100) }),
     };
     f.wajib.checked = !!x.wajib; f.bulanan.checked = x.bulanan !== false; f.petunjuk.value = x.petunjuk || "";
+    // 🟢 SISIPAN: TUGAS KHUSUS — pilih anggota tertentu. Tidak ada yang dicentang = tugas umum untuk semua anggota.
+    const sasaranCb = (state.anggotaTugas || []).map((m) => { const cb = el("input", { type: "checkbox", value: m.profile_id }); cb.checked = (x.sasaran || []).includes(m.profile_id); return { cb, m }; });
+    const sasaranInfo = el("div", { class: "kecil" });
+    const hitungSasaran = () => { const n = sasaranCb.filter((s) => s.cb.checked).length; sasaranInfo.textContent = n ? "Tugas KHUSUS untuk " + n + " anggota. Anggota lain tidak melihat dan tidak dikenai tugas ini." : "Tidak ada yang dipilih = tugas umum untuk semua anggota."; };
+    sasaranCb.forEach((s) => { s.cb.onchange = hitungSasaran; }); hitungSasaran();
+    // 🟢 SISIPAN [IMBALAN XP]: XP yang diterima anggota sekali per periode saat tugas selesai (0 = tanpa imbalan)
+    const imbalanInp = el("input", { class: "inp", id: "imbalanXp", inputmode: "numeric", value: String(x.imbalan_xp || 0) });
+    const sasaranBox = el("details", {}, el("summary", { class: "kecil", text: "Pilih anggota…" }),
+      ...sasaranCb.map((s) => el("label", { class: "kecil", style: "display:flex;gap:8px;align-items:center;padding:3px 0;" }, s.cb, "@" + s.m.username)));
     if (!baru) f.jenis.disabled = true;
     const galat = el("div", { class: "galat" });
     const btn = el("button", { class: "btn utama", "data-aksi": "simpan-tugas", type: "button", text: baru ? "Tambah tugas" : "Simpan" });
@@ -1059,6 +1076,8 @@
         kode: f.kode.value.trim(), judul: f.judul.value.trim(), deskripsi: f.deskripsi.value.trim(), petunjuk: f.petunjuk.value.trim(), jenis: f.jenis.value, status: f.status.value,
         target: Number(f.target.value), wajib: f.wajib.checked, bulanan: f.bulanan.checked, grup: f.grup.value.trim(),
         grup_min: Number(f.grupMin.value), url: f.url.value.trim(), urutan: Number(f.urutan.value),
+        sasaran: sasaranCb.filter((s) => s.cb.checked).map((s) => s.cb.value), // 🟢 SISIPAN
+        imbalan_xp: Number(imbalanInp.value) || 0, // 🟢 SISIPAN [IMBALAN XP]
       });
       btn.disabled = false;
       if (!res.ok) { galat.textContent = pesan(res); return; }
@@ -1073,6 +1092,9 @@
       el("label", { class: "lbl", style: "display:flex;gap:8px;align-items:center;" }, f.bulanan, "Dihitung per bulan (kosongkan = sekali seumur hidup)"),
       ...lbl("Kelompok bergilir", f.grup, "Tugas wajib dengan nama kelompok sama dinilai sebagai satu syarat: cukup \"min\" dari semuanya."),
       ...lbl("Minimal dari kelompok", f.grupMin), ...lbl("Tautan tombol Kerjakan", f.url), ...lbl("Urutan", f.urutan),
+      el("label", { class: "lbl", text: "Khusus untuk anggota tertentu (opsional)" }), sasaranBox, sasaranInfo, // 🟢 SISIPAN
+      el("label", { class: "lbl", text: "Imbalan XP saat selesai (0 = tanpa imbalan)" }), imbalanInp, // 🟢 SISIPAN [IMBALAN XP]
+      el("div", { class: "kecil", text: "Diberikan sekali per periode (tugas bulanan: sekali per bulan) otomatis saat anggota membuka Dompet setelah tugasnya selesai. 1000 XP setara 1 TOF bila dicairkan, jadi isi secukupnya. Tidak berlaku untuk tugas berkelompok." }),
       galat, btn);
   }
 
@@ -1080,6 +1102,7 @@
     const konten = $("konten");
     const [r, rk] = await Promise.all([adm("admin_tugas_lihat", {}), adm("admin_tugas_rekap", state.tugasBulan ? { bulan: state.tugasBulan } : {})]);
     if (!r.ok || !rk.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(!r.ok ? r : rk) })); return; }
+    state.anggotaTugas = rk.daftar.map((x) => ({ profile_id: x.profile_id, username: x.username })).sort((a, b) => a.username.localeCompare(b.username)); // 🟢 SISIPAN: bahan pemilih anggota tugas khusus
     const anak = [];
     if (state.pesanHasil) { anak.push(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil })); state.pesanHasil = ""; }
 
@@ -1261,8 +1284,91 @@
         el("details", {}, el("summary", {}, el("span", { style: "font-weight:700;", text: x.judul + " " }),
           el("span", { class: "chip " + (x.status === "aktif" ? "ok" : ""), text: x.status === "aktif" ? "aktif" : "diarsipkan" }),
           x.wajib ? el("span", { class: "chip gagal", style: "margin-left:4px;", text: "wajib" }) : null,
+          (x.sasaran_nama || []).length ? el("span", { class: "chip tunggu", style: "margin-left:4px;", text: "khusus: " + x.sasaran_nama.map((n) => "@" + n).join(", ") }) : null, // 🟢 SISIPAN
+          Number(x.imbalan_xp) > 0 ? el("span", { class: "chip ok", style: "margin-left:4px;", text: "+" + x.imbalan_xp + " XP" }) : null, // 🟢 SISIPAN [IMBALAN XP]
           el("div", { class: "kecil mono", text: x.kode + " · " + x.jenis + " · target " + x.target + (x.grup ? " · kelompok " + x.grup : "") })), formTugas(x), aksiBar, galat)));
     });
+    konten.replaceChildren(...anak);
+    // 🟢 SISIPAN: pada kartu Centang manual, tugas khusus hanya menampilkan anggota sasarannya
+    const selCentang = $("centangTugas");
+    if (selCentang) {
+      const sasaranDef = {}; manual.forEach((x) => { sasaranDef[x.kode] = x.sasaran || []; });
+      const saring = () => { const s = sasaranDef[selCentang.value] || []; konten.querySelectorAll("[data-centang]").forEach((baris) => { baris.hidden = s.length > 0 && !s.includes(baris.getAttribute("data-centang")); }); };
+      selCentang.addEventListener("change", saring); saring();
+    }
+  }
+
+  // 🟢 SISIPAN [KANTONG HADIAH] ---------------- Kantong Hadiah ----------------
+  // Dana apresiasi: hadiah tukar XP dan bonus tugas khusus. Pembukuan saja (TOF fisiknya tetap di dompet pembayar/kas).
+  // Masuk otomatis: jatah bunga pinjaman dan dividen hangus. Masuk manual: hasil akun modal. Pengeluaran dibatasi saldo dan anggaran bulanan.
+  const KANTONG_MASUK = [["hasil_modal", "Hasil akun modal"], ["bunga_pinjaman", "Jatah bunga pinjaman"], ["dividen_hangus", "Dividen hangus"], ["lainnya", "Lainnya"]];
+  const KANTONG_KELUAR = [["hadiah_xp", "Hadiah tukar XP"], ["bonus_tugas", "Bonus tugas khusus"], ["lainnya", "Lainnya"]];
+  const namaSumberKantong = (arah, sumber) => ((arah === "masuk" ? KANTONG_MASUK : KANTONG_KELUAR).find((x) => x[0] === sumber) || [0, sumber])[1];
+
+  async function muatKantong() {
+    const konten = $("konten");
+    const r = await adm("admin_kantong_lihat", {});
+    if (!r.ok) { konten.replaceChildren(el("div", { class: "galat", text: pesan(r) })); return; }
+    const anak = [];
+    if (state.pesanHasil) { anak.push(el("div", { class: "card", id: "hasilAksi", style: "border-color:#4caf7a;", text: state.pesanHasil })); state.pesanHasil = ""; }
+
+    // ---- ringkasan ----
+    const baris = Object.keys(r.per_sumber).sort().map((k) => { const p = k.split(":"); return (p[0] === "masuk" ? "＋ " : "－ ") + namaSumberKantong(p[0], p[1]) + ": " + desimal(r.per_sumber[k]) + " TOF"; });
+    anak.push(el("div", { class: "card", id: "ringkasKantong" },
+      el("div", { class: "kecil", text: "Saldo kantong hadiah" }), el("div", { class: "total", text: desimal(r.saldo_units) + " TOF" }),
+      el("div", { class: "kecil", text: "Masuk " + desimal(r.masuk_units) + " · keluar " + desimal(r.keluar_units) + " TOF" }),
+      el("div", { class: "kecil", style: "margin-top:6px;", text: "Anggaran " + r.bulan + ": " + desimal(r.anggaran_bulan_units) + " TOF · terpakai " + desimal(r.keluar_bulan_ini_units) + " · sisa yang boleh dicairkan " + desimal(r.sisa_anggaran_bulan_units) + " TOF" }),
+      baris.length ? el("div", { class: "kecil", style: "margin-top:6px;white-space:pre-line;", text: baris.join("\n") }) : null));
+
+    // ---- pengaturan ----
+    const fJatah = el("input", { class: "inp", id: "setKantongJatah", inputmode: "numeric", value: String(r.jatah_bunga_persen) });
+    const fAng = el("input", { class: "inp", id: "setKantongAnggaran", inputmode: "numeric", value: String(r.anggaran_bulan_units / 1000000) });
+    const fXp = el("input", { class: "inp", id: "setKantongXp", inputmode: "numeric", value: String(r.xp_per_tof) });
+    const gSet = el("div", { class: "galat" });
+    const bSet = el("button", { class: "btn utama", id: "btnSimpanKantong", type: "button", text: "Simpan pengaturan kantong" });
+    bSet.onclick = async () => {
+      gSet.textContent = ""; bSet.disabled = true;
+      const res = await adm("admin_pengaturan_simpan", { kantong_jatah_bunga_persen: Number(fJatah.value), kantong_anggaran_bulan_tof: Number(fAng.value), kantong_xp_per_tof: Number(fXp.value) });
+      bSet.disabled = false;
+      if (!res.ok) { gSet.textContent = pesan(res); return; }
+      state.pesanHasil = "Pengaturan kantong tersimpan."; muatKantong();
+    };
+    anak.push(el("div", { class: "card", id: "kartuKantongSet" },
+      el("div", { style: "font-weight:700;" }, "Pengaturan kantong"),
+      el("label", { class: "lbl", text: "Jatah bunga pinjaman untuk kantong (persen dari pokok; 0 = mati)" }), fJatah,
+      el("div", { class: "kecil", text: "Contoh: bunga 5% dan jatah 1 berarti 4% kembali ke anggota sebagai TOF dan 1% masuk kantong. Hanya berlaku untuk pinjaman BARU. Jalankan migrasi SQL kantong lebih dulu." }),
+      el("label", { class: "lbl", text: "Anggaran hadiah per bulan (TOF)" }), fAng,
+      el("div", { class: "kecil", text: "30 = 1 TOF per hari seperti sekarang. Pencairan tidak boleh melewati anggaran ini maupun saldo kantong." }),
+      el("label", { class: "lbl", text: "Plafon kurs hadiah XP (1 TOF = … XP)" }), fXp, gSet, bSet));
+
+    // ---- catat manual ----
+    const fArah = opsiSel([["masuk", "Masuk (mis. hasil akun modal)"], ["keluar", "Keluar (mis. bonus tugas khusus)"]], "masuk");
+    fArah.id = "kantongArah";
+    const fSumber = opsiSel(KANTONG_MASUK, "hasil_modal"); fSumber.id = "kantongSumber";
+    fArah.onchange = () => { const daftar = fArah.value === "masuk" ? KANTONG_MASUK : KANTONG_KELUAR; fSumber.replaceChildren(...daftar.map(([v, t]) => el("option", { value: v, text: t }))); fSumber.value = daftar[0][0]; };
+    const fTof = el("input", { class: "inp", id: "kantongTof", inputmode: "decimal", placeholder: "Jumlah TOF, mis. 12.5" });
+    const fCat = el("input", { class: "inp", id: "kantongCatatan", maxlength: "200", placeholder: "Catatan wajib, mis. hasil akun modal Oktober" });
+    const gCat = el("div", { class: "galat" });
+    const bCat = el("button", { class: "btn utama", id: "btnCatatKantong", type: "button", text: "Catat" });
+    bCat.onclick = async () => {
+      gCat.textContent = ""; bCat.disabled = true;
+      const res = await adm("admin_kantong_catat", { arah: fArah.value, sumber: fSumber.value, tof: Number(String(fTof.value).replace(",", ".")), catatan: fCat.value.trim() });
+      bCat.disabled = false;
+      if (!res.ok) { gCat.textContent = res.error === "kantong_saldo_kurang" ? "Saldo kantong kurang (saldo " + desimal(res.saldo_units) + " TOF)." : pesan(res); return; }
+      state.pesanHasil = "Tercatat."; muatKantong();
+    };
+    anak.push(el("div", { class: "card", id: "kartuKantongCatat" },
+      el("div", { style: "font-weight:700;" }, "Catat manual"),
+      el("div", { class: "kecil", text: "Pembukuan saja. Mengirim TOF sungguhan tetap lewat dompet pengurus seperti biasa." }),
+      el("label", { class: "lbl", text: "Arah" }), fArah, el("label", { class: "lbl", text: "Sumber / tujuan" }), fSumber,
+      el("label", { class: "lbl", text: "Jumlah (TOF)" }), fTof, el("label", { class: "lbl", text: "Catatan" }), fCat, gCat, bCat));
+
+    // ---- riwayat ----
+    anak.push(el("div", { class: "kecil", style: "margin:14px 4px 0;font-weight:700;color:#1c2b22;", text: "Riwayat terbaru" }));
+    if (!r.terbaru.length) anak.push(el("div", { class: "kecil", style: "padding:8px 4px;", text: "Belum ada catatan." }));
+    r.terbaru.forEach((x) => anak.push(el("div", { class: "card", "data-kantong": x.id },
+      el("div", { class: "baris" }, el("div", { style: "font-weight:700;", text: (x.arah === "masuk" ? "＋ " : "－ ") + desimal(x.units) + " TOF" }), el("span", { class: "chip " + (x.arah === "masuk" ? "ok" : "tunggu"), text: namaSumberKantong(x.arah, x.sumber) })),
+      el("div", { class: "kecil", text: tgl(x.dibuat) + (x.catatan ? " · " + x.catatan : "") }))));
     konten.replaceChildren(...anak);
   }
 

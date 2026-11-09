@@ -666,7 +666,7 @@
         <p style="font-size: 11px; color: #cbd5e1; line-height: 1.5; margin: 8px 0 10px 0;">
             Saldo XP kamu: <strong id="cairkan-saldo-xp">0</strong> XP.
             Dompet tujuan tetap alamat yang kamu pakai login — dana selalu balik ke dompetmu sendiri.
-            Kuota pencairan dibagi bersama semua warga dan terbatas tiap harinya.
+            Kuota pencairan berasal dari Kantong Hadiah bersama, terbatas tiap bulannya dan ada batas per orang.
         </p>
 
         <input id="cairkan-jumlah-xp" type="number" min="100" step="100" placeholder="Jumlah XP dicairkan (min 100)"
@@ -1112,6 +1112,10 @@
         await runFarmActionLocked('cairkan-tof', async () => {
             const username = localStorage.getItem('tof_username');
             const wallet = localStorage.getItem('tof_wallet');
+            // 🟢 SISIPAN [TOKEN SESI]: bukti login dikirim ke mesin pencairan (kunci tof_session dipakai bersama semua halaman)
+            let tokenSesi = '';
+            try { const o = JSON.parse(localStorage.getItem('tof_session') || 'null'); if (o && o.id === wallet && typeof o.token === 'string') tokenSesi = o.token; } catch (e) {}
+            if (!tokenSesi) { showToast('Sesi login habis. Login ulang dulu untuk mencairkan XP.', true); return; }
             try {
                 const res = await fetch(MESIN_TOFARMER_URL, {
                     method: 'POST',
@@ -1120,7 +1124,7 @@
                         'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                         'apikey': SUPABASE_ANON_KEY,
                     },
-                    body: JSON.stringify({ action: 'cairkan_ke_blockchain', username, wallet, jumlahCairkan: jumlah }),
+                    body: JSON.stringify({ action: 'cairkan_ke_blockchain', username, wallet, jumlahCairkan: jumlah, token: tokenSesi }), // 🟢 SISIPAN [UBAH]: + token
                 });
                 const data = await res.json();
                 if (data.status === 'Sukses') {

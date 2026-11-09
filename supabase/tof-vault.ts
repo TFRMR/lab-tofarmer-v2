@@ -345,6 +345,12 @@ export interface Repo {
   listPinjamanBerjalan(profileId: string): Promise<PinjamanRow[]>;                    // status diajukan/aktif/dibayar
   listPinjamanByStatus(statuses: string[], limit: number, urut: "dibuat_asc" | "dibuat_desc" | "tempo_asc"): Promise<PinjamanRow[]>;
   sumBungaPinjamanSince(sinceIso: string): Promise<number>; // unit TOF bunga yang dikirim otomatis sejak waktu tsb
+  // 🟢 SISIPAN [KANTONG HADIAH]: pembukuan kantong hadiah (unit terkecil TOF). Opsional agar tiruan repo lama (uji) tetap lolos.
+  catatKantong?(row: { arah: "masuk" | "keluar"; sumber: string; units: number; ref?: string | null; profile_id?: string | null; catatan?: string | null; oleh?: string | null; kunci?: string | null }): Promise<"ok" | "duplicate" | "error">;
+  ringkasKantong?(): Promise<{ arah: string; sumber: string; dibuat: string; units: number }[]>;
+  listKantong?(limit: number): Promise<KantongRow[]>;
+  // 🟢 SISIPAN [IMBALAN XP]: beri XP imbalan tugas sekali per (anggota, tugas, periode). Atomik di database (fn_beri_xp_tugas).
+  beriXpTugas?(profileId: string, kode: string, periode: string, xp: number): Promise<"diberikan" | "sudah" | "error">;
   // ---- [CICILAN] Cicilan pinjaman & potong otomatis saat lewat masa tenggang ----
   insertCicilan(row: Record<string, unknown>): Promise<{ result: "ok" | "duplicate" | "error"; row?: CicilanRow }>;
   getCicilan(id: string): Promise<CicilanRow | null>;
@@ -973,6 +979,10 @@ async function ambilPengaturan(d: Deps) {
     pinjam_maks_rp: angka(s.pinjam_maks_rp, 5000000),
     pinjam_bunga_persen: angka(s.pinjam_bunga_persen, 5),
     pinjam_tenggang_hari: angka(s.pinjam_tenggang_hari, 60), // [CICILAN] masa tenggang setelah jatuh tempo sebelum TOF dipotong otomatis
+    // 🟢 SISIPAN [KANTONG HADIAH]
+    kantong_jatah_bunga_persen: angka(s.kantong_jatah_bunga_persen, 0), // bagian dari bunga pinjaman (persen dari POKOK, mis. 1 dari 5) yang masuk kantong hadiah. 0 = mati. Hanya untuk pinjaman BARU
+    kantong_anggaran_bulan_tof: angka(s.kantong_anggaran_bulan_tof, 30), // batas total hadiah per bulan (TOF). 30 = 1 TOF per hari seperti sekarang
+    kantong_xp_per_tof: angka(s.kantong_xp_per_tof, 1000),               // plafon kurs hadiah XP: 1 TOF = sekian XP
     // Dividen: batas minus per periode (persen, dipakai sebagai batas persetujuan anggota) dan saldo minimum peserta
     dividen_batas_minus_bp: angka(s.dividen_batas_minus_persen, 10) * 100,
     dividen_min_saldo_tof: angka(s.dividen_min_saldo_tof, 1),
@@ -1384,6 +1394,7 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
           mode_kirim: s.mode_kirim, alamat_penampung: s.alamat_penampung, ambang_batch_tof: s.ambang_batch_tof,
           tarik_aktif: s.tarik_aktif, alamat_tarik: s.alamat_tarik, min_tarik_tof: s.min_tarik_tof, maks_tarik_tof: s.maks_tarik_tof,
           pinjam_aktif: s.pinjam_aktif, pinjam_min_rp: s.pinjam_min_rp, pinjam_maks_rp: s.pinjam_maks_rp, pinjam_tenggang_hari: s.pinjam_tenggang_hari,
+          kantong_jatah_bunga_persen: s.kantong_jatah_bunga_persen, kantong_anggaran_bulan_tof: s.kantong_anggaran_bulan_tof, kantong_xp_per_tof: s.kantong_xp_per_tof, // 🟢 SISIPAN [KANTONG HADIAH]
           dividen_batas_minus_persen: s.dividen_batas_minus_bp / 100, dividen_min_saldo_tof: s.dividen_min_saldo_tof, tugas_daftar_otomatis: s.tugas_daftar_otomatis },
         kas,
       });
@@ -1439,6 +1450,10 @@ async function handleTopup(action: unknown, body: Row, d: Deps): Promise<Res> {
       if ("pinjam_maks_rp" in body) { const n = bil(body.pinjam_maks_rp, 1000000000); if (n === null) return fail("batas_pinjam_tidak_valid"); nilai.pinjam_maks_rp = n; }
       if (((nilai.pinjam_maks_rp as number | undefined) ?? cur.pinjam_maks_rp) < ((nilai.pinjam_min_rp as number | undefined) ?? cur.pinjam_min_rp)) return fail("batas_pinjam_tidak_valid");
       if ("pinjam_aktif" in body) nilai.pinjam_aktif = body.pinjam_aktif === true;
+      // 🟢 SISIPAN [KANTONG HADIAH]
+      if ("kantong_jatah_bunga_persen" in body) { const n = body.kantong_jatah_bunga_persen as number; if (!Number.isInteger(n) || n < 0 || n > cur.pinjam_bunga_persen) return fail("kantong_tidak_valid"); nilai.kantong_jatah_bunga_persen = n; }
+      if ("kantong_anggaran_bulan_tof" in body) { const n = bil(body.kantong_anggaran_bulan_tof, 1000000); if (n === null) return fail("kantong_tidak_valid"); nilai.kantong_anggaran_bulan_tof = n; }
+      if ("kantong_xp_per_tof" in body) { const n = bil(body.kantong_xp_per_tof, 1000000); if (n === null) return fail("kantong_tidak_valid"); nilai.kantong_xp_per_tof = n; }
       if ("pinjam_tenggang_hari" in body) { const n = bil(body.pinjam_tenggang_hari, 365); if (n === null) return fail("tenggang_tidak_valid"); nilai.pinjam_tenggang_hari = n; }
       if ("tugas_daftar_otomatis" in body) nilai.tugas_daftar_otomatis = body.tugas_daftar_otomatis === true;
       if ("dividen_batas_minus_persen" in body) { const n = bil(body.dividen_batas_minus_persen, 50); if (n === null) return fail("batas_dividen_tidak_valid"); nilai.dividen_batas_minus_persen = n; }
@@ -1739,6 +1754,7 @@ export interface PinjamanRow {
   ref_cair: string | null; ref_user: string | null; catatan_admin: string | null;
   dibayar_pada: string | null; dilunasi_pada: string | null; dilunasi_oleh: string | null;
   bunga_status: string; bunga_catatan: string | null; bunga_txid: string | null; bunga_kirim_pada: string | null;
+  bunga_kantong_units?: number; // 🟢 SISIPAN [KANTONG HADIAH]: bagian bunga (unit TOF) yang masuk kantong hadiah, bukan kembali ke anggota. Dikunci saat pinjaman dibuat
   // [CICILAN]
   dibayar_rp: number; setuju_pada: string | null; setuju_versi: number | null; tenggang_hari: number | null;
   potong_status: string; potong_catatan: string | null; dipotong_pada: string | null; dipotong_units: number | null; dipotong_txid: string | null;
@@ -1746,6 +1762,14 @@ export interface PinjamanRow {
 
 const PINJAM_TENOR_OPSI = [7, 14, 30];
 const PINJAM_BERJALAN = ["diajukan", "aktif", "dibayar"];
+
+// 🟢 SISIPAN [KANTONG HADIAH] ------------------------------------------------------------------------------
+// Kantong hadiah = dana apresiasi (hadiah tukar XP, bonus tugas khusus). Ini PEMBUKUAN: TOF fisiknya tetap di dompet pembayar/kas.
+// Masuk: jatah bunga pinjaman (otomatis saat lunas), dividen positif yang hangus (otomatis), hasil akun modal / lainnya (dicatat pengurus).
+// Keluar: hadiah tukar XP dan bonus tugas khusus. Pengeluaran dibatasi saldo kantong DAN anggaran bulanan (kantong_anggaran_bulan_tof).
+export interface KantongRow { id: number | string; dibuat: string; arah: string; sumber: string; units: number; ref: string | null; profile_id: string | null; catatan: string | null; oleh: string | null; kunci: string | null }
+const KANTONG_SUMBER_MASUK = ["bunga_pinjaman", "dividen_hangus", "hasil_modal", "lainnya"];
+const KANTONG_SUMBER_KELUAR = ["hadiah_xp", "bonus_tugas", "lainnya"];
 const HARI_MS = 24 * 3600 * 1000;
 
 function tampilPinjam(r: PinjamanRow, potongPada?: string | null) {
@@ -1756,7 +1780,7 @@ function tampilPinjam(r: PinjamanRow, potongPada?: string | null) {
     potong_status: r.potong_status ?? "tidak", potong_catatan: r.potong_catatan ?? null, dipotong_pada: r.dipotong_pada ?? null,
     dipotong_units: r.dipotong_units ?? null, dipotong_txid: r.dipotong_txid ?? null,
     id: r.id, profile_id: r.profile_id, username: r.username, pokok_rp: r.pokok_rp, bunga_persen: r.bunga_persen, bunga_rp: r.bunga_rp,
-    total_rp: r.total_rp, jaminan_tof_units: r.jaminan_tof_units, bunga_tof_units: r.bunga_tof_units, tenor_hari: r.tenor_hari,
+    total_rp: r.total_rp, jaminan_tof_units: r.jaminan_tof_units, bunga_tof_units: r.bunga_tof_units, bunga_kantong_units: Number(r.bunga_kantong_units || 0) /* 🟢 SISIPAN */, tenor_hari: r.tenor_hari,
     tujuan_jenis: r.tujuan_jenis, tujuan_nomor: r.tujuan_nomor, tujuan_nama: r.tujuan_nama, status: r.status, dibuat: r.dibuat,
     jatuh_tempo: r.jatuh_tempo, ditagih_admin: r.ditagih_admin, ditagih_pada: r.ditagih_pada, kode_unik: r.kode_unik,
     total_bayar_rp: r.total_bayar_rp, ref_cair: r.ref_cair, ref_user: r.ref_user, catatan_admin: r.catatan_admin,
@@ -1816,7 +1840,7 @@ function batasPotongMs(r: PinjamanRow, aktivitasIso: string | null, tenggangBawa
 // Tampilan untuk anggota tanpa PIN: tanpa rekening/nomor tujuan
 function tampilPinjamRingkas(r: PinjamanRow, potongPada: string | null) {
   return {
-    id: r.id, status: r.status, pokok_rp: r.pokok_rp, bunga_persen: r.bunga_persen, bunga_rp: r.bunga_rp, total_rp: r.total_rp,
+    id: r.id, status: r.status, pokok_rp: r.pokok_rp, bunga_persen: r.bunga_persen, bunga_rp: r.bunga_rp, total_rp: r.total_rp, bunga_kantong_units: Number(r.bunga_kantong_units || 0), // 🟢 SISIPAN
     dibayar_rp: Number(r.dibayar_rp || 0), sisa_rp: sisaTotalPinjam(r), jaminan_sisa_units: Number(jaminanSisaPinjam(r)),
     jatuh_tempo: r.jatuh_tempo, tenggang_hari: r.tenggang_hari ?? null, potong_pada: potongPada, ditagih_pengurus: r.ditagih_admin,
     dibuat: r.dibuat,
@@ -1985,7 +2009,14 @@ async function kirimBungaPinjam(row: PinjamanRow, oleh: string, d: Deps): Promis
   const kembali = async (alasan: string) => {
     await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "belum", bunga_catatan: alasan, bunga_txid: null }, ["mengirim"]);
   };
-  const units = BigInt(row.bunga_tof_units);
+  // 🟢 SISIPAN [UBAH] [KANTONG HADIAH]: sebelumnya: const units = BigInt(row.bunga_tof_units);
+  // Yang dikirim ke anggota = bunga dikurangi jatah kantong hadiah. Jatah dicatat sekali (kunci unik per pinjaman), aman walau kirim diulang.
+  const jatahKantong = BigInt(Math.max(0, Number(row.bunga_kantong_units || 0)));
+  if (jatahKantong > 0n && d.repo.catatKantong) {
+    await d.repo.catatKantong({ arah: "masuk", sumber: "bunga_pinjaman", units: Number(jatahKantong), ref: row.id, profile_id: row.profile_id, catatan: "Jatah bunga pinjaman @" + (row.username || "?"), kunci: "pinjam-bunga:" + row.id });
+  }
+  const unitsPenuh = BigInt(row.bunga_tof_units);
+  const units = unitsPenuh > jatahKantong ? unitsPenuh - jatahKantong : 0n;
   if (units <= 0n) {
     await d.repo.updatePinjamanIf(row.id, ["lunas"], { bunga_status: "terkirim", bunga_catatan: "Bunga kurang dari 1 unit TOF, tidak ada yang dikirim." }, ["belum"]);
     return { status: "selesai" };
@@ -2046,6 +2077,7 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
         aktif: s.pinjam_aktif && !!s.qris, bunga_persen: s.pinjam_bunga_persen, tenor_opsi: PINJAM_TENOR_OPSI,
         min_rp: s.pinjam_min_rp, maks_rp: s.pinjam_maks_rp, kurs: s.kurs, qris: s.qris, nama_penerima: s.nama_penerima,
         tenggang_hari: s.pinjam_tenggang_hari, versi_ketentuan: PINJAM_VERSI_KETENTUAN, min_cicilan_rp: s.min_rp,
+        kantong_persen: s.kantong_jatah_bunga_persen, // 🟢 SISIPAN [KANTONG HADIAH]: bagian bunga (persen dari pokok) yang masuk kantong hadiah untuk pinjaman baru
       });
     }
 
@@ -2144,9 +2176,13 @@ async function handlePinjam(action: unknown, body: Row, d: Deps): Promise<Res> {
       const bungaRp = Math.floor((pokok * s.pinjam_bunga_persen) / 100);
       const jaminan = (BigInt(pokok) * 1000000n + kurs - 1n) / kurs; // dibulatkan ke atas
       const bungaTof = (BigInt(bungaRp) * 1000000n) / kurs;
+      // 🟢 SISIPAN [KANTONG HADIAH]: sebagian bunga (jatah persen dari pokok) tidak kembali ke anggota, tetapi masuk kantong hadiah saat lunas.
+      // Dikunci di baris pinjaman saat dibuat, jadi pinjaman lama dan ketentuan yang sudah disetujui anggota tidak berubah.
+      const jatahPersen = Math.min(Math.max(0, s.kantong_jatah_bunga_persen), s.pinjam_bunga_persen);
+      const bungaKantong = s.pinjam_bunga_persen > 0 ? (bungaTof * BigInt(Math.round(jatahPersen * 100))) / BigInt(Math.round(s.pinjam_bunga_persen * 100)) : 0n;
       const ins = await d.repo.insertPinjaman({
         profile_id: a.profile.id, username: a.profile.username, pokok_rp: pokok, bunga_persen: s.pinjam_bunga_persen, bunga_rp: bungaRp,
-        total_rp: pokok + bungaRp, kurs_rp_per_tof: s.kurs, jaminan_tof_units: Number(jaminan), bunga_tof_units: Number(bungaTof), tenor_hari: tenor,
+        total_rp: pokok + bungaRp, kurs_rp_per_tof: s.kurs, jaminan_tof_units: Number(jaminan), bunga_tof_units: Number(bungaTof), ...(bungaKantong > 0n ? { bunga_kantong_units: Number(bungaKantong) } : {}) /* 🟢 SISIPAN [KANTONG HADIAH] */, tenor_hari: tenor,
         tujuan_jenis: tujuan.jenis, tujuan_nomor: tujuan.nomor, tujuan_nama: tujuan.nama, status: "diajukan", dibuat: iso(sekarang),
         setuju_pada: iso(sekarang), setuju_versi: PINJAM_VERSI_KETENTUAN, tenggang_hari: s.pinjam_tenggang_hari, // [CICILAN]
       });
@@ -2650,6 +2686,12 @@ async function selesaikanPeriodeBilaTuntas(p: DividenPeriodeRow, d: Deps): Promi
   const sisa = items.filter((i) => i.ikut && ["menunggu", "mengirim", "gagal"].includes(i.status));
   if (sisa.length > 0) return false;
   await d.repo.updateDividenPeriodeIf(p.id, ["berjalan"], { status: "selesai", selesai_pada: iso(d.now()) });
+  // 🟢 SISIPAN [KANTONG HADIAH]: dividen positif yang hangus (tugas/frasa belum lengkap) tetap di kas dan dicatat masuk kantong hadiah (sekali per item)
+  if (d.repo.catatKantong) {
+    for (const i of items) {
+      if (i.status === "hangus" && Number(i.jumlah_units) > 0) await d.repo.catatKantong({ arah: "masuk", sumber: "dividen_hangus", units: Number(i.jumlah_units), ref: i.id, profile_id: i.profile_id, catatan: "Dividen hangus: " + (p.label || ""), kunci: "dividen-hangus:" + i.id });
+    }
+  }
   return true;
 }
 
@@ -2961,6 +3003,7 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
       const baru = await d.repo.updateDividenItemIf(it.id, ["ditahan"], { status: "hangus", alasan: "Dihanguskan: tugas tidak selesai dalam " + s.tugas_masa_tahan_bulan + " bulan. " + (it.alasan || "") });
       if (!baru) return fail("status_tidak_cocok");
       await d.repo.logTopup(it.id, it.profile_id, "dividen_hangus", a.profile.id, { jumlah_units: it.jumlah_units });
+      if (d.repo.catatKantong && Number(it.jumlah_units) > 0) await d.repo.catatKantong({ arah: "masuk", sumber: "dividen_hangus", units: Number(it.jumlah_units), ref: it.id, profile_id: it.profile_id, catatan: "Dividen ditahan dihanguskan", oleh: a.profile.id, kunci: "dividen-hangus:" + it.id }); // 🟢 SISIPAN [KANTONG HADIAH]
       const p = await d.repo.getDividenPeriode(it.periode_id);
       return ok(p ? await tampilDividenLengkap(p, d) : {});
     }
@@ -3002,6 +3045,8 @@ async function handleDividen(action: unknown, body: Row, d: Deps): Promise<Res> 
 export interface TugasDefRow {
   id: string; kode: string; judul: string; deskripsi: string | null; petunjuk: string | null; jenis: string; target: number; wajib: boolean;
   status: string; bulanan: boolean; grup: string | null; grup_min: number; url: string | null; urutan: number; dibuat: string;
+  sasaran?: string[] | null; // 🟢 SISIPAN: daftar profile_id penerima TUGAS KHUSUS. Kosong/null = tugas umum (semua anggota)
+  imbalan_xp?: number; // 🟢 SISIPAN [IMBALAN XP]: XP yang diberikan sekali per periode saat tugas selesai. 0/kosong = tanpa imbalan
 }
 export interface TugasCatatanRow { profile_id: string; kode: string; periode: string; jumlah: number; hari_terakhir: string | null; oleh: string | null; diubah: string }
 export interface TugasKlaimRow {
@@ -3040,7 +3085,7 @@ const TIDAK_DICATAT = /admin|login|debug|diagnosa|celebrate|youtubedownloader|tr
 const JENIS_TUGAS = ["kunjungan", "aksi", "sistem", "manual", "hadir"];
 const MAKS_DEFINISI_OTOMATIS = 500;
 
-interface Persyaratan { kunci: string; judul: string; deskripsi: string | null; petunjuk: string | null; jenis: string; jumlah: number; target: number; ok: boolean; url: string | null; grup: string | null; wajib: boolean }
+interface Persyaratan { kunci: string; judul: string; deskripsi: string | null; petunjuk: string | null; jenis: string; jumlah: number; target: number; ok: boolean; url: string | null; grup: string | null; wajib: boolean; khusus?: boolean /* 🟢 SISIPAN */; imbalan_xp?: number /* 🟢 SISIPAN [IMBALAN XP] */ }
 
 interface KonteksTugas {
   defs: TugasDefRow[]; bulan: string; sejak: boolean;
@@ -3092,10 +3137,13 @@ function evaluasiTugas(k: KonteksTugas, p: Profile, pinAman: boolean, tanpaSyara
   const wajib: Persyaratan[] = [], opsional: Persyaratan[] = [];
   const baris = (df: TugasDefRow): Persyaratan => {
     const jumlah = jumlahTugas(k, df, p, pinAman);
-    return { kunci: df.kode, judul: df.judul, deskripsi: df.deskripsi, petunjuk: df.petunjuk ?? null, jenis: df.jenis, jumlah, target: df.target, ok: jumlah >= df.target, url: df.url, grup: df.grup, wajib: df.wajib };
+    return { kunci: df.kode, judul: df.judul, deskripsi: df.deskripsi, petunjuk: df.petunjuk ?? null, jenis: df.jenis, jumlah, target: df.target, ok: jumlah >= df.target, url: df.url, grup: df.grup, wajib: df.wajib, khusus: !!(df.sasaran && df.sasaran.length) /* 🟢 SISIPAN */, imbalan_xp: Number(df.imbalan_xp || 0) /* 🟢 SISIPAN [IMBALAN XP] */ };
   };
   const grup = new Map<string, TugasDefRow[]>();
   for (const df of k.defs) {
+    // 🟢 SISIPAN: TUGAS KHUSUS. Bila tugas punya daftar sasaran, hanya anggota di daftar itu yang dikenai/melihatnya.
+    // Semua jalur (pop-up, kartu Dompet, rekap, laporan grup, penahanan dividen) memakai fungsi ini, jadi otomatis ikut.
+    if (df.sasaran && df.sasaran.length && !df.sasaran.includes(p.id)) continue;
     if (df.wajib && tanpaSyaratPeserta && SISTEM_SYARAT_PESERTA.includes(df.kode)) continue;
     if (!df.wajib) { opsional.push(baris(df)); continue; }
     if (df.grup) { const l = grup.get(df.grup) || []; l.push(df); grup.set(df.grup, l); continue; }
@@ -3136,7 +3184,7 @@ async function authSesi(body: Row, d: Deps): Promise<{ profile: Profile } | Gaga
 }
 
 function tampilTugasDef(x: TugasDefRow) {
-  return { id: x.id, kode: x.kode, judul: x.judul, deskripsi: x.deskripsi, petunjuk: x.petunjuk ?? null, jenis: x.jenis, target: x.target, wajib: x.wajib, status: x.status, bulanan: x.bulanan, grup: x.grup, grup_min: x.grup_min, url: x.url, urutan: x.urutan };
+  return { id: x.id, kode: x.kode, judul: x.judul, deskripsi: x.deskripsi, petunjuk: x.petunjuk ?? null, jenis: x.jenis, target: x.target, wajib: x.wajib, status: x.status, bulanan: x.bulanan, grup: x.grup, grup_min: x.grup_min, url: x.url, urutan: x.urutan, sasaran: x.sasaran ?? [] /* 🟢 SISIPAN */, imbalan_xp: Number(x.imbalan_xp || 0) /* 🟢 SISIPAN [IMBALAN XP] */ };
 }
 
 // Tunggakan: syarat dasar (frasa, persetujuan, PIN aman) dan tugas yang dahulu belum selesai (kunci tersimpan di item dividen)
@@ -3218,6 +3266,18 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
       const bulan = bulanWib(d.now());
       const k = await siapkanKonteks(d, bulan, false, r.profile.id);
       const ev = evaluasiTugas(k, r.profile, await pinAmanDari(r.profile, d), false);
+      // 🟢 SISIPAN [IMBALAN XP]: tugas yang sudah selesai dan punya imbalan memberi XP SEKALI per periode (tugas bulanan: sekali per bulan).
+      // Dijaga unik di database, jadi aman walau status dibuka berulang. Tidak berlaku untuk tugas kelompok "pilih N dari".
+      const imbalan_baru: { judul: string; xp: number }[] = [];
+      if (d.repo.beriXpTugas) {
+        for (const x of [...ev.wajib, ...ev.opsional]) {
+          if (!x.ok || !(Number(x.imbalan_xp) > 0) || x.jenis === "grup") continue;
+          const df = k.defs.find((y) => y.kode === x.kunci);
+          if (!df) continue;
+          const hasil = await d.repo.beriXpTugas(r.profile.id, df.kode, df.bulanan ? bulan : "-", Number(x.imbalan_xp));
+          if (hasil === "diberikan") imbalan_baru.push({ judul: x.judul, xp: Number(x.imbalan_xp) });
+        }
+      }
       const s = await ambilPengaturan(d);
       const ditahan = [];
       for (const it of await d.repo.listDividenItemStatus("ditahan")) {
@@ -3231,6 +3291,7 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
         bulan, wajib: ev.wajib, opsional: ev.opsional, lengkap: ev.wajib.every((x) => x.ok), ditahan, masa_tahan_bulan: s.tugas_masa_tahan_bulan,
         berikutnya: ev.wajib.find((x) => !x.ok) ?? null, // tugas yang ditampilkan di pop-up: satu per satu, urut sesuai 'urutan'
         selesai: ev.wajib.filter((x) => x.ok).length, total: ev.wajib.length,
+        imbalan_baru, // 🟢 SISIPAN [IMBALAN XP]: imbalan yang baru saja diberikan pada panggilan ini (untuk kabar di layar)
       });
     }
 
@@ -3240,6 +3301,7 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
       if ("gagal" in a) return a.gagal;
       const df = typeof body.kode === "string" ? await d.repo.getTugasByKode(body.kode) : null;
       if (!df || df.status !== "aktif" || !["manual", "hadir"].includes(df.jenis)) return fail("tugas_tidak_ditemukan");
+      if (df.sasaran && df.sasaran.length && !df.sasaran.includes(a.profile.id)) return fail("tugas_tidak_ditemukan"); // 🟢 SISIPAN: tugas khusus orang lain
       const periode = df.bulanan ? bulanWib(d.now()) : "-";
       const lama = await d.repo.listTugasKlaimByProfile(a.profile.id, 30);
       if (lama.some((x) => x.kode === df.kode && x.periode === periode && x.status === "menunggu")) return fail("klaim_sudah_ada");
@@ -3259,6 +3321,7 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (sekarang < Date.parse(keg.mulai) || sekarang > Date.parse(keg.selesai)) return fail("kegiatan_di_luar_waktu");
       const df = await d.repo.getTugasByKode(keg.kode_tugas);
       if (!df || df.status === "nonaktif") return fail("tugas_tidak_ditemukan");
+      if (df.sasaran && df.sasaran.length && !df.sasaran.includes(a.profile.id)) return fail("tugas_tidak_ditemukan"); // 🟢 SISIPAN: tugas khusus orang lain
       const hasil = await d.repo.insertKehadiran(keg.id, a.profile.id);
       if (hasil === "duplicate") return fail("sudah_hadir");
       if (hasil !== "ok") return fail("server_error");
@@ -3274,9 +3337,10 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
       const klaim = await d.repo.listTugasKlaim("menunggu", 100);
       for (const x of klaim) if (!nama.has(x.profile_id)) nama.set(x.profile_id, (await d.repo.findProfileById(x.profile_id))?.username || "");
       const s = await ambilPengaturan(d);
+      const namaProfil = new Map((await d.repo.listKandidatProfil()).map((p) => [p.id, p.username])); // 🟢 SISIPAN: untuk menampilkan nama sasaran tugas khusus
       return ok({
         bulan: bulanWib(d.now()), masa_tahan_bulan: s.tugas_masa_tahan_bulan, daftar_otomatis: s.tugas_daftar_otomatis,
-        definisi: (await d.repo.listTugasDefinisi()).sort((x, y) => x.urutan - y.urutan).map(tampilTugasDef),
+        definisi: (await d.repo.listTugasDefinisi()).sort((x, y) => x.urutan - y.urutan).map((x) => ({ ...tampilTugasDef(x), sasaran_nama: (x.sasaran || []).map((i) => namaProfil.get(i) || i) })), // 🟢 SISIPAN [UBAH]: sebelumnya .map(tampilTugasDef)
         klaim: klaim.map((x) => ({ id: x.id, profile_id: x.profile_id, username: nama.get(x.profile_id) || "", kode: x.kode, periode: x.periode, catatan: x.catatan, dibuat: x.dibuat })),
         kegiatan: await d.repo.listKegiatan(20),
       });
@@ -3305,6 +3369,26 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
         bulanan: jenis === "sistem" ? false : body.bulanan !== false, grup: grup || null, grup_min: gmin, url: url || null, urutan: Number.isInteger(urut) ? urut : 100,
       };
       const ada = await d.repo.getTugasByKode(kode);
+      // 🟢 SISIPAN: TUGAS KHUSUS. 'sasaran' = array profile_id. Tidak dikirim = tidak diubah; array kosong = jadi tugas umum.
+      // Kolom hanya disentuh bila perlu, jadi simpan tugas biasa tetap jalan walau migrasi SQL kolom 'sasaran' belum dijalankan.
+      if ("sasaran" in body) {
+        if (!Array.isArray(body.sasaran) || body.sasaran.length > 50) return fail("sasaran_tidak_valid");
+        const ids = [...new Set(body.sasaran.map((x: unknown) => teks(x, 100)).filter(Boolean))] as string[];
+        if (ids.length) {
+          const sah = new Set((await d.repo.listKandidatProfil()).map((p) => p.id));
+          const salah = ids.filter((x) => !sah.has(x));
+          if (salah.length) return fail("sasaran_tidak_ditemukan", { tidak_ada: salah });
+        }
+        if (ids.length || (ada && ada.sasaran && ada.sasaran.length)) (isi as Record<string, unknown>).sasaran = ids.length ? ids : null;
+      }
+      // 🟢 SISIPAN [IMBALAN XP]: 'imbalan_xp' bilangan bulat 0..100000. Tidak dikirim = tidak diubah. Tidak berlaku untuk tugas berkelompok.
+      // Kolom hanya disentuh bila perlu, jadi simpan tugas biasa tetap jalan walau migrasi SQL belum dijalankan.
+      if ("imbalan_xp" in body) {
+        const n = body.imbalan_xp as number;
+        if (!Number.isInteger(n) || n < 0 || n > 100000) return fail("imbalan_tidak_valid");
+        if (n > 0 && grup) return fail("imbalan_grup");
+        if (n > 0 || (ada && Number(ada.imbalan_xp) > 0)) (isi as Record<string, unknown>).imbalan_xp = n;
+      }
       if (ada) { const baru = await d.repo.updateTugasDefinisi(ada.id, isi); return baru ? ok({ tugas: tampilTugasDef(baru) }) : fail("server_error"); }
       const ins = await d.repo.insertTugasDefinisi(isi);
       return ins.result === "ok" && ins.row ? ok({ tugas: tampilTugasDef(ins.row) }) : fail("server_error");
@@ -3411,6 +3495,53 @@ async function handleTugas(action: unknown, body: Row, d: Deps): Promise<Res> {
       }
       hasil.sort((x, y) => Number(x.lengkap) - Number(y.lengkap) || x.username.localeCompare(y.username));
       return ok({ bulan, daftar: hasil });
+    }
+
+    // 🟢 SISIPAN [KANTONG HADIAH] ---------------------------------------------------------------
+    case "admin_kantong_lihat": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      if (!d.repo.ringkasKantong || !d.repo.listKantong) return fail("kantong_belum_siap");
+      const s = await ambilPengaturan(d);
+      const bulanIni = bulanWib(d.now());
+      let masuk = 0, keluar = 0, keluarBulanIni = 0;
+      const perSumber: Record<string, number> = {};
+      for (const r of await d.repo.ringkasKantong()) {
+        const u = Number(r.units), k = r.arah + ":" + r.sumber;
+        perSumber[k] = (perSumber[k] || 0) + u;
+        if (r.arah === "masuk") masuk += u; else { keluar += u; if (bulanWib(Date.parse(r.dibuat)) === bulanIni) keluarBulanIni += u; }
+      }
+      const anggaran = s.kantong_anggaran_bulan_tof * 1000000;
+      return ok({
+        bulan: bulanIni, saldo_units: masuk - keluar, masuk_units: masuk, keluar_units: keluar, per_sumber: perSumber,
+        anggaran_bulan_units: anggaran, keluar_bulan_ini_units: keluarBulanIni,
+        sisa_anggaran_bulan_units: Math.max(0, Math.min(anggaran - keluarBulanIni, masuk - keluar)), // tidak boleh melebihi anggaran maupun saldo
+        jatah_bunga_persen: s.kantong_jatah_bunga_persen, xp_per_tof: s.kantong_xp_per_tof, terbaru: await d.repo.listKantong(30),
+      });
+    }
+
+    // Pengurus mencatat pemasukan (hasil akun modal, lainnya) atau pengeluaran manual (bonus tugas khusus, dll.)
+    case "admin_kantong_catat": {
+      const a = await authAdmin(body, d);
+      if ("gagal" in a) return a.gagal;
+      if (!d.repo.catatKantong || !d.repo.ringkasKantong) return fail("kantong_belum_siap");
+      const arah = body.arah === "keluar" ? "keluar" : body.arah === "masuk" ? "masuk" : "";
+      const sumber = teks(body.sumber, 30);
+      const tof = body.tof;
+      const catatan = teks(body.catatan, 200);
+      if (!arah || !(arah === "masuk" ? KANTONG_SUMBER_MASUK : KANTONG_SUMBER_KELUAR).includes(sumber)) return fail("kantong_tidak_valid");
+      if (typeof tof !== "number" || !Number.isFinite(tof) || tof <= 0 || tof > 1000000 || !catatan) return fail("kantong_tidak_valid");
+      const units = Math.round(tof * 1000000);
+      if (units < 1) return fail("kantong_tidak_valid");
+      if (arah === "keluar") {
+        let saldo = 0;
+        for (const r of await d.repo.ringkasKantong()) saldo += r.arah === "masuk" ? Number(r.units) : -Number(r.units);
+        if (units > saldo) return fail("kantong_saldo_kurang", { saldo_units: saldo });
+      }
+      const hasil = await d.repo.catatKantong({ arah, sumber, units, catatan, oleh: a.profile.id });
+      if (hasil !== "ok") return fail("server_error");
+      await d.repo.logTopup(null, a.profile.id, "kantong_catat", a.profile.id, { arah, sumber, units });
+      return ok();
     }
 
     default:
@@ -3805,6 +3936,26 @@ const repo: Repo = {
     const q = db.from("pinjaman").select("*").in("status", statuses);
     const o = urut === "tempo_asc" ? q.order("jatuh_tempo", { ascending: true }) : q.order("dibuat", { ascending: urut === "dibuat_asc" });
     return must(await o.limit(limit)) as PinjamanRow[];
+  },
+  // 🟢 SISIPAN [KANTONG HADIAH]
+  async catatKantong(row) {
+    const { error } = await db.from("kantong_hadiah").insert(row);
+    if (!error) return "ok";
+    if (error.code === "23505") return "duplicate";
+    console.error("catatKantong:", error.message);
+    return "error";
+  },
+  async ringkasKantong() {
+    return must(await db.from("kantong_hadiah").select("arah,sumber,dibuat,units").limit(50000)) as { arah: string; sumber: string; dibuat: string; units: number }[];
+  },
+  async listKantong(limit) {
+    return must(await db.from("kantong_hadiah").select("*").order("dibuat", { ascending: false }).limit(limit)) as KantongRow[];
+  },
+  // 🟢 SISIPAN [IMBALAN XP]
+  async beriXpTugas(profileId, kode, periode, xp) {
+    const { data, error } = await db.rpc("fn_beri_xp_tugas", { p_profile_id: profileId, p_kode: kode, p_periode: periode, p_xp: xp });
+    if (error) { console.error("beriXpTugas:", error.message); return "error"; }
+    return data === true ? "diberikan" : "sudah";
   },
   async sumBungaPinjamanSince(sinceIso) {
     const rows = must(await db.from("pinjaman").select("bunga_tof_units")
