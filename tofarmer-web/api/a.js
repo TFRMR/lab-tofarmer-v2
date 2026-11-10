@@ -38,7 +38,7 @@ module.exports = async (req, res) => {
 <meta name="description" content="${esc(kutipan)}">
 <meta property="og:type" content="article"><meta property="og:site_name" content="${esc(NAMA_SITUS)}">
 <meta property="og:title" content="${esc(a.judul)}"><meta property="og:description" content="${esc(kutipan)}">
-<meta property="og:image" content="${esc(gambar)}"><meta property="og:url" content="${esc(origin + '/a/' + slug)}">
+<meta property="og:image" content="${esc(gambar)}">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(a.judul)}">
 <meta name="twitter:description" content="${esc(kutipan)}"><meta name="twitter:image" content="${esc(gambar)}">
 <meta http-equiv="refresh" content="0;url=${esc(tujuan)}">

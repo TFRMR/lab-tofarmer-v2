@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Warta ToFarmer</title>
+<meta name="description" content="Kabar dan catatan dari ToFarmer — pertanian, kebun, dan komunitas Menoreh.">
+<meta property="og:site_name" content="ToFarmer">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Warta ToFarmer">
+<meta property="og:description" content="Kabar dan catatan dari ToFarmer — pertanian, kebun, dan komunitas Menoreh.">
+<meta property="og:image" content="https://www.tofarmer.xyz/aset/apple-touch-icon.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
 <style>
@@ -115,10 +121,17 @@ async function tampilArtikel(slug) {
 }
 
 // ── BAGIKAN: tautan langsung ke artikel + judul + kutipan singkat ──
-// true = bagikan lewat /a/slug (muncul kartu judul+gambar di WhatsApp/medsos; butuh api/a.js + rewrite di vercel.json)
-// false = langsung ke artikel.html?a=slug (tanpa kartu pratinjau)
-const TAUTAN_PRATINJAU = true;
-function tautanArtikel(slug) { return TAUTAN_PRATINJAU ? location.origin + '/a/' + encodeURIComponent(slug) : location.origin + location.pathname + '?a=' + encodeURIComponent(slug); }
+// Bentuk tautan yang dibagikan (ganti satu kata di bawah):
+//  'langsung' = /html/artikel.html?a=slug  → pasti jalan, kartu pratinjau umum "Warta ToFarmer"
+//  'api'      = /api/a?slug=slug           → kartu pratinjau per artikel; pasti jalan bila tes /api/a?ping=1 berhasil
+//  'rapi'     = /a/slug                    → kartu pratinjau per artikel + tautan pendek; butuh rute /a/ di Vercel berfungsi
+const MODE_TAUTAN = 'langsung';
+function tautanArtikel(slug) {
+  const e = encodeURIComponent(slug);
+  if (MODE_TAUTAN === 'rapi') return location.origin + '/a/' + e;
+  if (MODE_TAUTAN === 'api') return location.origin + '/api/a?slug=' + e;
+  return location.origin + '/html/artikel.html?a=' + e;
+}
 function kutipanSingkat(d) {
   const t = (d.ringkasan || new DOMParser().parseFromString(d.isi, 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim();
   return t.length > 140 ? t.slice(0, 140).replace(/\s+\S*$/, '') + '…' : t;
