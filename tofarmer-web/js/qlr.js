@@ -1,5 +1,5 @@
 const TARGET_TOF = 100000;
-const RATE = 0.10;
+const RATE = 0.05;
 const WALLET_DIKECUALIKAN_DARI_RADAR = "R6QSHNSCY4HBQBH4UTSBJOJZTQTHCHW4IDQVXRVKR7EAQ2IDU7MSYCST5I"; // tidak ikut dihitung/ditampilkan di radar
 
 const container = document.getElementById("qlrContainer");
