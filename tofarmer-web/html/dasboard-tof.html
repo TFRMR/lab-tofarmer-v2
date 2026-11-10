@@ -322,6 +322,20 @@
         .article-desc { font-size: 11px; color: #94a3b8; line-height: 1.5; }
         .article-date { font-size: 10px; color: #64748b; font-family: monospace; margin-top: 6px; }
 
+        /* ── KORAN (artikel menggantikan chart) ── */
+        .koran-head { display:flex; justify-content:space-between; align-items:baseline; border-top:3px double rgba(253,224,71,0.35); border-bottom:1px solid rgba(253,224,71,0.2); padding:8px 0; margin-bottom:14px; font-family:'Playfair Display',serif; font-weight:bold; color:#fde047; font-size:15px; }
+        .koran-head a { font-family:'Plus Jakarta Sans',sans-serif; font-size:11px; color:#4ade80; text-decoration:none; font-weight:600; }
+        .koran-grid { grid-template-columns: 1fr; }
+        @media (min-width: 768px) { .main-grid .koran-grid { grid-template-columns: repeat(2, 1fr); } .koran-utama { grid-column: 1 / -1; } }
+        .koran-card, .kompasiana-card { padding:16px; background:rgba(6,12,8,0.4); border:1px solid rgba(74,222,128,0.15); border-radius:12px; transition:all .2s ease; display:flex; flex-direction:column; gap:6px; }
+        .koran-card:hover, .kompasiana-card:hover { border-color:#eab308; background:rgba(14,28,19,0.6); }
+        .koran-card img.sampul { width:100%; max-height:220px; object-fit:cover; border-radius:8px; margin-bottom:4px; }
+        .koran-card h3, .kompasiana-card h3 { font-family:'Playfair Display',serif; font-size:15px; color:#e5e7eb; line-height:1.35; }
+        .koran-utama h3 { font-size:22px; color:#fde047; }
+        .koran-card p, .kompasiana-card p { font-size:12px; color:#94a3b8; line-height:1.6; }
+        .koran-card small, .kompasiana-card small { font-size:10px; color:#64748b; font-family:monospace; }
+        .koran-card a.baca, .btn-kompasiana { font-size:12px; color:#4ade80; text-decoration:none; font-weight:600; }
+
         /* ── FOOTER ── */
         footer {
             text-align: center;
@@ -418,17 +432,13 @@
                 <div class="harga-update-badge" id="update-time-badge">⏱ Memperbarui...</div>
             </div>
 
-            <!-- RESPONSIVE VESTIGE CHART IFRAME -->
-            <div class="chart-container-box">
-                <div class="chart-wrapper">
-                    <div class="chart-overlay-label">📊 Chart by Vestige.fi · ASA 3558306283</div>
-                    <iframe
-                        src="https://vestige.fi/asset/3558306283?theme=dark"
-                        allowtransparency="true"
-                        title="TOF Token Chart — Vestige.fi"
-                        scrolling="no">
-                    </iframe>
-                </div>
+            <!-- [KORAN] Chart Vestige dihapus; di sini sekarang tempat artikel yang kamu posting (halaman tulis-artikel.html) -->
+            <div class="koran-head">
+                <span>📰 Artikel Terbaru</span>
+                <a href="artikel.html">Semua artikel →</a>
+            </div>
+            <div id="kompasiana-container" class="kompasiana-grid koran-grid">
+                <div class="koran-card" style="color:#6b7280;font-size:12px;">Memuat artikel...</div>
             </div>
         </div>
 
@@ -458,13 +468,7 @@
         </div>
     </div>
 
-    <!-- ── KOMPASIANA ── -->
-    <div class="card">
-        <div class="panel-heading">✍️ Artikel Terbaru dari Kompasiana</div>
-        <div id="kompasiana-container" class="kompasiana-grid">
-            <div class="article-card" style="color:#6b7280;font-size:12px;">Menghubungkan ke feed Kompasiana...</div>
-        </div>
-    </div>
+    <!-- [KORAN] Blok artikel Kompasiana dipindah ke panel kiri atas (menggantikan chart) -->
 
 </main>
 
@@ -501,7 +505,7 @@ let holderPieChart;
 async function initDashboard() {
     sinkronkanUserParamKeNavigasi();
     fetchMilestoneFromHTML();
-    fetchKompasianaArticles();
+    muatArtikelKoran();
     await fetchAlgorandChainData();
     startPriceTicker();
 }
@@ -831,8 +835,46 @@ async function fetchKompasianaArticles() {
 
 }
 
-// Jalankan saat halaman selesai dimuat
-document.addEventListener("DOMContentLoaded", fetchKompasianaArticles);
+// [KORAN] Listener lama (DOMContentLoaded -> fetchKompasianaArticles) dihapus karena
+// akan menimpa artikel dari Supabase; fetchKompasianaArticles() kini jadi cadangan saja.
+
+// ═══════════════════════════════════════════════════════════════════
+// KORAN — artikel hasil posting sendiri (tabel Supabase "artikel")
+// Kalau belum ada artikel terbit / gagal, jatuh ke artikel Kompasiana di atas
+// ═══════════════════════════════════════════════════════════════════
+function escKoran(t) {
+    return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function muatArtikelKoran() {
+    const container = document.getElementById('kompasiana-container');
+    if (!container) return;
+    try {
+        const { data, error } = await supabaseClient
+            .from('artikel')
+            .select('slug,judul,ringkasan,gambar,tanggal')
+            .eq('terbit', true)
+            .order('tanggal', { ascending: false })
+            .limit(5);
+        if (error || !data || data.length === 0) throw new Error('Belum ada artikel terbit');
+
+        container.innerHTML = data.map((a, i) => {
+            const tgl = new Date(a.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            const gambar = (i === 0 && /^https?:/i.test(a.gambar || '')) ? `<img class="sampul" src="${escKoran(a.gambar)}" alt="">` : '';
+            return `
+                <div class="koran-card ${i === 0 ? 'koran-utama' : ''}">
+                    ${gambar}
+                    <small>${tgl}</small>
+                    <h3>${escKoran(a.judul)}</h3>
+                    <p>${escKoran(a.ringkasan)}</p>
+                    <a class="baca" href="artikel.html?a=${encodeURIComponent(a.slug)}">📖 Baca selengkapnya →</a>
+                </div>`;
+        }).join('');
+    } catch (e) {
+        console.warn('Artikel koran kosong/gagal, memakai artikel cadangan:', e);
+        fetchKompasianaArticles();
+    }
+}
 // ═══════════════════════════════════════════════════════════════════
 // START
 // ═══════════════════════════════════════════════════════════════════

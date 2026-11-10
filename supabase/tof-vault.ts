@@ -413,6 +413,11 @@ export interface Repo {
   insertReaksi(postId: string | number, userId: string, type: string): Promise<"ok" | "duplicate" | "error">;
   // ---- 🟢 SISIPAN [SUSULAN]: persetujuan susulan untuk pinjaman lama (dibuat sebelum ada persetujuan potong otomatis) ----
   setujuiPinjamanLama(profileId: string, nowIso: string, versi: number, tenggang: number): Promise<number>;
+  // ---- 🟢 SISIPAN [ARTIKEL]: artikel publik (dibaca langsung dari browser; ditulis HANYA lewat server oleh pengurus) ----
+  artikelSemua(): Promise<Row[]>;
+  artikelSimpan(id: string | null, data: Record<string, unknown>): Promise<string | null>; // mengembalikan id; null = gagal / slug kembar
+  artikelHapus(id: string): Promise<boolean>;
+  artikelUploadUrl(path: string): Promise<{ path: string; token: string } | null>;
   // ---- 🟢 SISIPAN [SALDO]: salinan saldo TOF (kolom profiles.saldo_tof) yang disegarkan dari blockchain oleh server ----
   listProfilSaldo(): Promise<{ id: string; saldo_tof: number | null }[]>;
   setSaldoTof(id: string, saldo: number): Promise<void>;
@@ -3646,6 +3651,85 @@ async function handleSaldo(action: unknown, body: Row, d: Deps): Promise<Res> {
     }
 
     default:
+      return await handleArtikel(action, body, d); // 🟢 SISIPAN [ARTIKEL]: diteruskan; tetap berujung unknown_action
+  }
+}
+// 🟢 AKHIR SISIPAN
+
+// ============================================================
+// 🟢 SISIPAN [ARTIKEL] — Artikel publik "Warta Menoreh".
+//  - Dibaca publik langsung dari tabel `artikel` (RLS: hanya terbit = true).
+//  - Ditulis/diubah/dihapus/unggah gambar HANYA oleh pengurus (ADMIN_IDS) dengan sesi login yang sah.
+//  - Gambar: server membuat URL unggah sekali pakai (bucket publik `artikel`); browser tak punya izin tulis sendiri.
+// ============================================================
+const ARTIKEL_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const ARTIKEL_SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const ARTIKEL_MIME: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
+
+async function authPenulis(body: Row, d: Deps): Promise<{ profile: Profile } | Gagal> {
+  const a = await authSesi(body, d);
+  if ("gagal" in a) return a;
+  if (!(d.adminIds || []).includes(a.profile.id)) return { gagal: fail("bukan_admin") };
+  if (!(await pinAmanDari(a.profile, d))) return { gagal: fail("pin_publik") };
+  return a;
+}
+
+async function handleArtikel(action: unknown, body: Row, d: Deps): Promise<Res> {
+  switch (action) {
+    case "artikel_semua": {
+      const a = await authPenulis(body, d);
+      if ("gagal" in a) return a.gagal;
+      return ok({ artikel: await d.repo.artikelSemua() });
+    }
+
+    case "artikel_simpan": {
+      const a = await authPenulis(body, d);
+      if ("gagal" in a) return a.gagal;
+      const id = body.id == null || body.id === "" ? null : String(body.id);
+      if (id !== null && !ARTIKEL_ID_RE.test(id)) return fail("id_tidak_valid");
+      const judul = typeof body.judul === "string" ? body.judul.trim() : "";
+      const ringkasan = typeof body.ringkasan === "string" ? body.ringkasan.trim() : "";
+      const isi = typeof body.isi === "string" ? body.isi : "";
+      const gambar = typeof body.gambar === "string" ? body.gambar.trim() : "";
+      if (!judul || judul.length > 200) return fail("judul_tidak_valid");
+      if (ringkasan.length > 600) return fail("ringkasan_terlalu_panjang");
+      if (isi.length > 200000) return fail("isi_terlalu_panjang");
+      if (gambar && (gambar.length > 600 || !/^https:\/\//i.test(gambar))) return fail("gambar_tidak_valid");
+      const data: Record<string, unknown> = { judul, ringkasan, isi, gambar, terbit: body.terbit === true };
+      if (id === null) {
+        const slug = typeof body.slug === "string" ? body.slug : "";
+        if (slug.length < 3 || slug.length > 120 || !ARTIKEL_SLUG_RE.test(slug)) return fail("slug_tidak_valid");
+        data.slug = slug; // slug dibuat sekali saat artikel baru, tidak berubah lagi agar tautan yang sudah dibagikan tetap hidup
+      }
+      const idBaru = await d.repo.artikelSimpan(id, data);
+      if (!idBaru) return fail("gagal_simpan");
+      await d.repo.log(a.profile.id, "artikel_simpan", true);
+      return ok({ id: idBaru });
+    }
+
+    case "artikel_hapus": {
+      const a = await authPenulis(body, d);
+      if ("gagal" in a) return a.gagal;
+      const id = typeof body.id === "string" ? body.id : "";
+      if (!ARTIKEL_ID_RE.test(id)) return fail("id_tidak_valid");
+      if (!(await d.repo.artikelHapus(id))) return fail("not_found");
+      await d.repo.log(a.profile.id, "artikel_hapus", true);
+      return ok();
+    }
+
+    case "artikel_upload_url": {
+      const a = await authPenulis(body, d);
+      if ("gagal" in a) return a.gagal;
+      const ext = typeof body.mime === "string" ? ARTIKEL_MIME[body.mime] : undefined;
+      if (!ext) return fail("jenis_gambar_tidak_didukung");
+      const acak = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
+      const bulan = new Date(d.now()).toISOString().slice(0, 7);
+      const up = await d.repo.artikelUploadUrl(`${bulan}/${acak}.${ext}`);
+      if (!up) return fail("server_error");
+      return ok({ path: up.path, token: up.token });
+    }
+
+    default:
       return fail("unknown_action");
   }
 }
@@ -4201,6 +4285,32 @@ const repo: Repo = {
     const rows = must(await db.from("pinjaman").update({ setuju_pada: nowIso, setuju_versi: versi, tenggang_hari: tenggang })
       .eq("profile_id", profileId).in("status", ["aktif", "dibayar"]).is("setuju_pada", null).select("id")) as { id: string }[] | null;
     return rows ? rows.length : 0;
+  },
+  // 🟢 AKHIR SISIPAN
+
+  // 🟢 SISIPAN [ARTIKEL]
+  async artikelSemua() {
+    return must(await db.from("artikel").select("*").order("tanggal", { ascending: false }).limit(500)) as Row[];
+  },
+  async artikelSimpan(id, data) {
+    if (id) {
+      const { data: r, error } = await db.from("artikel").update({ ...data, diubah: new Date().toISOString() }).eq("id", id).select("id");
+      if (error) { console.error("artikelSimpan(update):", error.message); return null; }
+      return r && r.length > 0 ? (r[0] as { id: string }).id : null;
+    }
+    const { data: r, error } = await db.from("artikel").insert(data).select("id").single();
+    if (error) { console.error("artikelSimpan(insert):", error.message); return null; }
+    return (r as { id: string }).id;
+  },
+  async artikelHapus(id) {
+    const { data, error } = await db.from("artikel").delete().eq("id", id).select("id");
+    if (error) { console.error("artikelHapus:", error.message); return false; }
+    return !!data && data.length > 0;
+  },
+  async artikelUploadUrl(path) {
+    const { data, error } = await db.storage.from("artikel").createSignedUploadUrl(path);
+    if (error || !data) { console.error("artikelUploadUrl:", error?.message); return null; }
+    return { path: data.path, token: data.token };
   },
   // 🟢 AKHIR SISIPAN
 

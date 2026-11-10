@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warta Menoreh — ToFarmer</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: linear-gradient(135deg,#060c08 0%,#0c1c13 50%,#040805 100%); color:#e2e8f0; font-family:'Plus Jakarta Sans',system-ui,sans-serif; min-height:100vh; line-height:1.6; }
+header { max-width:1000px; margin:0 auto; text-align:center; padding:28px 16px 14px; border-bottom:3px double rgba(253,224,71,.35); }
+header h1 { font-family:'Playfair Display',serif; font-size:clamp(28px,6vw,46px); color:#fde047; }
+header p { font-size:12px; color:#64748b; font-family:monospace; }
+.menu { margin-top:10px; display:flex; gap:14px; justify-content:center; font-size:12px; }
+.menu a { color:#4ade80; text-decoration:none; font-weight:600; }
+main { max-width:1000px; margin:0 auto; padding:24px 16px 48px; }
+.grid { display:grid; gap:18px; grid-template-columns:1fr; }
+@media (min-width:768px) { .grid { grid-template-columns:repeat(2,1fr); } .utama { grid-column:1/-1; } }
+.kartu { display:flex; flex-direction:column; gap:6px; padding:16px; background:rgba(6,12,8,.4); border:1px solid rgba(74,222,128,.15); border-radius:12px; text-decoration:none; color:inherit; transition:.2s; }
+.kartu:hover { border-color:#eab308; background:rgba(14,28,19,.6); }
+.kartu img { width:100%; max-height:260px; object-fit:cover; border-radius:8px; }
+.kartu h2 { font-family:'Playfair Display',serif; font-size:18px; color:#e5e7eb; line-height:1.35; }
+.utama h2 { font-size:28px; color:#fde047; }
+.kartu p { font-size:13px; color:#94a3b8; }
+small, .tgl { font-size:11px; color:#64748b; font-family:monospace; }
+.baca h1 { font-family:'Playfair Display',serif; font-size:clamp(26px,5vw,40px); line-height:1.25; color:#fde047; margin:6px 0 10px; }
+.baca > img { width:100%; max-height:420px; object-fit:cover; border-radius:10px; margin:14px 0; }
+.isi { font-family:Georgia,'Times New Roman',serif; font-size:18px; line-height:1.85; color:#e2e8f0; max-width:720px; margin:18px auto 0; }
+.isi p, .isi ul, .isi ol, .isi blockquote, .isi div { margin-bottom:1.1em; }
+.isi h2, .isi h3, .isi h4 { font-family:'Playfair Display',serif; color:#fde047; margin:1.4em 0 .5em; line-height:1.3; }
+.isi blockquote { border-left:3px solid #eab308; padding-left:14px; color:#94a3b8; font-style:italic; }
+.isi ul, .isi ol { padding-left:1.4em; }
+.isi a { color:#4ade80; }
+.isi img { max-width:100%; border-radius:8px; margin:.6em 0; }
+.isi hr { border:none; border-top:1px solid rgba(74,222,128,.2); margin:1.5em 0; }
+.bagikan { display:flex; flex-wrap:wrap; gap:8px; align-items:center; max-width:720px; margin:14px auto 0; padding:10px 0; border-top:1px solid rgba(74,222,128,.15); border-bottom:1px solid rgba(74,222,128,.15); }
+.bagikan span { font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
+.bagikan a, .bagikan button { padding:6px 12px; border-radius:20px; border:1px solid rgba(74,222,128,.35); background:rgba(34,197,94,.12); color:#4ade80; font:inherit; font-size:12px; font-weight:600; cursor:pointer; text-decoration:none; }
+.bagikan a:hover, .bagikan button:hover { background:rgba(34,197,94,.28); }
+.pesan { text-align:center; color:#64748b; padding:40px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Warta Menoreh</h1>
+  <p>Kabar &amp; catatan dari lereng Menoreh</p>
+  <div class="menu"><a href="dasboard-tof.html">📊 Dashboard TOF</a><a href="artikel.html">📰 Semua artikel</a></div>
+</header>
+<main id="isi-halaman"><div class="pesan">Memuat...</div></main>
+
+<script>
+const supabaseClient = supabase.createClient(
+  'https://afpzddwuikvwsedzgsee.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY'
+);
+const el = document.getElementById('isi-halaman');
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tgl = d => new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
+const gambarOk = u => /^https?:/i.test(u || '');
+
+// Pembersih HTML (daftar putih) — isi artikel hanya boleh tag aman
+function bersihkan(html) {
+  const OK = { P:[],DIV:[],BR:[],H2:[],H3:[],H4:[],STRONG:[],B:[],EM:[],I:[],U:[],UL:[],OL:[],LI:[],BLOCKQUOTE:[],HR:[],A:['href'],IMG:['src','alt'] };
+  const doc = new DOMParser().parseFromString('<body>' + html, 'text/html');
+  (function walk(n) {
+    [...n.childNodes].forEach(c => {
+      if (c.nodeType === 3) return;
+      if (c.nodeType !== 1) { c.remove(); return; }
+      if (['SCRIPT','STYLE','IFRAME','OBJECT','EMBED'].includes(c.tagName)) { c.remove(); return; }
+      walk(c);
+      const allow = OK[c.tagName];
+      if (!allow) { c.replaceWith(...c.childNodes); return; }
+      [...c.attributes].forEach(a => {
+        if (!allow.includes(a.name)) c.removeAttribute(a.name);
+        else if ((a.name === 'href' || a.name === 'src') && !/^(https?:|mailto:)/i.test(a.value.trim())) c.removeAttribute(a.name);
+      });
+      if (c.tagName === 'A') { c.target = '_blank'; c.rel = 'noopener noreferrer'; }
+    });
+  })(doc.body);
+  return doc.body.innerHTML;
+}
+
+async function tampilDaftar() {
+  const { data, error } = await supabaseClient.from('artikel')
+    .select('slug,judul,ringkasan,gambar,tanggal').eq('terbit', true).order('tanggal', { ascending: false });
+  if (error) { el.innerHTML = '<div class="pesan">Gagal memuat artikel.</div>'; return; }
+  if (!data.length) { el.innerHTML = '<div class="pesan">Belum ada artikel terbit.</div>'; return; }
+  el.innerHTML = '<div class="grid">' + data.map((a, i) => `
+    <a class="kartu ${i === 0 ? 'utama' : ''}" href="artikel.html?a=${encodeURIComponent(a.slug)}">
+      ${i === 0 && gambarOk(a.gambar) ? `<img src="${esc(a.gambar)}" alt="">` : ''}
+      <small>${tgl(a.tanggal)}</small><h2>${esc(a.judul)}</h2><p>${esc(a.ringkasan)}</p>
+    </a>`).join('') + '</div>';
+}
+
+async function tampilArtikel(slug) {
+  const { data, error } = await supabaseClient.from('artikel').select('*').eq('slug', slug).eq('terbit', true).maybeSingle();
+  if (error || !data) { el.innerHTML = '<div class="pesan">Artikel tidak ditemukan. <a href="artikel.html" style="color:#4ade80">Lihat semua artikel</a></div>'; return; }
+  document.title = data.judul + ' — ToFarmer';
+  el.innerHTML = `<article class="baca">
+    <a href="artikel.html" class="tgl" style="color:#4ade80;text-decoration:none">← Semua artikel</a>
+    <h1>${esc(data.judul)}</h1><span class="tgl">${tgl(data.tanggal)}</span>
+    ${gambarOk(data.gambar) ? `<img src="${esc(data.gambar)}" alt="">` : ''}
+    ${barBagikan(data)}
+    <div class="isi">${bersihkan(data.isi)}</div>
+    ${barBagikan(data)}</article>`;
+  setMeta(data);
+}
+
+// ── BAGIKAN: tautan langsung ke artikel + judul + kutipan singkat ──
+// true = bagikan lewat /a/slug (muncul kartu judul+gambar di WhatsApp/medsos; butuh api/a.js + rewrite di vercel.json)
+// false = langsung ke artikel.html?a=slug (tanpa kartu pratinjau)
+const TAUTAN_PRATINJAU = true;
+function tautanArtikel(slug) { return TAUTAN_PRATINJAU ? location.origin + '/a/' + encodeURIComponent(slug) : location.origin + location.pathname + '?a=' + encodeURIComponent(slug); }
+function kutipanSingkat(d) {
+  const t = (d.ringkasan || new DOMParser().parseFromString(d.isi, 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim();
+  return t.length > 140 ? t.slice(0, 140).replace(/\s+\S*$/, '') + '…' : t;
+}
+function barBagikan(d) {
+  const url = tautanArtikel(d.slug), k = kutipanSingkat(d);
+  const teks = d.judul + (k ? '\n\n“' + k + '”' : '') + '\n\nBaca selengkapnya:';
+  const u = encodeURIComponent(url), t = encodeURIComponent(teks);
+  return `<div class="bagikan"><span>Bagikan</span>
+    <a href="https://wa.me/?text=${encodeURIComponent(teks + ' ' + url)}" target="_blank" rel="noopener">WhatsApp</a>
+    <a href="https://www.facebook.com/sharer/sharer.php?u=${u}" target="_blank" rel="noopener">Facebook</a>
+    <a href="https://twitter.com/intent/tweet?text=${t}&url=${u}" target="_blank" rel="noopener">X</a>
+    <a href="https://t.me/share/url?url=${u}&text=${t}" target="_blank" rel="noopener">Telegram</a>
+    <button onclick="salinTautan('${esc(d.slug)}', this)">🔗 Salin tautan</button>
+    ${navigator.share ? `<button onclick="bagikanHP('${esc(d.slug)}')">📤 Lainnya</button>` : ''}</div>`;
+}
+async function salinTautan(slug, tombol) {
+  try { await navigator.clipboard.writeText(tautanArtikel(slug)); tombol.textContent = '✅ Tersalin'; }
+  catch (e) { prompt('Salin tautan ini:', tautanArtikel(slug)); }
+  setTimeout(() => tombol.textContent = '🔗 Salin tautan', 2000);
+}
+function bagikanHP(slug) {
+  const d = window._artikelAktif; if (!d) return;
+  navigator.share({ title: d.judul, text: kutipanSingkat(d), url: tautanArtikel(slug) }).catch(() => {});
+}
+function setMeta(d) {
+  window._artikelAktif = d;
+  const set = (attr, key, val) => { let m = document.querySelector(`meta[${attr}="${key}"]`); if (!m) { m = document.createElement('meta'); m.setAttribute(attr, key); document.head.appendChild(m); } m.setAttribute('content', val); };
+  set('property', 'og:title', d.judul); set('property', 'og:description', kutipanSingkat(d));
+  set('property', 'og:url', tautanArtikel(d.slug)); set('property', 'og:type', 'article');
+  if (gambarOk(d.gambar)) set('property', 'og:image', d.gambar);
+  set('name', 'description', kutipanSingkat(d));
+}
+
+const slug = new URLSearchParams(location.search).get('a');
+slug ? tampilArtikel(slug) : tampilDaftar();
+</script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Tulis Artikel — Warta Menoreh</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: linear-gradient(135deg,#060c08,#0c1c13 50%,#040805); color:#e2e8f0; font-family:'Plus Jakarta Sans',system-ui,sans-serif; min-height:100vh; line-height:1.6; padding:20px 14px 60px; }
+.wrap { max-width:820px; margin:0 auto; }
+h1 { font-family:'Playfair Display',serif; color:#fde047; font-size:26px; }
+.atas { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px; }
+.atas a { color:#4ade80; font-size:12px; text-decoration:none; font-weight:600; }
+.box { background:rgba(18,32,24,.6); border:1px solid rgba(74,222,128,.15); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; font-weight:600; margin:10px 0 4px; }
+input[type=text], textarea { width:100%; padding:9px 12px; border-radius:8px; border:1px solid #2d4a38; background:#0a0f0b; color:#e2e8f0; font:inherit; font-size:14px; outline:none; }
+input:focus, textarea:focus, #editor:focus { border-color:#eab308; }
+button { padding:8px 16px; border-radius:8px; border:1px solid rgba(74,222,128,.35); background:rgba(34,197,94,.15); color:#4ade80; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+button:hover { background:rgba(34,197,94,.28); }
+button.utama { background:#eab308; color:#1a1400; border-color:#eab308; }
+button.bahaya { border-color:rgba(239,68,68,.4); color:#f87171; background:rgba(239,68,68,.1); }
+.bar { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.bar button { padding:5px 10px; font-size:12px; }
+#editor { min-height:320px; max-height:60vh; overflow-y:auto; padding:14px; border:1px solid #2d4a38; border-radius:8px; background:#0a0f0b; font-family:Georgia,serif; font-size:17px; line-height:1.8; outline:none; margin-top:8px; }
+#editor h2, #editor h3 { font-family:'Playfair Display',serif; color:#fde047; margin:.8em 0 .4em; }
+#editor blockquote { border-left:3px solid #eab308; padding-left:12px; color:#94a3b8; font-style:italic; }
+#editor img { max-width:100%; border-radius:6px; }
+#editor a { color:#4ade80; }
+.baris { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-top:14px; }
+.item { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid rgba(74,222,128,.1); font-size:13px; }
+.item span.s { font-size:10px; font-family:monospace; padding:1px 8px; border-radius:20px; margin-left:6px; }
+.item .on { background:rgba(34,197,94,.15); color:#4ade80; } .item .off { background:rgba(148,163,184,.15); color:#94a3b8; }
+#status { font-size:12px; color:#fde047; min-height:18px; margin-top:8px; }
+#prev-sampul { max-width:200px; max-height:120px; border-radius:8px; margin-top:8px; display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="atas"><h1>✍️ Tulis Artikel</h1><a href="artikel.html">Lihat Warta Menoreh →</a></div>
+
+  <div class="box" id="kotak-masuk" style="display:none">
+    <p id="pesan-masuk" style="font-size:14px;margin-bottom:12px"></p>
+    <a id="tautan-login" href="#"><button class="utama">Masuk dulu</button></a>
+  </div>
+
+  <div id="area" style="display:none">
+    <div class="box">
+      <div class="atas" style="margin-bottom:6px"><b>Artikel kamu</b><button onclick="baru()">+ Artikel baru</button></div>
+      <div id="daftar"></div>
+    </div>
+
+    <div class="box">
+      <label>Judul</label><input type="text" id="judul" placeholder="Judul artikel">
+      <label>Ringkasan (tampil di dashboard, daftar, dan saat dibagikan)</label><textarea id="ringkasan" rows="2" placeholder="Satu-dua kalimat pembuka"></textarea>
+      <label>Gambar sampul</label>
+      <div class="baris" style="margin-top:0"><button onclick="pilihGambar('sampul')">📷 Unggah gambar sampul</button><input type="text" id="gambar" placeholder="atau tempel alamat https://..." oninput="pratinjauSampul()" style="flex:1;min-width:180px"></div>
+      <img id="prev-sampul" alt="">
+      <label>Isi artikel</label>
+      <div class="bar">
+        <button onclick="fmt('bold')"><b>B</b></button>
+        <button onclick="fmt('italic')"><i>I</i></button>
+        <button onclick="fmt('formatBlock','h2')">H2</button>
+        <button onclick="fmt('formatBlock','h3')">H3</button>
+        <button onclick="fmt('formatBlock','p')">Paragraf</button>
+        <button onclick="fmt('formatBlock','blockquote')">❝ Kutipan</button>
+        <button onclick="fmt('insertUnorderedList')">• Daftar</button>
+        <button onclick="fmt('insertOrderedList')">1. Daftar</button>
+        <button onclick="tautan()">🔗 Tautan</button>
+        <button onclick="pilihGambar('isi')">🖼 Unggah gambar</button>
+        <button onclick="fmt('insertHorizontalRule')">―</button>
+      </div>
+      <div id="editor" contenteditable="true"></div>
+      <input type="file" id="berkas" accept="image/jpeg,image/png,image/webp,image/gif" style="display:none">
+      <div class="baris">
+        <label style="margin:0;display:flex;gap:6px;align-items:center;text-transform:none;font-size:13px"><input type="checkbox" id="terbit"> Terbitkan (tampil di publik)</label>
+        <button class="utama" onclick="simpan()">💾 Simpan</button>
+      </div>
+      <div id="status"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const supabaseClient = supabase.createClient(
+  'https://afpzddwuikvwsedzgsee.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY'
+);
+const HALAMAN_LOGIN = '/html/login.html';   // sesuaikan bila halaman login ToFarmer beda alamat
+const HALAMAN_INI   = '/html/tulis-artikel.html';
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let semua = [], idAktif = null, slugAktif = null, rentang = null, tujuanUnggah = 'isi';
+document.execCommand('defaultParagraphSeparator', false, 'p');
+
+// ── Sesi login ToFarmer (dibuat login.js) — admin dicek ulang di SERVER ──
+function sesi() {
+  try {
+    const s = JSON.parse(localStorage.getItem('tof_session') || 'null');
+    if (s && s.id && s.token && Number(s.exp) * 1000 > Date.now()) return s;
+  } catch (e) {}
+  return null;
+}
+async function vault(action, body = {}) {
+  const s = sesi(); if (!s) return { ok: false, error: 'sesi_tidak_valid' };
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('tof-vault', { body: { action, profile_id: s.id, token: s.token, ...body } });
+    return error ? { ok: false, error: 'network' } : (data || { ok: false, error: 'empty' });
+  } catch (e) { return { ok: false, error: 'network' }; }
+}
+const PESAN = { bukan_admin: 'Akun ini bukan pengurus, jadi tidak boleh menulis artikel.', sesi_tidak_valid: 'Sesi login habis atau belum login.', pin_publik: 'PIN akunmu belum aman. Buat PIN baru dulu di Pengaturan Profil.', network: 'Gagal terhubung ke server.', slug_tidak_valid: 'Alamat artikel tidak valid.', gagal_simpan: 'Gagal menyimpan (mungkin alamat artikel kembar).' };
+const pesanError = r => PESAN[r.error] || ('Gagal: ' + (r.error || 'tidak diketahui'));
+
+function bersihkan(html) {
+  const OK = { P:[],DIV:[],BR:[],H2:[],H3:[],H4:[],STRONG:[],B:[],EM:[],I:[],U:[],UL:[],OL:[],LI:[],BLOCKQUOTE:[],HR:[],A:['href'],IMG:['src','alt'] };
+  const doc = new DOMParser().parseFromString('<body>' + html, 'text/html');
+  (function walk(n) {
+    [...n.childNodes].forEach(c => {
+      if (c.nodeType === 3) return;
+      if (c.nodeType !== 1) { c.remove(); return; }
+      if (['SCRIPT','STYLE','IFRAME','OBJECT','EMBED'].includes(c.tagName)) { c.remove(); return; }
+      walk(c);
+      const allow = OK[c.tagName];
+      if (!allow) { c.replaceWith(...c.childNodes); return; }
+      [...c.attributes].forEach(a => {
+        if (!allow.includes(a.name)) c.removeAttribute(a.name);
+        else if ((a.name === 'href' || a.name === 'src') && !/^(https?:|mailto:)/i.test(a.value.trim())) c.removeAttribute(a.name);
+      });
+      if (c.tagName === 'A') { c.target = '_blank'; c.rel = 'noopener noreferrer'; }
+    });
+  })(doc.body);
+  return doc.body.innerHTML;
+}
+
+function pesan(t) { $('status').textContent = t; }
+function fmt(cmd, val) { $('editor').focus(); document.execCommand(cmd, false, val || null); }
+function tautan() { const u = prompt('Alamat tautan (https://...)'); if (u) fmt('createLink', u); }
+function pratinjauSampul() { const u = $('gambar').value.trim(), p = $('prev-sampul'); p.src = /^https:/i.test(u) ? u : ''; p.style.display = p.src ? 'block' : 'none'; }
+$('editor').addEventListener('blur', () => { const s = getSelection(); if (s.rangeCount && $('editor').contains(s.anchorNode)) rentang = s.getRangeAt(0).cloneRange(); });
+document.querySelectorAll('.bar button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
+
+// ── Unggah gambar: server memberi URL sekali pakai (hanya pengurus), browser mengunggah ke bucket "artikel" ──
+function pilihGambar(tujuan) { tujuanUnggah = tujuan; $('berkas').value = ''; $('berkas').click(); }
+$('berkas').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  if (!/^image\/(jpeg|png|webp|gif)$/.test(f.type)) return alert('Pilih gambar JPG, PNG, WEBP, atau GIF.');
+  if (f.size > 3 * 1024 * 1024) return alert('Ukuran gambar maksimal 3 MB. Kecilkan dulu.');
+  pesan('Mengunggah gambar...');
+  const r = await vault('artikel_upload_url', { mime: f.type });
+  if (!r.ok) return pesan(pesanError(r));
+  const { error } = await supabaseClient.storage.from('artikel').uploadToSignedUrl(r.path, r.token, f);
+  if (error) return pesan('Gagal mengunggah: ' + error.message);
+  const url = supabaseClient.storage.from('artikel').getPublicUrl(r.path).data.publicUrl;
+  if (tujuanUnggah === 'sampul') { $('gambar').value = url; pratinjauSampul(); }
+  else {
+    $('editor').focus();
+    if (rentang) { const s = getSelection(); s.removeAllRanges(); s.addRange(rentang); }
+    document.execCommand('insertImage', false, url);
+  }
+  pesan('✅ Gambar terunggah.');
+});
+
+async function mulai() {
+  if (!sesi()) {
+    $('kotak-masuk').style.display = 'block';
+    $('pesan-masuk').textContent = 'Masuk dulu dengan akun pengurus ToFarmer untuk menulis artikel.';
+    $('tautan-login').href = HALAMAN_LOGIN + '?next=' + encodeURIComponent(HALAMAN_INI);
+    return;
+  }
+  const r = await vault('artikel_semua');
+  if (!r.ok) { $('kotak-masuk').style.display = 'block'; $('pesan-masuk').textContent = pesanError(r); $('tautan-login').href = HALAMAN_LOGIN + '?next=' + encodeURIComponent(HALAMAN_INI); return; }
+  semua = r.artikel; $('area').style.display = 'block'; gambarDaftar();
+}
+
+function gambarDaftar() {
+  $('daftar').innerHTML = semua.length ? semua.map(a => `
+    <div class="item"><div>${esc(a.judul)}<span class="s ${a.terbit ? 'on' : 'off'}">${a.terbit ? 'terbit' : 'draf'}</span></div>
+    <div><button onclick="ubah('${a.id}')">Edit</button> <button class="bahaya" onclick="hapus('${a.id}')">Hapus</button></div></div>`).join('')
+    : '<div style="color:#64748b;font-size:13px">Belum ada artikel.</div>';
+}
+
+function baru() {
+  idAktif = null; slugAktif = null;
+  ['judul','ringkasan','gambar'].forEach(i => $(i).value = '');
+  $('editor').innerHTML = ''; $('terbit').checked = false; pratinjauSampul(); pesan('');
+}
+
+function ubah(id) {
+  const a = semua.find(x => x.id === id); if (!a) return;
+  idAktif = a.id; slugAktif = a.slug;
+  $('judul').value = a.judul; $('ringkasan').value = a.ringkasan; $('gambar').value = a.gambar;
+  $('editor').innerHTML = bersihkan(a.isi); $('terbit').checked = a.terbit; pratinjauSampul(); pesan('Mengedit: ' + a.judul);
+  scrollTo({ top: $('judul').offsetTop - 20, behavior: 'smooth' });
+}
+
+async function simpan() {
+  const judul = $('judul').value.trim();
+  if (!judul) return alert('Judul wajib diisi');
+  const slug = slugAktif || (judul.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60).replace(/-$/,'') + '-' + Date.now().toString(36));
+  pesan('Menyimpan...');
+  const r = await vault('artikel_simpan', { id: idAktif, slug, judul, ringkasan: $('ringkasan').value.trim(), isi: bersihkan($('editor').innerHTML), gambar: $('gambar').value.trim(), terbit: $('terbit').checked });
+  if (!r.ok) return pesan(pesanError(r));
+  idAktif = r.id; slugAktif = slug;
+  pesan('✅ Tersimpan' + ($('terbit').checked ? ' dan terbit.' : ' sebagai draf.'));
+  const l = await vault('artikel_semua'); if (l.ok) { semua = l.artikel; gambarDaftar(); }
+}
+
+async function hapus(id) {
+  if (!confirm('Hapus artikel ini permanen?')) return;
+  const r = await vault('artikel_hapus', { id });
+  if (!r.ok) return alert(pesanError(r));
+  semua = semua.filter(a => a.id !== id); gambarDaftar(); if (idAktif === id) baru();
+}
+
+mulai();
+</script>
+</body>
+</html>
