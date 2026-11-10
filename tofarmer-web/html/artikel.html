@@ -117,7 +117,7 @@ async function tampilArtikel(slug) {
 // ── BAGIKAN: tautan langsung ke artikel + judul + kutipan singkat ──
 // true = bagikan lewat /a/slug (muncul kartu judul+gambar di WhatsApp/medsos; butuh api/a.js + rewrite di vercel.json)
 // false = langsung ke artikel.html?a=slug (tanpa kartu pratinjau)
-const TAUTAN_PRATINJAU = false;
+const TAUTAN_PRATINJAU = true;
 function tautanArtikel(slug) { return TAUTAN_PRATINJAU ? location.origin + '/a/' + encodeURIComponent(slug) : location.origin + location.pathname + '?a=' + encodeURIComponent(slug); }
 function kutipanSingkat(d) {
   const t = (d.ringkasan || new DOMParser().parseFromString(d.isi, 'text/html').body.textContent || '').replace(/\s+/g, ' ').trim();

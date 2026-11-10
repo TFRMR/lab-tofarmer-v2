@@ -1,6 +1,6 @@
 // Vercel Serverless Function — kartu pratinjau (judul + kutipan + gambar) saat tautan artikel dibagikan ke WhatsApp/medsos.
 // Pembaca bot membaca tag og:*; pengunjung manusia langsung dialihkan ke halaman artikel.
-// Dipanggil lewat rewrite di vercel.json:  /a/:slug  ->  /api/a?slug=:slug
+// Dipanggil lewat rute di vercel.json:  /a/:slug  ->  /api/a?slug=:slug
 const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
 const HALAMAN_ARTIKEL = '/html/artikel.html';       // lokasi artikel.html di situsmu
@@ -10,6 +10,8 @@ const NAMA_SITUS = 'Warta ToFarmer';
 const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 module.exports = async (req, res) => {
+  // Tes hidup: buka /api/a?ping=1 — kalau tertulis "fungsi warta hidup", fungsi ini sudah terpasang di Vercel
+  if (req.query && req.query.ping) { res.setHeader('Content-Type', 'text/plain; charset=utf-8'); res.status(200).send('fungsi warta hidup'); return; }
   const slug = String((req.query && req.query.slug) || '');
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug) || slug.length > 120) { res.redirect(302, HALAMAN_ARTIKEL); return; }
 
