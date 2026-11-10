@@ -449,14 +449,16 @@ summary::-webkit-details-marker { display:none; }
 details[open] > summary .panah { transform:rotate(180deg); }
 
 .eco.eco-lipat { display:block; text-align:left; padding:12px 15px; }
-.eco-baris { display:flex; justify-content:space-between; align-items:center; gap:10px; }
-.eco-fase { margin-top:8px; }
+.eco-satu { display:flex; align-items:center; gap:10px; }
+.eco-kiri { flex:0 0 auto; max-width:55%; min-width:118px; }
+.eco-kiri > div { margin-top:6px; }
+.eco-satu #avatarStack { flex:1; min-width:0; justify-content:flex-end; justify-content:safe flex-end; padding:2px 4px 2px 0; }
+.eco-satu #avatarStack .avatar-item:first-child { margin-left:0; }
+.eco-satu #avatarStack .avatar-item { flex-shrink:0; }
 .eco-fase h4 { color:#c9a227; font-size:10px; margin:0 0 4px; letter-spacing:.04em; }
 .eco-fase #faseText { display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:4px !important; white-space:normal !important; }
 .eco-fase #faseText div { margin-top:0 !important; }
-.eco-lipat details:not([open]) #faseText div:nth-child(n+3) { display:none; }
-.eco-isi { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; margin-top:12px; padding-top:12px; border-top:1px dashed rgba(212,175,55,.3); }
-.eco-isi #avatarStack { min-width:0; justify-content:flex-start; }
+.eco-isi { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:start; margin-top:12px; padding-top:12px; border-top:1px dashed rgba(212,175,55,.3); }
 .eco-isi .eco-avatars { display:none; }
 
 .akun-lipat { padding:10px 12px; }
@@ -517,23 +519,26 @@ details[open] > summary .panah { transform:rotate(180deg); }
     </div>
   </div>
 
-  <!-- ECONOMY: Total Aset -> Fase Progress -> foto bulat -> Users (default dilipat) -->
+  <!-- ECONOMY: satu baris (Total Aset + garis fase di bawahnya | foto bulat-bulat); ketuk untuk detail fase & Users -->
   <div class="eco eco-grid eco-lipat">
     <details id="ecoDetail">
       <summary>
-        <div class="eco-baris">
-          <div>
+        <div class="eco-satu">
+          <div class="eco-kiri">
             <span>Total Aset Ekosistem</span><br>
             <b id="totalAsset">0 TOF</b>
-          </div>
-          <span class="panah">▾</span>
-        </div>
-        <div class="eco-fase">
-          <h4>FASE PROGRESS SEKARANG</h4>
-    <div style="height:6px;background:#eee;border-radius:5px;overflow:hidden;">
+            <div style="height:4px;background:#eee;border-radius:5px;overflow:hidden;">
       <div id="faseBar" style="width:20%;height:100%;background:linear-gradient(90deg,#4caf7a,#c9a227);"></div>
     </div>
-   <p
+          </div>
+          <div class="avatars" id="avatarStack"></div>
+          <span class="panah">▾</span>
+        </div>
+      </summary>
+      <div class="eco-isi">
+        <div class="eco-fase">
+          <h4>FASE PROGRESS SEKARANG</h4>
+          <p
   id="faseText"
   style="
     font-size:10px;
@@ -547,9 +552,6 @@ details[open] > summary .panah { transform:rotate(180deg); }
   Loading...
 </p>
         </div>
-      </summary>
-      <div class="eco-isi">
-        <div class="avatars" id="avatarStack"></div>
         <!-- USERS -->
         <div>
           <span>Users</span><br>
