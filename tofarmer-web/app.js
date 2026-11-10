@@ -2086,8 +2086,8 @@ async function renderPostsBatch(posts, feed) {
 
       <div id="box-komentar-${item.id}" style="display:none; margin-top:12px; padding:12px; background:#f8faf9; border-radius:12px;">
         
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
-          <input id="comment-${item.id}" placeholder="Tulis komentar ladang..." style="flex-grow:1; padding:8px 12px; border-radius:20px; border:1px solid #ddd; font-size:12px; outline:none;" />
+        <div style="display:flex; gap:8px; margin-bottom:12px; align-items:flex-end;">
+          <textarea id="comment-${item.id}" rows="1" placeholder="Tulis komentar ladang..." oninput="this.style.height='auto'; this.style.height=Math.min(this.scrollHeight,140)+'px';" style="flex-grow:1; padding:8px 12px; border-radius:20px; border:1px solid #ddd; font-size:12px; outline:none; resize:none; overflow-y:auto; max-height:140px; line-height:1.4; font-family:inherit; box-sizing:border-box;"></textarea>
           <button type="button" onclick="sendComment('${item.id}')" style="margin-top:0; width:auto; padding:6px 14px; font-size:12px; border-radius:20px;">Kirim</button>
         </div>
 
@@ -2380,6 +2380,7 @@ async function sendCommentAsli(postId) {
 
   // 6. Bersihkan kotak input komentar
   input.value = "";
+  input.style.height = "";
 
   // 7. Update text counter jumlah komentar secara dinamis di luar kotak
   const counterEl = document.querySelector(`[onclick="toggleKomentarBox('${postId}')"]`);
