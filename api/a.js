@@ -5,7 +5,7 @@ const SUPABASE_URL = 'https://afpzddwuikvwsedzgsee.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY';
 const HALAMAN_ARTIKEL = '/html/artikel.html';       // lokasi artikel.html di situsmu
 const GAMBAR_CADANGAN = '/aset/apple-touch-icon.png'; // dipakai bila artikel tak punya gambar sampul
-const NAMA_SITUS = 'Warta Menoreh — ToFarmer';
+const NAMA_SITUS = 'Warta ToFarmer';
 
 const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
