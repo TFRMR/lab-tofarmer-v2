@@ -454,6 +454,10 @@
 .wp-atur button { width:auto; margin:0; padding:3px 8px; font-size:11px; border-radius:8px; background:rgba(255,255,255,.92);
   color:#8a6d0b; border:1px solid rgba(201,162,39,.45); font-weight:700; }
 .wp-atur button:hover { background:#fff3cf; }
+.wp-aksi { margin-top:8px; padding-top:6px; border-top:1px solid rgba(201,162,39,.25); }
+.wp-aksi button { width:auto; margin:0; padding:4px 12px; background:transparent; border:none; color:#6f7f76; font-size:12px; font-weight:600; border-radius:999px; }
+.wp-aksi button:hover { background:rgba(201,162,39,.14); color:#8a6d0b; transform:none; }
+.wp-komentar { margin-top:10px; padding:10px; background:rgba(255,255,255,.75); border-radius:12px; }
 .wp-toast { position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:rgba(47,111,78,.95); color:#fff;
   padding:8px 16px; border-radius:999px; font-size:12px; z-index:9998; box-shadow:0 6px 18px rgba(0,0,0,.2); }
   </style>
@@ -765,6 +769,7 @@
 
 
 <script src="app.js"></script>
+<script src="/js/warta-komentar.js"></script>
 <script>
 // ===== [WARTA DI FEED] =====
 // Artikel Warta ToFarmer muncul sebagai kartu khusus di alur postingan, urut menurut "jam tayang" (waktu_feed):
@@ -800,10 +805,13 @@
   async function muatArtikel() {
     if (artikel !== null) return;
     artikel = [];
+    // kolom opsional (waktu_feed, jumlah_komentar) bisa belum ada bila SQL belum dijalankan: coba berurutan
+    var daftarKolom = ['id,slug,judul,ringkasan,gambar,tanggal,waktu_feed,jumlah_komentar', 'id,slug,judul,ringkasan,gambar,tanggal,waktu_feed', 'id,slug,judul,ringkasan,gambar,tanggal'];
     try {
-      var r = await supabaseClient.from('artikel').select('id,slug,judul,ringkasan,gambar,tanggal,waktu_feed').eq('terbit', true).order('tanggal', { ascending: false }).limit(30);
-      if (r.error) r = await supabaseClient.from('artikel').select('id,slug,judul,ringkasan,gambar,tanggal').eq('terbit', true).order('tanggal', { ascending: false }).limit(30);
-      if (!r.error && r.data) artikel = r.data;
+      for (var i = 0; i < daftarKolom.length; i++) {
+        var r = await supabaseClient.from('artikel').select(daftarKolom[i]).eq('terbit', true).order('tanggal', { ascending: false }).limit(30);
+        if (!r.error && r.data) { artikel = r.data; break; }
+      }
     } catch (e) {}
   }
 
@@ -818,20 +826,34 @@
     } catch (e) {}
   }
 
+  var kartuCache = {};
+  function pasangToolbar(d) {
+    if (!adaAdmin || d.querySelector('.wp-atur')) return;
+    var t = document.createElement('div'); t.className = 'wp-atur';
+    t.innerHTML = '<button type="button" data-geser="atas" title="Naikkan ke paling atas">⏫</button><button type="button" data-geser="naik" title="Naik satu langkah">▲</button><button type="button" data-geser="turun" title="Turun satu langkah">▼</button>';
+    d.insertBefore(t, d.firstChild);
+  }
   function buatKartu(a, t) {
-    var d = document.createElement('div');
-    d.className = 'warta-post'; d.dataset.waktu = String(t); d.dataset.id = a.id;
-    var tgl = new Date(a.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
-    var cover = /^https:\/\//i.test(a.gambar || '') ? '<img class="wp-cover" src="' + esc(a.gambar) + '" alt="">' : '';
-    d.innerHTML =
-      (adaAdmin ? '<div class="wp-atur"><button type="button" data-geser="atas" title="Naikkan ke paling atas">⏫</button><button type="button" data-geser="naik" title="Naik satu langkah">▲</button><button type="button" data-geser="turun" title="Turun satu langkah">▼</button></div>' : '') +
-      '<a class="wp-isi" href="' + HALAMAN + '?a=' + encodeURIComponent(a.slug) + '">' +
-        '<span class="wp-kicker">📰 WARTA TOFARMER</span>' +
-        '<div class="wp-judul">' + esc(a.judul) + '</div>' +
-        (a.ringkasan ? '<div class="wp-ringkas">' + esc(a.ringkasan) + '</div>' : '') +
-        cover +
-        '<div class="wp-baca"><span>' + tgl + '</span><b>Baca selengkapnya →</b></div>' +
-      '</a>';
+    var d = kartuCache[a.id];
+    if (!d) {
+      d = document.createElement('div');
+      d.className = 'warta-post'; d.dataset.id = a.id;
+      var tgl = new Date(a.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      var cover = /^https:\/\//i.test(a.gambar || '') ? '<img class="wp-cover" src="' + esc(a.gambar) + '" alt="">' : '';
+      d.innerHTML =
+        '<a class="wp-isi" href="' + HALAMAN + '?a=' + encodeURIComponent(a.slug) + '">' +
+          '<span class="wp-kicker">📰 WARTA TOFARMER</span>' +
+          '<div class="wp-judul">' + esc(a.judul) + '</div>' +
+          (a.ringkasan ? '<div class="wp-ringkas">' + esc(a.ringkasan) + '</div>' : '') +
+          cover +
+          '<div class="wp-baca"><span>' + tgl + '</span><b>Baca selengkapnya →</b></div>' +
+        '</a>' +
+        '<div class="wp-aksi"><button type="button" data-komentar="1">💬 <span class="wp-jml">' + (a.jumlah_komentar || 0) + '</span> Komentar</button></div>' +
+        '<div class="wp-komentar" style="display:none"></div>';
+      kartuCache[a.id] = d;
+    }
+    d.dataset.waktu = String(t);
+    pasangToolbar(d);
     return d;
   }
 
@@ -855,6 +877,8 @@
   }
 
   async function susun() {
+    var ae = document.activeElement;   // jangan menata ulang saat pengguna sedang mengetik di kartu Warta
+    if (ae && /^(TEXTAREA|INPUT)$/.test(ae.tagName) && ae.closest && ae.closest('.warta-post')) { clearTimeout(jadwal); jadwal = setTimeout(susun, 1500); return; }
     if (sibuk) { ulang = true; return; }
     sibuk = true;
     try { await muatArtikel(); await lengkapiWaktu(); pasang(); }
@@ -864,7 +888,7 @@
   async function cekAdmin() {
     if (!sesi()) return;
     var r = await vault('artikel_admin_cek');
-    if (r && r.ok) { adaAdmin = true; pasang(); }
+    if (r && r.ok) { adaAdmin = true; Object.keys(kartuCache).forEach(function (k) { pasangToolbar(kartuCache[k]); }); pasang(); }
   }
 
   async function geser(kartu, arah) {
@@ -886,7 +910,23 @@
     if (baru && baru.scrollIntoView) baru.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
 
+  // Komentar di kartu Warta: dimuat saat pertama dibuka (komponen js/warta-komentar.js)
+  function bukaKomentar(btn) {
+    var kartu = btn.closest('.warta-post'); if (!kartu) return;
+    var box = kartu.querySelector('.wp-komentar'); if (!box) return;
+    var buka = box.style.display === 'none';
+    box.style.display = buka ? 'block' : 'none';
+    if (buka && !box.dataset.siap && window.WartaKomentar) {
+      box.dataset.siap = '1';
+      WartaKomentar.pasang(box, kartu.dataset.id, { tema: 'terang', onJumlah: function (n) {
+        var j = kartu.querySelector('.wp-jml'); if (j) j.textContent = n;
+      } });
+    }
+  }
+
   feed.addEventListener('click', function (e) {
+    var k = e.target.closest ? e.target.closest('[data-komentar]') : null;
+    if (k) { e.preventDefault(); e.stopPropagation(); bukaKomentar(k); return; }
     var b = e.target.closest ? e.target.closest('[data-geser]') : null;
     if (!b) return;
     e.preventDefault(); e.stopPropagation();

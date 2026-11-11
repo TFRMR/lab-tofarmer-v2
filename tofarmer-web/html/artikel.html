@@ -62,6 +62,7 @@ small, .tgl { font-size:11px; color:#64748b; font-family:monospace; }
 </header>
 <main id="isi-halaman"><div class="pesan">Memuat...</div></main>
 
+<script src="/js/warta-komentar.js"></script>
 <script>
 const supabaseClient = supabase.createClient(
   'https://afpzddwuikvwsedzgsee.supabase.co',
@@ -118,8 +119,11 @@ async function tampilArtikel(slug) {
     ${gambarOk(data.gambar) ? `<img src="${esc(data.gambar)}" alt="">` : ''}
     ${barBagikan(data)}
     <div class="isi">${bersihkan(data.isi)}</div>
-    ${barBagikan(data)}</article>`;
+    ${barBagikan(data)}
+    <section id="komentar-artikel" style="max-width:720px;margin:26px auto 0"></section></article>`;
   setMeta(data);
+  // komentar: pengunjung wajib mengetik nama; pengguna ToFarmer yang masuk bertanda centang ✓
+  if (window.WartaKomentar) WartaKomentar.pasang(document.getElementById('komentar-artikel'), data.id, { tema: 'gelap', tampilkanJudul: true });
 }
 
 // ── BAGIKAN: tautan langsung ke artikel + judul + kutipan singkat ──
