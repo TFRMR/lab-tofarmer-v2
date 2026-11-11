@@ -95,14 +95,16 @@ function bersihkan(html) {
 }
 
 async function tampilDaftar() {
-  const { data, error } = await supabaseClient.from('artikel')
-    .select('slug,judul,ringkasan,gambar,tanggal').eq('terbit', true).order('tanggal', { ascending: false });
+  let { data, error } = await supabaseClient.from('artikel')
+    .select('slug,judul,ringkasan,gambar,tanggal,penulis_nama').eq('terbit', true).order('tanggal', { ascending: false });
+  if (error) ({ data, error } = await supabaseClient.from('artikel')
+    .select('slug,judul,ringkasan,gambar,tanggal').eq('terbit', true).order('tanggal', { ascending: false }));
   if (error) { el.innerHTML = '<div class="pesan">Gagal memuat artikel.</div>'; return; }
   if (!data.length) { el.innerHTML = '<div class="pesan">Belum ada artikel terbit.</div>'; return; }
   el.innerHTML = '<div class="grid">' + data.map((a, i) => `
     <a class="kartu ${i === 0 ? 'utama' : ''}" href="artikel.html?a=${encodeURIComponent(a.slug)}">
       ${i === 0 && gambarOk(a.gambar) ? `<img src="${esc(a.gambar)}" alt="">` : ''}
-      <small>${tgl(a.tanggal)}</small><h2>${esc(a.judul)}</h2><p>${esc(a.ringkasan)}</p>
+      <small>${tgl(a.tanggal)}${a.penulis_nama ? ' · oleh @' + esc(a.penulis_nama) : ''}</small><h2>${esc(a.judul)}</h2><p>${esc(a.ringkasan)}</p>
     </a>`).join('') + '</div>';
 }
 
@@ -112,7 +114,7 @@ async function tampilArtikel(slug) {
   document.title = data.judul + ' — ToFarmer';
   el.innerHTML = `<article class="baca">
     <a href="artikel.html" class="tgl" style="color:#4ade80;text-decoration:none">← Semua artikel</a>
-    <h1>${esc(data.judul)}</h1><span class="tgl">${tgl(data.tanggal)}</span>
+    <h1>${esc(data.judul)}</h1><span class="tgl">${tgl(data.tanggal)}${data.penulis_nama ? ' · oleh @' + esc(data.penulis_nama) : ''}</span>
     ${gambarOk(data.gambar) ? `<img src="${esc(data.gambar)}" alt="">` : ''}
     ${barBagikan(data)}
     <div class="isi">${bersihkan(data.isi)}</div>

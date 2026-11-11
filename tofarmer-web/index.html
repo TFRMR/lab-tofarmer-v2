@@ -1001,5 +1001,40 @@ document.getElementById("imageInput").addEventListener("change", function (e) {
 });
 </script>
 <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fbeb09b48aa346a8b215ec2407d8f021"}'></script><!-- End Cloudflare Web Analytics -->
+<script>
+// ===== [PENULIS] Dari halaman penulis -> daftar/masuk ToFarmer -> otomatis kembali ke halaman penulis =====
+(function () {
+  var KUNCI = 'tof_kembali_penulis', TUJUAN = '/html/tulis-artikel.html';
+  function baca() {
+    try { var o = JSON.parse(localStorage.getItem(KUNCI) || 'null'); if (o && o.url === TUJUAN && o.exp > Date.now()) return o; } catch (e) {}
+    try { localStorage.removeItem(KUNCI); } catch (e) {}
+    return null;
+  }
+  function sesiOk() {
+    try { var s = JSON.parse(localStorage.getItem('tof_session') || 'null'); return !!(s && s.id && s.token && Number(s.exp) * 1000 > Date.now()); } catch (e) { return false; }
+  }
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!baca()) return;
+    var b = document.createElement('div');
+    b.style.cssText = 'max-width:760px;margin:0 auto 14px;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#fff9e8,#eef7f1);border:1px solid rgba(201,162,39,.4);font-size:13px;color:#33433a;line-height:1.5;';
+    b.innerHTML = '✍️ <b>Daftar atau masuk dulu untuk jadi penulis Warta ToFarmer.</b> Setelah selesai, kamu otomatis kembali ke halaman penulis.' +
+      '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
+      '<button type="button" id="bpMasuk" style="width:auto;margin:0;padding:8px 14px;">🔑 Masuk / Daftar sekarang</button>' +
+      '<button type="button" id="bpBatal" style="width:auto;margin:0;padding:8px 14px;background:#eee;color:#555;">Batal</button></div>';
+    var anchor = document.querySelector('.eco') || document.querySelector('.layout');
+    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(b, anchor);
+    var pasang = document.getElementById('bpMasuk'), batal = document.getElementById('bpBatal');
+    if (pasang) pasang.onclick = function () { if (typeof connectWallet === 'function') connectWallet(); };
+    if (batal) batal.onclick = function () { try { localStorage.removeItem(KUNCI); } catch (e) {} b.remove(); clearInterval(t); };
+    var sudah = false;
+    var t = setInterval(function () {
+      if (sudah || !baca() || !sesiOk()) return;
+      sudah = true; clearInterval(t);
+      b.innerHTML = '✅ <b>Berhasil.</b> Membawamu kembali ke halaman penulis...';
+      setTimeout(function () { try { localStorage.removeItem(KUNCI); } catch (e) {} location.href = TUJUAN; }, 2500);
+    }, 800);
+  });
+})();
+</script>
 </body>
 </html>

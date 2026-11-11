@@ -414,7 +414,12 @@ export interface Repo {
   // ---- 🟢 SISIPAN [SUSULAN]: persetujuan susulan untuk pinjaman lama (dibuat sebelum ada persetujuan potong otomatis) ----
   setujuiPinjamanLama(profileId: string, nowIso: string, versi: number, tenggang: number): Promise<number>;
   // ---- 🟢 SISIPAN [ARTIKEL]: artikel publik (dibaca langsung dari browser; ditulis HANYA lewat server oleh pengurus) ----
-  artikelSemua(): Promise<Row[]>;
+  artikelSemua(penulisId?: string): Promise<Row[]>;   // tanpa penulisId = semua (pengurus); dengan penulisId = hanya miliknya
+  artikelCari(id: string): Promise<Row | null>;
+  // ---- 🟢 SISIPAN [PENULIS]: pendaftaran penulis artikel (disetujui pengurus) ----
+  penulisCari(profileId: string): Promise<Row | null>;
+  penulisSimpan(profileId: string, data: Record<string, unknown>): Promise<boolean>; // buat baru atau perbarui
+  penulisDaftar(): Promise<Row[]>;
   artikelSimpan(id: string | null, data: Record<string, unknown>): Promise<string | null>; // mengembalikan id; null = gagal / slug kembar
   artikelHapus(id: string): Promise<boolean>;
   artikelUploadUrl(path: string): Promise<{ path: string; token: string } | null>;
@@ -3667,7 +3672,9 @@ const ARTIKEL_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 const ARTIKEL_SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const ARTIKEL_MIME: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif" };
 
-async function authPenulis(body: Row, d: Deps): Promise<{ profile: Profile } | Gagal> {
+// Pengurus (ADMIN_IDS) = boleh mengelola semua artikel + menyetujui penulis.
+// Penulis yang sudah disetujui pengurus = hanya boleh mengelola artikelnya sendiri.
+async function authAdminArtikel(body: Row, d: Deps): Promise<{ profile: Profile } | Gagal> {
   const a = await authSesi(body, d);
   if ("gagal" in a) return a;
   if (!(d.adminIds || []).includes(a.profile.id)) return { gagal: fail("bukan_admin") };
@@ -3675,12 +3682,70 @@ async function authPenulis(body: Row, d: Deps): Promise<{ profile: Profile } | G
   return a;
 }
 
+async function authPenulis(body: Row, d: Deps): Promise<{ profile: Profile; admin: boolean } | Gagal> {
+  const a = await authSesi(body, d);
+  if ("gagal" in a) return a;
+  const admin = (d.adminIds || []).includes(a.profile.id);
+  if (!admin) {
+    const p = await d.repo.penulisCari(a.profile.id);
+    if (!p || p.status !== "disetujui") return { gagal: fail("bukan_penulis") };
+  }
+  if (!(await pinAmanDari(a.profile, d))) return { gagal: fail("pin_publik") };
+  return { profile: a.profile, admin };
+}
+
 async function handleArtikel(action: unknown, body: Row, d: Deps): Promise<Res> {
   switch (action) {
+    // ---------- pendaftaran penulis ----------
+    case "penulis_status": {
+      const a = await authSesi(body, d);
+      if ("gagal" in a) return a.gagal;
+      if ((d.adminIds || []).includes(a.profile.id)) return ok({ admin: true, status: "disetujui", username: a.profile.username });
+      const p = await d.repo.penulisCari(a.profile.id);
+      return ok({ admin: false, status: p ? String(p.status) : "belum", username: a.profile.username });
+    }
+
+    case "penulis_daftar": {
+      const a = await authSesi(body, d);
+      if ("gagal" in a) return a.gagal;
+      if ((d.adminIds || []).includes(a.profile.id)) return fail("sudah_pengurus");
+      const perkenalan = typeof body.perkenalan === "string" ? body.perkenalan.trim() : "";
+      if (perkenalan.length < 10 || perkenalan.length > 600) return fail("perkenalan_tidak_valid");
+      const lama = await d.repo.penulisCari(a.profile.id);
+      if (lama && lama.status === "disetujui") return ok({ status: "disetujui" });
+      const tersimpan = await d.repo.penulisSimpan(a.profile.id, {
+        username: a.profile.username, perkenalan, status: "menunggu", dibuat: new Date(d.now()).toISOString(), diputuskan: null, diputuskan_oleh: null,
+      });
+      if (!tersimpan) return fail("server_error");
+      await d.repo.log(a.profile.id, "penulis_daftar", true);
+      return ok({ status: "menunggu" });
+    }
+
+    case "penulis_daftar_admin": {
+      const a = await authAdminArtikel(body, d);
+      if ("gagal" in a) return a.gagal;
+      return ok({ daftar: await d.repo.penulisDaftar() });
+    }
+
+    case "penulis_putuskan": {
+      const a = await authAdminArtikel(body, d);
+      if ("gagal" in a) return a.gagal;
+      const target = typeof body.target_id === "string" ? body.target_id : "";
+      if (!target || target.length > 120) return fail("id_tidak_valid");
+      const k = body.keputusan;
+      const status = k === "setuju" ? "disetujui" : (k === "tolak" || k === "cabut") ? "ditolak" : "";
+      if (!status) return fail("keputusan_tidak_valid");
+      if (!(await d.repo.penulisCari(target))) return fail("not_found");
+      if (!(await d.repo.penulisSimpan(target, { status, diputuskan: new Date(d.now()).toISOString(), diputuskan_oleh: a.profile.id }))) return fail("server_error");
+      await d.repo.log(a.profile.id, "penulis_putuskan", true);
+      return ok({ status });
+    }
+
+    // ---------- artikel ----------
     case "artikel_semua": {
       const a = await authPenulis(body, d);
       if ("gagal" in a) return a.gagal;
-      return ok({ artikel: await d.repo.artikelSemua() });
+      return ok({ artikel: await d.repo.artikelSemua(a.admin ? undefined : a.profile.id) });
     }
 
     case "artikel_simpan": {
@@ -3701,6 +3766,13 @@ async function handleArtikel(action: unknown, body: Row, d: Deps): Promise<Res> 
         const slug = typeof body.slug === "string" ? body.slug : "";
         if (slug.length < 3 || slug.length > 120 || !ARTIKEL_SLUG_RE.test(slug)) return fail("slug_tidak_valid");
         data.slug = slug; // slug dibuat sekali saat artikel baru, tidak berubah lagi agar tautan yang sudah dibagikan tetap hidup
+        data.penulis_id = a.profile.id;
+        data.penulis_nama = a.profile.username;
+      } else {
+        const lama = await d.repo.artikelCari(id);
+        if (!lama) return fail("not_found");
+        if (!a.admin && lama.penulis_id !== a.profile.id) return fail("bukan_pemilik");
+        if (lama.penulis_id === a.profile.id) data.penulis_nama = a.profile.username; // segarkan bila ia mengganti username
       }
       const idBaru = await d.repo.artikelSimpan(id, data);
       if (!idBaru) return fail("gagal_simpan");
@@ -3713,22 +3785,25 @@ async function handleArtikel(action: unknown, body: Row, d: Deps): Promise<Res> 
       if ("gagal" in a) return a.gagal;
       const id = typeof body.id === "string" ? body.id : "";
       if (!ARTIKEL_ID_RE.test(id)) return fail("id_tidak_valid");
+      const lama = await d.repo.artikelCari(id);
+      if (!lama) return fail("not_found");
+      if (!a.admin && lama.penulis_id !== a.profile.id) return fail("bukan_pemilik");
       if (!(await d.repo.artikelHapus(id))) return fail("not_found");
       await d.repo.log(a.profile.id, "artikel_hapus", true);
       return ok();
     }
 
-    // Cek ringan: apakah sesi ini milik pengurus (untuk menampilkan tombol geser di kartu Warta pada feed)
+    // Cek ringan khusus pengurus (menampilkan tombol geser di kartu Warta pada feed)
     case "artikel_admin_cek": {
-      const a = await authPenulis(body, d);
+      const a = await authAdminArtikel(body, d);
       if ("gagal" in a) return a.gagal;
       return ok();
     }
 
-    // Geser kartu Warta di feed. mode "atas" = paling atas (waktu sekarang); mode "waktu" = waktu yang dihitung browser
+    // Geser kartu Warta di feed (khusus pengurus). mode "atas" = paling atas (waktu sekarang); mode "waktu" = waktu yang dihitung browser
     // (satu langkah naik/turun terhadap posting di sebelahnya). Posting baru otomatis ada di atasnya lagi.
     case "artikel_geser": {
-      const a = await authPenulis(body, d);
+      const a = await authAdminArtikel(body, d);
       if ("gagal" in a) return a.gagal;
       const id = typeof body.id === "string" ? body.id : "";
       if (!ARTIKEL_ID_RE.test(id)) return fail("id_tidak_valid");
@@ -4318,9 +4393,35 @@ const repo: Repo = {
   // 🟢 AKHIR SISIPAN
 
   // 🟢 SISIPAN [ARTIKEL]
-  async artikelSemua() {
-    return must(await db.from("artikel").select("*").order("tanggal", { ascending: false }).limit(500)) as Row[];
+  async artikelSemua(penulisId) {
+    let q = db.from("artikel").select("*");
+    if (penulisId) q = q.eq("penulis_id", penulisId);
+    return must(await q.order("tanggal", { ascending: false }).limit(500)) as Row[];
   },
+  async artikelCari(id) {
+    const { data, error } = await db.from("artikel").select("id,penulis_id").eq("id", id).maybeSingle();
+    if (error) { console.error("artikelCari:", error.message); return null; }
+    return (data as Row | null) ?? null;
+  },
+  // 🟢 SISIPAN [PENULIS]
+  async penulisCari(profileId) {
+    const { data, error } = await db.from("penulis_artikel").select("*").eq("profile_id", profileId).maybeSingle();
+    if (error) { console.error("penulisCari:", error.message); return null; }
+    return (data as Row | null) ?? null;
+  },
+  async penulisSimpan(profileId, data) {
+    const { data: ada, error: e1 } = await db.from("penulis_artikel").select("profile_id").eq("profile_id", profileId).maybeSingle();
+    if (e1) { console.error("penulisSimpan(cari):", e1.message); return false; }
+    const { error } = ada
+      ? await db.from("penulis_artikel").update(data).eq("profile_id", profileId)
+      : await db.from("penulis_artikel").insert({ profile_id: profileId, ...data });
+    if (error) { console.error("penulisSimpan:", error.message); return false; }
+    return true;
+  },
+  async penulisDaftar() {
+    return must(await db.from("penulis_artikel").select("*").order("dibuat", { ascending: false }).limit(300)) as Row[];
+  },
+  // 🟢 AKHIR SISIPAN
   async artikelSimpan(id, data) {
     if (id) {
       const { data: r, error } = await db.from("artikel").update({ ...data, diubah: new Date().toISOString() }).eq("id", id).select("id");

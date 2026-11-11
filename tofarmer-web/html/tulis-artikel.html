@@ -34,6 +34,8 @@ button.bahaya { border-color:rgba(239,68,68,.4); color:#f87171; background:rgba(
 .item span.s { font-size:10px; font-family:monospace; padding:1px 8px; border-radius:20px; margin-left:6px; }
 .item .on { background:rgba(34,197,94,.15); color:#4ade80; } .item .off { background:rgba(148,163,184,.15); color:#94a3b8; }
 #status { font-size:12px; color:#fde047; min-height:18px; margin-top:8px; }
+.jd { font-family:'Playfair Display',serif; color:#fde047; font-size:20px; margin-bottom:6px; }
+.pj { font-size:14px; color:#cbd5e1; margin-bottom:12px; }
 #prev-sampul { max-width:200px; max-height:120px; border-radius:8px; margin-top:8px; display:none; }
 </style>
 </head>
@@ -42,8 +44,29 @@ button.bahaya { border-color:rgba(239,68,68,.4); color:#f87171; background:rgba(
   <div class="atas"><h1>✍️ Tulis Artikel</h1><a href="artikel.html">Lihat Warta ToFarmer →</a></div>
 
   <div class="box" id="kotak-masuk" style="display:none">
-    <p id="pesan-masuk" style="font-size:14px;margin-bottom:12px"></p>
-    <a id="tautan-login" href="#"><button class="utama">Masuk dulu</button></a>
+    <h2 class="jd">✍️ Jadi Penulis Warta ToFarmer</h2>
+    <p class="pj">Warta ToFarmer adalah ruang kabar dan catatan dari komunitas. Untuk menulis, kamu perlu akun ToFarmer, lalu mengajukan diri sebagai penulis dan menunggu persetujuan pengurus.</p>
+    <div class="baris">
+      <a id="tautan-login" href="#"><button class="utama">🔑 Sudah punya akun — Masuk</button></a>
+      <button onclick="daftarToFarmer()">🌱 Belum punya akun — Daftar ToFarmer</button>
+    </div>
+    <p id="pesan-masuk" style="font-size:13px;color:#fde047;margin-top:12px"></p>
+  </div>
+
+  <div class="box" id="kotak-ajukan" style="display:none">
+    <h2 class="jd">✍️ Ajukan diri jadi penulis</h2>
+    <p class="pj" id="sapa-ajukan"></p>
+    <label>Perkenalan singkat</label>
+    <textarea id="perkenalan" rows="4" maxlength="600" placeholder="Siapa kamu, dan topik apa yang ingin kamu tulis? (minimal 10 huruf)"></textarea>
+    <div class="baris"><button class="utama" onclick="ajukan()">📨 Ajukan jadi penulis</button></div>
+    <div id="status-ajukan" style="font-size:12px;color:#fde047;min-height:18px;margin-top:8px"></div>
+  </div>
+
+  <div class="box" id="kotak-status" style="display:none"></div>
+
+  <div class="box" id="kotak-admin" style="display:none">
+    <div class="atas" style="margin-bottom:6px"><b>👑 Persetujuan penulis <span id="jumlah-menunggu" style="color:#fde047"></span></b><button onclick="muatPermohonan()">↻ Muat ulang</button></div>
+    <div id="daftar-permohonan"></div>
   </div>
 
   <div id="area" style="display:none">
@@ -110,7 +133,7 @@ async function vault(action, body = {}) {
     return error ? { ok: false, error: 'network' } : (data || { ok: false, error: 'empty' });
   } catch (e) { return { ok: false, error: 'network' }; }
 }
-const PESAN = { bukan_admin: 'Akun ini bukan pengurus, jadi tidak boleh menulis artikel.', sesi_tidak_valid: 'Sesi login habis atau belum login.', pin_publik: 'PIN akunmu belum aman. Buat PIN baru dulu di Pengaturan Profil.', network: 'Gagal terhubung ke server.', slug_tidak_valid: 'Alamat artikel tidak valid.', gagal_simpan: 'Gagal menyimpan (mungkin alamat artikel kembar).' };
+const PESAN = { bukan_penulis: 'Akun ini belum disetujui sebagai penulis.', bukan_pemilik: 'Artikel ini bukan milikmu.', perkenalan_tidak_valid: 'Perkenalan harus 10–600 huruf.', sudah_pengurus: 'Kamu sudah pengurus, tidak perlu mengajukan.', bukan_admin: 'Akun ini bukan pengurus, jadi tidak boleh menulis artikel.', sesi_tidak_valid: 'Sesi login habis atau belum login.', pin_publik: 'PIN akunmu belum aman. Buat PIN baru dulu di Pengaturan Profil.', network: 'Gagal terhubung ke server.', slug_tidak_valid: 'Alamat artikel tidak valid.', gagal_simpan: 'Gagal menyimpan (mungkin alamat artikel kembar).' };
 const pesanError = r => PESAN[r.error] || ('Gagal: ' + (r.error || 'tidak diketahui'));
 
 function bersihkan(html) {
@@ -162,21 +185,87 @@ $('berkas').addEventListener('change', async e => {
   pesan('✅ Gambar terunggah.');
 });
 
+let peran = { admin: false, status: 'belum', username: '' };
+function tampil(id, ya) { $(id).style.display = ya ? 'block' : 'none'; }
+
+// Pengguna belum masuk -> Masuk (kembali ke halaman ini) atau Daftar ToFarmer (di beranda, lalu otomatis kembali ke sini)
+function daftarToFarmer() {
+  try { localStorage.setItem('tof_kembali_penulis', JSON.stringify({ url: HALAMAN_INI, exp: Date.now() + 30 * 60 * 1000 })); } catch (e) {}
+  location.href = '/';
+}
+
 async function mulai() {
-  if (!sesi()) {
-    $('kotak-masuk').style.display = 'block';
-    $('pesan-masuk').textContent = 'Masuk dulu dengan akun pengurus ToFarmer untuk menulis artikel.';
-    $('tautan-login').href = HALAMAN_LOGIN + '?next=' + encodeURIComponent(HALAMAN_INI);
+  ['kotak-masuk', 'kotak-ajukan', 'kotak-status', 'kotak-admin', 'area'].forEach(function (i) { tampil(i, false); });
+  $('tautan-login').href = HALAMAN_LOGIN + '?next=' + encodeURIComponent(HALAMAN_INI);
+  if (!sesi()) { tampil('kotak-masuk', true); return; }
+  const r = await vault('penulis_status');
+  if (!r.ok) {
+    tampil('kotak-masuk', true);
+    $('pesan-masuk').textContent = r.error === 'sesi_tidak_valid' ? 'Sesi login habis, silakan masuk lagi.' : pesanError(r);
     return;
   }
-  const r = await vault('artikel_semua');
-  if (!r.ok) { $('kotak-masuk').style.display = 'block'; $('pesan-masuk').textContent = pesanError(r); $('tautan-login').href = HALAMAN_LOGIN + '?next=' + encodeURIComponent(HALAMAN_INI); return; }
-  semua = r.artikel; $('area').style.display = 'block'; gambarDaftar();
+  peran = { admin: !!r.admin, status: r.status, username: r.username || '' };
+  if (peran.admin) { tampil('kotak-admin', true); muatPermohonan(); }
+  if (peran.status === 'disetujui') { await bukaEditor(); return; }
+  if (peran.status === 'menunggu') {
+    $('kotak-status').innerHTML = '<h2 class="jd">⏳ Permohonanmu sedang ditinjau</h2><p class="pj">Terima kasih, @' + esc(peran.username) + '. Pengurus akan memeriksa permohonanmu. Kembali lagi ke halaman ini nanti; kalau sudah disetujui, editor penulisan akan muncul di sini.</p>';
+    tampil('kotak-status', true);
+    return;
+  }
+  $('sapa-ajukan').textContent = peran.status === 'ditolak'
+    ? 'Permohonan sebelumnya belum disetujui. Kamu boleh mengajukan lagi dengan perkenalan yang lebih lengkap.'
+    : 'Halo @' + peran.username + '! Ceritakan sedikit tentang dirimu supaya pengurus bisa menyetujuimu.';
+  tampil('kotak-ajukan', true);
 }
+
+async function bukaEditor() {
+  const l = await vault('artikel_semua');
+  if (!l.ok) { tampil('kotak-masuk', true); $('pesan-masuk').textContent = pesanError(l); return; }
+  semua = l.artikel; tampil('area', true); gambarDaftar();
+}
+
+async function ajukan() {
+  const t = $('perkenalan').value.trim();
+  if (t.length < 10) return alert('Perkenalan minimal 10 huruf.');
+  $('status-ajukan').textContent = 'Mengirim...';
+  const r = await vault('penulis_daftar', { perkenalan: t });
+  if (!r.ok) { $('status-ajukan').textContent = pesanError(r); return; }
+  mulai();
+}
+
+// ---- khusus pengurus: menyetujui penulis ----
+async function muatPermohonan() {
+  const el = $('daftar-permohonan');
+  const r = await vault('penulis_daftar_admin');
+  if (!r.ok) { el.textContent = pesanError(r); return; }
+  const d = r.daftar || [];
+  const n = d.filter(function (x) { return x.status === 'menunggu'; }).length;
+  $('jumlah-menunggu').textContent = n ? '(' + n + ' menunggu)' : '';
+  function tombol(x) {
+    const id = esc(x.profile_id);
+    if (x.status === 'disetujui') return '<button class="bahaya" data-putus="cabut" data-id="' + id + '">Cabut</button>';
+    if (x.status === 'menunggu') return '<button data-putus="setuju" data-id="' + id + '">Setujui</button><button class="bahaya" data-putus="tolak" data-id="' + id + '">Tolak</button>';
+    return '<button data-putus="setuju" data-id="' + id + '">Setujui</button>';
+  }
+  el.innerHTML = d.length ? d.map(function (x) {
+    return '<div class="item" style="align-items:flex-start"><div><b>@' + esc(x.username) + '</b><span class="s ' + (x.status === 'disetujui' ? 'on' : 'off') + '">' + esc(x.status) + '</span>' +
+      '<div style="font-size:12px;color:#94a3b8;margin-top:4px;white-space:pre-wrap">' + esc(x.perkenalan) + '</div></div>' +
+      '<div style="display:flex;gap:6px;flex-shrink:0">' + tombol(x) + '</div></div>';
+  }).join('') : '<div style="color:#64748b;font-size:13px">Belum ada permohonan penulis.</div>';
+}
+$('daftar-permohonan').addEventListener('click', async function (e) {
+  const b = e.target.closest ? e.target.closest('[data-putus]') : null;
+  if (!b) return;
+  const k = b.getAttribute('data-putus');
+  if (k === 'cabut' && !confirm('Cabut izin menulis penulis ini? Artikel yang sudah ia tulis tetap ada.')) return;
+  const r = await vault('penulis_putuskan', { target_id: b.getAttribute('data-id'), keputusan: k });
+  if (!r.ok) return alert(pesanError(r));
+  muatPermohonan();
+});
 
 function gambarDaftar() {
   $('daftar').innerHTML = semua.length ? semua.map(a => `
-    <div class="item"><div>${esc(a.judul)}<span class="s ${a.terbit ? 'on' : 'off'}">${a.terbit ? 'terbit' : 'draf'}</span></div>
+    <div class="item"><div>${esc(a.judul)}<span class="s ${a.terbit ? 'on' : 'off'}">${a.terbit ? 'terbit' : 'draf'}</span>${peran.admin && a.penulis_nama ? '<span style="color:#64748b;font-size:11px"> · @' + esc(a.penulis_nama) + '</span>' : ''}</div>
     <div><button onclick="ubah('${a.id}')">Edit</button> <button class="bahaya" onclick="hapus('${a.id}')">Hapus</button></div></div>`).join('')
     : '<div style="color:#64748b;font-size:13px">Belum ada artikel.</div>';
 }
