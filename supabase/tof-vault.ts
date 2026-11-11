@@ -418,6 +418,7 @@ export interface Repo {
   artikelSimpan(id: string | null, data: Record<string, unknown>): Promise<string | null>; // mengembalikan id; null = gagal / slug kembar
   artikelHapus(id: string): Promise<boolean>;
   artikelUploadUrl(path: string): Promise<{ path: string; token: string } | null>;
+  artikelAturWaktuFeed(id: string, waktuIso: string): Promise<boolean>; // geser posisi kartu Warta di feed
   // ---- 🟢 SISIPAN [SALDO]: salinan saldo TOF (kolom profiles.saldo_tof) yang disegarkan dari blockchain oleh server ----
   listProfilSaldo(): Promise<{ id: string; saldo_tof: number | null }[]>;
   setSaldoTof(id: string, saldo: number): Promise<void>;
@@ -3717,6 +3718,34 @@ async function handleArtikel(action: unknown, body: Row, d: Deps): Promise<Res> 
       return ok();
     }
 
+    // Cek ringan: apakah sesi ini milik pengurus (untuk menampilkan tombol geser di kartu Warta pada feed)
+    case "artikel_admin_cek": {
+      const a = await authPenulis(body, d);
+      if ("gagal" in a) return a.gagal;
+      return ok();
+    }
+
+    // Geser kartu Warta di feed. mode "atas" = paling atas (waktu sekarang); mode "waktu" = waktu yang dihitung browser
+    // (satu langkah naik/turun terhadap posting di sebelahnya). Posting baru otomatis ada di atasnya lagi.
+    case "artikel_geser": {
+      const a = await authPenulis(body, d);
+      if ("gagal" in a) return a.gagal;
+      const id = typeof body.id === "string" ? body.id : "";
+      if (!ARTIKEL_ID_RE.test(id)) return fail("id_tidak_valid");
+      const sekarang = Number(d.now());
+      let ms = sekarang;
+      if (body.mode === "waktu") {
+        ms = Date.parse(typeof body.waktu === "string" ? body.waktu : "");
+        if (!isFinite(ms) || ms < Date.parse("2020-01-01T00:00:00Z") || ms > sekarang + 120000) return fail("waktu_tidak_valid");
+      } else if (body.mode !== "atas") {
+        return fail("mode_tidak_valid");
+      }
+      const iso = new Date(ms).toISOString();
+      if (!(await d.repo.artikelAturWaktuFeed(id, iso))) return fail("not_found");
+      await d.repo.log(a.profile.id, "artikel_geser", true);
+      return ok({ waktu: iso });
+    }
+
     case "artikel_upload_url": {
       const a = await authPenulis(body, d);
       if ("gagal" in a) return a.gagal;
@@ -4305,6 +4334,11 @@ const repo: Repo = {
   async artikelHapus(id) {
     const { data, error } = await db.from("artikel").delete().eq("id", id).select("id");
     if (error) { console.error("artikelHapus:", error.message); return false; }
+    return !!data && data.length > 0;
+  },
+  async artikelAturWaktuFeed(id, waktuIso) {
+    const { data, error } = await db.from("artikel").update({ waktu_feed: waktuIso }).eq("id", id).select("id");
+    if (error) { console.error("artikelAturWaktuFeed:", error.message); return false; }
     return !!data && data.length > 0;
   },
   async artikelUploadUrl(path) {
