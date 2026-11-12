@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Video Pendek — ToFarmer</title>
+<meta name="description" content="Video pendek komunitas ToFarmer — maksimal 10 detik, hanya 10 video terbaru yang disimpan.">
+<meta property="og:site_name" content="ToFarmer">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Video Pendek — ToFarmer">
+<meta property="og:description" content="Video pendek komunitas ToFarmer — maksimal 10 detik, hanya 10 video terbaru yang disimpan.">
+<meta property="og:image" content="https://www.tofarmer.xyz/aset/apple-touch-icon.png">
+<meta name="theme-color" content="#060c08">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #040805; color: #e2e8f0; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; overflow: hidden; }
+button { font: inherit; cursor: pointer; }
+
+/* bilah atas */
+.atas { position: fixed; top: 0; left: 0; right: 0; z-index: 20; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 22px; background: linear-gradient(rgba(4,8,5,.85), rgba(4,8,5,0)); }
+.atas a.kembali { color: #4ade80; text-decoration: none; font-size: 13px; font-weight: 600; }
+.atas h1 { font-size: 15px; font-weight: 700; color: #fde047; }
+.atas button.unggah { background: #eab308; color: #1a1400; border: none; border-radius: 999px; padding: 6px 14px; font-size: 12px; font-weight: 700; }
+
+/* umpan vertikal */
+#feed { height: 100dvh; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; scrollbar-width: none; }
+#feed::-webkit-scrollbar { display: none; }
+.item { position: relative; height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always; background: #000; display: flex; align-items: center; justify-content: center; }
+.item video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.item .main { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 64px; height: 64px; border-radius: 50%; background: rgba(0,0,0,.5);
+  color: #fff; font-size: 26px; display: none; align-items: center; justify-content: center; pointer-events: none; }
+.item.jeda .main { display: flex; }
+.info { position: absolute; left: 0; right: 64px; bottom: 0; padding: 40px 16px calc(env(safe-area-inset-bottom, 0px) + 22px); background: linear-gradient(transparent, rgba(0,0,0,.75)); pointer-events: none; }
+.info b { display: block; font-size: 14px; color: #fde047; }
+.info span { display: block; margin-top: 4px; font-size: 13px; line-height: 1.45; color: #e2e8f0; word-break: break-word; }
+.aksi { position: absolute; right: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); display: flex; flex-direction: column; gap: 12px; }
+.aksi button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(74,222,128,.4); background: rgba(6,12,8,.65); color: #fff; font-size: 18px; }
+.aksi button:active { background: rgba(34,197,94,.35); }
+
+.kosong { height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; color: #94a3b8; font-size: 14px; }
+.kosong button { background: #eab308; color: #1a1400; border: none; border-radius: 999px; padding: 9px 20px; font-weight: 700; }
+
+/* lembar unggah */
+#panel { position: fixed; inset: 0; z-index: 40; display: none; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.6); }
+#panel.buka { display: flex; }
+.lembar { width: 100%; max-width: 480px; max-height: 92dvh; overflow-y: auto; background: #0c1c13; border: 1px solid rgba(74,222,128,.25); border-radius: 18px 18px 0 0;
+  padding: 18px 16px calc(env(safe-area-inset-bottom, 0px) + 18px); }
+.lembar h2 { font-size: 17px; color: #fde047; }
+.lembar p.catatan { margin-top: 6px; font-size: 12px; line-height: 1.55; color: #94a3b8; }
+.lembar input[type=file] { width: 100%; margin-top: 14px; font-size: 13px; color: #e2e8f0; }
+.lembar textarea { width: 100%; margin-top: 12px; min-height: 64px; resize: vertical; padding: 10px; border-radius: 10px; border: 1px solid rgba(74,222,128,.25);
+  background: rgba(6,12,8,.6); color: #e2e8f0; font: inherit; font-size: 13px; }
+.lembar video { width: 100%; max-height: 38dvh; margin-top: 12px; border-radius: 10px; background: #000; }
+#status { margin-top: 10px; min-height: 18px; font-size: 12px; color: #4ade80; }
+#status.salah { color: #fca5a5; }
+.baris { display: flex; gap: 10px; margin-top: 14px; }
+.baris button { flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; border: 1px solid rgba(74,222,128,.35); background: transparent; color: #4ade80; }
+.baris button.utama { background: #22c55e; color: #04210f; border-color: #22c55e; }
+.baris button:disabled { opacity: .45; cursor: default; }
+.masuk { display: block; margin-top: 14px; text-align: center; padding: 10px; border-radius: 10px; background: #eab308; color: #1a1400; font-weight: 700; font-size: 13px; text-decoration: none; }
+
+.toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); transform: translateX(-50%); z-index: 60; background: rgba(34,197,94,.95); color: #04210f;
+  padding: 8px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; max-width: 88vw; text-align: center; }
+@media (prefers-reduced-motion: no-preference) { #feed { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+<div class="atas">
+  <a class="kembali" href="https://www.tofarmer.xyz">← Beranda</a>
+  <h1>🎬 Video Pendek</h1>
+  <button class="unggah" id="btn-unggah" type="button">➕ Unggah</button>
+</div>
+
+<main id="feed"><div class="kosong">Memuat video…</div></main>
+
+<div id="panel" role="dialog" aria-modal="true" aria-label="Unggah video pendek">
+  <div class="lembar">
+    <h2>Unggah video pendek</h2>
+    <p class="catatan">Maksimal 10 detik — video yang lebih panjang dipotong di 10 detik pertama dan dikecilkan otomatis. Hanya 10 video terbaru yang disimpan, dan unggahan baru menggantikan videomu yang lama.</p>
+    <div id="area-masuk"></div>
+    <div id="area-form">
+      <input type="file" id="berkas" accept="video/*">
+      <video id="pratinjau" controls playsinline style="display:none"></video>
+      <textarea id="caption" maxlength="150" placeholder="Keterangan singkat (opsional, maksimal 150 huruf)"></textarea>
+      <div id="status"></div>
+      <div class="baris">
+        <button type="button" id="batal">Batal</button>
+        <button type="button" id="kirim" class="utama" disabled>Terbitkan</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const supabaseClient = supabase.createClient(
+  'https://afpzddwuikvwsedzgsee.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY'
+);
+const HALAMAN_LOGIN = '/html/login.html';   // sesuaikan bila halaman login ToFarmer beda alamat
+const HALAMAN_INI = '/html/video.html';
+const MAKS_DETIK = 10;
+const MAKS_BYTE = 2500000;                    // harus sama dengan VIDEO_MAKS_BYTE di tof-vault.ts
+const $ = id => document.getElementById(id);
+const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+// ── Sesi login ToFarmer (dibuat login.js); pemeriksaan sebenarnya dilakukan SERVER ──
+function sesi() {
+  try {
+    const s = JSON.parse(localStorage.getItem('tof_session') || 'null');
+    if (s && s.id && s.token && Number(s.exp) * 1000 > Date.now()) return s;
+  } catch (e) {}
+  return null;
+}
+async function vault(action, body = {}) {
+  const s = sesi(); if (!s) return { ok: false, error: 'sesi_tidak_valid' };
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('tof-vault', { body: { action, profile_id: s.id, token: s.token, ...body } });
+    return error ? { ok: false, error: 'network' } : (data || { ok: false, error: 'empty' });
+  } catch (e) { return { ok: false, error: 'network' }; }
+}
+const PESAN = {
+  sesi_tidak_valid: 'Sesi berakhir. Masuk lagi dulu.',
+  pin_publik: 'PIN akunmu masih termasuk PIN umum. Ganti dulu di Pengaturan Profil.',
+  jenis_video_tidak_didukung: 'Jenis video ini belum didukung.',
+  video_terlalu_besar: 'Video terlalu besar (maksimal sekitar 2,5 MB).',
+  path_tidak_valid: 'Berkas tidak valid. Coba unggah ulang.',
+  caption_terlalu_panjang: 'Keterangan maksimal 150 huruf.',
+  gagal_simpan: 'Gagal menyimpan video. Coba lagi.',
+  bukan_pemilik: 'Video ini bukan milikmu.',
+  not_found: 'Video tidak ditemukan.',
+  server_error: 'Server sedang bermasalah. Coba lagi sebentar.',
+  network: 'Jaringan bermasalah. Coba lagi.'
+};
+const pesanError = r => PESAN[r.error] || ('Gagal: ' + (r.error || 'tidak diketahui'));
+function toast(t) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// ── UMPAN VIDEO ──
+let daftar = [];
+let bisu = true;                 // browser hanya mengizinkan putar otomatis bila bisu; ketuk 🔇 untuk menyalakan suara
+let pengamat = null;
+const urlPublik = p => p ? (supabaseClient.storage.from('video').getPublicUrl(p).data.publicUrl || '') : '';
+
+async function muatDaftar() {
+  const { data, error } = await supabaseClient.from('video_pendek')
+    .select('id,profile_id,username,caption,path,thumb_path,dibuat').order('dibuat', { ascending: false }).limit(10);
+  if (error) { $('feed').innerHTML = '<div class="kosong">Video belum bisa dimuat. Coba lagi nanti.</div>'; return; }
+  daftar = data || [];
+  tampilUmpan();
+}
+
+function tampilUmpan() {
+  const feed = $('feed');
+  if (pengamat) { pengamat.disconnect(); pengamat = null; }
+  if (!daftar.length) {
+    feed.innerHTML = '<div class="kosong"><div>Belum ada video.<br>Jadilah yang pertama — maksimal 10 detik.</div><button type="button" id="kosong-unggah">➕ Unggah video</button></div>';
+    $('kosong-unggah').onclick = bukaPanel;
+    return;
+  }
+  const s = sesi();
+  feed.innerHTML = daftar.map(v => `
+    <section class="item jeda" data-id="${esc(v.id)}">
+      <video playsinline loop muted preload="none" poster="${esc(urlPublik(v.thumb_path))}" data-src="${esc(urlPublik(v.path))}"></video>
+      <div class="main">▶</div>
+      <div class="info"><b>@${esc(v.username || '')}</b>${v.caption ? `<span>${esc(v.caption)}</span>` : ''}</div>
+      <div class="aksi">
+        <button type="button" data-aksi="suara" aria-label="Suara">${bisu ? '🔇' : '🔊'}</button>
+        <button type="button" data-aksi="bagikan" aria-label="Bagikan">🔗</button>
+        ${s && v.profile_id === s.id ? '<button type="button" data-aksi="hapus" aria-label="Hapus video">🗑</button>' : ''}
+      </div>
+    </section>`).join('');
+
+  const items = [...feed.querySelectorAll('.item')];
+  pengamat = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      const it = e.target, vid = it.querySelector('video');
+      if (e.isIntersecting) {
+        siapkan(vid);
+        vid.muted = bisu;
+        vid.play().then(() => it.classList.remove('jeda')).catch(() => it.classList.add('jeda'));
+        const nxt = it.nextElementSibling && it.nextElementSibling.querySelector('video');
+        if (nxt) siapkan(nxt, 'metadata');          // video berikutnya hanya diambil awalnya agar hemat bandwidth
+      } else {
+        vid.pause(); try { vid.currentTime = 0; } catch (err) {}
+        it.classList.add('jeda');
+      }
+    });
+  }, { root: feed, threshold: 0.65 });
+  items.forEach(it => pengamat.observe(it));
+
+  const idTuju = new URLSearchParams(location.search).get('v');
+  const tuju = idTuju && items.find(it => it.dataset.id === idTuju);
+  if (tuju) tuju.scrollIntoView();
+}
+function siapkan(vid, mode) {
+  if (!vid.src && vid.dataset.src) { vid.preload = mode || 'auto'; vid.src = vid.dataset.src; }
+  else if (!mode) vid.preload = 'auto';
+}
+
+$('feed').addEventListener('click', async ev => {
+  const tombol = ev.target.closest('button[data-aksi]');
+  const it = ev.target.closest('.item'); if (!it) return;
+  const vid = it.querySelector('video');
+  if (!tombol) {                                      // ketuk video = jeda / lanjut
+    if (vid.paused) { vid.play().then(() => it.classList.remove('jeda')).catch(() => {}); } else { vid.pause(); it.classList.add('jeda'); }
+    return;
+  }
+  const aksi = tombol.dataset.aksi, id = it.dataset.id;
+  if (aksi === 'suara') {
+    bisu = !bisu;
+    document.querySelectorAll('.item video').forEach(v => v.muted = bisu);
+    document.querySelectorAll('[data-aksi="suara"]').forEach(b => b.textContent = bisu ? '🔇' : '🔊');
+  } else if (aksi === 'bagikan') {
+    const url = location.origin + HALAMAN_INI + '?v=' + encodeURIComponent(id);
+    if (navigator.share) { navigator.share({ title: 'Video Pendek ToFarmer', url }).catch(() => {}); return; }
+    try { await navigator.clipboard.writeText(url); toast('Tautan tersalin'); } catch (e) { prompt('Salin tautan ini:', url); }
+  } else if (aksi === 'hapus') {
+    if (!confirm('Hapus videomu ini? Tindakan ini tidak bisa dibatalkan.')) return;
+    const r = await vault('video_hapus', { id });
+    if (!r.ok) { toast(pesanError(r)); return; }
+    toast('Video dihapus');
+    muatDaftar();
+  }
+});
+
+// ── UNGGAH ──
+let hasil = null, thumbBlob = null, urlPratinjau = null, sibuk = false;
+function status(t, salah) { const e = $('status'); e.textContent = t || ''; e.className = salah ? 'salah' : ''; }
+function bukaPanel() {
+  $('panel').classList.add('buka');
+  if (!sesi()) {
+    $('area-form').style.display = 'none';
+    $('area-masuk').innerHTML = '<a class="masuk" href="' + HALAMAN_LOGIN + '">Masuk dulu untuk mengunggah</a>';
+  } else {
+    $('area-masuk').innerHTML = '';
+    $('area-form').style.display = '';
+  }
+}
+function tutupPanel() {
+  if (sibuk) return;
+  $('panel').classList.remove('buka');
+  resetForm();
+}
+function resetForm() {
+  hasil = null; thumbBlob = null;
+  if (urlPratinjau) { URL.revokeObjectURL(urlPratinjau); urlPratinjau = null; }
+  $('pratinjau').removeAttribute('src'); $('pratinjau').style.display = 'none';
+  $('berkas').value = ''; $('caption').value = ''; $('kirim').disabled = true; status('');
+}
+$('btn-unggah').onclick = bukaPanel;
+$('batal').onclick = tutupPanel;
+$('panel').addEventListener('click', e => { if (e.target === $('panel')) tutupPanel(); });
+
+const tunggu = (el, nama, ms) => new Promise((ok, gagal) => {
+  const t = setTimeout(() => gagal(new Error('waktu_habis')), ms || 10000);
+  el.addEventListener(nama, () => { clearTimeout(t); ok(); }, { once: true });
+  el.addEventListener('error', () => { clearTimeout(t); gagal(new Error('tidak_terbaca')); }, { once: true });
+});
+const tipeDasar = m => (m || '').indexOf('video/mp4') === 0 ? 'video/mp4' : 'video/webm';
+
+function ambilThumb(v) {
+  return new Promise(ok => {
+    try {
+      const w0 = v.videoWidth, h0 = v.videoHeight; if (!w0 || !h0) return ok(null);
+      const sk = Math.min(1, 360 / w0), c = document.createElement('canvas');
+      c.width = Math.round(w0 * sk); c.height = Math.round(h0 * sk);
+      c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+      c.toBlob(b => ok(b), 'image/jpeg', 0.7);
+    } catch (e) { ok(null); }
+  });
+}
+
+// Kecilkan + potong ke 10 detik dengan merekam ulang (butuh MediaRecorder; berjalan real-time, paling lama 10 detik)
+async function rekam(v, durasi) {
+  if (!window.MediaRecorder) throw new Error('tanpa_recorder');
+  const sk = Math.min(1, 540 / Math.min(v.videoWidth, v.videoHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.max(2, Math.round(v.videoWidth * sk / 2) * 2); c.height = Math.max(2, Math.round(v.videoHeight * sk / 2) * 2);
+  const g = c.getContext('2d');
+  const strim = c.captureStream(30);
+  let ac = null;
+  try {                                                // suara diambil lewat WebAudio tanpa diputar keras
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    const sumber = ac.createMediaElementSource(v), tujuan = ac.createMediaStreamDestination();
+    sumber.connect(tujuan); await ac.resume();
+    tujuan.stream.getAudioTracks().forEach(t => strim.addTrack(t));
+  } catch (e) { ac = null; v.muted = true; }
+  const calon = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4'];
+  const mime = calon.find(m => MediaRecorder.isTypeSupported(m));
+  if (!mime) throw new Error('tanpa_recorder');
+  const rec = new MediaRecorder(strim, { mimeType: mime, videoBitsPerSecond: 800000, audioBitsPerSecond: 64000 });
+  const potongan = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) potongan.push(e.data); };
+  const selesai = new Promise(ok => { rec.onstop = ok; });
+  v.currentTime = 0; await new Promise(r => setTimeout(r, 150));
+  try { await v.play(); } catch (e) { v.muted = true; await v.play(); }
+  rec.start(250);
+  const mulai = performance.now(), batas = Math.min(durasi, MAKS_DETIK) * 1000;
+  await new Promise(ok => {
+    (function gambar() {
+      g.drawImage(v, 0, 0, c.width, c.height);
+      const lalu = performance.now() - mulai;
+      status('Memproses video… ' + Math.min(MAKS_DETIK, Math.ceil(lalu / 1000)) + '/' + Math.ceil(batas / 1000) + ' dtk');
+      if (lalu >= batas || v.ended) return ok();
+      requestAnimationFrame(gambar);
+    })();
+  });
+  v.pause(); rec.stop(); await selesai;
+  strim.getTracks().forEach(t => t.stop()); if (ac) ac.close().catch(() => {});
+  return new Blob(potongan, { type: tipeDasar(mime) });
+}
+
+$('berkas').addEventListener('change', async () => {
+  const f = $('berkas').files[0]; if (!f) return;
+  hasil = null; thumbBlob = null; $('kirim').disabled = true; $('pratinjau').style.display = 'none'; sibuk = true;
+  const v = document.createElement('video');
+  v.playsInline = true; v.preload = 'auto'; v.src = URL.createObjectURL(f);
+  try {
+    status('Membaca video…');
+    await tunggu(v, 'loadeddata');
+    const dur = v.duration;
+    if (!isFinite(dur) || dur <= 0) throw new Error('tidak_terbaca');
+    try { v.currentTime = Math.min(0.5, dur / 2); await tunggu(v, 'seeked', 4000); } catch (e) {}
+    thumbBlob = await ambilThumb(v);
+    const langsung = (f.type === 'video/mp4' || f.type === 'video/webm') && f.size <= MAKS_BYTE && dur <= MAKS_DETIK + 0.3;
+    hasil = langsung ? new Blob([f], { type: f.type }) : await rekam(v, dur);
+    if (!hasil.size) throw new Error('kosong');
+    if (hasil.size > MAKS_BYTE) { hasil = null; throw new Error('besar'); }
+    urlPratinjau = URL.createObjectURL(hasil);
+    $('pratinjau').src = urlPratinjau; $('pratinjau').style.display = 'block';
+    status('Siap diterbitkan (' + (hasil.size / 1048576).toFixed(1) + ' MB).');
+    $('kirim').disabled = false;
+  } catch (e) {
+    const m = String(e && e.message);
+    status(m === 'tanpa_recorder' ? 'Browser ini belum bisa mengecilkan video. Pilih video yang sudah maksimal 10 detik dan di bawah 2,5 MB.'
+      : m === 'besar' ? 'Video masih terlalu besar. Coba video yang lebih pendek.'
+      : 'Video tidak bisa dibaca di browser ini. Coba video lain.', true);
+  } finally {
+    URL.revokeObjectURL(v.src); v.removeAttribute('src'); v.load(); sibuk = false;
+  }
+});
+
+$('kirim').addEventListener('click', async () => {
+  if (!sesi()) { bukaPanel(); return; }
+  if (!hasil || sibuk) return;
+  sibuk = true; $('kirim').disabled = true; $('batal').disabled = true;
+  try {
+    status('Menyiapkan unggahan…');
+    const r = await vault('video_upload_url', { mime: hasil.type, ukuran: hasil.size });
+    if (!r.ok) { status(pesanError(r), true); return; }
+    status('Mengunggah video…');
+    const up = await supabaseClient.storage.from('video').uploadToSignedUrl(r.video.path, r.video.token, hasil, { contentType: hasil.type });
+    if (up.error) { status('Gagal mengunggah: ' + up.error.message, true); return; }
+    let thumbPath = '';
+    if (thumbBlob) {
+      const ut = await supabaseClient.storage.from('video').uploadToSignedUrl(r.thumb.path, r.thumb.token, thumbBlob, { contentType: 'image/jpeg' });
+      if (!ut.error) thumbPath = r.thumb.path;
+    }
+    status('Menerbitkan…');
+    const sv = await vault('video_simpan', { path: r.video.path, thumb_path: thumbPath, caption: $('caption').value.trim() });
+    if (!sv.ok) { status(pesanError(sv), true); return; }
+    sibuk = false; $('batal').disabled = false;
+    tutupPanel();
+    toast(sv.dihapus > 0 ? 'Video terbit. Video lama digantikan.' : 'Video terbit!');
+    await muatDaftar();
+    $('feed').scrollTo(0, 0);
+  } finally {
+    sibuk = false; $('batal').disabled = false; $('kirim').disabled = !hasil;
+  }
+});
+
+muatDaftar().then(() => { if (location.hash === '#unggah') bukaPanel(); });
+</script>
+</body>
+</html>

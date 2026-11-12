@@ -424,6 +424,12 @@ export interface Repo {
   artikelHapus(id: string): Promise<boolean>;
   artikelUploadUrl(path: string): Promise<{ path: string; token: string } | null>;
   artikelAturWaktuFeed(id: string, waktuIso: string): Promise<boolean>; // geser posisi kartu Warta di feed
+  // ---- 🟢 SISIPAN [VIDEO]: video pendek (batas jumlah, yang terlama dihapus otomatis oleh server) ----
+  videoUploadUrl(path: string): Promise<{ path: string; token: string } | null>;
+  videoDaftarAktif(): Promise<Row[]>; // terbaru dulu
+  videoSimpan(data: Record<string, unknown>): Promise<string | null>; // mengembalikan id; null = gagal
+  videoCari(id: string): Promise<Row | null>;
+  videoHapus(rows: Row[]): Promise<boolean>; // hapus berkas di bucket lalu barisnya
   // ---- 🟢 SISIPAN [SALDO]: salinan saldo TOF (kolom profiles.saldo_tof) yang disegarkan dari blockchain oleh server ----
   listProfilSaldo(): Promise<{ id: string; saldo_tof: number | null }[]>;
   setSaldoTof(id: string, saldo: number): Promise<void>;
@@ -3834,6 +3840,81 @@ async function handleArtikel(action: unknown, body: Row, d: Deps): Promise<Res> 
     }
 
     default:
+      return await handleVideo(action, body, d); // 🟢 SISIPAN [VIDEO]: diteruskan; tetap berujung unknown_action
+  }
+}
+
+// ============================================================
+// 🟢 SISIPAN [VIDEO] — Video pendek (semua pengguna yang login boleh unggah).
+// Batas: VIDEO_MAKS_PER_USER video aktif per pengguna (unggahan baru menggantikan yang lama) dan
+// VIDEO_MAKS_GLOBAL video seluruhnya (yang tertua dihapus). Penghapusan dilakukan di server: berkas di bucket + barisnya.
+// Pengaman ukuran/jenis berkas yang sebenarnya = pengaturan bucket "video" (file_size_limit, allowed_mime_types) di SQL.
+// ============================================================
+const VIDEO_MAKS_GLOBAL = 10;
+const VIDEO_MAKS_PER_USER = 1;
+const VIDEO_MAKS_BYTE = 2_500_000;
+const VIDEO_MIME: Record<string, string> = { "video/mp4": "mp4", "video/webm": "webm" };
+const VIDEO_PATH_RE = /^\d{4}-\d{2}\/[0-9a-f]{16}\.(mp4|webm)$/;
+const THUMB_PATH_RE = /^\d{4}-\d{2}\/[0-9a-f]{16}\.jpg$/;
+
+async function authPengguna(body: Row, d: Deps): Promise<{ profile: Profile } | Gagal> {
+  const a = await authSesi(body, d);
+  if ("gagal" in a) return a;
+  if (!(await pinAmanDari(a.profile, d))) return { gagal: fail("pin_publik") };
+  return a;
+}
+
+async function handleVideo(action: unknown, body: Row, d: Deps): Promise<Res> {
+  switch (action) {
+    case "video_upload_url": {
+      const a = await authPengguna(body, d);
+      if ("gagal" in a) return a.gagal;
+      const ext = typeof body.mime === "string" ? VIDEO_MIME[body.mime] : undefined;
+      if (!ext) return fail("jenis_video_tidak_didukung");
+      const ukuran = Number(body.ukuran);
+      if (!isFinite(ukuran) || ukuran <= 0 || ukuran > VIDEO_MAKS_BYTE) return fail("video_terlalu_besar");
+      const acak = Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => b.toString(16).padStart(2, "0")).join("");
+      const bulan = new Date(d.now()).toISOString().slice(0, 7);
+      const v = await d.repo.videoUploadUrl(`${bulan}/${acak}.${ext}`);
+      const t = await d.repo.videoUploadUrl(`${bulan}/${acak}.jpg`); // gambar mini kecil dibuat oleh browser
+      if (!v || !t) return fail("server_error");
+      return ok({ video: v, thumb: t });
+    }
+
+    case "video_simpan": {
+      const a = await authPengguna(body, d);
+      if ("gagal" in a) return a.gagal;
+      const path = typeof body.path === "string" ? body.path : "";
+      const thumb = typeof body.thumb_path === "string" ? body.thumb_path : "";
+      const caption = typeof body.caption === "string" ? body.caption.trim() : "";
+      if (!VIDEO_PATH_RE.test(path) || (thumb !== "" && !THUMB_PATH_RE.test(thumb))) return fail("path_tidak_valid");
+      if (caption.length > 150) return fail("caption_terlalu_panjang");
+      const id = await d.repo.videoSimpan({ profile_id: a.profile.id, username: a.profile.username, caption, path, thumb_path: thumb || null });
+      if (!id) return fail("gagal_simpan");
+      // pangkas: milik sendiri yang lebih lama dulu, lalu yang tertua secara global (daftar sudah terbaru-dulu)
+      const semua = await d.repo.videoDaftarAktif();
+      const buang: Row[] = semua.filter((v) => v.profile_id === a.profile.id).slice(VIDEO_MAKS_PER_USER);
+      semua.filter((v) => !buang.includes(v)).slice(VIDEO_MAKS_GLOBAL).forEach((v) => buang.push(v));
+      if (buang.length) await d.repo.videoHapus(buang);
+      await d.repo.log(a.profile.id, "video_simpan", true);
+      return ok({ id, dihapus: buang.length });
+    }
+
+    case "video_hapus": {
+      const a = await authPengguna(body, d);
+      if ("gagal" in a) return a.gagal;
+      const id = typeof body.id === "string" ? body.id : "";
+      if (!ARTIKEL_ID_RE.test(id)) return fail("id_tidak_valid");
+      const v = await d.repo.videoCari(id);
+      if (!v) return fail("not_found");
+      const admin = (d.adminIds || []).includes(a.profile.id);
+      if (!admin && v.profile_id !== a.profile.id) return fail("bukan_pemilik");
+      if (!(await d.repo.videoHapus([v]))) return fail("server_error");
+      await d.repo.log(a.profile.id, "video_hapus", true);
+      return ok();
+    }
+
+    default:
       return fail("unknown_action");
   }
 }
@@ -4446,6 +4527,37 @@ const repo: Repo = {
     const { data, error } = await db.storage.from("artikel").createSignedUploadUrl(path);
     if (error || !data) { console.error("artikelUploadUrl:", error?.message); return null; }
     return { path: data.path, token: data.token };
+  },
+  // 🟢 SISIPAN [VIDEO]
+  async videoUploadUrl(path) {
+    const { data, error } = await db.storage.from("video").createSignedUploadUrl(path);
+    if (error || !data) { console.error("videoUploadUrl:", error?.message); return null; }
+    return { path: data.path, token: data.token };
+  },
+  async videoDaftarAktif() {
+    const { data, error } = await db.from("video_pendek").select("id,profile_id,path,thumb_path,dibuat").order("dibuat", { ascending: false }).limit(200);
+    if (error) { console.error("videoDaftarAktif:", error.message); return []; }
+    return (data || []) as Row[];
+  },
+  async videoSimpan(data) {
+    const { data: r, error } = await db.from("video_pendek").insert(data).select("id").single();
+    if (error) { console.error("videoSimpan:", error.message); return null; }
+    return (r as { id: string }).id;
+  },
+  async videoCari(id) {
+    const { data, error } = await db.from("video_pendek").select("*").eq("id", id).maybeSingle();
+    if (error) { console.error("videoCari:", error.message); return null; }
+    return (data as Row | null) ?? null;
+  },
+  async videoHapus(rows) {
+    const paths = rows.flatMap((r) => [r.path, r.thumb_path]).filter((p): p is string => typeof p === "string" && p !== "");
+    if (paths.length) {
+      const { error } = await db.storage.from("video").remove(paths);
+      if (error) { console.error("videoHapus(storage):", error.message); return false; } // baris dibiarkan; dicoba lagi pada pangkas berikutnya
+    }
+    const { error } = await db.from("video_pendek").delete().in("id", rows.map((r) => r.id as string));
+    if (error) { console.error("videoHapus(db):", error.message); return false; }
+    return true;
   },
   // 🟢 AKHIR SISIPAN
 

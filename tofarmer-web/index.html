@@ -460,6 +460,20 @@
 .wp-komentar { margin-top:10px; padding:10px; background:rgba(255,255,255,.75); border-radius:12px; }
 .wp-toast { position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:rgba(47,111,78,.95); color:#fff;
   padding:8px 16px; border-radius:999px; font-size:12px; z-index:9998; box-shadow:0 6px 18px rgba(0,0,0,.2); }
+
+/* ===== [VIDEO PENDEK DI FEED] deretan video pendek (eksperimen) di atas alur postingan ===== */
+.vs-kartu { margin-bottom:10px; padding:12px 12px 10px; border-radius:14px; background:linear-gradient(135deg,#eef7f1 0%,#f6fbf8 100%);
+  border:1px solid rgba(76,175,122,.28); border-left:4px solid #4caf7a; box-shadow:0 4px 14px rgba(76,175,122,.10); }
+.vs-kepala { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.vs-kicker { font-size:10px; font-weight:700; letter-spacing:.06em; color:#2f6f4e; background:rgba(76,175,122,.16); border-radius:999px; padding:2px 10px; }
+.vs-unggah { font-size:11px; font-weight:700; color:#2f6f4e; text-decoration:none; background:#fff; border:1px solid rgba(76,175,122,.45); border-radius:999px; padding:3px 10px; }
+.vs-baris { display:flex; gap:8px; overflow-x:auto; padding:10px 2px 4px; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
+.vs-item { position:relative; flex:0 0 auto; width:84px; height:140px; border-radius:12px; overflow:hidden; background:#1f3d2d; scroll-snap-align:start; text-decoration:none; }
+.vs-item img { width:100%; height:100%; object-fit:cover; display:block; }
+.vs-tanpa { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:26px; }
+.vs-main { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:28px; height:28px; border-radius:50%; background:rgba(0,0,0,.45); color:#fff; font-size:12px; display:flex; align-items:center; justify-content:center; }
+.vs-nama { position:absolute; left:0; right:0; bottom:0; padding:12px 5px 4px; font-size:10px; font-weight:600; color:#fff; background:linear-gradient(transparent,rgba(0,0,0,.65)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.vs-kosong { font-size:12px; color:#5f6f66; padding:8px 2px 2px; }
   </style>
   <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
   <link rel="manifest" href="/manifest.webmanifest">
@@ -944,6 +958,65 @@
   obs.observe(feed, { childList: true });
 
   document.addEventListener('DOMContentLoaded', function () { jadwal = setTimeout(susun, 500); setTimeout(cekAdmin, 800); });
+})();
+</script>
+
+<!-- ================= [VIDEO PENDEK DI FEED] deretan thumbnail video di paling atas alur postingan =================
+     Aman bila tabel belum dibuat / gagal dimuat: deretan tidak tampil dan beranda tetap jalan seperti biasa. -->
+<script>
+(function () {
+  var feed = document.getElementById('feed');
+  if (!feed) return;
+  var HALAMAN = '/html/video.html';
+  var data = null, terakhir = 0, memuat = false;
+  function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function urlThumb(p) {
+    try { return supabaseClient.storage.from('video').getPublicUrl(p).data.publicUrl || ''; } catch (e) { return ''; }
+  }
+  function bangun() {
+    var d = document.createElement('div');
+    d.id = 'video-strip'; d.className = 'vs-kartu';
+    var h = '<div class="vs-kepala"><span class="vs-kicker">🎬 VIDEO PENDEK · EKSPERIMEN</span><a class="vs-unggah" href="' + HALAMAN + '#unggah">➕ Unggah</a></div>';
+    if (!data.length) {
+      h += '<div class="vs-kosong">Belum ada video. Jadilah yang pertama — maksimal 10 detik.</div>';
+    } else {
+      h += '<div class="vs-baris">' + data.map(function (v) {
+        var t = v.thumb_path ? urlThumb(v.thumb_path) : '';
+        return '<a class="vs-item" href="' + HALAMAN + '?v=' + encodeURIComponent(v.id) + '">' +
+          (t ? '<img loading="lazy" alt="" src="' + esc(t) + '">' : '<div class="vs-tanpa">🎬</div>') +
+          '<span class="vs-main">▶</span><span class="vs-nama">@' + esc(v.username || '') + '</span></a>';
+      }).join('') + '</div>';
+    }
+    d.innerHTML = h;
+    return d;
+  }
+  function pasang() {
+    try {
+      if (data === null || document.getElementById('video-strip')) return;
+      feed.insertBefore(bangun(), feed.firstChild);
+    } catch (e) {}
+  }
+  async function muat() {
+    if (memuat) return;
+    memuat = true;
+    try {
+      var r = await supabaseClient.from('video_pendek').select('id,username,thumb_path,dibuat').order('dibuat', { ascending: false }).limit(10);
+      if (!r.error && Array.isArray(r.data)) {
+        data = r.data; terakhir = Date.now();
+        var lama = document.getElementById('video-strip');
+        if (lama) lama.remove();
+        pasang();
+      }
+    } catch (e) {}
+    memuat = false;
+  }
+  // loadFeed() mengosongkan #feed; pasang lagi dari data tersimpan, dan segarkan di latar belakang bila sudah lama
+  new MutationObserver(function () {
+    if (document.getElementById('video-strip')) return;
+    pasang();
+    if (Date.now() - terakhir > 30000) muat();
+  }).observe(feed, { childList: true });
+  setTimeout(muat, 600);
 })();
 </script>
 
