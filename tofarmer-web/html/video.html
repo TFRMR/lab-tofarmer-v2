@@ -65,7 +65,7 @@ button { font: inherit; cursor: pointer; }
   border: 1px solid rgba(74,222,128,.35); background: transparent; color: #4ade80; }
 .sumber button.utama { background: #22c55e; color: #04210f; border-color: #22c55e; }
 #area-kamera { margin-top: 12px; }
-#kamera { width: 100%; max-height: 46dvh; margin-top: 0; border-radius: 10px; background: #000; object-fit: cover; }
+#kamera { display: block; width: auto; max-width: 100%; height: min(58dvh, 560px); max-height: none; aspect-ratio: 9 / 16; margin: 0 auto; border-radius: 10px; background: #000; object-fit: cover; }
 #kamera.cermin { transform: scaleX(-1); }
 #kam-waktu { margin-top: 8px; text-align: center; font-size: 12px; color: #fde047; font-weight: 700; }
 .masuk { display: block; margin-top: 14px; text-align: center; padding: 10px; border-radius: 10px; background: #eab308; color: #1a1400; font-weight: 700; font-size: 13px; text-decoration: none; }
@@ -288,7 +288,7 @@ const tipeDasar = m => (m || '').indexOf('video/mp4') === 0 ? 'video/mp4' : 'vid
 function ambilThumb(v) {
   return new Promise(ok => {
     try {
-      const w0 = v.videoWidth, h0 = v.videoHeight; if (!w0 || !h0) return ok(null);
+      const w0 = v.videoWidth || v.width, h0 = v.videoHeight || v.height; if (!w0 || !h0) return ok(null);
       const sk = Math.min(1, 360 / w0), c = document.createElement('canvas');
       c.width = Math.round(w0 * sk); c.height = Math.round(h0 * sk);
       c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
@@ -372,10 +372,11 @@ $('berkas').addEventListener('change', () => prosesBerkas($('berkas').files[0]))
 $('berkas-kamera').addEventListener('change', () => prosesBerkas($('berkas-kamera').files[0]));   // cadangan: kamera bawaan HP bila browser tidak bisa membuka kamera langsung
 
 // ── KAMERA LANGSUNG (maksimal 10 detik, otomatis berhenti) ──
-let strimKam = null, hadap = 'environment', perekam = null, pewaktuKam = null, thumbKam = null, potonganKam = [], mimeKam = '';
+let strimKam = null, hadap = 'environment', perekam = null, pewaktuKam = null, thumbKam = null, potonganKam = [], mimeKam = '', kanvasKam = null, rafKam = 0;
 function berhentiStrim() { if (strimKam) { strimKam.getTracks().forEach(t => t.stop()); strimKam = null; } }
 function tutupKamera() {
   clearInterval(pewaktuKam); pewaktuKam = null;
+  cancelAnimationFrame(rafKam); kanvasKam = null;
   if (perekam && perekam.state !== 'inactive') { perekam.onstop = null; try { perekam.stop(); } catch (e) {} }
   perekam = null; berhentiStrim();
   const k = $('kamera'); k.srcObject = null;
@@ -384,7 +385,7 @@ function tutupKamera() {
 }
 async function nyalakanKamera() {
   berhentiStrim();
-  const dasar = { facingMode: hadap, width: { ideal: 720 }, height: { ideal: 1280 } };
+  const dasar = { facingMode: hadap, width: { ideal: 720 }, height: { ideal: 1280 }, aspectRatio: { ideal: 9 / 16 } };
   try { strimKam = await navigator.mediaDevices.getUserMedia({ video: dasar, audio: true }); }
   catch (e) { strimKam = await navigator.mediaDevices.getUserMedia({ video: dasar, audio: false }); }   // tanpa mikrofon bila izin suara ditolak
   const k = $('kamera'); k.srcObject = strimKam; k.classList.toggle('cermin', hadap === 'user');
@@ -421,12 +422,23 @@ function mulaiRekam() {
   potonganKam = []; thumbKam = null; status('');
   if (urlPratinjau) { URL.revokeObjectURL(urlPratinjau); urlPratinjau = null; }
   hasil = null; thumbBlob = null; $('kirim').disabled = true; $('pratinjau').style.display = 'none';
-  perekam = new MediaRecorder(strimKam, { mimeType: mimeKam, videoBitsPerSecond: 800000, audioBitsPerSecond: 64000 });
+  // Selalu potret 9:16: gambar kamera dipotong di tengah ke kanvas, lalu kanvas yang direkam (kamera laptop yang landscape pun jadi potret)
+  const k = $('kamera'), vw = k.videoWidth, vh = k.videoHeight, rasio = 9 / 16;
+  if (!vw || !vh) { status('Kamera belum siap. Tunggu sebentar lalu coba lagi.', true); return; }
+  const cw = vw / vh > rasio ? vh * rasio : vw, ch = vw / vh > rasio ? vh : vw / rasio;
+  const sx = (vw - cw) / 2, sy = (vh - ch) / 2;
+  const outH = Math.min(960, Math.round(ch / 2) * 2), outW = Math.round(outH * rasio / 2) * 2;
+  kanvasKam = document.createElement('canvas'); kanvasKam.width = outW; kanvasKam.height = outH;
+  const gk = kanvasKam.getContext('2d');
+  (function gambarKam() { gk.drawImage(k, sx, sy, cw, ch, 0, 0, outW, outH); rafKam = requestAnimationFrame(gambarKam); })();
+  const strimRekam = kanvasKam.captureStream(30);
+  strimKam.getAudioTracks().forEach(t => strimRekam.addTrack(t));
+  perekam = new MediaRecorder(strimRekam, { mimeType: mimeKam, videoBitsPerSecond: 800000, audioBitsPerSecond: 64000 });
   perekam.ondataavailable = e => { if (e.data && e.data.size) potonganKam.push(e.data); };
   perekam.onstop = selesaiRekam;
   perekam.start(250);
   const mulai = Date.now();
-  setTimeout(() => { ambilThumb($('kamera')).then(b => { if (b && !thumbKam) thumbKam = b; }); }, 500);
+  setTimeout(() => { ambilThumb(kanvasKam).then(b => { if (b && !thumbKam) thumbKam = b; }); }, 500);
   $('kam-rekam').textContent = '⏹ Berhenti'; $('kam-balik').disabled = true;
   pewaktuKam = setInterval(() => {
     const d = (Date.now() - mulai) / 1000;
