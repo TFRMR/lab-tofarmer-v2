@@ -45,6 +45,11 @@ small, .tgl { font-size:11px; color:#64748b; font-family:monospace; }
 .bagikan span { font-size:11px; color:#94a3b8; text-transform:uppercase; letter-spacing:.05em; font-weight:600; }
 .bagikan a, .bagikan button { padding:6px 12px; border-radius:20px; border:1px solid rgba(74,222,128,.35); background:rgba(34,197,94,.12); color:#4ade80; font:inherit; font-size:12px; font-weight:600; cursor:pointer; text-decoration:none; }
 .bagikan a:hover, .bagikan button:hover { background:rgba(34,197,94,.28); }
+.reaksi { display:flex; gap:10px; justify-content:center; max-width:720px; margin:20px auto 0; }
+.reaksi button { padding:9px 18px; border-radius:999px; border:1px solid rgba(253,224,71,.35); background:rgba(234,179,8,.10); color:#fde047; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+.reaksi button:hover { background:rgba(234,179,8,.22); }
+.reaksi button.sudah { background:#eab308; color:#1a1400; border-color:#eab308; }
+.toast-rx { position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:50; background:rgba(34,197,94,.95); color:#04210f; padding:8px 16px; border-radius:999px; font-size:12px; font-weight:700; max-width:88vw; text-align:center; }
 .pesan { text-align:center; color:#64748b; padding:40px 0; }
 </style>
 </head>
@@ -72,6 +77,61 @@ const el = document.getElementById('isi-halaman');
 const esc = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const tgl = d => new Date(d).toLocaleDateString('id-ID', { day:'numeric', month:'long', year:'numeric' });
 const gambarOk = u => /^https?:/i.test(u || '');
+
+// ── SRUPUT & CANGKUL (apresiasi) — satu akun satu reaksi per artikel, tidak di tulisan sendiri; dicek di SERVER (tof-vault: konten_react) ──
+function sesi() {
+  try {
+    const s = JSON.parse(localStorage.getItem('tof_session') || 'null');
+    if (s && s.id && s.token && Number(s.exp) * 1000 > Date.now()) return s;
+  } catch (e) {}
+  return null;
+}
+async function vault(action, body = {}) {
+  const s = sesi(); if (!s) return { ok: false, error: 'sesi_tidak_valid' };
+  try {
+    const { data, error } = await supabaseClient.functions.invoke('tof-vault', { body: { action, profile_id: s.id, token: s.token, ...body } });
+    return error ? { ok: false, error: 'network' } : (data || { ok: false, error: 'empty' });
+  } catch (e) { return { ok: false, error: 'network' }; }
+}
+const PESAN_RX = {
+  sesi_tidak_valid: 'Masuk dulu untuk memberi apresiasi 🌱',
+  karya_sendiri: 'Tidak bisa memberi apresiasi di tulisan sendiri 😄',
+  sudah_bereaksi: 'Kamu sudah memberi apresiasi pada tulisan ini 🌱',
+  unknown_action: 'Server belum diperbarui (tof-vault perlu di-deploy ulang).',
+  network: 'Jaringan bermasalah. Coba lagi.'
+};
+let rxSaya = '', rxSibuk = false;
+function toastRx(t) { const d = document.createElement('div'); d.className = 'toast-rx'; d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2600); }
+function barReaksi(d) {
+  return `<div class="reaksi" id="reaksi-artikel" data-id="${esc(d.id)}" data-pemilik="${esc(d.penulis_id || '')}">
+    <button type="button" data-rx="sruput">☕ <b>${Number(d.sruput_count) || 0}</b> Sruput</button>
+    <button type="button" data-rx="cangkul">⛏️ <b>${Number(d.cangkul_count) || 0}</b> Cangkul</button></div>`;
+}
+function tandaiRx() { document.querySelectorAll('#reaksi-artikel button').forEach(b => b.classList.toggle('sudah', b.dataset.rx === rxSaya)); }
+async function pasangReaksi(d) {
+  rxSaya = ''; const s = sesi(); if (!s) return;
+  try {
+    const { data } = await supabaseClient.from('reaksi_konten').select('type').eq('jenis_konten', 'artikel').eq('konten_id', d.id).eq('user_id', s.id).maybeSingle();
+    if (data && data.type) { rxSaya = data.type; tandaiRx(); }
+  } catch (e) {}
+}
+el.addEventListener('click', async e => {
+  const b = e.target.closest ? e.target.closest('[data-rx]') : null; if (!b) return;
+  const bar = b.closest('#reaksi-artikel'); if (!bar) return;
+  const s = sesi();
+  if (!s) { toastRx(PESAN_RX.sesi_tidak_valid); return; }
+  if (bar.dataset.pemilik && bar.dataset.pemilik === s.id) { toastRx(PESAN_RX.karya_sendiri); return; }
+  if (rxSaya) { toastRx(PESAN_RX.sudah_bereaksi); return; }
+  if (rxSibuk) return;
+  rxSibuk = true;
+  try {
+    const r = await vault('konten_react', { jenis: 'artikel', id: bar.dataset.id, type: b.dataset.rx });
+    if (!r.ok) { if (r.error === 'sudah_bereaksi') rxSaya = 'lain'; toastRx(PESAN_RX[r.error] || ('Gagal: ' + (r.error || 'tidak diketahui'))); return; }
+    rxSaya = b.dataset.rx;
+    const n = b.querySelector('b'); if (n) n.textContent = (Number(n.textContent) || 0) + 1;
+    tandaiRx();
+  } finally { rxSibuk = false; }
+});
 
 // Pembersih HTML (daftar putih) — isi artikel hanya boleh tag aman
 function bersihkan(html) {
@@ -119,9 +179,11 @@ async function tampilArtikel(slug) {
     ${gambarOk(data.gambar) ? `<img src="${esc(data.gambar)}" alt="">` : ''}
     ${barBagikan(data)}
     <div class="isi">${bersihkan(data.isi)}</div>
+    ${barReaksi(data)}
     ${barBagikan(data)}
     <section id="komentar-artikel" style="max-width:720px;margin:26px auto 0"></section></article>`;
   setMeta(data);
+  pasangReaksi(data);
   // komentar: pengunjung wajib mengetik nama; pengguna ToFarmer yang masuk bertanda centang ✓
   if (window.WartaKomentar) WartaKomentar.pasang(document.getElementById('komentar-artikel'), data.id, { tema: 'gelap', tampilkanJudul: true });
 }

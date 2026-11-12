@@ -2,7 +2,9 @@
    Dipakai di beranda (kartu Warta di feed) dan di halaman artikel.
    - Pengunjung: wajib mengetik nama.
    - Pengguna ToFarmer yang sudah masuk: langsung berkomentar, nama otomatis dan bertanda centang ✓.
-   Membaca langsung dari Supabase (tabel artikel_komentar); menulis/menghapus lewat Edge Function tof-vault. */
+   Membaca langsung dari Supabase (tabel artikel_komentar / video_komentar); menulis/menghapus lewat Edge Function tof-komentar.
+   Opsi jenis: 'artikel' (bawaan) atau 'video' (komentar video pendek). Untuk artikel, bila tof-komentar belum ter-deploy,
+   otomatis dicoba lewat tof-vault (cara lama) supaya komentar artikel tidak putus. */
 (function () {
   if (window.WartaKomentar) return;
 
@@ -55,12 +57,15 @@
     try { var s = JSON.parse(localStorage.getItem('tof_session') || 'null'); if (s && s.id && s.token && Number(s.exp) * 1000 > Date.now()) return s; } catch (e) {}
     return null;
   }
-  async function vault(action, body, denganSesi) {
+  var FUNGSI = 'tof-komentar';
+  async function vault(action, body, denganSesi, jenis) {
     var s = denganSesi ? sesi() : null;
     if (denganSesi && !s) return { ok: false, error: 'sesi_tidak_valid' };
+    var kirim = Object.assign({ action: action, jenis: jenis || 'artikel' }, s ? { profile_id: s.id, token: s.token } : {}, body || {});
     try {
-      var kirim = Object.assign({ action: action }, s ? { profile_id: s.id, token: s.token } : {}, body || {});
-      var r = await supabaseClient.functions.invoke('tof-vault', { body: kirim });
+      var r = await supabaseClient.functions.invoke(FUNGSI, { body: kirim });
+      var perluCadangan = r.error || (r.data && r.data.error === 'unknown_action');
+      if (perluCadangan && jenis !== 'video') r = await supabaseClient.functions.invoke('tof-vault', { body: kirim }); // cadangan: cara lama
       return r.error ? { ok: false, error: 'network' } : (r.data || { ok: false, error: 'network' });
     } catch (e) { return { ok: false, error: 'network' }; }
   }
@@ -89,6 +94,8 @@
   async function pasang(el, artikelId, opsi) {
     if (!el || !artikelId) return;
     opsi = opsi || {};
+    var jenis = opsi.jenis === 'video' ? 'video' : 'artikel';
+    var TBL = jenis === 'video' ? { tabel: 'video_komentar', kolom: 'video_id' } : { tabel: 'artikel_komentar', kolom: 'artikel_id' };
     suntikGaya();
     el.classList.add('wk');
     if (opsi.tema === 'gelap') el.classList.add('wk-gelap');
@@ -127,7 +134,7 @@
 
     // siapa yang masuk + apakah boleh menghapus semua komentar di artikel ini
     if (s) {
-      var p = await vault('komentar_peran', { artikel_id: artikelId }, true);
+      var p = await vault('komentar_peran', { artikel_id: artikelId }, true, jenis);
       if (p && p.ok) {
         boleh = { semua: !!p.semua, id: p.id || s.id };
         var sb = el.querySelector('[data-sebagai]');
@@ -136,7 +143,7 @@
     }
 
     var r;
-    try { r = await supabaseClient.from('artikel_komentar').select('id,nama,komentar,terverifikasi,dibuat,user_id').eq('artikel_id', artikelId).order('dibuat', { ascending: true }).limit(300); }
+    try { r = await supabaseClient.from(TBL.tabel).select('id,nama,komentar,terverifikasi,dibuat,user_id').eq(TBL.kolom, artikelId).order('dibuat', { ascending: true }).limit(300); }
     catch (e) { r = { error: e }; }
     if (r.error) { daftar.innerHTML = '<div class="wk-kosong">Komentar belum bisa dimuat.</div>'; }
     else {
@@ -157,7 +164,7 @@
         body.nama = n;
       }
       tombol.disabled = true; tampilInfo('Mengirim...');
-      var h = await vault('komentar_kirim', body, !tamu);
+      var h = await vault('komentar_kirim', body, !tamu, jenis);
       tombol.disabled = false;
       if (!h || !h.ok) return tampilInfo(PESAN[h && h.error] || (h && h.error === 'sesi_tidak_valid' ? 'Sesi habis.' : 'Gagal mengirim komentar.'), h && h.error === 'sesi_tidak_valid');
       tampilInfo('');
@@ -173,7 +180,7 @@
       var b = e.target.closest ? e.target.closest('[data-hapus]') : null;
       if (!b) return;
       if (!confirm('Hapus komentar ini?')) return;
-      var h = await vault('komentar_hapus', { id: b.getAttribute('data-hapus') }, true);
+      var h = await vault('komentar_hapus', { id: b.getAttribute('data-hapus') }, true, jenis);
       if (!h || !h.ok) return alert('Gagal menghapus komentar.');
       var item = b.closest('.wk-item'); if (item) item.remove();
       jumlah = Math.max(0, jumlah - 1); perbarui();

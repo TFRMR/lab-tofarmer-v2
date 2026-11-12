@@ -457,9 +457,11 @@
 .wp-aksi { margin-top:8px; padding-top:6px; border-top:1px solid rgba(201,162,39,.25); }
 .wp-aksi button { width:auto; margin:0; padding:4px 12px; background:transparent; border:none; color:#6f7f76; font-size:12px; font-weight:600; border-radius:999px; }
 .wp-aksi button:hover { background:rgba(201,162,39,.14); color:#8a6d0b; transform:none; }
+.wp-aksi button.sudah { background:rgba(201,162,39,.24); color:#8a6d0b; }
 .wp-komentar { margin-top:10px; padding:10px; background:rgba(255,255,255,.75); border-radius:12px; }
 .wp-toast { position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:rgba(47,111,78,.95); color:#fff;
   padding:8px 16px; border-radius:999px; font-size:12px; z-index:9998; box-shadow:0 6px 18px rgba(0,0,0,.2); }
+
 
 /* ===== [VIDEO PENDEK DI FEED] kartu video pendek (eksperimen) di alur postingan; pengurus bisa menggesernya ===== */
 .vs-kartu { margin-bottom:10px; padding:12px 12px 10px; border-radius:14px; background:linear-gradient(135deg,#eef7f1 0%,#f6fbf8 100%);
@@ -656,6 +658,7 @@
 <!-- (dihapus) Peringkat Energi dan Kontribusi ToFarmer + #radar-peringkat-list; QLR Radar di atas tetap dipertahankan -->
 </div>
 </div>
+</div>
 
     <!-- RIGHT -->
     <div class="right">
@@ -825,11 +828,16 @@
     if (artikel !== null) return;
     artikel = [];
     // kolom opsional (waktu_feed, jumlah_komentar) bisa belum ada bila SQL belum dijalankan: coba berurutan
-    var daftarKolom = ['id,slug,judul,ringkasan,gambar,tanggal,waktu_feed,jumlah_komentar', 'id,slug,judul,ringkasan,gambar,tanggal,waktu_feed', 'id,slug,judul,ringkasan,gambar,tanggal'];
+    var daftarKolom = ['id,slug,judul,ringkasan,gambar,tanggal,waktu_feed,jumlah_komentar,penulis_id,sruput_count,cangkul_count', 'id,slug,judul,ringkasan,gambar,tanggal,waktu_feed,jumlah_komentar', 'id,slug,judul,ringkasan,gambar,tanggal,waktu_feed', 'id,slug,judul,ringkasan,gambar,tanggal'];
     try {
       for (var i = 0; i < daftarKolom.length; i++) {
         var r = await supabaseClient.from('artikel').select(daftarKolom[i]).eq('terbit', true).order('tanggal', { ascending: false }).limit(30);
         if (!r.error && r.data) { artikel = r.data; break; }
+      }
+      var sx = sesi();   // apresiasi yang sudah kuberikan (agar tombolnya bertanda); gagal = abaikan
+      if (sx && artikel && artikel.length) {
+        var rr = await supabaseClient.from('reaksi_konten').select('konten_id,type').eq('jenis_konten', 'artikel').eq('user_id', sx.id);
+        if (rr && rr.data) rr.data.forEach(function (x) { reaksiSaya[String(x.konten_id)] = x.type; });
       }
     } catch (e) {}
   }
@@ -846,6 +854,7 @@
   }
 
   var kartuCache = {};
+  var reaksiSaya = {};   // id artikel -> 'sruput' | 'cangkul' (apresiasi yang sudah kuberikan)
   function pasangToolbar(d) {
     if (!adaAdmin || d.querySelector('.wp-atur')) return;
     var t = document.createElement('div'); t.className = 'wp-atur';
@@ -857,6 +866,7 @@
     if (!d) {
       d = document.createElement('div');
       d.className = 'warta-post'; d.dataset.id = a.id;
+      d.dataset.pemilik = a.penulis_id || ''; d.dataset.sudah = reaksiSaya[a.id] || '';
       var tgl = new Date(a.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
       var cover = /^https:\/\//i.test(a.gambar || '') ? '<img class="wp-cover" src="' + esc(a.gambar) + '" alt="">' : '';
       d.innerHTML =
@@ -867,7 +877,9 @@
           cover +
           '<div class="wp-baca"><span>' + tgl + '</span><b>Baca selengkapnya →</b></div>' +
         '</a>' +
-        '<div class="wp-aksi"><button type="button" data-komentar="1">💬 <span class="wp-jml">' + (a.jumlah_komentar || 0) + '</span> Komentar</button></div>' +
+        '<div class="wp-aksi"><button type="button" data-komentar="1">💬 <span class="wp-jml">' + (a.jumlah_komentar || 0) + '</span> Komentar</button>' +
+          '<button type="button" data-rx="sruput"' + (reaksiSaya[a.id] === 'sruput' ? ' class="sudah"' : '') + '>☕ <span class="wp-rx-n">' + (a.sruput_count || 0) + '</span> Sruput</button>' +
+          '<button type="button" data-rx="cangkul"' + (reaksiSaya[a.id] === 'cangkul' ? ' class="sudah"' : '') + '>⛏️ <span class="wp-rx-n">' + (a.cangkul_count || 0) + '</span> Cangkul</button></div>' +
         '<div class="wp-komentar" style="display:none"></div>';
       kartuCache[a.id] = d;
     }
@@ -930,6 +942,35 @@
   }
 
   // Komentar di kartu Warta: dimuat saat pertama dibuka (komponen js/warta-komentar.js)
+  var PESAN_RX = {
+    karya_sendiri: 'Tidak bisa memberi apresiasi di tulisan sendiri 😄',
+    sudah_bereaksi: 'Kamu sudah memberi apresiasi pada tulisan ini 🌱',
+    unknown_action: 'Server belum diperbarui (tof-vault perlu di-deploy ulang).',
+    network: 'Jaringan bermasalah. Coba lagi.'
+  };
+  // Sruput / cangkul untuk artikel: satu akun satu reaksi, tidak di tulisan sendiri — diperiksa di SERVER (tof-vault: konten_react)
+  async function reaksi(btn) {
+    var kartu = btn.closest('.warta-post'); if (!kartu) return;
+    var s = sesi(); if (!s) { toast('Masuk dulu untuk memberi apresiasi 🌱'); return; }
+    var id = kartu.dataset.id, tipe = btn.getAttribute('data-rx');
+    if (kartu.dataset.pemilik && kartu.dataset.pemilik === s.id) { toast(PESAN_RX.karya_sendiri); return; }
+    if (kartu.dataset.sudah) { toast(PESAN_RX.sudah_bereaksi); return; }
+    if (kartu.dataset.rxsibuk) return;
+    kartu.dataset.rxsibuk = '1';
+    try {
+      var r = await vault('konten_react', { jenis: 'artikel', id: id, type: tipe });
+      if (!r || !r.ok) {
+        if (r && r.error === 'sudah_bereaksi') kartu.dataset.sudah = 'lain';
+        toast(PESAN_RX[r && r.error] || ('Gagal: ' + ((r && r.error) || 'tidak diketahui')));
+        return;
+      }
+      kartu.dataset.sudah = tipe; reaksiSaya[id] = tipe;
+      var n = btn.querySelector('.wp-rx-n'); if (n) n.textContent = (Number(n.textContent) || 0) + 1;
+      Array.prototype.forEach.call(kartu.querySelectorAll('[data-rx]'), function (b) { b.classList.toggle('sudah', b.getAttribute('data-rx') === tipe); });
+      (artikel || []).forEach(function (a) { if (String(a.id) === String(id)) a[tipe + '_count'] = (Number(a[tipe + '_count']) || 0) + 1; });
+    } finally { delete kartu.dataset.rxsibuk; }
+  }
+
   function bukaKomentar(btn) {
     var kartu = btn.closest('.warta-post'); if (!kartu) return;
     var box = kartu.querySelector('.wp-komentar'); if (!box) return;
@@ -946,6 +987,8 @@
   feed.addEventListener('click', function (e) {
     var k = e.target.closest ? e.target.closest('[data-komentar]') : null;
     if (k) { e.preventDefault(); e.stopPropagation(); bukaKomentar(k); return; }
+    var rx = e.target.closest ? e.target.closest('[data-rx]') : null;
+    if (rx && rx.closest('.warta-post')) { e.preventDefault(); e.stopPropagation(); reaksi(rx); return; }
     var b = e.target.closest ? e.target.closest('[data-geser]') : null;
     if (!b) return;
     e.preventDefault(); e.stopPropagation();
@@ -1007,7 +1050,7 @@
     var atur = adaAdmin
       ? '<span class="vs-atur"><button type="button" data-vsgeser="atas" title="Naikkan ke paling atas">⏫</button><button type="button" data-vsgeser="naik" title="Naik satu langkah">▲</button><button type="button" data-vsgeser="turun" title="Turun satu langkah">▼</button></span>'
       : '';
-    var h = '<div class="vs-kepala"><span class="vs-kicker">🎬 VIDEO PENDEK</span><span class="vs-kanan">' + atur +
+    var h = '<div class="vs-kepala"><span class="vs-kicker">🎬 VIDEO PENDEK · EKSPERIMEN</span><span class="vs-kanan">' + atur +
       '<a class="vs-unggah" href="' + HALAMAN + '#unggah">➕ Unggah</a></span></div>';
     if (!data.length) {
       h += '<div class="vs-kosong">Belum ada video. Jadilah yang pertama — maksimal 10 detik.</div>';

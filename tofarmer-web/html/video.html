@@ -39,6 +39,9 @@ button { font: inherit; cursor: pointer; }
 .aksi { position: absolute; right: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); display: flex; flex-direction: column; gap: 12px; }
 .aksi button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(74,222,128,.4); background: rgba(6,12,8,.65); color: #fff; font-size: 18px; }
 .aksi button:active { background: rgba(34,197,94,.35); }
+.aksi .rx { height: auto; min-height: 44px; padding: 4px 0; border-radius: 22px; display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.15; }
+.aksi .rx small { font-size: 11px; font-weight: 700; color: #e2e8f0; }
+.aksi .rx.sudah { border-color: #fde047; background: rgba(234,179,8,.30); }
 
 .kosong { height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; text-align: center; color: #94a3b8; font-size: 14px; }
 .kosong button { background: #eab308; color: #1a1400; border: none; border-radius: 999px; padding: 9px 20px; font-weight: 700; }
@@ -70,6 +73,13 @@ button { font: inherit; cursor: pointer; }
 #kam-waktu { margin-top: 8px; text-align: center; font-size: 12px; color: #fde047; font-weight: 700; }
 .masuk { display: block; margin-top: 14px; text-align: center; padding: 10px; border-radius: 10px; background: #eab308; color: #1a1400; font-weight: 700; font-size: 13px; text-decoration: none; }
 
+/* lembar komentar (naik dari bawah) */
+#sheet-kom { position: fixed; inset: 0; z-index: 45; display: none; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.55); }
+#sheet-kom.buka { display: flex; }
+.sheet-isi { width: 100%; max-width: 520px; max-height: 78dvh; display: flex; flex-direction: column; background: #0c1c13; border: 1px solid rgba(74,222,128,.25); border-radius: 18px 18px 0 0; }
+.sheet-kepala { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; color: #fde047; font-weight: 700; font-size: 15px; }
+.sheet-kepala button { border: none; background: none; color: #94a3b8; font-size: 18px; padding: 2px 8px; }
+#sheet-box { overflow-y: auto; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
 .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); transform: translateX(-50%); z-index: 60; background: rgba(34,197,94,.95); color: #04210f;
   padding: 8px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; max-width: 88vw; text-align: center; }
 @media (prefers-reduced-motion: no-preference) { #feed { scroll-behavior: auto; } }
@@ -84,10 +94,17 @@ button { font: inherit; cursor: pointer; }
 
 <main id="feed"><div class="kosong">Memuat video…</div></main>
 
+<div id="sheet-kom" role="dialog" aria-modal="true" aria-label="Komentar video">
+  <div class="sheet-isi">
+    <div class="sheet-kepala"><span>💬 Komentar</span><button type="button" id="sheet-tutup" aria-label="Tutup">✕</button></div>
+    <div id="sheet-box"></div>
+  </div>
+</div>
+
 <div id="panel" role="dialog" aria-modal="true" aria-label="Unggah video pendek">
   <div class="lembar">
     <h2>Unggah video pendek</h2>
-    <p class="catatan">Maksimal 10 detik — rekaman kamera berhenti otomatis di detik ke-10, dan video dari galeri yang lebih panjang dipotong di 10 detik pertama lalu dikecilkan. Hanya 10 video terbaru yang disimpan, dan unggahan baru menggantikan videomu yang lama.</p>
+    <p class="catatan">Maksimal 10 detik — rekaman kamera berhenti otomatis di detik ke-10, dan video dari galeri yang lebih panjang dipotong di 10 detik pertama lalu dikecilkan. Hanya 10 video terbaru yang disimpan. Tiap akun maksimal 3 video aktif — unggahan ke-4 menggantikan videomu yang paling lama.</p>
     <div id="area-masuk"></div>
     <div id="area-form">
       <div class="sumber">
@@ -115,6 +132,7 @@ button { font: inherit; cursor: pointer; }
   </div>
 </div>
 
+<script src="/js/warta-komentar.js"></script>
 <script>
 const supabaseClient = supabase.createClient(
   'https://afpzddwuikvwsedzgsee.supabase.co',
@@ -153,7 +171,11 @@ const PESAN = {
   bukan_pemilik: 'Video ini bukan milikmu.',
   not_found: 'Video tidak ditemukan.',
   server_error: 'Server sedang bermasalah. Coba lagi sebentar.',
-  network: 'Jaringan bermasalah. Coba lagi.'
+  network: 'Jaringan bermasalah. Coba lagi.',
+  karya_sendiri: 'Tidak bisa memberi apresiasi di karya sendiri 😄',
+  sudah_bereaksi: 'Kamu sudah memberi apresiasi pada karya ini 🌱',
+  jenis_tidak_valid: 'Jenis apresiasi tidak valid.',
+  unknown_action: 'Server belum diperbarui (tof-vault perlu di-deploy ulang).'
 };
 const pesanError = r => PESAN[r.error] || ('Gagal: ' + (r.error || 'tidak diketahui'));
 function toast(t) {
@@ -167,12 +189,44 @@ let bisu = true;                 // browser hanya mengizinkan putar otomatis bil
 let pengamat = null;
 const urlPublik = p => p ? (supabaseClient.storage.from('video').getPublicUrl(p).data.publicUrl || '') : '';
 
+let reaksiSaya = {};          // id video -> 'sruput' | 'cangkul' (apresiasi yang sudah kuberikan)
+let sedangReaksi = false;
+async function muatReaksiSaya() {
+  reaksiSaya = {};
+  const s = sesi(); if (!s || !daftar.length) return;
+  try {
+    const { data } = await supabaseClient.from('reaksi_konten').select('konten_id,type').eq('jenis_konten', 'video').eq('user_id', s.id);
+    (data || []).forEach(x => { reaksiSaya[String(x.konten_id)] = x.type; });
+  } catch (e) {}
+}
+
 async function muatDaftar() {
-  const { data, error } = await supabaseClient.from('video_pendek')
+  let r = await supabaseClient.from('video_pendek')
+    .select('id,profile_id,username,caption,path,thumb_path,dibuat,sruput_count,cangkul_count,jumlah_komentar').order('dibuat', { ascending: false }).limit(10);
+  if (r.error) r = await supabaseClient.from('video_pendek')          // cadangan bila kolom hitungan belum dibuat (SQL belum dijalankan)
     .select('id,profile_id,username,caption,path,thumb_path,dibuat').order('dibuat', { ascending: false }).limit(10);
-  if (error) { $('feed').innerHTML = '<div class="kosong">Video belum bisa dimuat. Coba lagi nanti.</div>'; return; }
-  daftar = data || [];
+  if (r.error) { $('feed').innerHTML = '<div class="kosong">Video belum bisa dimuat. Coba lagi nanti.</div>'; return; }
+  daftar = r.data || [];
+  await muatReaksiSaya();
   tampilUmpan();
+}
+
+function htmlItem(v, klon) {
+  const s = sesi(), sudah = reaksiSaya[v.id] || '';
+  const rx = (tipe, ikon, nama) => '<button type="button" class="rx' + (sudah === tipe ? ' sudah' : '') + '" data-aksi="' + tipe + '" aria-label="' + nama + '"><span>' + ikon + '</span><small>' + (Number(v[tipe + '_count']) || 0) + '</small></button>';
+  return `
+    <section class="item jeda" data-id="${esc(v.id)}"${klon ? ' data-klon="' + klon + '"' : ''}>
+      <video playsinline loop muted preload="none" poster="${esc(urlPublik(v.thumb_path))}" data-src="${esc(urlPublik(v.path))}"></video>
+      <div class="main">▶</div>
+      <div class="info"><b>@${esc(v.username || '')}</b>${v.caption ? `<span>${esc(v.caption)}</span>` : ''}</div>
+      <div class="aksi">
+        <button type="button" class="rx" data-aksi="komentar" aria-label="Komentar"><span>💬</span><small>${Number(v.jumlah_komentar) || 0}</small></button>
+        ${rx('sruput', '☕', 'Sruput')}${rx('cangkul', '⛏️', 'Cangkul')}
+        <button type="button" data-aksi="suara" aria-label="Suara">${bisu ? '🔇' : '🔊'}</button>
+        <button type="button" data-aksi="bagikan" aria-label="Bagikan">🔗</button>
+        ${s && v.profile_id === s.id ? '<button type="button" data-aksi="hapus" aria-label="Hapus video">🗑</button>' : ''}
+      </div>
+    </section>`;
 }
 
 function tampilUmpan() {
@@ -183,18 +237,12 @@ function tampilUmpan() {
     $('kosong-unggah').onclick = bukaPanel;
     return;
   }
-  const s = sesi();
-  feed.innerHTML = daftar.map(v => `
-    <section class="item jeda" data-id="${esc(v.id)}">
-      <video playsinline loop muted preload="none" poster="${esc(urlPublik(v.thumb_path))}" data-src="${esc(urlPublik(v.path))}"></video>
-      <div class="main">▶</div>
-      <div class="info"><b>@${esc(v.username || '')}</b>${v.caption ? `<span>${esc(v.caption)}</span>` : ''}</div>
-      <div class="aksi">
-        <button type="button" data-aksi="suara" aria-label="Suara">${bisu ? '🔇' : '🔊'}</button>
-        <button type="button" data-aksi="bagikan" aria-label="Bagikan">🔗</button>
-        ${s && v.profile_id === s.id ? '<button type="button" data-aksi="hapus" aria-label="Hapus video">🗑</button>' : ''}
-      </div>
-    </section>`).join('');
+  // Berputar tanpa putus: salinan video terakhir di depan dan salinan video pertama di belakang.
+  // Setelah gulir berhenti di salinan, layar dipindah diam-diam ke video aslinya (lihat rapikanPutaran).
+  const urut = daftar.length > 1
+    ? [{ v: daftar[daftar.length - 1], k: 'awal' }].concat(daftar.map(v => ({ v, k: '' })), [{ v: daftar[0], k: 'akhir' }])
+    : daftar.map(v => ({ v, k: '' }));
+  feed.innerHTML = urut.map(x => htmlItem(x.v, x.k)).join('');
 
   const items = [...feed.querySelectorAll('.item')];
   pengamat = new IntersectionObserver(entries => {
@@ -202,10 +250,11 @@ function tampilUmpan() {
       const it = e.target, vid = it.querySelector('video');
       if (e.isIntersecting) {
         siapkan(vid);
+        vid.loop = true;                                // video yang sedang tampil diulang terus sampai digeser
         vid.muted = bisu;
         vid.play().then(() => it.classList.remove('jeda')).catch(() => it.classList.add('jeda'));
         const nxt = it.nextElementSibling && it.nextElementSibling.querySelector('video');
-        if (nxt) siapkan(nxt, 'metadata');          // video berikutnya hanya diambil awalnya agar hemat bandwidth
+        if (nxt) siapkan(nxt, 'metadata');              // video berikutnya hanya diambil awalnya agar hemat bandwidth
       } else {
         vid.pause(); try { vid.currentTime = 0; } catch (err) {}
         it.classList.add('jeda');
@@ -215,12 +264,38 @@ function tampilUmpan() {
   items.forEach(it => pengamat.observe(it));
 
   const idTuju = new URLSearchParams(location.search).get('v');
-  const tuju = idTuju && items.find(it => it.dataset.id === idTuju);
-  if (tuju) tuju.scrollIntoView();
+  const awal = (idTuju && items.find(it => it.dataset.id === idTuju && !it.dataset.klon)) || items.find(it => !it.dataset.klon);
+  if (awal) awal.scrollIntoView();
 }
 function siapkan(vid, mode) {
   if (!vid.src && vid.dataset.src) { vid.preload = mode || 'auto'; vid.src = vid.dataset.src; }
   else if (!mode) vid.preload = 'auto';
+}
+
+// Gulir berhenti di salinan (klon) → pindah ke video aslinya tanpa animasi supaya terasa berputar terus
+let jadwalGulir = null;
+$('feed').addEventListener('scroll', () => { clearTimeout(jadwalGulir); jadwalGulir = setTimeout(rapikanPutaran, 140); }, { passive: true });
+function rapikanPutaran() {
+  const feed = $('feed'), items = [...feed.querySelectorAll('.item')];
+  if (items.length < 3 || !items[0].offsetHeight) return;
+  const idx = Math.round(feed.scrollTop / items[0].offsetHeight), it = items[idx];
+  if (!it || !it.dataset.klon) return;
+  const tujuan = it.dataset.klon === 'akhir' ? 1 : items.length - 2;
+  feed.style.scrollSnapType = 'none';
+  feed.scrollTop = tujuan * items[0].offsetHeight;
+  requestAnimationFrame(() => { feed.style.scrollSnapType = ''; });
+}
+
+function setHitung(id, tipe) {
+  const v = daftar.find(x => String(x.id) === String(id));
+  if (v) v[tipe + '_count'] = (Number(v[tipe + '_count']) || 0) + 1;
+  reaksiSaya[String(id)] = tipe;
+  document.querySelectorAll('.item').forEach(it => {
+    if (it.dataset.id !== String(id)) return;
+    it.querySelectorAll('.rx').forEach(b => b.classList.toggle('sudah', b.dataset.aksi === tipe));
+    const b = it.querySelector('.rx[data-aksi="' + tipe + '"] small');
+    if (b) b.textContent = Number(v && v[tipe + '_count']) || 0;
+  });
 }
 
 $('feed').addEventListener('click', async ev => {
@@ -236,6 +311,21 @@ $('feed').addEventListener('click', async ev => {
     bisu = !bisu;
     document.querySelectorAll('.item video').forEach(v => v.muted = bisu);
     document.querySelectorAll('[data-aksi="suara"]').forEach(b => b.textContent = bisu ? '🔇' : '🔊');
+  } else if (aksi === 'komentar') {
+    bukaKomentar(id);
+  } else if (aksi === 'sruput' || aksi === 'cangkul') {
+    const s = sesi();
+    if (!s) { toast('Masuk dulu untuk memberi apresiasi 🌱'); return; }
+    const v = daftar.find(x => String(x.id) === String(id));
+    if (v && v.profile_id === s.id) { toast(PESAN.karya_sendiri); return; }
+    if (reaksiSaya[id]) { toast(PESAN.sudah_bereaksi); return; }
+    if (sedangReaksi) return;
+    sedangReaksi = true;
+    try {
+      const r = await vault('konten_react', { jenis: 'video', id, type: aksi });
+      if (!r.ok) { if (r.error === 'sudah_bereaksi') reaksiSaya[id] = 'lain'; toast(pesanError(r)); return; }
+      setHitung(id, aksi);
+    } finally { sedangReaksi = false; }
   } else if (aksi === 'bagikan') {
     const url = location.origin + HALAMAN_INI + '?v=' + encodeURIComponent(id);
     if (navigator.share) { navigator.share({ title: 'Video Pendek ToFarmer', url }).catch(() => {}); return; }
@@ -248,6 +338,26 @@ $('feed').addEventListener('click', async ev => {
     muatDaftar();
   }
 });
+
+// ── KOMENTAR (pakai komponen yang sama dengan komentar artikel: nama wajib untuk tamu, ✓ untuk pengguna ToFarmer) ──
+function setJumlahKomentar(id, n) {
+  const v = daftar.find(x => String(x.id) === String(id));
+  if (v) v.jumlah_komentar = n;
+  document.querySelectorAll('.item').forEach(it => {
+    if (it.dataset.id !== String(id)) return;
+    const k = it.querySelector('.rx[data-aksi="komentar"] small');
+    if (k) k.textContent = n;
+  });
+}
+function bukaKomentar(id) {
+  if (!window.WartaKomentar) { toast('Komentar belum siap. Muat ulang halaman.'); return; }
+  const box = $('sheet-box'); box.innerHTML = '';
+  $('sheet-kom').classList.add('buka');
+  WartaKomentar.pasang(box, id, { tema: 'gelap', jenis: 'video', onJumlah: n => setJumlahKomentar(id, n) });
+}
+function tutupKomentar() { $('sheet-kom').classList.remove('buka'); $('sheet-box').innerHTML = ''; }
+$('sheet-tutup').onclick = tutupKomentar;
+$('sheet-kom').addEventListener('click', e => { if (e.target === $('sheet-kom')) tutupKomentar(); });
 
 // ── UNGGAH ──
 let hasil = null, thumbBlob = null, urlPratinjau = null, sibuk = false;
@@ -484,7 +594,7 @@ $('kirim').addEventListener('click', async () => {
     if (!sv.ok) { status(pesanError(sv), true); return; }
     sibuk = false; $('batal').disabled = false;
     tutupPanel();
-    toast(sv.dihapus > 0 ? 'Video terbit. Video lama digantikan.' : 'Video terbit!');
+    toast(sv.dihapus > 0 ? 'Video terbit. Video paling lama digantikan.' : 'Video terbit!');
     await muatDaftar();
     $('feed').scrollTo(0, 0);
   } finally {

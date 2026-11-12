@@ -431,6 +431,9 @@ export interface Repo {
   videoCari(id: string): Promise<Row | null>;
   videoHapus(rows: Row[]): Promise<boolean>; // hapus berkas di bucket lalu barisnya
   videoAturWaktuFeed(waktuIso: string): Promise<boolean>; // posisi kartu video di feed beranda (satu baris pengaturan)
+  // ---- 🟢 SISIPAN [REAKSI KONTEN]: sruput/cangkul untuk artikel & video (tabel reaksi_konten; angka dihitung trigger database) ----
+  kontenPemilik(jenis: "artikel" | "video", id: string): Promise<{ pemilik: string | null } | null>; // null = tidak ada / belum terbit
+  insertReaksiKonten(jenis: "artikel" | "video", id: string, userId: string, type: string): Promise<"ok" | "duplicate" | "error">;
   // ---- 🟢 SISIPAN [SALDO]: salinan saldo TOF (kolom profiles.saldo_tof) yang disegarkan dari blockchain oleh server ----
   listProfilSaldo(): Promise<{ id: string; saldo_tof: number | null }[]>;
   setSaldoTof(id: string, saldo: number): Promise<void>;
@@ -3852,7 +3855,7 @@ async function handleArtikel(action: unknown, body: Row, d: Deps): Promise<Res> 
 // Pengaman ukuran/jenis berkas yang sebenarnya = pengaturan bucket "video" (file_size_limit, allowed_mime_types) di SQL.
 // ============================================================
 const VIDEO_MAKS_GLOBAL = 10;
-const VIDEO_MAKS_PER_USER = 1;
+const VIDEO_MAKS_PER_USER = 3;
 const VIDEO_MAKS_BYTE = 2_500_000;
 const VIDEO_MIME: Record<string, string> = { "video/mp4": "mp4", "video/webm": "webm" };
 const VIDEO_PATH_RE = /^\d{4}-\d{2}\/[0-9a-f]{16}\.(mp4|webm)$/;
@@ -3931,6 +3934,26 @@ async function handleVideo(action: unknown, body: Row, d: Deps): Promise<Res> {
       if (!(await d.repo.videoAturWaktuFeed(iso))) return fail("server_error");
       await d.repo.log(a.profile.id, "video_geser", true);
       return ok({ waktu: iso });
+    }
+
+    // Sruput / cangkul untuk artikel dan video — aturan sama seperti reaksi postingan:
+    // satu akun satu reaksi per konten, tidak boleh di karya sendiri. Angka dinaikkan trigger database (fn_reaksi_konten_hitung).
+    case "konten_react": {
+      const a = await authSesi(body, d);
+      if ("gagal" in a) return a.gagal;
+      const jenis = body.jenis === "artikel" || body.jenis === "video" ? body.jenis : null;
+      const type = body.type === "sruput" || body.type === "cangkul" ? body.type : null;
+      if (!jenis || !type) return fail("jenis_tidak_valid");
+      const id = typeof body.id === "string" ? body.id : "";
+      if (!ARTIKEL_ID_RE.test(id)) return fail("id_tidak_valid");
+      const k = await d.repo.kontenPemilik(jenis, id);
+      if (!k) return fail("not_found");
+      if (k.pemilik && k.pemilik === a.profile.id) return fail("karya_sendiri");
+      const hasil = await d.repo.insertReaksiKonten(jenis, id, a.profile.id, type);
+      if (hasil === "duplicate") return fail("sudah_bereaksi");
+      if (hasil !== "ok") return fail("server_error");
+      await d.repo.log(a.profile.id, "konten_react", true);
+      return ok();
     }
 
     default:
@@ -4582,6 +4605,28 @@ const repo: Repo = {
     const { error } = await db.from("video_feed_atur").upsert({ id: 1, waktu_feed: waktuIso });
     if (error) { console.error("videoAturWaktuFeed:", error.message); return false; }
     return true;
+  },
+  // 🟢 SISIPAN [REAKSI KONTEN]
+  async kontenPemilik(jenis, id) {
+    if (jenis === "artikel") {
+      const { data, error } = await db.from("artikel").select("id,penulis_id").eq("id", id).eq("terbit", true).maybeSingle();
+      if (error) { console.error("kontenPemilik(artikel):", error.message); return null; }
+      if (!data) return null;
+      const p = (data as Row).penulis_id;
+      return { pemilik: typeof p === "string" && p !== "" ? p : null };
+    }
+    const { data, error } = await db.from("video_pendek").select("id,profile_id").eq("id", id).maybeSingle();
+    if (error) { console.error("kontenPemilik(video):", error.message); return null; }
+    if (!data) return null;
+    const p = (data as Row).profile_id;
+    return { pemilik: typeof p === "string" && p !== "" ? p : null };
+  },
+  async insertReaksiKonten(jenis, id, userId, type) {
+    const { error } = await db.from("reaksi_konten").insert({ jenis_konten: jenis, konten_id: id, user_id: userId, type });
+    if (!error) return "ok";
+    if ((error as { code?: string }).code === "23505") return "duplicate";   // indeks unik: satu akun satu reaksi per konten
+    console.error("insertReaksiKonten:", error.message);
+    return "error";
   },
   // 🟢 AKHIR SISIPAN
 
