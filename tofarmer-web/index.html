@@ -461,11 +461,16 @@
 .wp-toast { position:fixed; left:50%; bottom:90px; transform:translateX(-50%); background:rgba(47,111,78,.95); color:#fff;
   padding:8px 16px; border-radius:999px; font-size:12px; z-index:9998; box-shadow:0 6px 18px rgba(0,0,0,.2); }
 
-/* ===== [VIDEO PENDEK DI FEED] deretan video pendek (eksperimen) di atas alur postingan ===== */
+/* ===== [VIDEO PENDEK DI FEED] kartu video pendek (eksperimen) di alur postingan; pengurus bisa menggesernya ===== */
 .vs-kartu { margin-bottom:10px; padding:12px 12px 10px; border-radius:14px; background:linear-gradient(135deg,#eef7f1 0%,#f6fbf8 100%);
   border:1px solid rgba(76,175,122,.28); border-left:4px solid #4caf7a; box-shadow:0 4px 14px rgba(76,175,122,.10); }
-.vs-kepala { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.vs-kepala { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; }
 .vs-kicker { font-size:10px; font-weight:700; letter-spacing:.06em; color:#2f6f4e; background:rgba(76,175,122,.16); border-radius:999px; padding:2px 10px; }
+.vs-kanan { display:flex; align-items:center; gap:6px; }
+.vs-atur { display:flex; gap:4px; }
+.vs-atur button { width:auto; margin:0; padding:3px 8px; font-size:11px; border-radius:8px; background:rgba(255,255,255,.92);
+  color:#2f6f4e; border:1px solid rgba(76,175,122,.45); font-weight:700; }
+.vs-atur button:hover { background:#e3f4ea; }
 .vs-unggah { font-size:11px; font-weight:700; color:#2f6f4e; text-decoration:none; background:#fff; border:1px solid rgba(76,175,122,.45); border-radius:999px; padding:3px 10px; }
 .vs-baris { display:flex; gap:8px; overflow-x:auto; padding:10px 2px 4px; -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity; }
 .vs-item { position:relative; flex:0 0 auto; width:84px; height:140px; border-radius:12px; overflow:hidden; background:#1f3d2d; scroll-snap-align:start; text-decoration:none; }
@@ -961,22 +966,49 @@
 })();
 </script>
 
-<!-- ================= [VIDEO PENDEK DI FEED] deretan thumbnail video di paling atas alur postingan =================
-     Aman bila tabel belum dibuat / gagal dimuat: deretan tidak tampil dan beranda tetap jalan seperti biasa. -->
+<!-- ================= [VIDEO PENDEK DI FEED] kartu video di alur postingan, posisinya mengikuti waktu seperti kartu Warta =================
+     Pengurus bisa menggesernya (⏫ ▲ ▼) lewat tof-vault aksi video_geser. Aman bila tabel belum dibuat / gagal dimuat:
+     kartu tidak tampil dan beranda tetap jalan seperti biasa. Belum pernah digeser = tampil di paling atas. -->
 <script>
 (function () {
   var feed = document.getElementById('feed');
   if (!feed) return;
   var HALAMAN = '/html/video.html';
-  var data = null, terakhir = 0, memuat = false;
+  var data = null, waktuStrip = null, terakhir = 0, memuat = false, adaAdmin = false;
+  var waktuPost = {}, jadwal = null, sibuk = false, ulang = false;
+
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
+  function sesi() {
+    try { var s = JSON.parse(localStorage.getItem('tof_session') || 'null'); if (s && s.id && s.token && Number(s.exp) * 1000 > Date.now()) return s; } catch (e) {}
+    return null;
+  }
+  async function vault(action, body) {
+    var s = sesi(); if (!s) return { ok: false, error: 'sesi_tidak_valid' };
+    try {
+      var r = await supabaseClient.functions.invoke('tof-vault', { body: Object.assign({ action: action, profile_id: s.id, token: s.token }, body || {}) });
+      return r.error ? { ok: false, error: 'network' } : (r.data || { ok: false, error: 'empty' });
+    } catch (e) { return { ok: false, error: 'network' }; }
+  }
+  function toast(t) {
+    var el = document.createElement('div'); el.className = 'wp-toast'; el.textContent = t; document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 2400);
+  }
+  function idPost(el) { return el.id.replace('post-card-', ''); }
+  function adalahPost(el) { return el && /^post-card-/.test(el.id || ''); }
+  function adalahKartu(el) { return el && el.classList && el.classList.contains('warta-post'); }
+  function adalahStrip(el) { return el && el.id === 'video-strip'; }
   function urlThumb(p) {
     try { return supabaseClient.storage.from('video').getPublicUrl(p).data.publicUrl || ''; } catch (e) { return ''; }
   }
+
   function bangun() {
     var d = document.createElement('div');
     d.id = 'video-strip'; d.className = 'vs-kartu';
-    var h = '<div class="vs-kepala"><span class="vs-kicker">🎬 VIDEO PENDEK · EKSPERIMEN</span><a class="vs-unggah" href="' + HALAMAN + '#unggah">➕ Unggah</a></div>';
+    var atur = adaAdmin
+      ? '<span class="vs-atur"><button type="button" data-vsgeser="atas" title="Naikkan ke paling atas">⏫</button><button type="button" data-vsgeser="naik" title="Naik satu langkah">▲</button><button type="button" data-vsgeser="turun" title="Turun satu langkah">▼</button></span>'
+      : '';
+    var h = '<div class="vs-kepala"><span class="vs-kicker">🎬 VIDEO PENDEK · EKSPERIMEN</span><span class="vs-kanan">' + atur +
+      '<a class="vs-unggah" href="' + HALAMAN + '#unggah">➕ Unggah</a></span></div>';
     if (!data.length) {
       h += '<div class="vs-kosong">Belum ada video. Jadilah yang pertama — maksimal 10 detik.</div>';
     } else {
@@ -990,12 +1022,50 @@
     d.innerHTML = h;
     return d;
   }
-  function pasang() {
+
+  // waktu posting tidak tersimpan di tampilan, jadi diambil sekali per posting yang belum diketahui
+  async function lengkapiWaktu() {
+    var ids = [];
+    Array.prototype.forEach.call(feed.children, function (el) { if (adalahPost(el) && !(idPost(el) in waktuPost)) ids.push(idPost(el)); });
+    if (!ids.length) return;
     try {
-      if (data === null || document.getElementById('video-strip')) return;
-      feed.insertBefore(bangun(), feed.firstChild);
+      var r = await supabaseClient.from('contributions').select('id,created_at').in('id', ids);
+      if (r.data) r.data.forEach(function (p) { waktuPost[String(p.id)] = new Date(p.created_at).getTime(); });
     } catch (e) {}
   }
+
+  function pasang() {
+    if (data === null) return;
+    obs.disconnect();
+    try {
+      var lama = document.getElementById('video-strip'); if (lama) lama.remove();
+      var posts = Array.prototype.filter.call(feed.children, adalahPost);
+      var penutup = document.getElementById('feedLoadingMore');
+      var target = null, tampil = true;
+      if (waktuStrip == null) {
+        target = feed.firstChild;                                   // belum pernah digeser: paling atas
+      } else {
+        var semuaMuat = (typeof feedAllLoaded !== 'undefined') && feedAllLoaded;
+        var tMin = Infinity;
+        posts.forEach(function (el) { var t = waktuPost[idPost(el)]; if (t != null && t < tMin) tMin = t; });
+        // posting lama dimuat bertahap: kartu yang lebih tua dari posting termuat menunggu sampai digulir ke sana
+        if (!semuaMuat && !(posts.length && waktuStrip >= tMin)) tampil = false;
+        else {
+          for (var i = 0; i < posts.length; i++) { var tp = waktuPost[idPost(posts[i])]; if (tp != null && tp < waktuStrip) { target = posts[i]; break; } }
+          if (!target) target = penutup || null;
+        }
+      }
+      if (tampil) feed.insertBefore(bangun(), target || null);
+    } finally { obs.observe(feed, { childList: true }); }
+  }
+
+  async function susun() {
+    if (sibuk) { ulang = true; return; }
+    sibuk = true;
+    try { if (waktuStrip != null) await lengkapiWaktu(); pasang(); }
+    finally { sibuk = false; if (ulang) { ulang = false; clearTimeout(jadwal); jadwal = setTimeout(susun, 60); } }
+  }
+
   async function muat() {
     if (memuat) return;
     memuat = true;
@@ -1003,20 +1073,61 @@
       var r = await supabaseClient.from('video_pendek').select('id,username,thumb_path,dibuat').order('dibuat', { ascending: false }).limit(10);
       if (!r.error && Array.isArray(r.data)) {
         data = r.data; terakhir = Date.now();
-        var lama = document.getElementById('video-strip');
-        if (lama) lama.remove();
-        pasang();
+        try {
+          var w = await supabaseClient.from('video_feed_atur').select('waktu_feed').eq('id', 1).maybeSingle();
+          waktuStrip = (w && w.data && w.data.waktu_feed) ? new Date(w.data.waktu_feed).getTime() : null;
+        } catch (e) {}
+        susun();
       }
     } catch (e) {}
     memuat = false;
   }
-  // loadFeed() mengosongkan #feed; pasang lagi dari data tersimpan, dan segarkan di latar belakang bila sudah lama
-  new MutationObserver(function () {
-    if (document.getElementById('video-strip')) return;
+
+  async function cekAdmin() {
+    if (!sesi()) return;
+    var r = await vault('artikel_admin_cek');           // pengecekan pengurus yang sama dengan kartu Warta (dicek ulang di server)
+    if (r && r.ok) { adaAdmin = true; pasang(); }
+  }
+
+  async function geser(arah) {
+    var kartu = document.getElementById('video-strip'); if (!kartu) return;
+    var body;
+    if (arah === 'atas') { body = { mode: 'atas' }; }
+    else {
+      await lengkapiWaktu();
+      var sib = arah === 'naik' ? kartu.previousElementSibling : kartu.nextElementSibling;
+      while (sib && !adalahPost(sib) && !adalahKartu(sib)) sib = arah === 'naik' ? sib.previousElementSibling : sib.nextElementSibling;
+      if (!sib) { toast(arah === 'naik' ? 'Sudah paling atas' : 'Gulir ke bawah dulu agar postingan di bawahnya termuat'); return; }
+      var ts = adalahKartu(sib) ? Number(sib.dataset.waktu) : waktuPost[idPost(sib)];
+      if (ts == null || !isFinite(ts)) { toast('Waktu postingan belum diketahui, coba lagi sebentar'); return; }
+      body = { mode: 'waktu', waktu: new Date(arah === 'naik' ? ts + 1000 : ts - 1000).toISOString() };
+    }
+    var r = await vault('video_geser', body);
+    if (!r || !r.ok) { toast('Gagal menggeser' + (r && r.error === 'bukan_admin' ? ': bukan pengurus' : '')); return; }
+    waktuStrip = new Date(r.waktu).getTime();
     pasang();
+    var baru = document.getElementById('video-strip');
+    if (baru && baru.scrollIntoView) baru.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  feed.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('[data-vsgeser]');
+    if (b && b.closest('#video-strip')) geser(b.getAttribute('data-vsgeser'));
+  });
+
+  // loadFeed() mengosongkan #feed dan memuat postingan bertahap: tata ulang saat ada perubahan (abaikan perubahan kartu Warta / kartu ini sendiri)
+  var obs = new MutationObserver(function (muts) {
+    var perlu = muts.some(function (m) {
+      return Array.prototype.some.call(m.addedNodes, function (n) { return n.nodeType === 1 && !adalahKartu(n) && !adalahStrip(n); }) ||
+             Array.prototype.some.call(m.removedNodes, function (n) { return n.nodeType === 1 && !adalahKartu(n) && !adalahStrip(n); });
+    });
+    if (!perlu) return;
+    clearTimeout(jadwal); jadwal = setTimeout(susun, 150);
     if (Date.now() - terakhir > 30000) muat();
-  }).observe(feed, { childList: true });
+  });
+  obs.observe(feed, { childList: true });
   setTimeout(muat, 600);
+  setTimeout(cekAdmin, 1200);
 })();
 </script>
 

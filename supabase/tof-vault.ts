@@ -430,6 +430,7 @@ export interface Repo {
   videoSimpan(data: Record<string, unknown>): Promise<string | null>; // mengembalikan id; null = gagal
   videoCari(id: string): Promise<Row | null>;
   videoHapus(rows: Row[]): Promise<boolean>; // hapus berkas di bucket lalu barisnya
+  videoAturWaktuFeed(waktuIso: string): Promise<boolean>; // posisi kartu video di feed beranda (satu baris pengaturan)
   // ---- 🟢 SISIPAN [SALDO]: salinan saldo TOF (kolom profiles.saldo_tof) yang disegarkan dari blockchain oleh server ----
   listProfilSaldo(): Promise<{ id: string; saldo_tof: number | null }[]>;
   setSaldoTof(id: string, saldo: number): Promise<void>;
@@ -3914,6 +3915,24 @@ async function handleVideo(action: unknown, body: Row, d: Deps): Promise<Res> {
       return ok();
     }
 
+    // Menggeser kartu video di feed beranda — hanya pengurus (sama seperti artikel_geser)
+    case "video_geser": {
+      const a = await authAdminArtikel(body, d);
+      if ("gagal" in a) return a.gagal;
+      const sekarang = Number(d.now());
+      let ms = sekarang;
+      if (body.mode === "waktu") {
+        ms = Date.parse(typeof body.waktu === "string" ? body.waktu : "");
+        if (!isFinite(ms) || ms < Date.parse("2020-01-01T00:00:00Z") || ms > sekarang + 120000) return fail("waktu_tidak_valid");
+      } else if (body.mode !== "atas") {
+        return fail("mode_tidak_valid");
+      }
+      const iso = new Date(ms).toISOString();
+      if (!(await d.repo.videoAturWaktuFeed(iso))) return fail("server_error");
+      await d.repo.log(a.profile.id, "video_geser", true);
+      return ok({ waktu: iso });
+    }
+
     default:
       return fail("unknown_action");
   }
@@ -4557,6 +4576,11 @@ const repo: Repo = {
     }
     const { error } = await db.from("video_pendek").delete().in("id", rows.map((r) => r.id as string));
     if (error) { console.error("videoHapus(db):", error.message); return false; }
+    return true;
+  },
+  async videoAturWaktuFeed(waktuIso) {
+    const { error } = await db.from("video_feed_atur").upsert({ id: 1, waktu_feed: waktuIso });
+    if (error) { console.error("videoAturWaktuFeed:", error.message); return false; }
     return true;
   },
   // 🟢 AKHIR SISIPAN

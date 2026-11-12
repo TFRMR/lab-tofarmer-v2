@@ -60,6 +60,14 @@ button { font: inherit; cursor: pointer; }
 .baris button { flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; border: 1px solid rgba(74,222,128,.35); background: transparent; color: #4ade80; }
 .baris button.utama { background: #22c55e; color: #04210f; border-color: #22c55e; }
 .baris button:disabled { opacity: .45; cursor: default; }
+.sumber { display: flex; gap: 10px; margin-top: 14px; }
+.sumber button, .sumber label { flex: 1; text-align: center; padding: 10px 6px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
+  border: 1px solid rgba(74,222,128,.35); background: transparent; color: #4ade80; }
+.sumber button.utama { background: #22c55e; color: #04210f; border-color: #22c55e; }
+#area-kamera { margin-top: 12px; }
+#kamera { width: 100%; max-height: 46dvh; margin-top: 0; border-radius: 10px; background: #000; object-fit: cover; }
+#kamera.cermin { transform: scaleX(-1); }
+#kam-waktu { margin-top: 8px; text-align: center; font-size: 12px; color: #fde047; font-weight: 700; }
 .masuk { display: block; margin-top: 14px; text-align: center; padding: 10px; border-radius: 10px; background: #eab308; color: #1a1400; font-weight: 700; font-size: 13px; text-decoration: none; }
 
 .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); transform: translateX(-50%); z-index: 60; background: rgba(34,197,94,.95); color: #04210f;
@@ -79,10 +87,23 @@ button { font: inherit; cursor: pointer; }
 <div id="panel" role="dialog" aria-modal="true" aria-label="Unggah video pendek">
   <div class="lembar">
     <h2>Unggah video pendek</h2>
-    <p class="catatan">Maksimal 10 detik — video yang lebih panjang dipotong di 10 detik pertama dan dikecilkan otomatis. Hanya 10 video terbaru yang disimpan, dan unggahan baru menggantikan videomu yang lama.</p>
+    <p class="catatan">Maksimal 10 detik — rekaman kamera berhenti otomatis di detik ke-10, dan video dari galeri yang lebih panjang dipotong di 10 detik pertama lalu dikecilkan. Hanya 10 video terbaru yang disimpan, dan unggahan baru menggantikan videomu yang lama.</p>
     <div id="area-masuk"></div>
     <div id="area-form">
-      <input type="file" id="berkas" accept="video/*">
+      <div class="sumber">
+        <button type="button" id="btn-kamera" class="utama">📷 Rekam dengan kamera</button>
+        <label>📁 Pilih dari galeri<input type="file" id="berkas" accept="video/*" hidden></label>
+        <input type="file" id="berkas-kamera" accept="video/*" capture="environment" hidden>
+      </div>
+      <div id="area-kamera" style="display:none">
+        <video id="kamera" playsinline muted></video>
+        <div id="kam-waktu">0 / 10 dtk</div>
+        <div class="baris">
+          <button type="button" id="kam-balik">🔄 Balik kamera</button>
+          <button type="button" id="kam-rekam" class="utama">⏺ Mulai rekam</button>
+          <button type="button" id="kam-tutup">Tutup</button>
+        </div>
+      </div>
       <video id="pratinjau" controls playsinline style="display:none"></video>
       <textarea id="caption" maxlength="150" placeholder="Keterangan singkat (opsional, maksimal 150 huruf)"></textarea>
       <div id="status"></div>
@@ -247,10 +268,11 @@ function tutupPanel() {
   resetForm();
 }
 function resetForm() {
+  tutupKamera();
   hasil = null; thumbBlob = null;
   if (urlPratinjau) { URL.revokeObjectURL(urlPratinjau); urlPratinjau = null; }
   $('pratinjau').removeAttribute('src'); $('pratinjau').style.display = 'none';
-  $('berkas').value = ''; $('caption').value = ''; $('kirim').disabled = true; status('');
+  $('berkas').value = ''; $('berkas-kamera').value = ''; $('caption').value = ''; $('kirim').disabled = true; status('');
 }
 $('btn-unggah').onclick = bukaPanel;
 $('batal').onclick = tutupPanel;
@@ -315,8 +337,10 @@ async function rekam(v, durasi) {
   return new Blob(potongan, { type: tipeDasar(mime) });
 }
 
-$('berkas').addEventListener('change', async () => {
-  const f = $('berkas').files[0]; if (!f) return;
+async function prosesBerkas(f) {
+  if (!f) return;
+  tutupKamera();
+  if (urlPratinjau) { URL.revokeObjectURL(urlPratinjau); urlPratinjau = null; }
   hasil = null; thumbBlob = null; $('kirim').disabled = true; $('pratinjau').style.display = 'none'; sibuk = true;
   const v = document.createElement('video');
   v.playsInline = true; v.preload = 'auto'; v.src = URL.createObjectURL(f);
@@ -343,7 +367,89 @@ $('berkas').addEventListener('change', async () => {
   } finally {
     URL.revokeObjectURL(v.src); v.removeAttribute('src'); v.load(); sibuk = false;
   }
-});
+}
+$('berkas').addEventListener('change', () => prosesBerkas($('berkas').files[0]));
+$('berkas-kamera').addEventListener('change', () => prosesBerkas($('berkas-kamera').files[0]));   // cadangan: kamera bawaan HP bila browser tidak bisa membuka kamera langsung
+
+// ── KAMERA LANGSUNG (maksimal 10 detik, otomatis berhenti) ──
+let strimKam = null, hadap = 'environment', perekam = null, pewaktuKam = null, thumbKam = null, potonganKam = [], mimeKam = '';
+function berhentiStrim() { if (strimKam) { strimKam.getTracks().forEach(t => t.stop()); strimKam = null; } }
+function tutupKamera() {
+  clearInterval(pewaktuKam); pewaktuKam = null;
+  if (perekam && perekam.state !== 'inactive') { perekam.onstop = null; try { perekam.stop(); } catch (e) {} }
+  perekam = null; berhentiStrim();
+  const k = $('kamera'); k.srcObject = null;
+  $('area-kamera').style.display = 'none';
+  $('kam-rekam').textContent = '⏺ Mulai rekam'; $('kam-balik').disabled = false; $('kam-waktu').textContent = '0 / ' + MAKS_DETIK + ' dtk';
+}
+async function nyalakanKamera() {
+  berhentiStrim();
+  const dasar = { facingMode: hadap, width: { ideal: 720 }, height: { ideal: 1280 } };
+  try { strimKam = await navigator.mediaDevices.getUserMedia({ video: dasar, audio: true }); }
+  catch (e) { strimKam = await navigator.mediaDevices.getUserMedia({ video: dasar, audio: false }); }   // tanpa mikrofon bila izin suara ditolak
+  const k = $('kamera'); k.srcObject = strimKam; k.classList.toggle('cermin', hadap === 'user');
+  await k.play();
+}
+$('btn-kamera').onclick = async () => {
+  if (sibuk) return;
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) { $('berkas-kamera').click(); return; }
+  try {
+    status('');
+    await nyalakanKamera();
+    $('area-kamera').style.display = 'block';
+  } catch (e) {
+    tutupKamera();
+    status('Kamera tidak bisa dibuka. Izinkan akses kamera di browser, atau pilih video dari galeri.', true);
+  }
+};
+$('kam-balik').onclick = async () => {
+  const lama = hadap;
+  hadap = hadap === 'environment' ? 'user' : 'environment';
+  try { await nyalakanKamera(); }
+  catch (e) { hadap = lama; status('Kamera itu tidak tersedia.', true); try { await nyalakanKamera(); } catch (e2) { tutupKamera(); } }
+};
+$('kam-tutup').onclick = tutupKamera;
+$('kam-rekam').onclick = () => {
+  if (perekam && perekam.state === 'recording') { hentikanRekam(); return; }
+  mulaiRekam();
+};
+function mulaiRekam() {
+  if (!strimKam) return;
+  const calon = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4'];
+  mimeKam = calon.find(m => MediaRecorder.isTypeSupported(m)) || '';
+  if (!mimeKam) { status('Browser ini belum bisa merekam. Pilih video dari galeri.', true); return; }
+  potonganKam = []; thumbKam = null; status('');
+  if (urlPratinjau) { URL.revokeObjectURL(urlPratinjau); urlPratinjau = null; }
+  hasil = null; thumbBlob = null; $('kirim').disabled = true; $('pratinjau').style.display = 'none';
+  perekam = new MediaRecorder(strimKam, { mimeType: mimeKam, videoBitsPerSecond: 800000, audioBitsPerSecond: 64000 });
+  perekam.ondataavailable = e => { if (e.data && e.data.size) potonganKam.push(e.data); };
+  perekam.onstop = selesaiRekam;
+  perekam.start(250);
+  const mulai = Date.now();
+  setTimeout(() => { ambilThumb($('kamera')).then(b => { if (b && !thumbKam) thumbKam = b; }); }, 500);
+  $('kam-rekam').textContent = '⏹ Berhenti'; $('kam-balik').disabled = true;
+  pewaktuKam = setInterval(() => {
+    const d = (Date.now() - mulai) / 1000;
+    $('kam-waktu').textContent = Math.min(MAKS_DETIK, Math.floor(d)) + ' / ' + MAKS_DETIK + ' dtk';
+    if (d >= MAKS_DETIK) hentikanRekam();
+  }, 200);
+}
+function hentikanRekam() {
+  clearInterval(pewaktuKam); pewaktuKam = null;
+  if (perekam && perekam.state === 'recording') perekam.stop();
+}
+function selesaiRekam() {
+  const blob = new Blob(potonganKam, { type: tipeDasar(mimeKam) });
+  const tb = thumbKam;
+  tutupKamera();
+  if (blob.size < 2000) { status('Rekaman terlalu pendek. Coba lagi.', true); return; }
+  if (blob.size > MAKS_BYTE) { status('Rekaman terlalu besar. Coba lagi dengan durasi lebih pendek.', true); return; }
+  hasil = blob; thumbBlob = tb;
+  urlPratinjau = URL.createObjectURL(hasil);
+  $('pratinjau').src = urlPratinjau; $('pratinjau').style.display = 'block';
+  status('Siap diterbitkan (' + (hasil.size / 1048576).toFixed(1) + ' MB).');
+  $('kirim').disabled = false;
+}
 
 $('kirim').addEventListener('click', async () => {
   if (!sesi()) { bukaPanel(); return; }
