@@ -73,13 +73,39 @@ button { font: inherit; cursor: pointer; }
 #kam-waktu { margin-top: 8px; text-align: center; font-size: 12px; color: #fde047; font-weight: 700; }
 .masuk { display: block; margin-top: 14px; text-align: center; padding: 10px; border-radius: 10px; background: #eab308; color: #1a1400; font-weight: 700; font-size: 13px; text-decoration: none; }
 
-/* lembar komentar (naik dari bawah) */
-#sheet-kom { position: fixed; inset: 0; z-index: 45; display: none; align-items: flex-end; justify-content: center; background: rgba(0,0,0,.55); }
-#sheet-kom.buka { display: flex; }
-.sheet-isi { width: 100%; max-width: 520px; max-height: 78dvh; display: flex; flex-direction: column; background: #0c1c13; border: 1px solid rgba(74,222,128,.25); border-radius: 18px 18px 0 0; }
+/* komentar: HP = lembar di bagian bawah (video mengecil ke atas supaya tidak tertutup); desktop = panel di samping video */
+#sheet-kom { position: fixed; inset: 0; z-index: 45; display: none; background: transparent; }
+#sheet-kom.buka { display: block; }
+.sheet-isi { position: absolute; left: 0; right: 0; bottom: 0; height: 52dvh; display: flex; flex-direction: column;
+  background: linear-gradient(rgba(8,18,12,.95), rgba(8,18,12,.99)); border-top: 1px solid rgba(74,222,128,.3); border-radius: 18px 18px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,.45); }
 .sheet-kepala { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 8px; color: #fde047; font-weight: 700; font-size: 15px; }
 .sheet-kepala button { border: none; background: none; color: #94a3b8; font-size: 18px; padding: 2px 8px; }
-#sheet-box { overflow-y: auto; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
+#sheet-box { flex: 1; overflow-y: auto; padding: 0 16px calc(env(safe-area-inset-bottom, 0px) + 16px); }
+body.kom-buka .item { align-items: flex-start; }
+body.kom-buka .item video { height: calc(100dvh - 52dvh - env(safe-area-inset-top, 0px) - 48px); margin-top: calc(env(safe-area-inset-top, 0px) + 48px); }
+body.kom-buka .info, body.kom-buka .aksi, body.kom-buka .ticker { display: none; }
+@media (min-width: 900px) {
+  #sheet-kom { pointer-events: none; }
+  .sheet-isi { pointer-events: auto; left: auto; top: 0; right: 0; bottom: 0; height: auto; width: 400px; border-radius: 0; border-top: none;
+    border-left: 1px solid rgba(74,222,128,.3); box-shadow: -8px 0 24px rgba(0,0,0,.4); }
+  body.kom-buka #feed, body.kom-buka .atas { width: calc(100% - 400px); }
+  body.kom-buka .item { align-items: center; }
+  body.kom-buka .item video { height: 100%; margin-top: 0; }
+  body.kom-buka .info { display: block; }
+  body.kom-buka .aksi { display: flex; }
+  .sheet-isi { padding-top: 8px; }
+}
+/* komentar berjalan di atas video (bergulir dan berputar supaya terasa ramai) */
+.info span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.ticker { position: absolute; left: 12px; right: 76px; bottom: calc(env(safe-area-inset-bottom, 0px) + 122px); height: 128px; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; pointer-events: none;
+  -webkit-mask-image: linear-gradient(transparent, #000 40%); mask-image: linear-gradient(transparent, #000 40%); }
+.tk { align-self: flex-start; max-width: 100%; padding: 4px 10px; border-radius: 14px; background: rgba(0,0,0,.45); color: #f1f5f9; font-size: 12px; line-height: 1.35;
+  word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; animation: tkMasuk .35s ease-out; }
+.tk b { color: #fde047; font-weight: 700; margin-right: 5px; }
+.tk .cc { color: #4ade80; margin-left: 2px; }
+@keyframes tkMasuk { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .tk { animation: none; } }
 .toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 80px); transform: translateX(-50%); z-index: 60; background: rgba(34,197,94,.95); color: #04210f;
   padding: 8px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; max-width: 88vw; text-align: center; }
 @media (prefers-reduced-motion: no-preference) { #feed { scroll-behavior: auto; } }
@@ -218,6 +244,7 @@ function htmlItem(v, klon) {
     <section class="item jeda" data-id="${esc(v.id)}"${klon ? ' data-klon="' + klon + '"' : ''}>
       <video playsinline loop muted preload="none" poster="${esc(urlPublik(v.thumb_path))}" data-src="${esc(urlPublik(v.path))}"></video>
       <div class="main">▶</div>
+      <div class="ticker" aria-hidden="true"></div>
       <div class="info"><b>@${esc(v.username || '')}</b>${v.caption ? `<span>${esc(v.caption)}</span>` : ''}</div>
       <div class="aksi">
         <button type="button" class="rx" data-aksi="komentar" aria-label="Komentar"><span>💬</span><small>${Number(v.jumlah_komentar) || 0}</small></button>
@@ -250,6 +277,7 @@ function tampilUmpan() {
       const it = e.target, vid = it.querySelector('video');
       if (e.isIntersecting) {
         siapkan(vid);
+        itemAktif = it; mulaiTicker(it);
         vid.loop = true;                                // video yang sedang tampil diulang terus sampai digeser
         vid.muted = bisu;
         vid.play().then(() => it.classList.remove('jeda')).catch(() => it.classList.add('jeda'));
@@ -339,10 +367,48 @@ $('feed').addEventListener('click', async ev => {
   }
 });
 
+// ── KOMENTAR BERJALAN (sekilas di atas video; lengkapnya di panel komentar) ──
+let itemAktif = null, tkTimer = null, tkId = null;
+const tkCache = {};                                   // id video -> { waktu, data } (disegarkan tiap 60 detik atau saat ada komentar baru)
+async function ambilKomentarRingan(id) {
+  const c = tkCache[id];
+  if (c && Date.now() - c.waktu < 60000) return c.data;
+  let data = [];
+  try {
+    const r = await supabaseClient.from('video_komentar').select('nama,komentar,terverifikasi').eq('video_id', id).order('dibuat', { ascending: false }).limit(20);
+    if (!r.error && Array.isArray(r.data)) data = r.data.slice().reverse();   // lama -> baru
+  } catch (e) {}
+  tkCache[id] = { waktu: Date.now(), data };
+  return data;
+}
+function hentikanTicker() {
+  clearInterval(tkTimer); tkTimer = null; tkId = null;
+  document.querySelectorAll('.ticker').forEach(t => { t.innerHTML = ''; });
+}
+async function mulaiTicker(it) {
+  const id = it.dataset.id;
+  hentikanTicker(); tkId = id;
+  const data = await ambilKomentarRingan(id);
+  if (tkId !== id || !data.length) return;
+  const kotak = it.querySelector('.ticker'); if (!kotak) return;
+  let i = 0;
+  const tambah = () => {
+    if (tkId !== id) return;
+    const c = data[i % data.length]; i++;                          // habis -> kembali ke komentar pertama (berputar terus)
+    const d = document.createElement('div'); d.className = 'tk';
+    d.innerHTML = '<b>' + esc(c.nama) + (c.terverifikasi ? '<span class="cc">✓</span>' : '') + '</b>' + esc(c.komentar);
+    kotak.appendChild(d);
+    while (kotak.children.length > 4) kotak.removeChild(kotak.firstChild);
+  };
+  tambah();
+  tkTimer = setInterval(tambah, 2400);
+}
+
 // ── KOMENTAR (pakai komponen yang sama dengan komentar artikel: nama wajib untuk tamu, ✓ untuk pengguna ToFarmer) ──
 function setJumlahKomentar(id, n) {
   const v = daftar.find(x => String(x.id) === String(id));
   if (v) v.jumlah_komentar = n;
+  delete tkCache[id];                                  // komentar berubah: muat ulang untuk yang berjalan
   document.querySelectorAll('.item').forEach(it => {
     if (it.dataset.id !== String(id)) return;
     const k = it.querySelector('.rx[data-aksi="komentar"] small');
@@ -353,11 +419,18 @@ function bukaKomentar(id) {
   if (!window.WartaKomentar) { toast('Komentar belum siap. Muat ulang halaman.'); return; }
   const box = $('sheet-box'); box.innerHTML = '';
   $('sheet-kom').classList.add('buka');
+  document.body.classList.add('kom-buka');
   WartaKomentar.pasang(box, id, { tema: 'gelap', jenis: 'video', onJumlah: n => setJumlahKomentar(id, n) });
 }
-function tutupKomentar() { $('sheet-kom').classList.remove('buka'); $('sheet-box').innerHTML = ''; }
+function tutupKomentar() {
+  $('sheet-kom').classList.remove('buka');
+  document.body.classList.remove('kom-buka');
+  $('sheet-box').innerHTML = '';
+  if (itemAktif) mulaiTicker(itemAktif);               // lanjutkan komentar berjalan dengan data terbaru
+}
 $('sheet-tutup').onclick = tutupKomentar;
-$('sheet-kom').addEventListener('click', e => { if (e.target === $('sheet-kom')) tutupKomentar(); });
+$('sheet-kom').addEventListener('click', e => { if (e.target === $('sheet-kom')) tutupKomentar(); });   // HP: ketuk area video di atas lembar = tutup
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('sheet-kom').classList.contains('buka')) tutupKomentar(); });
 
 // ── UNGGAH ──
 let hasil = null, thumbBlob = null, urlPratinjau = null, sibuk = false;
