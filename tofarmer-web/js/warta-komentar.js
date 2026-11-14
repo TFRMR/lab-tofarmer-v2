@@ -15,7 +15,9 @@
 .wk-daftar{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}\
 .wk-kosong{color:var(--wk-redup);font-size:12px}\
 .wk-item{display:flex;gap:8px;align-items:flex-start}\
-.wk-avatar{flex:0 0 26px;width:26px;height:26px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}\
+.wk-avatar{position:relative;overflow:hidden;text-decoration:none;flex:0 0 28px;width:28px;height:28px;border-radius:50%;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}\
+.wk-foto{position:absolute;left:0;top:0;width:100%;height:100%;border-radius:50%;object-fit:cover}\
+.wk-kepala a.wk-tautan{color:var(--wk-aksen);font-weight:700;text-decoration:none}\
 .wk-isi{background:var(--wk-kartu);border:1px solid var(--wk-garis);border-radius:14px;padding:6px 12px;min-width:0;flex:1}\
 .wk-kepala{display:flex;align-items:center;gap:6px;flex-wrap:wrap}\
 .wk-kepala b{color:var(--wk-aksen)}\
@@ -80,12 +82,40 @@
   }
   function warna(nama) { var h = 0; for (var i = 0; i < nama.length; i++) h = (h * 31 + nama.charCodeAt(i)) % 360; return 'hsl(' + h + ',45%,50%)'; }
 
+  // Foto profil kecil + tautan ke profil untuk komentar pengguna ToFarmer (tamu tetap huruf berwarna tanpa tautan)
+  var HALAMAN_PROFIL = '/profile.html';   // ganti bila halaman profil ada di alamat lain (mis. '/html/profile.html')
+  var PROFIL = {};                         // id akun -> { id, username, avatar_url } (null = tidak ditemukan)
+  async function muatProfil(ids) {
+    var perlu = [];
+    ids.forEach(function (i) { if (i && !(i in PROFIL) && perlu.indexOf(i) < 0) perlu.push(i); });
+    if (!perlu.length) return;
+    try {
+      var r = await supabaseClient.from('profiles').select('id,username,avatar_url').in('id', perlu);
+      (r.data || []).forEach(function (p) { PROFIL[p.id] = p; });
+    } catch (e) {}
+    perlu.forEach(function (i) { if (!(i in PROFIL)) PROFIL[i] = null; });
+  }
+  function fotoOk(u) { return typeof u === 'string' && /^https?:\/\//i.test(u); }
+  function tautanProfil(username) { return HALAMAN_PROFIL + '?u=' + encodeURIComponent(username); }
+  function avatarHtml(c) {
+    var huruf = '<span>' + esc(String(c.nama).charAt(0).toUpperCase()) + '</span>';
+    var p = c.user_id ? PROFIL[c.user_id] : null;
+    if (!p) return '<div class="wk-avatar" style="background:' + warna(c.nama) + '">' + huruf + '</div>';
+    var foto = fotoOk(p.avatar_url) ? '<img class="wk-foto" src="' + esc(p.avatar_url) + '" alt="" loading="lazy" onerror="this.remove()">' : '';
+    return '<a class="wk-avatar" href="' + esc(tautanProfil(p.username || c.nama)) + '" title="Lihat profil" style="background:' + warna(c.nama) + '">' + huruf + foto + '</a>';
+  }
+  function namaHtml(c) {
+    var p = c.user_id ? PROFIL[c.user_id] : null;
+    if (c.terverifikasi && p) return '<b><a class="wk-tautan" href="' + esc(tautanProfil(p.username || c.nama)) + '">@' + esc(c.nama) + '</a></b>';
+    return '<b>' + (c.terverifikasi ? '@' : '') + esc(c.nama) + '</b>';
+  }
+
   function itemHtml(c, boleh) {
     var hapus = (boleh.semua || (boleh.id && c.user_id && c.user_id === boleh.id))
       ? '<button type="button" class="wk-hapus" data-hapus="' + esc(c.id) + '" title="Hapus komentar">✕</button>' : '';
     return '<div class="wk-item" data-id="' + esc(c.id) + '">' +
-      '<div class="wk-avatar" style="background:' + warna(c.nama) + '">' + esc(String(c.nama).charAt(0).toUpperCase()) + '</div>' +
-      '<div class="wk-isi"><div class="wk-kepala"><b>' + (c.terverifikasi ? '@' : '') + esc(c.nama) + '</b>' +
+      avatarHtml(c) +
+      '<div class="wk-isi"><div class="wk-kepala">' + namaHtml(c) +
       (c.terverifikasi ? '<span class="wk-centang" title="Pengguna ToFarmer">✓</span>' : '') +
       '<span class="wk-waktu">' + waktuRelatif(c.dibuat) + '</span>' + hapus + '</div>' +
       '<div class="wk-isi-teks">' + esc(c.komentar) + '</div></div></div>';
@@ -148,6 +178,7 @@
     if (r.error) { daftar.innerHTML = '<div class="wk-kosong">Komentar belum bisa dimuat.</div>'; }
     else {
       var data = r.data || [];
+      await muatProfil(data.map(function (c) { return c.user_id; }));
       jumlah = data.length; perbarui();
       daftar.innerHTML = data.length ? data.map(function (c) { return itemHtml(c, boleh); }).join('')
         : '<div class="wk-kosong" data-kosong>Belum ada komentar. Jadilah yang pertama.</div>';
@@ -169,6 +200,7 @@
       if (!h || !h.ok) return tampilInfo(PESAN[h && h.error] || (h && h.error === 'sesi_tidak_valid' ? 'Sesi habis.' : 'Gagal mengirim komentar.'), h && h.error === 'sesi_tidak_valid');
       tampilInfo('');
       if (h.diabaikan || !h.komentar) { teksEl.value = ''; return; }
+      await muatProfil([h.komentar.user_id]);
       var kosong = el.querySelector('[data-kosong]'); if (kosong) kosong.remove();
       daftar.insertAdjacentHTML('beforeend', itemHtml(h.komentar, boleh));
       teksEl.value = ''; teksEl.style.height = '';

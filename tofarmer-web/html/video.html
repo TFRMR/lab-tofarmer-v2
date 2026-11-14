@@ -35,6 +35,12 @@ button { font: inherit; cursor: pointer; }
 .item.jeda .main { display: flex; }
 .info { position: absolute; left: 0; right: 64px; bottom: 0; padding: 40px 16px calc(env(safe-area-inset-bottom, 0px) + 22px); background: linear-gradient(transparent, rgba(0,0,0,.75)); pointer-events: none; }
 .info b { display: block; font-size: 14px; color: #fde047; }
+.pemilik { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; pointer-events: auto; }
+.info .pemilik b { display: inline; }
+.av { position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: 50%; overflow: hidden; color: #fff; font-weight: 700; border: 2px solid #fde047; }
+.av i { font-style: normal; }
+.av img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; }
+.tk .av { border-width: 1px; vertical-align: middle; margin-right: 6px; font-size: 10px; }
 .info span { display: block; margin-top: 4px; font-size: 13px; line-height: 1.45; color: #e2e8f0; word-break: break-word; }
 .aksi { position: absolute; right: 10px; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); display: flex; flex-direction: column; gap: 12px; }
 .aksi button { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(74,222,128,.4); background: rgba(6,12,8,.65); color: #fff; font-size: 18px; }
@@ -166,6 +172,7 @@ const supabaseClient = supabase.createClient(
 );
 const HALAMAN_LOGIN = '/html/login.html';   // sesuaikan bila halaman login ToFarmer beda alamat
 const HALAMAN_INI = '/html/video.html';
+const HALAMAN_PROFIL = '/profile.html';       // ganti bila halaman profil ada di alamat lain (mis. '/html/profile.html')
 const MAKS_DETIK = 10;
 const MAKS_BYTE = 2500000;                    // harus sama dengan VIDEO_MAKS_BYTE di tof-vault.ts
 const $ = id => document.getElementById(id);
@@ -215,6 +222,27 @@ let bisu = true;                 // browser hanya mengizinkan putar otomatis bil
 let pengamat = null;
 const urlPublik = p => p ? (supabaseClient.storage.from('video').getPublicUrl(p).data.publicUrl || '') : '';
 
+// ── Foto profil kecil + tautan ke profil (pemilik video, komentar berjalan) ──
+let profil = {};                                       // id akun -> { id, username, avatar_url } (null = tidak ditemukan)
+const warnaNama = n => { let h = 0; for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 360; return 'hsl(' + h + ',45%,50%)'; };
+const fotoOk = u => typeof u === 'string' && /^https?:\/\//i.test(u);
+const tautanProfil = nama => HALAMAN_PROFIL + '?u=' + encodeURIComponent(nama);
+async function muatProfil(ids) {
+  const perlu = [...new Set(ids.filter(i => i && !(i in profil)))];
+  if (!perlu.length) return;
+  try {
+    const r = await supabaseClient.from('profiles').select('id,username,avatar_url').in('id', perlu);
+    (r.data || []).forEach(p => { profil[p.id] = p; });
+  } catch (e) {}
+  perlu.forEach(i => { if (!(i in profil)) profil[i] = null; });
+}
+// avatar = alamat foto, atau null bila tidak punya akun (tamu): tampil huruf berwarna saja
+function htmlAvatar(nama, avatar, ukuran) {
+  const huruf = '<i>' + esc(String(nama).charAt(0).toUpperCase()) + '</i>';
+  const foto = fotoOk(avatar) ? '<img src="' + esc(avatar) + '" alt="" loading="lazy" onerror="this.remove()">' : '';
+  return '<span class="av" style="width:' + ukuran + 'px;height:' + ukuran + 'px;font-size:' + Math.round(ukuran * 0.4) + 'px;background:' + warnaNama(nama) + '">' + huruf + foto + '</span>';
+}
+
 let reaksiSaya = {};          // id video -> 'sruput' | 'cangkul' (apresiasi yang sudah kuberikan)
 let sedangReaksi = false;
 async function muatReaksiSaya() {
@@ -233,10 +261,16 @@ async function muatDaftar() {
     .select('id,profile_id,username,caption,path,thumb_path,dibuat').order('dibuat', { ascending: false }).limit(10);
   if (r.error) { $('feed').innerHTML = '<div class="kosong">Video belum bisa dimuat. Coba lagi nanti.</div>'; return; }
   daftar = r.data || [];
+  await muatProfil(daftar.map(v => v.profile_id));
   await muatReaksiSaya();
   tampilUmpan();
 }
 
+function bangunPemilik(v) {
+  const p = profil[v.profile_id];
+  const nama = (p && p.username) || v.username || '';
+  return '<a class="pemilik" href="' + esc(tautanProfil(nama)) + '" title="Lihat profil">' + htmlAvatar(nama, p ? p.avatar_url : null, 34) + '<b>@' + esc(nama) + '</b></a>';
+}
 function htmlItem(v, klon) {
   const s = sesi(), sudah = reaksiSaya[v.id] || '';
   const rx = (tipe, ikon, nama) => '<button type="button" class="rx' + (sudah === tipe ? ' sudah' : '') + '" data-aksi="' + tipe + '" aria-label="' + nama + '"><span>' + ikon + '</span><small>' + (Number(v[tipe + '_count']) || 0) + '</small></button>';
@@ -245,7 +279,7 @@ function htmlItem(v, klon) {
       <video playsinline loop muted preload="none" poster="${esc(urlPublik(v.thumb_path))}" data-src="${esc(urlPublik(v.path))}"></video>
       <div class="main">▶</div>
       <div class="ticker" aria-hidden="true"></div>
-      <div class="info"><b>@${esc(v.username || '')}</b>${v.caption ? `<span>${esc(v.caption)}</span>` : ''}</div>
+      <div class="info">${bangunPemilik(v)}${v.caption ? `<span>${esc(v.caption)}</span>` : ''}</div>
       <div class="aksi">
         <button type="button" class="rx" data-aksi="komentar" aria-label="Komentar"><span>💬</span><small>${Number(v.jumlah_komentar) || 0}</small></button>
         ${rx('sruput', '☕', 'Sruput')}${rx('cangkul', '⛏️', 'Cangkul')}
@@ -375,9 +409,10 @@ async function ambilKomentarRingan(id) {
   if (c && Date.now() - c.waktu < 60000) return c.data;
   let data = [];
   try {
-    const r = await supabaseClient.from('video_komentar').select('nama,komentar,terverifikasi').eq('video_id', id).order('dibuat', { ascending: false }).limit(20);
+    const r = await supabaseClient.from('video_komentar').select('nama,komentar,terverifikasi,user_id').eq('video_id', id).order('dibuat', { ascending: false }).limit(20);
     if (!r.error && Array.isArray(r.data)) data = r.data.slice().reverse();   // lama -> baru
   } catch (e) {}
+  await muatProfil(data.map(c => c.user_id));
   tkCache[id] = { waktu: Date.now(), data };
   return data;
 }
@@ -396,7 +431,8 @@ async function mulaiTicker(it) {
     if (tkId !== id) return;
     const c = data[i % data.length]; i++;                          // habis -> kembali ke komentar pertama (berputar terus)
     const d = document.createElement('div'); d.className = 'tk';
-    d.innerHTML = '<b>' + esc(c.nama) + (c.terverifikasi ? '<span class="cc">✓</span>' : '') + '</b>' + esc(c.komentar);
+    const pc = c.user_id ? profil[c.user_id] : null;
+    d.innerHTML = htmlAvatar(c.nama, pc ? pc.avatar_url : null, 18) + '<b>' + esc(c.nama) + (c.terverifikasi ? '<span class="cc">✓</span>' : '') + '</b>' + esc(c.komentar);
     kotak.appendChild(d);
     while (kotak.children.length > 4) kotak.removeChild(kotak.firstChild);
   };
