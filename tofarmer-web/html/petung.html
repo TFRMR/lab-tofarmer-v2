@@ -1722,6 +1722,35 @@
             }
         }
 
+    
+        /* ===== TOMBOL SALIN / BAGIKAN STATUS ===== */
+
+        .status-share {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .status-share button {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(74,222,128,.25);
+            background: rgba(74,222,128,.08);
+            color: var(--green-soft);
+            font-family: inherit;
+            font-size: .82rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .status-share button:hover {
+            background: rgba(74,222,128,.16);
+        }
+
     </style>
   <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
   <link rel="manifest" href="/manifest.webmanifest">
@@ -1975,6 +2004,20 @@
             <div class="canvas-container">
 
                 <canvas id="todayCanvas"></canvas>
+
+            </div>
+
+            <div class="status-share">
+
+                <button type="button" id="btnSalinStatus" onclick="salinStatusHariIni()">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Salin Status</span>
+                </button>
+
+                <button type="button" id="btnBagikanStatus" onclick="bagikanStatusHariIni()">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>Bagikan</span>
+                </button>
 
             </div>
 
@@ -2986,6 +3029,118 @@
         onDatePickerChange();
 
     };
+
+
+    /* =========================================================
+       STATUS RINGKAS (SALIN / BAGIKAN)
+    ========================================================= */
+
+    function _kalimatPertama(t) {
+
+        t = (t || '').replace(/\s+/g, ' ').trim();
+
+        const m = t.match(/^.+?[.!?](\s|$)/);
+
+        return m ? m[0].trim() : t;
+
+    }
+
+
+    function buatTeksStatusHariIni() {
+
+        const g = id =>
+            (document.getElementById(id) || {}).innerText || '';
+
+        return [
+
+            `🧭 ${g('todayDateStr')}`,
+
+            `Weton ${g('todayWeton')} • Neptu ${g('todayNeptuVal')} (${g('todayKategori').trim()})`,
+
+            '',
+
+            `👁 Eling: ${_kalimatPertama(g('todayAwamEling'))}`,
+
+            `🛡 Waspada: ${_kalimatPertama(g('todayAwamWaspada'))}`,
+
+            `🚶 Praktis: ${_kalimatPertama(g('todayAwamAction'))}`,
+
+            '',
+
+            '— Kompas Eling lan Waspada • ToFarmer'
+
+        ].join('\n');
+
+    }
+
+
+    function _tombolInfo(id, teks) {
+
+        const el = document.querySelector('#' + id + ' span');
+
+        if (!el) return;
+
+        const lama = el.innerText;
+
+        el.innerText = teks;
+
+        setTimeout(() => { el.innerText = lama; }, 1800);
+
+    }
+
+
+    async function salinStatusHariIni() {
+
+        const teks = buatTeksStatusHariIni();
+
+        try {
+
+            await navigator.clipboard.writeText(teks);
+
+        } catch (e) {
+
+            const ta = document.createElement('textarea');
+
+            ta.value = teks;
+
+            ta.style.position = 'fixed';
+
+            ta.style.opacity = '0';
+
+            document.body.appendChild(ta);
+
+            ta.select();
+
+            document.execCommand('copy');
+
+            document.body.removeChild(ta);
+
+        }
+
+        _tombolInfo('btnSalinStatus', 'Tersalin ✓');
+
+    }
+
+
+    async function bagikanStatusHariIni() {
+
+        const teks = buatTeksStatusHariIni();
+
+        if (navigator.share) {
+
+            try {
+
+                await navigator.share({ text: teks });
+
+            } catch (e) { /* dibatalkan */ }
+
+        } else {
+
+            salinStatusHariIni();
+
+        }
+
+    }
 
 
     /* =========================================================
