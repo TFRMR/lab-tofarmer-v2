@@ -2846,6 +2846,8 @@
         }
 
         const myTiles = Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername && k !== key);
+        // FIX URUTAN: strip diurutkan sesuai nomor kebun (sama dengan getPlotNumber), bukan urutan data masuk yang acak
+        myTiles.sort((a, b) => getPlotNumber(a) - getPlotNumber(b));
         // FIX DESKTOP: simpan posisi geser strip, karena innerHTML di bawah mereset scrollLeft ke 0 (render ulang tiap 8 detik)
         const prevOthersScroll = othersEl.scrollLeft;
         othersEl.innerHTML = myTiles.map(k => {
