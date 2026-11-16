@@ -272,6 +272,10 @@
         .kebun-action-row { display: flex; gap: 10px; padding: 0 16px 14px; justify-content: center; flex-wrap: wrap; }
         .kebun-other-plots { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 18px; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
         .kebun-plot-thumb { flex-shrink: 0; width: 48px; height: 48px; border-radius: 12px; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; }
+        /* FIX DESKTOP: strip petak bisa digeser pakai mouse (drag) & roda mouse */
+        .kebun-other-plots { cursor: grab; user-select: none; -webkit-user-select: none; overscroll-behavior-x: contain; }
+        .kebun-other-plots.is-dragging { cursor: grabbing; }
+        .kebun-other-plots.is-dragging .kebun-plot-thumb { pointer-events: none; }
         .kebun-reopen-btn { position: fixed; top: 64px; left: 10px; z-index: 10500; width: 44px; height: 44px; border-radius: 50%; background: var(--ui); border: 1px solid var(--accent); color: #fff; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         @keyframes kebunFxFloat { 0% { opacity:1; transform:translate(-50%,-50%) scale(0.6); } 40% { opacity:1; transform:translate(-50%,-90%) scale(1.2); } 100% { opacity:0; transform:translate(-50%,-140%) scale(1); } }
         .kebun-fx { position: absolute; left: 50%; top: 50%; font-size: 30px; transform: translate(-50%,-50%); pointer-events: none; animation: kebunFxFloat 0.9s ease-out forwards; }
@@ -2854,6 +2858,50 @@
             return `<div class="kebun-plot-thumb" onclick="focusFeaturedTile('${k}')" title="Kebun #${num}" style="position:relative;">${icon}<span style="position:absolute; bottom:1px; right:2px; font-size:8px; font-weight:800; color:#fbbf24; background:rgba(0,0,0,0.65); border-radius:4px; padding:0 3px; line-height:1.4;">${num}</span></div>`;
         }).join('') + `<div class="kebun-plot-thumb" onclick="klaimLahanOtomatis()" title="Klaim lahan baru">➕</div>`;
     }
+
+    // ===== FIX DESKTOP: geser strip petak kebun (kiri bawah) pakai mouse =====
+    // Di HP sudah jalan lewat touch scroll bawaan (touch-action: pan-x). Di desktop mouse
+    // tidak bisa scroll horizontal, jadi ditambah: drag mouse + roda mouse -> geser samping.
+    // Container #kebun-other-plots tidak pernah diganti (hanya isinya), jadi listener cukup dipasang sekali.
+    (function initKebunOthersDragScroll() {
+        const el = document.getElementById('kebun-other-plots');
+        if (!el) return;
+        let down = false, moved = false, startX = 0, startScroll = 0;
+        const THRESHOLD = 5; // px -- di bawah ini dianggap klik biasa, bukan geser
+
+        el.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return;
+            down = true; moved = false;
+            startX = e.clientX; startScroll = el.scrollLeft;
+        });
+        window.addEventListener('mousemove', (e) => {
+            if (!down) return;
+            const dx = e.clientX - startX;
+            if (!moved && Math.abs(dx) > THRESHOLD) { moved = true; el.classList.add('is-dragging'); }
+            if (moved) { el.scrollLeft = startScroll - dx; e.preventDefault(); }
+        });
+        window.addEventListener('mouseup', () => {
+            if (!down) return;
+            down = false;
+            el.classList.remove('is-dragging');
+            // 'moved' dibiarkan true sampai event click berikutnya lewat, supaya klik palsu
+            // setelah drag tidak membuka petak yang kebetulan ada di bawah kursor.
+            if (moved) setTimeout(() => { moved = false; }, 0);
+        });
+        el.addEventListener('click', (e) => {
+            if (moved) { e.stopPropagation(); e.preventDefault(); }
+        }, true);
+        el.addEventListener('dragstart', (e) => e.preventDefault());
+
+        // Roda mouse (vertikal) -> geser horizontal
+        el.addEventListener('wheel', (e) => {
+            if (el.scrollWidth <= el.clientWidth) return;
+            const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+            if (!d) return;
+            el.scrollLeft += d;
+            e.preventDefault();
+        }, { passive: false });
+    })();
 
     function checkKebunReadyAndShow() {
         if (myUsername) {
