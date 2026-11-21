@@ -521,6 +521,17 @@
         .ux-nursery-pick { margin: 6px 0; }
         .ux-nursery-pick label { display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px; }
         .ux-select { width: 100%; min-height: 44px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.35); color: #e2e8f0; font-size: 13px; padding: 0 10px; box-sizing: border-box; }
+    
+        /* ===== Pasar Bebas: jualanku ===== */
+        .ux-mylist { margin: 10px 0; }
+        .ux-mylist-head { font-size: 13px; font-weight: 700; color: #e0ac4a; margin-bottom: 6px; }
+        .ux-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+        .ux-chip { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; }
+        .ux-chip.wait, .ux-lstat.wait { background: rgba(251,191,36,0.15); color: #fde68a; border: 1px solid rgba(251,191,36,0.35); }
+        .ux-chip.sold, .ux-lstat.sold { background: rgba(34,197,94,0.15); color: #bbf7d0; border: 1px solid rgba(74,222,128,0.4); }
+        .ux-lstat { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 8px; margin-top: 4px; }
+        .ux-lsub { font-size: 12px; font-weight: 700; color: #94a3b8; margin: 10px 0 4px; }
+        .ux-lbody { max-height: 240px; overflow-y: auto; }
     </style>
     <script src="isoteri-vm.js"></script>
   <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
@@ -603,7 +614,7 @@
     <div class="kebun-backdrop" id="desa-backdrop"></div>
     <div class="kebun-content">
         <div class="kebun-header">
-            <div class="kebun-title">🏘️ Warga Desa</div>
+            <div class="kebun-title" id="ux-desa-title">🏘️ Warga Desa</div>
             <button class="btn" style="min-width:auto; padding:8px 14px;" onclick="showKebunSaya(); document.getElementById('desa-profile-screen').style.display='none';">✕ Tutup</button>
         </div>
         <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:0 16px;">
@@ -802,6 +813,9 @@
         <div class="ux-pane" data-pane="bebas">
         <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">🤝 Pasar Bebas (harga bisa nego, tunggu pembeli)</div>
         <div id="pasar-bebas-jual"></div>
+        <!-- UX: keterangan jualan sendiri (belum terjual / sudah terjual) -->
+        <div id="ux-my-listings"></div>
+        <div class="ux-lsub">🛒 Dijual warga lain</div>
         <div id="pasar-bebas-list" style="max-height:160px; overflow-y:auto; margin-top:6px;"></div>
         </div>
     </div>
@@ -3838,21 +3852,47 @@
         setTab(name);
         if (name === 'lahan') { closeAllModals(); $('farm-modal').classList.add('active'); try { renderFarmList(); } catch (e) {} }
         else if (name === 'pasar') { closeAllModals(); openPasarModal(); }
-        else if (name === 'rumah') { uxOpenRumah(); setTab('kebun'); }
-        else if (name === 'desa') { closeAllModals(); openDesaProfiles(); setTab('kebun'); }
+        else if (name === 'rumah') { closeAllModals(); openDesaProfiles(); setTab('kebun'); } // Rumah = profil/rumah sendiri
+        else if (name === 'desa') { uxOpenDesa(); setTab('kebun'); } // Desa = peta desa
     };
     ['farm-modal', 'pasar-modal'].forEach(id => {
         const el = $(id);
         if (el) new MutationObserver(() => { if (!document.querySelector('.modal-overlay.active')) setTab('kebun'); }).observe(el, { attributes: true, attributeFilter: ['class'] });
     });
 
-    window.uxOpenRumah = function () {
+    // Desa = peta desa (hanya melihat). Tata Rumah ada di tombol menu ☰ pada peta, atau lewat tab Rumah.
+    window.uxOpenDesa = function () {
+        closeAllModals();
+        const ps = $('desa-profile-screen'); if (ps) ps.style.display = 'none';
+        openVillageMap();
+        const bk = $('ux-map-back'); if (bk) bk.style.display = 'block';
+    };
+    // Tata Rumah = peta + mode arsitek (dibuka dari kartu "Rumah Saya")
+    window.uxOpenTataRumah = function () {
         if (isGuestUser()) { showToast('Login dulu untuk menata rumah.', true); return; }
         closeAllModals();
+        const ps = $('desa-profile-screen'); if (ps) ps.style.display = 'none';
         openVillageMap();
         const bk = $('ux-map-back'); if (bk) bk.style.display = 'block';
         enableEditMode();
     };
+    window.uxOpenRumah = window.uxOpenTataRumah; // nama lama, dipertahankan supaya tidak ada yang putus
+
+    // Kartu profil: kalau milik sendiri, judulnya "Rumah Saya" + tombol Tata Rumah
+    const _renderDesaCard = window.renderDesaProfileCard;
+    if (typeof _renderDesaCard === 'function') {
+        window.renderDesaProfileCard = function () {
+            const p = _renderDesaCard.apply(this, arguments); // bagian sinkronnya sudah menggambar kartu
+            try {
+                const u = rawUserData[desaProfileIndex];
+                const mine = !!(u && u.id === myUserId);
+                const t = $('ux-desa-title'); if (t) t.textContent = mine ? '🏡 Rumah Saya' : '🏘️ Warga Desa';
+                const card = $('desa-profile-card');
+                if (mine && card) card.insertAdjacentHTML('beforeend', '<button class="ux-head-btn" style="margin-top:12px; width:100%;" onclick="uxOpenTataRumah()">🛠️ Tata Rumah (geser rumah &amp; dekorasi)</button>');
+            } catch (e) {}
+            return p;
+        };
+    }
     window.uxBackToKebun = function () {
         try { if (typeof isEditMode !== 'undefined' && isEditMode) saveAndLockMode(); } catch (e) {}
         showKebunSaya();
@@ -3979,6 +4019,93 @@
         } catch (e) {}
         return r;
     };
+
+
+    // ---------- PASAR BEBAS: keterangan jualanku (belum terjual / sudah terjual) ----------
+    const listingSeen = {};      // id listing -> status terakhir (untuk kabar "baru terjual")
+    let listingFirstLoad = true;
+    const escH = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const dateOf = (r) => { const v = r.terjual_at || r.dibeli_at || r.updated_at || r.created_at || r.dibuat_at; const t = v ? new Date(v).getTime() : NaN; return isNaN(t) ? null : t; };
+    const timeAgo = (t) => {
+        if (!t) return '';
+        const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+        if (m < 1) return 'baru saja';
+        if (m < 60) return m + ' menit lalu';
+        if (m < 1440) return Math.round(m / 60) + ' jam lalu';
+        return Math.round(m / 1440) + ' hari lalu';
+    };
+
+    window.uxRefreshMyListings = async function () {
+        const el = $('ux-my-listings');
+        if (!el) return;
+        try {
+            if (typeof myUserId === 'undefined' || !myUserId) return;
+            const { data, error } = await db.from('pasar_bebas').select('*, barang_catalog(nama)').eq('penjual_id', myUserId);
+            if (error) { el.innerHTML = '<div class="ux-mylist"><div class="ux-mylist-head">📌 Jualanmu</div><p class="goods-empty-text">Belum bisa memuat jualanmu.</p></div>'; return; }
+            const rows = data || [];
+            const namaOf = (r) => (r.barang_catalog && r.barang_catalog.nama) || r.barang_id;
+            const open = rows.filter(r => r.status === 'terbuka');
+            const done = rows.filter(r => r.status !== 'terbuka').sort((a, b) => (dateOf(b) || 0) - (dateOf(a) || 0));
+            const soldN = done.filter(r => r.status === 'terjual').length;
+
+            // kabar kalau ada jualan yang baru saja terjual saat panel ini terbuka
+            if (!listingFirstLoad) {
+                rows.forEach(r => {
+                    if (listingSeen[r.id] === 'terbuka' && r.status === 'terjual') {
+                        showToast(`💰 Terjual: ${namaOf(r)} ×${r.qty} (+${r.harga_per_unit_xp * r.qty} XP)`);
+                        try { if (typeof refreshMyProfile === 'function') refreshMyProfile(); } catch (e) {}
+                    }
+                });
+            }
+            rows.forEach(r => { listingSeen[r.id] = r.status; });
+            listingFirstLoad = false;
+
+            const card = (r, isOpen) => {
+                const total = r.harga_per_unit_xp * r.qty;
+                const t = dateOf(r);
+                let buyer = '';
+                if (r.pembeli_id) {
+                    const b = (typeof rawUserData !== 'undefined' ? rawUserData : []).find(u => u.id === r.pembeli_id);
+                    if (b) buyer = ` · dibeli oleh @${escH(b.username)}`;
+                }
+                const stat = isOpen
+                    ? '<span class="ux-lstat wait">⏳ Belum terjual · menunggu pembeli</span>'
+                    : (r.status === 'terjual' ? `<span class="ux-lstat sold">✅ Sudah terjual · +${total} XP</span>` : `<span class="ux-lstat wait">ℹ️ ${escH(r.status)}</span>`);
+                return `<div class="goods-card">
+                    <div class="goods-card-title">${escH(namaOf(r))} ×${r.qty}</div>
+                    <div class="goods-card-sub">@${r.harga_per_unit_xp} XP/unit · total ${total} XP${buyer}${t ? ' · ' + timeAgo(t) : ''}</div>
+                    ${stat}
+                </div>`;
+            };
+
+            el.innerHTML = `<div class="ux-mylist">
+                <div class="ux-mylist-head">📌 Jualanmu</div>
+                <div class="ux-chips"><span class="ux-chip wait">⏳ ${open.length} belum terjual</span><span class="ux-chip sold">✅ ${soldN} sudah terjual</span></div>
+                ${open.length ? `<div class="ux-lbody">${open.map(r => card(r, true)).join('')}</div>` : '<p class="goods-empty-text">Tidak ada jualan yang sedang menunggu pembeli.</p>'}
+                ${done.length ? `<div class="ux-lsub">Riwayat (10 terakhir)</div><div class="ux-lbody">${done.slice(0, 10).map(r => card(r, false)).join('')}</div>` : ''}
+            </div>`;
+
+            const tab = document.querySelector('#ux-pasar-tabs button[data-pane="bebas"]');
+            if (tab) tab.textContent = open.length ? `🤝 Pasar Bebas · ${open.length}` : '🤝 Pasar Bebas';
+        } catch (e) {
+            el.innerHTML = '';
+        }
+    };
+
+    // muat ulang jualanku setiap panel pasar dimuat ulang (pasang listing, beli, dll)
+    const _refreshPasar = window.refreshPasarPanel;
+    if (typeof _refreshPasar === 'function') {
+        window.refreshPasarPanel = async function () {
+            const r = await _refreshPasar.apply(this, arguments);
+            window.uxRefreshMyListings();
+            return r;
+        };
+    }
+    // saat tab Pasar Bebas terbuka: cek status jualan tiap 15 detik (hanya wadah jualanku, kolom harga yang sedang diketik tidak terganggu)
+    setInterval(() => {
+        const m = $('pasar-modal'), p = document.querySelector('#pasar-modal .ux-pane[data-pane="bebas"]');
+        if (m && m.classList.contains('active') && p && p.classList.contains('active')) window.uxRefreshMyListings();
+    }, 15000);
 
     // FIX gudang bibit: modal Lahan bisa dibuka dari banyak tempat, tapi hanya openFarmMenu() yang memuat
     // isinya -> sisanya terus tertulis "Memuat gudang bibit...". Sekarang refresh jalan tiap modal dibuka.
