@@ -509,6 +509,18 @@
         .ux-map-back { display: none; position: fixed; top: 110px; left: 10px; z-index: 10600; min-height: 44px; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--accent); background: var(--ui); color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; }
 
         @media (prefers-reduced-motion: reduce) { .ux-primary, .ux-pop { animation: none !important; } }
+    
+        /* ===== Persemaian per kebun ===== */
+        .ux-nursery-chip { display: none; align-self: center; margin: 0 16px 8px; padding: 6px 12px; border-radius: 999px; background: rgba(34,197,94,0.18); border: 1px solid rgba(74,222,128,0.5); color: #bbf7d0; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .ux-ngroup { border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; margin-bottom: 8px; background: rgba(0,0,0,0.18); }
+        .ux-ngroup > summary { padding: 10px 12px; min-height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; color: #bbf7d0; cursor: pointer; }
+        .ux-ngroup.lama > summary { color: #cbd5e1; }
+        .ux-ngroup .badge { font-size: 12px; font-weight: 700; color: #fde68a; }
+        .ux-nbody { max-height: 260px; overflow-y: auto; padding: 0 10px 4px; }
+        .ux-note-left { font-size: 12px; color: #94a3b8; margin: 0 0 8px; line-height: 1.45; }
+        .ux-nursery-pick { margin: 6px 0; }
+        .ux-nursery-pick label { display: block; font-size: 12px; color: #cbd5e1; margin-bottom: 4px; }
+        .ux-select { width: 100%; min-height: 44px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.35); color: #e2e8f0; font-size: 13px; padding: 0 10px; box-sizing: border-box; }
     </style>
     <script src="isoteri-vm.js"></script>
   <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
@@ -571,6 +583,7 @@
         <div class="kebun-plant-stage" id="kebun-plant-stage"></div>
         <div class="kebun-status-text" id="kebun-status-text"></div>
         <div class="ux-growbar" id="ux-growbar"><i id="ux-growbar-fill"></i></div>
+        <div class="ux-nursery-chip" id="ux-nursery-chip" onclick="uxSiapkanBibit()"></div>
         <div class="kebun-hint" id="kebun-hint-text"></div>
         <div class="kebun-action-row" id="kebun-action-row"></div>
         <div class="kebun-other-plots" id="kebun-other-plots"></div>
@@ -696,6 +709,8 @@
         <span class="island-icon" style="font-size: 40px;">🌾</span>
         <div class="modal-username" style="color:#fde047;">Lahan Pertanian Saya</div>
         
+        <!-- UX: daftar petak (Lahan) sekarang di atas, pembibitan di bawahnya supaya tidak mendominasi -->
+        <div id="farm-list" style="text-align:left; max-height: 280px; overflow-y: auto; margin-top: 12px;"></div>
         <!-- Pembibitan inline section -->
         <div style="background: rgba(107, 142, 78, 0.2); border: 1px solid rgba(107, 142, 78, 0.4); border-radius: 8px; padding: 10px; margin-top: 12px; margin-bottom: 10px;">
             <div style="font-size: 11px; font-weight: 600; color: #8fce6b; margin-bottom: 8px;">🌱 Pembibitan</div>
@@ -704,7 +719,6 @@
             <div id="pembibitan-list" style="margin-top: 10px;"></div>
         </div>
         
-        <div id="farm-list" style="text-align:left; max-height: 280px; overflow-y: auto; margin-top: 12px;"></div>
         <div class="modal-buttons-group">
             <button class="btn-modal-action btn-close-modal" onclick="document.getElementById('farm-modal').classList.remove('active')">Tutup</button>
         </div>
@@ -1285,18 +1299,19 @@
         try {
             const [{ data: gudang }, { data: proses }] = await Promise.all([
                 db.from('inventaris_barang').select('barang_id, qty, barang_catalog(nama)').eq('owner_id', myUserId).eq('barang_id', 'ubi_jalar_mentah').gt('qty', 0),
-                db.from('village_pembibitan').select('id, bibit_id, status, dilindungi, mulai_at, bibit_catalog(nama, waktu_tunas_seconds)').eq('owner_id', myUserId).in('status', ['punya_bahan', 'sudah_dipotong', 'ditancapkan']),
+                (window.uxFetchNurseryRows ? uxFetchNurseryRows() : db.from('village_pembibitan').select('id, bibit_id, status, dilindungi, mulai_at, bibit_catalog(nama, waktu_tunas_seconds)').eq('owner_id', myUserId).in('status', ['punya_bahan', 'sudah_dipotong', 'ditancapkan'])), // UX: ikut ambil plot_x/plot_y
             ]);
 
             const stokUbiMentah = (gudang && gudang[0] && gudang[0].qty) || 0;
             // FIX: stok bibit jadi ikut ditampilkan di sini (sebelumnya ditulis fungsi lain ke elemen yang sama, saling menimpa)
             await refreshMyBibitStock();
+            if (window.uxSetNurseryRows) uxSetNurseryRows(proses || []); // UX: cache untuk slot per kebun
             const bibitLine = Object.keys(myBibitStock).filter(id => myBibitStock[id] > 0).map(id => {
                 const b = BIBIT_CATALOG.find(x => x.id === id);
                 return `${(b && (b.nama || b.name)) || id} ×${myBibitStock[id]}`;
             }).join(', ');
             gudangEl.innerHTML = `🎒 Gudang bibit: ${bibitLine || 'masih kosong'}<br>` + ((stokUbiMentah > 0)
-                ? `🎒 Ubi mentah di gudang: ×${stokUbiMentah} <button class="care-btn" style="margin-left:6px;" onclick="mulaiPembibitanUbi()">🌱 Mulai Pembibitan (5 XP)</button>`
+                ? `🎒 Ubi mentah di gudang: ×${stokUbiMentah} ${window.uxNurseryPicker ? uxNurseryPicker() : ''}<button class="care-btn" style="margin-left:6px;" onclick="mulaiPembibitanUbi()">🌱 Mulai Pembibitan (5 XP)</button>`
                 : '🥔 Ubi mentah masih kosong. Beli dulu di atas.');
 
             if (!listEl) return;
@@ -1306,7 +1321,7 @@
                 return;
             }
 
-            listEl.innerHTML = proses.map(p => {
+            const uxCardOf = (p) => {
                 const namaBibit = (p.bibit_catalog && p.bibit_catalog.nama) || p.bibit_id;
                 const waktuTunas = (p.bibit_catalog && p.bibit_catalog.waktu_tunas_seconds) || 0;
                 const elapsed = Date.now() - new Date(p.mulai_at).getTime();
@@ -1336,7 +1351,9 @@
                     ${statusWaktu ? `<div class="goods-card-sub">${statusWaktu}</div>` : ''}
                     ${tombolHtml}
                 </div>`;
-            }).join('');
+            };
+            // UX: dikelompokkan per kebun, bisa dilipat, tiap grup punya area gulir sendiri
+            listEl.innerHTML = window.uxRenderNurseryGroups ? uxRenderNurseryGroups(proses, uxCardOf) : proses.map(uxCardOf).join('');
         } catch (e) {
             if (gudangEl) gudangEl.innerText = 'Gagal memuat gudang bibit.';
             if (listEl) listEl.innerHTML = '';
@@ -1364,8 +1381,11 @@
 
     async function mulaiPembibitanUbi() {
         await runFarmActionLocked('mulai-pembibitan', async () => {
-            const { data, error } = await callRpcOrQueue('fn_mulai_pembibitan', { p_user: myUserId, p_bibit_id: 'bibit_ubi_jalar' }, 'Mulai pembibitan ubi jalar');
-            if (error) { showToast('Gagal mulai pembibitan: ' + error.message, true); return; }
+            // UX/Persemaian: pembibitan sekarang wajib ditempatkan di salah satu kebun milik sendiri (ada batas slot per kebun)
+            const uxPlot = window.uxPickNurseryPlot ? uxPickNurseryPlot() : null;
+            if (!uxPlot) { showToast('Pilih dulu kebun untuk persemaian. Petak yang sedang ditanami atau tandus tidak bisa dipakai.', true); return; }
+            const { data, error } = await callRpcOrQueue('fn_mulai_pembibitan_di_petak', { p_user: myUserId, p_bibit_id: 'bibit_ubi_jalar', p_x: uxPlot.x, p_y: uxPlot.y }, `Mulai pembibitan ubi jalar di petak ${uxPlot.x},${uxPlot.y}`);
+            if (error) { showToast('Gagal mulai pembibitan: ' + (/fn_mulai_pembibitan_di_petak|Could not find the function/i.test(error.message || '') ? 'jalankan dulu migrasi SQL persemaian di Supabase.' : error.message), true); return; }
             if (data.queued) { showToast(data.message); return; }
             if (!data.success) { showToast(data.message || 'Gagal mulai pembibitan.', true); return; }
             showToastWithEdukasi(`🌱 Pembibitan dimulai! -${data.cost} XP.`, data.edukasi);
@@ -2001,7 +2021,7 @@
                 <div class="plot-card-icon">${icon}</div>
                 <div class="plot-card-body">
                     <div class="plot-card-title">${title}</div>
-                    <div class="plot-card-sub">${sub} · Petak ${key}</div>
+                    <div class="plot-card-sub">${sub} · Petak ${key}${window.uxNurseryTag ? uxNurseryTag(key) : ''}</div>
                 </div>
             </div>`;
           } catch (e) {
@@ -2116,6 +2136,7 @@
 
     async function plantCrop(key, cropId) {
       await runFarmActionLocked(`plant:${key}`, async () => {
+        if (window.uxPlotHasNursery && uxPlotHasNursery(key)) { showToast('Petak ini sedang jadi persemaian. Tanam di petak lain.', true); return; } // UX/Persemaian
         const [x, y] = key.split(',').map(Number);
         const { data, error } = await callRpcOrQueue('fn_plant_crop', { p_user: myUserId, p_x: x, p_y: y, p_crop_id: cropId }, `Tanam ${cropId} di ${key}`);
         if (error) { showToast('Gagal menanam: ' + error.message, true); return; }
@@ -2766,6 +2787,10 @@
     }
 
     function buildPlantButtonsHtml(key) {
+        // UX/Persemaian: petak yang dipakai persemaian tidak bisa ditanami
+        if (window.uxPlotHasNursery && uxPlotHasNursery(key)) {
+            return `<div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:100%;"><button class="plot-crop-btn ux-primary" onclick="uxSiapkanBibit()">🌱 Kelola Persemaian</button><span class="ux-note">Petak ini sedang jadi persemaian (${uxNurseryCount(key)}/${window.UX_NURSERY_MAX} slot). Selesaikan pembibitannya dulu, atau tanam di petak lain.</span></div>`;
+        }
         const inner = getAllCropDefs().filter(c => c.id === 'ubi_jalar').map(c => {
             const syaratBibit = BIBIT_CATALOG.find(b => b.crop_id === c.id);
             if (!syaratBibit) {
@@ -3014,7 +3039,7 @@
                 icon = cd ? cd.icon : '🌱';
             }
             const num = getPlotNumber(k);
-            const uxB = window.uxPlotBadge ? uxPlotBadge(f) : ''; // UX: lencana siap panen / butuh rawat
+            const uxB = window.uxPlotBadge ? uxPlotBadge(f, k) : ''; // UX: lencana siap panen / butuh rawat
             return `<div class="kebun-plot-thumb" onclick="focusFeaturedTile('${k}')" title="Kebun #${num}" style="position:relative;">${icon}${uxB}<span style="position:absolute; bottom:1px; right:2px; font-size:10px; font-weight:800; color:#fbbf24; background:rgba(0,0,0,0.65); border-radius:4px; padding:0 3px; line-height:1.4;">${num}</span></div>`;
         }).join('') + `<div class="kebun-plot-thumb" onclick="klaimLahanOtomatis()" title="Klaim lahan baru">➕</div>`;
         othersEl.scrollLeft = prevOthersScroll; // FIX DESKTOP: pulihkan posisi geser setelah render ulang
@@ -3733,8 +3758,9 @@
         return `Siram ${farm.waterCount || 0}/${Number(cropDef.water_required) || 0} · Pupuk ${farm.fertilizeCount || 0}/${Number(cropDef.fertilize_required) || 0} · Rawat ${farm.prunedCount || 0}/${CARE_TREAT_REQUIRED}`;
     };
 
-    window.uxPlotBadge = function (f) {
+    window.uxPlotBadge = function (f, key) {
         try {
+            if (key && window.uxPlotHasNursery && window.uxPlotHasNursery(key) && !(f && f.landState === 'planted')) return `<span class="ux-dot">🌱${window.uxNurseryCount(key)}</span>`;
             if (!f) return '';
             if (f.landState === 'barren') return '<span class="ux-dot">⚠️</span>';
             if (f.landState !== 'planted') return '';
@@ -3838,6 +3864,120 @@
         try { renderFarmList(); } catch (e) {}
         try { if (typeof refreshPembibitanPanel === 'function') refreshPembibitanPanel(); } catch (e) {}
         setTimeout(() => { const el = $('pembibitan-inline-gudang'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 250);
+    };
+
+
+    // ---------- PERSEMAIAN PER KEBUN (Skenario B) ----------
+    // Pembibitan sekarang punya lokasi (plot_x, plot_y) dan batas slot per kebun. Aturan resminya ada di
+    // migrasi_pembibitan_per_kebun.sql; angka di sini hanya cermin untuk tampilan.
+    window.UX_NURSERY_MAX = 3; // HARUS sama dengan v_max_slot di migrasi SQL
+    window.__nurseryRows = [];
+    const closedGroups = new Set(['lama']);
+    const plotKeyOf = (r) => (r.plot_x == null || r.plot_y == null) ? null : `${r.plot_x},${r.plot_y}`;
+    const nameOfKey = (k) => { try { return getPlotNumber(k); } catch (e) { return k; } };
+
+    function updateChip() {
+        const chip = $('ux-nursery-chip');
+        if (!chip) return;
+        let key = null;
+        try { key = pickFeaturedTileKey(); } catch (e) {}
+        const n = key ? uxNurseryCount(key) : 0;
+        if (!key || n === 0) { chip.style.display = 'none'; return; }
+        chip.style.display = 'inline-block';
+        chip.textContent = `🌱 Persemaian: ${n}/${window.UX_NURSERY_MAX} slot · Kelola`;
+    }
+    window.uxSetNurseryRows = function (rows) { window.__nurseryRows = rows || []; updateChip(); };
+    window.uxNurseryCount = (key) => window.__nurseryRows.filter(r => plotKeyOf(r) === key).length;
+    window.uxPlotHasNursery = (key) => window.uxNurseryCount(key) > 0;
+    window.uxNurseryTag = (key) => { const n = window.uxNurseryCount(key); return n ? ` · 🌱 persemaian ${n}/${window.UX_NURSERY_MAX}` : ''; };
+
+    // ambil baris pembibitan; kalau kolom plot_x/plot_y belum ada (migrasi belum jalan) pakai query lama
+    window.uxFetchNurseryRows = async function () {
+        const base = 'id, bibit_id, status, dilindungi, mulai_at, bibit_catalog(nama, waktu_tunas_seconds)';
+        const statuses = ['punya_bahan', 'sudah_dipotong', 'ditancapkan'];
+        let r = await db.from('village_pembibitan').select(base + ', plot_x, plot_y').eq('owner_id', myUserId).in('status', statuses);
+        if (r.error) r = await db.from('village_pembibitan').select(base).eq('owner_id', myUserId).in('status', statuses);
+        return r;
+    };
+    window.uxLoadNursery = async function () {
+        try {
+            if (typeof myUserId === 'undefined' || !myUserId) return;
+            const r = await window.uxFetchNurseryRows();
+            if (!r.error) window.uxSetNurseryRows(r.data || []);
+        } catch (e) {}
+    };
+    setTimeout(window.uxLoadNursery, 1800);
+    setInterval(() => { const sc = $('kebun-saya-screen'); if (sc && sc.style.display !== 'none') window.uxLoadNursery(); }, 30000);
+
+    function myTileKeys() {
+        return Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername)
+            .sort((a, b) => nameOfKey(a) - nameOfKey(b));
+    }
+    function tileEligible(k) {
+        const f = farms[k];
+        if (f && (f.landState === 'planted' || f.landState === 'barren')) return false;
+        return window.uxNurseryCount(k) < window.UX_NURSERY_MAX;
+    }
+    window.uxNurseryPicker = function () {
+        const keys = myTileKeys();
+        if (!keys.length) return '<div class="ux-note-left">Kamu belum punya kebun. Klaim lahan dulu untuk membuat persemaian.</div>';
+        let pick = window.__uxNurseryPick;
+        if (!pick || !keys.includes(pick) || !tileEligible(pick)) {
+            let feat = null; try { feat = pickFeaturedTileKey(); } catch (e) {}
+            pick = (feat && tileEligible(feat)) ? feat : (keys.find(tileEligible) || '');
+        }
+        window.__uxNurseryPick = pick;
+        const opts = keys.map(k => {
+            const n = window.uxNurseryCount(k), f = farms[k];
+            let note = `${n}/${window.UX_NURSERY_MAX} slot`;
+            if (f && f.landState === 'planted') note = 'sedang ditanami';
+            else if (f && f.landState === 'barren') note = 'tandus';
+            else if (n >= window.UX_NURSERY_MAX) note = `penuh ${n}/${window.UX_NURSERY_MAX}`;
+            return `<option value="${k}" ${k === pick ? 'selected' : ''} ${tileEligible(k) ? '' : 'disabled'}>Kebun #${nameOfKey(k)} · ${note}</option>`;
+        }).join('');
+        return `<div class="ux-nursery-pick"><label for="ux-nursery-plot">📍 Lokasi persemaian</label><select id="ux-nursery-plot" class="ux-select" onchange="window.__uxNurseryPick = this.value">${opts}</select></div>`;
+    };
+    window.uxPickNurseryPlot = function () {
+        const sel = $('ux-nursery-plot');
+        if (!sel || !sel.value) return null;
+        const [x, y] = sel.value.split(',').map(Number);
+        return (isNaN(x) || isNaN(y)) ? null : { x, y };
+    };
+    window.uxNurseryToggle = function (k, open) { if (open) closedGroups.delete(k); else closedGroups.add(k); };
+
+    window.uxRenderNurseryGroups = function (rows, cardFn) {
+        const groups = {};
+        rows.forEach(r => { const k = plotKeyOf(r) || 'lama'; (groups[k] = groups[k] || []).push(r); });
+        const siap = (p) => p.status === 'ditancapkan' && (Date.now() - new Date(p.mulai_at).getTime()) >= ((p.bibit_catalog && p.bibit_catalog.waktu_tunas_seconds) || 0) * 1000;
+        const rank = (p) => siap(p) ? 0 : (p.status === 'ditancapkan' ? 2 : 1);
+        const order = Object.keys(groups).filter(k => k !== 'lama').sort((a, b) => nameOfKey(a) - nameOfKey(b));
+        if (groups.lama) order.push('lama');
+        return order.map(k => {
+            const list = groups[k].slice().sort((a, b) => rank(a) - rank(b));
+            const readyN = list.filter(siap).length;
+            const open = !closedGroups.has(k);
+            if (k === 'lama') {
+                return `<details class="ux-ngroup lama" ${open ? 'open' : ''} ontoggle="uxNurseryToggle('lama', this.open)"><summary><span>📦 Pembibitan lama (belum di kebun) · ${list.length}</span>${readyN ? `<span class="badge">✅ ${readyN} siap</span>` : ''}</summary><div class="ux-nbody"><p class="ux-note-left">Pembibitan dari sebelum aturan kebun. Tidak memakai slot, tetap bisa diselesaikan sampai jadi bibit. Pembibitan baru wajib di salah satu kebun.</p>${list.map(cardFn).join('')}</div></details>`;
+            }
+            return `<details class="ux-ngroup" ${open ? 'open' : ''} ontoggle="uxNurseryToggle('${k}', this.open)"><summary><span>🌱 Kebun #${nameOfKey(k)} · ${list.length}/${window.UX_NURSERY_MAX} slot</span>${readyN ? `<span class="badge">✅ ${readyN} siap dicek</span>` : ''}</summary><div class="ux-nbody">${list.map(cardFn).join('')}</div></details>`;
+        }).join('');
+    };
+
+    // kebun yang sedang dibuka: ubah teks status kalau petaknya jadi persemaian
+    const _render2 = window.renderKebunSayaHome;
+    window.renderKebunSayaHome = function () {
+        const r = _render2.apply(this, arguments);
+        try {
+            updateChip();
+            const key = pickFeaturedTileKey();
+            const f = key ? farms[key] : null;
+            if (key && window.uxPlotHasNursery(key) && !(f && f.landState === 'planted')) {
+                const st = $('kebun-status-text'), hn = $('kebun-hint-text');
+                if (st) st.innerText = `Petak ${key} jadi persemaian (${window.uxNurseryCount(key)}/${window.UX_NURSERY_MAX} slot).`;
+                if (hn) hn.innerText = '🌱 Kelola bibit lewat tombol di bawah';
+            }
+        } catch (e) {}
+        return r;
     };
 
     // FIX gudang bibit: modal Lahan bisa dibuka dari banyak tempat, tapi hanya openFarmMenu() yang memuat
