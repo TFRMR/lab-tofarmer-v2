@@ -409,7 +409,107 @@
     .tile-action-hud { width: min(50vw, 190px); }
     .tile-action-hud.active { right: 6px; bottom: 84px; }
 }
- </style>
+ 
+        /* ================================================================
+           UX LAYER -- rapikan tampilan & alur (semua tambahan ada di blok ini)
+           ================================================================ */
+        .ux-legacy-icons { display: none !important; } /* UX: 6 tombol ikon lama disembunyikan, diganti tab bar berlabel */
+
+        /* Header kebun */
+        .kebun-header { padding-top: calc(12px + env(safe-area-inset-top, 0px)); gap: 8px; }
+        .kebun-title { font-size: 18px; }
+        .ux-head-actions { display: flex; gap: 8px; }
+        .ux-head-btn { min-height: 40px; padding: 8px 12px; border-radius: 12px; font-size: 13px; font-weight: 700; color: #fff; background: rgba(5,12,7,0.78); border: 1px solid var(--accent); cursor: pointer; }
+        .ux-head-btn.exit { border-color: rgba(248,113,113,0.6); color: #fecaca; }
+
+        /* Bar sumber daya (selalu terlihat) */
+        #kebun-resbar { display: flex; gap: 8px; padding: 0 16px 6px; }
+        .ux-res { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 6px 8px; border-radius: 12px; color: #fff; background: rgba(5,12,7,0.78); border: 1px solid rgba(255,255,255,0.14); cursor: pointer; text-align: left; }
+        .ux-res .ic { font-size: 20px; line-height: 1; }
+        .ux-res b { display: block; font-size: 15px; font-weight: 800; line-height: 1.1; }
+        .ux-res small { display: block; font-size: 11px; font-weight: 600; color: #cbd5e1; }
+        .ux-res.low { border-color: rgba(248,113,113,0.7); }
+        .ux-res.low b { color: #fca5a5; }
+        .ux-pop { animation: uxPop 0.5s ease-out; }
+        @keyframes uxPop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+        /* Panduan langkah berikutnya */
+        #kebun-plant-stage { min-height: 160px; }
+        .kebun-status-text { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .kebun-hint { font-size: 13px; opacity: 1; align-self: center; margin: 0 16px 8px; padding: 6px 14px; border-radius: 999px; background: rgba(5,12,7,0.72); border: 1px solid rgba(251,191,36,0.35); color: #fde68a; }
+        .kebun-hint:empty { display: none; }
+        .ux-growbar { display: none; height: 8px; margin: 0 28px 8px; border-radius: 6px; background: rgba(0,0,0,0.45); overflow: hidden; }
+        .ux-growbar.show { display: block; }
+        .ux-growbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #22c55e, #fbbf24); transition: width 0.5s; }
+
+        /* Tombol aksi: besar, jelas, ada progres */
+        .kebun-action-row { gap: 8px; padding: 0 14px 10px; }
+        .kebun-action-row .plot-btn { flex: 1 1 28%; max-width: 132px; min-height: 58px; font-size: 14px; border-radius: 14px; background: rgba(5,12,7,0.82); border-color: rgba(74,222,128,0.45); }
+        .kebun-action-row .plot-btn.ux-done { border-color: rgba(255,255,255,0.12); }
+        .kebun-action-row .plot-btn-cooldown { font-size: 11px; font-weight: 600; }
+        .kebun-action-row .plot-harvest-btn { margin-top: 0; min-height: 56px; font-size: 17px; }
+        .kebun-action-row .plot-crop-btn { min-height: 50px; font-size: 15px; }
+        .ux-primary:not(:disabled) { animation: uxPulse 1.8s ease-in-out infinite; }
+        @keyframes uxPulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,0.55); } 70% { box-shadow: 0 0 0 12px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
+        .ux-note { font-size: 12px; color: #cbd5e1; text-align: center; max-width: 300px; line-height: 1.45; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+
+        /* Strip petak */
+        .kebun-other-plots { padding: 0 14px 10px; }
+        .kebun-plot-thumb { position: relative; }
+        .ux-dot { position: absolute; top: -4px; right: -4px; font-size: 11px; line-height: 1; background: #fbbf24; color: #052e16; border-radius: 8px; padding: 2px 4px; font-weight: 800; }
+
+        /* Tab bar bawah */
+        .ux-tabbar { display: flex; flex-shrink: 0; gap: 4px; padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)); background: rgba(5,12,7,0.96); border-top: 1px solid var(--border); }
+        .ux-tab { flex: 1; min-height: 54px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; background: none; border: none; border-radius: 12px; color: #94a3b8; font-size: 12px; font-weight: 700; cursor: pointer; }
+        .ux-tab span { font-size: 21px; line-height: 1; }
+        .ux-tab.active { color: var(--accent); background: rgba(74,222,128,0.1); }
+        .ux-tab:active { transform: scale(0.95); }
+
+        /* Posisi beringin menyesuaikan tab bar baru */
+        #kebun-beringin-scene { bottom: 280px; }
+        .kebun-hint-beringin { bottom: 284px; font-size: 12px; background: rgba(5,12,7,0.6); padding: 2px 8px; border-radius: 999px; }
+        @media (max-height: 680px) { #kebun-beringin-scene { width: 30vw; min-width: 96px; bottom: 262px; } .kebun-hint-beringin { bottom: 266px; } }
+
+        /* Toast pindah ke bawah supaya tidak menutup bar sumber daya */
+        .toast-box { top: auto; bottom: 92px; transform: translateX(-50%) translateY(16px); font-size: 13px; }
+        .toast-box.show { transform: translateX(-50%) translateY(0); }
+
+        /* Ukuran teks minimum & target sentuh 44px di semua modal */
+        .modal-box .hud-desc, .modal-box .stat-label, .care-progress, .decor-btn span.dname, .decor-btn span.dcost,
+        .style-card .style-bonus, .plot-card-sub, .plot-btn-cooldown { font-size: 12px !important; }
+        .modal-box [style*="font-size:8px"], .modal-box [style*="font-size: 8px"],
+        .modal-box [style*="font-size:9px"], .modal-box [style*="font-size: 9px"],
+        .modal-box [style*="font-size:10px"], .modal-box [style*="font-size: 10px"],
+        .modal-box [style*="font-size:11px"], .modal-box [style*="font-size: 11px"] { font-size: 12px !important; }
+        .btn-modal-action, .buy-btn, .btn-crop, .care-btn, .btn-harvest, .hud-btn { min-height: 44px; font-size: 13px !important; }
+
+        /* Pasar: tab Olah / Jual / Pasar Bebas */
+        .ux-tabs { display: flex; gap: 6px; margin: 10px 0 8px; }
+        .ux-tabs button { flex: 1; min-height: 44px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: #cbd5e1; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .ux-tabs button.active { background: rgba(224,172,74,0.18); border-color: #e0ac4a; color: #fde68a; }
+        .ux-pane { display: none; }
+        .ux-pane.active { display: block; }
+        #xp-hud .xp-line { display: inline-flex; gap: 6px; margin-right: 12px; }
+
+        /* Kartu konfirmasi & tutorial */
+        .ux-layer { position: fixed; inset: 0; z-index: 31000; display: flex; align-items: center; justify-content: center; background: rgba(2,4,3,0.72); padding: 16px; }
+        .ux-card { width: min(92vw, 360px); background: var(--glass); border: 1px solid var(--accent); border-radius: 18px; padding: 18px; box-shadow: 0 20px 40px rgba(0,0,0,0.7); text-align: center; }
+        .ux-card h3 { margin: 0 0 8px; font-size: 16px; color: #fff; }
+        .ux-card p { font-size: 14px; line-height: 1.55; margin: 0 0 14px; color: #e2e8f0; }
+        .ux-card .row { display: flex; gap: 8px; }
+        .ux-card button { flex: 1; min-height: 46px; border-radius: 12px; font-size: 14px; font-weight: 800; border: none; cursor: pointer; }
+        .ux-btn-ok { background: linear-gradient(135deg, #22c55e, #15803d); color: #fff; }
+        .ux-btn-no { background: rgba(255,255,255,0.07); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12) !important; }
+        .ux-tut { position: fixed; inset: 0; z-index: 31000; }
+        .ux-spot { position: fixed; border-radius: 14px; border: 2px solid var(--accent); box-shadow: 0 0 0 9999px rgba(2,4,3,0.78); transition: all 0.3s; pointer-events: none; }
+        .ux-tut-card { position: fixed; left: 50%; transform: translateX(-50%); }
+        .ux-tut-step { font-size: 12px; color: #94a3b8; margin-bottom: 4px; }
+
+        /* Tombol kembali dari peta */
+        .ux-map-back { display: none; position: fixed; top: 110px; left: 10px; z-index: 10600; min-height: 44px; padding: 8px 14px; border-radius: 12px; border: 1px solid var(--accent); background: var(--ui); color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; }
+
+        @media (prefers-reduced-motion: reduce) { .ux-primary, .ux-pop { animation: none !important; } }
+    </style>
     <script src="isoteri-vm.js"></script>
   <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
   <link rel="manifest" href="/manifest.webmanifest">
@@ -448,7 +548,12 @@
         <span class="kebun-hint-beringin" onclick="openBeringinModal()">✨ tap untuk rawat</span>
         <div class="kebun-header">
             <div class="kebun-title" id="kebun-title-text">🌾 Kebun Saya</div>
-            <div style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+            <!-- UX: header sekarang pakai tombol berlabel; ikon-ikon lama tetap ada di bawah (disembunyikan) -->
+            <div class="ux-head-actions">
+                <button class="ux-head-btn" onclick="uxStartTutorial(true)" aria-label="Bantuan">❓ Bantuan</button>
+                <button class="ux-head-btn exit" onclick="window.location.href='https://www.tofarmer.xyz'" aria-label="Keluar ke beranda">🏠 Keluar</button>
+            </div>
+            <div class="ux-legacy-icons" style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
                 <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="document.getElementById('farm-modal').classList.add('active'); renderFarmList();" title="Semua Lahan">🌾</button>
                 <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="openPasarModal()" title="Pasar">🛒</button>
                 <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="openCompostMenu()" title="Kompos & Pupuk">🧪</button>
@@ -457,11 +562,26 @@
                 <button class="btn" style="min-width:auto; padding:7px 9px; font-size:14px;" onclick="window.location.href='https://www.tofarmer.xyz'" title="Beranda">🏠</button>
             </div>
         </div>
+        <!-- UX: bar sumber daya selalu terlihat. Ketuk XP = Pasar, Pupuk = Gudang & Kompos -->
+        <div id="kebun-resbar">
+            <button class="ux-res" id="ux-res-xp" onclick="openPasarModal()" aria-label="XP, buka Pasar"><span class="ic">💰</span><span><b id="ux-xp">0</b><small>XP</small></span></button>
+            <button class="ux-res" id="ux-res-pupuk" onclick="openCompostMenu()" aria-label="Pupuk, buka Gudang"><span class="ic">🌿</span><span><b id="ux-pupuk">0</b><small>Pupuk</small></span></button>
+            <button class="ux-res" id="ux-res-air" onclick="showToast('💧 Air dipakai untuk menyiram tanaman.')" aria-label="Air"><span class="ic">💧</span><span><b id="ux-air">0/10</b><small>Air</small></span></button>
+        </div>
         <div class="kebun-plant-stage" id="kebun-plant-stage"></div>
         <div class="kebun-status-text" id="kebun-status-text"></div>
+        <div class="ux-growbar" id="ux-growbar"><i id="ux-growbar-fill"></i></div>
         <div class="kebun-hint" id="kebun-hint-text"></div>
         <div class="kebun-action-row" id="kebun-action-row"></div>
         <div class="kebun-other-plots" id="kebun-other-plots"></div>
+        <!-- UX: menu utama dipindah ke tab bar bawah, semua berlabel -->
+        <div class="ux-tabbar" id="ux-tabbar" role="navigation" aria-label="Menu utama">
+            <button class="ux-tab active" data-tab="kebun" onclick="uxTabGo('kebun')"><span>🌾</span>Kebun</button>
+            <button class="ux-tab" data-tab="lahan" onclick="uxTabGo('lahan')"><span>🟫</span>Lahan</button>
+            <button class="ux-tab" data-tab="pasar" onclick="uxTabGo('pasar')"><span>🛒</span>Pasar</button>
+            <button class="ux-tab" data-tab="rumah" onclick="uxTabGo('rumah')"><span>🏡</span>Rumah</button>
+            <button class="ux-tab" data-tab="desa" onclick="uxTabGo('desa')"><span>🏘️</span>Desa</button>
+        </div>
     </div>
 </div>
 
@@ -483,7 +603,7 @@
     </div>
 </div>
 
-<div id="island-modal" class="modal-overlay side-panel" onclick="closeIslandModal(event)">
+<div id="island-modal" class="modal-overlay bottom-sheet" onclick="closeIslandModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <button class="modal-close-x" onclick="document.getElementById('island-modal').classList.remove('active')">✕</button>
         <span class="island-icon">🏝️</span>
@@ -503,7 +623,7 @@
     </div>
 </div>
 
-<div id="beringin-modal" class="modal-overlay side-panel" onclick="closeBeringinModal(event)">
+<div id="beringin-modal" class="modal-overlay bottom-sheet" onclick="closeBeringinModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <button class="modal-close-x" onclick="document.getElementById('beringin-modal').classList.remove('active')">✕</button>
         <span class="island-icon">🌳</span>
@@ -628,6 +748,7 @@
 </div>
 
 <div id="toast-box" class="toast-box"></div>
+<button id="ux-map-back" class="ux-map-back" onclick="uxBackToKebun()">← Kembali ke Kebun</button>
 
 <div id="pasar-modal" class="modal-overlay bottom-sheet" onclick="closePasarModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
@@ -647,20 +768,32 @@
 
         <div id="pasar-gudang" style="font-size:11px; color:#cbd5e1; margin:8px 0; padding:8px; background:rgba(255,255,255,0.06); border-radius:8px;">Memuat gudang...</div>
 
+        <!-- UX: Pasar dibagi 3 tab supaya tidak menumpuk -->
+        <div class="ux-tabs" id="ux-pasar-tabs">
+            <button data-pane="olah" onclick="uxPasarTab('olah')">🔥 Olah</button>
+            <button data-pane="jual" class="active" onclick="uxPasarTab('jual')">🏪 Jual</button>
+            <button data-pane="bebas" onclick="uxPasarTab('bebas')">🤝 Pasar Bebas</button>
+        </div>
+        <div class="ux-pane" data-pane="olah">
         <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">🔥 Olahan</div>
         <button class="btn-modal-action" onclick="mulaiProsesProduksi('rebus_ubi_jalar')" style="margin-bottom:6px;">Rebus Ubi Jalar (2 mentah → 1 rebus, 2 XP)</button>
         <div id="pasar-olahan-list"></div>
 
+        </div>
+        <div class="ux-pane active" data-pane="jual">
         <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">🏪 Jual ke Koperasi (cepat, harga tetap)</div>
         <div id="pasar-koperasi-list"></div>
 
+        </div>
+        <div class="ux-pane" data-pane="bebas">
         <div style="font-size:11px; color:#e0ac4a; font-weight:600; margin-top:10px; margin-bottom:4px;">🤝 Pasar Bebas (harga bisa nego, tunggu pembeli)</div>
         <div id="pasar-bebas-jual"></div>
         <div id="pasar-bebas-list" style="max-height:160px; overflow-y:auto; margin-top:6px;"></div>
+        </div>
     </div>
 </div>
 
-<div id="cairkan-modal" class="modal-overlay side-panel" onclick="closeCairkanModal(event)">
+<div id="cairkan-modal" class="modal-overlay bottom-sheet" onclick="closeCairkanModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
         <button class="modal-close-x" onclick="document.getElementById('cairkan-modal').classList.remove('active')">✕</button>
         <span class="island-icon">☕</span>
@@ -2218,7 +2351,7 @@
 
 
     function enableEditMode() {
-        if (isGuestUser()) { alert("Akses Ditolak: Tamu tidak bisa menata letak rumah warga desa!"); return; }
+        if (isGuestUser()) { showToast("Akses ditolak: tamu tidak bisa menata letak rumah warga desa.", true); /* UX: alert diganti toast */ return; }
         if (claimModeActive) { claimModeActive = false; document.body.classList.remove('claim-mode-active'); document.getElementById('btn-claim-toggle').classList.remove('mode-active-btn'); }
         isEditMode = true;
         closeTileHUD();
@@ -2493,6 +2626,7 @@
 
     function celebrateHarvest(reward) {
         playSoundHarvest();
+        if (window.uxVibrate) uxVibrate([30, 40, 30]); // UX: getar halus saat panen
         const stage = document.getElementById('kebun-plant-stage');
         if (!stage) return;
 
@@ -2631,8 +2765,9 @@
             }
             const stok = myBibitStock[syaratBibit.id] || 0;
             if (stok < 1) {
-                return `<button class="plot-crop-btn" disabled>${c.icon} ${c.name}<br><span style="font-size:11px; font-weight:400; opacity:0.7;">Butuh bibit dulu (0)</span></button>
-                        <button class="plot-crop-btn" onclick="document.getElementById('farm-modal').classList.add('active');">🌱 Buka Pembibitan</button>`;
+                return `<button class="plot-crop-btn" disabled>${c.icon} ${c.name}<br><span style="font-size:11px; font-weight:400; opacity:0.7;">Belum punya bibit</span></button>
+                        <button class="plot-crop-btn ux-primary" onclick="uxSiapkanBibit()">🌱 Siapkan Bibit</button>
+                        <span class="ux-note">Ubi jalar perlu bibit. Buat dulu di Pembibitan, lalu kembali ke sini untuk menanam.</span>`;
             }
             return `<button class="plot-crop-btn" onclick="kebunActionStart(); plantCrop('${key}','${c.id}').then(() => renderKebunSayaHome())">${c.icon} Tanam ${c.name}<br><span style="font-size:11px; font-weight:400; opacity:0.8;">${c.plant_cost_xp} XP • bibit: ${stok}</span></button>`;
         }).join('');
@@ -2647,10 +2782,19 @@
         const waterOnCooldown = farm.lastWateredAt && (now - farm.lastWateredAt) < waterCooldownMs;
         const fertilizeOnCooldown = farm.lastFertilizedAt && (now - farm.lastFertilizedAt) < fertilizeCooldownMs;
         const pruneOnCooldown = farm.lastPrunedAt && (now - farm.lastPrunedAt) < pruneCooldownMs;
+        // UX: label tombol menampilkan progres (mis. 1/3) dan alasan kalau tombol mati
+        const uxLeft = (last, cd) => formatDuration(Math.max(0, cd - (now - last)));
+        const uxWaterReq = Number(cropDef.water_required) || 0, uxFertReq = Number(cropDef.fertilize_required) || 0;
+        const uxWaterDone = (farm.waterCount || 0) >= uxWaterReq;
+        const uxFertDone = (farm.fertilizeCount || 0) >= uxFertReq;
+        const uxPruneDone = (farm.prunedCount || 0) >= CARE_TREAT_REQUIRED;
+        const uxWaterNote = uxWaterDone ? 'selesai ✓' : (waterOnCooldown ? '⏳ ' + uxLeft(farm.lastWateredAt, waterCooldownMs) : (estimateWaterStock() < 1 ? 'air habis' : 'siap'));
+        const uxFertNote = uxFertDone ? 'selesai ✓' : (fertilizeOnCooldown ? '⏳ ' + uxLeft(farm.lastFertilizedAt, fertilizeCooldownMs) : 'siap');
+        const uxPruneNote = uxPruneDone ? 'selesai ✓' : (pruneOnCooldown ? '⏳ ' + uxLeft(farm.lastPrunedAt, pruneCooldownMs) : 'siap');
         return `
-            <button class="plot-btn" onclick="kebunActionStart(); showActionFx('💧'); playSoundWater(); waterCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram</button>
-            <button class="plot-btn" onclick="kebunActionStart(); showActionFx('✨'); playSoundFertilize(); fertilizeCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk</button>
-            <button class="plot-btn" onclick="kebunActionStart(); pruneCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat</button>
+            <button class="plot-btn ${uxWaterDone ? 'ux-done' : ''}" onclick="kebunActionStart(); showActionFx('💧'); playSoundWater(); waterCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.waterCount >= cropDef.water_required || waterOnCooldown || estimateWaterStock() < 1) ? 'disabled' : ''}>💧 Siram<span class="plot-btn-cooldown">${farm.waterCount || 0}/${uxWaterReq} · ${uxWaterNote}</span></button>
+            <button class="plot-btn ${uxFertDone ? 'ux-done' : ''}" onclick="kebunActionStart(); showActionFx('✨'); playSoundFertilize(); fertilizeCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.fertilizeCount >= cropDef.fertilize_required || fertilizeOnCooldown) ? 'disabled' : ''}>🌿 Pupuk<span class="plot-btn-cooldown">${farm.fertilizeCount || 0}/${uxFertReq} · ${uxFertNote}</span></button>
+            <button class="plot-btn ${uxPruneDone ? 'ux-done' : ''}" onclick="kebunActionStart(); pruneCropAction('${key}').then(() => renderKebunSayaHome())" ${(farm.prunedCount >= CARE_TREAT_REQUIRED || pruneOnCooldown) ? 'disabled' : ''}>✂️ Rawat<span class="plot-btn-cooldown">${farm.prunedCount || 0}/${CARE_TREAT_REQUIRED} · ${uxPruneNote}</span></button>
         `;
     }
 
@@ -2767,7 +2911,7 @@
 
         const ground = rawTerrainData.find(g => g.x_pos === best.x && g.y_pos === best.y);
         const biayaEstimasi = (ground && ground.claim_cost_xp) || 100;
-        if (!confirm(`Klaim lahan baru di petak (${best.x},${best.y})? Biaya sekitar ${biayaEstimasi} XP.`)) return;
+        if (!(await (window.uxConfirm ? uxConfirm(`Klaim lahan baru di petak (${best.x},${best.y})? Biaya sekitar ${biayaEstimasi} XP.`, 'Klaim Lahan') : Promise.resolve(confirm(`Klaim lahan baru di petak (${best.x},${best.y})? Biaya sekitar ${biayaEstimasi} XP.`))))) return; // UX: kartu konfirmasi
 
         const { data, error } = await db.rpc('fn_claim_tile', { p_user: myUserId, p_x: best.x, p_y: best.y });
         if (error) { showToast('Gagal klaim tanah: ' + error.message, true); return; }
@@ -2776,6 +2920,7 @@
         const key = `${best.x},${best.y}`;
         claimedTiles[key] = { ownerId: myUserId, ownerUsername: myUsername };
         showToast(`📍 Berhasil klaim petak baru! -${data.cost} XP.`);
+        try { showActionFx('📍'); if (window.uxVibrate) uxVibrate(); } catch (e) {} // UX
         await refreshMyProfile();
         window.__kebunPinnedTile = key;
         renderKebunSayaHome();
@@ -2793,6 +2938,7 @@
         if (hintEl) hintEl.innerText = '';
         if (titleEl) titleEl.textContent = key ? `🌾 Kebun #${getPlotNumber(key)}` : '🌾 Kebun Saya';
         renderBeringinScene();
+        if (window.uxSetGrowBar) uxSetGrowBar(null); // UX
 
         if (!key) {
             const sig = 'empty-no-tile';
@@ -2829,6 +2975,7 @@
             const sig = `${key}|${farm.cropId}|${leafCount}|${timeReady}|${careReady}`;
             if (lastKebunPlantSignature !== sig) { stageEl.innerHTML = renderPlantSVG({ growthPct, careReady, timeReady }); lastKebunPlantSignature = sig; }
 
+            if (window.uxSetGrowBar) uxSetGrowBar(timeReady ? 1 : growthPct); // UX: bar progres tumbuh
             if (timeReady && careReady) {
                 const reward = computeEffectiveReward(cropDef, farm);
                 statusEl.innerText = `${cropDef.name} siap dipanen! +${reward} XP`;
@@ -2837,11 +2984,11 @@
             } else if (timeReady && !careReady) {
                 statusEl.innerText = `${cropDef.name} sudah waktunya, tapi masih butuh perawatan.`;
                 actionEl.innerHTML = buildCareButtonsHtml(key, farm, cropDef);
-                if (hintEl) hintEl.innerText = '⚠️ Lengkapi siram/pupuk/rawat dulu ya';
+                if (hintEl) hintEl.innerText = '⚠️ Lengkapi dulu: ' + (window.uxCareSummary ? uxCareSummary(farm, cropDef) : 'siram/pupuk/rawat');
             } else {
                 statusEl.innerText = `${cropDef.name} sedang tumbuh (~${formatDuration(growMs - elapsed)} lagi)`;
                 actionEl.innerHTML = buildCareButtonsHtml(key, farm, cropDef);
-                if (hintEl) hintEl.innerText = '💧 Rawat rutin biar tumbuh maksimal';
+                if (hintEl) hintEl.innerText = '💧 ' + (window.uxCareSummary ? uxCareSummary(farm, cropDef) : 'Rawat rutin') + ' · tumbuh ' + Math.round(growthPct * 100) + '%';
             }
         }
 
@@ -2859,7 +3006,8 @@
                 icon = cd ? cd.icon : '🌱';
             }
             const num = getPlotNumber(k);
-            return `<div class="kebun-plot-thumb" onclick="focusFeaturedTile('${k}')" title="Kebun #${num}" style="position:relative;">${icon}<span style="position:absolute; bottom:1px; right:2px; font-size:8px; font-weight:800; color:#fbbf24; background:rgba(0,0,0,0.65); border-radius:4px; padding:0 3px; line-height:1.4;">${num}</span></div>`;
+            const uxB = window.uxPlotBadge ? uxPlotBadge(f) : ''; // UX: lencana siap panen / butuh rawat
+            return `<div class="kebun-plot-thumb" onclick="focusFeaturedTile('${k}')" title="Kebun #${num}" style="position:relative;">${icon}${uxB}<span style="position:absolute; bottom:1px; right:2px; font-size:10px; font-weight:800; color:#fbbf24; background:rgba(0,0,0,0.65); border-radius:4px; padding:0 3px; line-height:1.4;">${num}</span></div>`;
         }).join('') + `<div class="kebun-plot-thumb" onclick="klaimLahanOtomatis()" title="Klaim lahan baru">➕</div>`;
         othersEl.scrollLeft = prevOthersScroll; // FIX DESKTOP: pulihkan posisi geser setelah render ulang
     }
@@ -3550,6 +3698,217 @@
         // LOGIKA UNTUK CORE ENGINE DESA ANDA DI SINI
         // ===========================================
         console.log("Warga terverifikasi:", username);
+</script>
+
+<script>
+// ============================================================================
+// UX LAYER -- bar sumber daya, tab bar, tutorial, konfirmasi, tab Pasar, getar.
+// Sengaja di script terpisah & hanya MEMBUNGKUS fungsi lama (tidak mengubah logika
+// Supabase/RPC), jadi kalau ada yang bermasalah cukup hapus blok ini.
+// ============================================================================
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const UX_TUT_KEY = 'tof_ux_tutorial_v1';
+    let tutShown = false;
+
+    window.uxVibrate = function (p) { try { if (navigator.vibrate) navigator.vibrate(p || 18); } catch (e) {} };
+
+    window.uxSetGrowBar = function (p) {
+        const b = $('ux-growbar'), f = $('ux-growbar-fill');
+        if (!b || !f) return;
+        if (p == null) { b.classList.remove('show'); return; }
+        b.classList.add('show');
+        f.style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%';
+    };
+
+    window.uxCareSummary = function (farm, cropDef) {
+        return `Siram ${farm.waterCount || 0}/${Number(cropDef.water_required) || 0} · Pupuk ${farm.fertilizeCount || 0}/${Number(cropDef.fertilize_required) || 0} · Rawat ${farm.prunedCount || 0}/${CARE_TREAT_REQUIRED}`;
+    };
+
+    window.uxPlotBadge = function (f) {
+        try {
+            if (!f) return '';
+            if (f.landState === 'barren') return '<span class="ux-dot">⚠️</span>';
+            if (f.landState !== 'planted') return '';
+            const cd = getCropDef(f.cropId);
+            if (!cd) return '';
+            const growMs = computeEffectiveGrowMs(cd, f);
+            const elapsed = f.plantedAt ? (Date.now() - f.plantedAt) : 0;
+            const timeReady = elapsed >= growMs;
+            const careReady = (f.waterCount || 0) >= (Number(cd.water_required) || 0) && (f.fertilizeCount || 0) >= (Number(cd.fertilize_required) || 0) && (f.prunedCount || 0) >= CARE_TREAT_REQUIRED;
+            if (timeReady && careReady) return '<span class="ux-dot">✓</span>';
+            if (timeReady) return '<span class="ux-dot">💧</span>';
+        } catch (e) {}
+        return '';
+    };
+
+    // ---------- bar sumber daya: salin dari elemen HUD lama (satu sumber kebenaran) ----------
+    function syncRes() {
+        const pairs = [['hud-xp-value', 'ux-xp', 'ux-res-xp'], ['hud-pupuk-value', 'ux-pupuk', 'ux-res-pupuk'], ['hud-water-value', 'ux-air', 'ux-res-air']];
+        pairs.forEach(([from, to, box]) => {
+            const a = $(from), b = $(to);
+            if (!a || !b) return;
+            const val = (a.textContent || '').trim() || '0';
+            if (b.textContent !== val) {
+                b.textContent = val;
+                const bx = $(box);
+                if (bx) { bx.classList.remove('ux-pop'); void bx.offsetWidth; bx.classList.add('ux-pop'); }
+            }
+        });
+        const air = $('ux-air'), airBox = $('ux-res-air');
+        if (air && airBox) { const n = parseInt(air.textContent, 10); airBox.classList.toggle('low', !isNaN(n) && n <= 1); }
+    }
+    window.uxSyncRes = syncRes;
+    ['hud-xp-value', 'hud-pupuk-value', 'hud-water-value'].forEach(id => {
+        const el = $(id);
+        if (el) new MutationObserver(syncRes).observe(el, { childList: true, characterData: true, subtree: true });
+    });
+    setInterval(syncRes, 3000);
+    syncRes();
+
+    // ---------- tombol utama berdenyut = langkah berikutnya ----------
+    function markPrimary() {
+        const row = $('kebun-action-row');
+        if (!row || row.querySelector('.ux-primary')) return;
+        const b = row.querySelector('.plot-harvest-btn:not(:disabled), .plot-crop-btn:not(:disabled), .plot-btn:not(:disabled):not(.ux-done)');
+        if (b) b.classList.add('ux-primary');
+    }
+
+    // ---------- bungkus fungsi lama ----------
+    const _render = window.renderKebunSayaHome;
+    if (typeof _render === 'function') {
+        window.renderKebunSayaHome = function () {
+            const r = _render.apply(this, arguments);
+            try { syncRes(); markPrimary(); } catch (e) {}
+            return r;
+        };
+    }
+    const _show = window.showKebunSaya;
+    if (typeof _show === 'function') {
+        window.showKebunSaya = function () {
+            const bk = $('ux-map-back'); if (bk) bk.style.display = 'none';
+            const r = _show.apply(this, arguments);
+            setTimeout(window.uxMaybeTutorial, 900);
+            return r;
+        };
+    }
+
+    // ---------- tab bar ----------
+    function setTab(name) {
+        document.querySelectorAll('#ux-tabbar .ux-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    }
+    function closeAllModals() { document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active')); }
+
+    window.uxTabGo = function (name) {
+        if (name === 'kebun') { closeAllModals(); setTab('kebun'); return; }
+        setTab(name);
+        if (name === 'lahan') { closeAllModals(); $('farm-modal').classList.add('active'); try { renderFarmList(); } catch (e) {} }
+        else if (name === 'pasar') { closeAllModals(); openPasarModal(); }
+        else if (name === 'rumah') { uxOpenRumah(); setTab('kebun'); }
+        else if (name === 'desa') { closeAllModals(); openDesaProfiles(); setTab('kebun'); }
+    };
+    ['farm-modal', 'pasar-modal'].forEach(id => {
+        const el = $(id);
+        if (el) new MutationObserver(() => { if (!document.querySelector('.modal-overlay.active')) setTab('kebun'); }).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+
+    window.uxOpenRumah = function () {
+        if (isGuestUser()) { showToast('Login dulu untuk menata rumah.', true); return; }
+        closeAllModals();
+        openVillageMap();
+        const bk = $('ux-map-back'); if (bk) bk.style.display = 'block';
+        enableEditMode();
+    };
+    window.uxBackToKebun = function () {
+        try { if (typeof isEditMode !== 'undefined' && isEditMode) saveAndLockMode(); } catch (e) {}
+        showKebunSaya();
+    };
+
+    window.uxSiapkanBibit = function () {
+        closeAllModals();
+        $('farm-modal').classList.add('active');
+        try { renderFarmList(); } catch (e) {}
+        try { if (typeof refreshPembibitanPanel === 'function') refreshPembibitanPanel(); } catch (e) {}
+        setTimeout(() => { const el = $('pembibitan-inline-gudang'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 250);
+    };
+
+    // ---------- tab Pasar ----------
+    window.uxPasarTab = function (name) {
+        document.querySelectorAll('#ux-pasar-tabs button').forEach(b => b.classList.toggle('active', b.dataset.pane === name));
+        document.querySelectorAll('#pasar-modal .ux-pane').forEach(p => p.classList.toggle('active', p.dataset.pane === name));
+    };
+
+    // ---------- kartu konfirmasi bergaya game ----------
+    window.uxConfirm = function (message, title) {
+        return new Promise(resolve => {
+            const layer = document.createElement('div');
+            layer.className = 'ux-layer';
+            layer.innerHTML = '<div class="ux-card" role="dialog" aria-modal="true"><h3></h3><p></p><div class="row"><button class="ux-btn-no">Batal</button><button class="ux-btn-ok">Ya, Lanjut</button></div></div>';
+            layer.querySelector('h3').textContent = title || 'Konfirmasi';
+            layer.querySelector('p').textContent = message;
+            const done = (v) => { layer.remove(); resolve(v); };
+            layer.querySelector('.ux-btn-no').onclick = () => done(false);
+            layer.querySelector('.ux-btn-ok').onclick = () => done(true);
+            document.body.appendChild(layer);
+        });
+    };
+
+    // ---------- tutorial 4 langkah (sekali saja, bisa dibuka lagi lewat ❓ Bantuan) ----------
+    const STEPS = [
+        { sel: '#kebun-resbar', title: 'Sumber dayamu', text: 'XP, Pupuk, dan Air selalu terlihat di sini. Ketuk XP untuk ke Pasar, ketuk Pupuk untuk ke Gudang & Kompos.' },
+        { sel: '#kebun-other-plots', title: 'Lahanmu', text: 'Ketuk petak untuk pindah kebun. Tombol ➕ untuk klaim lahan baru. Lencana ✓ berarti siap panen.' },
+        { sel: '#kebun-action-row', title: 'Langkah berikutnya', text: 'Tombol yang berdenyut adalah langkah berikutnya: Tanam, Siram, Pupuk, Rawat, lalu Panen. Angka seperti 1/3 menunjukkan progresnya.' },
+        { sel: '#ux-tabbar', title: 'Menu utama', text: 'Kebun, Lahan, Pasar, Rumah, dan Desa ada di sini. Tombol ❓ Bantuan di atas membuka panduan ini lagi.' }
+    ];
+    function tutDone() { try { localStorage.setItem(UX_TUT_KEY, '1'); } catch (e) {} }
+    function tutSeen() { try { return localStorage.getItem(UX_TUT_KEY) === '1'; } catch (e) { return false; } }
+
+    window.uxStartTutorial = function (force) {
+        if (!force && tutSeen()) return;
+        if (document.querySelector('.ux-tut')) return;
+        const scr = $('kebun-saya-screen');
+        if (!scr || scr.style.display === 'none') return;
+        let i = 0;
+        const root = document.createElement('div');
+        root.className = 'ux-tut';
+        root.innerHTML = '<div class="ux-spot"></div><div class="ux-card ux-tut-card"><div class="ux-tut-step"></div><h3></h3><p></p><div class="row"><button class="ux-btn-no">Lewati</button><button class="ux-btn-ok">Lanjut</button></div></div>';
+        document.body.appendChild(root);
+        const spot = root.querySelector('.ux-spot'), card = root.querySelector('.ux-tut-card');
+        function close() { tutDone(); root.remove(); }
+        function render() {
+            const st = STEPS[i];
+            const el = document.querySelector(st.sel);
+            const r = el ? el.getBoundingClientRect() : null;
+            if (r && r.width > 0) {
+                spot.style.cssText = `left:${r.left - 6}px;top:${r.top - 6}px;width:${r.width + 12}px;height:${r.height + 12}px;`;
+                if (r.top > window.innerHeight / 2) { card.style.top = '80px'; card.style.bottom = 'auto'; }
+                else { card.style.bottom = '100px'; card.style.top = 'auto'; }
+            } else {
+                spot.style.cssText = 'left:50%;top:50%;width:0;height:0;';
+                card.style.top = '30%'; card.style.bottom = 'auto';
+            }
+            card.querySelector('.ux-tut-step').textContent = `Langkah ${i + 1} dari ${STEPS.length}`;
+            card.querySelector('h3').textContent = st.title;
+            card.querySelector('p').textContent = st.text;
+            card.querySelector('.ux-btn-ok').textContent = (i === STEPS.length - 1) ? 'Mulai Berkebun' : 'Lanjut';
+        }
+        card.querySelector('.ux-btn-no').onclick = close;
+        card.querySelector('.ux-btn-ok').onclick = () => { if (i >= STEPS.length - 1) close(); else { i++; render(); } };
+        render();
+    };
+    window.uxMaybeTutorial = function () {
+        if (tutShown || tutSeen()) return;
+        if (typeof myUsername === 'undefined' || !myUsername) return;
+        tutShown = true;
+        window.uxStartTutorial(false);
+    };
+
+    // ---------- getar halus saat aksi kebun ----------
+    document.addEventListener('click', function (e) {
+        const b = e.target.closest && e.target.closest('.plot-btn:not(:disabled), .plot-harvest-btn:not(:disabled), .plot-crop-btn:not(:disabled)');
+        if (b) window.uxVibrate(14);
+    }, true);
+})();
 </script>
 </body>
 </html>
