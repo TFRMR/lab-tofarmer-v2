@@ -38,7 +38,7 @@
         
         
         /* NODE ISOMETRIC */
-        .iso-node { position: absolute; width: 100px; height: 50px; transform: translate(-50%, -50%); will-change: transform; display: flex; align-items: center; justify-content: center; }
+        .iso-node { position: absolute; width: 100px; height: 50px; transform: translate(-50%, -50%); /* FASE0: will-change dihapus (bikin ~900 lapisan GPU). Mode lama: tambah ?peta=lama di alamat */ display: flex; align-items: center; justify-content: center; }
         
         /* Ubin / Grid */
         .tile { width: 98px; height: 48px; border: 1px solid rgba(74, 222, 128, 0.03); background: rgba(74, 222, 128, 0.01); box-sizing: border-box; transition: background 0.2s; cursor: default; }
@@ -532,6 +532,22 @@
         .ux-lstat { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 8px; margin-top: 4px; }
         .ux-lsub { font-size: 12px; font-weight: 700; color: #94a3b8; margin: 10px 0 4px; }
         .ux-lbody { max-height: 240px; overflow-y: auto; }
+    
+        /* ===== Fase 0 / Pemandangan kebun ===== */
+        html.ux-classic .iso-node { will-change: transform; }
+        .ux-loading { display: none; z-index: 32000; }
+        .ux-loading.show { display: flex; }
+        .ux-head-actions { flex-wrap: wrap; justify-content: flex-end; }
+        .ux-head-btn { padding: 6px 10px; font-size: 12px; }
+        .ux-scene { position: absolute; inset: 0; z-index: 0; display: none; overflow: hidden; background: #6fbf55; }
+        #kebun-saya-screen.ux-scene-on .ux-scene { display: block; }
+        #kebun-saya-screen.ux-scene-on .kebun-backdrop { display: none; }
+        #kebun-saya-screen.ux-scene-on #kebun-plant-stage > * { visibility: hidden; }
+        #kebun-saya-screen.ux-scene-on #kebun-plant-stage { cursor: pointer; }
+        #kebun-saya-screen.ux-scene-on #kebun-beringin-scene,
+        #kebun-saya-screen.ux-scene-on .kebun-hint-beringin { display: none; }
+        #kebun-saya-screen.ux-scene-on .kebun-title { color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.7); }
+        #kebun-saya-screen.ux-scene-on .kebun-status-text { color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
     </style>
     <script src="isoteri-vm.js"></script>
   <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
@@ -566,6 +582,8 @@
 
 <div id="kebun-saya-screen">
     <div class="kebun-backdrop" id="kebun-backdrop"></div>
+    <!-- UX/Pemandangan: kanvas dunia kebun (kebun-scene.js), muncul hanya di mode Pemandangan -->
+    <div class="ux-scene" id="ux-scene"></div>
     <div class="kebun-content">
         <div id="kebun-beringin-scene" onclick="openBeringinModal()" title="Pohon Beringin Desa -- tap untuk rawat"></div>
         <span class="kebun-hint-beringin" onclick="openBeringinModal()">✨ tap untuk rawat</span>
@@ -573,7 +591,8 @@
             <div class="kebun-title" id="kebun-title-text">🌾 Kebun Saya</div>
             <!-- UX: header sekarang pakai tombol berlabel; ikon-ikon lama tetap ada di bawah (disembunyikan) -->
             <div class="ux-head-actions">
-                <button class="ux-head-btn" onclick="uxStartTutorial(true)" aria-label="Bantuan">❓ Bantuan</button>
+                <button class="ux-head-btn" id="ux-scene-toggle" onclick="uxSceneCycle()" aria-label="Ganti tampilan kebun">🖼️ Klasik</button>
+                <button class="ux-head-btn" onclick="uxStartTutorial(true)" aria-label="Bantuan">❓</button>
                 <button class="ux-head-btn exit" onclick="window.location.href='https://www.tofarmer.xyz'" aria-label="Keluar ke beranda">🏠 Keluar</button>
             </div>
             <div class="ux-legacy-icons" style="display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
@@ -774,6 +793,7 @@
 
 <div id="toast-box" class="toast-box"></div>
 <button id="ux-map-back" class="ux-map-back" onclick="uxBackToKebun()">← Kembali ke Kebun</button>
+<div id="ux-loading" class="ux-layer ux-loading"><div class="ux-card"><h3>🏘️ Memuat desa…</h3><p>Sebentar ya, peta sedang disiapkan.</p></div></div>
 
 <div id="pasar-modal" class="modal-overlay bottom-sheet" onclick="closePasarModal(event)">
     <div class="modal-box island-modal-box" onclick="event.stopPropagation()">
@@ -1028,6 +1048,22 @@
         }
     }
 
+    // FASE0: pencarian petak medan pakai Map. Sebelumnya rawTerrainData.find(...) dipanggil di dalam loop 900 petak.
+    let uxTerrainMap = null, uxTerrainSrc = null, uxTerrainLen = -1;
+    function terrainAt(x, y) {
+        if (window.UX_CLASSIC_MAP) return rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+        if (uxTerrainSrc !== rawTerrainData || uxTerrainLen !== rawTerrainData.length) {
+            uxTerrainMap = new Map();
+            for (const g of rawTerrainData) {
+                if (typeof g.x_pos !== 'number' || typeof g.y_pos !== 'number') continue; // sama seperti === pada find
+                const k = g.x_pos + ',' + g.y_pos;
+                if (!uxTerrainMap.has(k)) uxTerrainMap.set(k, g); // find mengembalikan yang pertama
+            }
+            uxTerrainSrc = rawTerrainData; uxTerrainLen = rawTerrainData.length;
+        }
+        return uxTerrainMap.get(x + ',' + y);
+    }
+
     function buildWorldGrid() {
         const gridEl = document.getElementById('grid-world');
         gridEl.innerHTML = '';
@@ -1042,7 +1078,7 @@
                 cell.style.gridRow = String(y + 1);
                 cell.onclick = (e) => selectTile(x, y, e);
 
-                const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+                const ground = terrainAt(x, y);
                 if (ground) {
                     const cls = getGridTileTerrainClass(ground.type);
                     if (cls) cell.classList.add(cls);
@@ -1789,7 +1825,7 @@
     }
 
     function getClaimCostForTile(x, y) {
-        const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+        const ground = terrainAt(x, y);
         return ground && ground.claim_cost_xp != null ? ground.claim_cost_xp : 100;
     }
 
@@ -1803,7 +1839,7 @@
         const claim = claimedTiles[key];
 
         document.getElementById('hud-tile-coord').innerText = `Koordinat: Sisi (${x}, ${y})`;
-        const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+        const ground = terrainAt(x, y);
         let statusText = "Tanah Kosong Bebas";
         if (ground) statusText = ground.type === 'paved_road' ? 'Jalan Desa' : (ground.type === 'soil_farm' ? 'Lahan Pertanian' : 'Area Alam');
         if (claim) statusText += claim.ownerUsername === myUsername ? ' • Milik Anda' : ` • Milik @${claim.ownerUsername}`;
@@ -1820,7 +1856,7 @@
         const buildBtn = document.getElementById('btn-tile-build');
         const key = `${x},${y}`;
         const claim = claimedTiles[key];
-        const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+        const ground = terrainAt(x, y);
         const isNatural = ground && (ground.type === 'paved_road' || ground.type === 'mountain' || ground.type === 'tree');
 
         if (isNatural) {
@@ -2948,7 +2984,7 @@
             for (let y = 0; y < GRID_SIZE; y++) {
                 const key = `${x},${y}`;
                 if (claimedTiles[key]) continue;
-                const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+                const ground = terrainAt(x, y);
                 if (ground && ['paved_road', 'mountain', 'tree'].includes(ground.type)) continue;
                 const dist = Math.hypot(x - refX, y - refY);
                 if (dist < bestDist) { bestDist = dist; best = { x, y }; }
@@ -2956,7 +2992,7 @@
         }
         if (!best) { showToast('Tidak ada lagi lahan kosong yang bisa diklaim di desa.', true); return; }
 
-        const ground = rawTerrainData.find(g => g.x_pos === best.x && g.y_pos === best.y);
+        const ground = terrainAt(best.x, best.y);
         const biayaEstimasi = (ground && ground.claim_cost_xp) || 100;
         if (!(await (window.uxConfirm ? uxConfirm(`Klaim lahan baru di petak (${best.x},${best.y})? Biaya sekitar ${biayaEstimasi} XP.`, 'Klaim Lahan') : Promise.resolve(confirm(`Klaim lahan baru di petak (${best.x},${best.y})? Biaya sekitar ${biayaEstimasi} XP.`))))) return; // UX: kartu konfirmasi
 
@@ -3220,7 +3256,7 @@
                 tile.className = 'tile';
                 tile.onclick = (e) => selectTile(x, y, e);
 
-                const ground = rawTerrainData.find(g => g.x_pos === x && g.y_pos === y);
+                const ground = terrainAt(x, y);
                 if (ground) {
                     reservedTiles.add(`${x},${y}`);
                     if (ground.type === 'paved_road') tile.classList.add('road');
@@ -3344,9 +3380,9 @@
             container.setAttribute('draggable', 'false');
             
             container.innerHTML = `
-                <img class="sprite house-img" src="${houseImage}" style="height: 55px;" onerror="this.onerror=null;this.src='https://img.icons8.com/plasticine/100/home.png';" />
+                <img class="sprite house-img" decoding="async" src="${houseImage}" style="height: 55px;" onerror="this.onerror=null;this.src='https://img.icons8.com/plasticine/100/home.png';" />
                 <div class="avatar-balloon">
-                    <img class="avatar-img" src="${photoSrc}" />
+                    <img class="avatar-img" decoding="async" src="${photoSrc}" />
                     <div class="nametag">@${user.username}</div>
                 </div>
             `;
@@ -3861,20 +3897,40 @@
     });
 
     // Desa = peta desa (hanya melihat). Tata Rumah ada di tombol menu ☰ pada peta, atau lewat tab Rumah.
+    // FASE0: buka peta dengan tanda "Memuat desa..." (bangun pertama sinkron, jadi layar perlu sempat menggambar overlay dulu)
+    // dan cetak waktunya di Console untuk dibandingkan. Pembanding lama: tambah ?peta=lama di alamat halaman.
+    window.UX_CLASSIC_MAP = /[?&]peta=lama/.test(location.search);
+    if (window.UX_CLASSIC_MAP) document.documentElement.classList.add('ux-classic');
+    window.uxOpenMapThen = function (cb) {
+        const first = (typeof worldBuilt !== 'undefined') && !worldBuilt;
+        const ov = $('ux-loading');
+        if (ov && first) ov.classList.add('show');
+        const t0 = performance.now();
+        const go = () => {
+            openVillageMap();
+            const t1 = performance.now();
+            if (cb) cb();
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+                if (ov) ov.classList.remove('show');
+                if (first) {
+                    const w = $('world');
+                    console.info(`[TOF] peta pertama dibuka: bangun JS ${Math.round(t1 - t0)} ms | sampai tampil ${Math.round(performance.now() - t0)} ms | elemen DOM peta ${w ? w.getElementsByTagName('*').length : '?'}${window.UX_CLASSIC_MAP ? ' | MODE LAMA (?peta=lama)' : ''}`);
+                }
+            }));
+        };
+        if (first && ov) requestAnimationFrame(() => setTimeout(go, 30)); else go();
+    };
     window.uxOpenDesa = function () {
         closeAllModals();
         const ps = $('desa-profile-screen'); if (ps) ps.style.display = 'none';
-        openVillageMap();
-        const bk = $('ux-map-back'); if (bk) bk.style.display = 'block';
+        uxOpenMapThen(() => { const bk = $('ux-map-back'); if (bk) bk.style.display = 'block'; });
     };
     // Tata Rumah = peta + mode arsitek (dibuka dari kartu "Rumah Saya")
     window.uxOpenTataRumah = function () {
         if (isGuestUser()) { showToast('Login dulu untuk menata rumah.', true); return; }
         closeAllModals();
         const ps = $('desa-profile-screen'); if (ps) ps.style.display = 'none';
-        openVillageMap();
-        const bk = $('ux-map-back'); if (bk) bk.style.display = 'block';
-        enableEditMode();
+        uxOpenMapThen(() => { const bk = $('ux-map-back'); if (bk) bk.style.display = 'block'; enableEditMode(); });
     };
     window.uxOpenRumah = window.uxOpenTataRumah; // nama lama, dipertahankan supaya tidak ada yang putus
 
@@ -4106,6 +4162,136 @@
         const m = $('pasar-modal'), p = document.querySelector('#pasar-modal .ux-pane[data-pane="bebas"]');
         if (m && m.classList.contains('active') && p && p.classList.contains('active')) window.uxRefreshMyListings();
     }, 15000);
+
+
+    // ---------- FASE 1: PEMANDANGAN KEBUN (kanvas) ----------
+    // Mesin gambarnya ada di kebun-scene.js (dimuat hanya saat mode ini dipilih, jadi tidak menambah beban awal).
+    // Data lahan tetap dari game (claimedTiles/farms); kanvas hanya menggambar dan mengirim klik kembali.
+    const MODE_KEY = 'tof_scene_mode';
+    let sceneMode = 'klasik', uxScene = null, libLoading = false, claimFxPending = false;
+    const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    function readMode() {
+        try {
+            const m = /[?&]scene=(klasik|normal|hemat|1|0)/.exec(location.search);
+            if (m) return m[1] === '1' ? 'normal' : (m[1] === '0' ? 'klasik' : m[1]);
+            return localStorage.getItem(MODE_KEY) || 'klasik';
+        } catch (e) { return 'klasik'; }
+    }
+    function loadSceneLib(cb) {
+        if (window.KebunScene) return cb();
+        if (libLoading) return;
+        libLoading = true;
+        const sc = document.createElement('script');
+        sc.src = 'kebun-scene.js';
+        sc.onload = () => { libLoading = false; cb(); };
+        sc.onerror = () => {
+            libLoading = false;
+            showToast('Pemandangan belum bisa dimuat: berkas kebun-scene.js harus satu folder dengan halaman ini.', true);
+            applyMode('klasik');
+        };
+        document.head.appendChild(sc);
+    }
+    function nurseryReady(key) {
+        return (window.__nurseryRows || []).filter(p => p.plot_x != null && (p.plot_x + ',' + p.plot_y) === key && p.status === 'ditancapkan' &&
+            (Date.now() - new Date(p.mulai_at).getTime()) >= (((p.bibit_catalog && p.bibit_catalog.waktu_tunas_seconds) || 0) * 1000)).length;
+    }
+    function sceneSync() {
+        if (!uxScene) return;
+        const keys = Object.keys(claimedTiles).filter(k => claimedTiles[k].ownerUsername === myUsername).sort((a, b) => getPlotNumber(a) - getPlotNumber(b));
+        const list = keys.map(k => {
+            const f = farms[k];
+            let state = 'empty', growth = 0, ready = false, badge = null;
+            if (f && f.landState === 'barren') state = 'barren';
+            else if (f && f.landState === 'planted') {
+                state = 'planted';
+                const cd = getCropDef(f.cropId);
+                if (cd) {
+                    const growMs = computeEffectiveGrowMs(cd, f);
+                    const el = f.plantedAt ? (Date.now() - f.plantedAt) : 0;
+                    growth = growMs > 0 ? Math.min(1, el / growMs) : 1;
+                    const timeReady = el >= growMs;
+                    const careReady = (f.waterCount || 0) >= (Number(cd.water_required) || 0) && (f.fertilizeCount || 0) >= (Number(cd.fertilize_required) || 0) && (f.prunedCount || 0) >= CARE_TREAT_REQUIRED;
+                    if (timeReady && careReady) { ready = true; badge = 'ready'; } else if (timeReady) badge = 'care';
+                }
+            }
+            const n = window.uxNurseryCount ? uxNurseryCount(k) : 0;
+            if (!badge && n > 0 && nurseryReady(k) > 0) badge = 'nursery';
+            return { key: k, number: getPlotNumber(k), state, growth, ready, badge, nursery: n };
+        });
+        uxScene.setPlots(list);
+        uxScene.setSelected(pickFeaturedTileKey());
+        uxScene.setBeringinHealth(beringinHealthPct);
+        if (claimFxPending) { claimFxPending = false; const k = pickFeaturedTileKey(); if (k) uxScene.fx(k, 'claim'); }
+    }
+    function ensureScene(cb) {
+        loadSceneLib(() => {
+            if (!uxScene) {
+                const host = $('ux-scene'), stage = $('kebun-plant-stage');
+                uxScene = KebunScene.create({
+                    container: host, eventEl: stage, assetBase: 'aset/kebun/',
+                    hemat: sceneMode === 'hemat' || reducedMotion,
+                    debug: /[?&]scenedebug/.test(location.search),
+                    getFieldRect() {
+                        const hr = host.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+                        return { x: sr.left - hr.left, y: sr.top - hr.top, w: sr.width, h: sr.height };
+                    },
+                    coinTarget() {
+                        const hr = host.getBoundingClientRect(), r = ($('ux-res-xp') || host).getBoundingClientRect();
+                        return { x: r.left + r.width / 2 - hr.left, y: r.top + r.height / 2 - hr.top };
+                    },
+                    onSelect(key) { focusFeaturedTile(key); },
+                    onBeringin() { openBeringinModal(); },
+                    onCoin() { const b = $('ux-res-xp'); if (b) { b.classList.remove('ux-pop'); void b.offsetWidth; b.classList.add('ux-pop'); } }
+                });
+            }
+            cb();
+        });
+    }
+    function applyMode(mode) {
+        sceneMode = mode;
+        try { localStorage.setItem(MODE_KEY, mode); } catch (e) {}
+        const scr = $('kebun-saya-screen'); if (scr) scr.classList.toggle('ux-scene-on', mode !== 'klasik');
+        const b = $('ux-scene-toggle'); if (b) b.textContent = mode === 'klasik' ? '🖼️ Klasik' : (mode === 'hemat' ? '🎬 Hemat' : '🎬 Pemandangan');
+        if (mode === 'klasik') { if (uxScene) uxScene.stop(); return; }
+        ensureScene(() => { uxScene.setHemat(mode === 'hemat' || reducedMotion); sceneSync(); uxScene.start(); });
+    }
+    window.uxSceneCycle = function () { applyMode(sceneMode === 'klasik' ? 'normal' : (sceneMode === 'normal' ? 'hemat' : 'klasik')); };
+    // untuk pemeriksaan lewat Console: uxSceneDebug().stats() menampilkan FPS, waktu gambar, dan jumlah drawImage per frame
+    window.uxSceneDebug = function () { return uxScene; };
+    window.uxSceneMode = function () { return sceneMode; };
+
+    // sinkron data setiap kebun digambar ulang; efek kanvas mengikuti aksi yang sudah ada
+    const _render3 = window.renderKebunSayaHome;
+    window.renderKebunSayaHome = function () {
+        const r = _render3.apply(this, arguments);
+        try { if (sceneMode !== 'klasik' && uxScene) sceneSync(); } catch (e) {}
+        return r;
+    };
+    const _fxOrig = window.showActionFx;
+    window.showActionFx = function (emoji) {
+        try {
+            if (sceneMode !== 'klasik' && uxScene) {
+                const k = pickFeaturedTileKey();
+                if (emoji === '📍') claimFxPending = true;
+                else if (k && emoji === '💧') uxScene.fx(k, 'water');
+                else if (k && emoji === '✨') uxScene.fx(k, 'fert');
+            }
+        } catch (e) {}
+        return _fxOrig.apply(this, arguments);
+    };
+    const _celOrig = window.celebrateHarvest;
+    window.celebrateHarvest = function (reward) {
+        try { if (sceneMode !== 'klasik' && uxScene) { const k = pickFeaturedTileKey(); if (k) uxScene.fx(k, 'harvest', { text: '+' + reward + ' XP' }); } } catch (e) {}
+        return _celOrig.apply(this, arguments);
+    };
+    const _plantOrig = window.plantCrop;
+    window.plantCrop = async function (key) {
+        const r = await _plantOrig.apply(this, arguments);
+        try { if (sceneMode !== 'klasik' && uxScene && farms[key] && farms[key].landState === 'planted') uxScene.fx(key, 'plant'); } catch (e) {}
+        return r;
+    };
+    setTimeout(() => applyMode(readMode()), 300);
 
     // FIX gudang bibit: modal Lahan bisa dibuka dari banyak tempat, tapi hanya openFarmMenu() yang memuat
     // isinya -> sisanya terus tertulis "Memuat gudang bibit...". Sekarang refresh jalan tiap modal dibuka.
