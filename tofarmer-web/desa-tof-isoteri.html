@@ -1289,9 +1289,15 @@
             ]);
 
             const stokUbiMentah = (gudang && gudang[0] && gudang[0].qty) || 0;
-            gudangEl.innerHTML = (stokUbiMentah > 0)
+            // FIX: stok bibit jadi ikut ditampilkan di sini (sebelumnya ditulis fungsi lain ke elemen yang sama, saling menimpa)
+            await refreshMyBibitStock();
+            const bibitLine = Object.keys(myBibitStock).filter(id => myBibitStock[id] > 0).map(id => {
+                const b = BIBIT_CATALOG.find(x => x.id === id);
+                return `${(b && (b.nama || b.name)) || id} ×${myBibitStock[id]}`;
+            }).join(', ');
+            gudangEl.innerHTML = `🎒 Gudang bibit: ${bibitLine || 'masih kosong'}<br>` + ((stokUbiMentah > 0)
                 ? `🎒 Ubi mentah di gudang: ×${stokUbiMentah} <button class="care-btn" style="margin-left:6px;" onclick="mulaiPembibitanUbi()">🌱 Mulai Pembibitan (5 XP)</button>`
-                : '🎒 Gudang ubi mentah masih kosong. Beli dulu di atas.';
+                : '🥔 Ubi mentah masih kosong. Beli dulu di atas.');
 
             if (!listEl) return;
 
@@ -1945,6 +1951,8 @@
     }
     
     async function refreshPembibitanInline() {
+        // FIX: dua fungsi menulis ke #pembibitan-inline-gudang dan saling menimpa -> sekarang satu penulis (refreshPembibitanPanel)
+        if (typeof refreshPembibitanPanel === 'function') return refreshPembibitanPanel();
         const gudangEl = document.getElementById('pembibitan-inline-gudang');
         try {
             const { data: gudang } = await db.from('inventaris_bibit').select('bibit_id, qty, bibit_catalog(nama)').eq('owner_id', myUserId).gt('qty', 0);
@@ -3831,6 +3839,19 @@
         try { if (typeof refreshPembibitanPanel === 'function') refreshPembibitanPanel(); } catch (e) {}
         setTimeout(() => { const el = $('pembibitan-inline-gudang'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 250);
     };
+
+    // FIX gudang bibit: modal Lahan bisa dibuka dari banyak tempat, tapi hanya openFarmMenu() yang memuat
+    // isinya -> sisanya terus tertulis "Memuat gudang bibit...". Sekarang refresh jalan tiap modal dibuka.
+    (function () {
+        const fm = $('farm-modal');
+        if (!fm) return;
+        let was = false;
+        new MutationObserver(() => {
+            const on = fm.classList.contains('active');
+            if (on && !was) { try { if (typeof refreshPembibitanPanel === 'function') refreshPembibitanPanel(); } catch (e) {} }
+            was = on;
+        }).observe(fm, { attributes: true, attributeFilter: ['class'] });
+    })();
 
     // ---------- tab Pasar ----------
     window.uxPasarTab = function (name) {
