@@ -470,9 +470,8 @@
         .kebun-hint-beringin { bottom: 284px; font-size: 12px; background: rgba(5,12,7,0.6); padding: 2px 8px; border-radius: 999px; }
         @media (max-height: 680px) { #kebun-beringin-scene { width: 30vw; min-width: 96px; bottom: 262px; } .kebun-hint-beringin { bottom: 266px; } }
 
-        /* Toast pindah ke bawah supaya tidak menutup bar sumber daya */
-        .toast-box { top: auto; bottom: 92px; transform: translateX(-50%) translateY(16px); font-size: 13px; }
-        .toast-box.show { transform: translateX(-50%) translateY(0); }
+        /* Keterangan kecil (toast) */
+        .toast-box { font-size: 13px; padding: 8px 14px; max-width: min(92vw, 420px); text-align: center; line-height: 1.35; } /* posisi diatur JS: di layar kebun tepat di bawah bar sumber daya (tidak menutupi lahan); di layar lain tetap top 68px bawaan */
 
         /* Ukuran teks minimum & target sentuh 44px di semua modal */
         .modal-box .hud-desc, .modal-box .stat-label, .care-progress, .decor-btn span.dname, .decor-btn span.dcost,
@@ -4297,6 +4296,19 @@
         return r;
     };
     setTimeout(() => applyMode(readMode(), false), 300);
+
+
+    // ---------- KETERANGAN KECIL (toast): di atas kebun, tepat di bawah bar sumber daya ----------
+    // Di HP keterangan seperti "tanaman disiram" sebelumnya muncul di bawah dan menutupi lahan.
+    const _toastOrig = window.showToast;
+    window.showToast = function (msg, isError) {
+        try {
+            const box = $('toast-box'), rb = $('kebun-resbar');
+            const r = rb ? rb.getBoundingClientRect() : null;
+            if (box) box.style.top = (r && r.height > 0) ? Math.round(r.bottom + 6) + 'px' : ''; // layar kebun terbuka -> di bawah bar sumber daya
+        } catch (e) {}
+        return _toastOrig.apply(this, arguments);
+    };
 
     // FIX gudang bibit: modal Lahan bisa dibuka dari banyak tempat, tapi hanya openFarmMenu() yang memuat
     // isinya -> sisanya terus tertulis "Memuat gudang bibit...". Sekarang refresh jalan tiap modal dibuka.
