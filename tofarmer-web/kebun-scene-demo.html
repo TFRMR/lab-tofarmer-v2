@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo Pemandangan Kebun</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #10231a; font-family: system-ui, sans-serif; color: #fff; overflow: hidden; }
+  #wrap { position: relative; width: 100%; height: 100%; max-width: 520px; margin: 0 auto; overflow: hidden; }
+  #stage { position: absolute; left: 0; right: 0; top: 16%; height: 46%; }
+  #bar { position: absolute; left: 0; right: 0; top: 0; padding: 8px 12px; display: flex; gap: 8px; z-index: 3; }
+  .chip { flex: 1; text-align: center; padding: 8px 6px; border-radius: 12px; background: rgba(5,12,7,0.78); border: 1px solid rgba(255,255,255,0.18); font-weight: 800; font-size: 14px; }
+  #xp.pop { animation: pop .4s ease-out; } @keyframes pop { 50% { transform: scale(1.18); } }
+  #panel { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px)); background: rgba(5,12,7,0.9); border-top: 1px solid rgba(255,255,255,0.15); }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+  button { min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
+  button.on { background: #22c55e; border-color: #22c55e; color: #052e16; }
+  label { font-size: 12px; color: #cbd5e1; display: flex; align-items: center; gap: 6px; }
+  input[type=range] { flex: 1; min-width: 120px; }
+  #info { font-size: 12px; color: #9dff9d; font-family: monospace; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="bar">
+    <div class="chip">💰 <span id="xp">0</span> XP</div>
+    <div class="chip" id="selinfo">Kebun -</div>
+  </div>
+  <div id="stage"></div>
+  <div id="panel">
+    <div class="row">
+      <button onclick="act('water')">💧 Siram</button>
+      <button onclick="act('fert')">✨ Pupuk</button>
+      <button onclick="act('plant')">🌱 Tanam</button>
+      <button onclick="act('harvest')">🧺 Panen</button>
+      <button onclick="act('claim')">📍 Klaim</button>
+    </div>
+    <div class="row">
+      <label>Jam <input id="hour" type="range" min="0" max="24" step="0.25" value="12"> <span id="hourv">12</span></label>
+      <label><input id="real" type="checkbox"> waktu nyata</label>
+    </div>
+    <div class="row">
+      <label>Jumlah lahan <input id="count" type="range" min="1" max="16" value="11"> <span id="countv">11</span></label>
+      <button id="bhemat" onclick="toggleHemat()">⚡ Hemat</button>
+      <button onclick="grow()">⏩ Percepat tumbuh</button>
+    </div>
+    <div id="info">memuat…</div>
+  </div>
+</div>
+<script src="kebun-scene.js"></script>
+<script>
+  // Halaman ini tidak butuh login/Supabase. Data lahan di sini hanya contoh.
+  // Taruh karya seniman di aset/kebun/ (manifest.json) lalu muat ulang halaman ini untuk melihatnya.
+  var xp = 0, hemat = false, plots = [], selected = null, scene;
+  var stage = document.getElementById('stage'), wrap = document.getElementById('wrap');
+
+  function makePlots(n) {
+    var old = plots; plots = [];
+    for (var i = 0; i < n; i++) {
+      var o = old[i];
+      plots.push(o || { key: i + ',0', number: i + 1, state: i % 6 === 5 ? 'barren' : (i % 4 === 3 ? 'empty' : 'planted'), growth: (i * 0.17) % 1, ready: false, badge: null, nursery: 0 });
+    }
+    plots.forEach(refreshBadge);
+    if (!selected || !plots.some(function (p) { return p.key === selected; })) selected = plots[0].key;
+  }
+  function refreshBadge(p) {
+    p.ready = p.state === 'planted' && p.growth >= 1;
+    p.badge = p.ready ? 'ready' : (p.state === 'planted' && p.growth > 0.8 ? 'care' : (p.nursery ? 'nursery' : null));
+  }
+  function push() { scene.setPlots(plots); scene.setSelected(selected); document.getElementById('selinfo').textContent = 'Kebun #' + (plots.filter(function (p) { return p.key === selected; })[0] || {}).number; }
+  function cur() { return plots.filter(function (p) { return p.key === selected; })[0]; }
+
+  function act(t) {
+    var p = cur(); if (!p) return;
+    if (t === 'water' || t === 'fert') { scene.fx(p.key, t); if (p.state === 'planted') p.growth = Math.min(1, p.growth + 0.08); }
+    else if (t === 'plant') { if (p.state !== 'planted') { p.state = 'planted'; p.growth = 0; scene.fx(p.key, 'plant'); } }
+    else if (t === 'harvest') { if (p.ready) { scene.fx(p.key, 'harvest', { text: '+80 XP' }); p.state = 'empty'; p.growth = 0; } else scene.fx(p.key, 'fert'); }
+    else if (t === 'claim') { scene.fx(p.key, 'claim'); }
+    refreshBadge(p); push();
+  }
+  function grow() { plots.forEach(function (p) { if (p.state === 'planted') { p.growth = Math.min(1, p.growth + 0.25); refreshBadge(p); } }); push(); }
+  function toggleHemat() { hemat = !hemat; scene.setHemat(hemat); document.getElementById('bhemat').classList.toggle('on', hemat); }
+
+  scene = KebunScene.create({
+    container: wrap, eventEl: stage, assetBase: 'aset/kebun/', debug: true, hemat: hemat,
+    getFieldRect: function () { var h = wrap.getBoundingClientRect(), s = stage.getBoundingClientRect(); return { x: s.left - h.left, y: s.top - h.top, w: s.width, h: s.height }; },
+    coinTarget: function () { var h = wrap.getBoundingClientRect(), r = document.getElementById('xp').getBoundingClientRect(); return { x: r.left - h.left + r.width / 2, y: r.top - h.top + r.height / 2 }; },
+    onSelect: function (k) { selected = k; push(); },
+    onBeringin: function () { alert('Beringin diketuk: di game ini membuka menu Beringin Desa.'); },
+    onCoin: function () { xp += 9; var e = document.getElementById('xp'); e.textContent = xp; e.parentNode.classList.remove('pop'); void e.offsetWidth; e.parentNode.classList.add('pop'); }
+  });
+  makePlots(11); push(); scene.start();
+
+  document.getElementById('hour').addEventListener('input', function (e) {
+    document.getElementById('real').checked = false; document.getElementById('hourv').textContent = e.target.value; scene.setHour(parseFloat(e.target.value));
+  });
+  document.getElementById('real').addEventListener('change', function (e) { scene.setHour(e.target.checked ? null : parseFloat(document.getElementById('hour').value)); });
+  document.getElementById('count').addEventListener('input', function (e) { document.getElementById('countv').textContent = e.target.value; makePlots(parseInt(e.target.value, 10)); push(); scene.resize(); });
+  scene.setHour(12);
+  setInterval(function () { var s = scene.stats(); document.getElementById('info').textContent = 'FPS ' + s.fps.toFixed(0) + ' | gambar ' + s.drawMs.toFixed(2) + ' ms | drawImage/frame ' + s.drawImage + ' | aset seniman ' + s.assets; }, 500);
+</script>
+</body>
+</html>
