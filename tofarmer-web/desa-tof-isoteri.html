@@ -547,6 +547,26 @@
         #kebun-saya-screen.ux-scene-on .kebun-hint-beringin { display: none; }
         #kebun-saya-screen.ux-scene-on .kebun-title { color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.7); }
         #kebun-saya-screen.ux-scene-on .kebun-status-text { color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
+    
+        /* ===== Popup bergaya kayu & bambu Menoreh (dengan gambar latar) ===== */
+        .ux-banner { display: none; }
+        .modal-box.ux-has-banner .ux-banner.ux-banner-ok { display: block; width: calc(100% + 36px); height: 112px; margin: -20px -18px 6px; border-radius: 14px 14px 0 0; }
+        #farm-modal .modal-box.ux-has-banner .ux-banner.ux-banner-ok { width: calc(100% + 32px); margin: -18px -16px 6px; }
+        .modal-overlay.bottom-sheet .modal-box.ux-has-banner .ux-banner.ux-banner-ok { border-radius: 20px 20px 0 0; }
+        .modal-box.ux-has-banner .island-icon { display: none; }
+        .modal-box.ux-skin {
+            background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.022) 0 2px, transparent 2px 12px), linear-gradient(180deg, #2b2016 0%, #1b150f 100%);
+            border: 2px solid #8a6238;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,214,150,0.14), inset 0 -30px 40px rgba(0,0,0,0.3);
+        }
+        .modal-box.ux-skin .modal-close-x { z-index: 3; background: rgba(8,38,40,0.78); border: 1px solid rgba(255,214,150,0.5); border-radius: 50%; }
+        .modal-box.ux-skin .modal-username { text-shadow: 0 2px 6px rgba(0,0,0,0.7); }
+        .modal-box.ux-skin .goods-card { background: rgba(255,236,200,0.06); border: 1px solid #6b4a2a; box-shadow: inset 0 1px 0 rgba(255,214,150,0.12), 0 2px 0 rgba(0,0,0,0.35); }
+        .modal-box.ux-skin .goods-card-btn { border-bottom: 3px solid rgba(0,0,0,0.35); box-shadow: inset 0 1px 0 rgba(255,255,255,0.3); }
+        .modal-box.ux-skin #xp-hud { background: rgba(0,0,0,0.28); border: 1px solid #6b4a2a; }
+        .modal-box.ux-skin .ux-tabs button { background: rgba(255,236,200,0.06); border-color: #6b4a2a; }
+        .modal-box.ux-skin .ux-tabs button.active { background: rgba(224,172,74,0.22); border-color: #e0ac4a; }
+        .ux-banner-rumah { display: block; width: 100%; height: 120px; border-radius: 14px; margin: 0 0 10px; }
     </style>
     <script src="isoteri-vm.js"></script>
   <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
@@ -3943,6 +3963,10 @@
                 const mine = !!(u && u.id === myUserId);
                 const t = $('ux-desa-title'); if (t) t.textContent = mine ? '🏡 Rumah Saya' : '🏘️ Warga Desa';
                 const card = $('desa-profile-card');
+                if (card && !card.querySelector('.ux-banner-rumah')) {   // gambar latar Rumah di atas kartu
+                    card.insertAdjacentHTML('afterbegin', '<canvas class="ux-banner-rumah" data-kind="rumah"></canvas>');
+                    uxBannerEl(card.querySelector('.ux-banner-rumah'));
+                }
                 if (mine && card) card.insertAdjacentHTML('beforeend', '<button class="ux-head-btn" style="margin-top:12px; width:100%;" onclick="uxOpenTataRumah()">🛠️ Tata Rumah (geser rumah &amp; dekorasi)</button>');
             } catch (e) {}
             return p;
@@ -4182,17 +4206,22 @@
             return localStorage.getItem(MODE_KEY) || defaultMode();
         } catch (e) { return defaultMode(); }
     }
-    function loadSceneLib(cb) {
+    let libWaiters = [];
+    function loadSceneLib(cb, quiet) {
         if (window.KebunScene) return cb();
+        libWaiters.push({ cb, quiet });
         if (libLoading) return;
         libLoading = true;
         const sc = document.createElement('script');
         sc.src = 'kebun-scene.js';
-        sc.onload = () => { libLoading = false; cb(); };
+        sc.onload = () => { libLoading = false; const w = libWaiters; libWaiters = []; w.forEach(x => x.cb()); };
         sc.onerror = () => {
             libLoading = false;
-            showToast('Pemandangan belum bisa dimuat: berkas kebun-scene.js harus satu folder dengan halaman ini.', true);
-            applyMode('klasik', false);
+            const w = libWaiters; libWaiters = [];
+            if (w.some(x => !x.quiet)) {   // banner popup bersifat tambahan: kalau gagal, popup tetap tampil seperti biasa tanpa pesan
+                showToast('Pemandangan belum bisa dimuat: berkas kebun-scene.js harus satu folder dengan halaman ini.', true);
+                applyMode('klasik', false);
+            }
         };
         document.head.appendChild(sc);
     }
@@ -4246,6 +4275,15 @@
                     },
                     onSelect(key) { focusFeaturedTile(key); },
                     onBeringin() { openBeringinModal(); },
+                    onLandmark(id) {   // bangunan di kebun: Gudang, Olahan, Kompos, Pasar, Rumah
+                        if (id === 'kompos') openCompostMenu();
+                        else if (id === 'rumah') { closeAllModals(); openDesaProfiles(); }
+                        else if (id === 'gudang') {
+                            openPasarModal();
+                            setTimeout(() => { uxBannerDraw('pasar-modal', 'gudang'); const g = $('pasar-gudang'); if (g && g.scrollIntoView) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 200);
+                        } else if (id === 'olahan') { openPasarModal(); setTimeout(() => uxPasarTab('olah'), 200); }
+                        else if (id === 'pasar') { openPasarModal(); setTimeout(() => uxPasarTab('jual'), 200); }
+                    },
                     onCoin() { const b = $('ux-res-xp'); if (b) { b.classList.remove('ux-pop'); void b.offsetWidth; b.classList.add('ux-pop'); } }
                 });
             }
@@ -4327,6 +4365,41 @@
     window.uxPasarTab = function (name) {
         document.querySelectorAll('#ux-pasar-tabs button').forEach(b => b.classList.toggle('active', b.dataset.pane === name));
         document.querySelectorAll('#pasar-modal .ux-pane').forEach(p => p.classList.toggle('active', p.dataset.pane === name));
+    };
+
+
+    // ---------- POPUP BERLATAR GAMBAR (Pasar, Kompos, Lahan, Beringin, Rumah) ----------
+    // Gambar latar dirender sekali oleh KebunScene.banner dari sprite yang sama dengan kebun. Bila pustaka tidak termuat,
+    // popup tetap tampil seperti biasa (emoji kecil di atas).
+    const BANNERS = { 'pasar-modal': 'pasar', 'compost-modal': 'kompos', 'farm-modal': 'lahan', 'beringin-modal': 'beringin' };
+    window.uxBannerEl = function (cv, kind) {
+        if (!cv) return;
+        if (kind) cv.dataset.kind = kind;
+        loadSceneLib(() => {
+            const draw = () => {
+                try {
+                    if (KebunScene.banner(cv, cv.dataset.kind)) { const bx = cv.closest('.modal-box'); if (bx) bx.classList.add('ux-has-banner'); cv.classList.add('ux-banner-ok'); }
+                } catch (e) {}
+            };
+            draw();   // langsung tampil dengan gambar sementara
+            if (KebunScene.loadAssets) KebunScene.loadAssets('aset/kebun/').then(draw);   // lalu diganti karya seniman bila ada
+        }, true);
+    };
+    window.uxBannerDraw = function (id, kind) { const m = $(id), cv = m && m.querySelector('.ux-banner'); if (cv) window.uxBannerEl(cv, kind); };
+    Object.keys(BANNERS).forEach(id => {
+        const m = $(id), box = m && m.querySelector('.modal-box');
+        if (!box || box.querySelector('.ux-banner')) return;
+        const cv = document.createElement('canvas'); cv.className = 'ux-banner'; cv.dataset.kind = BANNERS[id];
+        const x = box.querySelector('.modal-close-x');
+        box.insertBefore(cv, x && x.nextSibling ? x.nextSibling : box.firstChild);
+        box.classList.add('ux-skin');
+        new MutationObserver(() => { if (m.classList.contains('active')) setTimeout(() => window.uxBannerDraw(id), 40); }).observe(m, { attributes: true, attributeFilter: ['class'] });
+    });
+    const _tabOrig = window.uxPasarTab;
+    window.uxPasarTab = function (name) {
+        const r = _tabOrig.apply(this, arguments);
+        try { const m = $('pasar-modal'); if (m && m.classList.contains('active')) window.uxBannerDraw('pasar-modal', name === 'olah' ? 'olahan' : 'pasar'); } catch (e) {}
+        return r;
     };
 
     // ---------- kartu konfirmasi bergaya game ----------

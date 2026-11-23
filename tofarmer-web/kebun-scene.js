@@ -340,6 +340,111 @@
     ell(g, 40, 56, 6, 12, 'rgba(255,255,255,0.45)', 0.3);
   }
   function drawLeafSpr(g) { leaf(g, 50, 90, 80, 0.5, '#7ccc55', '#2f8a38'); }
+
+  function drawLumbung(g) {
+    var i, k;
+    poly(g, [[50, 62], [98, 82], [50, 102], [2, 82]], '#b9b09a', '#9a927e', 1);
+    poly(g, [[2, 82], [50, 102], [50, 106], [2, 86]], '#8c846f');
+    poly(g, [[98, 82], [50, 102], [50, 106], [98, 86]], '#6f6a58');
+    poly(g, [[14, 82], [50, 98], [50, 74], [14, 58]], lin(g, 14, 0, 50, 0, [0, '#d5ae68', 1, '#b98f4c']));
+    poly(g, [[86, 82], [50, 98], [50, 74], [86, 58]], lin(g, 50, 0, 86, 0, [0, '#a98340', 1, '#8a6a33']));
+    g.strokeStyle = 'rgba(70,45,10,0.3)'; g.lineWidth = 0.7;
+    for (i = 1; i < 8; i++) {
+      k = i / 8;
+      g.beginPath(); g.moveTo(lerp(14, 50, k), lerp(82, 98, k)); g.lineTo(lerp(14, 50, k), lerp(58, 74, k)); g.stroke();
+      g.beginPath(); g.moveTo(lerp(86, 50, k), lerp(82, 98, k)); g.lineTo(lerp(86, 50, k), lerp(58, 74, k)); g.stroke();
+    }
+    for (i = 1; i < 4; i++) {
+      g.beginPath(); g.moveTo(14, 82 - i * 6); g.lineTo(50, 98 - i * 6); g.moveTo(86, 82 - i * 6); g.lineTo(50, 98 - i * 6); g.stroke();
+    }
+    poly(g, [[24, 88.5], [36, 94], [36, 79], [24, 73.5]], '#3a2810');
+    poly(g, [[4, 62], [50, 86], [50, 8]], lin(g, 4, 0, 50, 0, [0, '#cfa04a', 1, '#ac7c30']));
+    poly(g, [[96, 62], [50, 86], [50, 8]], lin(g, 50, 0, 96, 0, [0, '#9c7432', 1, '#7d5a22']));
+    g.strokeStyle = 'rgba(70,45,10,0.32)'; g.lineWidth = 0.9;
+    for (i = 1; i < 7; i++) {
+      k = i / 7;
+      g.beginPath(); g.moveTo(50, 8); g.lineTo(lerp(4, 50, k), lerp(62, 86, k)); g.stroke();
+      g.beginPath(); g.moveTo(50, 8); g.lineTo(lerp(96, 50, k), lerp(62, 86, k)); g.stroke();
+    }
+    ell(g, 82, 96, 5, 4.2, '#e6d7ae'); ell(g, 90, 92, 5, 4.2, '#dccb9c'); ell(g, 82, 93, 1.6, 1, '#b79a5a');
+  }
+
+  function drawDapur(g) {
+    var i, k;
+    poly(g, [[50, 70], [94, 88], [50, 106], [6, 88]], '#aaa28c', '#8f8872', 1);
+    poly(g, [[6, 88], [50, 106], [50, 110], [6, 92]], '#857e6a');
+    poly(g, [[94, 88], [50, 106], [50, 110], [94, 92]], '#69644f');
+    poly(g, [[18, 88], [50, 102], [50, 80], [18, 66]], lin(g, 18, 0, 50, 0, [0, '#b27a4d', 1, '#9b6640']));
+    poly(g, [[82, 88], [50, 102], [50, 80], [82, 66]], lin(g, 50, 0, 82, 0, [0, '#84552f', 1, '#6c4425']));
+    g.strokeStyle = 'rgba(50,28,10,0.35)'; g.lineWidth = 0.8;
+    for (i = 1; i < 6; i++) { k = i / 6; g.beginPath(); g.moveTo(lerp(18, 50, k), lerp(88, 102, k)); g.lineTo(lerp(18, 50, k), lerp(66, 80, k)); g.stroke(); }
+    poly(g, [[58, 95], [72, 88.5], [72, 76], [58, 82.5]], '#ffb347', '#4a2e14', 1.2);
+    var gl = g.createRadialGradient(65, 86, 0, 65, 86, 11);
+    gl.addColorStop(0, 'rgba(255,232,150,0.9)'); gl.addColorStop(1, 'rgba(255,150,40,0)');
+    g.fillStyle = gl; g.fillRect(50, 72, 30, 28);
+    poly(g, [[28, 93], [40, 98.5], [40, 84], [28, 78.5]], '#33200d');
+    poly(g, [[64, 30], [76, 35], [76, 60], [64, 55]], '#8b8577');
+    poly(g, [[64, 30], [70, 27], [82, 32], [76, 35]], '#6f6a5c');
+    poly(g, [[10, 72], [50, 94], [50, 32]], lin(g, 10, 0, 50, 0, [0, '#9a553b', 1, '#7d412c']));
+    poly(g, [[90, 72], [50, 94], [50, 32]], lin(g, 50, 0, 90, 0, [0, '#733827', 1, '#5f2d1f']));
+    g.strokeStyle = 'rgba(40,15,8,0.4)'; g.lineWidth = 0.9;
+    for (i = 1; i < 6; i++) {
+      k = i / 6;
+      g.beginPath(); g.moveTo(50, 32); g.lineTo(lerp(10, 50, k), lerp(72, 94, k)); g.stroke();
+      g.beginPath(); g.moveTo(50, 32); g.lineTo(lerp(90, 50, k), lerp(72, 94, k)); g.stroke();
+    }
+  }
+
+  function drawKompos(g) {
+    var i;
+    ell(g, 50, 72, 46, 8, 'rgba(0,0,0,0.2)');
+    poly(g, [[8, 40], [50, 60], [50, 80], [8, 60]], lin(g, 8, 0, 50, 0, [0, '#93724a', 1, '#7d5f3b']));
+    poly(g, [[92, 40], [50, 60], [50, 80], [92, 60]], lin(g, 50, 0, 92, 0, [0, '#6e5232', 1, '#5a4128']));
+    g.strokeStyle = 'rgba(40,24,8,0.4)'; g.lineWidth = 0.9;
+    for (i = 1; i < 3; i++) {
+      g.beginPath(); g.moveTo(8, 40 + i * 6.6); g.lineTo(50, 60 + i * 6.6); g.moveTo(92, 40 + i * 6.6); g.lineTo(50, 60 + i * 6.6); g.stroke();
+    }
+    poly(g, [[8, 40], [50, 20], [50, 26], [16, 40]], '#6b4f30');
+    poly(g, [[92, 40], [50, 20], [50, 26], [84, 40]], '#5a4128');
+    poly(g, [[50, 26], [84, 40], [50, 54], [16, 40]], '#3b2a1b');
+    ell(g, 50, 40, 26, 8.5, '#4a3523'); ell(g, 44, 37, 12, 4.5, '#5b432c'); ell(g, 58, 41, 11, 4, '#523b25');
+    ell(g, 34, 42, 3.4, 1.6, '#6fbf5a', 0.4); ell(g, 62, 36, 3.2, 1.5, '#f0a04b', -0.3); ell(g, 48, 45, 3, 1.4, '#8fd070', 0.2);
+    ell(g, 70, 42, 2.6, 1.3, '#e8c43a', 0.5); ell(g, 40, 36, 2.6, 1.2, '#f0a04b', -0.5);
+    poly(g, [[8, 40], [50, 60], [50, 64], [8, 44]], '#a07b4f');
+    poly(g, [[92, 40], [50, 60], [50, 64], [92, 44]], '#7d6038');
+    g.strokeStyle = '#4c8a2b'; g.lineWidth = 1.6; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(52, 38); g.lineTo(52, 28); g.stroke();
+    leaf(g, 52, 31, 8, -0.9, '#7ccc55', '#3b9a3a'); leaf(g, 52, 29, 8, 0.9, '#62bb4a', '#2f8a38');
+    g.strokeStyle = 'rgba(255,255,255,0.3)'; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(36, 30); g.quadraticCurveTo(32, 22, 37, 15); g.moveTo(66, 30); g.quadraticCurveTo(70, 22, 65, 14); g.stroke();
+  }
+
+  function drawLapak(g) {
+    var i, t;
+    ell(g, 50, 92, 46, 7, 'rgba(0,0,0,0.2)');
+    poly(g, [[10, 70], [50, 88], [50, 68], [10, 50]], '#a9724a');
+    poly(g, [[90, 70], [50, 88], [50, 68], [90, 50]], '#7b4e30');
+    poly(g, [[50, 32], [90, 50], [50, 68], [10, 50]], '#c58a55', '#8f5f35', 1);
+    ell(g, 36, 52, 9, 5, '#8a5a30'); ell(g, 34, 50, 3.5, 2.3, '#9b4577'); ell(g, 39, 51, 3.5, 2.3, '#e69a45'); ell(g, 36, 48.5, 3.5, 2.2, '#9b4577');
+    ell(g, 64, 52, 9, 5, '#8a5a30'); ell(g, 62, 50, 3.2, 3.2, '#e8c43a'); ell(g, 67, 51, 3.2, 3.2, '#d9a62a'); ell(g, 64, 48.6, 3, 3, '#e8c43a');
+    ell(g, 50, 60, 8, 4.5, '#8a5a30'); ell(g, 48, 58.5, 3, 3, '#7bbf5a'); ell(g, 53, 59, 3, 3, '#5aa04a');
+    g.strokeStyle = '#6b4a2a'; g.lineWidth = 2.6; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(12, 52); g.lineTo(12, 26); g.moveTo(88, 52); g.lineTo(88, 26); g.moveTo(50, 70); g.lineTo(50, 44); g.stroke();
+    var N = [50, 4], E = [98, 24], S2 = [50, 44], W = [2, 24];
+    function lp(a, b, k) { return [lerp(a[0], b[0], k), lerp(a[1], b[1], k)]; }
+    poly(g, [N, E, S2, W], '#f3e3c3');
+    for (i = 0; i < 6; i += 2) {
+      var a0 = lp(W, S2, i / 6), a1 = lp(W, S2, (i + 1) / 6), b1 = lp(N, E, (i + 1) / 6), b0 = lp(N, E, i / 6);
+      poly(g, [a0, a1, b1, b0], '#c8553d');
+    }
+    for (i = 0; i < 6; i++) {
+      t = (i + 0.5) / 6; var pa = lp(W, S2, t), pb = lp(S2, E, t);
+      ell(g, pa[0], pa[1] + 2.6, 4.2, 3.2, i % 2 ? '#f3e3c3' : '#c8553d');
+      ell(g, pb[0], pb[1] + 2.6, 4.2, 3.2, i % 2 ? '#c8553d' : '#f3e3c3');
+    }
+    poly(g, [N, E, S2, W], null, 'rgba(90,40,20,0.5)', 1);
+  }
+
   function drawMist(g) {
     g.save(); g.translate(50, 14); g.scale(1, 0.28);
     var gr = g.createRadialGradient(0, 0, 0, 0, 0, 50);
@@ -380,6 +485,10 @@
     spark: { w: 0.12, a: 1.0, ax: 0.5, ay: 0.5, draw: drawSpark },
     drop: { w: 0.06, a: 1.0, ax: 0.5, ay: 0.5, draw: drawDrop },
     leaf: { w: 0.09, a: 1.0, ax: 0.5, ay: 0.9, draw: drawLeafSpr },
+    lumbung: { w: 1.25, a: 1.08, ax: 0.5, ay: 0.86, draw: drawLumbung },
+    dapur: { w: 1.1, a: 1.1, ax: 0.5, ay: 0.88, chim: [0.7, 0.26], draw: drawDapur },
+    kompos: { w: 0.85, a: 0.85, ax: 0.5, ay: 0.8, draw: drawKompos },
+    lapak: { w: 1.25, a: 1.0, ax: 0.5, ay: 0.9, draw: drawLapak },
     mist: { w: 4.0, a: 0.28, ax: 0.5, ay: 0.5, draw: drawMist },
     glow: { w: 0.3, a: 1.0, ax: 0.5, ay: 0.5, draw: drawGlow },
     glow_y: { w: 0.3, a: 1.0, ax: 0.5, ay: 0.5, draw: drawGlowYellow }
@@ -420,6 +529,45 @@
     };
   }
 
+
+  /* ------------------------------------------------------------------
+     ASET SENIMAN (dipakai bersama oleh pemandangan kebun dan banner popup)
+     ------------------------------------------------------------------ */
+  var ASSETS = {}, assetJobs = {};
+  function loadAssets(base) {
+    if (!base || !global.fetch) return Promise.resolve();
+    if (assetJobs[base]) return assetJobs[base];
+    assetJobs[base] = global.fetch(base + 'manifest.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
+      if (!m) return;
+      var jobs = [];
+      function def(name, e) {
+        var d = DEF[name] || {};
+        return { w: e.wTiles || d.w || 1, ax: e.ax != null ? e.ax : (d.ax != null ? d.ax : 0.5), ay: e.ay != null ? e.ay : (d.ay != null ? d.ay : 1) };
+      }
+      function img(src) {
+        return new Promise(function (res) { var im = new global.Image(); im.onload = function () { res(im); }; im.onerror = function () { res(null); }; im.src = base + src; });
+      }
+      var sp = m.sprites || {};
+      Object.keys(sp).forEach(function (name) {
+        var e = typeof sp[name] === 'string' ? { file: sp[name] } : sp[name], p = def(name, e);
+        jobs.push(img(e.file).then(function (im) { if (im) ASSETS[name] = { img: im, sx: 0, sy: 0, sw: im.naturalWidth, sh: im.naturalHeight, w: p.w, ax: p.ax, ay: p.ay }; }));
+      });
+      if (m.atlas && m.atlas.image) {
+        jobs.push(img(m.atlas.image).then(function (im) {
+          if (!im) return;
+          var fr = m.atlas.frames || {};
+          Object.keys(fr).forEach(function (name) {
+            var f = fr[name], p = def(name, f);
+            ASSETS[name] = { img: im, sx: f.x, sy: f.y, sw: f.w, sh: f.h, w: p.w, ax: p.ax, ay: p.ay };
+          });
+        }));
+      }
+      return Promise.all(jobs);
+    }).catch(function () { });
+    return assetJobs[base];
+  }
+  function assetCount() { return Object.keys(ASSETS).length; }
+
   /* ------------------------------------------------------------------
      SCENE
      ------------------------------------------------------------------ */
@@ -440,7 +588,7 @@
       plots: [], byKey: {}, selected: null, health: 100, hemat: !!opts.hemat, t: 0, hour: 12, skyKey: -1,
       sky: null, ground: null, running: false, last: 0, drawN: 0, dtAvg: 0, fpsAvg: 30, frames: 0, assets: 0
     };
-    var cache = {}, override = {}, labels = {}, rafId = 0, fx = [], chickens = [], clouds = [], mists = [], flies = [], fireflies = [];
+    var cache = {}, override = ASSETS, labels = {}, pills = {}, rafId = 0, fx = [], chickens = [], clouds = [], mists = [], flies = [], fireflies = [];
     var rnd = rngOf(4242), debug = !!opts.debug, tod = todAt(12), resizeTimer = 0, disposed = false, ro = null;
 
     function dprNow() { return Math.min(global.devicePixelRatio || 1, S.hemat ? 1 : 1.75); }
@@ -474,39 +622,11 @@
       ctx.save(); ctx.translate(x, y); ctx.rotate(rot); blit(c, 0, 0, sc, alpha); ctx.restore();
     }
 
-    /* ---- aset seniman ---- */
-    function loadAssets() {
-      var base = opts.assetBase; if (!base || !global.fetch) return;
-      global.fetch(base + 'manifest.json', { cache: 'no-cache' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (m) {
-        if (!m || disposed) return;
-        var jobs = [];
-        function def(name, e) {
-          var d = DEF[name] || {};
-          return { w: e.wTiles || d.w || 1, ax: e.ax != null ? e.ax : (d.ax != null ? d.ax : 0.5), ay: e.ay != null ? e.ay : (d.ay != null ? d.ay : 1) };
-        }
-        function img(src, cb) {
-          var im = new global.Image(); im.onload = function () { cb(im); }; im.onerror = function () { };
-          im.src = base + src;
-        }
-        var sp = m.sprites || {};
-        Object.keys(sp).forEach(function (name) {
-          var e = typeof sp[name] === 'string' ? { file: sp[name] } : sp[name], p = def(name, e);
-          img(e.file, function (im) { override[name] = { img: im, sx: 0, sy: 0, sw: im.naturalWidth, sh: im.naturalHeight, w: p.w, ax: p.ax, ay: p.ay }; S.assets++; });
-        });
-        if (m.atlas && m.atlas.image) {
-          img(m.atlas.image, function (im) {
-            var fr = m.atlas.frames || {};
-            Object.keys(fr).forEach(function (name) {
-              var f = fr[name], p = def(name, f);
-              override[name] = { img: im, sx: f.x, sy: f.y, sw: f.w, sh: f.h, w: p.w, ax: p.ax, ay: p.ay }; S.assets++;
-            });
-          });
-        }
-      }).catch(function () { });
-    }
-
     /* ---- tata letak ---- */
     function P(gx, gy) { return { x: S.ox + (gx - gy) * S.tw / 2, y: S.oy + (gx + gy) * S.tw / 4 }; }
+
+    // layar sempit: lahan memenuhi lebar, ATAU barisan bangunan (±8,6 petak) tidak muat memanjang di layar
+    function isNarrow() { return S.w / 2 - (S.cols + S.rows) / 4 * S.tw < S.tw * 0.5 || S.w < S.tw * 8.6; }
 
     function layout() {
       var fr = (opts.getFieldRect && opts.getFieldRect()) || { x: 0, y: S.h * 0.25, w: S.w, h: S.h * 0.6 };
@@ -521,7 +641,8 @@
       S.tw = clamp(tw, 36, 124); // batas atas supaya dekorasi tidak raksasa saat lahan sedikit
       var gcx = (cols - 1) / 2, gcy = (rows - 1) / 2;
       S.ox = fr.x + fr.w / 2 - (gcx - gcy) * S.tw / 2;
-      S.oy = fr.y + fr.h / 2 - ((cols + rows - 2) * S.tw / 4 - 0.4 * S.tw) / 2;
+      var shift = isNarrow() ? Math.min(0.28 * S.tw, Math.max(0, (fr.h - uhP * S.tw) / 2 - 6)) : 0;   // pakai ruang kosong di bawah untuk memberi napas bangunan di atas
+      S.oy = fr.y + fr.h / 2 - ((cols + rows - 2) * S.tw / 4 - 0.4 * S.tw) / 2 + shift;
       S.horizon = Math.max(S.h * 0.16, P(-1.5, -1.5).y - S.tw * 0.35);
       for (var i = 0; i < S.plots.length; i++) {
         var p = S.plots[i], c = i % cols, r = Math.floor(i / cols);
@@ -603,10 +724,25 @@
       return c;
     }
 
+    function pillSpr(text) {
+      var key = text + '@' + Math.round(S.tw), c = pills[key]; if (c) return c;
+      var fs = Math.max(10, Math.round(S.tw * 0.115)), pad = fs * 0.6;
+      var m = mk(4, 4).getContext('2d'); m.font = '800 ' + fs + 'px system-ui, sans-serif';
+      var w = Math.ceil(m.measureText(text).width + pad * 2), h = Math.ceil(fs * 1.55);
+      var cv = mk(Math.ceil(w * S.dpr), Math.ceil(h * S.dpr)), g = cv.getContext('2d'); g.scale(S.dpr, S.dpr);
+      var r = h / 2;
+      g.beginPath(); g.moveTo(r, 0.5); g.lineTo(w - r, 0.5); g.arc(w - r, h / 2, r - 0.5, -Math.PI / 2, Math.PI / 2); g.lineTo(r, h - 0.5); g.arc(r, h / 2, r - 0.5, Math.PI / 2, Math.PI * 1.5); g.closePath();
+      g.fillStyle = 'rgba(8,38,40,0.86)'; g.fill(); g.strokeStyle = 'rgba(255,214,150,0.75)'; g.lineWidth = 1.2; g.stroke();
+      g.font = '800 ' + fs + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff3c4';
+      g.fillText(text, w / 2, h / 2 + 0.5);
+      c = pills[key] = { img: cv, w: w, h: h };
+      return c;
+    }
+
     function rebuild() {
       S.dpr = dprNow();
       canvas.width = Math.max(1, Math.round(S.w * S.dpr)); canvas.height = Math.max(1, Math.round(S.h * S.dpr));
-      cache = {}; labels = {};
+      cache = {}; labels = {}; pills = {};
       S.hour = getHour(); tod = todAt(S.hour);
       layout(); buildSky(); buildGround(); initAmbient();
     }
@@ -682,6 +818,15 @@
       S.t += dt;
       var i, c, p;
       for (i = 0; i < clouds.length; i++) { c = clouds[i]; c.x += c.v * dt; if (c.x - S.tw * 1.4 > S.w) c.x = -S.tw * 1.6; }
+      for (i = 0; i < decor.length; i++) {   // asap cerobong dapur
+        var dd = decor[i]; if (!dd.smoke) continue;
+        dd.smokeT = (dd.smokeT || 0) + dt;
+        if (dd.smokeT > 0.6) {
+          dd.smokeT = 0;
+          var sp0 = spr(dd.name), q0 = P(dd.gx, dd.gy), dw0 = sp0.w * S.tw * (dd.sc || 1), dh0 = dw0 * (sp0.sh / sp0.sw), ch = (DEF[dd.name] && DEF[dd.name].chim) || [0.7, 0.26];
+          addFx({ t: 'smoke', x: q0.x + (ch[0] - sp0.ax) * dw0, y: q0.y + (ch[1] - sp0.ay) * dh0, vx: 7 + rnd() * 5, vy: -15 - rnd() * 8, life: 2.4, max: 2.4 });
+        }
+      }
       for (i = 0; i < mists.length; i++) {
         var mm = mists[i], half = S.tw * 4 * mm.s / 2; mm.x += mm.v * dt;
         if (mm.v > 0 && mm.x - half > S.w) mm.x = -half; else if (mm.v < 0 && mm.x + half < 0) mm.x = S.w + half;
@@ -781,32 +926,43 @@
     function drawDecor(d) {
       var q = P(d.gx, d.gy), sway = d.sway ? Math.sin(S.t * 1.1 + d.ph) * d.sway : 0, c = spr(d.name);
       if (sway) blitRot(c, q.x, q.y, d.sc || 1, sway); else blit(c, q.x, q.y, d.sc || 1);
+      if (d.label) {   // bangunan yang bisa diketuk diberi nama
+        var p = pillSpr(d.label);
+        ctx.drawImage(p.img, 0, 0, p.img.width, p.img.height, q.x - p.w / 2, q.y + S.tw * 0.04, p.w, p.h); S.drawN++;
+      }
     }
 
     var decor = [];
-    /* dekorasi diletakkan relatif terhadap kebun: u = jarak mendatar dari tengah kebun (satuan petak),
-       sum = kedalaman (gx+gy). Jarak dibatasi supaya sprite tetap utuh di layar sempit, dan tetap dekat kebun di layar lebar */
+    /* Barisan belakang kebun berisi bangunan yang bisa diketuk (Rumah, Gudang, Olahan, Kompos) + Beringin.
+       Layar lebar: jarak dari tengah kebun dalam satuan petak (u). Layar sempit (lahan memenuhi lebar):
+       posisi sebagai pecahan lebar layar dan ukuran disesuaikan agar tidak saling menutupi terlalu banyak. */
     function buildDecor() {
       if (!S.w || !S.tw) return;
       var lvl = S.health < 30 ? 0 : S.health < 70 ? 1 : 2, R = S.rows, C = S.cols;
       var cx = S.ox + ((C - 1) / 2 - (R - 1) / 2) * S.tw / 2;
-      function at(name, u, sum, o) {
-        var sp = spr(name), half = sp ? sp.w * S.tw * ((o && o.sc) || 1) / 2 : 0;
-        var lim = Math.max(0, S.w / 2 - half - 4), dx = clamp(u * S.tw, -lim, lim);
-        var diff = (cx + dx - S.ox) / (S.tw / 2), d = { name: name, gx: (sum + diff) / 2, gy: (sum - diff) / 2 };
-        for (var k in o) d[k] = o[k];
+      var clusterHalf = (C + R) / 4 * S.tw;
+      var narrow = isNarrow();
+      function at(name, pos, sum, o) {
+        var sp = spr(name), sc = o.sc || 1;
+        if (narrow && o.fit && sp) sc = Math.min(0.95, (o.fit * S.w) / (sp.w * S.tw));
+        var half = sp ? sp.w * S.tw * sc / 2 : 0, lim = Math.max(0, S.w / 2 - half - 4);
+        var dx = clamp(narrow ? pos[0] * S.w - cx : pos[1] * S.tw, -lim, lim);
+        var diff = (cx + dx - S.ox) / (S.tw / 2), d = { name: name, gx: (sum + diff) / 2, gy: (sum - diff) / 2, sc: sc };
+        for (var k in o) if (k !== 'sc') d[k] = o[k];
         return d;
       }
+      //                 nama           [pecahan lebar, satuan petak]  kedalaman  opsi
       decor = [
-        at('house_joglo', -2.6, -3.0, { sc: 0.78 }),
-        at('tree_kelapa', -0.2, -3.4, { sc: 0.85, sway: 0.016, ph: 0.4 }),
-        at('tree_beringin_' + lvl, 2.5, -2.5, { sc: 0.64, ber: true, sway: 0.004, ph: 1.3 })
+        at('house_joglo', [0.16, -3.6], narrow ? -3.7 : -3.0, { sc: 0.78, fit: 0.26, id: 'rumah', label: 'Rumah' }),
+        at('lumbung', [0.34, -2.0], -3.0, { sc: 0.8, fit: 0.22, id: 'gudang', label: 'Gudang' }),
+        at('dapur', [0.52, -0.4], narrow ? -3.5 : -3.3, { sc: 0.8, fit: 0.19, id: 'olahan', label: 'Olahan', smoke: true }),
+        at('kompos', [0.69, 1.2], -3.0, { sc: 0.85, fit: 0.16, id: 'kompos', label: 'Kompos' }),
+        at('tree_beringin_' + lvl, [0.88, 3.2], narrow ? -3.9 : -2.8, { sc: 0.64, fit: 0.3, id: 'beringin', label: 'Beringin', ber: true, sway: 0.004, ph: 1.3 })
       ];
-      // dekorasi di sisi kebun hanya bila ada ruang di luar kumpulan lahan (di layar sempit kumpulan lahan memenuhi lebar)
-      var clusterHalf = (C + R) / 4 * S.tw;
-      if (S.w / 2 - clusterHalf - S.tw * 0.35 > 0) {
-        decor.push(at('tree_kelapa', 3.2, C + 0.2, { sc: 0.78, sway: 0.016, ph: 2.1 }));
-        decor.push(at('bamboo', -3.3, R + 0.3, { sc: 0.78, sway: 0.01, ph: 3.3 }));
+      if (!narrow && S.w / 2 - clusterHalf - S.tw * 0.35 > 0) {   // ada ruang di sisi kebun
+        decor.push(at('lapak', [0, 4.6], C + 0.2, { sc: 0.8, id: 'pasar', label: 'Pasar' }));
+        decor.push(at('tree_kelapa', [0, -4.8], R + 0.3, { sc: 0.78, sway: 0.016, ph: 3.3 }));
+        decor.push(at('bamboo', [0, 5.8], R + 1.2, { sc: 0.7, sway: 0.01, ph: 4.1 }));
       }
     }
 
@@ -872,7 +1028,9 @@
         else if (f.t === 'drop') blit(spr('drop'), f.x, f.y, f.s || 1, 0.9);
         else if (f.t === 'leaf') blitRot(spr('leaf'), f.x, f.y, f.s || 1, f.rot || 0, Math.min(1, k * 1.6));
         else if (f.t === 'dirt') { ctx.globalAlpha = Math.min(1, k * 1.5); ctx.fillStyle = '#6a4423'; ctx.beginPath(); ctx.arc(f.x, f.y, 1.6 * (f.s || 1), 0, TAU); ctx.fill(); ctx.globalAlpha = 1; }
-        else if (f.t === 'ring' || f.t === 'ripple') {
+        else if (f.t === 'smoke') {
+          ctx.globalAlpha = 0.34 * k; ctx.fillStyle = '#e8eef0'; ctx.beginPath(); ctx.arc(f.x, f.y, S.tw * (0.03 + 0.055 * (1 - k)), 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+        } else if (f.t === 'ring' || f.t === 'ripple') {
           var rr = (1 - k) * S.tw * (f.t === 'ring' ? 0.7 : 0.18); ctx.globalAlpha = k; ctx.lineWidth = f.t === 'ring' ? 3 : 1.5;
           ctx.strokeStyle = f.t === 'ring' ? '#ffe066' : '#bfe4ff'; ctx.beginPath(); ctx.ellipse(f.x, f.y, rr, rr / 2, 0, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
         } else if (f.t === 'text') {
@@ -893,7 +1051,7 @@
         ctx.fillStyle = '#9dff9d'; ctx.font = '11px monospace'; ctx.textAlign = 'left';
         ctx.fillText('FPS ' + S.fpsAvg.toFixed(0) + '  draw ' + S.dtAvg.toFixed(2) + ' ms', 12, S.h - 46);
         ctx.fillText('drawImage/frame ' + S.drawN + '  dpr ' + S.dpr, 12, S.h - 32);
-        ctx.fillText('aset seniman ' + S.assets + (S.hemat ? '  [HEMAT]' : ''), 12, S.h - 18);
+        ctx.fillText('aset seniman ' + assetCount() + (S.hemat ? '  [HEMAT]' : ''), 12, S.h - 18);
       }
     }
 
@@ -935,11 +1093,13 @@
         var c = chickens[i], q = P(c.gx, c.gy);
         if (Math.abs(x - q.x) < S.tw * 0.2 && y > q.y - S.tw * 0.3 && y < q.y + S.tw * 0.06) return { type: 'chicken', c: c };
       }
+      var bestD = null, bestDy = -1e9;   // bangunan yang bisa diketuk: bila beberapa tumpang tindih, yang paling DEPAN (dasar paling bawah di layar) menang
       for (i = 0; i < decor.length; i++) {
-        var d = decor[i]; if (!d.ber) continue;
-        var dq = P(d.gx, d.gy), sp = spr(d.name), dw = sp.w * S.tw, dh = dw * (sp.sh / sp.sw);
-        if (x > dq.x - dw * 0.4 && x < dq.x + dw * 0.4 && y > dq.y - dh * sp.ay && y < dq.y + dh * (1 - sp.ay)) return { type: 'beringin' };
+        var d = decor[i]; if (!d.id) continue;
+        var dq = P(d.gx, d.gy), sp = spr(d.name), dw = sp.w * S.tw * (d.sc || 1), dh = dw * (sp.sh / sp.sw);
+        if (x > dq.x - dw * 0.45 && x < dq.x + dw * 0.45 && y > dq.y - dh * sp.ay && y < dq.y + dh * (1 - sp.ay) + S.tw * 0.28 && dq.y > bestDy) { bestD = d; bestDy = dq.y; }
       }
+      if (bestD) return bestD.id === 'beringin' ? { type: 'beringin' } : { type: 'landmark', id: bestD.id };
       /* tahap 1: ketukan di dalam petak (belah ketupat) menang; tahap 2: ketukan di tanaman yang menjulang */
       for (i = 0; i < S.plots.length; i++) {
         var p = S.plots[i], dx = Math.abs(x - p.x) / (S.tw * 0.5), dy = Math.abs(y - p.y) / (S.tw * 0.25);
@@ -957,6 +1117,7 @@
       var h = hit(e.clientX, e.clientY); if (!h) return;
       if (h.type === 'plot') { if (opts.onSelect) opts.onSelect(h.key); }
       else if (h.type === 'beringin') { if (opts.onBeringin) opts.onBeringin(); }
+      else if (h.type === 'landmark') { if (opts.onLandmark) opts.onLandmark(h.id); }
       else if (h.type === 'chicken') { h.c.hop = 1; h.c.say = 1; }
     }
     if (opts.eventEl) opts.eventEl.addEventListener('click', onClick);
@@ -985,13 +1146,85 @@
         if (canvas.parentNode && !opts.canvas) canvas.parentNode.removeChild(canvas);
       },
       hit: hit,
+      landmarks: function () { return decor.filter(function (d) { return d.id; }).map(function (d) { var q = P(d.gx, d.gy); return { id: d.id, x: q.x, y: q.y }; }); },
       renderOnce: function (dt) { if (!S.sky) resize(); update(dt || 0.033); draw(); },
-      stats: function () { return { fps: S.fpsAvg, drawMs: S.dtAvg, drawImage: S.drawN, plots: S.plots.length, tw: S.tw, assets: S.assets, dpr: S.dpr }; },
+      stats: function () { return { fps: S.fpsAvg, drawMs: S.dtAvg, drawImage: S.drawN, plots: S.plots.length, tw: S.tw, assets: assetCount(), dpr: S.dpr }; },
       _S: S
     };
-    loadAssets();
+    loadAssets(opts.assetBase).then(function () { if (!disposed && S.w && assetCount()) resize(); });   // aset tiba -> gambar ulang dengan karya seniman
     return api;
   }
 
-  global.KebunScene = { create: create, DEF: DEF, version: '1.0' };
+
+  /* ------------------------------------------------------------------
+     BANNER: gambar latar untuk popup (Gudang, Olahan, Kompos, Pasar, Lahan, Rumah, Beringin).
+     Dirender SEKALI ke kanvas kecil dari sprite yang sama dengan kebun. Karya seniman (aset) belum dipakai di sini.
+     ------------------------------------------------------------------ */
+  var bSprites = {};
+  function bSprite(name, pxW, dpr) {
+    var as = ASSETS[name];
+    if (as) return { asset: as, dw: pxW, dh: pxW * (as.sh / as.sw), ax: as.ax, ay: as.ay };
+    var key = name + '@' + pxW + '@' + dpr, c0 = bSprites[key]; if (c0) return c0;
+    var d = DEF[name]; if (!d) return null;
+    var dw = Math.max(2, Math.round(pxW * dpr)), dh = Math.max(2, Math.round(dw * d.a));
+    var cv = global.document.createElement('canvas'); cv.width = dw; cv.height = dh;
+    var g = cv.getContext('2d'); g.scale(dw / 100, dw / 100); d.draw(g);
+    return (bSprites[key] = { img: cv, dw: pxW, dh: pxW * d.a, ax: d.ax, ay: d.ay });
+  }
+  function banner(canvas, kind, o) {
+    o = o || {};
+    var dpr = Math.min(global.devicePixelRatio || 1, 2);
+    var W = o.w || canvas.clientWidth || 340, H = o.h || canvas.clientHeight || 112;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    var g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    var hr = typeof o.hour === 'number' ? o.hour : (new Date().getHours() + new Date().getMinutes() / 60), t = todAt(hr);
+    var hz = H * 0.5, i, x;
+    g.fillStyle = lin(g, 0, 0, 0, hz + 1, [0, t.top, 1, t.bot]); g.fillRect(0, 0, W, hz + 1);
+    var rr = rngOf(31);
+    if (t.night > 0.35) { g.fillStyle = 'rgba(255,255,255,' + (0.9 * t.night).toFixed(2) + ')'; for (i = 0; i < 26; i++) g.fillRect(rr() * W, rr() * hz * 0.8, 1.2, 1.2); }
+    var sunUp = hr > 6 && hr < 18, sp = sunUp ? (hr - 6) / 12 : (hr >= 18 ? (hr - 18) / 12 : (hr + 6) / 12);
+    var bx = lerp(0.15, 0.85, sp) * W, by = hz - Math.sin(sp * Math.PI) * hz * 0.7 - 4, rad = H * 0.12;
+    var gl = g.createRadialGradient(bx, by, 0, bx, by, rad * 3); gl.addColorStop(0, sunUp ? 'rgba(255,250,200,0.9)' : 'rgba(235,242,255,0.85)'); gl.addColorStop(1, 'rgba(255,240,200,0)');
+    g.fillStyle = gl; g.fillRect(bx - rad * 3, by - rad * 3, rad * 6, rad * 6);
+    g.beginPath(); g.arc(bx, by, rad * 0.6, 0, TAU); g.fillStyle = sunUp ? '#fff6c8' : '#f4f6ff'; g.fill();
+    var HILL = ['#7fb0b8', '#3f8a7a', '#1f6a52'], K = [0.42, 0.55, 0.7], AM = [0.34, 0.24, 0.15], FQ = [0.012, 0.018, 0.026];
+    for (var L = 0; L < 3; L++) {
+      g.beginPath(); g.moveTo(0, hz + 2);
+      for (x = 0; x <= W + 6; x += 6) g.lineTo(x, hz - H * AM[L] * (0.55 + 0.3 * Math.sin(x * FQ[L] + L * 5) + 0.15 * Math.sin(x * FQ[L] * 2.7 + L)));
+      g.lineTo(W + 6, hz + 2); g.closePath(); g.fillStyle = mix(t.botHex, HILL[L], K[L]); g.fill();
+    }
+    g.fillStyle = lin(g, 0, hz, 0, H, [0, '#62ab78', 0.4, '#3f8a5c', 1, '#1f5a45']); g.fillRect(0, hz, W, H - hz);
+    g.lineCap = 'round';
+    for (i = 0; i < 90; i++) { x = rr() * W; var y = hz + rr() * (H - hz); g.strokeStyle = rr() > 0.5 ? 'rgba(8,66,52,0.35)' : 'rgba(190,245,205,0.18)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x, y); g.lineTo(x + (rr() - 0.5) * 3, y - 3); g.stroke(); }
+    function put(name, xf, base, w) {
+      var c = bSprite(name, w, dpr); if (!c) return;
+      if (c.asset) g.drawImage(c.asset.img, c.asset.sx, c.asset.sy, c.asset.sw, c.asset.sh, xf * W - c.ax * c.dw, base - c.ay * c.dh, c.dw, c.dh);
+      else g.drawImage(c.img, xf * W - c.ax * c.dw, base - c.ay * c.dh, c.dw, c.dh);
+    }
+    var b0 = H * 0.9;
+    if (kind === 'gudang') { put('tree_kelapa', 0.14, b0, H * 0.4); put('lumbung', 0.5, b0, H * 0.8); put('chicken_0', 0.78, b0 + 2, H * 0.26); put('bamboo', 0.92, b0, H * 0.38); }
+    else if (kind === 'olahan') {
+      put('bamboo', 0.13, b0, H * 0.38); put('dapur', 0.5, b0, H * 0.78); put('pot', 0.8, b0, H * 0.2); put('chicken_1', 0.72, b0 + 4, H * 0.25);
+      var dd = DEF.dapur, cdw = H * 0.78, cdh = cdw * dd.a, chx = W * 0.5 + (dd.chim[0] - dd.ax) * cdw, chy = b0 - dd.ay * cdh + dd.chim[1] * cdh;
+      for (i = 0; i < 4; i++) { g.globalAlpha = 0.4 - i * 0.08; g.fillStyle = '#e8eef0'; g.beginPath(); g.arc(chx + i * 4, chy - 4 - i * 8, 3.5 + i * 2, 0, TAU); g.fill(); } g.globalAlpha = 1;
+    }
+    else if (kind === 'kompos') { put('tree_kelapa', 0.86, b0, H * 0.4); put('kompos', 0.5, b0, H * 0.98); put('crop_ubijalar_3', 0.17, b0 - 2, H * 0.56); put('crop_ubijalar_2', 0.29, b0 + 3, H * 0.5); }
+    else if (kind === 'pasar') { put('tree_kelapa', 0.12, b0, H * 0.4); put('lapak', 0.5, b0, H * 0.86); put('chicken_2', 0.8, b0 + 3, H * 0.26); put('lumbung', 0.92, b0 - 6, H * 0.5); }
+    else if (kind === 'lahan') {
+      put('tree_kelapa', 0.1, b0, H * 0.4); put('bed_fertile', 0.32, b0 - 14, H * 0.74); put('bed_fertile', 0.68, b0 - 14, H * 0.74); put('bed_fertile', 0.5, b0 + 1, H * 0.74);
+      put('crop_ubijalar_2', 0.32, b0 - 16, H * 0.5); put('crop_ubijalar_4', 0.68, b0 - 16, H * 0.5); put('crop_ubijalar_3', 0.5, b0 - 1, H * 0.5);
+    }
+    else if (kind === 'rumah') { put('tree_kelapa', 0.15, b0, H * 0.4); put('house_joglo', 0.5, b0, H * 0.72); put('chicken_0', 0.8, b0 + 3, H * 0.26); }
+    else if (kind === 'beringin') { put('tree_beringin_2', 0.5, b0 + 2, H * 0.72); put('chicken_3', 0.2, b0 + 4, H * 0.26); }
+    else { put('house_joglo', 0.5, b0, H * 0.72); }
+    var mg = g.createRadialGradient(W * 0.5, hz + 6, 0, W * 0.5, hz + 6, W * 0.6);
+    mg.addColorStop(0, 'rgba(236,250,246,' + (0.3 * (1 - 0.55 * t.night)).toFixed(2) + ')'); mg.addColorStop(1, 'rgba(236,250,246,0)');
+    g.save(); g.translate(0, hz + 6); g.scale(1, 0.18); g.translate(0, -(hz + 6)); g.fillStyle = mg; g.fillRect(0, hz - 400, W, 800); g.restore();
+    if (t.tint[3] > 0.005) { g.fillStyle = 'rgba(' + (t.tint[0] | 0) + ',' + (t.tint[1] | 0) + ',' + (t.tint[2] | 0) + ',' + t.tint[3].toFixed(3) + ')'; g.fillRect(0, 0, W, H); }
+    var fade = g.createLinearGradient(0, H * 0.62, 0, H);   // menyatu dengan warna panel di bawahnya
+    fade.addColorStop(0, 'rgba(27,21,15,0)'); fade.addColorStop(1, 'rgba(27,21,15,0.96)'); g.fillStyle = fade; g.fillRect(0, H * 0.62, W, H * 0.38);
+    return true;
+  }
+
+  global.KebunScene = { create: create, banner: banner, loadAssets: loadAssets, DEF: DEF, version: '1.2' };
 })(typeof window !== 'undefined' ? window : globalThis);

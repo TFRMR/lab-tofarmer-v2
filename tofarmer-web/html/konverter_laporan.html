@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Konverter Laporan Backtest MT4/MT5 — Jurnal Sederhana</title>
+  <style>
+    /* ==========================================================================
+       DESIGN TOKENS: MENOREH TWILIGHT AGRITECH PALETTE
+       ========================================================================== */
+    :root {
+      --bg-base: #0b120e;
+      --bg-surface: #121d17;
+      --bg-surface-elevated: #17261e;
+      --bg-input: #0e1712;
+      --border-subtle: #1e3529;
+      --border-strong: #2d4f3d;
+      
+      --text-primary: #f0f5f2;
+      --text-secondary: #94a89d;
+      --text-muted: #687d72;
+
+      --accent-emerald: #10b981;
+      --accent-emerald-dim: rgba(16, 185, 129, 0.14);
+      --accent-emerald-hover: #059669;
+
+      --accent-gold: #f59e0b;
+      --accent-gold-dim: rgba(245, 158, 11, 0.14);
+
+      --accent-coral: #ef4444;
+      --accent-coral-dim: rgba(239, 68, 68, 0.14);
+
+      --accent-sky: #38bdf8;
+      --accent-sky-dim: rgba(56, 189, 248, 0.14);
+
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.65);
+    }
+
+    /* ==========================================================================
+       RESET & BASE TYPOGRAPHY
+       ========================================================================== */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      line-height: 1.55;
+      min-height: 100vh;
+      padding-bottom: 4rem;
+      background-image: 
+        radial-gradient(circle at 12% 8%, rgba(16, 185, 129, 0.07), transparent 35%),
+        radial-gradient(circle at 88% 18%, rgba(245, 158, 11, 0.04), transparent 35%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 1.25rem;
+    }
+
+    /* ==========================================================================
+       HEADER
+       ========================================================================== */
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.25rem 0 1.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+      margin-bottom: 1.75rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.05));
+      border: 1px solid var(--accent-emerald);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-emerald);
+      flex-shrink: 0;
+    }
+
+    .brand h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .brand p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+    }
+
+    .offline-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .offline-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-emerald);
+      box-shadow: 0 0 8px var(--accent-emerald);
+    }
+
+    /* ==========================================================================
+       CARDS & FORM SECTION
+       ========================================================================== */
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--shadow-card);
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.15rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .label-hint {
+      font-weight: 400;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="date"],
+    textarea {
+      width: 100%;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem 0.9rem;
+      color: var(--text-primary);
+      font-size: 0.92rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    input:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
+    }
+
+    textarea {
+      min-height: 165px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.83rem;
+      line-height: 1.5;
+      resize: vertical;
+    }
+
+    /* ==========================================================================
+       BUTTONS
+       ========================================================================== */
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+
+    button {
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      padding: 0.68rem 1.15rem;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      transition: all 0.18s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-emerald);
+      color: #05140d;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.28);
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-emerald-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent-emerald);
+      background-color: #1c2f25;
+    }
+
+    .btn-ghost {
+      background-color: transparent;
+      color: var(--text-secondary);
+      border-color: var(--border-subtle);
+    }
+
+    .btn-ghost:hover {
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+    }
+
+    .btn-sm {
+      padding: 0.42rem 0.78rem;
+      font-size: 0.8rem;
+    }
+
+    /* Prominent Privacy / Percentage-Only Toggle Button */
+    .btn-privacy-toggle {
+      background-color: var(--bg-surface-elevated);
+      color: var(--text-primary);
+      border: 1.5px solid var(--border-strong);
+      padding: 0.48rem 0.95rem;
+      font-size: 0.83rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-privacy-toggle:hover {
+      border-color: var(--accent-gold);
+      background-color: #1c2d24;
+    }
+
+    .btn-privacy-toggle.active {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(16, 185, 129, 0.16));
+      border-color: var(--accent-gold);
+      color: var(--accent-gold);
+      box-shadow: 0 0 16px rgba(245, 158, 11, 0.22);
+    }
+
+    .toggle-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--text-muted);
+      transition: background-color 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-privacy-toggle.active .toggle-indicator {
+      background-color: var(--accent-gold);
+      box-shadow: 0 0 8px var(--accent-gold);
+    }
+
+    /* ==========================================================================
+       TOAST / INLINE NOTIFICATION (NO ALERT!)
+       ========================================================================== */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background-color: var(--bg-surface-elevated);
+      border: 1px solid var(--accent-emerald);
+      color: var(--text-primary);
+      padding: 0.85rem 1.25rem;
+      border-radius: var(--radius-md);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.65);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.88rem;
+      font-weight: 500;
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(15px);
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .toast.error {
+      border-color: var(--accent-coral);
+    }
+
+    /* ==========================================================================
+       REPORT OUTPUT SECTION
+       ========================================================================== */
+    #reportSection {
+      display: none;
+      animation: fadeSlideUp 0.35s ease forwards;
+    }
+
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .report-banner {
+      background: linear-gradient(135deg, var(--bg-surface-elevated), var(--bg-surface));
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .report-meta-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.65rem;
+    }
+
+    .meta-tag {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .meta-tag strong {
+      color: var(--text-primary);
+    }
+
+    .health-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .health-good {
+      background-color: var(--accent-emerald-dim);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .health-warn {
+      background-color: var(--accent-gold-dim);
+      color: var(--accent-gold);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .health-bad {
+      background-color: var(--accent-coral-dim);
+      color: var(--accent-coral);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    /* Hero KPI Grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .kpi-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      margin-bottom: 0.45rem;
+      font-weight: 600;
+    }
+
+    .kpi-main-value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .kpi-sub-value {
+      font-size: 0.88rem;
+      margin-top: 0.35rem;
+      color: var(--text-secondary);
+    }
+
+    .text-emerald { color: var(--accent-emerald); }
+    .text-coral { color: var(--accent-coral); }
+    .text-gold { color: var(--accent-gold); }
+    .text-sky { color: var(--accent-sky); }
+
+    /* Visual Comparison Bars */
+    .visual-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .bar-block {
+      margin-bottom: 1.1rem;
+    }
+
+    .bar-block:last-child {
+      margin-bottom: 0;
+    }
+
+    .bar-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      background-color: var(--bg-input);
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .progress-fill-win {
+      background-color: var(--accent-emerald);
+      height: 100%;
+      transition: width 0.5s ease;
+    }
+
+    .progress-fill-loss {
+      background-color: var(--accent-coral);
+      height: 100%;
+      transition: width 0.5s ease;
+    }
+
+    .progress-fill-gold {
+      background-color: var(--accent-gold);
+      height: 100%;
+      transition: width 0.5s ease;
+    }
+
+    .progress-fill-sky {
+      background-color: var(--accent-sky);
+      height: 100%;
+      transition: width 0.5s ease;
+    }
+
+    /* Plain-Language Insights List */
+    .insight-list {
+      list-style: none;
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .insight-item {
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-left-width: 4px;
+      border-radius: var(--radius-sm);
+      padding: 0.9rem 1.05rem;
+      font-size: 0.92rem;
+    }
+
+    .insight-item.good { border-left-color: var(--accent-emerald); }
+    .insight-item.warn { border-left-color: var(--accent-gold); }
+    .insight-item.bad  { border-left-color: var(--accent-coral); }
+    .insight-item.info { border-left-color: var(--accent-sky); }
+
+    .insight-item strong {
+      color: var(--text-primary);
+    }
+
+    /* Detailed Clean Table */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 0.75rem 1.5rem;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.55rem 0;
+      border-bottom: 1px dashed var(--border-subtle);
+      font-size: 0.88rem;
+    }
+
+    .detail-row span:first-child {
+      color: var(--text-secondary);
+    }
+
+    .detail-row span:last-child {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* Saved History Drawer */
+    .history-list {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .history-item {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.8rem 1rem;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+    }
+
+    .history-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .history-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .history-sub {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    /* ==========================================================================
+       PRINT STYLESHEET (CLEAN PDF EXPORT)
+       ========================================================================== */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #111827 !important;
+        padding: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+      #reportSection {
+        display: block !important;
+      }
+      .card, .report-banner, .kpi-card, .insight-item {
+        background: #ffffff !important;
+        border: 1px solid #d1d5db !important;
+        box-shadow: none !important;
+        color: #111827 !important;
+      }
+      .kpi-label, .kpi-sub-value, .meta-tag, .detail-row span:first-child {
+        color: #4b5563 !important;
+      }
+      .text-emerald { color: #047857 !important; }
+      .text-coral { color: #b91c1c !important; }
+      .text-gold { color: #b45309 !important; }
+    }
+
+    @media (max-width: 600px) {
+      .kpi-main-value {
+        font-size: 1.55rem;
+      }
+      .card {
+        padding: 1.15rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- HEADER -->
+    <header class="app-header no-print">
+      <div class="brand">
+        <div class="brand-icon" aria-hidden="true">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+            <polyline points="16 7 22 7 22 13"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1>Jurnal & Konverter Report MT4/MT5</h1>
+          <p>Ubah hasil mentah Strategy Tester menjadi laporan bahasa manusia yang mudah dipahami</p>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
+        <button type="button" class="btn-privacy-toggle" id="btnTogglePctTop" aria-pressed="false" title="Sembunyikan semua nominal dolar ($) agar privasi saldo terjaga">
+          <span class="toggle-indicator"></span>
+          <span class="toggle-label">Sembunyikan Nilai $ (Hanya %)</span>
+        </button>
+        <div class="offline-pill" title="Semua pemrosesan berjalan langsung di browser Anda">
+          <span class="offline-dot"></span>
+          <span>100% Offline &amp; Privat</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- INPUT FORM CARD -->
+    <section class="card no-print" aria-label="Form Input Data Laporan">
+      <div class="card-header">
+        <h2 class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-emerald)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          1. Isi Detail Jurnal &amp; Tempel (Paste) Hasil MT4/MT5
+        </h2>
+        <div class="btn-group">
+          <button type="button" class="btn-secondary btn-sm" id="btnLoadSample">
+            Load Contoh Data
+          </button>
+          <button type="button" class="btn-ghost btn-sm" id="btnReset">
+            Reset Form
+          </button>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="inputStrategy">Nama Strategi / EA</label>
+          <input type="text" id="inputStrategy" placeholder="Contoh: EA Scalper Gold v2" />
+        </div>
+
+        <div class="form-group">
+          <label for="inputPair">Pair / Aset &amp; Timeframe</label>
+          <input type="text" id="inputPair" placeholder="Contoh: XAUUSD (M15)" />
+        </div>
+
+        <div class="form-group">
+          <label for="inputDeposit">
+            <span>Modal Awal ($)</span>
+            <span class="label-hint" id="depositHint">Kosongkan = auto deteksi</span>
+          </label>
+          <input type="number" id="inputDeposit" step="any" placeholder="Contoh: 10000" />
+        </div>
+
+        <div class="form-group">
+          <label for="inputStartDate">Tanggal Mulai</label>
+          <input type="date" id="inputStartDate" />
+        </div>
+
+        <div class="form-group">
+          <label for="inputEndDate">Tanggal Selesai</label>
+          <input type="date" id="inputEndDate" />
+        </div>
+
+        <div class="form-group">
+          <label for="inputNote">Catatan / Setting Tambahan <span class="label-hint">(Opsional)</span></label>
+          <input type="text" id="inputNote" placeholder="Contoh: Lot 0.05, Spread 20" />
+        </div>
+
+        <div class="form-group full-width">
+          <label for="inputRawReport">
+            <span>Paste Hasil Report MT4 / MT5 di sini</span>
+            <span class="label-hint">Tekan <strong>Enter</strong> atau <strong>Ctrl+Enter</strong> untuk langsung memproses</span>
+          </label>
+          <textarea id="inputRawReport" placeholder="Tempel teks hasil copy-paste dari tab Report / Backtest MetaTrader di sini...
+Contoh:
+Total Net Profit: 922.60   Gross Profit: 5 193.62   Gross Loss: -4 271.02
+Profit Factor: 1.22        Expected Payoff: 6.19
+Balance Drawdown Maximal: 1 058.54 (9.11%)
+Total Trades: 149          Short Trades (won %): 95 (50.53%)   Long Trades (won %): 54 (33.33%) ..."></textarea>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <span class="label-hint">Mendukung format angka berspasi (misal: <code>5 193.62</code>) maupun koma.</span>
+        <button type="button" class="btn-primary" id="btnConvert">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          Buat Laporan Sederhana
+        </button>
+      </div>
+    </section>
+
+    <!-- REPORT OUTPUT SECTION -->
+    <main id="reportSection" aria-live="polite">
+      <!-- Action Toolbar -->
+      <div class="btn-row no-print" style="margin-bottom: 1rem; margin-top: 0;">
+        <h2 class="card-title">2. Hasil Laporan Trading Sederhana</h2>
+        <div class="btn-group" style="align-items: center;">
+          <button type="button" class="btn-privacy-toggle" id="btnTogglePctReport" aria-pressed="false" title="Tampilkan hanya persentase &amp; rasio tanpa nominal uang">
+            <span class="toggle-indicator"></span>
+            <span class="toggle-label">Sembunyikan Nilai $ (Hanya %)</span>
+          </button>
+          <button type="button" class="btn-secondary btn-sm" id="btnSaveHistory">
+            Simpan ke Riwayat
+          </button>
+          <button type="button" class="btn-secondary btn-sm" id="btnCopySummary">
+            Salin Ringkasan Teks
+          </button>
+          <button type="button" class="btn-secondary btn-sm" id="btnPrint">
+            Cetak / Simpan PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Report Banner -->
+      <div class="report-banner">
+        <div>
+          <h2 id="repTitle" style="font-size: 1.35rem; font-weight: 700;">Laporan Evaluasi Strategi</h2>
+          <div class="report-meta-tags" id="repMetaTags"></div>
+          <p id="repNoteDisplay" style="margin-top: 0.65rem; font-size: 0.86rem; color: var(--text-secondary); display: none;"></p>
+        </div>
+        <div id="repHealthBadge" class="health-badge health-good">Status Evaluasi</div>
+      </div>
+
+      <!-- 4 Hero KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Hasil Akhir (Net Profit)</div>
+          <div class="kpi-main-value" id="kpiNetPercent">+0.00%</div>
+          <div class="kpi-sub-value" id="kpiNetDollar">$0.00 dari modal $10,000</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Risiko Penurunan (Max DD)</div>
+          <div class="kpi-main-value text-coral" id="kpiDdPercent">0.00%</div>
+          <div class="kpi-sub-value" id="kpiDdDollar">Penurunan terburuk: $0.00</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Total Trade &amp; Win Rate</div>
+          <div class="kpi-main-value text-sky" id="kpiWinRate">0.00%</div>
+          <div class="kpi-sub-value" id="kpiTotalTrades">0 transaksi (0 menang / 0 kalah)</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-label">Profit Factor &amp; Rasio R:R</div>
+          <div class="kpi-main-value text-gold" id="kpiProfitFactor">0.00</div>
+          <div class="kpi-sub-value" id="kpiRR">Rata-rata Menang vs Kalah: 1 : 1</div>
+        </div>
+      </div>
+
+      <!-- Visual Comparison Bars -->
+      <div class="visual-grid">
+        <div class="card" style="margin-bottom: 0;">
+          <h3 class="card-title" style="margin-bottom: 1rem;">Perbandingan Transaksi &amp; Uang</h3>
+
+          <div class="bar-block">
+            <div class="bar-labels">
+              <span class="text-emerald" id="lblWinCount">Menang: 0 (0%)</span>
+              <span class="text-coral" id="lblLossCount">Kalah: 0 (0%)</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-win" id="barWinPct" style="width: 50%;"></div>
+              <div class="progress-fill-loss" id="barLossPct" style="width: 50%;"></div>
+            </div>
+          </div>
+
+          <div class="bar-block">
+            <div class="bar-labels">
+              <span class="text-emerald" id="lblGrossProfit">Total Profit Kotor: +0%</span>
+              <span class="text-coral" id="lblGrossLoss">Total Loss Kotor: -0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-win" id="barGrossWin" style="width: 50%;"></div>
+              <div class="progress-fill-loss" id="barGrossLoss" style="width: 50%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+          <h3 class="card-title" style="margin-bottom: 1rem;">Akurasi Posisi Buy (Long) vs Sell (Short)</h3>
+
+          <div class="bar-block">
+            <div class="bar-labels">
+              <span id="lblLongTitle">Posisi BUY (Long) — 0 trade</span>
+              <span class="text-sky" id="lblLongPct">0% Menang</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-sky" id="barLongPct" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div class="bar-block">
+            <div class="bar-labels">
+              <span id="lblShortTitle">Posisi SELL (Short) — 0 trade</span>
+              <span class="text-gold" id="lblShortPct">0% Menang</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-gold" id="barShortPct" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Human Language Breakdown -->
+      <section class="card">
+        <h3 class="card-title" style="margin-bottom: 1rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          Penjelasan Bahasa Manusia (Kesimpulan Mudah Dipahami)
+        </h3>
+        <ul class="insight-list" id="humanInsightsList"></ul>
+      </section>
+
+      <!-- Clean Metric Details -->
+      <section class="card">
+        <h3 class="card-title" style="margin-bottom: 1rem;">Rincian Angka Lengkap (Sudah Disederhanakan)</h3>
+        <div class="detail-grid" id="cleanDetailGrid"></div>
+      </section>
+    </main>
+
+    <!-- SAVED HISTORY SECTION -->
+    <section class="card no-print" id="historySection" style="display: none;">
+      <div class="card-header">
+        <h3 class="card-title">Riwayat Laporan Tersimpan (Offline di Browser)</h3>
+        <button type="button" class="btn-ghost btn-sm" id="btnClearHistory">Hapus Semua</button>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </section>
+  </div>
+
+  <!-- TOAST MESSAGE -->
+  <div id="toastBox" class="toast" role="status"></div>
+
+  <script>
+    /* ==========================================================================
+       SAMPLE DATA (SESUAI FORMAT STANDAR MT5)
+       ========================================================================== */
+    const SAMPLE_MT5_TEXT = `Results
+Total Net Profit:\t922.60\tGross Profit:\t5 193.62\tGross Loss:\t-4 271.02
+Profit Factor:\t1.22\tExpected Payoff:\t6.19
+Recovery Factor:\t0.87\tSharpe Ratio:\t0.06
+Balance Drawdown:
+Balance Drawdown Absolute:\t509.37\tBalance Drawdown Maximal:\t1 058.54 (9.11%)\tBalance Drawdown Relative:\t9.11% (1 058.54)
+Total Trades:\t149\tShort Trades (won %):\t95 (50.53%)\tLong Trades (won %):\t54 (33.33%)
+Profit Trades (% of total):\t66 (44.30%)\tLoss Trades (% of total):\t83 (55.70%)
+Largest profit trade:\t584.50\tLargest loss trade:\t-265.60
+Average profit trade:\t78.69\tAverage loss trade:\t-51.46
+Maximum consecutive wins ($):\t6 (354.61)\tMaximum consecutive losses ($):\t10 (-512.12)
+Maximal consecutive profit (count):\t649.40 (3)\tMaximal consecutive loss (count):\t-578.37 (6)
+Average consecutive wins:\t2\tAverage consecutive losses:\t3`;
+
+    let latestParsedReport = null;
+    let hideDollarMode = false;
+    const STORAGE_KEY = 'mt4_mt5_simple_journal_history_v1';
+
+    /* ==========================================================================
+       UTILITY & FORMATTING FUNCTIONS
+       ========================================================================== */
+    function showToast(message, isError = false) {
+      const toast = document.getElementById('toastBox');
+      toast.textContent = message;
+      toast.className = 'toast show' + (isError ? ' error' : '');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3200);
+    }
+
+    function parseCleanNumber(str) {
+      if (!str) return null;
+      // Remove spaces inside numbers like "5 193.62" or "-4 271.02", keep minus and dot
+      const normalized = str.replace(/\s+/g, '').replace(/,/g, '');
+      const num = parseFloat(normalized);
+      return isNaN(num) ? null : num;
+    }
+
+    function fmtMoney(val) {
+      if (val === null || val === undefined || isNaN(val)) return '-';
+      const sign = val < 0 ? '-' : '';
+      return sign + '$' + Math.abs(val).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function fmtSignedMoney(val) {
+      if (val === null || val === undefined || isNaN(val)) return '-';
+      const sign = val > 0 ? '+' : (val < 0 ? '-' : '');
+      return sign + '$' + Math.abs(val).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function fmtPct(val, withSign = false) {
+      if (val === null || val === undefined || isNaN(val)) return '-';
+      const sign = withSign ? (val > 0 ? '+' : (val < 0 ? '-' : '')) : (val < 0 ? '-' : '');
+      return sign + Math.abs(val).toFixed(2) + '%';
+    }
+
+    function pctOfDeposit(dollarVal, deposit) {
+      if (dollarVal === null || dollarVal === undefined || isNaN(dollarVal) || !deposit) return null;
+      return (dollarVal / deposit) * 100;
+    }
+
+    function updatePrivacyToggleUI() {
+      const buttons = [
+        document.getElementById('btnTogglePctTop'),
+        document.getElementById('btnTogglePctReport')
+      ];
+      buttons.forEach(btn => {
+        if (!btn) return;
+        btn.classList.toggle('active', hideDollarMode);
+        btn.setAttribute('aria-pressed', hideDollarMode ? 'true' : 'false');
+        const labelEl = btn.querySelector('.toggle-label');
+        if (labelEl) {
+          labelEl.textContent = hideDollarMode
+            ? 'Mode Persentase Aktif (Tanpa $)'
+            : 'Sembunyikan Nilai $ (Hanya %)';
+        }
+      });
+
+      if (latestParsedReport) {
+        renderReportToDOM(latestParsedReport, false);
+      }
+      renderHistoryList();
+    }
+
+    function togglePercentageOnlyMode() {
+      hideDollarMode = !hideDollarMode;
+      updatePrivacyToggleUI();
+      showToast(
+        hideDollarMode
+          ? 'Mode Persentase aktif: semua nominal dolar ($) disembunyikan.'
+          : 'Mode Lengkap aktif: nominal dolar ($) & persentase ditampilkan.'
+      );
+    }
+
+    function formatIndoDate(dateStr) {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const y = parts[0];
+      const m = months[parseInt(parts[1], 10) - 1] || parts[1];
+      const d = parts[2];
+      return `${d} ${m} ${y}`;
+    }
+
+    /* ==========================================================================
+       INTELLIGENT MT4 & MT5 PARSER ENGINE
+       ========================================================================== */
+    function parseMetaTraderReport(rawText) {
+      // Helper to extract single numeric value after a label
+      const extractNum = (regex) => {
+        const match = rawText.match(regex);
+        return match ? parseCleanNumber(match[1]) : null;
+      };
+
+      // Helper to extract pair like "95 (50.53%)"
+      const extractCountAndPct = (regex) => {
+        const match = rawText.match(regex);
+        if (!match) return { count: null, pct: null };
+        return {
+          count: parseCleanNumber(match[1]),
+          pct: parseCleanNumber(match[2])
+        };
+      };
+
+      // Helper to extract drawdown like "1 058.54 (9.11%)" or "9.11% (1 058.54)"
+      const extractDollarAndPct = (regex) => {
+        const match = rawText.match(regex);
+        if (!match) return { dollar: null, pct: null };
+        return {
+          dollar: parseCleanNumber(match[1]),
+          pct: parseCleanNumber(match[2])
+        };
+      };
+
+      const initialDepositInText = extractNum(/Initial Deposit\s*[:\t ]+([-\d\s.,]+)/i);
+      const netProfit = extractNum(/Total Net Profit\s*[:\t ]+([-\d\s.,]+)/i);
+      const grossProfit = extractNum(/Gross Profit\s*[:\t ]+([-\d\s.,]+)/i);
+      const grossLoss = extractNum(/Gross Loss\s*[:\t ]+([-\d\s.,]+)/i);
+      const profitFactor = extractNum(/Profit Factor\s*[:\t ]+([-\d\s.,]+)/i);
+      const expectedPayoff = extractNum(/Expected Payoff\s*[:\t ]+([-\d\s.,]+)/i);
+      const recoveryFactor = extractNum(/Recovery Factor\s*[:\t ]+([-\d\s.,]+)/i);
+      const sharpeRatio = extractNum(/Sharpe Ratio\s*[:\t ]+([-\d\s.,]+)/i);
+
+      const ddAbs = extractNum(/(?:Balance Drawdown Absolute|Absolute Drawdown)\s*[:\t ]+([-\d\s.,]+)/i);
+      const ddMax = extractDollarAndPct(/(?:Balance Drawdown Maximal|Maximal Drawdown)\s*[:\t ]+([-\d\s.,]+)\s*\(([\d.,]+)%\)/i);
+      
+      let ddRel = { dollar: null, pct: null };
+      const ddRelMatch = rawText.match(/(?:Balance Drawdown Relative|Relative Drawdown)\s*[:\t ]+([\d.,]+)%\s*\(([-\d\s.,]+)\)/i);
+      if (ddRelMatch) {
+        ddRel = { pct: parseCleanNumber(ddRelMatch[1]), dollar: parseCleanNumber(ddRelMatch[2]) };
+      }
+
+      const totalTrades = extractNum(/Total Trades\s*[:\t ]+(\d[\d\s]*)/i);
+      const shortTrades = extractCountAndPct(/Short Trades\s*\(won %\)\s*[:\t ]+(\d[\d\s]*)\s*\(([\d.,]+)%\)/i);
+      const longTrades = extractCountAndPct(/Long Trades\s*\(won %\)\s*[:\t ]+(\d[\d\s]*)\s*\(([\d.,]+)%\)/i);
+
+      const profitTrades = extractCountAndPct(/Profit Trades\s*\(% of total\)\s*[:\t ]+(\d[\d\s]*)\s*\(([\d.,]+)%\)/i);
+      const lossTrades = extractCountAndPct(/Loss Trades\s*\(% of total\)\s*[:\t ]+(\d[\d\s]*)\s*\(([\d.,]+)%\)/i);
+
+      const largestWin = extractNum(/Largest profit trade\s*[:\t ]+([-\d\s.,]+)/i);
+      const largestLoss = extractNum(/Largest loss trade\s*[:\t ]+([-\d\s.,]+)/i);
+      const avgWin = extractNum(/Average profit trade\s*[:\t ]+([-\d\s.,]+)/i);
+      const avgLoss = extractNum(/Average loss trade\s*[:\t ]+([-\d\s.,]+)/i);
+
+      const maxConsecWins = extractDollarAndPct(/Maximum consecutive wins\s*\(\$\)\s*[:\t ]+(\d+)\s*\(([-\d\s.,]+)\)/i);
+      const maxConsecLosses = extractDollarAndPct(/Maximum consecutive losses\s*\(\$\)\s*[:\t ]+(\d+)\s*\(([-\d\s.,]+)\)/i);
+
+      const maxConsecProfit = extractDollarAndPct(/Maximal consecutive profit\s*\(count\)\s*[:\t ]+([-\d\s.,]+)\s*\((\d+)\)/i);
+      const maxConsecLoss = extractDollarAndPct(/Maximal consecutive loss\s*\(count\)\s*[:\t ]+([-\d\s.,]+)\s*\((\d+)\)/i);
+
+      const avgConsecWins = extractNum(/Average consecutive wins\s*[:\t ]+(\d+)/i);
+      const avgConsecLosses = extractNum(/Average consecutive losses\s*[:\t ]+(\d+)/i);
+
+      return {
+        initialDepositInText,
+        netProfit,
+        grossProfit,
+        grossLoss,
+        profitFactor,
+        expectedPayoff,
+        recoveryFactor,
+        sharpeRatio,
+        ddAbs,
+        ddMax,
+        ddRel,
+        totalTrades,
+        shortTrades,
+        longTrades,
+        profitTrades,
+        lossTrades,
+        largestWin,
+        largestLoss,
+        avgWin,
+        avgLoss,
+        maxConsecWins: { count: maxConsecWins.dollar, dollar: maxConsecWins.pct },
+        maxConsecLosses: { count: maxConsecLosses.dollar, dollar: maxConsecLosses.pct },
+        maxConsecProfit: { dollar: maxConsecProfit.dollar, count: maxConsecProfit.pct },
+        maxConsecLoss: { dollar: maxConsecLoss.dollar, count: maxConsecLoss.pct },
+        avgConsecWins,
+        avgConsecLosses
+      };
+    }
+
+    /* ==========================================================================
+       BUILD HUMAN-FRIENDLY REPORT & RENDER UI
+       ========================================================================== */
+    function generateReport() {
+      const rawText = document.getElementById('inputRawReport').value.trim();
+      if (!rawText) {
+        showToast('Silakan tempel (paste) hasil report MT4/MT5 terlebih dahulu.', true);
+        document.getElementById('inputRawReport').focus();
+        return;
+      }
+
+      const data = parseMetaTraderReport(rawText);
+
+      // Validate that at least Net Profit or Total Trades was recognized
+      if (data.netProfit === null && data.totalTrades === null) {
+        showToast('Format teks tidak dikenali. Pastikan menyalin bagian "Results" dari MetaTrader.', true);
+        return;
+      }
+
+      // Determine Initial Deposit
+      const userDepositInput = parseFloat(document.getElementById('inputDeposit').value);
+      let initialDeposit = 10000;
+      let depositSource = 'Default $10,000';
+
+      if (!isNaN(userDepositInput) && userDepositInput > 0) {
+        initialDeposit = userDepositInput;
+        depositSource = 'Input Manual';
+      } else if (data.initialDepositInText && data.initialDepositInText > 0) {
+        initialDeposit = data.initialDepositInText;
+        depositSource = 'Terdeteksi dari Teks';
+      } else if (data.ddMax.dollar && data.ddMax.pct && data.ddMax.pct > 0) {
+        // Estimate peak balance from Max DD ($ / %), then round cleanly near $10k/$1k/$5k if close
+        const estimatedPeak = data.ddMax.dollar / (data.ddMax.pct / 100);
+        const roughInitial = estimatedPeak - (data.netProfit || 0);
+        // Snap to clean round numbers (e.g., 1000, 5000, 10000) if within 12%
+        const candidates = [100, 500, 1000, 2000, 3000, 5000, 10000, 20000, 25000, 50000, 100000];
+        const snapped = candidates.find(c => Math.abs(roughInitial - c) / c < 0.12);
+        initialDeposit = snapped || Math.round(roughInitial);
+        depositSource = 'Estimasi Otomatis dari Drawdown';
+        document.getElementById('depositHint').textContent = `Terdeteksi ~${fmtMoney(initialDeposit)}`;
+      }
+
+      // Gather Metadata
+      const strategyName = document.getElementById('inputStrategy').value.trim() || 'Strategi / EA Backtest';
+      const pairName = document.getElementById('inputPair').value.trim() || 'Pair Tidak Disebutkan';
+      const startDate = document.getElementById('inputStartDate').value;
+      const endDate = document.getElementById('inputEndDate').value;
+      const userNote = document.getElementById('inputNote').value.trim();
+
+      let periodText = 'Periode Tidak Diisi';
+      if (startDate && endDate) {
+        periodText = `${formatIndoDate(startDate)} — ${formatIndoDate(endDate)}`;
+      } else if (startDate) {
+        periodText = `Mulai ${formatIndoDate(startDate)}`;
+      } else if (endDate) {
+        periodText = `Sampai ${formatIndoDate(endDate)}`;
+      }
+
+      // Derived Percentages & Ratios
+      const netProfit = data.netProfit || 0;
+      const netProfitPct = (netProfit / initialDeposit) * 100;
+      const finalBalance = initialDeposit + netProfit;
+
+      const grossProfit = data.grossProfit || 0;
+      const grossLoss = Math.abs(data.grossLoss || 0);
+      const grossProfitPct = (grossProfit / initialDeposit) * 100;
+      const grossLossPct = (grossLoss / initialDeposit) * 100;
+
+      const maxDdDollar = data.ddMax.dollar || data.ddAbs || 0;
+      const maxDdPct = data.ddMax.pct !== null ? data.ddMax.pct : ((maxDdDollar / initialDeposit) * 100);
+
+      const totalTrades = data.totalTrades || ((data.profitTrades.count || 0) + (data.lossTrades.count || 0));
+      const winCount = data.profitTrades.count || 0;
+      const lossCount = data.lossTrades.count || 0;
+      const winRatePct = data.profitTrades.pct !== null ? data.profitTrades.pct : (totalTrades > 0 ? (winCount / totalTrades) * 100 : 0);
+      const lossRatePct = data.lossTrades.pct !== null ? data.lossTrades.pct : (totalTrades > 0 ? (lossCount / totalTrades) * 100 : 0);
+
+      const avgWin = data.avgWin || 0;
+      const avgLossAbs = Math.abs(data.avgLoss || 0);
+      const rrRatio = avgLossAbs > 0 ? (avgWin / avgLossAbs) : 0;
+
+      // Save state for copying / history
+      latestParsedReport = {
+        id: Date.now(),
+        createdAt: new Date().toLocaleString('id-ID'),
+        strategyName,
+        pairName,
+        periodText,
+        userNote,
+        initialDeposit,
+        depositSource,
+        finalBalance,
+        netProfit,
+        netProfitPct,
+        grossProfit,
+        grossLoss,
+        grossProfitPct,
+        grossLossPct,
+        maxDdDollar,
+        maxDdPct,
+        totalTrades,
+        winCount,
+        lossCount,
+        winRatePct,
+        lossRatePct,
+        rrRatio,
+        rawText,
+        raw: data
+      };
+
+      renderReportToDOM(latestParsedReport, true);
+    }
+
+    function renderReportToDOM(rep, shouldScroll = true) {
+      const { raw } = rep;
+      const dep = rep.initialDeposit || 10000;
+      const pctOnly = hideDollarMode;
+
+      const finalBalancePct = (rep.finalBalance / dep) * 100;
+      const estimatedPeakBalance = rep.maxDdPct > 0
+        ? (rep.maxDdDollar / (rep.maxDdPct / 100))
+        : Math.max(dep, rep.finalBalance);
+      const peakBalancePct = (estimatedPeakBalance / dep) * 100;
+      const ddAbsPct = raw.ddAbs !== null ? pctOfDeposit(raw.ddAbs, dep) : null;
+
+      // 1. Banner & Health Status
+      document.getElementById('repTitle').textContent = `${rep.strategyName} (${rep.pairName})`;
+      if (pctOnly) {
+        document.getElementById('repMetaTags').innerHTML = `
+          <span class="meta-tag">Periode: <strong>${rep.periodText}</strong></span>
+          <span class="meta-tag">Pertumbuhan Akun: <strong>100% &rarr; ${fmtPct(finalBalancePct)}</strong></span>
+          <span class="meta-tag">Puncak Ekuitas/Saldo: <strong>${fmtPct(peakBalancePct)}</strong></span>
+          <span class="meta-tag">Mode Tampilan: <strong>Hanya Persentase (%)</strong></span>
+        `;
+      } else {
+        document.getElementById('repMetaTags').innerHTML = `
+          <span class="meta-tag">Periode: <strong>${rep.periodText}</strong></span>
+          <span class="meta-tag">Modal Awal: <strong>${fmtMoney(rep.initialDeposit)}</strong> (${rep.depositSource})</span>
+          <span class="meta-tag">Saldo Akhir: <strong>${fmtMoney(rep.finalBalance)}</strong> (${fmtPct(finalBalancePct)})</span>
+        `;
+      }
+
+      const noteEl = document.getElementById('repNoteDisplay');
+      if (rep.userNote) {
+        noteEl.style.display = 'block';
+        noteEl.textContent = `Catatan: ${rep.userNote}`;
+      } else {
+        noteEl.style.display = 'none';
+      }
+
+      // Health evaluation logic
+      const badgeEl = document.getElementById('repHealthBadge');
+      const pf = raw.profitFactor || 0;
+      const rf = raw.recoveryFactor || (rep.maxDdDollar > 0 ? rep.netProfit / rep.maxDdDollar : 0);
+
+      if (rep.netProfit <= 0) {
+        badgeEl.className = 'health-badge health-bad';
+        badgeEl.textContent = 'Rugi / Strategi Belum Profitabel';
+      } else if (pf >= 1.5 && rf >= 1.2 && rep.maxDdPct <= 20) {
+        badgeEl.className = 'health-badge health-good';
+        badgeEl.textContent = 'Profitabel & Sehat';
+      } else {
+        badgeEl.className = 'health-badge health-warn';
+        badgeEl.textContent = 'Profit Tipis / Perlu Manajemen Risiko';
+      }
+
+      // 2. Hero KPI Cards
+      const netPctEl = document.getElementById('kpiNetPercent');
+      netPctEl.textContent = fmtPct(rep.netProfitPct, true);
+      netPctEl.className = 'kpi-main-value ' + (rep.netProfit >= 0 ? 'text-emerald' : 'text-coral');
+      document.getElementById('kpiNetDollar').textContent = pctOnly
+        ? `Pertumbuhan modal: 100% \u2192 ${fmtPct(finalBalancePct)}`
+        : `${fmtSignedMoney(rep.netProfit)} dari modal ${fmtMoney(rep.initialDeposit)}`;
+
+      document.getElementById('kpiDdPercent').textContent = fmtPct(rep.maxDdPct);
+      document.getElementById('kpiDdDollar').textContent = pctOnly
+        ? (ddAbsPct !== null ? `Drawdown absolut dari modal awal: ${fmtPct(ddAbsPct)}` : 'Penurunan terdalam dari puncak saldo')
+        : `Penurunan terdalam: -${fmtMoney(rep.maxDdDollar)}`;
+
+      document.getElementById('kpiWinRate').textContent = fmtPct(rep.winRatePct);
+      document.getElementById('kpiTotalTrades').textContent = `${rep.totalTrades} transaksi (${rep.winCount} menang / ${rep.lossCount} kalah)`;
+
+      document.getElementById('kpiProfitFactor').textContent = raw.profitFactor !== null ? raw.profitFactor.toFixed(2) : '-';
+      document.getElementById('kpiRR').textContent = rep.rrRatio > 0
+        ? `Rasio Rata-rata Menang : Kalah = ${rep.rrRatio.toFixed(2)} : 1`
+        : 'Rasio R:R tidak tersedia';
+
+      // 3. Visual Progress Bars
+      document.getElementById('lblWinCount').textContent = `Menang: ${rep.winCount} (${fmtPct(rep.winRatePct)})`;
+      document.getElementById('lblLossCount').textContent = `Kalah: ${rep.lossCount} (${fmtPct(rep.lossRatePct)})`;
+      document.getElementById('barWinPct').style.width = `${Math.min(100, Math.max(0, rep.winRatePct))}%`;
+      document.getElementById('barLossPct').style.width = `${Math.min(100, Math.max(0, rep.lossRatePct))}%`;
+
+      const totalGrossVolume = rep.grossProfit + rep.grossLoss;
+      const grossWinShare = totalGrossVolume > 0 ? (rep.grossProfit / totalGrossVolume) * 100 : 50;
+      const grossLossShare = totalGrossVolume > 0 ? (rep.grossLoss / totalGrossVolume) * 100 : 50;
+
+      document.getElementById('lblGrossProfit').textContent = pctOnly
+        ? `Total Profit Kotor: +${fmtPct(rep.grossProfitPct)}`
+        : `Total Profit Kotor: +${fmtMoney(rep.grossProfit)} (+${fmtPct(rep.grossProfitPct)})`;
+      document.getElementById('lblGrossLoss').textContent = pctOnly
+        ? `Total Loss Kotor: -${fmtPct(rep.grossLossPct)}`
+        : `Total Loss Kotor: -${fmtMoney(rep.grossLoss)} (-${fmtPct(rep.grossLossPct)})`;
+      document.getElementById('barGrossWin').style.width = `${grossWinShare}%`;
+      document.getElementById('barGrossLoss').style.width = `${grossLossShare}%`;
+
+      const longCount = raw.longTrades.count || 0;
+      const longWinPct = raw.longTrades.pct || 0;
+      const shortCount = raw.shortTrades.count || 0;
+      const shortWinPct = raw.shortTrades.pct || 0;
+
+      document.getElementById('lblLongTitle').textContent = `Posisi BUY (Long) — ${longCount} kali transaksi`;
+      document.getElementById('lblLongPct').textContent = `${fmtPct(longWinPct)} Menang`;
+      document.getElementById('barLongPct').style.width = `${Math.min(100, Math.max(0, longWinPct))}%`;
+
+      document.getElementById('lblShortTitle').textContent = `Posisi SELL (Short) — ${shortCount} kali transaksi`;
+      document.getElementById('lblShortPct').textContent = `${fmtPct(shortWinPct)} Menang`;
+      document.getElementById('barShortPct').style.width = `${Math.min(100, Math.max(0, shortWinPct))}%`;
+
+      // 4. Plain-Language Human Insights
+      const insights = [];
+      const avgWinPct = pctOfDeposit(raw.avgWin, dep);
+      const avgLossAbsPct = pctOfDeposit(Math.abs(raw.avgLoss || 0), dep);
+
+      // Profit & Loss summary
+      if (rep.netProfit > 0) {
+        if (pctOnly) {
+          insights.push({
+            type: 'good',
+            html: `<strong>Hasil Bersih:</strong> Strategi ini menghasilkan pertumbuhan bersih sebesar <strong>${fmtPct(rep.netProfitPct, true)}</strong> (saldo bertumbuh dari <strong>100%</strong> menjadi <strong>${fmtPct(finalBalancePct)}</strong>). Selama pengujian, strategi mengumpulkan akumulasi profit kotor <strong>+${fmtPct(rep.grossProfitPct)}</strong> dan terpotong akumulasi loss kotor sebesar <strong>-${fmtPct(rep.grossLossPct)}</strong>.`
+          });
+        } else {
+          insights.push({
+            type: 'good',
+            html: `<strong>Hasil Bersih:</strong> Dari modal awal <strong>${fmtMoney(rep.initialDeposit)}</strong>, strategi ini menghasilkan keuntungan bersih <strong>${fmtSignedMoney(rep.netProfit)} (${fmtPct(rep.netProfitPct, true)})</strong>. Selama pengujian, strategi sempat mengumpulkan profit kotor <strong>+${fmtMoney(rep.grossProfit)} (+${fmtPct(rep.grossProfitPct)})</strong> namun terpotong kerugian kotor sebesar <strong>-${fmtMoney(rep.grossLoss)} (-${fmtPct(rep.grossLossPct)})</strong>.`
+          });
+        }
+      } else {
+        if (pctOnly) {
+          insights.push({
+            type: 'bad',
+            html: `<strong>Hasil Bersih:</strong> Strategi mengalami penurunan bersih sebesar <strong>${fmtPct(rep.netProfitPct, true)}</strong> (saldo berubah dari <strong>100%</strong> menjadi <strong>${fmtPct(finalBalancePct)}</strong>).`
+          });
+        } else {
+          insights.push({
+            type: 'bad',
+            html: `<strong>Hasil Bersih:</strong> Strategi mengalami kerugian bersih sebesar <strong>${fmtSignedMoney(rep.netProfit)} (${fmtPct(rep.netProfitPct, true)})</strong> dari modal awal <strong>${fmtMoney(rep.initialDeposit)}</strong>.`
+          });
+        }
+      }
+
+      // Win rate vs R:R explanation
+      if (rep.winRatePct < 50 && rep.netProfit > 0) {
+        const winLossStr = pctOnly
+          ? `(<strong>+${fmtPct(avgWinPct)}</strong> per profit vs <strong>-${fmtPct(avgLossAbsPct)}</strong> per loss)`
+          : `(<strong>${fmtMoney(raw.avgWin)}</strong> vs <strong>${fmtMoney(Math.abs(raw.avgLoss || 0))}</strong>)`;
+        insights.push({
+          type: 'info',
+          html: `<strong>Mengapa Tetap Profit Walau Win Rate ${fmtPct(rep.winRatePct)}?</strong> Tingkat kemenangan memang di bawah 50%, tetapi setiap kali menang rata-rata profitnya sekitar <strong>${rep.rrRatio.toFixed(1)}x lebih besar</strong> daripada rata-rata saat kalah ${winLossStr}.`
+        });
+      } else if (rep.winRatePct >= 50) {
+        const winLossStr = pctOnly
+          ? `rata-rata kemenangan <strong>+${fmtPct(avgWinPct)}</strong> dibanding rata-rata kekalahan <strong>-${fmtPct(avgLossAbsPct)}</strong>`
+          : `rata-rata kemenangan <strong>${fmtMoney(raw.avgWin)}</strong> dibanding rata-rata kekalahan <strong>${fmtMoney(Math.abs(raw.avgLoss || 0))}</strong>`;
+        insights.push({
+          type: 'good',
+          html: `<strong>Akurasi Tinggi (${fmtPct(rep.winRatePct)}):</strong> Lebih dari separuh transaksi berakhir profit, dengan ${winLossStr}.`
+        });
+      }
+
+      // Drawdown & Recovery Factor
+      const effRf = raw.recoveryFactor !== null ? raw.recoveryFactor : (rep.maxDdDollar > 0 ? rep.netProfit / rep.maxDdDollar : 0);
+      const ddDescStr = pctOnly
+        ? `sebesar <strong>${fmtPct(rep.maxDdPct)}</strong> dari titik puncak tertingginya (<strong>${fmtPct(peakBalancePct)}</strong>)`
+        : `sebesar <strong>${fmtMoney(rep.maxDdDollar)} (${fmtPct(rep.maxDdPct)})</strong> dari titik tertingginya`;
+      insights.push({
+        type: effRf >= 1 ? 'good' : 'warn',
+        html: `<strong>Risiko Penurunan (Max Drawdown ${fmtPct(rep.maxDdPct)}):</strong> Akun pernah mengalami penurunan terdalam ${ddDescStr}. Nilai <em>Recovery Factor</em> adalah <strong>${effRf.toFixed(2)}</strong> (${effRf >= 1 ? 'bagus, total profit sudah melampaui risiko penurunan terdalam' : 'masih di bawah 1.0, artinya total profit bersih belum menutupi persentase penurunan terburuk yang pernah terjadi'}).`
+      });
+
+      // Long vs Short bias
+      if (longCount > 0 && shortCount > 0) {
+        const diff = Math.abs(longWinPct - shortWinPct);
+        if (diff >= 12) {
+          const betterSide = shortWinPct > longWinPct ? 'SELL (Short)' : 'BUY (Long)';
+          const weakerSide = shortWinPct > longWinPct ? 'BUY (Long)' : 'SELL (Short)';
+          const betterPct = Math.max(shortWinPct, longWinPct);
+          const weakerPct = Math.min(shortWinPct, longWinPct);
+          insights.push({
+            type: 'warn',
+            html: `<strong>Ketimpangan Arah Transaksi:</strong> Posisi <strong>${betterSide}</strong> tampil jauh lebih akurat (menang <strong>${fmtPct(betterPct)}</strong>) dibandingkan posisi <strong>${weakerSide}</strong> yang hanya menang <strong>${fmtPct(weakerPct)}</strong>. Periksa kembali filter tren untuk entry ${weakerSide}.`
+          });
+        }
+      }
+
+      // Consecutive losses warning
+      if (raw.maxConsecLosses.count) {
+        const consecLossPct = pctOfDeposit(Math.abs(raw.maxConsecLosses.dollar || 0), dep);
+        const consecLossAmountStr = pctOnly
+          ? `<strong>-${fmtPct(consecLossPct)} dari modal</strong>`
+          : `<strong>${fmtMoney(Math.abs(raw.maxConsecLosses.dollar || 0))} (${fmtPct(consecLossPct)} dari modal)</strong>`;
+        insights.push({
+          type: raw.maxConsecLosses.count >= 7 ? 'warn' : 'info',
+          html: `<strong>Ketahanan Mental &amp; Lot:</strong> Strategi ini pernah mengalami <strong>${raw.maxConsecLosses.count} kali kalah beruntun</strong> dengan total penurunan ${consecLossAmountStr}. Pastikan ukuran lot sanggup menahan rentetan loss seperti ini saat dijalankan di akun real.`
+        });
+      }
+
+      document.getElementById('humanInsightsList').innerHTML = insights
+        .map(item => `<li class="insight-item ${item.type}">${item.html}</li>`)
+        .join('');
+
+      // 5. Detailed Clean Grid
+      const expPct = pctOfDeposit(raw.expectedPayoff, dep);
+      const largestWinPct = pctOfDeposit(raw.largestWin, dep);
+      const largestLossPct = pctOfDeposit(raw.largestLoss, dep);
+      const consecWinsPct = pctOfDeposit(raw.maxConsecWins.dollar, dep);
+      const consecLossesPct = pctOfDeposit(raw.maxConsecLosses.dollar, dep);
+
+      const detailRows = pctOnly ? [
+        ['Total Transaksi', `${rep.totalTrades} kali`],
+        ['Drawdown Absolut (dari Modal Awal)', ddAbsPct !== null ? fmtPct(ddAbsPct) : '-'],
+        ['Ekspektasi Profit per Trade', expPct !== null ? fmtPct(expPct, true) : '-'],
+        ['Profit Terbesar dalam 1 Trade', largestWinPct !== null ? fmtPct(largestWinPct, true) : '-'],
+        ['Loss Terbesar dalam 1 Trade', largestLossPct !== null ? fmtPct(largestLossPct, true) : '-'],
+        ['Rata-rata Sekali Menang', avgWinPct !== null ? fmtPct(avgWinPct, true) : '-'],
+        ['Rata-rata Sekali Kalah', raw.avgLoss !== null ? fmtPct(pctOfDeposit(raw.avgLoss, dep), true) : '-'],
+        ['Menang Beruntun Terbanyak', raw.maxConsecWins.count ? `${raw.maxConsecWins.count}x (${fmtPct(consecWinsPct, true)})` : '-'],
+        ['Kalah Beruntun Terbanyak', raw.maxConsecLosses.count ? `${raw.maxConsecLosses.count}x (${fmtPct(consecLossesPct, true)})` : '-'],
+        ['Rata-rata Menang / Kalah Beruntun', `${raw.avgConsecWins || '-'}x menang / ${raw.avgConsecLosses || '-'}x kalah`],
+        ['Recovery Factor', effRf ? effRf.toFixed(2) : '-'],
+        ['Sharpe Ratio', raw.sharpeRatio !== null ? raw.sharpeRatio.toFixed(2) : '-']
+      ] : [
+        ['Total Transaksi', `${rep.totalTrades} kali`],
+        ['Drawdown Absolut (dari Modal Awal)', raw.ddAbs !== null ? `${fmtMoney(raw.ddAbs)} (${fmtPct(ddAbsPct)})` : '-'],
+        ['Rata-rata Profit per Trade (Expectancy)', raw.expectedPayoff !== null ? fmtSignedMoney(raw.expectedPayoff) : '-'],
+        ['Profit Terbesar dalam 1 Trade', raw.largestWin !== null ? `${fmtSignedMoney(raw.largestWin)} (${fmtPct(largestWinPct, true)})` : '-'],
+        ['Loss Terbesar dalam 1 Trade', raw.largestLoss !== null ? `${fmtSignedMoney(raw.largestLoss)} (${fmtPct(largestLossPct, true)})` : '-'],
+        ['Rata-rata Sekali Menang', raw.avgWin !== null ? `${fmtSignedMoney(raw.avgWin)} (${fmtPct(avgWinPct, true)})` : '-'],
+        ['Rata-rata Sekali Kalah', raw.avgLoss !== null ? `${fmtSignedMoney(raw.avgLoss)} (${fmtPct(pctOfDeposit(raw.avgLoss, dep), true)})` : '-'],
+        ['Menang Beruntun Terbanyak', raw.maxConsecWins.count ? `${raw.maxConsecWins.count}x (${fmtSignedMoney(raw.maxConsecWins.dollar)} / ${fmtPct(consecWinsPct, true)})` : '-'],
+        ['Kalah Beruntun Terbanyak', raw.maxConsecLosses.count ? `${raw.maxConsecLosses.count}x (${fmtSignedMoney(raw.maxConsecLosses.dollar)} / ${fmtPct(consecLossesPct, true)})` : '-'],
+        ['Rata-rata Menang / Kalah Beruntun', `${raw.avgConsecWins || '-'}x menang / ${raw.avgConsecLosses || '-'}x kalah`],
+        ['Recovery Factor', effRf ? effRf.toFixed(2) : '-'],
+        ['Sharpe Ratio', raw.sharpeRatio !== null ? raw.sharpeRatio.toFixed(2) : '-']
+      ];
+
+      document.getElementById('cleanDetailGrid').innerHTML = detailRows
+        .map(([k, v]) => `<div class="detail-row"><span>${k}</span><span>${v}</span></div>`)
+        .join('');
+
+      // Show report section & scroll smoothly
+      const repSec = document.getElementById('reportSection');
+      repSec.style.display = 'block';
+      if (shouldScroll) {
+        repSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    /* ==========================================================================
+       CLIPBOARD EXPORT & LOCAL STORAGE HISTORY
+       ========================================================================== */
+    function copyPlainTextSummary() {
+      if (!latestParsedReport) return;
+      const r = latestParsedReport;
+      const dep = r.initialDeposit || 10000;
+      const finalBalancePct = (r.finalBalance / dep) * 100;
+
+      const text = hideDollarMode ? [
+        `📊 LAPORAN BACKTEST (MODE PERSENTASE): ${r.strategyName} (${r.pairName})`,
+        `📅 Periode: ${r.periodText}`,
+        `📈 Pertumbuhan Akun: 100% -> ${fmtPct(finalBalancePct)}`,
+        `----------------------------------------`,
+        `✅ Net Profit: ${fmtPct(r.netProfitPct, true)}`,
+        `🟢 Gross Profit: +${fmtPct(r.grossProfitPct)}`,
+        `🔴 Gross Loss: -${fmtPct(r.grossLossPct)}`,
+        `⚠️ Max Drawdown: ${fmtPct(r.maxDdPct)}`,
+        `🎯 Total Trade: ${r.totalTrades} (Win Rate: ${fmtPct(r.winRatePct)} | ${r.winCount}W / ${r.lossCount}L)`,
+        `⚖️ Profit Factor: ${r.raw.profitFactor ?? '-'} | R:R Rata-rata: ${r.rrRatio.toFixed(2)} : 1`,
+        `🔵 BUY (Long): ${r.raw.longTrades.count ?? 0} trade (${fmtPct(r.raw.longTrades.pct)} win)`,
+        `🟡 SELL (Short): ${r.raw.shortTrades.count ?? 0} trade (${fmtPct(r.raw.shortTrades.pct)} win)`,
+        r.userNote ? `📝 Catatan: ${r.userNote}` : ''
+      ].filter(Boolean).join('\n') : [
+        `📊 LAPORAN BACKTEST: ${r.strategyName} (${r.pairName})`,
+        `📅 Periode: ${r.periodText}`,
+        `💰 Modal Awal: ${fmtMoney(r.initialDeposit)} -> Saldo Akhir: ${fmtMoney(r.finalBalance)} (${fmtPct(finalBalancePct)})`,
+        `----------------------------------------`,
+        `✅ Net Profit: ${fmtPct(r.netProfitPct, true)} (${fmtSignedMoney(r.netProfit)})`,
+        `📈 Gross Profit: +${fmtPct(r.grossProfitPct)} (+${fmtMoney(r.grossProfit)})`,
+        `📉 Gross Loss: -${fmtPct(r.grossLossPct)} (-${fmtMoney(r.grossLoss)})`,
+        `⚠️ Max Drawdown: ${fmtPct(r.maxDdPct)} (-${fmtMoney(r.maxDdDollar)})`,
+        `🎯 Total Trade: ${r.totalTrades} (Win Rate: ${fmtPct(r.winRatePct)} | ${r.winCount}W / ${r.lossCount}L)`,
+        `⚖️ Profit Factor: ${r.raw.profitFactor ?? '-'} | R:R Rata-rata: ${r.rrRatio.toFixed(2)} : 1`,
+        `🔵 BUY (Long): ${r.raw.longTrades.count ?? 0} trade (${fmtPct(r.raw.longTrades.pct)} win)`,
+        `🟡 SELL (Short): ${r.raw.shortTrades.count ?? 0} trade (${fmtPct(r.raw.shortTrades.pct)} win)`,
+        r.userNote ? `📝 Catatan: ${r.userNote}` : ''
+      ].filter(Boolean).join('\n');
+
+      // Fallback-safe clipboard copy for offline & iframe environments
+      const tempArea = document.createElement('textarea');
+      tempArea.value = text;
+      tempArea.style.position = 'fixed';
+      tempArea.style.left = '-9999px';
+      document.body.appendChild(tempArea);
+      tempArea.select();
+      try {
+        document.execCommand('copy');
+        showToast(
+          hideDollarMode
+            ? 'Ringkasan laporan (hanya persentase) berhasil disalin!'
+            : 'Ringkasan laporan berhasil disalin ke clipboard!'
+        );
+      } catch (err) {
+        showToast('Gagal menyalin teks secara otomatis.', true);
+      }
+      document.body.removeChild(tempArea);
+    }
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveCurrentToHistory() {
+      if (!latestParsedReport) return;
+      try {
+        const list = loadHistory();
+        // Avoid exact duplicate ID
+        const filtered = list.filter(item => item.id !== latestParsedReport.id);
+        filtered.unshift(latestParsedReport);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered.slice(0, 20)));
+        renderHistoryList();
+        showToast('Laporan tersimpan di riwayat browser.');
+      } catch (e) {
+        showToast('Tidak dapat menyimpan riwayat pada mode file lokal ini.', true);
+      }
+    }
+
+    function renderHistoryList() {
+      const list = loadHistory();
+      const sec = document.getElementById('historySection');
+      const container = document.getElementById('historyList');
+
+      if (!list.length) {
+        sec.style.display = 'none';
+        return;
+      }
+
+      sec.style.display = 'block';
+      container.innerHTML = list.map((item, idx) => {
+        const colorClass = item.netProfit >= 0 ? 'text-emerald' : 'text-coral';
+        const summaryHeadline = hideDollarMode
+          ? `${fmtPct(item.netProfitPct, true)}`
+          : `${fmtPct(item.netProfitPct, true)} (${fmtSignedMoney(item.netProfit)})`;
+        const summarySub = hideDollarMode
+          ? `${item.periodText} • Win Rate ${fmtPct(item.winRatePct)} • DD ${fmtPct(item.maxDdPct)} • Disimpan ${item.createdAt}`
+          : `${item.periodText} • Modal ${fmtMoney(item.initialDeposit)} • DD ${fmtPct(item.maxDdPct)} • Disimpan ${item.createdAt}`;
+        return `
+          <div class="history-item">
+            <div class="history-info">
+              <span class="history-title">${item.strategyName} (${item.pairName}) — <span class="${colorClass}">${summaryHeadline}</span></span>
+              <span class="history-sub">${summarySub}</span>
+            </div>
+            <div class="btn-group">
+              <button type="button" class="btn-secondary btn-sm" onclick="restoreHistoryItem(${idx})">Buka</button>
+              <button type="button" class="btn-ghost btn-sm" onclick="deleteHistoryItem(${idx})">Hapus</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.restoreHistoryItem = function(index) {
+      const list = loadHistory();
+      const item = list[index];
+      if (!item) return;
+      document.getElementById('inputStrategy').value = item.strategyName;
+      document.getElementById('inputPair').value = item.pairName;
+      document.getElementById('inputDeposit').value = item.initialDeposit;
+      document.getElementById('inputNote').value = item.userNote || '';
+      document.getElementById('inputRawReport').value = item.rawText || '';
+      latestParsedReport = item;
+      renderReportToDOM(item, true);
+      showToast('Laporan riwayat dimuat kembali.');
+    };
+
+    window.deleteHistoryItem = function(index) {
+      try {
+        const list = loadHistory();
+        list.splice(index, 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        renderHistoryList();
+      } catch (e) {
+        // Ignore storage restriction on strict file:// origins
+      }
+    };
+
+    /* ==========================================================================
+       EVENT LISTENERS
+       ========================================================================== */
+    document.addEventListener('DOMContentLoaded', () => {
+      renderHistoryList();
+
+      document.getElementById('btnConvert').addEventListener('click', generateReport);
+      document.getElementById('btnTogglePctTop').addEventListener('click', togglePercentageOnlyMode);
+      document.getElementById('btnTogglePctReport').addEventListener('click', togglePercentageOnlyMode);
+
+      // Trigger convert when pressing Enter inside inputs or Ctrl+Enter / Enter in textarea
+      const rawTextarea = document.getElementById('inputRawReport');
+      rawTextarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          // Allow normal newline only with Shift+Enter, plain Enter or Ctrl+Enter converts immediately
+          e.preventDefault();
+          generateReport();
+        }
+      });
+
+      ['inputStrategy', 'inputPair', 'inputDeposit', 'inputNote'].forEach(id => {
+        document.getElementById(id).addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            generateReport();
+          }
+        });
+      });
+
+      document.getElementById('btnLoadSample').addEventListener('click', () => {
+        document.getElementById('inputStrategy').value = 'EA Trend Follower Pro';
+        document.getElementById('inputPair').value = 'XAUUSD (H1)';
+        document.getElementById('inputDeposit').value = '10000';
+        document.getElementById('inputStartDate').value = '2025-01-01';
+        document.getElementById('inputEndDate').value = '2025-12-31';
+        document.getElementById('inputNote').value = 'Pengujian 1 tahun penuh, modal standar $10,000';
+        document.getElementById('inputRawReport').value = SAMPLE_MT5_TEXT;
+        generateReport();
+        showToast('Contoh data MT5 dimuat & langsung dikonversi.');
+      });
+
+      document.getElementById('btnReset').addEventListener('click', () => {
+        document.getElementById('inputStrategy').value = '';
+        document.getElementById('inputPair').value = '';
+        document.getElementById('inputDeposit').value = '';
+        document.getElementById('inputStartDate').value = '';
+        document.getElementById('inputEndDate').value = '';
+        document.getElementById('inputNote').value = '';
+        document.getElementById('inputRawReport').value = '';
+        document.getElementById('depositHint').textContent = 'Kosongkan = auto deteksi';
+        document.getElementById('reportSection').style.display = 'none';
+        latestParsedReport = null;
+        showToast('Form telah dibersihkan.');
+      });
+
+      document.getElementById('btnCopySummary').addEventListener('click', copyPlainTextSummary);
+      document.getElementById('btnPrint').addEventListener('click', () => window.print());
+      document.getElementById('btnSaveHistory').addEventListener('click', saveCurrentToHistory);
+
+      document.getElementById('btnClearHistory').addEventListener('click', () => {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {
+          // Ignore storage restriction on strict file:// origins
+        }
+        renderHistoryList();
+        showToast('Semua riwayat lokal telah dihapus.');
+      });
+    });
+  </script>
+</body>
+</html>
