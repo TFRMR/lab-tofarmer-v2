@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo Peta Desa</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #143a2f; font-family: system-ui, sans-serif; color: #fff; overflow: hidden; }
+  #host { position: absolute; inset: 0; }
+  #bar { position: absolute; left: 0; right: 0; top: 0; padding: 10px 12px; display: flex; gap: 8px; align-items: center; z-index: 3; background: linear-gradient(180deg, rgba(5,12,7,.8), rgba(5,12,7,0)); }
+  button { min-height: 40px; padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(255,214,150,.5); background: rgba(5,12,7,.82); color: #fff; font-weight: 700; font-size: 13px; cursor: pointer; }
+  #msg { flex: 1; font-size: 12px; color: #fde68a; text-align: right; }
+  #zoom { position: absolute; right: 12px; bottom: 26px; display: flex; flex-direction: column; gap: 8px; z-index: 3; }
+  #zoom button { width: 46px; height: 46px; font-size: 22px; }
+  label { font-size: 12px; display: flex; gap: 6px; align-items: center; }
+</style>
+</head>
+<body>
+<div id="host"></div>
+<div id="bar">
+  <button onclick="map.focusMe()">⌖ Rumahku</button>
+  <label>Jam <input id="hour" type="range" min="0" max="24" step="0.25" value="12"></label>
+  <div id="msg">Geser, cubit/roda untuk zoom, ketuk rumah/lahan/Pasar</div>
+</div>
+<div id="zoom"><button onclick="map.zoomBy(1.35)">＋</button><button onclick="map.zoomBy(0.74)">－</button></div>
+<script src="kebun-scene.js"></script>
+<script src="desa-map.js"></script>
+<script>
+  // Halaman uji tanpa login/Supabase: data desa di sini hanya contoh acak. Karya seniman di aset/kebun/ ikut dipakai.
+  var N = 30, terrain = [], users = [], housePos = {}, claims = {}, farmVis = {};
+  var seed = 7; function rnd() { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
+  for (var i = 0; i < N; i++) { terrain.push({ x_pos: i, y_pos: 15, type: 'paved_road' }); terrain.push({ x_pos: 15, y_pos: i, type: 'paved_road' }); }
+  for (var k = 0; k < 80; k++) { var x = Math.floor(rnd() * N), y = Math.floor(rnd() * N); if (x === 15 || y === 15) continue; terrain.push({ x_pos: x, y_pos: y, type: rnd() < 0.22 ? 'mountain' : (rnd() < 0.5 ? 'tree' : 'soil_farm') }); }
+  var names = ['yohanes', 'sri', 'budi', 'wati', 'joko', 'ani', 'tono', 'lia', 'dewi', 'agus', 'rini', 'eko', 'nana', 'tia', 'bayu', 'citra'];
+  names.forEach(function (n, u) {
+    var id = 'u' + u; users.push({ id: id, username: n }); housePos[id] = { x: 4 + (u % 5) * 5, y: 4 + Math.floor(u / 5) * 5 };
+    for (var p = 0; p < 3; p++) { var key = (housePos[id].x + 1 + p) + ',' + (housePos[id].y + 2); claims[key] = { ownerId: id, ownerUsername: n }; farmVis[key] = { state: p === 1 ? 'barren' : 'planted', growth: rnd(), ready: p === 0 && u % 3 === 0, badge: (p === 0 && u % 3 === 0) ? 'ready' : null }; }
+  });
+  var opts = {
+    container: document.getElementById('host'), debug: true,
+    onHouse: function (id, name) { msg('Rumah ' + name + ' diketuk. Di game: membuka Rumah warga.'); },
+    onFarm: function (key, owner, mine) { msg('Kebun @' + owner + (mine ? ' (milikmu)' : '') + ' diketuk.'); },
+    onTile: function (key, owner) { msg('Lahan milik @' + owner); },
+    onLandmark: function (id) { msg('Bangunan desa diketuk: ' + id); }
+  };
+  var map = DesaMap.create(opts);
+  function msg(t) { document.getElementById('msg').textContent = t; }
+  map.setData({ N: N, terrain: terrain, claims: claims, farmVis: farmVis, users: users, housePos: housePos, tierOf: function (id) { return 1 + (parseInt(id.slice(1), 10) % 3); }, me: { id: 'u0', username: 'yohanes' }, beringinHealth: 80 });
+  map.start(); map.focusMe();
+  document.getElementById('hour').addEventListener('input', function (e) { opts.hourOverride = parseFloat(e.target.value); });   // peta membaca jam dari opts tiap gambar
+</script>
+</body>
+</html>

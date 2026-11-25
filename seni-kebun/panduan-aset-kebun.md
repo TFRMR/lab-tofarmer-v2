@@ -6,7 +6,7 @@ Boleh mengganti **sebagian saja**; sisanya tetap memakai gambar sementara. Jadi 
 
 ## 1. Cara kerja singkat
 
-1. Buka folder `kerangka/`. Isinya gambar sementara pada **ukuran kerja** (1 petak = 256 px lebar). Lukis di atasnya, atau pakai sebagai pedoman proporsi dan posisi.
+1. Buka folder `kerangka/`. Isinya gambar sementara pada **ukuran kerja** (1 petak = 192 px lebar). Lukis di atasnya, atau pakai sebagai pedoman proporsi dan posisi.
 2. Simpan sebagai **PNG transparan** dengan **nama berkas yang sama** (contoh `crop_ubijalar_3.png`).
 3. Jalankan pengemas (butuh Python + Pillow, `pip install pillow`):
    ```
@@ -20,10 +20,10 @@ Folder yang berisi PNG tidak perlu ikut diunggah ke situs; yang dipakai game han
 
 ## 2. Aturan gambar
 
-- **Isometrik 2:1.** Ubin = belah ketupat lebar 256, tinggi 128. Cahaya dari **kiri atas**, konsisten di semua gambar.
+- **Isometrik 2:1.** Ubin = belah ketupat lebar 192, tinggi 96. Cahaya dari **kiri atas**, konsisten di semua gambar.
 - **Titik jangkar** (kolom "jangkar") adalah titik yang diletakkan tepat di posisi benda: pusat ubin untuk bedeng, dasar tengah untuk pohon/tanaman/rumah. Jangkar dinyatakan sebagai pecahan lebar,tinggi gambar (0.50 , 0.97 = tengah, hampir di dasar).
 - **Lebar di layar** ditentukan oleh kolom "lebar (petak)", bukan oleh jumlah piksel. Kamu boleh membuat gambar lebih besar atau lebih kecil dari kerangka, asal **proporsi** dan **jangkarnya** mengikuti. Mesin menyesuaikan ukuran ke layar.
-- **Resolusi kerja:** 256 px per petak setara kualitas layar retina. Untuk HP lemah, 192 atau 160 px per petak cukup dan membuat memori jauh lebih kecil.
+- **Resolusi kerja:** 192 px per petak cukup tajam di layar retina. Untuk HP lemah, 160 atau 128 px per petak juga cukup dan membuat memori jauh lebih kecil.
 - **Bayangan:** gambarlah bayangan lembut di bawah benda di dalam gambarnya sendiri (seperti di kerangka).
 - **Palet terbatas** (sekitar 12–16 warna utama) membuat berkas WebP jauh lebih kecil dan tampilan lebih seragam.
 - **Tepi ubin rumput** dibuat sedikit melebihi belah ketupat (1–2 px) agar tidak ada garis tipis di antara ubin.
@@ -46,7 +46,157 @@ Tanaman dan penanda sengaja lebih cerah dari latarnya agar mudah dibaca di atas 
 
 ## 3. Anggaran berat (supaya tetap ringan)
 
-- Satu atlas maksimum 2048×2048 px; usahakan berkas `.webp` di bawah **500 KB** (set kerangka lengkap ± 110 KB).
+- Satu atlas maksimum 2048×2048 px (bila sprite lebih banyak, pengemas otomatis membaginya ke beberapa atlas dan menuliskannya di `manifest.json`); usahakan berkas `.webp` di bawah **500 KB** (set kerangka lengkap ± 150 KB).
+- Memori terpakai di HP ≈ lebar×tinggi×4 byte. Atlas 1600×1700 ≈ 11 MB; turunkan resolusi kerja bila perlu.
+- Setelah memperbarui atlas, beri nama baru (mis. `--nama kebun-atlas-v2.webp`) agar peramban tidak memakai gambar lama dari cache. `manifest.json` selalu dibaca ulang.
+
+## 4. Daftar sprite
+
+Ukuran = ukuran kerangka dalam piksel. Lebar dalam satuan petak.
+
+| berkas | ukuran | lebar (petak) | jangkar | keterangan |
+|---|---|---|---|---|
+| `tile_grass_0.png` | 196×98 | 1.02 | 0.50 , 0.500 | Ubin rumput (belah ketupat 2:1). Dipakai berulang, buat tepi nyaris tak terlihat agar menyambung. |
+| `tile_grass_1.png` | 196×98 | 1.02 | 0.50 , 0.500 | Variasi rumput (bunga kecil). |
+| `bed_fertile.png` | 180×99 | 0.94 | 0.50 , 0.455 | Bedeng tanah subur: permukaan + dua sisi tebal. Titik jangkar = pusat permukaan atas. |
+| `bed_barren.png` | 180×99 | 0.94 | 0.50 , 0.455 | Bedeng tandus (kering, retak). |
+| `tree_kelapa.png` | 192×442 | 1 | 0.50 , 0.975 | Pohon kelapa. Goyang kecil dibuat oleh kode. |
+| `bamboo.png` | 154×308 | 0.8 | 0.50 , 0.980 | Rumpun bambu. Goyang oleh kode. |
+| `house_joglo.png` | 365×460 | 1.9 | 0.50 , 0.820 | Rumah joglo (dekorasi latar). |
+| `tree_beringin_0.png` | 384×507 | 2 | 0.50 , 0.950 | Beringin LAYU (kesehatan < 30%). |
+| `tree_beringin_1.png` | 384×507 | 2 | 0.50 , 0.950 | Beringin SEDANG (30-69%). |
+| `tree_beringin_2.png` | 384×507 | 2 | 0.50 , 0.950 | Beringin SEHAT (>= 70%). Bisa diketuk di game (membuka menu Beringin). |
+| `cloud_0.png` | 326×163 | 1.7 | 0.50 , 0.500 | Awan 0 (bergeser pelan). |
+| `cloud_1.png` | 269×135 | 1.4 | 0.50 , 0.500 | Awan 1. |
+| `cloud_2.png` | 384×192 | 2 | 0.50 , 0.500 | Awan 2. |
+| `badge_ready.png` | 58×58 | 0.3 | 0.50 , 0.960 | Penanda siap panen (gelembung dengan ekor ke bawah). |
+| `badge_add.png` | 58×58 | 0.3 | 0.50 , 0.960 | Penanda "klaim lahan" (plus emas) pada petak kosong di kebun. |
+| `badge_care.png` | 58×58 | 0.3 | 0.50 , 0.960 | Penanda perlu dirawat. |
+| `badge_nursery.png` | 58×58 | 0.3 | 0.50 , 0.960 | Penanda persemaian siap dicek. |
+| `pot.png` | 38×38 | 0.2 | 0.50 , 0.950 | Pot bibit (persemaian), maksimal 3 per petak. |
+| `coin.png` | 25×25 | 0.13 | 0.50 , 0.500 | Koin yang terbang ke bar XP. |
+| `spark.png` | 23×23 | 0.12 | 0.50 , 0.500 | Kilau/bintang kecil. |
+| `drop.png` | 12×12 | 0.06 | 0.50 , 0.500 | Tetes air. |
+| `leaf.png` | 17×17 | 0.09 | 0.50 , 0.900 | Daun kecil (efek pupuk/tanam). |
+| `house_gubuk.png` | 288×314 | 1.5 | 0.50 , 0.860 | Rumah tingkat 1 (gubuk bambu, atap alang-alang). Dipakai di Rumah dan Peta Desa untuk gaya rumah tier 1. |
+| `house_kayu.png` | 326×385 | 1.7 | 0.50 , 0.870 | Rumah tingkat 2 (rumah kayu beratap genteng).  Gaya rumah tier 2. |
+| `tile_road.png` | 196×98 | 1.02 | 0.50 , 0.500 | Ubin jalan batu (Peta Desa). Tepi sedikit melebihi belah ketupat agar menyambung. |
+| `tile_water.png` | 196×98 | 1.02 | 0.50 , 0.500 | Ubin sungai (Peta Desa, selatan dan timur). |
+| `tile_soil.png` | 196×98 | 1.02 | 0.50 , 0.500 | Ubin tanah olah polos (medan soil_farm di Peta Desa). |
+| `gunung.png` | 461×438 | 2.4 | 0.50 , 0.920 | Gunung berhutan, pegunungan Menoreh (Peta Desa: bingkai utara/barat dan medan mountain). |
+| `tree_hutan.png` | 134×154 | 0.7 | 0.50 , 0.960 | Pohon hutan bulat (Peta Desa: medan tree dan hutan di bingkai). |
+| `toko.png` | 250×270 | 1.3 | 0.50 , 0.860 | Koperasi (toko kecil bertulisan KOPERASI). Bisa diketuk di Peta Desa. |
+| `lumbung.png` | 240×259 | 1.25 | 0.50 , 0.860 | Lumbung/gudang (atap alang-alang). Bisa diketuk di kebun: membuka popup Gudang. |
+| `dapur.png` | 211×232 | 1.1 | 0.50 , 0.880 | Dapur olahan dengan cerobong. Asap dibuat kode dari titik cerobong (jangkar tambahan: cerobong ≈ 0.70 , 0.26). Membuka popup Olahan. |
+| `kompos.png` | 163×139 | 0.85 | 0.50 , 0.800 | Bak kompos kayu berisi kompos dan tunas kecil. Membuka popup Kompos. |
+| `lapak.png` | 240×240 | 1.25 | 0.50 , 0.900 | Lapak pasar beratap kain bergaris. Tampil di kebun pada layar lebar; membuka popup Pasar. |
+| `mist.png` | 768×215 | 4 | 0.50 , 0.500 | Kabut tipis Menoreh (lonjong lembut, tepi transparan). Bergeser pelan di cakrawala dan di atas kebun. |
+| `glow.png` | 58×58 | 0.3 | 0.50 , 0.500 | Cahaya lembut putih (radial, transparan di tepi). |
+| `glow_y.png` | 58×58 | 0.3 | 0.50 , 0.500 | Cahaya kuning kehijauan (kunang-kunang & kilau siap panen). |
+| `crop_ubijalar_0.png` | 150×120 | 0.78 | 0.50 , 0.930 | Ubi jalar tahap 0: baru tanam (3 rumpun kecil). |
+| `crop_ubijalar_1.png` | 150×120 | 0.78 | 0.50 , 0.930 | Tahap 1: tunas. |
+| `crop_ubijalar_2.png` | 150×120 | 0.78 | 0.50 , 0.930 | Tahap 2: tumbuh. |
+| `crop_ubijalar_3.png` | 150×120 | 0.78 | 0.50 , 0.930 | Tahap 3: lebat, berbunga. |
+| `crop_ubijalar_4.png` | 150×120 | 0.78 | 0.50 , 0.930 | Tahap 4: SIAP PANEN (umbi mengintip dari tanah). |
+| `chicken_0.png` | 50×50 | 0.26 | 0.50 , 0.920 | Ayam, hadap KANAN, bingkai jalan 0 (dibalik otomatis untuk hadap kiri). |
+| `chicken_1.png` | 50×50 | 0.26 | 0.50 , 0.920 | Bingkai jalan 1. |
+| `chicken_2.png` | 50×50 | 0.26 | 0.50 , 0.920 | Bingkai jalan 2. |
+| `chicken_3.png` | 50×50 | 0.26 | 0.50 , 0.920 | Bingkai jalan 3. |
+
+## 2b. Warna: Twilight Menoreh (hutan basah)
+
+Gambar sementara memakai palet ini. Silakan ikuti sebagai arah, lalu ganti dengan penglihatanmu sendiri:
+
+| bagian | warna (atas → bawah) | suasana |
+|---|---|---|
+| Rumput | `#74b87c` → `#4b9762` | lumut dan pakis, hijau dingin, bukan hijau limau |
+| Padang | `#62ab78` → `#1f5a45` | hutan basah, makin ke depan makin gelap |
+| Tanah bedeng | `#ad693c` → `#88502c` | tanah merah perbukitan (latosol) |
+| Bukit jauh/tengah/dekat | `#7fb0b8`, `#3f8a7a`, `#1f6a52` | berkabut, biru-teal ke hijau pekat, ada tajuk pohon |
+| Langit siang | `#3f9bd8` → `#bfe8e4` | biru kehijauan berkabut |
+| Langit senja | `#4a4c92` → `#ff9a62` | ungu ke jingga |
+| Langit malam | `#06182a` → `#143a4a` | teal-navy (bukan biru murni) |
+
+Tanaman dan penanda sengaja lebih cerah dari latarnya agar mudah dibaca di atas hijau yang gelap.
+
+## 3. Anggaran berat (supaya tetap ringan)
+
+- Satu atlas maksimum 2048×2048 px (bila sprite lebih banyak, pengemas otomatis membaginya ke beberapa atlas dan menuliskannya di `manifest.json`); usahakan berkas `.webp` di bawah **500 KB** (set kerangka lengkap ± 150 KB).
+- Memori terpakai di HP ≈ lebar×tinggi×4 byte. Atlas 1600×1700 ≈ 11 MB; turunkan resolusi kerja bila perlu.
+- Setelah memperbarui atlas, beri nama baru (mis. `--nama kebun-atlas-v2.webp`) agar peramban tidak memakai gambar lama dari cache. `manifest.json` selalu dibaca ulang.
+
+## 4. Daftar sprite
+
+Ukuran = ukuran kerangka dalam piksel. Lebar dalam satuan petak.
+
+| berkas | ukuran | lebar (petak) | jangkar | keterangan |
+|---|---|---|---|---|
+| `tile_grass_0.png` | 261×131 | 1.02 | 0.50 , 0.500 | Ubin rumput (belah ketupat 2:1). Dipakai berulang, buat tepi nyaris tak terlihat agar menyambung. |
+| `tile_grass_1.png` | 261×131 | 1.02 | 0.50 , 0.500 | Variasi rumput (bunga kecil). |
+| `bed_fertile.png` | 241×133 | 0.94 | 0.50 , 0.455 | Bedeng tanah subur: permukaan + dua sisi tebal. Titik jangkar = pusat permukaan atas. |
+| `bed_barren.png` | 241×133 | 0.94 | 0.50 , 0.455 | Bedeng tandus (kering, retak). |
+| `tree_kelapa.png` | 256×589 | 1 | 0.50 , 0.975 | Pohon kelapa. Goyang kecil dibuat oleh kode. |
+| `bamboo.png` | 205×410 | 0.8 | 0.50 , 0.980 | Rumpun bambu. Goyang oleh kode. |
+| `house_joglo.png` | 486×612 | 1.9 | 0.50 , 0.820 | Rumah joglo (dekorasi latar). |
+| `tree_beringin_0.png` | 512×676 | 2 | 0.50 , 0.950 | Beringin LAYU (kesehatan < 30%). |
+| `tree_beringin_1.png` | 512×676 | 2 | 0.50 , 0.950 | Beringin SEDANG (30-69%). |
+| `tree_beringin_2.png` | 512×676 | 2 | 0.50 , 0.950 | Beringin SEHAT (>= 70%). Bisa diketuk di game (membuka menu Beringin). |
+| `cloud_0.png` | 435×218 | 1.7 | 0.50 , 0.500 | Awan 0 (bergeser pelan). |
+| `cloud_1.png` | 358×179 | 1.4 | 0.50 , 0.500 | Awan 1. |
+| `cloud_2.png` | 512×256 | 2 | 0.50 , 0.500 | Awan 2. |
+| `badge_ready.png` | 77×77 | 0.3 | 0.50 , 0.960 | Penanda siap panen (gelembung dengan ekor ke bawah). |
+| `badge_add.png` | 77×77 | 0.3 | 0.50 , 0.960 | Penanda "klaim lahan" (plus emas) pada petak kosong di kebun. |
+| `badge_care.png` | 77×77 | 0.3 | 0.50 , 0.960 | Penanda perlu dirawat. |
+| `badge_nursery.png` | 77×77 | 0.3 | 0.50 , 0.960 | Penanda persemaian siap dicek. |
+| `pot.png` | 51×51 | 0.2 | 0.50 , 0.950 | Pot bibit (persemaian), maksimal 3 per petak. |
+| `coin.png` | 33×33 | 0.13 | 0.50 , 0.500 | Koin yang terbang ke bar XP. |
+| `spark.png` | 31×31 | 0.12 | 0.50 , 0.500 | Kilau/bintang kecil. |
+| `drop.png` | 15×15 | 0.06 | 0.50 , 0.500 | Tetes air. |
+| `leaf.png` | 23×23 | 0.09 | 0.50 , 0.900 | Daun kecil (efek pupuk/tanam). |
+| `house_gubuk.png` | 384×419 | 1.5 | 0.50 , 0.860 | Rumah tingkat 1 (gubuk bambu, atap alang-alang). Dipakai di Rumah dan Peta Desa untuk gaya rumah tier 1. |
+| `house_kayu.png` | 435×513 | 1.7 | 0.50 , 0.870 | Rumah tingkat 2 (rumah kayu beratap genteng).  Gaya rumah tier 2. |
+| `tile_road.png` | 261×131 | 1.02 | 0.50 , 0.500 | Ubin jalan batu (Peta Desa). Tepi sedikit melebihi belah ketupat agar menyambung. |
+| `tile_water.png` | 261×131 | 1.02 | 0.50 , 0.500 | Ubin sungai (Peta Desa, selatan dan timur). |
+| `tile_soil.png` | 261×131 | 1.02 | 0.50 , 0.500 | Ubin tanah olah polos (medan soil_farm di Peta Desa). |
+| `gunung.png` | 614×583 | 2.4 | 0.50 , 0.920 | Gunung berhutan, pegunungan Menoreh (Peta Desa: bingkai utara/barat dan medan mountain). |
+| `tree_hutan.png` | 179×206 | 0.7 | 0.50 , 0.960 | Pohon hutan bulat (Peta Desa: medan tree dan hutan di bingkai). |
+| `toko.png` | 333×360 | 1.3 | 0.50 , 0.860 | Koperasi (toko kecil bertulisan KOPERASI). Bisa diketuk di Peta Desa. |
+| `lumbung.png` | 320×346 | 1.25 | 0.50 , 0.860 | Lumbung/gudang (atap alang-alang). Bisa diketuk di kebun: membuka popup Gudang. |
+| `dapur.png` | 282×310 | 1.1 | 0.50 , 0.880 | Dapur olahan dengan cerobong. Asap dibuat kode dari titik cerobong (jangkar tambahan: cerobong ≈ 0.70 , 0.26). Membuka popup Olahan. |
+| `kompos.png` | 218×185 | 0.85 | 0.50 , 0.800 | Bak kompos kayu berisi kompos dan tunas kecil. Membuka popup Kompos. |
+| `lapak.png` | 320×320 | 1.25 | 0.50 , 0.900 | Lapak pasar beratap kain bergaris. Tampil di kebun pada layar lebar; membuka popup Pasar. |
+| `mist.png` | 1024×287 | 4 | 0.50 , 0.500 | Kabut tipis Menoreh (lonjong lembut, tepi transparan). Bergeser pelan di cakrawala dan di atas kebun. |
+| `glow.png` | 77×77 | 0.3 | 0.50 , 0.500 | Cahaya lembut putih (radial, transparan di tepi). |
+| `glow_y.png` | 77×77 | 0.3 | 0.50 , 0.500 | Cahaya kuning kehijauan (kunang-kunang & kilau siap panen). |
+| `crop_ubijalar_0.png` | 200×160 | 0.78 | 0.50 , 0.930 | Ubi jalar tahap 0: baru tanam (3 rumpun kecil). |
+| `crop_ubijalar_1.png` | 200×160 | 0.78 | 0.50 , 0.930 | Tahap 1: tunas. |
+| `crop_ubijalar_2.png` | 200×160 | 0.78 | 0.50 , 0.930 | Tahap 2: tumbuh. |
+| `crop_ubijalar_3.png` | 200×160 | 0.78 | 0.50 , 0.930 | Tahap 3: lebat, berbunga. |
+| `crop_ubijalar_4.png` | 200×160 | 0.78 | 0.50 , 0.930 | Tahap 4: SIAP PANEN (umbi mengintip dari tanah). |
+| `chicken_0.png` | 67×67 | 0.26 | 0.50 , 0.920 | Ayam, hadap KANAN, bingkai jalan 0 (dibalik otomatis untuk hadap kiri). |
+| `chicken_1.png` | 67×67 | 0.26 | 0.50 , 0.920 | Bingkai jalan 1. |
+| `chicken_2.png` | 67×67 | 0.26 | 0.50 , 0.920 | Bingkai jalan 2. |
+| `chicken_3.png` | 67×67 | 0.26 | 0.50 , 0.920 | Bingkai jalan 3. |
+
+## 2b. Warna: Twilight Menoreh (hutan basah)
+
+Gambar sementara memakai palet ini. Silakan ikuti sebagai arah, lalu ganti dengan penglihatanmu sendiri:
+
+| bagian | warna (atas → bawah) | suasana |
+|---|---|---|
+| Rumput | `#74b87c` → `#4b9762` | lumut dan pakis, hijau dingin, bukan hijau limau |
+| Padang | `#62ab78` → `#1f5a45` | hutan basah, makin ke depan makin gelap |
+| Tanah bedeng | `#ad693c` → `#88502c` | tanah merah perbukitan (latosol) |
+| Bukit jauh/tengah/dekat | `#7fb0b8`, `#3f8a7a`, `#1f6a52` | berkabut, biru-teal ke hijau pekat, ada tajuk pohon |
+| Langit siang | `#3f9bd8` → `#bfe8e4` | biru kehijauan berkabut |
+| Langit senja | `#4a4c92` → `#ff9a62` | ungu ke jingga |
+| Langit malam | `#06182a` → `#143a4a` | teal-navy (bukan biru murni) |
+
+Tanaman dan penanda sengaja lebih cerah dari latarnya agar mudah dibaca di atas hijau yang gelap.
+
+## 3. Anggaran berat (supaya tetap ringan)
+
+- Satu atlas maksimum 2048×2048 px (bila sprite lebih banyak, pengemas otomatis membaginya ke beberapa atlas dan menuliskannya di `manifest.json`); usahakan berkas `.webp` di bawah **500 KB** (set kerangka lengkap ± 150 KB).
 - Memori terpakai di HP ≈ lebar×tinggi×4 byte. Atlas 1600×1700 ≈ 11 MB; turunkan resolusi kerja bila perlu.
 - Setelah memperbarui atlas, beri nama baru (mis. `--nama kebun-atlas-v2.webp`) agar peramban tidak memakai gambar lama dari cache. `manifest.json` selalu dibaca ulang.
 
@@ -112,7 +262,7 @@ Tanaman dan penanda sengaja lebih cerah dari latarnya agar mudah dibaca di atas 
 
 ## 3. Anggaran berat (supaya tetap ringan)
 
-- Satu atlas maksimum 2048×2048 px; usahakan berkas `.webp` di bawah **500 KB** (set kerangka lengkap ± 110 KB).
+- Satu atlas maksimum 2048×2048 px (bila sprite lebih banyak, pengemas otomatis membaginya ke beberapa atlas dan menuliskannya di `manifest.json`); usahakan berkas `.webp` di bawah **500 KB** (set kerangka lengkap ± 150 KB).
 - Memori terpakai di HP ≈ lebar×tinggi×4 byte. Atlas 1600×1700 ≈ 11 MB; turunkan resolusi kerja bila perlu.
 - Setelah memperbarui atlas, beri nama baru (mis. `--nama kebun-atlas-v2.webp`) agar peramban tidak memakai gambar lama dari cache. `manifest.json` selalu dibaca ulang.
 
@@ -159,6 +309,12 @@ Ukuran = ukuran kerangka dalam piksel. Lebar dalam satuan petak.
 ## 4b. Gambar latar popup
 
 Popup Pasar (Gudang/Olahan/Pasar), Kompos, Lahan, Rumah, dan Beringin memakai gambar latar yang disusun dari sprite yang sama dengan kebun (gudang = `lumbung`, olahan = `dapur`, kompos = `kompos`, pasar = `lapak`, lahan = `bed_fertile` + `crop_ubijalar_*`, rumah = `house_joglo`, beringin = `tree_beringin_2`). Jadi saat kamu mengganti sprite itu, latar popup ikut berubah tanpa pekerjaan tambahan. Komposisi (posisi, ukuran) diatur kode.
+
+## 4c. Rumah dan Peta Desa
+
+**Rumah (zoom rumah):** rumah dipilih menurut tier gaya rumah penghuni: `house_gubuk` (tier 1), `house_kayu` (tier 2), `house_joglo` (tier 3 ke atas). Pernak-pernik yang dimiliki penghuni ditata di halaman. Bila ada berkas `decor_<id>.png` (id sama dengan id dekorasi di game), gambar itu dipakai; jika tidak, ikon emoji dekorasi dipakai sementara. Foto profil dan nama penghuni digambar di papan nama oleh kode.
+
+**Peta Desa:** memakai `tile_grass_0/1`, `tile_road`, `tile_water`, `tile_soil`, `gunung`, `tree_hutan`, `lapak` (Pasar Desa), `toko` (Koperasi), `tree_beringin_*`, rumah menurut tier, serta `bed_fertile`/`bed_barren` dan `crop_ubijalar_*` untuk lahan warga. Semua ubin dasar digambar sebagai satu lapisan saat peta dilihat dari jauh, jadi ubin sebaiknya bertepi rapat (overdraw 1–2 px).
 
 ## 5. Menambah tanaman lain
 

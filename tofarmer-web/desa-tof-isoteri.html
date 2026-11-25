@@ -545,6 +545,7 @@
         #kebun-saya-screen.ux-scene-on #kebun-plant-stage { cursor: pointer; }
         #kebun-saya-screen.ux-scene-on #kebun-beringin-scene,
         #kebun-saya-screen.ux-scene-on .kebun-hint-beringin { display: none; }
+        #kebun-saya-screen.ux-scene-on .kebun-other-plots { display: none; } /* lahan dipilih langsung di kebun; klaim lahan baru lewat petak ➕ di kebun */
         #kebun-saya-screen.ux-scene-on .kebun-title { color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.7); }
         #kebun-saya-screen.ux-scene-on .kebun-status-text { color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.85); }
     
@@ -567,6 +568,28 @@
         .modal-box.ux-skin .ux-tabs button { background: rgba(255,236,200,0.06); border-color: #6b4a2a; }
         .modal-box.ux-skin .ux-tabs button.active { background: rgba(224,172,74,0.22); border-color: #e0ac4a; }
         .ux-banner-rumah { display: block; width: 100%; height: 120px; border-radius: 14px; margin: 0 0 10px; }
+    
+        /* ===== Rumah: pemandangan zoom ===== */
+        .ux-rumah-scene { display: none; position: relative; width: min(94vw, 460px); height: 280px; margin: 6px auto 0; border-radius: 18px; overflow: hidden; border: 2px solid #8a6238; box-shadow: 0 10px 26px rgba(0,0,0,0.55); background: #3a6b50; flex-shrink: 0; }
+        #desa-profile-screen.ux-rumah-on .ux-rumah-scene { display: block; }
+        #desa-profile-screen.ux-rumah-on #desa-profile-card > img,
+        #desa-profile-screen.ux-rumah-on #desa-profile-card .desa-name,
+        #desa-profile-screen.ux-rumah-on #desa-profile-card .desa-house,
+        #desa-profile-screen.ux-rumah-on #desa-profile-card .desa-decor-row,
+        #desa-profile-screen.ux-rumah-on #desa-profile-card > div[style*="font-size:34px"] { display: none; }
+        #desa-profile-screen.ux-rumah-on .desa-card { padding: 12px 16px; }
+    
+        /* ===== Desa: peta kanvas ===== */
+        .ux-desa-screen { position: fixed; inset: 0; z-index: 15400; display: none; background: #143a2f; } /* di bawah layar profil (15500) supaya kembali ke peta setelah profil ditutup */
+        .ux-desa-screen.show { display: block; }
+        .ux-desa-host { position: absolute; inset: 0; }
+        .ux-desa-top { position: absolute; left: 0; right: 0; top: 0; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: linear-gradient(180deg, rgba(5,12,7,0.78), rgba(5,12,7,0)); pointer-events: none; }
+        .ux-desa-top > * { pointer-events: auto; }
+        .ux-desa-title { font-size: 16px; font-weight: 800; color: #fff; text-shadow: 0 2px 6px rgba(0,0,0,0.8); }
+        .ux-desa-zoom { position: absolute; right: 12px; bottom: calc(22px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 8px; }
+        .ux-desa-zoom button { width: 46px; height: 46px; border-radius: 14px; font-size: 22px; font-weight: 800; color: #fff; background: rgba(5,12,7,0.82); border: 1px solid rgba(255,214,150,0.5); cursor: pointer; }
+        .ux-desa-hint { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(24px + env(safe-area-inset-bottom, 0px)); max-width: 72vw; text-align: center; padding: 8px 14px; border-radius: 999px; font-size: 12px; color: #fde68a; background: rgba(5,12,7,0.82); border: 1px solid rgba(251,191,36,0.35); transition: opacity 0.6s; pointer-events: none; }
+        .ux-desa-hint.hide { opacity: 0; }
     </style>
     <script src="isoteri-vm.js"></script>
   <!-- [PWA SERAGAM] Satu aplikasi ToFarmer untuk seluruh situs (hanya Dompet yang punya aplikasi sendiri) -->
@@ -655,6 +678,8 @@
             <div class="kebun-title" id="ux-desa-title">🏘️ Warga Desa</div>
             <button class="btn" style="min-width:auto; padding:8px 14px;" onclick="showKebunSaya(); document.getElementById('desa-profile-screen').style.display='none';">✕ Tutup</button>
         </div>
+        <!-- UX/Rumah: pemandangan zoom rumah (foto profil di papan nama + pernak-pernik), tampil di mode Pemandangan -->
+        <div id="ux-rumah-scene" class="ux-rumah-scene"></div>
         <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:0 16px;">
             <div id="desa-profile-card" class="desa-card"></div>
         </div>
@@ -810,6 +835,17 @@
     </div>
 </div>
 
+<!-- UX/Desa: peta desa di kanvas (desa-map.js), bisa digeser & dizoom -->
+<div id="ux-desa-screen" class="ux-desa-screen">
+    <div id="ux-desa-host" class="ux-desa-host"></div>
+    <div class="ux-desa-top">
+        <button class="ux-head-btn" onclick="uxDesaClose()">← Kebun</button>
+        <div class="ux-desa-title">🏘️ Desa Menoreh</div>
+        <button class="ux-head-btn" onclick="uxDesaMe()">⌖ Rumahku</button>
+    </div>
+    <div class="ux-desa-zoom"><button onclick="uxDesaZoom(1.35)" aria-label="Perbesar">＋</button><button onclick="uxDesaZoom(0.74)" aria-label="Perkecil">－</button></div>
+    <div class="ux-desa-hint" id="ux-desa-hint">Geser untuk menjelajah · cubit untuk zoom · ketuk rumah, lahan, Pasar, atau Koperasi</div>
+</div>
 <div id="toast-box" class="toast-box"></div>
 <button id="ux-map-back" class="ux-map-back" onclick="uxBackToKebun()">← Kembali ke Kebun</button>
 <div id="ux-loading" class="ux-layer ux-loading"><div class="ux-card"><h3>🏘️ Memuat desa…</h3><p>Sebentar ya, peta sedang disiapkan.</p></div></div>
@@ -3963,10 +3999,7 @@
                 const mine = !!(u && u.id === myUserId);
                 const t = $('ux-desa-title'); if (t) t.textContent = mine ? '🏡 Rumah Saya' : '🏘️ Warga Desa';
                 const card = $('desa-profile-card');
-                if (card && !card.querySelector('.ux-banner-rumah')) {   // gambar latar Rumah di atas kartu
-                    card.insertAdjacentHTML('afterbegin', '<canvas class="ux-banner-rumah" data-kind="rumah"></canvas>');
-                    uxBannerEl(card.querySelector('.ux-banner-rumah'));
-                }
+                window.uxRumahSync();   // pemandangan Rumah (mode Pemandangan)
                 if (mine && card) card.insertAdjacentHTML('beforeend', '<button class="ux-head-btn" style="margin-top:12px; width:100%;" onclick="uxOpenTataRumah()">🛠️ Tata Rumah (geser rumah &amp; dekorasi)</button>');
             } catch (e) {}
             return p;
@@ -4252,7 +4285,7 @@
             if (!badge && n > 0 && nurseryReady(k) > 0) badge = 'nursery';
             return { key: k, number: getPlotNumber(k), state, growth, ready, badge, nursery: n };
         });
-        uxScene.setPlots(list);
+        uxScene.setPlots(list, { claim: true });   // petak kosong ➕ untuk klaim lahan baru
         uxScene.setSelected(pickFeaturedTileKey());
         uxScene.setBeringinHealth(beringinHealthPct);
         if (claimFxPending) { claimFxPending = false; const k = pickFeaturedTileKey(); if (k) uxScene.fx(k, 'claim'); }
@@ -4275,6 +4308,7 @@
                     },
                     onSelect(key) { focusFeaturedTile(key); },
                     onBeringin() { openBeringinModal(); },
+                    onClaim() { klaimLahanOtomatis(); },
                     onLandmark(id) {   // bangunan di kebun: Gudang, Olahan, Kompos, Pasar, Rumah
                         if (id === 'kompos') openCompostMenu();
                         else if (id === 'rumah') { closeAllModals(); openDesaProfiles(); }
@@ -4402,6 +4436,140 @@
         return r;
     };
 
+
+    // ---------- RUMAH: pemandangan zoom rumah (foto profil di papan nama + pernak-pernik) ----------
+    let uxRumahScene = null, rumahNames = {};
+    window.uxRumahDebug = function () { return { scene: uxRumahScene, names: rumahNames }; };   // untuk pemeriksaan lewat Console
+    window.uxRumahSync = function () {
+        const scr = $('desa-profile-screen');
+        if (!scr || sceneMode === 'klasik') { if (scr) scr.classList.remove('ux-rumah-on'); if (uxRumahScene) uxRumahScene.stop(); return; }
+        const user = rawUserData[desaProfileIndex];
+        if (!user) return;
+        const meta = houseMeta[user.id] || { houseStyleId: 'basic', decorItems: [] };
+        const styles = getAllHouseStyles(), hs = styles.find(x => x.id === meta.houseStyleId) || styles[0];
+        const decor = (meta.decorItems || []).map(id => {
+            const d = (typeof DECOR_ITEMS !== 'undefined' ? DECOR_ITEMS : []).find(x => x.id === id);
+            return { id: id, icon: d ? d.icon : '🎋', name: d ? (d.name || 'Pernak-pernik') : 'Pernak-pernik' };
+        });
+        rumahNames = {}; decor.forEach(d => { rumahNames['decor:' + d.id] = d.name; });
+        const data = { tier: (hs && Number(hs.tier)) || 1, decor, avatarUrl: user.avatar_url || '', username: user.username, sub: hs ? hs.name : '' };
+        loadSceneLib(() => {
+            const host = $('ux-rumah-scene');
+            if (!uxRumahScene) {
+                uxRumahScene = KebunScene.create({
+                    container: host, mode: 'rumah', assetBase: 'aset/kebun/',
+                    hemat: sceneMode === 'hemat' || reducedMotion,
+                    onLandmark(id) { if (rumahNames[id]) showToast('✨ ' + rumahNames[id]); }
+                });
+            }
+            scr.classList.add('ux-rumah-on');
+            uxRumahScene.setHemat(sceneMode === 'hemat' || reducedMotion);
+            uxRumahScene.setRumah(data);
+            uxRumahScene.start();
+        }, true);
+    };
+
+
+    // ---------- DESA: peta kanvas yang bisa digeser dan dizoom ----------
+    // Menggambar medan, rumah warga, lahan, Pasar, Koperasi, Beringin dari data game yang sama dengan peta lama.
+    // Peta lama (DOM) tetap dipakai hanya oleh Tata Rumah. Bila desa-map.js tidak termuat, otomatis memakai peta lama.
+    let desaMap = null, desaTimer = 0;
+    function loadScript(src, cb) { const sc = document.createElement('script'); sc.src = src; sc.onload = () => cb(true); sc.onerror = () => cb(false); document.head.appendChild(sc); }
+    function needDesaLibs(cb, tries) {
+        if (window.KebunScene && window.DesaMap) return cb(true);
+        if (libLoading && (tries || 0) < 40) { setTimeout(() => needDesaLibs(cb, (tries || 0) + 1), 120); return; }
+        const next = () => (window.DesaMap ? cb(true) : loadScript('desa-map.js', cb));
+        if (window.KebunScene) next(); else loadScript('kebun-scene.js', ok => (ok ? next() : cb(false)));
+    }
+    // sama seperti buildWorld: petak medan dicadangkan, lalu warga yang belum punya posisi diberi posisi awal deterministik
+    function ensureHousePositions() {
+        reservedTiles.clear();
+        rawTerrainData.forEach(g => reservedTiles.add(`${g.x_pos},${g.y_pos}`));
+        rawUserData.forEach(user => {
+            if (housePositions[user.id]) { user.assignedCoord = housePositions[user.id]; reservedTiles.add(`${user.assignedCoord.x},${user.assignedCoord.y}`); }
+            else { user.assignedCoord = findInitialEmptyTile(user.id); housePositions[user.id] = user.assignedCoord; if (user.id === myUserId) myHouseNeedsRegistration = true; }
+            if (!houseMeta[user.id]) houseMeta[user.id] = { houseStyleId: user.house_style_id || 'basic', decorItems: [] };
+        });
+        try { if (typeof ensureMyHouseRow === 'function') ensureMyHouseRow(); } catch (e) {}
+    }
+    function desaTier(uid) {
+        const meta = houseMeta[uid] || { houseStyleId: 'basic' }, hs = getAllHouseStyles().find(x => x.id === meta.houseStyleId);
+        return (hs && Number(hs.tier)) || 1;
+    }
+    function desaData() {
+        const vis = {};
+        Object.keys(claimedTiles).forEach(k => {
+            const f = farms[k]; if (!f) return;
+            let state = 'empty', growth = 0, ready = false, badge = null;
+            if (f.landState === 'barren') state = 'barren';
+            else if (f.landState === 'planted') {
+                state = 'planted';
+                const cd = getCropDef(f.cropId);
+                if (cd) {
+                    const growMs = computeEffectiveGrowMs(cd, f), el = f.plantedAt ? (Date.now() - f.plantedAt) : 0;
+                    growth = growMs > 0 ? Math.min(1, el / growMs) : 1;
+                    const timeReady = el >= growMs;
+                    const careReady = (f.waterCount || 0) >= (Number(cd.water_required) || 0) && (f.fertilizeCount || 0) >= (Number(cd.fertilize_required) || 0) && (f.prunedCount || 0) >= CARE_TREAT_REQUIRED;
+                    if (timeReady && careReady) { ready = true; badge = 'ready'; } else if (timeReady) badge = 'care';
+                }
+            }
+            vis[k] = { state, growth, ready, badge };
+        });
+        return {
+            N: GRID_SIZE, terrain: rawTerrainData, claims: claimedTiles, farmVis: vis,
+            users: rawUserData.map(u => ({ id: u.id, username: u.username })), housePos: housePositions, tierOf: desaTier,
+            me: { id: myUserId, username: myUsername }, beringinHealth: beringinHealthPct
+        };
+    }
+    window.uxDesaShow = function () {
+        const scr = $('ux-desa-screen'), host = $('ux-desa-host');
+        if (!scr || !host) return;
+        ensureHousePositions();
+        scr.classList.add('show');
+        if (!desaMap) {
+            desaMap = DesaMap.create({
+                container: host, hemat: sceneMode === 'hemat' || reducedMotion, debug: /[?&]scenedebug/.test(location.search),
+                onHouse(uid) { const idx = rawUserData.findIndex(u => u.id === uid); if (idx < 0) return; openDesaProfiles(); desaProfileIndex = idx; renderDesaProfileCard(); },
+                onFarm(key, owner, mine) {
+                    if (mine) { window.uxDesaClose(); setTimeout(() => focusFeaturedTile(key), 80); return; }
+                    const f = farms[key], cd = f && f.cropId ? getCropDef(f.cropId) : null;
+                    showToast('🌾 Kebun @' + owner + (cd ? ' · ' + cd.name : ''));
+                },
+                onTile(key, owner) { showToast('📍 Lahan milik @' + owner); },
+                onLandmark(id) {
+                    if (id === 'pasar') openPasarModal();
+                    else if (id === 'koperasi') { openPasarModal(); setTimeout(() => uxPasarTab('jual'), 200); }
+                    else if (id === 'beringin') openBeringinModal();
+                }
+            });
+        }
+        desaMap.resize();
+        desaMap.setData(desaData());
+        desaMap.start();
+        desaMap.focusMe();
+        clearInterval(desaTimer); desaTimer = setInterval(() => { try { desaMap.setData(desaData()); } catch (e) {} }, 15000);
+        const hint = $('ux-desa-hint'); if (hint) { hint.classList.remove('hide'); setTimeout(() => hint.classList.add('hide'), 7000); }
+    };
+    window.uxDesaClose = function () {
+        const scr = $('ux-desa-screen'); if (scr) scr.classList.remove('show');
+        if (desaMap) desaMap.stop();
+        clearInterval(desaTimer);
+        showKebunSaya();
+    };
+    window.uxDesaMe = function () { if (desaMap) desaMap.focusMe(); };
+    window.uxDesaZoom = function (f) { if (desaMap) desaMap.zoomBy(f); };
+    window.uxDesaDebug = function () { return desaMap; };
+    const _openDesaOld = window.uxOpenDesa;
+    window.uxOpenDesa = function () {
+        if (sceneMode === 'klasik') return _openDesaOld.apply(this, arguments);
+        closeAllModals();
+        const ps = $('desa-profile-screen'); if (ps) ps.style.display = 'none';
+        needDesaLibs(ok => {
+            if (!ok) { showToast('Peta desa baru belum bisa dimuat (berkas desa-map.js). Memakai peta lama.', true); return _openDesaOld(); }
+            window.uxDesaShow();
+        });
+    };
+
     // ---------- kartu konfirmasi bergaya game ----------
     window.uxConfirm = function (message, title) {
         return new Promise(resolve => {
@@ -4432,6 +4600,7 @@
         if (document.querySelector('.ux-tut')) return;
         const scr = $('kebun-saya-screen');
         if (!scr || scr.style.display === 'none') return;
+        const steps = sceneMode !== 'klasik' ? STEPS.map((st, k) => k === 1 ? { sel: '#kebun-plant-stage', title: 'Kebunmu', text: 'Ketuk lahan untuk memilihnya. Ketuk petak ➕ untuk klaim lahan baru. Ketuk bangunan (Gudang, Olahan, Kompos, Rumah) untuk membukanya.' } : st) : STEPS;
         let i = 0;
         const root = document.createElement('div');
         root.className = 'ux-tut';
@@ -4440,7 +4609,7 @@
         const spot = root.querySelector('.ux-spot'), card = root.querySelector('.ux-tut-card');
         function close() { tutDone(); root.remove(); }
         function render() {
-            const st = STEPS[i];
+            const st = steps[i];
             const el = document.querySelector(st.sel);
             const r = el ? el.getBoundingClientRect() : null;
             if (r && r.width > 0) {
@@ -4451,13 +4620,13 @@
                 spot.style.cssText = 'left:50%;top:50%;width:0;height:0;';
                 card.style.top = '30%'; card.style.bottom = 'auto';
             }
-            card.querySelector('.ux-tut-step').textContent = `Langkah ${i + 1} dari ${STEPS.length}`;
+            card.querySelector('.ux-tut-step').textContent = `Langkah ${i + 1} dari ${steps.length}`;
             card.querySelector('h3').textContent = st.title;
             card.querySelector('p').textContent = st.text;
-            card.querySelector('.ux-btn-ok').textContent = (i === STEPS.length - 1) ? 'Mulai Berkebun' : 'Lanjut';
+            card.querySelector('.ux-btn-ok').textContent = (i === steps.length - 1) ? 'Mulai Berkebun' : 'Lanjut';
         }
         card.querySelector('.ux-btn-no').onclick = close;
-        card.querySelector('.ux-btn-ok').onclick = () => { if (i >= STEPS.length - 1) close(); else { i++; render(); } };
+        card.querySelector('.ux-btn-ok').onclick = () => { if (i >= steps.length - 1) close(); else { i++; render(); } };
         render();
     };
     window.uxMaybeTutorial = function () {

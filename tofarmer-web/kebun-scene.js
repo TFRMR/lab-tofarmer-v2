@@ -302,6 +302,10 @@
       bubble(g, '#2fbf55');
       g.strokeStyle = '#fff'; g.lineWidth = 7; g.lineCap = 'round'; g.lineJoin = 'round';
       g.beginPath(); g.moveTo(34, 44); g.lineTo(46, 55); g.lineTo(68, 31); g.stroke();
+    } else if (kind === 'add') {
+      bubble(g, '#e0a63a');
+      g.strokeStyle = '#fff'; g.lineWidth = 8; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(50, 26); g.lineTo(50, 58); g.moveTo(34, 42); g.lineTo(66, 42); g.stroke();
     } else if (kind === 'care') {
       bubble(g, '#3b9bf0');
       g.fillStyle = '#fff'; g.beginPath(); g.moveTo(50, 22); g.bezierCurveTo(66, 42, 68, 56, 50, 62); g.bezierCurveTo(32, 56, 34, 42, 50, 22); g.fill();
@@ -445,6 +449,129 @@
     poly(g, [N, E, S2, W], null, 'rgba(90,40,20,0.5)', 1);
   }
 
+
+  function drawGubuk(g) {
+    var i, k;
+    poly(g, [[50, 66], [96, 85], [50, 104], [4, 85]], '#b3ab93', '#938b77', 1);
+    poly(g, [[4, 85], [50, 104], [50, 108], [4, 89]], '#857d68');
+    poly(g, [[96, 85], [50, 104], [50, 108], [96, 89]], '#6a654f');
+    poly(g, [[16, 84], [50, 99], [50, 74], [16, 59]], lin(g, 16, 0, 50, 0, [0, '#d9d98a', 1, '#bcc26a']));
+    poly(g, [[84, 84], [50, 99], [50, 74], [84, 59]], lin(g, 50, 0, 84, 0, [0, '#a9ad58', 1, '#8f9444']));
+    g.strokeStyle = 'rgba(100,105,40,0.55)'; g.lineWidth = 0.8;
+    for (i = 1; i < 9; i++) {
+      k = i / 9;
+      g.beginPath(); g.moveTo(lerp(16, 50, k), lerp(84, 99, k)); g.lineTo(lerp(16, 50, k), lerp(59, 74, k)); g.stroke();
+      g.beginPath(); g.moveTo(lerp(84, 50, k), lerp(84, 99, k)); g.lineTo(lerp(84, 50, k), lerp(59, 74, k)); g.stroke();
+    }
+    poly(g, [[26, 90], [38, 95.5], [38, 81], [26, 75.5]], '#4a3a1a');
+    poly(g, [[60, 92], [72, 86.5], [72, 78], [60, 83.5]], '#ffe9a8', '#5b4a22', 1);
+    poly(g, [[6, 64], [50, 88], [50, 14]], lin(g, 6, 0, 50, 0, [0, '#c8a24a', 1, '#a77f2f']));
+    poly(g, [[94, 64], [50, 88], [50, 14]], lin(g, 50, 0, 94, 0, [0, '#957028', 1, '#765520']));
+    g.strokeStyle = 'rgba(70,45,10,0.32)'; g.lineWidth = 0.9;
+    for (i = 1; i < 7; i++) {
+      k = i / 7;
+      g.beginPath(); g.moveTo(50, 14); g.lineTo(lerp(6, 50, k), lerp(64, 88, k)); g.stroke();
+      g.beginPath(); g.moveTo(50, 14); g.lineTo(lerp(94, 50, k), lerp(64, 88, k)); g.stroke();
+    }
+    poly(g, [[36, 100], [46, 104.5], [46, 107], [36, 102.5]], '#8a6a3f');
+  }
+
+  function drawKayu(g) {
+    var i, k;
+    poly(g, [[50, 70], [98, 91], [50, 112], [2, 91]], '#b3ab93', '#938b77', 1);
+    poly(g, [[2, 91], [50, 112], [50, 116], [2, 95]], '#857d68');
+    poly(g, [[98, 91], [50, 112], [50, 116], [98, 95]], '#6a654f');
+    poly(g, [[12, 90], [50, 107], [50, 80], [12, 63]], lin(g, 12, 0, 50, 0, [0, '#b9814f', 1, '#9c6a42']));
+    poly(g, [[88, 90], [50, 107], [50, 80], [88, 63]], lin(g, 50, 0, 88, 0, [0, '#85552f', 1, '#6c4425']));
+    g.strokeStyle = 'rgba(50,28,10,0.35)'; g.lineWidth = 0.8;
+    for (i = 1; i < 8; i++) {
+      k = i / 8;
+      g.beginPath(); g.moveTo(lerp(12, 50, k), lerp(90, 107, k)); g.lineTo(lerp(12, 50, k), lerp(63, 80, k)); g.stroke();
+    }
+    poly(g, [[34, 98.5], [44, 103], [44, 85], [34, 80.5]], '#3d2610');
+    poly(g, [[18, 87], [28, 91.5], [28, 81], [18, 76.5]], '#ffe9a8', '#4a2e14', 1.1);
+    poly(g, [[60, 98], [78, 90], [78, 77], [60, 85]], '#ffe9a8', '#4a2e14', 1.1);
+    g.strokeStyle = '#4a2e14'; g.lineWidth = 1; g.beginPath(); g.moveTo(69, 94); g.lineTo(69, 81); g.stroke();
+    poly(g, [[2, 68], [50, 94], [50, 22]], lin(g, 2, 0, 50, 0, [0, '#c8623b', 1, '#a9482a']));
+    poly(g, [[98, 68], [50, 94], [50, 22]], lin(g, 50, 0, 98, 0, [0, '#9c4429', 1, '#82361f']));
+    g.strokeStyle = 'rgba(60,20,8,0.38)'; g.lineWidth = 0.9;
+    for (i = 1; i < 7; i++) {
+      k = i / 7;
+      g.beginPath(); g.moveTo(50, 22); g.lineTo(lerp(2, 50, k), lerp(68, 94, k)); g.stroke();
+      g.beginPath(); g.moveTo(50, 22); g.lineTo(lerp(98, 50, k), lerp(68, 94, k)); g.stroke();
+    }
+    ell(g, 50, 21, 2.4, 2.8, '#e8c260');
+  }
+
+
+  function drawTileRoad(g) {
+    poly(g, [[50, -0.6], [100.6, 25], [50, 50.6], [-0.6, 25]], lin(g, 0, 0, 0, 50, [0, '#cfc4aa', 1, '#b3a88e']));
+    var r = rngOf(55), i;
+    for (i = 0; i < 12; i++) {
+      var x = 16 + r() * 68, y = 8 + r() * 34;
+      if (Math.abs(x - 50) / 50 + Math.abs(y - 25) / 25 > 0.82) continue;
+      ell(g, x, y, 4 + r() * 3, 2 + r() * 1.2, r() > 0.5 ? 'rgba(120,108,86,0.35)' : 'rgba(255,248,230,0.3)');
+    }
+    g.strokeStyle = 'rgba(110,98,76,0.5)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(50, 1); g.lineTo(100, 25); g.moveTo(0, 25); g.lineTo(50, 49); g.stroke();
+  }
+  function drawTileWater(g) {
+    poly(g, [[50, -0.6], [100.6, 25], [50, 50.6], [-0.6, 25]], lin(g, 0, 0, 0, 50, [0, '#62bccb', 1, '#2f8fa6']));
+    g.strokeStyle = 'rgba(255,255,255,0.4)'; g.lineWidth = 1.3; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(26, 22); g.quadraticCurveTo(34, 18, 42, 22); g.moveTo(52, 30); g.quadraticCurveTo(62, 25, 72, 30); g.moveTo(40, 38); g.quadraticCurveTo(48, 34, 56, 38); g.stroke();
+    g.strokeStyle = 'rgba(10,70,90,0.35)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(50, 1); g.lineTo(100, 25); g.moveTo(0, 25); g.lineTo(50, 49); g.stroke();
+  }
+  function drawTileSoil(g) {
+    poly(g, [[50, -0.6], [100.6, 25], [50, 50.6], [-0.6, 25]], lin(g, 0, 0, 0, 50, [0, '#85583a', 1, '#6c4528']));
+    g.lineCap = 'round';
+    for (var i = 1; i <= 4; i++) {
+      var t0 = i / 5;
+      g.strokeStyle = 'rgba(50,28,10,0.45)'; g.lineWidth = 1.4; g.beginPath();
+      g.moveTo(lerp(50, 0, t0), lerp(0, 25, t0)); g.lineTo(lerp(100, 50, t0), lerp(25, 50, t0)); g.stroke();
+    }
+  }
+  function drawGunung(g) {
+    var i;
+    ell(g, 50, 92, 46, 5, 'rgba(0,0,0,0.2)');
+    poly(g, [[0, 92], [30, 40], [48, 62], [70, 14], [100, 92]], lin(g, 0, 14, 0, 92, [0, '#9fb3b0', 0.3, '#5f8f86', 1, '#1f6a52']));
+    poly(g, [[58, 92], [80, 38], [100, 92]], lin(g, 0, 38, 0, 92, [0, '#6c9a90', 1, '#17563f']));
+    poly(g, [[70, 14], [60, 42], [78, 30]], 'rgba(255,255,255,0.18)');
+    poly(g, [[30, 40], [22, 58], [36, 52]], 'rgba(255,255,255,0.14)');
+    var r = rngOf(9);
+    for (i = 0; i < 26; i++) {
+      var x = 6 + r() * 88, y = 52 + r() * 38;
+      if (y < 44 + Math.abs(x - 50) * 0.3) continue;
+      ell(g, x, y, 3.2 + r() * 2.6, 2.6 + r() * 2, r() > 0.5 ? '#1d6a4c' : '#2c8059');
+    }
+    ell(g, 50, 52, 38, 5, 'rgba(236,250,246,0.35)');
+  }
+  function drawTreeHutan(g) {
+    ell(g, 50, 96, 26, 4, 'rgba(0,0,0,0.22)');
+    poly(g, [[46, 60], [54, 60], [55, 96], [45, 96]], '#6a4a2a');
+    ell(g, 50, 40, 32, 28, '#2c7e55'); ell(g, 34, 52, 22, 20, '#2f8559'); ell(g, 66, 52, 22, 20, '#256f4b');
+    ell(g, 50, 30, 24, 20, '#3c9a6a'); ell(g, 42, 24, 11, 8, 'rgba(255,255,255,0.12)');
+  }
+  function drawToko(g) {
+    var i, k;
+    poly(g, [[50, 62], [98, 82], [50, 102], [2, 82]], '#b9b09a', '#9a927e', 1);
+    poly(g, [[2, 82], [50, 102], [50, 106], [2, 86]], '#8c846f');
+    poly(g, [[98, 82], [50, 102], [50, 106], [98, 86]], '#6f6a58');
+    poly(g, [[14, 82], [50, 98], [50, 72], [14, 56]], lin(g, 14, 0, 50, 0, [0, '#eadfc4', 1, '#d2c5a4']));
+    poly(g, [[86, 82], [50, 98], [50, 72], [86, 56]], lin(g, 50, 0, 86, 0, [0, '#c9bb99', 1, '#b3a583']));
+    poly(g, [[56, 94], [80, 83], [80, 68], [56, 79]], '#2a1c10');
+    poly(g, [[58, 91.5], [78, 82], [78, 72], [58, 81.5]], '#ffe9a8');
+    poly(g, [[18, 76], [46, 89], [46, 80], [18, 67]], '#1f5a45', '#e0b24a', 1.2);
+    g.save(); g.transform(1, 0.463, 0, 1, 0, 0); g.fillStyle = '#ffe9a8'; g.font = '800 6.2px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('KOPERASI', 32, 79 - 32 * 0.463 + 0.2); g.restore();
+    poly(g, [[4, 62], [50, 86], [50, 22]], lin(g, 4, 0, 50, 0, [0, '#c8623b', 1, '#a9482a']));
+    poly(g, [[96, 62], [50, 86], [50, 22]], lin(g, 50, 0, 96, 0, [0, '#9c4429', 1, '#82361f']));
+    g.strokeStyle = 'rgba(60,20,8,0.38)'; g.lineWidth = 0.9;
+    for (i = 1; i < 6; i++) {
+      k = i / 6;
+      g.beginPath(); g.moveTo(50, 22); g.lineTo(lerp(4, 50, k), lerp(62, 86, k)); g.stroke();
+      g.beginPath(); g.moveTo(50, 22); g.lineTo(lerp(96, 50, k), lerp(62, 86, k)); g.stroke();
+    }
+  }
+
   function drawMist(g) {
     g.save(); g.translate(50, 14); g.scale(1, 0.28);
     var gr = g.createRadialGradient(0, 0, 0, 0, 0, 50);
@@ -478,6 +605,7 @@
     cloud_1: { w: 1.4, a: 0.5, ax: 0.5, ay: 0.5, draw: function (g) { drawCloud(g, 1); } },
     cloud_2: { w: 2.0, a: 0.5, ax: 0.5, ay: 0.5, draw: function (g) { drawCloud(g, 2); } },
     badge_ready: { w: 0.3, a: 1.0, ax: 0.5, ay: 0.96, draw: function (g) { drawBadge(g, 'ready'); } },
+    badge_add: { w: 0.3, a: 1.0, ax: 0.5, ay: 0.96, draw: function (g) { drawBadge(g, 'add'); } },
     badge_care: { w: 0.3, a: 1.0, ax: 0.5, ay: 0.96, draw: function (g) { drawBadge(g, 'care'); } },
     badge_nursery: { w: 0.3, a: 1.0, ax: 0.5, ay: 0.96, draw: function (g) { drawBadge(g, 'nursery'); } },
     pot: { w: 0.2, a: 1.0, ax: 0.5, ay: 0.95, draw: drawPot },
@@ -485,6 +613,14 @@
     spark: { w: 0.12, a: 1.0, ax: 0.5, ay: 0.5, draw: drawSpark },
     drop: { w: 0.06, a: 1.0, ax: 0.5, ay: 0.5, draw: drawDrop },
     leaf: { w: 0.09, a: 1.0, ax: 0.5, ay: 0.9, draw: drawLeafSpr },
+    house_gubuk: { w: 1.5, a: 1.09, ax: 0.5, ay: 0.86, draw: drawGubuk },
+    house_kayu: { w: 1.7, a: 1.18, ax: 0.5, ay: 0.87, draw: drawKayu },
+    tile_road: { w: 1.02, a: 0.5, ax: 0.5, ay: 0.5, draw: drawTileRoad },
+    tile_water: { w: 1.02, a: 0.5, ax: 0.5, ay: 0.5, draw: drawTileWater },
+    tile_soil: { w: 1.02, a: 0.5, ax: 0.5, ay: 0.5, draw: drawTileSoil },
+    gunung: { w: 2.4, a: 0.95, ax: 0.5, ay: 0.92, draw: drawGunung },
+    tree_hutan: { w: 0.7, a: 1.15, ax: 0.5, ay: 0.96, draw: drawTreeHutan },
+    toko: { w: 1.3, a: 1.08, ax: 0.5, ay: 0.86, draw: drawToko },
     lumbung: { w: 1.25, a: 1.08, ax: 0.5, ay: 0.86, draw: drawLumbung },
     dapur: { w: 1.1, a: 1.1, ax: 0.5, ay: 0.88, chim: [0.7, 0.26], draw: drawDapur },
     kompos: { w: 0.85, a: 0.85, ax: 0.5, ay: 0.8, draw: drawKompos },
@@ -552,16 +688,18 @@
         var e = typeof sp[name] === 'string' ? { file: sp[name] } : sp[name], p = def(name, e);
         jobs.push(img(e.file).then(function (im) { if (im) ASSETS[name] = { img: im, sx: 0, sy: 0, sw: im.naturalWidth, sh: im.naturalHeight, w: p.w, ax: p.ax, ay: p.ay }; }));
       });
-      if (m.atlas && m.atlas.image) {
-        jobs.push(img(m.atlas.image).then(function (im) {
+      var pages = (m.atlases || []).concat(m.atlas ? [m.atlas] : []);   // satu atau beberapa atlas
+      pages.forEach(function (pg) {
+        if (!pg || !pg.image) return;
+        jobs.push(img(pg.image).then(function (im) {
           if (!im) return;
-          var fr = m.atlas.frames || {};
+          var fr = pg.frames || {};
           Object.keys(fr).forEach(function (name) {
             var f = fr[name], p = def(name, f);
             ASSETS[name] = { img: im, sx: f.x, sy: f.y, sw: f.w, sh: f.h, w: p.w, ax: p.ax, ay: p.ay };
           });
         }));
-      }
+      });
       return Promise.all(jobs);
     }).catch(function () { });
     return assetJobs[base];
@@ -585,10 +723,10 @@
 
     var S = {
       w: 0, h: 0, dpr: 1, tw: 40, ox: 0, oy: 0, cols: 1, rows: 1, horizon: 0, field: null,
-      plots: [], byKey: {}, selected: null, health: 100, hemat: !!opts.hemat, t: 0, hour: 12, skyKey: -1,
+      mode: opts.mode || 'kebun', rumah: null, plots: [], byKey: {}, selected: null, health: 100, hemat: !!opts.hemat, t: 0, hour: 12, skyKey: -1,
       sky: null, ground: null, running: false, last: 0, drawN: 0, dtAvg: 0, fpsAvg: 30, frames: 0, assets: 0
     };
-    var cache = {}, override = ASSETS, labels = {}, pills = {}, rafId = 0, fx = [], chickens = [], clouds = [], mists = [], flies = [], fireflies = [];
+    var cache = {}, override = ASSETS, labels = {}, pills = {}, emojiCache = {}, signSprite = null, rafId = 0, fx = [], chickens = [], clouds = [], mists = [], flies = [], fireflies = [];
     var rnd = rngOf(4242), debug = !!opts.debug, tod = todAt(12), resizeTimer = 0, disposed = false, ro = null;
 
     function dprNow() { return Math.min(global.devicePixelRatio || 1, S.hemat ? 1 : 1.75); }
@@ -625,30 +763,57 @@
     /* ---- tata letak ---- */
     function P(gx, gy) { return { x: S.ox + (gx - gy) * S.tw / 2, y: S.oy + (gx + gy) * S.tw / 4 }; }
 
-    // layar sempit: lahan memenuhi lebar, ATAU barisan bangunan (±8,6 petak) tidak muat memanjang di layar
-    function isNarrow() { return S.w / 2 - (S.cols + S.rows) / 4 * S.tw < S.tw * 0.5 || S.w < S.tw * 8.6; }
+    // tinggi puncak bangunan paling atas (untuk memastikan tidak tertutup bar XP di atas area kebun)
+    function decorTop() {
+      var top = 1e9;
+      for (var i = 0; i < decor.length; i++) {
+        var d = decor[i], q = P(d.gx, d.gy), sp = spr(d.name); if (!sp) continue;
+        var dw = sp.w * S.tw * (d.sc || 1), dh = dw * (sp.sh / sp.sw);
+        top = Math.min(top, q.y - dh * sp.ay);
+      }
+      return top;
+    }
+
+    function layoutRumah() {
+      S.field = { x: 0, y: 0, w: S.w, h: S.h };
+      S.cols = 3; S.rows = 3; S.narrow = false;
+      S.tw = clamp(Math.min(S.w / 4.9, S.h / 3.3), 36, 130);
+      S.ox = S.w / 2; S.oy = S.h * 0.74 - 0.5 * S.tw;      // rumah berdiri di tengah, sedikit di bawah pertengahan
+      S.horizon = clamp(P(-1, -1).y - S.tw * 0.2, S.h * 0.18, S.h * 0.5);
+      buildDecor();
+    }
 
     function layout() {
+      if (S.mode === 'rumah') { layoutRumah(); return; }
       var fr = (opts.getFieldRect && opts.getFieldRect()) || { x: 0, y: S.h * 0.25, w: S.w, h: S.h * 0.6 };
       S.field = fr;
       var n = Math.max(1, S.plots.length);
       var cols = n === 1 ? 1 : Math.ceil(Math.sqrt(n * 1.35)), rows = Math.ceil(n / cols);
       S.cols = cols; S.rows = rows;
-      // ukuran dihitung dari kumpulan LAHAN saja (petak rumput di tepi boleh terpotong layar), jadi lahan lebih besar di layar lebar
+      // ukuran dihitung dari kumpulan LAHAN saja (petak rumput di tepi boleh terpotong layar)
       var uwP = (cols + rows) / 2 + 0.35;               // lebar kumpulan lahan (satuan petak)
       var uhP = (cols + rows - 2) / 4 + 1.0;            // jarak antar pusat petak + tanaman menjulang + bedeng
-      var tw = Math.min(fr.w * 1.04 / uwP, (fr.h - 4) / uhP);
-      S.tw = clamp(tw, 36, 124); // batas atas supaya dekorasi tidak raksasa saat lahan sedikit
+      var uhN = (cols + rows - 2) / 4 + 2.0;            // idem + barisan bangunan di belakang (layar sempit)
+      var twW = clamp(Math.min(fr.w * 1.04 / uwP, (fr.h - 4) / uhP), 36, 124);
+      // layar sempit: lahan memenuhi lebar, ATAU barisan bangunan (±8,6 petak) tidak muat di samping
+      S.narrow = (S.w < 8.6 * twW) || (S.w / 2 - (cols + rows) / 4 * twW < 0.5 * twW);
+      S.tw = S.narrow ? clamp(Math.min(fr.w * 1.04 / uwP, (fr.h - 6) / uhN), 36, 124) : twW;   // batas atas: dekorasi tidak raksasa saat lahan sedikit
       var gcx = (cols - 1) / 2, gcy = (rows - 1) / 2;
-      S.ox = fr.x + fr.w / 2 - (gcx - gcy) * S.tw / 2;
-      var shift = isNarrow() ? Math.min(0.28 * S.tw, Math.max(0, (fr.h - uhP * S.tw) / 2 - 6)) : 0;   // pakai ruang kosong di bawah untuk memberi napas bangunan di atas
-      S.oy = fr.y + fr.h / 2 - ((cols + rows - 2) * S.tw / 4 - 0.4 * S.tw) / 2 + shift;
+      for (var pass = 0; pass < 2; pass++) {
+        S.ox = fr.x + fr.w / 2 - (gcx - gcy) * S.tw / 2;
+        S.oy = fr.y + fr.h / 2 - ((cols + rows - 2) * S.tw / 4 - 0.4 * S.tw) / 2;
+        buildDecor();
+        if (!S.narrow) break;
+        // layar sempit: seluruh susunan (bangunan + lahan) harus muat di dalam area kebun, di bawah bar XP
+        var top = decorTop(), bottom = P(cols - 1, rows - 1).y + 0.3 * S.tw, avail = fr.h - 6, need = bottom - top;
+        if (need <= avail) { S.oy += (fr.y + 3 + (avail - need) / 2) - top; break; }
+        S.tw = clamp(S.tw * avail / need * 0.97, 36, 124);
+      }
       S.horizon = Math.max(S.h * 0.16, P(-1.5, -1.5).y - S.tw * 0.35);
       for (var i = 0; i < S.plots.length; i++) {
         var p = S.plots[i], c = i % cols, r = Math.floor(i / cols);
         p.gx = c; p.gy = r; var q = P(c, r); p.x = q.x; p.y = q.y;
       }
-      buildDecor();
     }
 
     /* ---- lapisan statis ---- */
@@ -724,6 +889,51 @@
       return c;
     }
 
+    /* ---- Rumah: pernak-pernik (emoji dirender sekali) dan papan nama berfoto profil ---- */
+    function emojiSpr(ch, px) {
+      var key = ch + '@' + px, c = emojiCache[key]; if (c) return c;
+      var size = Math.max(8, Math.round(px * S.dpr * 1.25)), cv = mk(size, size), g = cv.getContext('2d');
+      g.font = Math.round(px * S.dpr) + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillText(ch, size / 2, size * 0.82);
+      c = emojiCache[key] = { img: cv, w: size / S.dpr, h: size / S.dpr };
+      return c;
+    }
+    function signSpr() {
+      if (signSprite) return signSprite;
+      var R = S.rumah || {}, wPx = Math.round(S.tw * 1.3), hPx = Math.round(wPx * 0.95);
+      var cv = mk(Math.max(8, Math.round(wPx * S.dpr)), Math.max(8, Math.round(hPx * S.dpr))), g = cv.getContext('2d');
+      g.scale(cv.width / 100, cv.width / 100);
+      ell(g, 50, 92, 36, 4, 'rgba(0,0,0,0.22)');
+      poly(g, [[24, 58], [31, 58], [31, 94], [24, 94]], '#6b4a2a');
+      poly(g, [[69, 58], [76, 58], [76, 94], [69, 94]], '#6b4a2a');
+      g.beginPath(); g.moveTo(8, 4); g.lineTo(92, 4); g.quadraticCurveTo(98, 4, 98, 10); g.lineTo(98, 56); g.quadraticCurveTo(98, 64, 92, 64); g.lineTo(8, 64); g.quadraticCurveTo(2, 64, 2, 56); g.lineTo(2, 10); g.quadraticCurveTo(2, 4, 8, 4);
+      g.fillStyle = lin(g, 0, 4, 0, 64, [0, '#c08a52', 1, '#8a5a30']); g.fill(); g.strokeStyle = '#5a3a1a'; g.lineWidth = 2; g.stroke();
+      var cx = 27, cy = 34, r = 20;
+      g.save(); g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.clip();
+      var im = R.avatarImg;
+      if (im && im.width) {
+        var sw0 = Math.min(im.width, im.height);
+        g.drawImage(im, (im.width - sw0) / 2, (im.height - sw0) / 2, sw0, sw0, cx - r, cy - r, r * 2, r * 2);
+      } else {
+        g.fillStyle = '#4f8a68'; g.fillRect(cx - r, cy - r, r * 2, r * 2);
+        g.fillStyle = '#e9ffe0'; g.font = '800 22px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(((R.username || '?').replace('@', '').charAt(0) || '?').toUpperCase(), cx, cy + 1);
+      }
+      g.restore();
+      g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.strokeStyle = '#fff3c4'; g.lineWidth = 2.6; g.stroke();
+      g.textAlign = 'left'; g.textBaseline = 'middle';
+      var nm = '@' + String(R.username || '').replace('@', ''), fs = 11;
+      g.font = '800 ' + fs + 'px system-ui, sans-serif';
+      while (g.measureText(nm).width > 44 && fs > 7.5) { fs -= 0.5; g.font = '800 ' + fs + 'px system-ui, sans-serif'; }
+      while (g.measureText(nm).width > 44 && nm.length > 4) nm = nm.slice(0, -2) + '…';
+      g.fillStyle = '#fff3c4'; g.fillText(nm, 52, 28);
+      g.font = '600 7.5px system-ui, sans-serif'; g.fillStyle = '#f1d9a8';
+      var sub = String(R.sub || ''); while (g.measureText(sub).width > 44 && sub.length > 3) sub = sub.slice(0, -2);
+      g.fillText(sub, 52, 42);
+      signSprite = { img: cv, w: wPx, h: hPx };
+      return signSprite;
+    }
+
     function pillSpr(text) {
       var key = text + '@' + Math.round(S.tw), c = pills[key]; if (c) return c;
       var fs = Math.max(10, Math.round(S.tw * 0.115)), pad = fs * 0.6;
@@ -742,7 +952,7 @@
     function rebuild() {
       S.dpr = dprNow();
       canvas.width = Math.max(1, Math.round(S.w * S.dpr)); canvas.height = Math.max(1, Math.round(S.h * S.dpr));
-      cache = {}; labels = {}; pills = {};
+      cache = {}; labels = {}; pills = {}; emojiCache = {}; signSprite = null;
       S.hour = getHour(); tod = todAt(S.hour);
       layout(); buildSky(); buildGround(); initAmbient();
     }
@@ -771,11 +981,13 @@
       var g = p.growth || 0;
       return g < 0.18 ? 0 : g < 0.45 ? 1 : g < 0.75 ? 2 : 3;
     }
-    function setPlots(list) {
+    function setPlots(list, extra) {
+      if (extra && extra.claim) list = list.concat([{ key: '__claim', number: 0, state: 'claim' }]);   // petak kosong untuk klaim lahan baru
       var prev = S.byKey, next = {}, arr = [];
       for (var i = 0; i < list.length; i++) {
         var it = list[i], p = prev[it.key] || { key: it.key, phase: rnd() * TAU, pop: 0, wet: 0, shake: 0, stage: -2 };
         p.number = it.number; p.state = it.state || 'empty'; p.growth = it.growth || 0; p.ready = !!it.ready; p.badge = it.badge || null; p.nursery = it.nursery | 0;
+        if (it.key === '__claim') p.badge = 'add';
         var st = stageOf(p);
         if (p.stage !== st && p.stage !== -2) p.pop = 1;
         p.stage = st;
@@ -878,6 +1090,15 @@
     function addItem(y, fn, a, b) { items.push({ y: y, fn: fn, a: a, b: b }); }
 
     function drawPlotBed(p) {
+      if (p.state === 'claim') {   // petak kosong: ketuk untuk klaim lahan baru
+        var pu = 0.5 + 0.5 * Math.sin(S.t * 2.4), cw = S.tw * 0.47, ch = cw / 2;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y - ch); ctx.lineTo(p.x + cw, p.y); ctx.lineTo(p.x, p.y + ch); ctx.lineTo(p.x - cw, p.y); ctx.closePath();
+        ctx.fillStyle = 'rgba(255,233,168,' + (0.13 + 0.1 * pu).toFixed(2) + ')'; ctx.fill();
+        ctx.setLineDash([7, 5]); ctx.lineWidth = 2; ctx.strokeStyle = 'rgba(255,233,168,0.85)'; ctx.stroke(); ctx.setLineDash([]);
+        var pl = pillSpr('Klaim lahan');
+        ctx.drawImage(pl.img, 0, 0, pl.img.width, pl.img.height, p.x - pl.w / 2, p.y + S.tw * 0.2, pl.w, pl.h); S.drawN += 2;
+        return;
+      }
       var barren = p.state === 'barren';
       var sx = p.shake > 0 ? Math.sin(S.t * 60) * 2 * p.shake : 0;
       blit(spr(barren ? 'bed_barren' : 'bed_fertile'), p.x + sx, p.y);
@@ -924,6 +1145,13 @@
       }
     }
     function drawDecor(d) {
+      if (d.emoji) {
+        var qe = P(d.gx, d.gy);
+        ctx.globalAlpha = 0.25; ctx.fillStyle = '#10300f'; ctx.beginPath(); ctx.ellipse(qe.x, qe.y + 1, d.bw * 0.4, d.bw * 0.13, 0, 0, TAU); ctx.fill(); ctx.globalAlpha = 1;
+        var e = emojiSpr(d.emoji, Math.round(d.bw)); ctx.drawImage(e.img, 0, 0, e.img.width, e.img.height, qe.x - e.w / 2, qe.y - e.h * 0.82, e.w, e.h); S.drawN++;
+        return;
+      }
+      if (d.sign) { var qs = P(d.gx, d.gy), sg = signSpr(); ctx.drawImage(sg.img, 0, 0, sg.img.width, sg.img.height, qs.x - sg.w / 2, qs.y - sg.h * 0.95, sg.w, sg.h); S.drawN++; return; }
       var q = P(d.gx, d.gy), sway = d.sway ? Math.sin(S.t * 1.1 + d.ph) * d.sway : 0, c = spr(d.name);
       if (sway) blitRot(c, q.x, q.y, d.sc || 1, sway); else blit(c, q.x, q.y, d.sc || 1);
       if (d.label) {   // bangunan yang bisa diketuk diberi nama
@@ -933,36 +1161,73 @@
     }
 
     var decor = [];
-    /* Barisan belakang kebun berisi bangunan yang bisa diketuk (Rumah, Gudang, Olahan, Kompos) + Beringin.
-       Layar lebar: jarak dari tengah kebun dalam satuan petak (u). Layar sempit (lahan memenuhi lebar):
-       posisi sebagai pecahan lebar layar dan ukuran disesuaikan agar tidak saling menutupi terlalu banyak. */
-    function buildDecor() {
+    /* Bangunan yang bisa diketuk (Rumah, Gudang, Olahan, Kompos, Beringin; Pasar di layar lebar).
+       Layar sempit : satu barisan di belakang lahan, lebar tiap bangunan dibatasi sehingga TIDAK saling menumpuk.
+       Layar lebar  : berjajar di kedua sisi kebun. Dalam kedua mode semuanya tetap di dalam area kebun (di bawah bar XP). */
+    var YARD = [[0.0, 2.3], [2.0, 2.5], [-0.7, 1.3], [2.9, 1.1], [0.7, 3.1], [1.9, 3.3], [-1.1, 2.6], [3.0, 2.9], [1.0, -0.9], [2.4, -0.6], [-0.4, 3.4], [-1.2, 0.2]];
+    function buildRumahDecor() {
       if (!S.w || !S.tw) return;
-      var lvl = S.health < 30 ? 0 : S.health < 70 ? 1 : 2, R = S.rows, C = S.cols;
-      var cx = S.ox + ((C - 1) / 2 - (R - 1) / 2) * S.tw / 2;
-      var clusterHalf = (C + R) / 4 * S.tw;
-      var narrow = isNarrow();
-      function at(name, pos, sum, o) {
-        var sp = spr(name), sc = o.sc || 1;
-        if (narrow && o.fit && sp) sc = Math.min(0.95, (o.fit * S.w) / (sp.w * S.tw));
-        var half = sp ? sp.w * S.tw * sc / 2 : 0, lim = Math.max(0, S.w / 2 - half - 4);
-        var dx = clamp(narrow ? pos[0] * S.w - cx : pos[1] * S.tw, -lim, lim);
-        var diff = (cx + dx - S.ox) / (S.tw / 2), d = { name: name, gx: (sum + diff) / 2, gy: (sum - diff) / 2, sc: sc };
-        for (var k in o) if (k !== 'sc') d[k] = o[k];
+      var R = S.rumah || {}, tier = R.tier || 1, tw = S.tw, i;
+      var hs = tier >= 3 ? ['house_joglo', 1.0] : tier === 2 ? ['house_kayu', 1.1] : ['house_gubuk', 1.25];
+      var out = [{ name: hs[0], gx: 1, gy: 1, sc: hs[1] }];
+      out.push({ name: 'tree_kelapa', gx: -1.7, gy: 0.2, sc: 0.95, sway: 0.016, ph: 0.4 });
+      out.push({ name: 'tree_kelapa', gx: 3.9, gy: 2.4, sc: 0.8, sway: 0.016, ph: 2.1 });
+      out.push({ name: 'bamboo', gx: 4.2, gy: 0.1, sc: 0.8, sway: 0.01, ph: 3.3 });
+      var list = R.decor || [];
+      for (i = 0; i < list.length && i < YARD.length; i++) {      // pernak-pernik milik penghuni, ditata di halaman
+        var it = list[i], nm = 'decor_' + it.id, slot = YARD[i];
+        if (ASSETS[nm]) out.push({ name: nm, gx: slot[0], gy: slot[1], sc: 1, id: 'decor:' + it.id, dname: it.name });
+        else out.push({ emoji: it.icon || '🎋', gx: slot[0], gy: slot[1], bw: tw * 0.5, bh: tw * 0.5, id: 'decor:' + it.id, dname: it.name });
+      }
+      out.push({ sign: true, gx: 4.3, gy: 1.0, bw: tw * 1.3, bh: tw * 1.3 * 0.95, id: 'sign' });
+      decor = out;
+    }
+
+    function buildDecor() {
+      if (S.mode === 'rumah') { buildRumahDecor(); return; }
+      if (!S.w || !S.tw) return;
+      var lvl = S.health < 30 ? 0 : S.health < 70 ? 1 : 2, R = S.rows, C = S.cols, tw = S.tw;
+      var cx = S.ox + ((C - 1) / 2 - (R - 1) / 2) * tw / 2;
+      function put(name, dx, sum, o) {      // dx = geseran mendatar dari tengah kebun (px), sum = kedalaman gx+gy
+        var diff = (cx + dx - S.ox) / (tw / 2), d = { name: name, gx: (sum + diff) / 2, gy: (sum - diff) / 2 };
+        for (var k in o) d[k] = o[k];
         return d;
       }
-      //                 nama           [pecahan lebar, satuan petak]  kedalaman  opsi
-      decor = [
-        at('house_joglo', [0.16, -3.6], narrow ? -3.7 : -3.0, { sc: 0.78, fit: 0.26, id: 'rumah', label: 'Rumah' }),
-        at('lumbung', [0.34, -2.0], -3.0, { sc: 0.8, fit: 0.22, id: 'gudang', label: 'Gudang' }),
-        at('dapur', [0.52, -0.4], narrow ? -3.5 : -3.3, { sc: 0.8, fit: 0.19, id: 'olahan', label: 'Olahan', smoke: true }),
-        at('kompos', [0.69, 1.2], -3.0, { sc: 0.85, fit: 0.16, id: 'kompos', label: 'Kompos' }),
-        at('tree_beringin_' + lvl, [0.88, 3.2], narrow ? -3.9 : -2.8, { sc: 0.64, fit: 0.3, id: 'beringin', label: 'Beringin', ber: true, sway: 0.004, ph: 1.3 })
-      ];
-      if (!narrow && S.w / 2 - clusterHalf - S.tw * 0.35 > 0) {   // ada ruang di sisi kebun
-        decor.push(at('lapak', [0, 4.6], C + 0.2, { sc: 0.8, id: 'pasar', label: 'Pasar' }));
-        decor.push(at('tree_kelapa', [0, -4.8], R + 0.3, { sc: 0.78, sway: 0.016, ph: 3.3 }));
-        decor.push(at('bamboo', [0, 5.8], R + 1.2, { sc: 0.7, sway: 0.01, ph: 4.1 }));
+      function opt(id, label, sc) {
+        var o = { sc: sc, id: id, label: label };
+        if (id === 'olahan') o.smoke = true;
+        if (id === 'beringin') { o.ber = true; o.sway = 0.004; o.ph = 1.3; }
+        return o;
+      }
+      var i, it, sp;
+      decor = [];
+      if (S.narrow) {
+        var items = [['house_joglo', 0.165, 'rumah', 'Rumah'], ['lumbung', 0.165, 'gudang', 'Gudang'], ['dapur', 0.145, 'olahan', 'Olahan'], ['kompos', 0.15, 'kompos', 'Kompos'], ['tree_beringin_' + lvl, 0.19, 'beringin', 'Beringin']];
+        var gap = 0.02 * S.w, total = gap * (items.length - 1);
+        for (i = 0; i < items.length; i++) total += items[i][1] * S.w;
+        var x = (S.w - total) / 2;
+        for (i = 0; i < items.length; i++) {
+          it = items[i]; sp = spr(it[0]);
+          var w = it[1] * S.w, sc = sp ? Math.min(0.95, w / (sp.w * tw)) : 0.6;
+          decor.push(put(it[0], x + w / 2 - cx, -4.2, opt(it[2], it[3], sc)));   // cukup jauh di belakang agar penanda lahan tidak menutupi label
+          x += w + gap;
+        }
+      } else {
+        var clusterHalf = (C + R) / 4 * tw, mid = (C + R - 2) / 2;
+        var sides = [
+          [-1, [['lumbung', 'gudang', 'Gudang', 0.8, 0.9], ['house_joglo', 'rumah', 'Rumah', 0.78, -0.1], ['tree_beringin_' + lvl, 'beringin', 'Beringin', 0.64, -1.0]]],
+          [1, [['kompos', 'kompos', 'Kompos', 0.85, 0.9], ['dapur', 'olahan', 'Olahan', 0.8, -0.1], ['lapak', 'pasar', 'Pasar', 0.8, -1.0]]]
+        ];
+        sides.forEach(function (side) {
+          var off = clusterHalf + 0.35 * tw;
+          side[1].forEach(function (b2) {
+            var sp2 = spr(b2[0]), w2 = sp2 ? sp2.w * tw * b2[3] : 0, dx = side[0] * (off + w2 / 2);
+            if (Math.abs(dx) + w2 / 2 > S.w / 2 - 4) return;   // tidak muat -> dilewati
+            decor.push(put(b2[0], dx, mid + b2[4], opt(b2[1], b2[2], b2[3])));
+            off += w2 + 0.25 * tw;
+          });
+          if (off + 0.6 * tw < S.w / 2 - 6) decor.push(put(side[0] < 0 ? 'bamboo' : 'tree_kelapa', side[0] * (off + 0.3 * tw), mid + 1.4, { sc: 0.75, sway: 0.012, ph: side[0] + 3 }));
+        });
       }
     }
 
@@ -1089,35 +1354,39 @@
     /* ---- hit test ---- */
     function hit(clientX, clientY) {
       var r = canvas.getBoundingClientRect(), x = clientX - r.left, y = clientY - r.top, i, best = null, by = -1e9;
-      for (i = 0; i < chickens.length; i++) {
-        var c = chickens[i], q = P(c.gx, c.gy);
-        if (Math.abs(x - q.x) < S.tw * 0.2 && y > q.y - S.tw * 0.3 && y < q.y + S.tw * 0.06) return { type: 'chicken', c: c };
-      }
       var bestD = null, bestDy = -1e9;   // bangunan yang bisa diketuk: bila beberapa tumpang tindih, yang paling DEPAN (dasar paling bawah di layar) menang
       for (i = 0; i < decor.length; i++) {
         var d = decor[i]; if (!d.id) continue;
-        var dq = P(d.gx, d.gy), sp = spr(d.name), dw = sp.w * S.tw * (d.sc || 1), dh = dw * (sp.sh / sp.sw);
-        if (x > dq.x - dw * 0.45 && x < dq.x + dw * 0.45 && y > dq.y - dh * sp.ay && y < dq.y + dh * (1 - sp.ay) + S.tw * 0.28 && dq.y > bestDy) { bestD = d; bestDy = dq.y; }
+        var dq = P(d.gx, d.gy), dw, dh, ay;
+        if (d.emoji || d.sign) { dw = d.bw; dh = d.bh; ay = d.sign ? 0.95 : 0.82; }
+        else { var sp = spr(d.name); dw = sp.w * S.tw * (d.sc || 1); dh = dw * (sp.sh / sp.sw); ay = sp.ay; }
+        if (x > dq.x - dw * 0.45 && x < dq.x + dw * 0.45 && y > dq.y - dh * ay && y < dq.y + dh * (1 - ay) + S.tw * 0.28 && dq.y > bestDy) { bestD = d; bestDy = dq.y; }
       }
       if (bestD) return bestD.id === 'beringin' ? { type: 'beringin' } : { type: 'landmark', id: bestD.id };
-      /* tahap 1: ketukan di dalam petak (belah ketupat) menang; tahap 2: ketukan di tanaman yang menjulang */
+      /* urutan: petak (belah ketupat) > ayam > tanaman yang menjulang. Lahan lebih penting daripada ayam yang kebetulan lewat. */
       for (i = 0; i < S.plots.length; i++) {
         var p = S.plots[i], dx = Math.abs(x - p.x) / (S.tw * 0.5), dy = Math.abs(y - p.y) / (S.tw * 0.25);
         if (dx + dy <= 1.0 && p.y > by) { best = p; by = p.y; }
       }
       if (!best) {
+        for (i = 0; i < chickens.length; i++) {
+          var c = chickens[i], cq = P(c.gx, c.gy);
+          if (Math.abs(x - cq.x) < S.tw * 0.2 && y > cq.y - S.tw * 0.3 && y < cq.y + S.tw * 0.06) return { type: 'chicken', c: c };
+        }
         for (i = 0; i < S.plots.length; i++) {
           var q = S.plots[i];
           if (q.stage >= 0 && Math.abs(x - q.x) < S.tw * 0.3 && y < q.y && y > q.y - S.tw * 0.62 && q.y > by) { best = q; by = q.y; }
         }
       }
-      return best ? { type: 'plot', key: best.key } : null;
+      return best ? (best.key === '__claim' ? { type: 'claim' } : { type: 'plot', key: best.key }) : null;
     }
+
     function onClick(e) {
       var h = hit(e.clientX, e.clientY); if (!h) return;
       if (h.type === 'plot') { if (opts.onSelect) opts.onSelect(h.key); }
       else if (h.type === 'beringin') { if (opts.onBeringin) opts.onBeringin(); }
       else if (h.type === 'landmark') { if (opts.onLandmark) opts.onLandmark(h.id); }
+      else if (h.type === 'claim') { if (opts.onClaim) opts.onClaim(); }
       else if (h.type === 'chicken') { h.c.hop = 1; h.c.say = 1; }
     }
     if (opts.eventEl) opts.eventEl.addEventListener('click', onClick);
@@ -1125,7 +1394,7 @@
     if (global.ResizeObserver) { ro = new global.ResizeObserver(scheduleResize); ro.observe(container); if (opts.eventEl) ro.observe(opts.eventEl); }
 
     var api = {
-      setPlots: function (l) { setPlots(l); },
+      setPlots: function (l, e) { setPlots(l, e); },
       setSelected: function (k) { S.selected = k; },
       setBeringinHealth: function (pct) {
         var o = S.health < 30 ? 0 : S.health < 70 ? 1 : 2; S.health = pct;
@@ -1146,6 +1415,17 @@
         if (canvas.parentNode && !opts.canvas) canvas.parentNode.removeChild(canvas);
       },
       hit: hit,
+      setRumah: function (data) {   // {tier, decor:[{id,icon,name}], avatarUrl, username, sub}
+        S.rumah = data || {}; signSprite = null; emojiCache = {};
+        var url = S.rumah.avatarUrl, cur = S.rumah;
+        if (url && global.Image) {
+          var im = new global.Image();
+          im.onload = function () { if (S.rumah === cur) { cur.avatarImg = im; signSprite = null; } };
+          im.onerror = function () { };
+          im.src = url;
+        }
+        if (S.mode === 'rumah' && S.w) buildDecor();
+      },
       landmarks: function () { return decor.filter(function (d) { return d.id; }).map(function (d) { var q = P(d.gx, d.gy); return { id: d.id, x: q.x, y: q.y }; }); },
       renderOnce: function (dt) { if (!S.sky) resize(); update(dt || 0.033); draw(); },
       stats: function () { return { fps: S.fpsAvg, drawMs: S.dtAvg, drawImage: S.drawN, plots: S.plots.length, tw: S.tw, assets: assetCount(), dpr: S.dpr }; },
@@ -1226,5 +1506,13 @@
     return true;
   }
 
-  global.KebunScene = { create: create, banner: banner, loadAssets: loadAssets, DEF: DEF, version: '1.2' };
+  /* dipakai peta desa (desa-map.js): sprite berukuran sesuai lebar petak, dan keadaan langit menurut jam */
+  function spriteFor(name, tilePx, dpr) {
+    var as = ASSETS[name], d = DEF[name], wt = as ? as.w : (d && d.w);
+    if (!wt) return null;
+    var sp = bSprite(name, wt * tilePx, dpr);
+    if (sp) sp.wTiles = wt;
+    return sp;
+  }
+  global.KebunScene = { create: create, banner: banner, loadAssets: loadAssets, spriteFor: spriteFor, todAt: todAt, mix: mix, rngOf: rngOf, DEF: DEF, version: '1.4' };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -9,7 +9,7 @@
 //
 // CARA NAIKKAN VERSI: setiap kali ada perubahan besar ke app (bukan cuma isi game),
 // ubah angka di CACHE_VERSION ini, supaya cache lama dibuang bersih.
-const CACHE_VERSION = 'tofarmer-v3'; // [PWA SERAGAM] dinaikkan: satu aplikasi/SW untuk seluruh situs, cache lama dibuang
+const CACHE_VERSION = 'tofarmer-v4'; // [PWA SERAGAM] dinaikkan: satu aplikasi/SW untuk seluruh situs, cache lama dibuang
 const CACHE_NAME = `tofarmer-cache-${CACHE_VERSION}`;
 
 // Aset inti yang boleh langsung di-precache saat install (opsional, aman kalau kosong --

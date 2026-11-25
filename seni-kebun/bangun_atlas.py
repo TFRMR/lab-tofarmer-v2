@@ -41,34 +41,29 @@ def load_json(path):
 
 
 def pack(images, max_size, pad):
-    """Penataan rak (shelf): urut dari yang tertinggi, isi baris demi baris."""
+    """Penataan rak (shelf) ke satu atau BEBERAPA halaman atlas, masing-masing <= max_size x max_size.
+    Mengembalikan daftar halaman: [(posisi{nama:(x,y)}, lebar, tinggi), ...]."""
     order = sorted(images, key=lambda n: (-images[n].height, -images[n].width, n))
+    for n in order:
+        if images[n].width + pad > max_size or images[n].height + pad > max_size:
+            sys.exit(f'Sprite {n} ({images[n].width}x{images[n].height}) lebih besar dari atlas {max_size}px. Kecilkan atau naikkan --maks.')
     total_area = sum((im.width + pad) * (im.height + pad) for im in images.values())
     widest = max(im.width for im in images.values()) + pad
-    # lebar awal ~ akar luas total; dinaikkan bila belum muat. Tinggi dipakai apa adanya (tidak dibulatkan ke pangkat 2)
-    width = max(widest, int(math.ceil(math.sqrt(total_area) * 1.1 / 16.0)) * 16)
-    width = min(width, max_size)
-    while True:
-        x = y = row_h = 0
-        pos = {}
-        ok = True
-        for n in order:
-            im = images[n]
-            w, h = im.width + pad, im.height + pad
-            if w > width:
-                ok = False
-                break
-            if x + w > width:
-                x, y, row_h = 0, y + row_h, 0
-            pos[n] = (x, y)
-            x += w
-            row_h = max(row_h, h)
-        height = y + row_h
-        if ok and height <= max_size:
-            return pos, width, height
-        if width >= max_size:
-            return None, width, height
-        width = min(max_size, int(width * 1.1) + 16)
+    width = min(max_size, max(widest, int(math.ceil(math.sqrt(total_area) * 1.1 / 16.0)) * 16))
+    pages, pos, x, y, row_h = [], {}, 0, 0, 0
+    for n in order:
+        im = images[n]
+        w, h = im.width + pad, im.height + pad
+        if x + w > width:
+            x, y, row_h = 0, y + row_h, 0
+        if y + h > max_size:                       # halaman penuh -> mulai halaman baru
+            pages.append((pos, width, y + row_h))
+            pos, x, y, row_h = {}, 0, 0, 0
+        pos[n] = (x, y)
+        x += w
+        row_h = max(row_h, h)
+    pages.append((pos, width, y + row_h))
+    return pages
 
 
 def main():
@@ -93,38 +88,41 @@ def main():
     if not images:
         sys.exit('Tidak ada berkas .png di ' + a.sumber)
 
-    pos, W, H = pack(images, a.maks, a.jarak)
-    if pos is None:
-        sys.exit(f'Tidak muat di {a.maks}x{a.maks}px (butuh sekitar {W}x{H}). '
-                 'Kecilkan gambar, kurangi jumlah sprite, atau naikkan --maks.')
-    H = min(int(math.ceil(H / 4.0)) * 4, a.maks)
-    atlas = Image.new('RGBA', (W, H), (0, 0, 0, 0))
-    frames = {}
-    for n, (x, y) in pos.items():
-        atlas.paste(images[n], (x, y))
-        fr = {'x': x, 'y': y, 'w': images[n].width, 'h': images[n].height}
-        m = meta.get(n)
-        if m:
-            for k in ('wTiles', 'ax', 'ay'):
-                if k in m:
-                    fr[k] = m[k]
-        frames[n] = fr
-
+    pages = pack(images, a.maks, a.jarak)
     os.makedirs(a.keluar, exist_ok=True)
-    out_img = os.path.join(a.keluar, a.nama)
-    if a.lossless:
-        atlas.save(out_img, 'WEBP', lossless=True, quality=100, method=6)
-    else:
-        atlas.save(out_img, 'WEBP', quality=a.kualitas, method=6, alpha_quality=100)
+    stem, ext = os.path.splitext(a.nama)
+    manifest_pages, total_kb = [], 0
+    for idx, (pos, W, H) in enumerate(pages):
+        H = min(int(math.ceil(H / 4.0)) * 4, a.maks)
+        atlas = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+        frames = {}
+        for n, (x, y) in pos.items():
+            atlas.paste(images[n], (x, y))
+            fr = {'x': x, 'y': y, 'w': images[n].width, 'h': images[n].height}
+            m = meta.get(n)
+            if m:
+                for k in ('wTiles', 'ax', 'ay'):
+                    if k in m:
+                        fr[k] = m[k]
+            frames[n] = fr
+        name = a.nama if len(pages) == 1 else f'{stem}-{idx + 1}{ext}'
+        out_img = os.path.join(a.keluar, name)
+        if a.lossless:
+            atlas.save(out_img, 'WEBP', lossless=True, quality=100, method=6)
+        else:
+            atlas.save(out_img, 'WEBP', quality=a.kualitas, method=6, alpha_quality=100)
+        kb = os.path.getsize(out_img) / 1024
+        total_kb += kb
+        manifest_pages.append({'image': name, 'frames': frames})
+        print(f'  halaman {idx + 1}: {name}  {W}x{H}px  {len(frames)} sprite  {kb:.0f} KB')
     with open(os.path.join(a.keluar, 'manifest.json'), 'w', encoding='utf-8') as f:
-        json.dump({'version': 1, 'atlas': {'image': a.nama, 'frames': frames}}, f, indent=1)
-
-    kb = os.path.getsize(out_img) / 1024
-    print(f'{len(frames)} sprite -> {a.nama}  {W}x{H}px  {kb:.0f} KB')
-    if kb > 500:
-        print('Catatan: di atas 500 KB. Turunkan --kualitas atau kecilkan sprite besar (rumah, beringin).')
-    if W * H * 4 > 16 * 1024 * 1024:
-        print('Catatan: memori GPU atlas > 16 MB. Pertimbangkan atlas lebih kecil.')
+        json.dump({'version': 1, 'atlases': manifest_pages}, f, indent=1)
+    print(f'{len(images)} sprite -> {len(pages)} atlas, total {total_kb:.0f} KB')
+    if total_kb > 600:
+        print('Catatan: di atas 600 KB. Turunkan --kualitas atau kecilkan sprite besar (beringin, gunung, rumah).')
+    mem = sum(p[1] * min(int(math.ceil(p[2] / 4.0)) * 4, a.maks) * 4 for p in pages) / 1048576
+    if mem > 24:
+        print(f'Catatan: memori GPU atlas ± {mem:.0f} MB. Pertimbangkan resolusi kerja lebih kecil (mis. 160 px per petak).')
 
 
 if __name__ == '__main__':
