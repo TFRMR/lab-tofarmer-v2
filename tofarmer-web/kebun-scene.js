@@ -803,9 +803,8 @@
         S.ox = fr.x + fr.w / 2 - (gcx - gcy) * S.tw / 2;
         S.oy = fr.y + fr.h / 2 - ((cols + rows - 2) * S.tw / 4 - 0.4 * S.tw) / 2;
         buildDecor();
-        if (!S.narrow) break;
-        // layar sempit: seluruh susunan (bangunan + lahan) harus muat di dalam area kebun, di bawah bar XP
-        var top = decorTop(), bottom = P(cols - 1, rows - 1).y + 0.3 * S.tw, avail = fr.h - 6, need = bottom - top;
+        // seluruh susunan (bangunan + lahan) harus muat di dalam area kebun, di bawah bar XP (layar sempit maupun lebar)
+        var top = Math.min(decorTop(), P(0, 0).y - 0.75 * S.tw), bottom = P(cols - 1, rows - 1).y + 0.3 * S.tw, avail = fr.h - 6, need = bottom - top;
         if (need <= avail) { S.oy += (fr.y + 3 + (avail - need) / 2) - top; break; }
         S.tw = clamp(S.tw * avail / need * 0.97, 36, 124);
       }
@@ -1215,16 +1214,19 @@
       } else {
         var clusterHalf = (C + R) / 4 * tw, mid = (C + R - 2) / 2;
         var sides = [
-          [-1, [['lumbung', 'gudang', 'Gudang', 0.8, 0.9], ['house_joglo', 'rumah', 'Rumah', 0.78, -0.1], ['tree_beringin_' + lvl, 'beringin', 'Beringin', 0.64, -1.0]]],
-          [1, [['kompos', 'kompos', 'Kompos', 0.85, 0.9], ['dapur', 'olahan', 'Olahan', 0.8, -0.1], ['lapak', 'pasar', 'Pasar', 0.8, -1.0]]]
+          [-1, [['lumbung', 'gudang', 'Gudang', 0.8, 1.0], ['house_joglo', 'rumah', 'Rumah', 0.78, 0.4], ['tree_beringin_' + lvl, 'beringin', 'Beringin', 0.55, 0.1]]],
+          [1, [['kompos', 'kompos', 'Kompos', 0.85, 1.0], ['dapur', 'olahan', 'Olahan', 0.8, 0.4], ['lapak', 'pasar', 'Pasar', 0.8, 0.1]]]
         ];
         sides.forEach(function (side) {
-          var off = clusterHalf + 0.35 * tw;
+          var startOff = clusterHalf + 0.35 * tw, avail = S.w / 2 - startOff - 6, need = 0, f = 1;
+          side[1].forEach(function (b2) { var sp2 = spr(b2[0]); need += (sp2 ? sp2.w * tw * b2[3] : 0) + 0.25 * tw; });
+          if (need > avail) f = Math.max(0.5, avail / need);   // kecilkan semua sedikit supaya semuanya muat (tidak ada bangunan yang hilang)
+          var off = startOff;
           side[1].forEach(function (b2) {
-            var sp2 = spr(b2[0]), w2 = sp2 ? sp2.w * tw * b2[3] : 0, dx = side[0] * (off + w2 / 2);
-            if (Math.abs(dx) + w2 / 2 > S.w / 2 - 4) return;   // tidak muat -> dilewati
-            decor.push(put(b2[0], dx, mid + b2[4], opt(b2[1], b2[2], b2[3])));
-            off += w2 + 0.25 * tw;
+            var sc2 = b2[3] * f, sp2 = spr(b2[0]), w2 = sp2 ? sp2.w * tw * sc2 : 0, dx = side[0] * (off + w2 / 2);
+            if (Math.abs(dx) + w2 / 2 > S.w / 2 - 2) return;   // benar-benar tidak muat (layar sangat sempit)
+            decor.push(put(b2[0], dx, mid + b2[4], opt(b2[1], b2[2], sc2)));
+            off += w2 + 0.25 * tw * f;
           });
           if (off + 0.6 * tw < S.w / 2 - 6) decor.push(put(side[0] < 0 ? 'bamboo' : 'tree_kelapa', side[0] * (off + 0.3 * tw), mid + 1.4, { sc: 0.75, sway: 0.012, ph: side[0] + 3 }));
         });

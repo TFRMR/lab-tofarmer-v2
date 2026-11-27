@@ -1490,7 +1490,8 @@
             const uxPlot = window.uxPickNurseryPlot ? uxPickNurseryPlot() : null;
             if (!uxPlot) { showToast('Pilih dulu kebun untuk persemaian. Petak yang sedang ditanami atau tandus tidak bisa dipakai.', true); return; }
             const { data, error } = await callRpcOrQueue('fn_mulai_pembibitan_di_petak', { p_user: myUserId, p_bibit_id: 'bibit_ubi_jalar', p_x: uxPlot.x, p_y: uxPlot.y }, `Mulai pembibitan ubi jalar di petak ${uxPlot.x},${uxPlot.y}`);
-            if (error) { showToast('Gagal mulai pembibitan: ' + (/fn_mulai_pembibitan_di_petak|Could not find the function/i.test(error.message || '') ? 'jalankan dulu migrasi SQL persemaian di Supabase.' : error.message), true); return; }
+            if (error) console.error('[pembibitan] RPC fn_mulai_pembibitan_di_petak gagal:', JSON.stringify({ code: error.code, message: error.message, details: error.details, hint: error.hint, kirim: { p_user: myUserId, p_x: uxPlot.x, p_y: uxPlot.y } }));   // untuk diagnosis: salin baris ini
+            if (error) { showToast('Gagal mulai pembibitan: ' + (/fn_mulai_pembibitan_di_petak|Could not find the function/i.test(error.message || '') && error.code === 'PGRST202' ? 'jalankan dulu migrasi SQL persemaian di Supabase.' : ((error.code ? '[' + error.code + '] ' : '') + error.message)), true); return; }
             if (data.queued) { showToast(data.message); return; }
             if (!data.success) { showToast(data.message || 'Gagal mulai pembibitan.', true); return; }
             showToastWithEdukasi(`🌱 Pembibitan dimulai! -${data.cost} XP.`, data.edukasi);

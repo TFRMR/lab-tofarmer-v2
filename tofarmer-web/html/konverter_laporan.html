@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Konverter Laporan Backtest MT4/MT5 — Jurnal Sederhana</title>
+  <title>Laporan MT4/MT5 — Jurnal ToFarmer</title>
   <style>
     /* ==========================================================================
        DESIGN TOKENS: MENOREH TWILIGHT AGRITECH PALETTE
@@ -762,7 +762,7 @@
             <span>Paste Hasil Report MT4 / MT5 di sini</span>
             <span class="label-hint">Tekan <strong>Enter</strong> atau <strong>Ctrl+Enter</strong> untuk langsung memproses</span>
           </label>
-          <textarea id="inputRawReport" placeholder="Tempel teks hasil copy-paste dari tab Report / Backtest MetaTrader di sini...
+          <textarea id="inputRawReport" placeholder="Tempel teks hasil copy-paste dari tab Report  MetaTrader di sini...
 Contoh:
 Total Net Profit: 922.60   Gross Profit: 5 193.62   Gross Loss: -4 271.02
 Profit Factor: 1.22        Expected Payoff: 6.19
@@ -1511,7 +1511,7 @@ Average consecutive wins:\t2\tAverage consecutive losses:\t3`;
       const finalBalancePct = (r.finalBalance / dep) * 100;
 
       const text = hideDollarMode ? [
-        `📊 LAPORAN BACKTEST (MODE PERSENTASE): ${r.strategyName} (${r.pairName})`,
+        `📊 LAPORAN (PERSENTASE): ${r.strategyName} (${r.pairName})`,
         `📅 Periode: ${r.periodText}`,
         `📈 Pertumbuhan Akun: 100% -> ${fmtPct(finalBalancePct)}`,
         `----------------------------------------`,
@@ -1525,7 +1525,7 @@ Average consecutive wins:\t2\tAverage consecutive losses:\t3`;
         `🟡 SELL (Short): ${r.raw.shortTrades.count ?? 0} trade (${fmtPct(r.raw.shortTrades.pct)} win)`,
         r.userNote ? `📝 Catatan: ${r.userNote}` : ''
       ].filter(Boolean).join('\n') : [
-        `📊 LAPORAN BACKTEST: ${r.strategyName} (${r.pairName})`,
+        `📊 LAPORAN : ${r.strategyName} (${r.pairName})`,
         `📅 Periode: ${r.periodText}`,
         `💰 Modal Awal: ${fmtMoney(r.initialDeposit)} -> Saldo Akhir: ${fmtMoney(r.finalBalance)} (${fmtPct(finalBalancePct)})`,
         `----------------------------------------`,

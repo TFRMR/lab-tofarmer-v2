@@ -38,6 +38,7 @@
     var running = false, raf = 0, dirty = true, lastT = 0, ambT = 0, t = 0, disposed = false, ro = null;
     var D = null, N = 30, M = 7, ground = [], objs = [], houses = [], landmarks = [], bounds = { x0: 0, x1: 0, y0: 0, y1: 0 };
     var groundCache = null, gcs = 0.5, gcX = 0, gcY = 0, landPos = null;
+    var lastTap = null, pulse = null;
     var hour = 12, tod = null, mists = [], st = { fps: 30, tiles: 0, objs: 0, ms: 0 }, drawMs = 0;
 
     function proj(gx, gy) { return { x: (gx - gy) * BASE / 2, y: (gx + gy) * BASE / 4 }; }
@@ -244,35 +245,56 @@
         ctx.globalAlpha = m.a * (1 - 0.5 * (tod ? tod.night : 0)); ctx.drawImage(ms.img || ms.asset.img, ((m.x % (W + mw)) + (W + mw)) % (W + mw) - mw, m.y * H - mh / 2, mw, mh); ctx.globalAlpha = 1;
       }
       if (tod && tod.tint[3] > 0.005) { ctx.fillStyle = 'rgba(' + (tod.tint[0] | 0) + ',' + (tod.tint[1] | 0) + ',' + (tod.tint[2] | 0) + ',' + tod.tint[3].toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
+      if (pulse) {
+        var age = (Date.now() - pulse.t) / 320;
+        if (age < 1) { ctx.strokeStyle = 'rgba(255,240,170,' + (1 - age).toFixed(2) + ')'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(pulse.x, pulse.y, 8 + age * 26, 0, TAU); ctx.stroke(); dirty = true; } else pulse = null;
+      }
       drawMs = drawMs * 0.9 + ((global.performance ? global.performance.now() : 0) - t0) * 0.1;
       st.tiles = nT; st.objs = nO; st.ms = drawMs;
       if (opts.debug) {
         ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(6, H - 52, 210, 44); ctx.fillStyle = '#9dff9d'; ctx.font = '11px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
         ctx.fillText('FPS ' + st.fps.toFixed(0) + '  gambar ' + drawMs.toFixed(2) + ' ms', 12, H - 36);
         ctx.fillText('petak ' + nT + '  benda ' + nO + '  zoom ' + cam.z.toFixed(2), 12, H - 22);
+        if (lastTap && Date.now() - lastTap.t < 3000) {
+          ctx.strokeStyle = '#ff5a5a'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(lastTap.x, lastTap.y, 6, 0, TAU); ctx.stroke();
+          ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(lastTap.x + 10, lastTap.y - 22, ctx.measureText('ketuk: ' + lastTap.text).width + 10, 18); ctx.fillStyle = '#ffd7d7'; ctx.fillText('ketuk: ' + lastTap.text, lastTap.x + 15, lastTap.y - 9);
+        }
       }
     }
 
     /* ------------------------------------------------------------ ketukan */
     function hitTest(sx, sy) {
       if (!D) return null;
-      var w = toWorld(sx, sy), best = null, by = -1e9, i;
-      for (i = 0; i < objs.length; i++) {
-        var o = objs[i]; if (o.kind !== 'landmark' && o.kind !== 'house') continue;
-        var s = KS.spriteFor(o.name, BASE, 1); if (!s) continue;
-        var bw = s.dw * o.sc, bh = s.dh * o.sc;
-        if (w.x > o.wx - bw * 0.45 && w.x < o.wx + bw * 0.45 && w.y > o.wy - bh * s.ay && w.y < o.wy + BASE * 0.25 && o.wy > by) { best = o; by = o.wy; }
+      var w = toWorld(sx, sy), z = cam.z, i;
+      // loose=false: tubuh bangunan yang tepat. loose=true: toleransi jari (minimal ±26 px layar) dan label nama di bawah bangunan.
+      function pick(kind, loose) {
+        var best = null, by = -1e9;
+        for (i = 0; i < objs.length; i++) {
+          var o = objs[i]; if (o.kind !== kind) continue;
+          var s = KS.spriteFor(o.name, BASE, 1); if (!s) continue;
+          var bw = s.dw * o.sc, bh = s.dh * o.sc;
+          var half = loose ? Math.max(bw * 0.5, 26 / z) : bw * 0.45, top = loose ? Math.max(bh * s.ay, 26 / z) : bh * s.ay, bottom = loose ? 30 / z + BASE * 0.1 : BASE * 0.25;
+          if (w.x > o.wx - half && w.x < o.wx + half && w.y > o.wy - top && w.y < o.wy + bottom && o.wy > by) { best = o; by = o.wy; }
+        }
+        return best;
       }
-      if (best) return best.kind === 'house' ? { type: 'house', userId: best.id, username: best.label } : { type: 'landmark', id: best.id };
-      var t2 = tileAt(w.x, w.y), key = t2.i + ',' + t2.j, cl = (D.claims || {})[key];
+      function asHit(o) { return o.kind === 'house' ? { type: 'house', userId: o.id, username: o.label } : { type: 'landmark', id: o.id }; }
+      var o1 = pick('landmark', false) || pick('house', false);      // 1) tubuh bangunan / rumah yang tepat
+      if (o1) return asHit(o1);
+      var t2 = tileAt(w.x, w.y), key = t2.i + ',' + t2.j, cl = (D.claims || {})[key];   // 2) lahan (petak)
       if (cl) {
         var pc = proj(t2.i, t2.j), dx = Math.abs(w.x - pc.x) / (BASE * 0.5), dy = Math.abs(w.y - pc.y) / (BASE * 0.25);
         if (dx + dy <= 1.15) return { type: (D.farmVis || {})[key] ? 'farm' : 'tile', key: key, owner: cl.ownerUsername, mine: !!(D.me && cl.ownerId === D.me.id) };
       }
-      return null;
+      var o2 = pick('landmark', true) || pick('house', true);        // 3) bila tidak kena apa pun: area longgar untuk jari dan label nama
+      return o2 ? asHit(o2) : null;
     }
     function tap(cx, cy) {
-      var r = canvas.getBoundingClientRect(), h = hitTest(cx - r.left, cy - r.top); if (!h) return;
+      var r = canvas.getBoundingClientRect(), h = hitTest(cx - r.left, cy - r.top);
+      lastTap = { x: cx - r.left, y: cy - r.top, text: h ? (h.type + (h.id ? ' ' + h.id : '')) : 'kosong', t: Date.now() };
+      if (h) pulse = { x: cx - r.left, y: cy - r.top, t: Date.now() };   // cincin kecil: tanda ketukan terbaca
+      dirty = true;
+      if (!h) return;
       if (h.type === 'house') { if (opts.onHouse) opts.onHouse(h.userId, h.username); }
       else if (h.type === 'landmark') { if (opts.onLandmark) opts.onLandmark(h.id); }
       else if (h.type === 'farm') { if (opts.onFarm) opts.onFarm(h.key, h.owner, h.mine); }
@@ -291,7 +313,7 @@
       var dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
       if (nPtr === 1) {
         cam.x -= dx / cam.z; cam.y -= dy / cam.z; clampCam();
-        if (down && (Math.abs(e.clientX - down.x) > 6 || Math.abs(e.clientY - down.y) > 6)) down.moved = true;
+        if (down && (Math.abs(e.clientX - down.x) > 10 || Math.abs(e.clientY - down.y) > 10)) down.moved = true;
         trail.push({ t: Date.now(), x: cam.x, y: cam.y }); if (trail.length > 6) trail.shift();
         dirty = true;
       } else if (nPtr === 2) {
@@ -309,7 +331,7 @@
       delete ptrs[e.pointerId]; nPtr = Object.keys(ptrs).length;
       if (nPtr < 2) pinch = null;
       if (wasOne && nPtr === 0) {
-        if (down && !down.moved && Date.now() - down.t < 450) tap(e.clientX, e.clientY);
+        if (down && !down.moved && Date.now() - down.t < 500) tap(e.clientX, e.clientY);
         else if (trail.length > 1) {   // gerak lanjut
           var f = trail[0], l = trail[trail.length - 1], dt = Math.max(16, l.t - f.t) / 1000;
           vel.x = (l.x - f.x) / dt; vel.y = (l.y - f.y) / dt;
@@ -323,7 +345,10 @@
       var r = canvas.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015));
     }
     canvas.addEventListener('pointerdown', onDown); canvas.addEventListener('pointermove', onMove);
-    canvas.addEventListener('pointerup', onUp); canvas.addEventListener('pointercancel', onUp);
+    canvas.addEventListener('pointerup', onUp);
+    canvas.addEventListener('pointercancel', function (e) {   // dibatalkan sistem (mis. gestur): lepaskan jari tanpa menghitungnya sebagai ketukan
+      delete ptrs[e.pointerId]; nPtr = Object.keys(ptrs).length; pinch = null; down = null;
+    });
     canvas.addEventListener('wheel', onWheel, { passive: false });
 
     /* ------------------------------------------------------------ loop */
