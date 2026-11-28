@@ -78,7 +78,7 @@ S.dels = S.dels || [];
 S.rec.forEach(function (r) { if (r.synced === undefined) r.synced = false; if (r.milik === undefined) r.milik = true; }); // data dari versi lokal lama dikirim ke cloud
 var busy = false;
 function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-var tab = 'daftar', editing = null, ftNew = 'wilayah', fj = '', fa = '', fs = '', qv = '';
+var tab = 'daftar', editing = null, ftNew = 'wilayah', fj = '', fa = '', fs = '', qv = '', usulId = null, detId = null, DET = null;
 
 // ---------- Standar framework ----------
 var PILAR = ['Komunitas & Narasi', 'Inovasi & Rekayasa', 'Ladang Belajar', 'Finansial & Investasi', 'Refleksi Petapa'];
@@ -154,8 +154,8 @@ function head() {
  var T = [['daftar','Daftar'],['form', editing ? 'Ubah' : 'Tambah'],['ekspor','Ekspor']];
  document.getElementById('nav').innerHTML = !sso ? '' : T.map(function (t) { return '<button class="' + (t[0] == tab ? 'on' : '') + '" onclick="go(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
 }
-function go(t) { if (t == 'form' && tab != 'form') editing = null; tab = t; render(); }
-function render() { head(); var v = document.getElementById('view'); v.innerHTML = !sso ? gerbang() : tab == 'daftar' ? daftar() : tab == 'form' ? form() : ekspor(); if (sso && tab == 'daftar') paint(); window.scrollTo(0, 0); }
+function go(t) { if (t == 'form' && tab != 'form') editing = null; usulId = null; detId = null; tab = t; render(); }
+function render() { head(); var v = document.getElementById('view'); v.innerHTML = !sso ? gerbang() : tab == 'daftar' ? daftar() : tab == 'form' ? form() : tab == 'usul' ? formUsul() : tab == 'detail' ? detail() : ekspor(); if (sso && tab == 'daftar') paint(); window.scrollTo(0, 0); }
 
 // ---------- Daftar ----------
 function daftar() {
@@ -178,9 +178,10 @@ function paint() {
   var T = tipe(r.jenis), b = '';
   T.f.forEach(function (x) { var v = r.d[x[0]]; if (x[0] != T.j && String(v || '').trim()) b += '<h5>' + esc(lab(x[1])) + '</h5><p>' + esc(v) + '</p>'; });
   var tg = r.pilar.map(function (p) { return '<span class="tag">P' + p + '</span>'; }).join('') + r.asal.map(function (a) { return '<span class="tag">' + a + '</span>'; }).join('');
-  return '<details><summary>' + esc(r.judul) + '<i>' + r.kode + ' · ' + esc(T.n.replace(/ \(.*\)/, '')) + ' · ' + esc(r.status) + ' · ' + esc(r.akses) + (r.area_id ? ' · ' + esc(r.area_id) : '') + (r.milik === false ? ' · oleh ' + esc(r.pemilik_nama || '?') : (r.synced ? '' : ' · menunggu kirim')) + '</i><div class="bar"><b style="width:' + pct(r) + '%"></b></div><i>Kelengkapan ' + pct(r) + '%</i></summary><div class="dg">' + tg + b +
+  return '<details><summary>' + esc(r.judul) + '<i>' + r.kode + ' · ' + esc(T.n.replace(/ \(.*\)/, '')) + ' · ' + esc(r.status) + ' · ' + esc(r.akses) + (r.area_id ? ' · ' + esc(r.area_id) : '') + (r.milik === false ? ' · oleh ' + esc(r.pemilik_nama || '?') : (r.synced ? '' : ' · menunggu kirim')) + (r.galat ? ' · ⚠ ' + esc(r.galat) : '') + (r.nkonf ? ' · ✓' + r.nkonf + ' konfirmasi' : '') + (r.nusul ? ' · 🔔' + r.nusul + ' usulan' : '') + '</i><div class="bar"><b style="width:' + pct(r) + '%"></b></div><i>Kelengkapan ' + pct(r) + '%</i></summary><div class="dg">' + tg + b +
    '<h5>Catatan</h5><p>Dicatat ' + esc(r.dibuat.slice(0, 10)) + ' oleh ' + esc(r.kontributor || '-') + ' · diperbarui ' + esc(r.diubah.slice(0, 10)) + ' · ' + r.rev.length + ' revisi</p>' +
-   (r.milik === false ? '' : '<div class="acts"><button class="btn alt" onclick="ubah(\'' + r.uid + '\')">Ubah / lengkapi</button><button class="btn bad" onclick="hapus(\'' + r.uid + '\')">Hapus</button></div>') + '</div></details>';
+   '<div class="acts">' + (r.synced ? '<button class="btn alt" onclick="bukaDetail(\'' + r.uid + '\')">Riwayat & kerja sama</button>' : '') +
+   (r.milik === false ? '<button class="btn alt" onclick="usulkan(\'' + r.uid + '\')">Usulkan perubahan</button>' : '<button class="btn alt" onclick="ubah(\'' + r.uid + '\')">Ubah / lengkapi</button><button class="btn bad" onclick="hapus(\'' + r.uid + '\')">Hapus</button>') + '</div></div></details>';
  }).join('');
  document.getElementById('lst').innerHTML = h || (S.rec.length ? '<p class="hint">Tidak ada yang cocok.</p>' : '<p class="hint">Belum ada rekaman. Mulai dari Wilayah (Form A), atau satu narasumber pertama.</p>');
 }
@@ -202,7 +203,7 @@ function form() {
   '<label>Pilar terkait <small>(boleh lebih dari satu)</small></label>' + PILAR.map(function (p, i) { return '<label class="chk"><input type="checkbox" class="mp" value="' + (i + 1) + '"' + (pl.indexOf(i + 1) > -1 ? ' checked' : '') + '>' + (i + 1) + '. ' + p + '</label>'; }).join('') +
   '<label>Asal informasi <small>(boleh lebih dari satu)</small></label>' + ASAL.map(function (a) { return '<label class="chk"><input type="checkbox" class="ma" value="' + a[0] + '"' + (as.indexOf(a[0]) > -1 ? ' checked' : '') + '>' + a[0] + ' · ' + a[1] + '</label>'; }).join('') +
   '<div class="row"><div><label for="m_st">Status kematangan data</label><select id="m_st">' + STATUS.map(function (s) { return '<option' + (stt == s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div><div><label for="m_ak">Tingkat akses</label><select id="m_ak">' + AKSES.map(function (s) { return '<option' + (ak == s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div></div>' +
-  '<p class="hint">Data pribadi, koordinat aset rawan, informasi ekonomi pribadi, dan pengetahuan adat terbatas jangan diberi akses Public.</p></div>';
+  '<p class="hint">Data pribadi, koordinat aset rawan, informasi ekonomi pribadi, dan pengetahuan adat terbatas jangan diberi akses Public.<br>Aturan kematangan: D2 perlu 1 konfirmasi dari orang lain, D3 perlu 2, D4-D5 hanya kurator. Mengubah isi rekaman mengembalikan status ke D1.</p></div>';
  h += '<div class="card"><h3>' + T.n + '</h3>' + T.f.map(function (x) {
   var id = 'f_' + x[0], v = d[x[0]], hint = x[3] && x[2] != 's' ? ' <small>' + esc(x[3]) + '</small>' : '';
   var s = '<label for="' + id + '">' + esc(x[1]) + hint + '</label>';
@@ -221,7 +222,7 @@ function simpan() {
  if (!e) { e = { uid: uid(), jenis: T.k, kode: kodeBaru(T), dibuat: now, rev: [], milik: true }; S.rec.push(e); }
  e.d = {}; T.f.forEach(function (x) { e.d[x[0]] = g('f_' + x[0]); });
  e.judul = nm; e.area_id = g('m_area'); e.kontributor = g('m_kon'); e.pilar = pl; e.asal = as; e.status = st; e.akses = g('m_ak'); e.diubah = now; e.rev.push({ t: now, status: st });
- e.synced = false; S.area = e.area_id; S.kontrib = e.kontributor; editing = null; tab = 'daftar'; save(); render(); toast('Tersimpan: ' + e.kode); sync();
+ e.synced = false; delete e.galat; S.area = e.area_id; S.kontrib = e.kontributor; editing = null; tab = 'daftar'; save(); render(); toast('Tersimpan: ' + e.kode); sync();
 }
 
 // ---------- Ekspor / impor ----------
@@ -316,18 +317,18 @@ async function sync(manual) {
  if (!navigator.onLine) { setSync('Tanpa sinyal: data antre dan dikirim otomatis nanti.'); return; }
  busy = true; setSync('Menyinkronkan...');
  try {
-  var kirim = S.rec.filter(function (r) { return r.milik !== false && !r.synced; });
+  var kirim = S.rec.filter(function (r) { return r.milik !== false && !r.synced; }), gagal = [];
   for (var i = 0; i < kirim.length; i++) {
-   var r = kirim[i];
-   var res = await rpc('regional_save', { p_rec: { uid: r.uid, jenis: r.jenis, judul: r.judul, area_id: r.area_id || null, pilar: r.pilar, asal: r.asal, status: r.status, akses: r.akses, kontributor: r.kontributor || null, d: r.d || {}, rev: r.rev || [], dibuat: r.dibuat, diubah: r.diubah } }, tok);
-   if (res && res.kode) r.kode = res.kode; // kode resmi dari server
+   var r = kirim[i], res = null;
+   try { res = await rpc('regional_save', { p_rec: { uid: r.uid, jenis: r.jenis, judul: r.judul, area_id: r.area_id || null, pilar: r.pilar, asal: r.asal, status: r.status, akses: r.akses, kontributor: r.kontributor || null, d: r.d || {}, rev: r.rev || [], dibuat: r.dibuat, diubah: r.diubah } }, tok); } catch (x) { var xm = String((x && x.message) || x); if (/^Ditolak/.test(xm)) { r.galat = xm; save(); gagal.push(xm); continue; } throw x; }
+   delete r.galat; if (res && res.kode) r.kode = res.kode; // kode resmi dari server
    r.synced = true; save();
   }
   while (S.dels.length) { await rpc('regional_delete', { p_uid: String(S.dels[0]) }, tok); S.dels.shift(); save(); }
   var cloud = (await rpc('regional_list', {}, tok)) || [], hasil = S.rec.filter(function (x) { return x.milik !== false && !x.synced; }), tunda = {};
   hasil.forEach(function (x) { tunda[x.uid] = 1; });
-  cloud.forEach(function (c) { if (!tunda[c.uid]) hasil.push({ uid: c.uid, kode: c.kode, jenis: c.jenis, judul: c.judul, area_id: c.area_id || '', pilar: c.pilar || [], asal: c.asal || [], status: c.status, akses: c.akses, kontributor: c.kontributor || '', d: c.d || {}, rev: c.rev || [], dibuat: c.dibuat, diubah: c.diubah, pemilik_nama: c.pemilik_nama, milik: !!c.milik, synced: true }); });
-  S.rec = hasil; save(); setSync('<b>Tersinkron</b> ' + new Date().toLocaleTimeString('id-ID'));
+  cloud.forEach(function (c) { if (!tunda[c.uid]) hasil.push({ uid: c.uid, kode: c.kode, jenis: c.jenis, judul: c.judul, area_id: c.area_id || '', pilar: c.pilar || [], asal: c.asal || [], status: c.status, akses: c.akses, kontributor: c.kontributor || '', d: c.d || {}, rev: c.rev || [], dibuat: c.dibuat, diubah: c.diubah, pemilik_nama: c.pemilik_nama, milik: !!c.milik, nkonf: c.nkonf || 0, nusul: c.nusul || 0, synced: true }); });
+  S.rec = hasil; save(); setSync(gagal.length ? '⚠ ' + gagal.length + ' rekaman ditolak server: ' + esc(gagal[0]) + ' (lihat tanda ⚠ di daftar)' : '<b>Tersinkron</b> ' + new Date().toLocaleTimeString('id-ID'));
   if (manual) toast('Sinkron selesai');
   if (tab != 'form' && !(document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))) render();
  } catch (err) {
@@ -336,6 +337,69 @@ async function sync(manual) {
  }
  busy = false;
 }
+// ---------- Kerja sama: riwayat isi lama, usulan perubahan, konfirmasi silang (ala Wikipedia, versi simpel) ----------
+function tokAda() { var t = null; try { t = TofSesi.token(); } catch (e) {} if (!t || !sb || !navigator.onLine) { toast(t ? 'Fitur ini perlu sinyal' : 'Sesi habis, masuk lagi'); return null; } return t; }
+function labF(jenis, k) { var T = tipe(jenis), f = T && T.f.filter(function (x) { return x[0] == k; })[0]; return f ? lab(f[1]) : k; }
+function tgl(v) { try { return new Date(v).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) { return v; } }
+function beda(jenis, p) { return Object.keys(p || {}).map(function (k) { var x = p[k] || {}; return '<h5>' + esc(labF(jenis, k)) + '</h5><p><s style="color:#9a3b3b">' + esc(x.lama || '(kosong)') + '</s>\n→ ' + esc(x.baru || '(kosong)') + '</p>'; }).join(''); }
+function asalTag(a) { return (a || []).map(function (x) { return '<span class="tag">' + esc(x) + '</span>'; }).join(''); }
+function asalBox(cls) { return ASAL.map(function (a) { return '<label class="chk"><input type="checkbox" class="' + cls + '" value="' + a[0] + '">' + a[0] + ' · ' + a[1] + '</label>'; }).join(''); }
+function pilihAsal(cls) { var as = []; Array.prototype.forEach.call(document.querySelectorAll('.' + cls + ':checked'), function (x) { as.push(x.value); }); return as; }
+function pesan(e) { return String((e && e.message) || e || 'Gagal, coba lagi'); }
+
+function bukaDetail(id) { detId = id; DET = null; tab = 'detail'; render(); muatDetail(); }
+async function muatDetail() {
+ var tok = tokAda(); if (!tok) { go('daftar'); return; }
+ try { DET = await rpc('regional_detail', { p_uid: detId }, tok); } catch (e) { toast(pesan(e)); go('daftar'); return; }
+ if (tab == 'detail') render();
+}
+function detail() {
+ var r = cari(detId); if (!r) return '<div class="card"><p class="hint">Rekaman tidak ditemukan.</p><button class="btn alt" onclick="go(\'daftar\')">Kembali</button></div>';
+ var T = tipe(r.jenis), h = '<div class="card"><h3>' + esc(r.judul) + '</h3><div class="stat">' + esc(r.kode) + ' · ' + esc(T.n) + ' · <b>' + esc(r.status) + '</b></div><div class="acts"><button class="btn alt" onclick="go(\'daftar\')">← Kembali</button>' + (r.milik === false ? '<button class="btn" onclick="usulkan(\'' + r.uid + '\')">Usulkan perubahan</button>' : '') + '</div></div>';
+ if (!DET) return h + '<div class="card"><p class="hint">Memuat riwayat...</p></div>';
+ var kf = DET.konfirmasi || [], sudah = kf.some(function (k) { return k.milik; });
+ h += '<div class="card"><h3>Konfirmasi silang (' + kf.length + ')</h3><p class="hint">Orang lain yang membenarkan isi rekaman ini. D2 butuh 1 konfirmasi, D3 butuh 2. Setiap isi diubah, konfirmasi dihitung ulang.</p>' +
+  kf.map(function (k) { return '<div class="dg"><h5>' + esc(k.oleh_nama || '?') + ' · ' + tgl(k.waktu) + '</h5>' + asalTag(k.asal) + '<p>' + esc(k.catatan) + '</p></div>'; }).join('') +
+  (DET.milik ? '<p class="hint">Rekaman milikmu tidak bisa kamu konfirmasi sendiri.</p>' : '<label for="kf_cat">' + (sudah ? 'Perbarui konfirmasimu' : 'Konfirmasi rekaman ini') + ' <small>(apa yang kamu ketahui atau lihat)</small></label><textarea id="kf_cat"></textarea><label>Asal informasi *</label>' + asalBox('kfa') + '<div class="acts"><button class="btn" onclick="konfirmasi()">Kirim konfirmasi</button></div>') + '</div>';
+ var us = DET.usulan || [];
+ h += '<div class="card"><h3>Usulan perubahan (' + us.length + ')</h3>' + (us.length ? '' : '<p class="hint">Belum ada usulan.</p>') + us.map(function (u) {
+  return '<details><summary>' + esc(u.pengaju_nama || '?') + ' · ' + esc(u.status) + '<i>' + tgl(u.dibuat) + '</i></summary><div class="dg">' + beda(r.jenis, u.perubahan) + '<h5>Alasan</h5><p>' + esc(u.alasan) + '</p>' + asalTag(u.asal) + (u.catatan_keputusan ? '<h5>Catatan keputusan</h5><p>' + esc(u.catatan_keputusan) + '</p>' : '') +
+   (DET.boleh_putuskan && u.status == 'menunggu' ? '<div class="acts"><button class="btn" onclick="putuskan(\'' + u.id + '\',true)">Terima</button><button class="btn bad" onclick="putuskan(\'' + u.id + '\',false)">Tolak</button></div>' : '') + '</div></details>';
+ }).join('') + '</div>';
+ var rv = DET.riwayat || [];
+ return h + '<div class="card"><h3>Riwayat revisi (' + rv.length + ')</h3>' + rv.map(function (v) {
+  return '<details><summary>Versi ' + v.versi + ' · ' + esc(v.oleh_nama || '?') + (v.jenis == 'usulan' ? ' (usulan)' : '') + '<i>' + tgl(v.waktu) + ' · ' + esc(v.ringkasan || '') + '</i></summary><div class="dg">' + beda(r.jenis, v.perubahan) + (v.status_lama != v.status_baru ? '<h5>Status</h5><p>' + esc(v.status_lama || '-') + ' → ' + esc(v.status_baru || '-') + '</p>' : '') + '</div></details>';
+ }).join('') + '</div>';
+}
+async function konfirmasi() {
+ var tok = tokAda(); if (!tok) return; var cat = document.getElementById('kf_cat').value.trim(), as = pilihAsal('kfa');
+ if (!cat || !as.length) { toast('Isi catatan dan pilih minimal satu asal informasi'); return; }
+ try { await rpc('regional_konfirmasi_set', { p_uid: detId, p_catatan: cat, p_asal: as, p_nama: sso.username }, tok); toast('Konfirmasi tersimpan'); DET = null; render(); muatDetail(); sync(); } catch (e) { toast(pesan(e)); }
+}
+async function putuskan(id, ya) {
+ var tok = tokAda(); if (!tok) return; var cat = ya ? '' : (prompt('Alasan menolak (boleh kosong)') || '');
+ try { await rpc('regional_usul_putuskan', { p_usul_id: id, p_terima: ya, p_catatan: cat }, tok); toast(ya ? 'Usulan diterapkan' : 'Usulan ditolak'); DET = null; render(); muatDetail(); sync(); } catch (e) { toast(pesan(e)); }
+}
+function usulkan(id) { usulId = id; tab = 'usul'; render(); }
+function formUsul() {
+ var e = cari(usulId); if (!e) return ''; var T = tipe(e.jenis);
+ return '<p class="hint">Ubah hanya bagian yang menurutmu kurang tepat atau perlu dilengkapi. Perubahan berlaku setelah disetujui pemilik rekaman atau kurator, dan tercatat di riwayat dengan namamu.</p><div class="card"><h3>Usulan untuk: ' + esc(e.judul) + ' (' + esc(e.kode) + ')</h3>' +
+  T.f.map(function (x) {
+   var id = 'u_' + x[0], v = e.d[x[0]], s = '<label for="' + id + '">' + esc(x[1]) + '</label>';
+   if (x[2] == 'a') return s + '<textarea id="' + id + '">' + esc(v) + '</textarea>';
+   if (x[2] == 's') return s + '<select id="' + id + '"><option value="">-</option>' + x[3].filter(Boolean).map(function (o) { return '<option' + (v == o ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
+   return s + '<input id="' + id + '" value="' + esc(v) + '">';
+  }).join('') + '</div><div class="card"><h3>Dasar usulan</h3><label for="u_alasan">Alasan: apa yang kamu amati atau ketahui *</label><textarea id="u_alasan"></textarea><label>Asal informasi * <small>(minimal satu)</small></label>' + asalBox('ua') + '</div>' +
+  '<div class="acts"><button class="btn" onclick="kirimUsul()">Kirim usulan</button><button class="btn alt" onclick="bukaDetail(\'' + e.uid + '\')">Batal</button></div>';
+}
+async function kirimUsul() {
+ var e = cari(usulId), T = tipe(e.jenis), tok = tokAda(); if (!tok) return; var p = {}, n = 0;
+ T.f.forEach(function (x) { var v = document.getElementById('u_' + x[0]).value.trim(); if (v !== String(e.d[x[0]] || '').trim()) { p[x[0]] = v; n++; } });
+ var al = document.getElementById('u_alasan').value.trim(), as = pilihAsal('ua');
+ if (!n) { toast('Belum ada yang diubah'); return; } if (al.length < 5 || !as.length) { toast('Isi alasan dan pilih minimal satu asal informasi'); return; }
+ try { await rpc('regional_usul', { p_uid: e.uid, p_perubahan: p, p_alasan: al, p_asal: as, p_nama: sso.username }, tok); toast('Usulan terkirim, menunggu keputusan pemilik'); bukaDetail(e.uid); } catch (x) { toast(pesan(x)); }
+}
+
 window.addEventListener('online', function () { sync(); });
 render(); sync();
 </script>
