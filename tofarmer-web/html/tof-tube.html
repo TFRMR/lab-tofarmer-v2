@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ToFarmer Tube — Ruang Video & Kurasi Ekosistem Menoreh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+:root{
+  --bg-deep: #070e0a;
+  --bg-mid: #0d1e14;
+  --bg-darkest: #050b07;
+  --panel-bg: rgba(14, 28, 19, 0.55);
+  --card-bg: rgba(18, 35, 24, 0.48);
+  --card-hover: rgba(22, 46, 31, 0.72);
+  --green-main: #22c55e;
+  --green-bright: #4ade80;
+  --green-soft: #84a98c;
+  --green-mint: #a7f3d0;
+  --gold-main: #eab308;
+  --gold-bright: #fde047;
+  --gold-pale: #fef08a;
+  --text-light: #f8fafc;
+  --text-body: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-green: rgba(74, 222, 128, 0.25);
+}
+
+body{
+  font-family:'Plus Jakarta Sans',sans-serif;
+  background:
+    radial-gradient(circle at top right, rgba(234, 179, 8, 0.09) 0%, transparent 40%),
+    radial-gradient(circle at bottom left, rgba(34, 197, 94, 0.1) 0%, transparent 35%),
+    linear-gradient(135deg, var(--bg-deep) 0%, var(--bg-mid) 50%, var(--bg-darkest) 100%);
+  min-height:100vh;
+  overflow-x:hidden;
+  color:var(--text-body);
+  position:relative;
+}
+
+/* Kabut lembut pegunungan Menoreh */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:linear-gradient(120deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+  pointer-events:none;
+  animation:fog 14s ease-in-out infinite;
+  z-index:0;
+}
+
+@keyframes fog{
+  0%{transform:translateX(-3%)}
+  50%{transform:translateX(3%)}
+  100%{transform:translateX(-3%)}
+}
+
+/* =========================
+   TOP NAVBAR ALA YOUTUBE
+========================= */
+.yt-header{
+  position:sticky;
+  top:0;
+  z-index:100;
+  background: rgba(7, 14, 10, 0.85);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 12px 20px;
+}
+
+.yt-header-inner{
+  max-width: 1380px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  text-decoration:none;
+  cursor:pointer;
+}
+
+.brand-badge{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(234, 179, 8, 0.2));
+  border: 1px solid var(--border-green);
+  color: var(--gold-bright);
+  font-weight: 800;
+  font-size: 1.1rem;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+
+.brand-title{
+  font-family:'Playfair Display', serif;
+  font-size:1.35rem;
+  font-weight:800;
+  background: linear-gradient(135deg, var(--gold-pale) 0%, var(--green-bright) 55%, var(--green-main) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.brand-sub{
+  display:block;
+  font-size:.68rem;
+  color:var(--green-soft);
+  letter-spacing:.8px;
+  text-transform:uppercase;
+}
+
+.search-wrap{
+  flex:1;
+  max-width:520px;
+  min-width:210px;
+  display:flex;
+  align-items:center;
+  background: rgba(18, 35, 24, 0.65);
+  border: 1px solid var(--border-green);
+  border-radius: 999px;
+  padding: 4px 6px 4px 16px;
+  transition: .25s;
+}
+
+.search-wrap:focus-within{
+  border-color: var(--gold-main);
+  box-shadow: 0 0 18px rgba(234, 179, 8, 0.16);
+}
+
+.search-wrap input{
+  flex:1;
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--text-light);
+  font-size:.86rem;
+  font-family:inherit;
+}
+
+.search-wrap input::placeholder{
+  color:var(--green-soft);
+}
+
+.search-btn{
+  background: rgba(34, 197, 94, 0.16);
+  border: 1px solid rgba(74, 222, 128, 0.22);
+  color: var(--green-mint);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .2s;
+}
+
+.search-btn:hover{
+  background: var(--green-main);
+  color: var(--bg-darkest);
+}
+
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.btn-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .3px;
+  cursor: pointer;
+  border: 1px solid var(--border-green);
+  background: rgba(20, 36, 26, 0.65);
+  color: var(--green-mint);
+  transition: .25s;
+  text-decoration:none;
+}
+
+.btn-pill:hover{
+  transform: translateY(-2px);
+  border-color: var(--gold-main);
+  color: var(--gold-bright);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+}
+
+.btn-pill.primary{
+  background: linear-gradient(135deg, var(--green-main) 0%, #15803d 100%);
+  color: var(--bg-darkest);
+  border-color: var(--green-bright);
+}
+
+.btn-pill.primary:hover{
+  background: linear-gradient(135deg, var(--gold-bright) 0%, var(--gold-main) 100%);
+  border-color: var(--gold-pale);
+  color: var(--bg-darkest);
+}
+
+.spin{
+  display:inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin{
+  100%{ transform: rotate(360deg); }
+}
+
+/* =========================
+   CONTAINER UTAMA
+========================= */
+.main-wrap{
+  position:relative;
+  z-index:1;
+  max-width:1380px;
+  margin:0 auto;
+  padding:20px;
+}
+
+.sync-banner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  background: rgba(14, 28, 19, 0.55);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--gold-main);
+  border-radius: 16px;
+  padding: 10px 16px;
+  margin-bottom: 18px;
+  font-size: .8rem;
+  color: var(--green-soft);
+}
+
+.sync-status-dot{
+  display:inline-block;
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background: var(--green-bright);
+  margin-right:8px;
+  box-shadow: 0 0 10px var(--green-bright);
+}
+
+/* =========================
+   PANGGUNG UTAMA (WATCH STAGE ALA YOUTUBE)
+========================= */
+.watch-stage{
+  display:none;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 22px;
+  margin-bottom: 28px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border: 1px solid var(--border-green);
+  border-radius: 26px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.watch-stage.active{
+  display:grid;
+}
+
+.player-frame-box{
+  position:relative;
+  width:100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 18px;
+  overflow:hidden;
+  background:#020503;
+  border: 1px solid rgba(234, 179, 8, 0.25);
+  box-shadow: 0 14px 35px rgba(0,0,0,0.5);
+}
+
+.player-frame-box iframe{
+  width:100%;
+  height:100%;
+  border:0;
+}
+
+.watch-meta{
+  margin-top: 16px;
+}
+
+.watch-title{
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--text-light);
+  line-height: 1.4;
+}
+
+.watch-subrow{
+  margin-top: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.creator-chip{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.creator-avatar{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background: linear-gradient(135deg, #15803d, #0d1e14);
+  border: 1px solid var(--gold-main);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  color:var(--gold-bright);
+  font-size:.9rem;
+}
+
+.watch-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.up-next-box{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  max-height: 540px;
+  overflow-y:auto;
+  padding-right:4px;
+}
+
+.up-next-header{
+  font-size:.78rem;
+  font-weight:800;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  color:var(--gold-bright);
+  margin-bottom:4px;
+}
+
+.up-next-item{
+  display:flex;
+  gap:10px;
+  padding:8px;
+  border-radius:14px;
+  background: rgba(18, 35, 24, 0.45);
+  border: 1px solid transparent;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.up-next-item:hover, .up-next-item.playing{
+  background: var(--card-hover);
+  border-color: var(--border-green);
+}
+
+.up-next-thumb{
+  width:128px;
+  aspect-ratio:16/9;
+  border-radius:10px;
+  object-fit:cover;
+  flex-shrink:0;
+  background:#050b07;
+}
+
+.up-next-info h4{
+  font-size:.8rem;
+  font-weight:700;
+  color:var(--text-light);
+  line-height:1.35;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+
+.up-next-info span{
+  display:block;
+  margin-top:4px;
+  font-size:.7rem;
+  color:var(--green-soft);
+}
+
+/* =========================
+   CHIPS FILTER ALA YOUTUBE
+========================= */
+.filter-bar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  overflow-x:auto;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+}
+
+.chip{
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  background: rgba(18, 35, 24, 0.55);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-body);
+  transition: .2s;
+}
+
+.chip:hover{
+  border-color: var(--border-green);
+  color: var(--gold-bright);
+}
+
+.chip.active{
+  background: linear-gradient(135deg, var(--green-main) 0%, #15803d 100%);
+  color: var(--bg-darkest);
+  border-color: var(--green-bright);
+}
+
+/* =========================
+   GRID VIDEO ALA BERANDA YOUTUBE
+========================= */
+.video-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 20px;
+}
+
+.video-card{
+  background: var(--card-bg);
+  border: 1px solid var(--border-subtle);
+  border-left: 2px solid rgba(34, 197, 94, 0.18);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
+  display:flex;
+  flex-direction:column;
+}
+
+.video-card:hover{
+  transform: translateY(-5px);
+  background: var(--card-hover);
+  border-color: var(--border-green);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.42), 0 0 22px rgba(234, 179, 8, 0.06);
+}
+
+.thumb-box{
+  position:relative;
+  width:100%;
+  aspect-ratio: 16 / 9;
+  background:#040806;
+  overflow:hidden;
+}
+
+.thumb-box img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  transition: transform .4s ease;
+}
+
+.video-card:hover .thumb-box img{
+  transform: scale(1.04);
+}
+
+.play-overlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background: radial-gradient(circle, rgba(7,14,10,0.25), rgba(7,14,10,0.65));
+  opacity:0;
+  transition:.25s;
+}
+
+.video-card:hover .play-overlay{
+  opacity:1;
+}
+
+.play-circle{
+  width:50px;
+  height:50px;
+  border-radius:50%;
+  background: rgba(34, 197, 94, 0.92);
+  color: var(--bg-darkest);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.1rem;
+  font-weight:800;
+  box-shadow: 0 0 25px rgba(34, 197, 94, 0.5);
+}
+
+.source-badge{
+  position:absolute;
+  bottom:8px;
+  right:8px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  font-size: .66rem;
+  font-weight: 800;
+  letter-spacing: .4px;
+  backdrop-filter: blur(8px);
+}
+
+.source-badge.sync{
+  background: rgba(7, 14, 10, 0.82);
+  color: var(--green-bright);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+}
+
+.source-badge.manual{
+  background: rgba(7, 14, 10, 0.82);
+  color: var(--gold-bright);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.card-body{
+  padding: 14px 16px 16px;
+  display:flex;
+  gap: 11px;
+}
+
+.card-avatar{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+  background: rgba(20, 38, 27, 0.9);
+  border: 1px solid var(--border-green);
+  color: var(--gold-bright);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  font-size:.82rem;
+  flex-shrink:0;
+}
+
+.card-info{
+  flex:1;
+  min-width:0;
+}
+
+.card-title{
+  font-size:.9rem;
+  font-weight:700;
+  color:var(--text-light);
+  line-height:1.4;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  transition: color .2s;
+}
+
+.video-card:hover .card-title{
+  color: var(--gold-bright);
+}
+
+.card-meta{
+  margin-top:6px;
+  font-size:.74rem;
+  color:var(--green-soft);
+  line-height:1.45;
+}
+
+/* =========================
+   MODAL STUDIO
+========================= */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background: rgba(5, 11, 7, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+  padding:16px;
+}
+
+.modal-backdrop.show{
+  display:flex;
+}
+
+.modal-card{
+  width:100%;
+  max-width:480px;
+  background: linear-gradient(145deg, #0d1e14, #070e0a);
+  border: 1px solid var(--border-green);
+  border-radius: 26px;
+  padding: 26px;
+  box-shadow: 0 25px 70px rgba(0,0,0,0.65);
+}
+
+.modal-title{
+  font-family:'Playfair Display', serif;
+  font-size:1.45rem;
+  color:var(--gold-bright);
+  margin-bottom:6px;
+}
+
+.modal-desc{
+  font-size:.8rem;
+  color:var(--green-soft);
+  line-height:1.6;
+  margin-bottom:18px;
+}
+
+.tab-switch{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:18px;
+}
+
+.tab-btn{
+  padding:10px;
+  border-radius:14px;
+  border:1px solid var(--border-subtle);
+  background: rgba(18, 35, 24, 0.5);
+  color: var(--text-muted);
+  font-size:.78rem;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.tab-btn.active{
+  background: rgba(34, 197, 94, 0.18);
+  border-color: var(--green-bright);
+  color: var(--gold-bright);
+}
+
+.field-label{
+  display:block;
+  font-size:.76rem;
+  font-weight:700;
+  color:var(--green-mint);
+  margin-bottom:6px;
+}
+
+.field-input{
+  width:100%;
+  padding:12px 14px;
+  border-radius:14px;
+  background: rgba(7, 14, 10, 0.8);
+  border: 1px solid var(--border-green);
+  color: var(--text-light);
+  font-size:.85rem;
+  font-family:inherit;
+  margin-bottom:14px;
+  outline:none;
+}
+
+.field-input:focus{
+  border-color: var(--gold-main);
+}
+
+.modal-msg{
+  font-size:.78rem;
+  margin-bottom:12px;
+  color:var(--gold-bright);
+  min-height:18px;
+}
+
+.modal-footer{
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+}
+
+.empty-state{
+  grid-column: 1 / -1;
+  text-align:center;
+  padding: 50px 20px;
+  background: var(--panel-bg);
+  border: 1px dashed var(--border-green);
+  border-radius: 24px;
+  color: var(--green-soft);
+}
+
+@media (max-width: 960px){
+  .watch-stage.active{
+    grid-template-columns: 1fr;
+  }
+  .up-next-box{
+    max-height: none;
+  }
+}
+
+@media (max-width: 600px){
+  .yt-header{ padding: 10px 12px; }
+  .main-wrap{ padding: 12px; }
+  .video-grid{ grid-template-columns: 1fr; gap: 14px; }
+}
+</style>
+</head>
+<body>
+
+  <header class="yt-header">
+    <div class="yt-header-inner">
+      <div class="brand" id="brand-home">
+        <div class="brand-badge">▶</div>
+        <div>
+          <span class="brand-title">ToFarmer Tube</span>
+          <span class="brand-sub">Kurasi & Channel Menoreh</span>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <input type="text" id="search-input" placeholder="Cari video, channel, atau kurator..." />
+        <button class="search-btn" id="search-btn">Cari</button>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-pill" id="btn-refresh" title="Cek upload baru dari feed YouTube">
+          <span id="refresh-icon">↻</span> Refresh
+        </button>
+        <button class="btn-pill primary" id="btn-studio">
+          + Tambah / Konek
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-wrap">
+    <div class="sync-banner">
+      <div>
+        <span class="sync-status-dot"></span>
+        <span id="sync-status-text">Memuat & mengecek feed YouTube terbaru...</span>
+      </div>
+      <div id="user-badge-text" style="font-weight:700; color:#fde047;"></div>
+    </div>
+
+    <section class="watch-stage" id="watch-stage">
+      <div>
+        <div class="player-frame-box" id="player-container"></div>
+        <div class="watch-meta">
+          <h1 class="watch-title" id="watch-title">-</h1>
+          <div class="watch-subrow">
+            <div class="creator-chip">
+              <div class="creator-avatar" id="watch-avatar">T</div>
+              <div>
+                <div id="watch-author" style="font-weight:700; color:#f8fafc; font-size:.9rem;">-</div>
+                <div id="watch-curator" style="font-size:.75rem; color:#84a98c;">-</div>
+              </div>
+            </div>
+            <div class="watch-actions">
+              <a id="watch-yt-link" href="#" target="_blank" rel="noopener" class="btn-pill">Buka di YouTube ↗</a>
+              <button id="watch-close-btn" class="btn-pill">Tutup Pemutar ✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <aside class="up-next-box">
+        <div class="up-next-header">Daftar Putar & Koleksi</div>
+        <div id="up-next-list"></div>
+      </aside>
+    </section>
+
+    <div class="filter-bar" id="filter-bar">
+      <button class="chip active" data-filter="all">Semua Tayangan</button>
+      <button class="chip" data-filter="channel_sync">Channel Terhubung (Auto)</button>
+      <button class="chip" data-filter="manual_link">Koleksi Link Pilihan</button>
+      <button class="chip" data-filter="mine" id="chip-mine" style="display:none;">Halaman Saya</button>
+    </div>
+
+    <section class="video-grid" id="video-grid"></section>
+  </main>
+
+  <div class="modal-backdrop" id="studio-modal">
+    <div class="modal-card">
+      <h2 class="modal-title">Kelola Saluran & Koleksi</h2>
+      <p class="modal-desc">
+        Hubungkan channel YouTube-mu agar upload baru otomatis tampil di sini, atau tempel link video pilihan dari channel mana saja.
+      </p>
+
+      <div class="tab-switch">
+        <button class="tab-btn active" id="tab-manual">Tempel Link Video</button>
+        <button class="tab-btn" id="tab-channel">Konek Channel Auto</button>
+      </div>
+
+      <div id="panel-manual">
+        <label class="field-label">Link Video YouTube (Watch, Shorts, atau youtu.be)</label>
+        <input type="url" id="input-video-url" class="field-input" placeholder="https://www.youtube.com/watch?v=..." />
+
+        <label class="field-label">Judul Catatan (Opsional — kosongkan untuk otomatis dari YouTube)</label>
+        <input type="text" id="input-video-title" class="field-input" placeholder="Otomatis mengikuti judul asli jika dikosongkan" />
+      </div>
+
+      <div id="panel-channel" style="display:none;">
+        <label class="field-label">Link Channel YouTube (@handle atau /channel/UC...)</label>
+        <input type="text" id="input-channel-url" class="field-input" placeholder="https://www.youtube.com/@namachannel" />
+        <p style="font-size:.73rem; color:#84a98c; margin-bottom:14px; line-height:1.5;">
+          Setiap kali halaman dibuka atau tombol Refresh ditekan, video terbaru dari channel ini akan otomatis ditarik ke halamanmu.
+        </p>
+      </div>
+
+      <div class="modal-msg" id="modal-msg"></div>
+
+      <div class="modal-footer">
+        <button class="btn-pill" id="modal-close">Batal</button>
+        <button class="btn-pill primary" id="modal-submit">Simpan & Tampilkan</button>
+      </div>
+    </div>
+  </div>
+
+<script type="module">
+import { supabase } from './supabase-client.js';
+
+const FUNCTION_NAME = 'tof-yt-sync';
+
+const currentWallet = localStorage.getItem('tof_wallet') || '';
+const currentUsername = localStorage.getItem('tof_login_username') || '';
+const isLoggedIn = Boolean(currentWallet && currentUsername);
+
+const userBadgeEl = document.getElementById('user-badge-text');
+const chipMineEl = document.getElementById('chip-mine');
+
+if (isLoggedIn) {
+  userBadgeEl.textContent = `👤 ${currentUsername}`;
+  chipMineEl.style.display = 'inline-block';
+} else {
+  userBadgeEl.textContent = 'Mode Penonton (Login untuk kelola channel)';
+}
+
+function arahkanKeLogin() {
+  const tujuanSekarang = window.location.pathname + window.location.search;
+  try {
+    localStorage.setItem('redirect_to', tujuanSekarang);
+  } catch (_) {}
+  window.location.href = `/login.html?next=${encodeURIComponent(tujuanSekarang)}`;
+}
+
+let allVideos = [];
+let activeFilter = 'all';
+let searchQuery = '';
+let activeVideo = null;
+let studioMode = 'manual';
+
+const videoGridEl = document.getElementById('video-grid');
+const syncStatusEl = document.getElementById('sync-status-text');
+const refreshBtn = document.getElementById('btn-refresh');
+const refreshIcon = document.getElementById('refresh-icon');
+
+async function loadVideosFromDB() {
+  const { data, error } = await supabase
+    .from('tof_yt_videos')
+    .select('*')
+    .order('published_at', { ascending: false })
+    .limit(80);
+
+  if (error) {
+    console.error(error);
+    syncStatusEl.textContent = 'Gagal membaca daftar video dari database.';
+    return;
+  }
+
+  allVideos = data || [];
+  renderVideos();
+}
+
+async function syncAndRefresh(isInitial = false) {
+  refreshBtn.disabled = true;
+  refreshIcon.classList.add('spin');
+  syncStatusEl.textContent = isInitial
+    ? 'Memuat tayangan & mengecek upload terbaru di YouTube...'
+    : 'Mengecek ulang ke feed YouTube...';
+
+  await loadVideosFromDB();
+
+  try {
+    const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
+      body: { action: 'refresh_feeds' }
+    });
+
+    if (!error && data?.ok) {
+      if (data.new_videos > 0) {
+        await loadVideosFromDB();
+        syncStatusEl.textContent = `Diperbarui • ${data.new_videos} video baru masuk dari channel terhubung.`;
+      } else {
+        const jam = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        syncStatusEl.textContent = `Tersinkronisasi dengan YouTube (${jam} WIB) • ${allVideos.length} tayangan siap diputar.`;
+      }
+    } else {
+      syncStatusEl.textContent = `Menampilkan ${allVideos.length} tayangan tersimpan.`;
+    }
+  } catch (e) {
+    console.error(e);
+    syncStatusEl.textContent = `Menampilkan ${allVideos.length} tayangan tersimpan.`;
+  } finally {
+    refreshBtn.disabled = false;
+    refreshIcon.classList.remove('spin');
+  }
+}
+
+function formatTanggal(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso).toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  } catch (_) {
+    return '';
+  }
+}
+
+function getFilteredVideos() {
+  return allVideos.filter((v) => {
+    if (activeFilter === 'channel_sync' && v.source_type !== 'channel_sync') return false;
+    if (activeFilter === 'manual_link' && v.source_type !== 'manual_link') return false;
+    if (activeFilter === 'mine' && v.owner_wallet !== currentWallet) return false;
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchTitle = (v.title || '').toLowerCase().includes(q);
+      const matchAuthor = (v.author_name || '').toLowerCase().includes(q);
+      const matchOwner = (v.owner_username || '').toLowerCase().includes(q);
+      return matchTitle || matchAuthor || matchOwner;
+    }
+    return true;
+  });
+}
+
+function renderVideos() {
+  const list = getFilteredVideos();
+  videoGridEl.innerHTML = '';
+
+  if (list.length === 0) {
+    videoGridEl.innerHTML = `
+      <div class="empty-state">
+        <div style="font-size:2rem; margin-bottom:10px;">🎬</div>
+        <div style="font-weight:700; color:#fde047; margin-bottom:6px;">Belum ada video pada filter ini</div>
+        <div style="font-size:.82rem;">Klik tombol <b>+ Tambah / Konek</b> di kanan atas untuk menempelkan link video atau menghubungkan channel YouTube.</div>
+      </div>
+    `;
+    return;
+  }
+
+  list.forEach((video) => {
+    const thumbUrl = `https://i.ytimg.com/vi/${video.video_id}/hqdefault.jpg`;
+    const isSync = video.source_type === 'channel_sync';
+    const badgeText = isSync ? 'Channel Auto' : 'Koleksi Pilihan';
+    const badgeClass = isSync ? 'sync' : 'manual';
+    const initial = (video.owner_username || 'T').charAt(0).toUpperCase();
+
+    const card = document.createElement('article');
+    card.className = 'video-card';
+    card.innerHTML = `
+      <div class="thumb-box">
+        <img src="${thumbUrl}" alt="${escapeHtml(video.title)}" loading="lazy" />
+        <div class="play-overlay"><div class="play-circle">▶</div></div>
+        <span class="source-badge ${badgeClass}">${badgeText}</span>
+      </div>
+      <div class="card-body">
+        <div class="card-avatar">${escapeHtml(initial)}</div>
+        <div class="card-info">
+          <h3 class="card-title">${escapeHtml(video.title)}</h3>
+          <div class="card-meta">
+            <div>${escapeHtml(video.author_name || 'YouTube')}</div>
+            <div>Dikurasi oleh <b>${escapeHtml(video.owner_username)}</b> • ${formatTanggal(video.published_at)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    card.addEventListener('click', () => playVideo(video));
+    videoGridEl.appendChild(card);
+  });
+
+  if (activeVideo) {
+    renderUpNext(list);
+  }
+}
+
+function playVideo(video) {
+  activeVideo = video;
+  const stage = document.getElementById('watch-stage');
+  const playerContainer = document.getElementById('player-container');
+
+  playerContainer.innerHTML = `
+    <iframe
+      src="https://www.youtube.com/embed/${encodeURIComponent(video.video_id)}?autoplay=1&rel=0"
+      title="${escapeHtml(video.title)}"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen>
+    </iframe>
+  `;
+
+  document.getElementById('watch-title').textContent = video.title;
+  document.getElementById('watch-avatar').textContent = (video.owner_username || 'T').charAt(0).toUpperCase();
+  document.getElementById('watch-author').textContent = video.author_name || 'YouTube';
+  document.getElementById('watch-curator').textContent =
+    `Halaman ${video.owner_username} • ${video.source_type === 'channel_sync' ? 'Auto-Sync Channel' : 'Link Pilihan'}`;
+  document.getElementById('watch-yt-link').href = `https://www.youtube.com/watch?v=${encodeURIComponent(video.video_id)}`;
+
+  stage.classList.add('active');
+  renderUpNext(getFilteredVideos());
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderUpNext(list) {
+  const upNextEl = document.getElementById('up-next-list');
+  upNextEl.innerHTML = '';
+
+  list.slice(0, 15).forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'up-next-item' + (activeVideo?.video_id === item.video_id ? ' playing' : '');
+    row.innerHTML = `
+      <img class="up-next-thumb" src="https://i.ytimg.com/vi/${item.video_id}/mqdefault.jpg" alt="" loading="lazy" />
+      <div class="up-next-info">
+        <h4>${escapeHtml(item.title)}</h4>
+        <span>${escapeHtml(item.author_name || '')}</span>
+        <span>Oleh ${escapeHtml(item.owner_username)}</span>
+      </div>
+    `;
+    row.addEventListener('click', () => playVideo(item));
+    upNextEl.appendChild(row);
+  });
+}
+
+document.getElementById('watch-close-btn').addEventListener('click', () => {
+  activeVideo = null;
+  document.getElementById('player-container').innerHTML = '';
+  document.getElementById('watch-stage').classList.remove('active');
+});
+
+document.querySelectorAll('#filter-bar .chip').forEach((chip) => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#filter-bar .chip').forEach((c) => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeFilter = chip.dataset.filter;
+    renderVideos();
+  });
+});
+
+document.getElementById('search-input').addEventListener('input', (e) => {
+  searchQuery = e.target.value.trim();
+  renderVideos();
+});
+
+document.getElementById('brand-home').addEventListener('click', () => {
+  activeFilter = 'all';
+  searchQuery = '';
+  document.getElementById('search-input').value = '';
+  document.querySelectorAll('#filter-bar .chip').forEach((c) => c.classList.remove('active'));
+  document.querySelector('#filter-bar .chip[data-filter="all"]').classList.add('active');
+  renderVideos();
+});
+
+refreshBtn.addEventListener('click', () => syncAndRefresh(false));
+
+const studioModal = document.getElementById('studio-modal');
+const modalMsg = document.getElementById('modal-msg');
+
+document.getElementById('btn-studio').addEventListener('click', () => {
+  if (!isLoggedIn) {
+    arahkanKeLogin();
+    return;
+  }
+  modalMsg.textContent = '';
+  studioModal.classList.add('show');
+});
+
+document.getElementById('modal-close').addEventListener('click', () => {
+  studioModal.classList.remove('show');
+});
+
+document.getElementById('tab-manual').addEventListener('click', () => {
+  studioMode = 'manual';
+  document.getElementById('tab-manual').classList.add('active');
+  document.getElementById('tab-channel').classList.remove('active');
+  document.getElementById('panel-manual').style.display = 'block';
+  document.getElementById('panel-channel').style.display = 'none';
+  modalMsg.textContent = '';
+});
+
+document.getElementById('tab-channel').addEventListener('click', () => {
+  studioMode = 'channel';
+  document.getElementById('tab-channel').classList.add('active');
+  document.getElementById('tab-manual').classList.remove('active');
+  document.getElementById('panel-channel').style.display = 'block';
+  document.getElementById('panel-manual').style.display = 'none';
+  modalMsg.textContent = '';
+});
+
+document.getElementById('modal-submit').addEventListener('click', async () => {
+  if (!isLoggedIn) {
+    arahkanKeLogin();
+    return;
+  }
+
+  const submitBtn = document.getElementById('modal-submit');
+  submitBtn.disabled = true;
+  modalMsg.textContent = 'Memproses dengan YouTube...';
+
+  try {
+    if (studioMode === 'manual') {
+      const videoUrl = document.getElementById('input-video-url').value.trim();
+      const customTitle = document.getElementById('input-video-title').value.trim();
+
+      if (!videoUrl) {
+        modalMsg.textContent = 'Tempelkan link video YouTube terlebih dahulu.';
+        submitBtn.disabled = false;
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
+        body: {
+          action: 'add_manual_video',
+          owner_wallet: currentWallet,
+          owner_username: currentUsername,
+          video_url: videoUrl,
+          custom_title: customTitle
+        }
+      });
+
+      if (error || !data?.ok) {
+        modalMsg.textContent = data?.error || 'Gagal menambahkan video.';
+        submitBtn.disabled = false;
+        return;
+      }
+
+      document.getElementById('input-video-url').value = '';
+      document.getElementById('input-video-title').value = '';
+      studioModal.classList.remove('show');
+      await loadVideosFromDB();
+      syncStatusEl.textContent = `Berhasil menambahkan "${data.title}" ke koleksimu.`;
+    } else {
+      const channelUrl = document.getElementById('input-channel-url').value.trim();
+      if (!channelUrl) {
+        modalMsg.textContent = 'Tempelkan link channel YouTube terlebih dahulu.';
+        submitBtn.disabled = false;
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
+        body: {
+          action: 'connect_channel',
+          owner_wallet: currentWallet,
+          owner_username: currentUsername,
+          channel_url: channelUrl
+        }
+      });
+
+      if (error || !data?.ok) {
+        modalMsg.textContent = data?.error || 'Channel tidak ditemukan.';
+        submitBtn.disabled = false;
+        return;
+      }
+
+      document.getElementById('input-channel-url').value = '';
+      studioModal.classList.remove('show');
+      await loadVideosFromDB();
+      syncStatusEl.textContent = `Channel "${data.channel_title}" terhubung (${data.synced_count} video ditarik).`;
+    }
+  } catch (err) {
+    modalMsg.textContent = 'Terjadi kesalahan jaringan.';
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+syncAndRefresh(true);
+</script>
+</body>
+</html>
