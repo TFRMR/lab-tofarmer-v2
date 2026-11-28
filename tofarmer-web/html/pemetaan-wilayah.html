@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pemetaan Wilayah - ToFarmer</title>
+<meta name="theme-color" content="#2f6f4e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/js/tof-sesi.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:Inter,sans-serif; }
+body { background:#f4f7f5; color:#1c2b22; padding-bottom:80px; }
+.container { max-width:760px; margin:auto; padding:1rem; }
+header { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:1rem 0; border-bottom:1px solid #e0e8e3; margin-bottom:12px; }
+.brand { display:flex; align-items:center; gap:10px; color:#2f6f4e; font-weight:bold; font-size:15px; }
+.logo-icon { width:42px; height:42px; border-radius:50%; background:#fff; border:2px solid #2f6f4e; display:flex; align-items:center; justify-content:center; font-size:20px; }
+.badge { background:#fff; border:1px solid #e0e8e3; padding:6px 12px; border-radius:12px; font-size:11px; }
+.badge a { color:#2f6f4e; font-weight:bold; text-decoration:none; }
+nav { display:flex; gap:6px; margin-bottom:12px; }
+nav button { flex:1; border:1px solid #e0e8e3; background:#fff; color:#2f6f4e; padding:9px 8px; border-radius:10px; font-size:12px; font-weight:bold; cursor:pointer; }
+nav button.on { background:#2f6f4e; color:#fff; border-color:#2f6f4e; }
+.card { background:#fff; border-radius:16px; padding:18px; margin-bottom:15px; box-shadow:0 4px 12px rgba(0,0,0,.03); border:1px solid rgba(0,0,0,.05); }
+.card h3 { font-size:14px; color:#2f6f4e; margin-bottom:2px; }
+.hint { font-size:12px; color:#6f7f76; margin:2px 0 8px; line-height:1.45; }
+label { display:block; font-size:11px; font-weight:600; color:#2f6f4e; margin:10px 0 4px; }
+label small { font-weight:400; color:#6f7f76; }
+input, select, textarea { width:100%; padding:10px 12px; border:1px solid #ccc; border-radius:10px; font-size:13px; outline:none; background:#fff; color:#1c2b22; }
+input:focus, select:focus, textarea:focus { border-color:#2f6f4e; }
+textarea { min-height:70px; resize:vertical; }
+.row { display:flex; gap:8px; } .row > * { flex:1; }
+.acts { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+.btn { background:#2f6f4e; color:#fff; border:none; padding:10px 16px; border-radius:10px; font-size:12px; font-weight:bold; cursor:pointer; }
+.btn:hover { background:#24583e; }
+.btn.alt { background:#fff; color:#2f6f4e; border:1px solid #2f6f4e; } .btn.alt:hover { background:#e9f4ee; }
+.btn.bad { background:#fff; color:#dc2626; border:1px solid #dc2626; }
+.btn:focus-visible, nav button:focus-visible, summary:focus-visible { outline:2px solid #2f6f4e; outline-offset:2px; }
+.stat { font-size:12px; color:#6f7f76; margin:8px 0; line-height:1.6; } .stat b { color:#2f6f4e; }
+details { background:#fff; border:1px solid #e0e8e3; border-radius:14px; margin-bottom:10px; padding:12px 14px; }
+summary { cursor:pointer; font-size:14px; font-weight:600; color:#1c2b22; list-style:none; }
+summary i { display:block; font-style:normal; font-size:11px; font-weight:400; color:#6f7f76; margin-top:2px; }
+.bar { height:6px; background:#e9f4ee; border-radius:3px; margin-top:6px; overflow:hidden; } .bar b { display:block; height:100%; background:linear-gradient(90deg,#4caf7a,#2f6f4e); }
+.dg { margin-top:10px; font-size:13px; line-height:1.5; } .dg h5 { font-size:11px; color:#2f6f4e; margin:10px 0 2px; }
+.dg p { white-space:pre-wrap; }
+.chk { display:flex; gap:8px; align-items:center; font-weight:400; color:#1c2b22; margin:7px 0; font-size:13px; }
+.chk input { width:auto; }
+.tag { display:inline-block; background:#e9f4ee; color:#2f6f4e; border-radius:8px; padding:2px 8px; font-size:10px; font-weight:bold; margin:2px 4px 2px 0; }
+.toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1c2b22; color:#fff; padding:10px 16px; border-radius:12px; font-size:12px; opacity:0; transition:.3s; pointer-events:none; max-width:90%; text-align:center; }
+.toast.show { opacity:1; }
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/aset/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-title" content="ToFarmer">
+</head>
+<body>
+<div class="container">
+<header>
+<div class="brand"><div class="logo-icon">🗺️</div><div>Pemetaan Wilayah<br><span style="font-weight:400;font-size:11px;color:#6f7f76">Regional Mapping Framework v1</span></div></div>
+<div class="badge" id="badge"></div>
+</header>
+<div class="stat" id="sync"></div>
+<nav id="nav"></nav>
+<div id="view"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ---------- Penyimpanan: antre di perangkat (per akun), dikirim ke Supabase saat ada sinyal dan sesi. Login wajib ----------
+var SUPABASE_URL = "https://afpzddwuikvwsedzgsee.supabase.co";
+var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmcHpkZHd1aWt2d3NlZHpnc2VlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxNTExNjEsImV4cCI6MjA5NDcyNzE2MX0.O_IezV8HpBjuZndnXosifts-jS7NnV4VtidyIX1KMHY";
+var sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+var LOGIN_URL = '/html/login.html';
+var sso = null; try { sso = window.TofSesi ? TofSesi.ambil() : null; } catch (e) {}
+var KEY = 'pemetaan_v1_' + (sso ? sso.id : 'tamu');
+var S = { rec: [], cnt: {}, cek: {}, kontrib: '', area: '', dels: [] };
+try { var raw = localStorage.getItem(KEY); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch (e) {}
+S.dels = S.dels || [];
+S.rec.forEach(function (r) { if (r.synced === undefined) r.synced = false; if (r.milik === undefined) r.milik = true; }); // data dari versi lokal lama dikirim ke cloud
+var busy = false;
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+var tab = 'daftar', editing = null, ftNew = 'wilayah', fj = '', fa = '', fs = '', qv = '';
+
+// ---------- Standar framework ----------
+var PILAR = ['Komunitas & Narasi', 'Inovasi & Rekayasa', 'Ladang Belajar', 'Finansial & Investasi', 'Refleksi Petapa'];
+var ASAL = [['INT', 'Interview (dari narasumber)'], ['OBS', 'Observation (pengamatan langsung)'], ['DOC', 'Document (dari dokumen)'], ['TEST', 'Tested (hasil pengujian)']];
+var STATUS = ['D0 Raw Record', 'D1 Documented', 'D2 Verified', 'D3 Validated', 'D4 Reference Knowledge', 'D5 Ilmu Baku'];
+var AKSES = ['Public', 'Community', 'Restricted', 'Private'];
+var KEAHLIAN = ['Pertanian', 'Peternakan', 'Perikanan', 'Teknik', 'Digital', 'Kreatif', 'Ekonomi', 'Alam', 'Sosial', 'Budaya', 'Lainnya'];
+var SDA = ['Lahan', 'Tanah', 'Air', 'Tanaman', 'Pohon', 'Peternakan', 'Perikanan', 'Keanekaragaman hayati', 'Limbah organik', 'Energi', 'Bentang alam'];
+var INOV = ['Bengkel / fasilitas kerja', 'Mesin pertanian', 'Alat produksi / pengolahan', 'Teknologi irigasi', 'Teknologi energi', 'Elektronika / robotika', 'Komputer / digital', 'Karya inovasi masyarakat', 'Metode rekayasa sederhana', 'Ide teknologi belum diwujudkan'];
+var MASALAH = ['Produksi', 'Air dan lingkungan', 'Pemasaran', 'Regenerasi petani', 'Teknologi', 'Modal', 'Infrastruktur', 'Sosial', 'Hilangnya pengetahuan lokal', 'Kesenjangan keterampilan'];
+var YT = ['Ya', 'Sebagian', 'Tidak', 'Belum diketahui'];
+
+// Jenis rekaman: k=kunci, n=nama, p=awalan ID, j=isian yang jadi judul, f=[kunci, label, tipe(t/a/s/d), petunjuk/opsi]
+var F = [
+{ k:'wilayah', n:'Wilayah (Form A)', p:'AREA', j:'nama', f:[
+ ['nama','Nama wilayah (desa, dusun, kawasan) *','t'],['administratif','Wilayah administratif','t','desa, kapanewon, kabupaten'],['regional','Region ID / nama regional','t'],
+ ['koordinat','Koordinat atau batas area','t'],['luas','Luas wilayah','t','beri label (estimasi) bila perkiraan'],['penduduk','Jumlah penduduk dan tahun sumber','t'],['kk','Jumlah KK','t'],
+ ['geografis','Kondisi geografis','a','dataran, perbukitan, lembah, pesisir'],['iklim','Kondisi iklim dan musim','a'],['sumber_air','Sumber air','a'],['aktivitas','Aktivitas dominan','a'],
+ ['infrastruktur','Infrastruktur','a','jalan, listrik, internet, fasilitas umum'],['karakter','Karakter lokal','a']]},
+{ k:'orang', n:'Orang / SDM (Form B)', p:'PER', j:'nama', f:[
+ ['nama','Nama atau inisial (dengan persetujuan) *','t'],['usia','Rentang usia','s',['', '<20','20-34','35-49','50-64','65+']],['kontak','Kontak (privat, jika diizinkan)','t'],
+ ['partisipasi','Status partisipasi','s',['Belum terlibat','Aktif','Tidak aktif']],['persetujuan','Persetujuan data','s',['Ya','Terbatas','Tidak']],
+ ['kategori','Kategori keahlian','s',KEAHLIAN],['keahlian','Keahlian / kemampuan yang dikuasai','a'],['asal_ilmu','Asal pengetahuan (pendidikan, pengalaman, warisan keluarga)','a'],
+ ['lama','Sudah berapa lama dipraktikkan','t'],['mengajar','Pernah mengajarkan ke orang lain?','s',YT],['bukti','Bukti praktik atau hasil karya','a'],
+ ['bersedia','Bersedia membagikan pengetahuan / jadi mentor?','s',YT],['minat','Pilar diminati dan bentuk kontribusi','a'],['waktu','Waktu tersedia','t'],['alat','Alat atau fasilitas yang dimiliki','a'],['kebutuhan','Kebutuhan pendukung dan peluang kolaborasi','a']]},
+{ k:'sumberdaya', n:'Sumber daya alam (Form C)', p:'RES', j:'nama', f:[
+ ['nama','Nama lokal *','t'],['kategori','Kategori','s',SDA],['lokasi','Lokasi atau koordinat','t'],['jumlah','Jumlah atau estimasi','t'],['kondisi','Kondisi aktual','a'],
+ ['pemanfaatan','Pemanfaatan saat ini','a'],['pengelola','Pemilik / pengelola','t'],['potensi','Potensi pemanfaatan','a'],['kendala','Kendala','a'],
+ ['dilindungi','Perlu dilindungi secara ekologis?','s',['Belum tahu','Ya','Tidak']],['foto','ID atau tautan foto','t']]},
+{ k:'inovasi', n:'Teknologi & inovasi (Form D)', p:'INV', j:'nama', f:[
+ ['nama','Nama inovasi / alat / metode *','t'],['kategori','Kategori','s',INOV],['pencipta','Pencipta (Person ID)','t'],['masalah','Masalah yang diselesaikan','a'],['cara','Cara kerja','a'],
+ ['bahan','Bahan','a'],['biaya','Biaya (bila diketahui)','t'],['status_inv','Status','s',['Ide','Prototipe','Digunakan']],['uji','Hasil pengujian','a'],['peluang','Peluang pengembangan','a']]},
+{ k:'lahan', n:'Lahan & ladang belajar (Form E)', p:'LAND', j:'nama', f:[
+ ['nama','Nama lahan *','t'],['lokasi','Lokasi','t'],['luas','Luas','t'],['pengelola','Pengelola','t'],['izin','Status akses dan izin penggunaan','t'],['tanah','Jenis tanah','t'],['air','Sumber air','t'],
+ ['tanaman','Tanaman utama','a'],['pola','Pola dan musim tanam','a'],['teknik','Teknik budidaya, pupuk, perlakuan','a'],['hama','Gangguan hama','a'],['hasil','Hasil produksi','a'],['biaya','Biaya produksi','a'],['kendala','Kendala','a'],
+ ['istilah','Istilah pertanian setempat','a'],['kalender','Kalender musim tradisional dan tanda alam','a'],['warisan','Teknik diwariskan, masih bertahan, atau ditinggalkan (dan alasannya)','a']]},
+{ k:'eksperimen', n:'Eksperimen', p:'EXP', j:'nama', f:[
+ ['nama','Nama eksperimen *','t'],['lahan_id','Land ID','t'],['tujuan','Tujuan','a'],['hipotesis','Hipotesis','a'],['baseline','Kondisi awal (baseline)','a'],['perlakuan','Perlakuan','a'],
+ ['pembanding','Pembanding','a'],['durasi','Durasi pengamatan','t'],['hasil','Hasil (data aktual)','a'],['kegagalan','Kegagalan bila terjadi','a'],['kesimpulan','Kesimpulan sementara','a']]},
+{ k:'ekonomi', n:'Ekonomi & finansial (Form F)', p:'ECO', j:'nama', f:[
+ ['nama','Produk / usaha *','t'],['jenis_data','Jenis data','s',['Historis','Estimasi','Skenario']],['produksi','Volume per periode','t'],['harga','Harga jual aktual dan waktu pencatatan','t'],['pasar','Pasar dan pembeli','a'],
+ ['distribusi','Jalur distribusi','a'],['pengolahan','Produk turunan / pengolahan','a'],['kebutuhan','Kebutuhan bahan, alat, modal','a'],['nilai','Di mana nilai ekonomi tercipta dan siapa yang menikmatinya','a'],['peluang','Peluang kolaborasi','a'],['risiko','Risiko','a']]},
+{ k:'kearifan', n:'Kearifan lokal (Form G)', p:'KNW', j:'nama', f:[
+ ['nama','Nama tradisi / pengetahuan *','t'],['istilah','Nama lokal atau istilah asli','t'],['narasumber','Narasumber','t'],['asal_usul','Asal-usul menurut narasumber','a'],['konteks','Konteks penggunaan','a'],['cara','Cara praktik dilakukan','a'],
+ ['waktu','Waktu atau kondisi penerapan','a'],['makna','Makna menurut masyarakat','a'],['masih','Masih digunakan?','s',YT],['penguasa','Siapa yang masih menguasai','t'],['regenerasi','Ada regenerasi?','s',YT],
+ ['batasan','Batasan publikasi / pengetahuan terbatas','a'],['dokumentasi','Bukti dokumentasi','t']]},
+{ k:'komunitas', n:'Komunitas & lembaga (Form H)', p:'COM', j:'nama', f:[
+ ['nama','Nama kelompok *','t'],['bidang','Bidang aktivitas','t'],['anggota','Jumlah anggota','t'],['kegiatan','Kegiatan rutin','a'],['sumber_daya','Sumber daya yang dikelola','a'],
+ ['kemampuan','Kemampuan organisasi','a'],['hubungan','Hubungan dengan kelompok lain','a'],['kebutuhan','Kebutuhan','a'],['kolaborasi','Potensi kolaborasi','a']]},
+{ k:'masalah', n:'Masalah & kebutuhan (Form I)', p:'PRB', j:'nama', f:[
+ ['nama','Judul masalah *','t'],['kategori','Kategori','s',MASALAH],['deskripsi','Deskripsi','a'],['terdampak','Pihak yang terdampak','a'],['penyebab','Penyebab menurut narasumber','a'],['bukti','Bukti atau pengamatan','a'],
+ ['dampak','Dampak','a'],['dicoba','Solusi yang pernah dicoba','a'],['kebutuhan','Kebutuhan penyelesaian','a'],['pihak','Potensi pihak yang dapat membantu','a'],
+ ['jalur','Jalur penyelesaian yang cocok','s',['Belum jelas','Gotong royong','Kebijakan','Pendidikan','Perlindungan lingkungan','Peluang usaha']]]},
+{ k:'peluang', n:'Peluang pengembangan', p:'OPP', j:'nama', f:[
+ ['nama','Nama peluang *','t'],['klasifikasi','Klasifikasi','s',['Quick Action','Development','Research','Collaboration','Preservation','Protection']],['uraian','Uraian potensi','a'],
+ ['q1','Sumber dayanya benar-benar tersedia?','s',YT],['q2','Ada manusia yang mampu mengerjakannya?','s',YT],['q3','Ada kebutuhan nyata?','s',YT],['q4','Bisa diuji dengan sumber daya yang ada?','s',YT],['q5','Sesuai etika ToFarmer?','s',YT],['terkait','ID rekaman terkait','t']]}
+];
+var CEK = ['Mencatat identitas dan batas wilayah','Mencatat kondisi geografis dan lingkungan','Mengidentifikasi tokoh dan penggerak masyarakat','Mencari petani senior yang berpengalaman khusus','Mendata kemampuan dan keahlian warga','Mengidentifikasi kelompok dan komunitas lokal','Mendata sumber air dan karakteristik lahan','Mencatat tanaman dan komoditas lokal','Mendata peternakan dan sumber daya lainnya','Mencatat bengkel, alat, dan fasilitas produksi','Mengidentifikasi produk dan usaha lokal','Mewawancarai warga tentang kearifan lokal','Mengidentifikasi persoalan utama wilayah','Mengumpulkan dokumentasi foto dan bukti','Menyusun Regional Profile awal'];
+
+// ---------- Pembantu ----------
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+function uid() { return (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c == 'x' ? r : (r & 3 | 8)).toString(16); })); }
+function toast(m) { var t = document.getElementById('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(function () { t.classList.remove('show'); }, 3200); }
+function tipe(k) { return F.filter(function (t) { return t.k == k; })[0]; }
+function cari(id) { return S.rec.filter(function (r) { return r.uid == id; })[0]; }
+function lab(s) { return s.replace(' *', '').replace(/\s*\([^)]*\)/g, ''); }
+function kodeBaru(T) { return 'BARU-' + uid().slice(0, 4).toUpperCase(); } // kode resmi TOF-xxx-0001 diberikan server saat pertama sinkron, supaya tidak bentrok antar kontributor
+function loginHref() { return LOGIN_URL + '?next=' + encodeURIComponent(location.pathname + location.search); }
+function stamp() { return new Date().toISOString().slice(0, 10); }
+function pct(r) { var T = tipe(r.jenis), n = 0; T.f.forEach(function (x) { if (String(r.d[x[0]] || '').trim()) n++; }); return Math.round(n / T.f.length * 100); }
+function head() {
+ document.getElementById('badge').innerHTML = sso ? '<span>' + esc(sso.username) + '</span>' : '<a href="' + loginHref() + '">Masuk</a>';
+ var T = [['daftar','Daftar'],['form', editing ? 'Ubah' : 'Tambah'],['ekspor','Ekspor']];
+ document.getElementById('nav').innerHTML = !sso ? '' : T.map(function (t) { return '<button class="' + (t[0] == tab ? 'on' : '') + '" onclick="go(\'' + t[0] + '\')">' + t[1] + '</button>'; }).join('');
+}
+function go(t) { if (t == 'form' && tab != 'form') editing = null; tab = t; render(); }
+function render() { head(); var v = document.getElementById('view'); v.innerHTML = !sso ? gerbang() : tab == 'daftar' ? daftar() : tab == 'form' ? form() : ekspor(); if (sso && tab == 'daftar') paint(); window.scrollTo(0, 0); }
+
+// ---------- Daftar ----------
+function daftar() {
+ var c = {}, d = {}, areas = {};
+ S.rec.forEach(function (r) { c[r.jenis] = (c[r.jenis] || 0) + 1; d[r.status.slice(0, 2)] = (d[r.status.slice(0, 2)] || 0) + 1; if (r.area_id) areas[r.area_id] = 1; });
+ var st = F.map(function (t) { return t.n.replace(/ \(.*\)/, '') + ' <b>' + (c[t.k] || 0) + '</b>'; }).join(' &middot; '), sd = Object.keys(d).sort().map(function (k) { return k + ' <b>' + d[k] + '</b>'; }).join(' &middot; ');
+ var ck = CEK.map(function (t, i) { return '<label class="chk"><input type="checkbox" ' + (S.cek[i] ? 'checked' : '') + ' onchange="S.cek[' + i + ']=this.checked;save();render()">' + esc(t) + '</label>'; }).join(''), nck = Object.keys(S.cek).filter(function (k) { return S.cek[k]; }).length;
+ return '<div class="card"><h3>Peta pendataan: <b>' + S.rec.length + '</b> rekaman</h3><div class="stat">' + (st || '') + (sd ? '<br>Kematangan: ' + sd : '') + '</div>' +
+ '<div class="row"><input id="q" placeholder="Cari..." value="' + esc(qv) + '" oninput="qv=this.value;paint()"><select onchange="fj=this.value;paint()"><option value="">Semua jenis</option>' + F.map(function (t) { return '<option value="' + t.k + '"' + (fj == t.k ? ' selected' : '') + '>' + t.n + '</option>'; }).join('') + '</select></div>' +
+ '<div class="row" style="margin-top:8px"><select onchange="fa=this.value;paint()"><option value="">Semua wilayah</option>' + Object.keys(areas).sort().map(function (a) { return '<option' + (fa == a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select><select onchange="fs=this.value;paint()"><option value="">Semua status</option>' + STATUS.map(function (s) { return '<option' + (fs == s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div>' +
+ '<div class="acts"><button class="btn" onclick="editing=null;go(\'form\')">+ Tambah rekaman</button></div></div>' +
+ '<details><summary>Checklist pendataan pertama<i>' + nck + ' dari ' + CEK.length + ' selesai</i><div class="bar"><b style="width:' + Math.round(nck / CEK.length * 100) + '%"></b></div></summary><div class="dg">' + ck + '</div></details><div id="lst"></div>';
+}
+function paint() {
+ var q = qv.toLowerCase(), l = S.rec.filter(function (r) {
+  if ((fj && r.jenis != fj) || (fa && r.area_id != fa) || (fs && r.status != fs)) return false;
+  return !q || (r.judul + ' ' + r.kode + ' ' + JSON.stringify(r.d)).toLowerCase().indexOf(q) > -1;
+ }).sort(function (a, b) { return a.kode < b.kode ? -1 : 1; });
+ var h = l.map(function (r) {
+  var T = tipe(r.jenis), b = '';
+  T.f.forEach(function (x) { var v = r.d[x[0]]; if (x[0] != T.j && String(v || '').trim()) b += '<h5>' + esc(lab(x[1])) + '</h5><p>' + esc(v) + '</p>'; });
+  var tg = r.pilar.map(function (p) { return '<span class="tag">P' + p + '</span>'; }).join('') + r.asal.map(function (a) { return '<span class="tag">' + a + '</span>'; }).join('');
+  return '<details><summary>' + esc(r.judul) + '<i>' + r.kode + ' · ' + esc(T.n.replace(/ \(.*\)/, '')) + ' · ' + esc(r.status) + ' · ' + esc(r.akses) + (r.area_id ? ' · ' + esc(r.area_id) : '') + (r.milik === false ? ' · oleh ' + esc(r.pemilik_nama || '?') : (r.synced ? '' : ' · menunggu kirim')) + '</i><div class="bar"><b style="width:' + pct(r) + '%"></b></div><i>Kelengkapan ' + pct(r) + '%</i></summary><div class="dg">' + tg + b +
+   '<h5>Catatan</h5><p>Dicatat ' + esc(r.dibuat.slice(0, 10)) + ' oleh ' + esc(r.kontributor || '-') + ' · diperbarui ' + esc(r.diubah.slice(0, 10)) + ' · ' + r.rev.length + ' revisi</p>' +
+   (r.milik === false ? '' : '<div class="acts"><button class="btn alt" onclick="ubah(\'' + r.uid + '\')">Ubah / lengkapi</button><button class="btn bad" onclick="hapus(\'' + r.uid + '\')">Hapus</button></div>') + '</div></details>';
+ }).join('');
+ document.getElementById('lst').innerHTML = h || (S.rec.length ? '<p class="hint">Tidak ada yang cocok.</p>' : '<p class="hint">Belum ada rekaman. Mulai dari Wilayah (Form A), atau satu narasumber pertama.</p>');
+}
+function ubah(id) { editing = id; tab = 'form'; render(); }
+function hapus(id) {
+ var e = cari(id); if (!e || e.milik === false) return;
+ if (!confirm('Hapus rekaman ini?' + (e.synced ? ' Di cloud juga ikut terhapus.' : ''))) return;
+ S.rec = S.rec.filter(function (r) { return r.uid != id; }); if (e.synced) S.dels.push(id); save(); render(); sync();
+}
+
+// ---------- Form ----------
+function form() {
+ var e = editing ? cari(editing) : null, T = tipe(e ? e.jenis : ftNew), d = e ? e.d : {};
+ var h = '<p class="hint">Isi yang kamu ketahui sekarang. Yang kosong bisa dilengkapi nanti. Tulis apa adanya, jangan mengarang; perkiraan beri label (estimasi).</p>';
+ if (!e) h += '<div class="card"><h3>Jenis rekaman</h3><select id="jn" onchange="ftNew=this.value;render()">' + F.map(function (t) { return '<option value="' + t.k + '"' + (ftNew == t.k ? ' selected' : '') + '>' + t.n + '</option>'; }).join('') + '</select></div>';
+ var pl = e ? e.pilar : [], as = e ? e.asal : [], stt = e ? e.status : STATUS[0], ak = e ? e.akses : (T.k == 'orang' ? 'Private' : 'Community');
+ h += '<div class="card"><h3>Identitas rekaman' + (e ? ' · ' + e.kode : '') + '</h3>' +
+  '<div class="row"><div><label for="m_area">Area ID / nama wilayah</label><input id="m_area" value="' + esc(e ? e.area_id : S.area) + '" placeholder="mis. TOF-AREA-0001 atau Patihombo"></div><div><label for="m_kon">Kontributor</label><input id="m_kon" value="' + esc(e ? e.kontributor : (S.kontrib || (sso ? sso.username : ''))) + '"></div></div>' +
+  '<label>Pilar terkait <small>(boleh lebih dari satu)</small></label>' + PILAR.map(function (p, i) { return '<label class="chk"><input type="checkbox" class="mp" value="' + (i + 1) + '"' + (pl.indexOf(i + 1) > -1 ? ' checked' : '') + '>' + (i + 1) + '. ' + p + '</label>'; }).join('') +
+  '<label>Asal informasi <small>(boleh lebih dari satu)</small></label>' + ASAL.map(function (a) { return '<label class="chk"><input type="checkbox" class="ma" value="' + a[0] + '"' + (as.indexOf(a[0]) > -1 ? ' checked' : '') + '>' + a[0] + ' · ' + a[1] + '</label>'; }).join('') +
+  '<div class="row"><div><label for="m_st">Status kematangan data</label><select id="m_st">' + STATUS.map(function (s) { return '<option' + (stt == s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div><div><label for="m_ak">Tingkat akses</label><select id="m_ak">' + AKSES.map(function (s) { return '<option' + (ak == s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select></div></div>' +
+  '<p class="hint">Data pribadi, koordinat aset rawan, informasi ekonomi pribadi, dan pengetahuan adat terbatas jangan diberi akses Public.</p></div>';
+ h += '<div class="card"><h3>' + T.n + '</h3>' + T.f.map(function (x) {
+  var id = 'f_' + x[0], v = d[x[0]], hint = x[3] && x[2] != 's' ? ' <small>' + esc(x[3]) + '</small>' : '';
+  var s = '<label for="' + id + '">' + esc(x[1]) + hint + '</label>';
+  if (x[2] == 'a') return s + '<textarea id="' + id + '">' + esc(v) + '</textarea>';
+  if (x[2] == 's') return s + '<select id="' + id + '"><option value="">-</option>' + x[3].filter(Boolean).map(function (o) { return '<option' + (v == o ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
+  return s + '<input id="' + id + '" value="' + esc(v) + '">';
+ }).join('') + '</div>';
+ return h + '<div class="acts"><button class="btn" onclick="simpan()">Simpan rekaman</button><button class="btn alt" onclick="editing=null;go(\'daftar\')">Batal</button></div>';
+}
+function simpan() {
+ var e = editing ? cari(editing) : null, T = tipe(e ? e.jenis : ftNew), g = function (id) { return document.getElementById(id).value.trim(); };
+ var nm = g('f_' + T.j); if (!nm) { toast('Isian bertanda * wajib diisi dulu'); return; }
+ var pl = [], as = []; Array.prototype.forEach.call(document.querySelectorAll('.mp:checked'), function (x) { pl.push(+x.value); }); Array.prototype.forEach.call(document.querySelectorAll('.ma:checked'), function (x) { as.push(x.value); });
+ var st = g('m_st'); if (+st.charAt(1) >= 2 && !as.length) { toast('Status D2 ke atas perlu minimal satu asal informasi (INT/OBS/DOC/TEST)'); return; }
+ var now = new Date().toISOString();
+ if (!e) { e = { uid: uid(), jenis: T.k, kode: kodeBaru(T), dibuat: now, rev: [], milik: true }; S.rec.push(e); }
+ e.d = {}; T.f.forEach(function (x) { e.d[x[0]] = g('f_' + x[0]); });
+ e.judul = nm; e.area_id = g('m_area'); e.kontributor = g('m_kon'); e.pilar = pl; e.asal = as; e.status = st; e.akses = g('m_ak'); e.diubah = now; e.rev.push({ t: now, status: st });
+ e.synced = false; S.area = e.area_id; S.kontrib = e.kontributor; editing = null; tab = 'daftar'; save(); render(); toast('Tersimpan: ' + e.kode); sync();
+}
+
+// ---------- Ekspor / impor ----------
+function ekspor() {
+ return '<div class="card"><h3>Sinkron</h3><p class="hint">Kirim rekaman yang menunggu dan tarik rekaman terbaru dari cloud, termasuk yang Public/Community dari kontributor lain.</p><button class="btn alt" onclick="sync(true)">Sinkron sekarang</button></div>' +
+ '<div class="card"><h3>Pengaturan ekspor</h3><label class="chk"><input type="checkbox" id="x_priv"> Sertakan akses Restricted dan Private <small>(bawaan: hanya Public dan Community, kecuali cadangan penuh)</small></label>' +
+ '<label for="x_area">Wilayah</label><select id="x_area"><option value="">Semua wilayah</option>' + Object.keys(S.rec.reduce(function (a, r) { if (r.area_id) a[r.area_id] = 1; return a; }, {})).sort().map(function (a) { return '<option>' + esc(a) + '</option>'; }).join('') + '</select></div>' +
+ '<div class="card"><h3>🤖 Untuk AI (JSONL)</h3><p class="hint">Satu baris per rekaman: narasi teks siap dibaca model, ditambah isian terstruktur, asal informasi, status kematangan, dan tingkat akses. Cocok untuk RAG, penyetelan, atau analisis. Satu kali isi, dua kegunaan.</p><button class="btn" onclick="exAI()">Unduh data AI (.jsonl)</button></div>' +
+ '<div class="card"><h3>Ekspor umum</h3><p class="hint">Untuk dibaca, dibagikan, atau dibuka di spreadsheet.</p><div class="acts"><button class="btn" onclick="exJSON()">JSON terstruktur</button><button class="btn" onclick="exCSV(\'\')">CSV semua jenis</button><button class="btn" onclick="exMD()">Regional Profile (Markdown)</button></div>' +
+ '<label for="x_jenis">CSV satu jenis (kolom sesuai formulir)</label><div class="row"><select id="x_jenis">' + F.map(function (t) { return '<option value="' + t.k + '">' + t.n + '</option>'; }).join('') + '</select><button class="btn alt" style="flex:none" onclick="exCSV(document.getElementById(\'x_jenis\').value)">Unduh CSV</button></div></div>' +
+ '<div class="card"><h3>Cadangan penuh dan impor</h3><p class="hint">Cadangan memuat semua rekaman tanpa saringan akses. Impor menggabungkan tanpa ganda.</p><div class="acts"><button class="btn alt" onclick="exJSON(true)">Cadangan penuh (JSON)</button></div><label for="x_imp">Impor file JSON</label><input id="x_imp" type="file" accept=".json" onchange="imp(this)"></div>' +
+ '<div class="card"><h3>Hapus data di perangkat</h3><button class="btn bad" onclick="reset()">Hapus salinan perangkat</button></div>';
+}
+function dl(n, t, m) { var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], { type: m })); a.download = n; document.body.appendChild(a); a.click(); a.remove(); }
+function pilih(penuh) {
+ var inc = penuh || document.getElementById('x_priv').checked, ar = penuh ? '' : document.getElementById('x_area').value;
+ return S.rec.filter(function (r) { return (!penuh || r.milik !== false) && (inc || r.akses == 'Public' || r.akses == 'Community') && (!ar || r.area_id == ar); }).sort(function (a, b) { return a.kode < b.kode ? -1 : 1; });
+}
+function narasi(r) {
+ var T = tipe(r.jenis), a = [T.n.replace(/ \(.*\)/, '') + ': ' + r.judul + '.'];
+ if (r.area_id) a.push('Wilayah: ' + r.area_id + '.');
+ a.push('Pilar: ' + (r.pilar.map(function (p) { return PILAR[p - 1]; }).join(', ') || 'belum dikaitkan') + '.');
+ T.f.forEach(function (x) { var v = String(r.d[x[0]] || '').trim(); if (x[0] != T.j && v) a.push(lab(x[1]) + ': ' + v.replace(/\s*\n\s*/g, '; ') + '.'); });
+ a.push('Asal informasi: ' + (r.asal.join(', ') || 'belum dicatat') + '. Status data: ' + r.status + '.');
+ return a.join(' ');
+}
+function exAI() {
+ var l = pilih(); if (!l.length) { toast('Tidak ada rekaman yang cocok dengan pengaturan'); return; }
+ dl('tofarmer-pemetaan-ai-' + stamp() + '.jsonl', l.map(function (r) {
+  var T = tipe(r.jenis), f = {}; T.f.forEach(function (x) { if (String(r.d[x[0]] || '').trim()) f[x[0]] = r.d[x[0]]; });
+  return JSON.stringify({ id: r.kode, jenis: r.jenis, judul: r.judul, area_id: r.area_id, pilar: r.pilar.map(function (p) { return PILAR[p - 1]; }), asal_informasi: r.asal, status_data: r.status, akses: r.akses, kontributor: r.kontributor, dicatat: r.dibuat, diperbarui: r.diubah, teks: narasi(r), isian: f, kerangka: 'ToFarmer Regional Mapping Framework v1' });
+ }).join('\n'), 'application/x-ndjson'); toast(l.length + ' rekaman diekspor');
+}
+function exJSON(penuh) {
+ var l = pilih(penuh); dl('tofarmer-pemetaan-' + stamp() + (penuh ? '-cadangan' : '') + '.json', JSON.stringify({ versi: 1, kerangka: 'ToFarmer Regional Mapping Framework v1', diekspor: new Date().toISOString(), counters: S.cnt, records: l }, null, 2), 'application/json');
+}
+function q(x) { return '"' + String(x == null ? '' : x).replace(/"/g, '""') + '"'; }
+function exCSV(jenis) {
+ var l = pilih().filter(function (r) { return !jenis || r.jenis == jenis; }), meta = ['kode', 'area_id', 'pilar', 'asal', 'status', 'akses', 'kontributor', 'dibuat', 'diubah'], hd, rows;
+ if (jenis) { var T = tipe(jenis); hd = meta.concat(T.f.map(function (x) { return x[0]; })); rows = l.map(function (r) { return [r.kode, r.area_id, r.pilar.join('+'), r.asal.join('+'), r.status, r.akses, r.kontributor, r.dibuat, r.diubah].concat(T.f.map(function (x) { return r.d[x[0]]; })); }); }
+ else { hd = ['jenis', 'judul'].concat(meta, ['isian_json']); rows = l.map(function (r) { return [r.jenis, r.judul, r.kode, r.area_id, r.pilar.join('+'), r.asal.join('+'), r.status, r.akses, r.kontributor, r.dibuat, r.diubah, JSON.stringify(r.d)]; }); }
+ if (!l.length) { toast('Tidak ada rekaman yang cocok'); return; }
+ dl('tofarmer-pemetaan-' + (jenis || 'semua') + '-' + stamp() + '.csv', '\ufeff' + [hd].concat(rows).map(function (x) { return x.map(q).join(','); }).join('\n'), 'text/csv');
+}
+function exMD() {
+ var l = pilih(), by = {}; l.forEach(function (r) { var a = r.area_id || 'Tanpa wilayah'; (by[a] = by[a] || []).push(r); });
+ if (!l.length) { toast('Tidak ada rekaman yang cocok'); return; }
+ var m = '# Regional Profile\n\nKerangka: ToFarmer Regional Mapping Framework v1 · Diekspor ' + stamp() + ' (' + l.length + ' rekaman)\n';
+ Object.keys(by).sort().forEach(function (a) {
+  m += '\n# ' + a + '\n';
+  F.forEach(function (T) {
+   var r = by[a].filter(function (x) { return x.jenis == T.k; }); if (!r.length) return; m += '\n## ' + T.n + '\n';
+   r.forEach(function (x) {
+    m += '\n### ' + x.judul + ' (' + x.kode + ')\n- **Pilar:** ' + (x.pilar.map(function (p) { return PILAR[p - 1]; }).join(', ') || '-') + '\n- **Asal informasi:** ' + (x.asal.join(', ') || '-') + '\n- **Status:** ' + x.status + ' · **Akses:** ' + x.akses + '\n';
+    T.f.forEach(function (f) { var v = String(x.d[f[0]] || '').trim(); if (f[0] != T.j && v) m += '- **' + lab(f[1]) + ':** ' + v.replace(/\n/g, ' ') + '\n'; });
+   });
+  });
+ });
+ dl('regional-profile-' + stamp() + '.md', m, 'text/markdown');
+}
+function imp(el) {
+ var fl = el.files[0]; if (!fl) return; var r = new FileReader();
+ r.onload = function () {
+  try {
+   var d = JSON.parse(r.result); if (!Array.isArray(d.records)) throw 0; var ada = {}, n = 0; S.rec.forEach(function (x) { ada[x.uid] = 1; });
+   d.records.forEach(function (x) {
+    if (!x.uid || !x.jenis || !tipe(x.jenis) || ada[x.uid] || x.milik === false) return;
+    x.d = x.d || {}; x.pilar = x.pilar || []; x.asal = x.asal || []; x.rev = x.rev || []; x.status = x.status || STATUS[0]; x.akses = x.akses || 'Community'; x.dibuat = x.dibuat || new Date().toISOString(); x.diubah = x.diubah || x.dibuat;
+    x.milik = true; x.synced = false; S.rec.push(x); n++; var T = tipe(x.jenis), m = /-(\d+)$/.exec(x.kode || ''); if (m) S.cnt[T.p] = Math.max(S.cnt[T.p] || 0, +m[1]);
+   });
+   save(); toast('Impor selesai: ' + n + ' rekaman baru'); render(); sync();
+  } catch (x) { toast('File tidak dikenali. Pakai JSON hasil ekspor aplikasi ini.'); }
+ };
+ r.readAsText(fl);
+}
+function reset() { if (confirm('Salinan di perangkat ini akan dihapus. Pastikan sudah ekspor cadangan. Lanjut?')) { S = { rec: [], cnt: {}, cek: {}, kontrib: '', area: '', dels: [] }; save(); render(); sync(); } }
+
+// ---------- Gerbang login: yang belum masuk tidak bisa melihat atau mengisi data ----------
+function gerbang() {
+ return '<div class="card"><h3>Masuk dulu</h3><p class="hint">Pemetaan wilayah adalah data bersama yang dibangun bertahap. Supaya setiap rekaman jelas pencatatnya dan tersimpan aman di cloud, halaman ini hanya bisa dipakai setelah masuk dengan akun ToFarmer.</p>' +
+  '<div class="acts"><a class="btn" style="text-decoration:none" href="' + loginHref() + '">Masuk ke ToFarmer</a></div></div>';
+}
+
+// ---------- Sinkron: antre di perangkat, kirim saat ada sinyal dan sesi (pola sama dengan tumbuhan.html) ----------
+function setSync(t) { document.getElementById('sync').innerHTML = t; }
+function rpc(fn, params, tok) { return sb.rpc(fn, Object.assign({ p_id: sso.id, p_pin_hash: tok }, params)).then(function (r) { if (r.error) throw r.error; return r.data; }); }
+async function sync(manual) {
+ if (busy) return;
+ if (!sso || !sb) { setSync('Belum masuk. <a href="' + loginHref() + '"><b>Masuk</b></a> untuk mengisi dan menyinkronkan data.'); return; }
+ var tok = null; try { tok = TofSesi.token(); } catch (e) {}
+ if (!tok) { setSync('Sesi habis. <a href="' + loginHref() + '"><b>Masuk lagi</b></a> untuk sinkron; datamu aman di perangkat.'); return; }
+ if (!navigator.onLine) { setSync('Tanpa sinyal: data antre dan dikirim otomatis nanti.'); return; }
+ busy = true; setSync('Menyinkronkan...');
+ try {
+  var kirim = S.rec.filter(function (r) { return r.milik !== false && !r.synced; });
+  for (var i = 0; i < kirim.length; i++) {
+   var r = kirim[i];
+   var res = await rpc('regional_save', { p_rec: { uid: r.uid, jenis: r.jenis, judul: r.judul, area_id: r.area_id || null, pilar: r.pilar, asal: r.asal, status: r.status, akses: r.akses, kontributor: r.kontributor || null, d: r.d || {}, rev: r.rev || [], dibuat: r.dibuat, diubah: r.diubah } }, tok);
+   if (res && res.kode) r.kode = res.kode; // kode resmi dari server
+   r.synced = true; save();
+  }
+  while (S.dels.length) { await rpc('regional_delete', { p_uid: String(S.dels[0]) }, tok); S.dels.shift(); save(); }
+  var cloud = (await rpc('regional_list', {}, tok)) || [], hasil = S.rec.filter(function (x) { return x.milik !== false && !x.synced; }), tunda = {};
+  hasil.forEach(function (x) { tunda[x.uid] = 1; });
+  cloud.forEach(function (c) { if (!tunda[c.uid]) hasil.push({ uid: c.uid, kode: c.kode, jenis: c.jenis, judul: c.judul, area_id: c.area_id || '', pilar: c.pilar || [], asal: c.asal || [], status: c.status, akses: c.akses, kontributor: c.kontributor || '', d: c.d || {}, rev: c.rev || [], dibuat: c.dibuat, diubah: c.diubah, pemilik_nama: c.pemilik_nama, milik: !!c.milik, synced: true }); });
+  S.rec = hasil; save(); setSync('<b>Tersinkron</b> ' + new Date().toLocaleTimeString('id-ID'));
+  if (manual) toast('Sinkron selesai');
+  if (tab != 'form' && !(document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))) render();
+ } catch (err) {
+  var m = String((err && err.message) || err);
+  setSync(/PIN salah|akun tidak valid|Sesi tidak/i.test(m) ? 'Sesi tidak berlaku. <a href="' + loginHref() + '"><b>Masuk lagi</b></a>; datamu aman di perangkat.' : /Could not find the function|schema cache/i.test(m) ? 'Tabel dan fungsi Supabase pemetaan belum dipasang (jalankan SQL-nya dulu). Data aman di perangkat.' : /Batas|terlalu besar|Hanya/i.test(m) ? esc(m) : 'Sinyal belum cukup atau server sibuk. Data antre, dicoba lagi otomatis.');
+ }
+ busy = false;
+}
+window.addEventListener('online', function () { sync(); });
+render(); sync();
+</script>
+</body>
+</html>
